@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       whereClause.maxSalary = { lte: parseInt(maxSalary) };
     }
 
-    const [jobs, total] = await prisma.$transaction([
+    const [jobs, total] = await Promise.all([
       prisma.job.findMany({
         where: whereClause,
         orderBy: [
