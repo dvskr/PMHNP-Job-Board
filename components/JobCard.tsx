@@ -1,0 +1,71 @@
+import Link from 'next/link';
+import { MapPin, CheckCircle } from 'lucide-react';
+import { formatDate, formatSalary, slugify } from '@/lib/utils';
+import { Job } from '@prisma/client';
+
+interface JobCardProps {
+  job: Job;
+}
+
+export default function JobCard({ job }: JobCardProps) {
+  const jobUrl = `/jobs/${slugify(job.title, job.id)}`;
+  const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
+
+  return (
+    <Link href={jobUrl}>
+      <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200 flex flex-col gap-3 w-full">
+        {/* Title and Badges Row */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 flex-1">
+            {job.title}
+          </h3>
+          <div className="flex gap-1 flex-wrap">
+            {job.isFeatured && (
+              <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                Featured
+              </span>
+            )}
+            {job.isVerifiedEmployer && (
+              <span className="bg-green-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 whitespace-nowrap">
+                <CheckCircle size={12} />
+                Verified
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Company Name */}
+        <p className="text-gray-600">{job.employer}</p>
+
+        {/* Location */}
+        <div className="flex items-center gap-1 text-gray-500 text-sm">
+          <MapPin size={16} />
+          <span>{job.location}</span>
+        </div>
+
+        {/* Job Type and Mode Badges */}
+        <div className="flex gap-2 flex-wrap">
+          {job.jobType && (
+            <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+              {job.jobType}
+            </span>
+          )}
+          {job.mode && (
+            <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+              {job.mode}
+            </span>
+          )}
+        </div>
+
+        {/* Salary */}
+        {salary && (
+          <p className="text-green-600 font-semibold">{salary}</p>
+        )}
+
+        {/* Created Date */}
+        <p className="text-gray-400 text-sm">{formatDate(job.createdAt)}</p>
+      </div>
+    </Link>
+  );
+}
+
