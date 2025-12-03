@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { fetchAdzunaJobs } from '@/lib/aggregators/adzuna';
+import { fetchUSAJobs } from '@/lib/aggregators/usajobs';
+import { fetchGreenhouseJobs } from '@/lib/aggregators/greenhouse';
+import { fetchLeverJobs } from '@/lib/aggregators/lever';
 import { normalizeJob } from '@/lib/job-normalizer';
 import { isDuplicate } from '@/lib/deduplicator';
 
@@ -24,6 +27,15 @@ export async function ingestJobs(source: string): Promise<IngestionResult> {
   switch (source.toLowerCase()) {
     case 'adzuna':
       rawJobs = await fetchAdzunaJobs();
+      break;
+    case 'usajobs':
+      rawJobs = await fetchUSAJobs();
+      break;
+    case 'greenhouse':
+      rawJobs = await fetchGreenhouseJobs();
+      break;
+    case 'lever':
+      rawJobs = await fetchLeverJobs();
       break;
     default:
       console.warn(`Unknown source: ${source}`);

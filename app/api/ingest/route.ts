@@ -37,17 +37,15 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body: IngestRequestBody = await request.json();
     
-    if (!body.sources || !Array.isArray(body.sources) || body.sources.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid request: sources array required' },
-        { status: 400 }
-      );
-    }
+    // Default to all sources if none provided
+    const sources = (body.sources && Array.isArray(body.sources) && body.sources.length > 0)
+      ? body.sources
+      : ['adzuna', 'usajobs', 'greenhouse', 'lever'];
 
     // Process each source
     const results: SourceResult[] = [];
 
-    for (const source of body.sources) {
+    for (const source of sources) {
       const result = await ingestJobs(source);
       results.push({
         source,
