@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import JobCard from '@/components/JobCard';
 import { Job } from '@prisma/client';
 import { Bookmark, Trash2, FileCheck } from 'lucide-react';
@@ -21,6 +21,8 @@ export default function SavedJobsPage() {
   const [appliedJobsData, setAppliedJobsData] = useState<Job[]>([]);
   const [appliedLoading, setAppliedLoading] = useState(false);
   const [appliedError, setAppliedError] = useState<string | null>(null);
+  const [appliedInitialized, setAppliedInitialized] = useState(false);
+  const lastFetchedIds = useRef<string>('');
 
   const fetchSavedJobs = async (ids: string[]) => {
     if (ids.length === 0) {
@@ -84,13 +86,31 @@ export default function SavedJobsPage() {
 
   // Fetch applied jobs when tab changes or appliedJobs changes
   useEffect(() => {
-    if (activeTab === 'applied' && appliedJobs.length > 0) {
-      fetchAppliedJobs(appliedJobs);
-    } else if (activeTab === 'applied') {
-      setAppliedJobsData([]);
-      setAppliedLoading(false);
+    // Create a stable key from the applied job IDs
+    const idsKey = appliedJobs.sort().join(',');
+    
+    // Only fetch if we're on the applied tab and IDs have actually changed
+    if (activeTab === 'applied') {
+      if (appliedJobs.length > 0) {
+        // Only fetch if IDs changed since last fetch
+        if (idsKey !== lastFetchedIds.current) {
+          lastFetchedIds.current = idsKey;
+          fetchAppliedJobs(appliedJobs);
+        }
+      } else if (!appliedInitialized) {
+        // First render with empty array - wait a bit for localStorage to load
+        setAppliedLoading(true);
+        const timer = setTimeout(() => {
+          setAppliedInitialized(true);
+          setAppliedLoading(false);
+        }, 100);
+        return () => clearTimeout(timer);
+      } else {
+        setAppliedJobsData([]);
+        setAppliedLoading(false);
+      }
     }
-  }, [activeTab, appliedJobs]);
+  }, [activeTab, appliedJobs, appliedInitialized]);
 
   const formatAppliedDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {

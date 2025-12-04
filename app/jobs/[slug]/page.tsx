@@ -1,9 +1,12 @@
 import { notFound } from 'next/navigation';
-import { formatSalary, formatDate } from '@/lib/utils';
+import { formatSalary, formatDate, slugify } from '@/lib/utils';
 import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
 import { Job } from '@prisma/client';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
+import ShareButtons from '@/components/ShareButtons';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
 interface JobPageProps {
   params: { slug: string };
@@ -29,7 +32,8 @@ async function getJob(id: string): Promise<Job | null> {
 
 export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
-  const id = resolvedParams.slug.split('-').pop();
+  const slug = resolvedParams.slug;
+  const id = slug.split('-').pop();
   if (!id) {
     return { title: 'Job Not Found' };
   }
@@ -40,9 +44,31 @@ export async function generateMetadata({ params }: JobPageProps) {
     return { title: 'Job Not Found' };
   }
 
+  const description = job.descriptionSummary || job.description.slice(0, 160);
+
   return {
     title: `${job.title} at ${job.employer} | PMHNP Jobs`,
-    description: job.descriptionSummary || job.description.slice(0, 160),
+    description,
+    openGraph: {
+      title: `${job.title} at ${job.employer}`,
+      description,
+      type: 'website',
+      url: `${BASE_URL}/jobs/${slug}`,
+      siteName: 'PMHNP Jobs',
+      images: [
+        {
+          url: `${BASE_URL}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: job.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${job.title} at ${job.employer}`,
+      description,
+    },
   };
 }
 
@@ -125,6 +151,16 @@ export default async function JobPage({ params }: JobPageProps) {
         <div className="flex flex-wrap items-center gap-4">
           <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
           <SaveJobButton jobId={job.id} />
+        </div>
+
+        {/* Share Section */}
+        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200">
+          <span className="text-sm text-gray-500">Share this job:</span>
+          <ShareButtons
+            url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
+            title={job.title}
+            company={job.employer}
+          />
         </div>
       </div>
 
