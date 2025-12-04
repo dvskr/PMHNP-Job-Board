@@ -102,18 +102,14 @@ export default function JobsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">PMHNP Jobs</h1>
-        <p className="text-gray-600">
-          Find your next psychiatric nurse practitioner role
-        </p>
-        {activeFilterCount > 0 && (
-          <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+      {/* Active Filters Badge */}
+      {activeFilterCount > 0 && (
+        <div className="mb-6">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
             {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Main Content with Filters */}
       <div className="flex gap-8">

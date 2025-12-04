@@ -11,9 +11,15 @@ if (!globalForPrisma.pool) {
   const connectionString = process.env.DATABASE_URL
   globalForPrisma.pool = new Pool({ 
     connectionString,
-    max: 10, // Maximum number of connections
-    idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-    connectionTimeoutMillis: 10000, // Timeout after 10 seconds when connecting
+    max: 5, // Reduced max connections for better stability
+    idleTimeoutMillis: 60000, // Keep connections alive longer (60 seconds)
+    connectionTimeoutMillis: 30000, // Longer timeout for slow connections (30 seconds)
+    allowExitOnIdle: true, // Allow pool to close when idle
+  })
+  
+  // Handle pool errors gracefully
+  globalForPrisma.pool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err)
   })
 }
 
