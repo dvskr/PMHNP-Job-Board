@@ -1,13 +1,18 @@
+'use client';
+
 import Link from 'next/link';
 import { MapPin, CheckCircle } from 'lucide-react';
 import { formatDate, formatSalary, slugify } from '@/lib/utils';
 import { Job } from '@prisma/client';
+import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 
 interface JobCardProps {
   job: Job;
 }
 
 export default function JobCard({ job }: JobCardProps) {
+  const { isApplied } = useAppliedJobs();
+  const applied = isApplied(job.id);
   const jobUrl = `/jobs/${slugify(job.title, job.id)}`;
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
 
@@ -20,6 +25,14 @@ export default function JobCard({ job }: JobCardProps) {
             {job.title}
           </h3>
           <div className="flex gap-1 flex-wrap">
+            {applied && (
+              <span className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1 whitespace-nowrap">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Applied
+              </span>
+            )}
             {job.isFeatured && (
               <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                 Featured

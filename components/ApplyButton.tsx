@@ -1,0 +1,114 @@
+'use client';
+
+import { useState } from 'react';
+import { ExternalLink } from 'lucide-react';
+import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
+import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
+
+interface ApplyButtonProps {
+  jobId: string;
+  applyLink: string;
+  jobTitle: string;
+}
+
+function formatAppliedDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonProps) {
+  const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const applied = isApplied(jobId);
+  const appliedDate = getAppliedDate(jobId);
+
+  const handleApply = () => {
+    // Track apply click (fire and forget)
+    try {
+      fetch(`/api/jobs/${jobId}/track-apply`, {
+        method: 'POST',
+      }).catch(() => {
+        // Silently fail - tracking is not critical
+      });
+    } catch {
+      // Silently fail
+    }
+
+    // Open apply link in new tab
+    window.open(applyLink, '_blank', 'noopener,noreferrer');
+
+    // Show confirmation modal only if not already applied
+    if (!isApplied(jobId)) {
+      setShowConfirmModal(true);
+    }
+  };
+
+  const handleConfirmApplied = () => {
+    markApplied(jobId);
+    setShowConfirmModal(false);
+  };
+
+  const handleNotApplied = () => {
+    setShowConfirmModal(false);
+  };
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleApply}
+          className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg"
+        >
+          {applied ? 'Apply Again' : 'Apply Now'}
+          <ExternalLink size={20} />
+        </button>
+
+        {applied && (
+          <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm font-medium">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.5 12.75l6 6 9-13.5"
+              />
+            </svg>
+            Applied
+          </span>
+        )}
+      </div>
+
+      {applied && appliedDate && (
+        <p className="text-sm text-gray-500 mt-2">
+          Applied on {formatAppliedDate(appliedDate)}
+        </p>
+      )}
+
+      {!applied && (
+        <button
+          onClick={() => markApplied(jobId)}
+          className="text-sm text-gray-500 hover:underline mt-2 text-left"
+        >
+          Already applied? Mark as applied
+        </button>
+      )}
+
+      <ApplyConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirmApplied={handleConfirmApplied}
+        onNotApplied={handleNotApplied}
+        jobTitle={jobTitle}
+      />
+    </div>
+  );
+}
+
