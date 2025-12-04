@@ -3,6 +3,7 @@ import { formatSalary, formatDate } from '@/lib/utils';
 import { MapPin, Briefcase, Monitor, DollarSign, ExternalLink, Bookmark, CheckCircle } from 'lucide-react';
 import { Job } from '@prisma/client';
 import Link from 'next/link';
+import SaveJobButton from '@/components/SaveJobButton';
 
 interface JobPageProps {
   params: { slug: string };
@@ -121,15 +122,18 @@ export default async function JobPage({ params }: JobPageProps) {
 
       {/* Apply Section */}
       <div className="bg-gray-50 rounded-lg p-6 mt-8 shadow-md">
-        <a
-          href={job.applyLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg"
-        >
-          Apply Now
-          <ExternalLink size={20} />
-        </a>
+        <div className="flex flex-wrap items-center gap-4">
+          <a
+            href={job.applyLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg"
+          >
+            Apply Now
+            <ExternalLink size={20} />
+          </a>
+          <SaveJobButton jobId={job.id} />
+        </div>
       </div>
 
       {/* Footer Info */}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import EmailSignupForm from '@/components/EmailSignupForm';
+import StatsSection from '@/components/StatsSection';
 
 export default function Home() {
   return (
@@ -32,24 +33,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-blue-600 mb-2">200+</div>
-              <div className="text-gray-600">Active Job Listings</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-blue-600 mb-2">50+</div>
-              <div className="text-gray-600">Top Employers</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-blue-600 mb-2">5,000+</div>
-              <div className="text-gray-600">Monthly Visitors</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <StatsSection />
 
       {/* Features Section */}
       <section className="py-16 px-4 bg-gray-50">

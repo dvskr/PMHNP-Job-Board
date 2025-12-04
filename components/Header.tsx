@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Bookmark } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Header() {
@@ -26,6 +26,10 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/jobs" className="text-gray-700 hover:text-blue-500 transition-colors font-medium">
               Jobs
+            </Link>
+            <Link href="/saved" className="text-gray-700 hover:text-blue-500 transition-colors font-medium flex items-center gap-1">
+              <Bookmark size={16} />
+              Saved Jobs
             </Link>
             <Link href="/post-job" className="text-gray-700 hover:text-blue-500 transition-colors font-medium">
               Post Job
@@ -65,6 +69,14 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Jobs
+              </Link>
+              <Link
+                href="/saved"
+                className="text-gray-700 hover:text-blue-500 transition-colors font-medium py-2 flex items-center gap-1"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Bookmark size={16} />
+                Saved Jobs
               </Link>
               <Link
                 href="/post-job"
