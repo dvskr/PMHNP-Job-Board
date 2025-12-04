@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { formatSalary, formatDate, slugify } from '@/lib/utils';
+import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
 import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
 import { Job } from '@prisma/client';
 import SaveJobButton from '@/components/SaveJobButton';
@@ -87,6 +87,8 @@ export default async function JobPage({ params }: JobPageProps) {
   }
 
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
+  const freshness = getJobFreshness(job.createdAt);
+  const expiryStatus = getExpiryStatus(job.expiresAt);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -146,8 +148,44 @@ export default async function JobPage({ params }: JobPageProps) {
         </div>
       </div>
 
+      {/* Expiry Warning */}
+      {expiryStatus.isExpired && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-8 flex items-center gap-3">
+          <svg className="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-amber-800 text-sm font-medium">
+            {expiryStatus.text}
+          </p>
+        </div>
+      )}
+
       {/* Apply Section */}
       <div className="bg-gray-50 rounded-lg p-6 mt-8 shadow-md">
+        {/* Urgent Expiry Notice */}
+        {!expiryStatus.isExpired && expiryStatus.isUrgent && expiryStatus.text && (
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
+            <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-orange-600 text-sm font-medium">
+              {expiryStatus.text} — Apply soon!
+            </p>
+          </div>
+        )}
+
+        {/* Non-urgent Expiry Notice */}
+        {!expiryStatus.isExpired && !expiryStatus.isUrgent && expiryStatus.text && (
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
+            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-gray-500 text-sm">
+              {expiryStatus.text}
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-4">
           <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
           <SaveJobButton jobId={job.id} />
@@ -166,7 +204,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
       {/* Footer Info */}
       <div className="mt-8 text-sm text-gray-500">
-        <p>Posted {formatDate(job.createdAt)}</p>
+        <p>{freshness}</p>
         {job.sourceType === 'external' && job.sourceProvider && (
           <p className="mt-1">Posted via {job.sourceProvider}</p>
         )}

@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, differenceInHours, differenceInDays, differenceInWeeks, format } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
@@ -59,5 +59,72 @@ export function slugify(title: string, id: string): string {
   const idSuffix = id.slice(-8);
   
   return `${slug}-${idSuffix}`;
+}
+
+export function isNewJob(createdAt: Date): boolean {
+  const dateObj = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+  const hoursSincePosted = differenceInHours(new Date(), dateObj);
+  return hoursSincePosted < 48;
+}
+
+export function getJobFreshness(createdAt: Date): string {
+  const dateObj = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+  const now = new Date();
+  
+  const hours = differenceInHours(now, dateObj);
+  const days = differenceInDays(now, dateObj);
+  const weeks = differenceInWeeks(now, dateObj);
+
+  if (hours < 1) {
+    return 'Just posted';
+  }
+  
+  if (hours < 24) {
+    return 'Posted today';
+  }
+  
+  if (hours < 48) {
+    return 'Posted yesterday';
+  }
+  
+  if (days < 7) {
+    return `Posted ${days} day${days !== 1 ? 's' : ''} ago`;
+  }
+  
+  if (days < 30) {
+    return `Posted ${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+  }
+  
+  return `Posted on ${format(dateObj, 'MMM d, yyyy')}`;
+}
+
+export function getExpiryStatus(expiresAt: Date | null): { text: string; isUrgent: boolean; isExpired: boolean } {
+  if (!expiresAt) {
+    return { text: '', isUrgent: false, isExpired: false };
+  }
+
+  const dateObj = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
+  const now = new Date();
+  
+  // Check if expired
+  if (dateObj < now) {
+    return { text: 'This job may no longer be active', isUrgent: false, isExpired: true };
+  }
+  
+  const daysUntilExpiry = differenceInDays(dateObj, now);
+  
+  // Less than 3 days - urgent
+  if (daysUntilExpiry < 3) {
+    const daysText = daysUntilExpiry === 0 ? 'today' : `in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`;
+    return { text: `Expires ${daysText}`, isUrgent: true, isExpired: false };
+  }
+  
+  // Less than 7 days - show but not urgent
+  if (daysUntilExpiry < 7) {
+    return { text: `Expires in ${daysUntilExpiry} days`, isUrgent: false, isExpired: false };
+  }
+  
+  // More than 7 days - don't show
+  return { text: '', isUrgent: false, isExpired: false };
 }
 

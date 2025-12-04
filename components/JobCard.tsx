@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { MapPin, CheckCircle } from 'lucide-react';
-import { formatDate, formatSalary, slugify } from '@/lib/utils';
+import { formatSalary, slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@prisma/client';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 
@@ -15,6 +15,8 @@ export default function JobCard({ job }: JobCardProps) {
   const applied = isApplied(job.id);
   const jobUrl = `/jobs/${slugify(job.title, job.id)}`;
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
+  const isNew = isNewJob(job.createdAt);
+  const freshness = getJobFreshness(job.createdAt);
 
   return (
     <Link href={jobUrl}>
@@ -25,6 +27,11 @@ export default function JobCard({ job }: JobCardProps) {
             {job.title}
           </h3>
           <div className="flex gap-1 flex-wrap">
+            {isNew && (
+              <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded font-medium whitespace-nowrap">
+                New
+              </span>
+            )}
             {applied && (
               <span className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1 whitespace-nowrap">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -75,8 +82,8 @@ export default function JobCard({ job }: JobCardProps) {
           <p className="text-green-600 font-semibold">{salary}</p>
         )}
 
-        {/* Created Date */}
-        <p className="text-gray-400 text-sm">{formatDate(job.createdAt)}</p>
+        {/* Freshness */}
+        <p className="text-gray-400 text-sm">{freshness}</p>
       </div>
     </Link>
   );
