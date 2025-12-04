@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import EmailSignupForm from '@/components/EmailSignupForm';
 import StatsSection from '@/components/StatsSection';
+import PopularCategories from '@/components/PopularCategories';
 
 export default function Home() {
   return (
@@ -34,6 +35,9 @@ export default function Home() {
 
       {/* Stats Section */}
       <StatsSection />
+
+      {/* Popular Categories */}
+      <PopularCategories />
 
       {/* Features Section */}
       <section className="py-16 px-4 bg-gray-50">

@@ -16,6 +16,23 @@ interface FilterState {
   maxSalary?: number;
 }
 
+interface CategoryCounts {
+  byMode: Record<string, number>;
+  byJobType: Record<string, number>;
+  byState: Record<string, number>;
+  special: {
+    highPaying: number;
+    newThisWeek: number;
+  };
+}
+
+interface QuickFilter {
+  label: string;
+  filterKey: string;
+  filterValue: string | number;
+  count: number;
+}
+
 export default function JobsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,6 +51,7 @@ export default function JobsPage() {
     minSalary: undefined,
     maxSalary: undefined,
   });
+  const [quickFilters, setQuickFilters] = useState<QuickFilter[]>([]);
 
   const fetchJobs = useCallback(async (currentFilters: FilterState) => {
     try {
@@ -63,6 +81,38 @@ export default function JobsPage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Fetch category counts for quick filters
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const response = await fetch('/api/jobs/categories');
+        if (!response.ok) return;
+        const data: CategoryCounts = await response.json();
+
+        const chips: QuickFilter[] = [];
+
+        if (data.byMode['Remote']) {
+          chips.push({ label: 'Remote', filterKey: 'mode', filterValue: 'Remote', count: data.byMode['Remote'] });
+        }
+        if (data.byJobType['Full-Time']) {
+          chips.push({ label: 'Full-Time', filterKey: 'jobType', filterValue: 'Full-Time', count: data.byJobType['Full-Time'] });
+        }
+        if (data.special.newThisWeek > 0) {
+          chips.push({ label: 'New This Week', filterKey: 'posted', filterValue: 'week', count: data.special.newThisWeek });
+        }
+        if (data.special.highPaying > 0) {
+          chips.push({ label: 'High Paying', filterKey: 'minSalary', filterValue: 150000, count: data.special.highPaying });
+        }
+
+        setQuickFilters(chips);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    }
+
+    fetchCategories();
   }, []);
 
   // Read URL params on mount and when they change
@@ -120,6 +170,31 @@ export default function JobsPage() {
     maxSalary: filters.maxSalary,
   };
 
+  // Check if a quick filter is active
+  const isQuickFilterActive = (qf: QuickFilter): boolean => {
+    if (qf.filterKey === 'mode') return filters.mode === qf.filterValue;
+    if (qf.filterKey === 'jobType') return filters.jobType === qf.filterValue;
+    if (qf.filterKey === 'minSalary') return filters.minSalary === qf.filterValue;
+    if (qf.filterKey === 'posted') return searchParams.get('posted') === qf.filterValue;
+    return false;
+  };
+
+  // Handle quick filter click
+  const handleQuickFilterClick = (qf: QuickFilter) => {
+    const isActive = isQuickFilterActive(qf);
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (isActive) {
+      // Remove filter
+      params.delete(qf.filterKey);
+    } else {
+      // Add filter
+      params.set(qf.filterKey, qf.filterValue.toString());
+    }
+
+    router.push(`/jobs?${params.toString()}`);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Active Filters Badge & Create Alert Button */}
@@ -160,6 +235,31 @@ export default function JobsPage() {
 
         {/* Jobs Content */}
         <div className="flex-1">
+          {/* Quick Filter Chips */}
+          {quickFilters.length > 0 && (
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              {quickFilters.map((qf) => {
+                const isActive = isQuickFilterActive(qf);
+                return (
+                  <button
+                    key={qf.label}
+                    onClick={() => handleQuickFilterClick(qf)}
+                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span>{qf.label}</span>
+                    <span className={`text-xs ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
+                      ({qf.count})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Results Count */}
           {!loading && !error && (
             <p className="text-sm text-gray-500 mb-4">
