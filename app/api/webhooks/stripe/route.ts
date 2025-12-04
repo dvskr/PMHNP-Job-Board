@@ -1,25 +1,8 @@
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-interface JobData {
-  title: string;
-  employer: string;
-  location: string;
-  mode: string;
-  jobType: string;
-  description: string;
-  applyLink: string;
-  contactEmail: string;
-  minSalary?: number | string | null;
-  maxSalary?: number | string | null;
-  salaryPeriod?: string | null;
-  companyWebsite?: string | null;
-  pricing: 'standard' | 'featured';
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,67 +30,34 @@ export async function POST(request: NextRequest) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
-      if (!session.metadata?.jobData) {
-        console.error('No job data in session metadata');
+      const jobId = session.metadata?.jobId;
+      
+      if (!jobId) {
+        console.error('No job ID in session metadata');
         return NextResponse.json(
-          { error: 'Missing job data' },
+          { error: 'Missing job ID' },
           { status: 400 }
         );
       }
 
-      const jobData: JobData = JSON.parse(session.metadata.jobData);
-
-      // Generate unique edit token
-      const editToken = crypto.randomBytes(32).toString('hex');
-
-      // Calculate expiry date based on pricing tier
-      const expiresAt = new Date();
-      if (jobData.pricing === 'featured') {
-        expiresAt.setDate(expiresAt.getDate() + 60); // 60 days for featured
-      } else {
-        expiresAt.setDate(expiresAt.getDate() + 30); // 30 days for standard
-      }
-
       try {
-        // Create job with Prisma
-        const job = await prisma.job.create({
-          data: {
-            title: jobData.title,
-            employer: jobData.employer,
-            location: jobData.location,
-            jobType: jobData.jobType,
-            mode: jobData.mode,
-            description: jobData.description,
-            descriptionSummary: jobData.description.slice(0, 300),
-            applyLink: jobData.applyLink,
-            minSalary: jobData.minSalary ? parseInt(String(jobData.minSalary)) : null,
-            maxSalary: jobData.maxSalary ? parseInt(String(jobData.maxSalary)) : null,
-            salaryPeriod: jobData.salaryPeriod || null,
-            isFeatured: jobData.pricing === 'featured',
-            isPublished: true,
-            sourceType: 'employer',
-            expiresAt: expiresAt,
-          },
+        // Update job to published
+        await prisma.job.update({
+          where: { id: jobId },
+          data: { isPublished: true },
         });
 
-        // Create employer job record
-        await prisma.employerJob.create({
-          data: {
-            employerName: jobData.employer,
-            contactEmail: jobData.contactEmail,
-            companyWebsite: jobData.companyWebsite || null,
-            jobId: job.id,
-            editToken: editToken,
-            paymentStatus: 'paid',
-          },
+        // Update employer job payment status
+        await prisma.employerJob.updateMany({
+          where: { jobId: jobId },
+          data: { paymentStatus: 'paid' },
         });
 
-        // TODO: Send confirmation email (Slice 8)
-        console.log('Job created:', job.id, 'Edit token:', editToken);
+        console.log('Job published:', jobId);
       } catch (prismaError) {
-        console.error('Error creating job in database:', prismaError);
+        console.error('Error updating job in database:', prismaError);
         return NextResponse.json(
-          { error: 'Failed to create job' },
+          { error: 'Failed to update job' },
           { status: 500 }
         );
       }
@@ -122,4 +72,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

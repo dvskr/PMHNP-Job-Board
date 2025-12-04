@@ -1,5 +1,7 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -63,7 +65,51 @@ export async function POST(request: NextRequest) {
     // Determine salary period (default to year for annual salaries)
     const salaryPeriod = (salaryMin || salaryMax) && !salaryCompetitive ? 'year' : null;
 
-    // Create Stripe Checkout session
+    // Calculate expiry date based on pricing tier
+    const expiresAt = new Date();
+    if (pricing === 'featured') {
+      expiresAt.setDate(expiresAt.getDate() + 60); // 60 days for featured
+    } else {
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days for standard
+    }
+
+    // Generate unique edit token
+    const editToken = crypto.randomBytes(32).toString('hex');
+
+    // Create job in database first (unpublished, pending payment)
+    const job = await prisma.job.create({
+      data: {
+        title,
+        employer,
+        location,
+        jobType,
+        mode,
+        description,
+        descriptionSummary: description.slice(0, 300),
+        applyLink,
+        minSalary: salaryMin ? Math.round(salaryMin) : null,
+        maxSalary: salaryMax ? Math.round(salaryMax) : null,
+        salaryPeriod,
+        isFeatured: pricing === 'featured',
+        isPublished: false, // Will be published after payment
+        sourceType: 'employer',
+        expiresAt,
+      },
+    });
+
+    // Create employer job record
+    await prisma.employerJob.create({
+      data: {
+        employerName: employer,
+        contactEmail,
+        companyWebsite: companyWebsite || null,
+        jobId: job.id,
+        editToken,
+        paymentStatus: 'pending',
+      },
+    });
+
+    // Create Stripe Checkout session with just the job ID in metadata
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -83,21 +129,8 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/post-job`,
       metadata: {
-        jobData: JSON.stringify({
-          title,
-          employer,
-          location,
-          mode,
-          jobType,
-          description,
-          applyLink,
-          contactEmail,
-          minSalary: salaryMin || null,
-          maxSalary: salaryMax || null,
-          salaryPeriod,
-          companyWebsite: companyWebsite || null,
-          pricing,
-        }),
+        jobId: job.id,
+        pricing,
       },
     });
 
@@ -113,4 +146,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
