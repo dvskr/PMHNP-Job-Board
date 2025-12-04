@@ -1,9 +1,23 @@
 import Link from 'next/link';
+import EmailSignupForm from '@/components/EmailSignupForm';
 
 export default function Footer() {
   return (
     <footer className="bg-gray-50 border-t border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Email Signup */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 mb-12">
+        <div className="max-w-md">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Stay Updated
+          </h3>
+          <EmailSignupForm 
+            source="footer" 
+            placeholder="Your email address"
+          />
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* About */}
           <div>
