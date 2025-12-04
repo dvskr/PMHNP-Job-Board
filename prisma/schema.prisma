@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -43,13 +44,17 @@ model Job {
 }
 
 model EmailLead {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  preferences Json     @default("{}")
-  source      String?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id               String   @id @default(cuid())
+  email            String   @unique
+  preferences      Json     @default("{}")
+  source           String?
+  isSubscribed     Boolean  @default(true) @map("is_subscribed")
+  unsubscribeToken String   @unique @default(cuid()) @map("unsubscribe_token")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@index([email])
+  @@index([unsubscribeToken])
   @@map("email_leads")
 }
 

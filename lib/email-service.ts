@@ -4,16 +4,27 @@ import { slugify } from '@/lib/utils';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Jobs <noreply@rolerabbit.com>';
 
 interface EmailResult {
   success: boolean;
   error?: string;
 }
 
-export async function sendWelcomeEmail(email: string): Promise<EmailResult> {
+// Helper function to generate unsubscribe footer
+function getUnsubscribeFooter(unsubscribeToken: string): string {
+  return `
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
+      <p>You're receiving this because you signed up at PMHNPJobs.com</p>
+      <p><a href="${BASE_URL}/email-preferences?token=${unsubscribeToken}" style="color: #3b82f6;">Manage preferences</a> | <a href="${BASE_URL}/api/email/unsubscribe?token=${unsubscribeToken}" style="color: #3b82f6;">Unsubscribe</a></p>
+    </div>
+  `;
+}
+
+export async function sendWelcomeEmail(email: string, unsubscribeToken: string): Promise<EmailResult> {
   try {
     await resend.emails.send({
-      from: 'PMHNP Jobs <onboarding@resend.dev>',
+      from: EMAIL_FROM,
       to: email,
       subject: 'Welcome to PMHNP Jobs!',
       html: `
@@ -32,9 +43,7 @@ export async function sendWelcomeEmail(email: string): Promise<EmailResult> {
             
             <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 16px;">Browse Jobs</a>
             
-            <p style="font-size: 14px; color: #666; margin-top: 32px;">
-              You're receiving this email because you signed up for job alerts at PMHNP Jobs.
-            </p>
+            ${getUnsubscribeFooter(unsubscribeToken)}
           </body>
         </html>
       `,
@@ -55,13 +64,14 @@ export async function sendConfirmationEmail(
   employerEmail: string,
   jobTitle: string,
   jobId: string,
-  editToken: string
+  editToken: string,
+  unsubscribeToken?: string
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
 
     await resend.emails.send({
-      from: 'PMHNP Jobs <onboarding@resend.dev>',
+      from: EMAIL_FROM,
       to: employerEmail,
       subject: 'Your PMHNP job post is live!',
       html: `
@@ -95,6 +105,8 @@ export async function sendConfirmationEmail(
             <p style="font-size: 14px; color: #666; margin-top: 16px;">
               Thank you for choosing PMHNP Jobs!
             </p>
+            
+            ${unsubscribeToken ? getUnsubscribeFooter(unsubscribeToken) : ''}
           </body>
         </html>
       `,
