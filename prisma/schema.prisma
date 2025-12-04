@@ -53,9 +53,44 @@ model EmailLead {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  jobAlerts        JobAlert[]
+
   @@index([email])
   @@index([unsubscribeToken])
   @@map("email_leads")
+}
+
+model JobAlert {
+  id          String    @id @default(cuid())
+  email       String
+  name        String?   // Optional: "Remote CA jobs"
+
+  // Search criteria
+  keyword     String?
+  location    String?
+  mode        String?   // Remote, Hybrid, In-Person
+  jobType     String?   @map("job_type") // Full-Time, Part-Time, Contract, Per Diem
+  minSalary   Int?      @map("min_salary")
+  maxSalary   Int?      @map("max_salary")
+
+  // Settings
+  frequency   String    @default("weekly") // daily, weekly
+  isActive    Boolean   @default(true) @map("is_active")
+
+  // Tracking
+  lastSentAt  DateTime? @map("last_sent_at")
+  token       String    @unique @default(cuid()) // For manage/delete
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relation (optional - can exist without EmailLead)
+  emailLead   EmailLead? @relation(fields: [email], references: [email])
+
+  @@index([email])
+  @@index([token])
+  @@index([isActive])
+  @@map("job_alerts")
 }
 
 model EmployerJob {
