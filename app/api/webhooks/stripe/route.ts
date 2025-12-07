@@ -65,7 +65,8 @@ export async function POST(request: NextRequest) {
               employerJob.contactEmail,
               job.title,
               job.id,
-              employerJob.editToken
+              employerJob.editToken,
+              employerJob.dashboardToken
             );
           } catch (emailError) {
             console.error('Failed to send confirmation email:', emailError);

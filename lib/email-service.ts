@@ -66,6 +66,7 @@ export async function sendConfirmationEmail(
   jobTitle: string,
   jobId: string,
   editToken: string,
+  dashboardToken: string,
   unsubscribeToken?: string
 ): Promise<EmailResult> {
   try {
@@ -98,6 +99,17 @@ export async function sendConfirmationEmail(
             </p>
             
             <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 32px 0;">
+            
+            <!-- Dashboard Section -->
+            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+              <h3 style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 8px 0;">Manage All Your Jobs</h3>
+              <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px 0;">
+                View and manage all your job postings from your dashboard
+              </p>
+              <a href="${BASE_URL}/employer/dashboard/${dashboardToken}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                Go to Dashboard
+              </a>
+            </div>
             
             <p style="font-size: 14px; color: #666;">
               Need help? Reply to this email and we'll get back to you as soon as possible.

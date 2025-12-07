@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create employer job record
-    await prisma.employerJob.create({
+    const employerJob = await prisma.employerJob.create({
       data: {
         employerName: employer,
         contactEmail,
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create Stripe Checkout session with just the job ID in metadata
+    // Create Stripe Checkout session with job ID and dashboard token in metadata
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         jobId: job.id,
         pricing,
+        dashboardToken: employerJob.dashboardToken,
       },
     });
 
