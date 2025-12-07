@@ -54,8 +54,8 @@ export default function PostJobPage() {
   const onSubmit = (data: JobPostingFormData) => {
     // Store form data in localStorage
     localStorage.setItem('jobFormData', JSON.stringify(data));
-    // Navigate to checkout
-    router.push('/post-job/checkout');
+    // Navigate to preview
+    router.push('/post-job/preview');
   };
 
   const handleCompetitiveChange = (checked: boolean) => {
@@ -373,7 +373,7 @@ export default function PostJobPage() {
             disabled={isSubmitting}
             className="bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Processing...' : 'Continue to Checkout'}
+            {isSubmitting ? 'Processing...' : 'Preview Your Job'}
           </button>
         </div>
       </form>
