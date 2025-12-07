@@ -32,6 +32,9 @@ export default function EmployerDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [renewingJobId, setRenewingJobId] = useState<string | null>(null);
+  const [showRenewModal, setShowRenewModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -121,6 +124,49 @@ export default function EmployerDashboardPage() {
     if (!job.expiresAt) return false;
     const expiry = getExpiryStatus(new Date(job.expiresAt));
     return expiry.isUrgent;
+  };
+
+  const shouldShowRenew = (job: Job): boolean => {
+    return isExpired(job) || isExpiringSoon(job);
+  };
+
+  const handleRenewClick = (job: Job) => {
+    setSelectedJob(job);
+    setShowRenewModal(true);
+  };
+
+  const handleRenewCheckout = async (tier: 'standard' | 'featured') => {
+    if (!selectedJob) return;
+
+    setRenewingJobId(selectedJob.id);
+    setShowRenewModal(false);
+
+    try {
+      const response = await fetch('/api/create-renewal-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: selectedJob.id,
+          editToken: selectedJob.editToken,
+          tier,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to create checkout');
+      }
+
+      // Redirect to Stripe checkout
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error('Renewal checkout error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to start renewal process');
+      setRenewingJobId(null);
+    }
   };
 
   return (
@@ -213,13 +259,14 @@ export default function EmployerDashboardPage() {
                       <Edit size={16} />
                       Edit
                     </Link>
-                    {(isExpired(job) || isExpiringSoon(job)) && (
+                    {shouldShowRenew(job) && (
                       <button
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                        title="Renew listing (coming soon)"
+                        onClick={() => handleRenewClick(job)}
+                        disabled={renewingJobId === job.id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <RefreshCw size={16} />
-                        Renew
+                        <RefreshCw size={16} className={renewingJobId === job.id ? 'animate-spin' : ''} />
+                        {renewingJobId === job.id ? 'Processing...' : 'Renew'}
                       </button>
                     )}
                   </div>
@@ -237,6 +284,69 @@ export default function EmployerDashboardPage() {
           </a>
         </div>
       </div>
+
+      {/* Renewal Modal */}
+      {showRenewModal && selectedJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Renew Job Posting</h3>
+              <p className="text-sm text-gray-600">{selectedJob.title}</p>
+            </div>
+
+            <p className="text-gray-700 mb-6">Choose how you'd like to renew your listing:</p>
+
+            <div className="space-y-3 mb-6">
+              {/* Standard Option */}
+              <button
+                onClick={() => handleRenewCheckout('standard')}
+                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-gray-900 group-hover:text-blue-700">Standard Renewal</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-blue-700">$99</span>
+                </div>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>✓ 30 days of visibility</li>
+                  <li>✓ Standard placement</li>
+                  <li>✓ Email confirmation</li>
+                </ul>
+              </button>
+
+              {/* Featured Option */}
+              <button
+                onClick={() => handleRenewCheckout('featured')}
+                className="w-full text-left border-2 border-blue-500 bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-all group relative"
+              >
+                <div className="absolute top-2 right-2">
+                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">BEST VALUE</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-blue-900">Featured Renewal</span>
+                  <span className="text-2xl font-bold text-blue-900">$199</span>
+                </div>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>✓ 60 days of visibility</li>
+                  <li>✓ <strong>Featured placement</strong> (top of list)</li>
+                  <li>✓ <strong>2x more visibility</strong></li>
+                  <li>✓ Email confirmation</li>
+                </ul>
+              </button>
+            </div>
+
+            {/* Cancel Button */}
+            <button
+              onClick={() => {
+                setShowRenewModal(false);
+                setSelectedJob(null);
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

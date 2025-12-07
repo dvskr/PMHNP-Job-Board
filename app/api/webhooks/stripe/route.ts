@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { sendConfirmationEmail } from '@/lib/email-service';
+import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       
       const jobId = session.metadata?.jobId;
+      const type = session.metadata?.type;
+      const tier = session.metadata?.tier;
       
       if (!jobId) {
         console.error('No job ID in session metadata');
@@ -41,46 +43,112 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      try {
-        // Update job to published
-        const job = await prisma.job.update({
-          where: { id: jobId },
-          data: { isPublished: true },
-        });
+      // Handle renewal payment
+      if (type === 'renewal') {
+        try {
+          // Calculate new expiry date
+          const newExpiresAt = new Date();
+          const daysToAdd = tier === 'featured' ? 60 : 30;
+          newExpiresAt.setDate(newExpiresAt.getDate() + daysToAdd);
 
-        // Update employer job payment status and get the record
-        const employerJob = await prisma.employerJob.findFirst({
-          where: { jobId: jobId },
-        });
-
-        if (employerJob) {
-          await prisma.employerJob.update({
-            where: { id: employerJob.id },
-            data: { paymentStatus: 'paid' },
+          // Update job
+          const job = await prisma.job.update({
+            where: { id: jobId },
+            data: {
+              expiresAt: newExpiresAt,
+              isPublished: true,
+              ...(tier === 'featured' && { isFeatured: true }),
+            },
           });
 
-          // Send confirmation email
-          try {
-            await sendConfirmationEmail(
-              employerJob.contactEmail,
-              job.title,
-              job.id,
-              employerJob.editToken,
-              employerJob.dashboardToken
-            );
-          } catch (emailError) {
-            console.error('Failed to send confirmation email:', emailError);
-            // Don't throw - job already created
-          }
-        }
+          // Update employer job payment status
+          const employerJob = await prisma.employerJob.findFirst({
+            where: { jobId: jobId },
+          });
 
-        console.log('Job published:', jobId);
-      } catch (prismaError) {
-        console.error('Error updating job in database:', prismaError);
-        return NextResponse.json(
-          { error: 'Failed to update job' },
-          { status: 500 }
-        );
+          if (employerJob) {
+            await prisma.employerJob.update({
+              where: { id: employerJob.id },
+              data: { paymentStatus: 'paid' },
+            });
+
+            // Get or create email lead for unsubscribe token
+            let emailLead = await prisma.emailLead.findUnique({
+              where: { email: employerJob.contactEmail },
+            });
+
+            if (!emailLead) {
+              emailLead = await prisma.emailLead.create({
+                data: { email: employerJob.contactEmail },
+              });
+            }
+
+            // Send renewal confirmation email
+            try {
+              await sendRenewalConfirmationEmail(
+                employerJob.contactEmail,
+                job.title,
+                newExpiresAt,
+                employerJob.dashboardToken,
+                emailLead.unsubscribeToken
+              );
+            } catch (emailError) {
+              console.error('Failed to send renewal confirmation email:', emailError);
+              // Don't throw - job already renewed
+            }
+          }
+
+          console.log('Job renewed:', jobId);
+        } catch (prismaError) {
+          console.error('Error renewing job in database:', prismaError);
+          return NextResponse.json(
+            { error: 'Failed to renew job' },
+            { status: 500 }
+          );
+        }
+      } else {
+        // Original flow: new job posting
+        try {
+          // Update job to published
+          const job = await prisma.job.update({
+            where: { id: jobId },
+            data: { isPublished: true },
+          });
+
+          // Update employer job payment status and get the record
+          const employerJob = await prisma.employerJob.findFirst({
+            where: { jobId: jobId },
+          });
+
+          if (employerJob) {
+            await prisma.employerJob.update({
+              where: { id: employerJob.id },
+              data: { paymentStatus: 'paid' },
+            });
+
+            // Send confirmation email
+            try {
+              await sendConfirmationEmail(
+                employerJob.contactEmail,
+                job.title,
+                job.id,
+                employerJob.editToken,
+                employerJob.dashboardToken
+              );
+            } catch (emailError) {
+              console.error('Failed to send confirmation email:', emailError);
+              // Don't throw - job already created
+            }
+          }
+
+          console.log('Job published:', jobId);
+        } catch (prismaError) {
+          console.error('Error updating job in database:', prismaError);
+          return NextResponse.json(
+            { error: 'Failed to update job' },
+            { status: 500 }
+          );
+        }
       }
     }
 

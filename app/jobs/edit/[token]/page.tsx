@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { Job } from '@prisma/client';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 
 const editJobSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -48,6 +48,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
+  const [showRenewModal, setShowRenewModal] = useState(false);
+  const [renewingTier, setRenewingTier] = useState<'standard' | 'featured' | null>(null);
 
   const {
     register,
@@ -161,6 +163,57 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
     }
   };
 
+  const isExpired = (): boolean => {
+    if (!job?.expiresAt) return false;
+    return new Date(job.expiresAt) < new Date();
+  };
+
+  const isExpiringSoon = (): boolean => {
+    if (!job?.expiresAt) return false;
+    const daysUntilExpiry = Math.ceil(
+      (new Date(job.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+  };
+
+  const shouldShowRenew = (): boolean => {
+    return isExpired() || isExpiringSoon();
+  };
+
+  const handleRenewCheckout = async (tier: 'standard' | 'featured') => {
+    if (!job) return;
+
+    setRenewingTier(tier);
+    setShowRenewModal(false);
+
+    try {
+      const response = await fetch('/api/create-renewal-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          editToken: token,
+          tier,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to create checkout');
+      }
+
+      // Redirect to Stripe checkout
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error('Renewal checkout error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to start renewal process');
+      setRenewingTier(null);
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -213,6 +266,46 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       {error && job && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
+      {/* Expiry Warning & Renew Section */}
+      {shouldShowRenew() && job && (
+        <div className={`rounded-lg border-2 p-6 mb-6 ${
+          isExpired() 
+            ? 'bg-red-50 border-red-300' 
+            : 'bg-orange-50 border-orange-300'
+        }`}>
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className={`flex-shrink-0 ${
+              isExpired() ? 'text-red-600' : 'text-orange-600'
+            }`} size={24} />
+            <div className="flex-1">
+              <h3 className={`font-bold text-lg mb-1 ${
+                isExpired() ? 'text-red-900' : 'text-orange-900'
+              }`}>
+                {isExpired() ? 'This job has expired' : 'This job expires soon'}
+              </h3>
+              <p className={`text-sm mb-4 ${
+                isExpired() ? 'text-red-700' : 'text-orange-700'
+              }`}>
+                {isExpired() 
+                  ? `This job expired on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} and is no longer visible to candidates.`
+                  : `This job expires on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Renew now to keep it visible.`
+                }
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowRenewModal(true)}
+                  disabled={renewingTier !== null}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw size={18} className={renewingTier ? 'animate-spin' : ''} />
+                  {renewingTier ? 'Processing...' : 'Renew This Job'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -450,6 +543,66 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 {unpublishing ? 'Unpublishing...' : 'Yes, Unpublish'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Renewal Modal */}
+      {showRenewModal && job && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Renew Job Posting</h3>
+              <p className="text-sm text-gray-600">{job.title}</p>
+            </div>
+
+            <p className="text-gray-700 mb-6">Choose how you'd like to renew your listing:</p>
+
+            <div className="space-y-3 mb-6">
+              {/* Standard Option */}
+              <button
+                onClick={() => handleRenewCheckout('standard')}
+                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-gray-900 group-hover:text-blue-700">Standard Renewal</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-blue-700">$99</span>
+                </div>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>✓ 30 days of visibility</li>
+                  <li>✓ Standard placement</li>
+                  <li>✓ Email confirmation</li>
+                </ul>
+              </button>
+
+              {/* Featured Option */}
+              <button
+                onClick={() => handleRenewCheckout('featured')}
+                className="w-full text-left border-2 border-blue-500 bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-all group relative"
+              >
+                <div className="absolute top-2 right-2">
+                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">BEST VALUE</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-blue-900">Featured Renewal</span>
+                  <span className="text-2xl font-bold text-blue-900">$199</span>
+                </div>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>✓ 60 days of visibility</li>
+                  <li>✓ <strong>Featured placement</strong> (top of list)</li>
+                  <li>✓ <strong>2x more visibility</strong></li>
+                  <li>✓ Email confirmation</li>
+                </ul>
+              </button>
+            </div>
+
+            {/* Cancel Button */}
+            <button
+              onClick={() => setShowRenewModal(false)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

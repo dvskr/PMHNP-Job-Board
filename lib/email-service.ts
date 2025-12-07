@@ -143,6 +143,12 @@ export async function sendJobAlertEmail(
   manageToken: string,
   unsubscribeToken: string
 ): Promise<EmailResult> {
+  email: string,
+  alertName: string,
+  jobs: Job[],
+  manageToken: string,
+  unsubscribeToken: string
+): Promise<EmailResult> {
   try {
     const jobCount = jobs.length;
     const displayJobs = jobs.slice(0, 10);
@@ -295,6 +301,78 @@ export async function sendJobAlertEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send job alert email',
+    };
+  }
+}
+
+export async function sendRenewalConfirmationEmail(
+  email: string,
+  jobTitle: string,
+  newExpiresAt: Date,
+  dashboardToken: string,
+  unsubscribeToken: string
+): Promise<EmailResult> {
+  try {
+    const expiryDate = newExpiresAt.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: 'Your job has been renewed!',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Your job has been renewed!</h1>
+            
+            <p style="font-size: 16px; margin-bottom: 16px;">Great news! Your job posting has been extended.</p>
+            
+            <p style="font-size: 18px; margin-bottom: 16px;"><strong>${jobTitle}</strong></p>
+            
+            <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="color: #166534; font-size: 15px; margin: 0;">
+                <strong>New expiration date:</strong> ${expiryDate}
+              </p>
+            </div>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">Your job is now live and visible to candidates.</p>
+            
+            <!-- Dashboard Section -->
+            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+              <h3 style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 8px 0;">Your Dashboard</h3>
+              <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px 0;">
+                View analytics and manage all your job postings
+              </p>
+              <a href="${BASE_URL}/employer/dashboard/${dashboardToken}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                Go to Dashboard
+              </a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666;">
+              Need help? Reply to this email and we'll get back to you as soon as possible.
+            </p>
+            
+            ${getUnsubscribeFooter(unsubscribeToken)}
+          </body>
+        </html>
+      `,
+    });
+
+    console.log('Renewal confirmation email sent successfully to:', email);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending renewal confirmation email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send renewal confirmation email',
     };
   }
 }
