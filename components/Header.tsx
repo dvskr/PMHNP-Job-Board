@@ -24,19 +24,22 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-6">
             <Link href="/jobs" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
               Jobs
             </Link>
+            <Link href="/for-job-seekers" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium text-sm">
+              For Job Seekers
+            </Link>
+            <Link href="/for-employers" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium text-sm">
+              For Employers
+            </Link>
             <Link href="/saved" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium flex items-center gap-2">
               <Bookmark size={16} />
-              Saved Jobs
-            </Link>
-            <Link href="/post-job" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
-              Post Job
+              Saved
             </Link>
             <Link href="/salary-guide" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
-              Salary Guide
+              Salary
             </Link>
             <Link href="/about" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
               About
@@ -72,6 +75,20 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Jobs
+              </Link>
+              <Link
+                href="/for-job-seekers"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                For Job Seekers
+              </Link>
+              <Link
+                href="/for-employers"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                For Employers
               </Link>
               <Link
                 href="/saved"

@@ -1,0 +1,438 @@
+import { Metadata } from 'next';
+import Link from 'next/link';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { 
+  Target, 
+  DollarSign, 
+  Clock, 
+  TrendingUp,
+  FileText,
+  Award,
+  BarChart,
+  Edit,
+  RefreshCw,
+  Download,
+  Check,
+  Sparkles,
+  Mail,
+  Star
+} from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'For Employers | PMHNP Jobs',
+  description: 'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post jobs starting at $99. Reach thousands of PMHNPs.',
+};
+
+export default function ForEmployersPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Hire Qualified PMHNPs
+          </h1>
+          <p className="text-xl md:text-2xl text-primary-100 mb-8 max-w-3xl mx-auto">
+            Reach thousands of psychiatric nurse practitioners actively looking for opportunities
+          </p>
+          <Link href="/post-job">
+            <Button variant="primary" size="lg" className="bg-white text-primary-600 hover:bg-gray-100">
+              Post a Job
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Why Post Here Section */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          Why Post on PMHNP Jobs?
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Benefit 1 */}
+          <Card padding="lg" variant="bordered" className="text-center hover:shadow-lg transition-shadow">
+            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Target className="w-8 h-8 text-primary-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Targeted Audience
+            </h3>
+            <p className="text-sm text-gray-600">
+              Only PMHNPs visit our site. No need to filter through unqualified candidates.
+            </p>
+          </Card>
+
+          {/* Benefit 2 */}
+          <Card padding="lg" variant="bordered" className="text-center hover:shadow-lg transition-shadow">
+            <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <DollarSign className="w-8 h-8 text-success-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Affordable Pricing
+            </h3>
+            <p className="text-sm text-gray-600">
+              Starting at just $99. No subscriptions, no hidden fees, no surprises.
+            </p>
+          </Card>
+
+          {/* Benefit 3 */}
+          <Card padding="lg" variant="bordered" className="text-center hover:shadow-lg transition-shadow">
+            <div className="w-16 h-16 bg-warning-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-warning-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Quick Setup
+            </h3>
+            <p className="text-sm text-gray-600">
+              Post a job in under 5 minutes. Simple form, instant publishing.
+            </p>
+          </Card>
+
+          {/* Benefit 4 */}
+          <Card padding="lg" variant="bordered" className="text-center hover:shadow-lg transition-shadow">
+            <div className="w-16 h-16 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-accent-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Real Results
+            </h3>
+            <p className="text-sm text-gray-600">
+              Track views, clicks, and applications. Know exactly how your posting performs.
+            </p>
+          </Card>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="bg-white py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
+            Simple, Transparent Pricing
+          </h2>
+          <p className="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
+            Choose the plan that works best for your hiring needs. No subscriptions, no contracts.
+          </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Standard Plan */}
+            <Card padding="lg" variant="bordered" className="relative">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Standard Post
+                </h3>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-gray-900">$99</span>
+                  <span className="text-gray-600">per posting</span>
+                </div>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">30-day listing</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Included in job alerts</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Basic analytics (views, clicks)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Edit anytime</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Employer dashboard access</span>
+                </li>
+              </ul>
+
+              <Link href="/post-job">
+                <Button variant="outline" size="lg" className="w-full">
+                  Get Started
+                </Button>
+              </Link>
+            </Card>
+
+            {/* Featured Plan */}
+            <Card padding="lg" variant="elevated" className="relative border-2 border-primary-500">
+              <div className="absolute top-0 right-0 mt-4 mr-4">
+                <Badge variant="featured" size="md">
+                  Most Popular
+                </Badge>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  Featured Post
+                  <Sparkles className="w-6 h-6 text-accent-500" />
+                </h3>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-gray-900">$199</span>
+                  <span className="text-gray-600">per posting</span>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-primary-600 mb-2">
+                  Everything in Standard, plus:
+                </p>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 font-medium">60-day listing (2x longer)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 font-medium">Top placement in search results</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 font-medium">Highlighted in job alerts</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 font-medium">"Featured" badge on your listing</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 font-medium">Priority visibility</span>
+                </li>
+              </ul>
+
+              <Link href="/post-job">
+                <Button variant="primary" size="lg" className="w-full">
+                  Get Featured
+                </Button>
+              </Link>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          How It Works
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Step 1 */}
+          <Card padding="lg" variant="elevated" className="text-center">
+            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-primary-600" />
+            </div>
+            <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold">
+              1
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Create Your Listing
+            </h3>
+            <p className="text-gray-600">
+              Fill out the simple job posting form with your requirements, salary, and application details.
+            </p>
+          </Card>
+
+          {/* Step 2 */}
+          <Card padding="lg" variant="elevated" className="text-center">
+            <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Award className="w-8 h-8 text-success-600" />
+            </div>
+            <div className="w-12 h-12 bg-success-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold">
+              2
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Choose Your Plan
+            </h3>
+            <p className="text-gray-600">
+              Select Standard or Featured posting. Complete payment securely with Stripe.
+            </p>
+          </Card>
+
+          {/* Step 3 */}
+          <Card padding="lg" variant="elevated" className="text-center">
+            <div className="w-16 h-16 bg-accent-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-accent-600" />
+            </div>
+            <div className="w-12 h-12 bg-accent-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold">
+              3
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
+              Start Receiving Candidates
+            </h3>
+            <p className="text-gray-600">
+              Your posting goes live immediately. Track performance and receive qualified applications.
+            </p>
+          </Card>
+        </div>
+      </section>
+
+      {/* Features for Employers Section */}
+      <section className="bg-white py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+            Everything You Need to Hire Successfully
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Feature 1 */}
+            <Card padding="lg" variant="bordered">
+              <BarChart className="w-10 h-10 text-primary-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Employer Dashboard
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Manage all your postings from one place. View analytics, edit listings, and track performance.
+              </p>
+            </Card>
+
+            {/* Feature 2 */}
+            <Card padding="lg" variant="bordered">
+              <TrendingUp className="w-10 h-10 text-success-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Analytics
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Track views, apply clicks, and engagement. Know exactly how your posting is performing.
+              </p>
+            </Card>
+
+            {/* Feature 3 */}
+            <Card padding="lg" variant="bordered">
+              <Edit className="w-10 h-10 text-warning-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Edit Anytime
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Update salary, requirements, or any details whenever you need. Changes go live immediately.
+              </p>
+            </Card>
+
+            {/* Feature 4 */}
+            <Card padding="lg" variant="bordered">
+              <RefreshCw className="w-10 h-10 text-primary-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Renew Easily
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Extend your posting with one click when needed. Keep your listing active as long as you're hiring.
+              </p>
+            </Card>
+
+            {/* Feature 5 */}
+            <Card padding="lg" variant="bordered">
+              <Download className="w-10 h-10 text-success-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Invoice Download
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Download professional invoices for your records. Easy expense reporting and accounting.
+              </p>
+            </Card>
+
+            {/* Feature 6 */}
+            <Card padding="lg" variant="bordered">
+              <Mail className="w-10 h-10 text-accent-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Email Notifications
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Get notified when your posting expires or needs attention. Never miss an opportunity.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
+          Companies Like Yours Trust PMHNP Jobs
+        </h2>
+        <p className="text-xl text-gray-600 text-center mb-12">
+          Join healthcare organizations finding qualified PMHNPs on our platform
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Testimonial 1 */}
+          <Card padding="lg" variant="elevated">
+            <div className="flex gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="w-5 h-5 fill-accent-500 text-accent-500" />
+              ))}
+            </div>
+            <p className="text-gray-700 mb-4 italic">
+              "We filled our PMHNP position within 2 weeks of posting. The quality of candidates was excellent."
+            </p>
+            <div className="border-t border-gray-200 pt-4">
+              <p className="font-semibold text-gray-900">Sarah Johnson</p>
+              <p className="text-sm text-gray-600">HR Director, Community Health Center</p>
+            </div>
+          </Card>
+
+          {/* Testimonial 2 */}
+          <Card padding="lg" variant="elevated">
+            <div className="flex gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="w-5 h-5 fill-accent-500 text-accent-500" />
+              ))}
+            </div>
+            <p className="text-gray-700 mb-4 italic">
+              "Much more affordable than other job boards, and we reached exactly the audience we needed."
+            </p>
+            <div className="border-t border-gray-200 pt-4">
+              <p className="font-semibold text-gray-900">Michael Chen</p>
+              <p className="text-sm text-gray-600">Practice Manager, Telepsychiatry Group</p>
+            </div>
+          </Card>
+
+          {/* Testimonial 3 */}
+          <Card padding="lg" variant="elevated">
+            <div className="flex gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="w-5 h-5 fill-accent-500 text-accent-500" />
+              ))}
+            </div>
+            <p className="text-gray-700 mb-4 italic">
+              "The dashboard made it easy to track our posting performance. Great value for the price."
+            </p>
+            <div className="border-t border-gray-200 pt-4">
+              <p className="font-semibold text-gray-900">Lisa Martinez</p>
+              <p className="text-sm text-gray-600">Recruiter, Regional Hospital System</p>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-16">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Find Your Next PMHNP?
+          </h2>
+          <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
+            Post your job today and start receiving applications from qualified psychiatric nurse practitioners.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/post-job">
+              <Button variant="primary" size="lg" className="bg-white text-primary-600 hover:bg-gray-100">
+                Post a Job
+              </Button>
+            </Link>
+            <a href="mailto:hello@pmhnpjobs.com">
+              <Button variant="secondary" size="lg" className="bg-primary-500 text-white hover:bg-primary-400 border-2 border-white">
+                Contact Us
+              </Button>
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+

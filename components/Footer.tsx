@@ -37,8 +37,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/for-job-seekers" className="text-sm text-gray-400 hover:text-primary-400 transition-colors duration-200">
+                  For Job Seekers
+                </Link>
+              </li>
+              <li>
                 <Link href="/post-job" className="text-sm text-gray-400 hover:text-primary-400 transition-colors duration-200">
                   Post a Job
+                </Link>
+              </li>
+              <li>
+                <Link href="/for-employers" className="text-sm text-gray-400 hover:text-primary-400 transition-colors duration-200">
+                  For Employers
                 </Link>
               </li>
               <li>
