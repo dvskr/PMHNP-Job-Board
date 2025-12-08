@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { createId } from '@paralleldrive/cuid2';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -42,7 +43,26 @@ export async function POST(request: NextRequest) {
       pricingTier: pricing,
     } = body;
 
-    if (!title || !employer || !location || !mode || !jobType || !description || !applyLink || !contactEmail || !pricing) {
+    // Validate and trim required string fields
+    const trimmedEmployer = employer?.trim();
+    const trimmedContactEmail = contactEmail?.trim();
+    const trimmedTitle = title?.trim();
+    const trimmedLocation = location?.trim();
+    const trimmedDescription = description?.trim();
+    const trimmedApplyLink = applyLink?.trim();
+
+    if (!trimmedTitle || !trimmedEmployer || !trimmedLocation || !mode || !jobType || !trimmedDescription || !trimmedApplyLink || !trimmedContactEmail || !pricing) {
+      console.error('Validation failed. Missing required fields:', {
+        title: !!trimmedTitle,
+        employer: !!trimmedEmployer,
+        location: !!trimmedLocation,
+        mode: !!mode,
+        jobType: !!jobType,
+        description: !!trimmedDescription,
+        applyLink: !!trimmedApplyLink,
+        contactEmail: !!trimmedContactEmail,
+        pricing: !!pricing,
+      });
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -73,20 +93,29 @@ export async function POST(request: NextRequest) {
       expiresAt.setDate(expiresAt.getDate() + 30); // 30 days for standard
     }
 
-    // Generate unique edit token
+    // Generate unique edit token and dashboard token
     const editToken = crypto.randomBytes(32).toString('hex');
+    const dashboardToken = createId();
+
+    // Log the data we're about to use
+    console.log('Creating job with data:', {
+      employer: trimmedEmployer,
+      contactEmail: trimmedContactEmail,
+      companyWebsite,
+      applyLink: trimmedApplyLink,
+    });
 
     // Create job in database first (unpublished, pending payment)
     const job = await prisma.job.create({
       data: {
-        title,
-        employer,
-        location,
+        title: trimmedTitle,
+        employer: trimmedEmployer,
+        location: trimmedLocation,
         jobType,
         mode,
-        description,
-        descriptionSummary: description.slice(0, 300),
-        applyLink,
+        description: trimmedDescription,
+        descriptionSummary: trimmedDescription.slice(0, 300),
+        applyLink: trimmedApplyLink,
         minSalary: salaryMin ? Math.round(salaryMin) : null,
         maxSalary: salaryMax ? Math.round(salaryMax) : null,
         salaryPeriod,
@@ -97,16 +126,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log('Job created successfully with ID:', job.id);
+
     // Create employer job record
+    const employerJobData = {
+      employerName: trimmedEmployer,
+      contactEmail: trimmedContactEmail,
+      companyWebsite: companyWebsite?.trim() || null,
+      jobId: job.id,
+      editToken,
+      dashboardToken,
+      paymentStatus: 'pending',
+    };
+
+    console.log('Creating employer job with data:', employerJobData);
+
     const employerJob = await prisma.employerJob.create({
-      data: {
-        employerName: employer,
-        contactEmail,
-        companyWebsite: companyWebsite || null,
-        jobId: job.id,
-        editToken,
-        paymentStatus: 'pending',
-      },
+      data: employerJobData,
     });
 
     // Create Stripe Checkout session with job ID and dashboard token in metadata
@@ -117,8 +153,8 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Job Post: ${title}`,
-              description: `${employer} - ${location}`,
+              name: `Job Post: ${trimmedTitle}`,
+              description: `${trimmedEmployer} - ${trimmedLocation}`,
             },
             unit_amount: price,
           },

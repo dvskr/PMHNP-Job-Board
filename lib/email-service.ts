@@ -143,12 +143,6 @@ export async function sendJobAlertEmail(
   manageToken: string,
   unsubscribeToken: string
 ): Promise<EmailResult> {
-  email: string,
-  alertName: string,
-  jobs: Job[],
-  manageToken: string,
-  unsubscribeToken: string
-): Promise<EmailResult> {
   try {
     const jobCount = jobs.length;
     const displayJobs = jobs.slice(0, 10);
