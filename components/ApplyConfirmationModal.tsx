@@ -21,13 +21,13 @@ export default function ApplyConfirmationModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-black/50 animate-fade-in"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-sm transform rounded-2xl bg-white p-6 shadow-xl transition-all">
+        <div className="relative w-full max-w-sm transform rounded-2xl bg-white p-6 shadow-xl animate-scale-in">
           {/* Close Button */}
           <button
             onClick={onClose}

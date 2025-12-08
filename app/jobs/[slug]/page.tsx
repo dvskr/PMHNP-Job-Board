@@ -5,6 +5,7 @@ import { Job } from '@prisma/client';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
 import ShareButtons from '@/components/ShareButtons';
+import AnimatedContainer from '@/components/ui/AnimatedContainer';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -93,12 +94,18 @@ export default async function JobPage({ params }: JobPageProps) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header Section */}
-      <div className="bg-white shadow-md rounded-lg p-6 md:p-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">{job.title}</h1>
-        <p className="text-xl text-gray-600 mb-4">{job.employer}</p>
+      <AnimatedContainer animation="fade-in-up" delay={0}>
+        <div className="bg-white shadow-md rounded-lg p-6 md:p-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">{job.title}</h1>
+          <p className="text-xl text-gray-600 mb-4">{job.employer}</p>
+        </div>
+      </AnimatedContainer>
 
-        {/* Metadata Row */}
-        <div className="flex flex-wrap gap-4 text-gray-600">
+      {/* Meta Section */}
+      <AnimatedContainer animation="fade-in-up" delay={100}>
+        <div className="bg-white shadow-md rounded-lg p-6 md:p-8 mt-6">
+          {/* Metadata Row */}
+          <div className="flex flex-wrap gap-4 text-gray-600">
           <div className="flex items-center gap-2">
             <MapPin size={20} />
             <span>{job.location}</span>
@@ -124,29 +131,32 @@ export default async function JobPage({ params }: JobPageProps) {
           </div>
         )}
 
-        {/* Badges Row */}
-        <div className="flex gap-2 mt-4 flex-wrap">
-          {job.isFeatured && (
-            <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
-              Featured
-            </span>
-          )}
-          {job.isVerifiedEmployer && (
-            <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm flex items-center gap-1">
-              <CheckCircle size={16} />
-              Verified Employer
-            </span>
-          )}
+          {/* Badges Row */}
+          <div className="flex gap-2 mt-4 flex-wrap">
+            {job.isFeatured && (
+              <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                Featured
+              </span>
+            )}
+            {job.isVerifiedEmployer && (
+              <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                <CheckCircle size={16} />
+                Verified Employer
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      </AnimatedContainer>
 
       {/* Description Section */}
-      <div className="bg-white shadow-md rounded-lg p-6 md:p-8 mt-6">
-        <h2 className="text-2xl font-bold mb-4">About this role</h2>
-        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-          {job.description}
+      <AnimatedContainer animation="fade-in-up" delay={200}>
+        <div className="bg-white shadow-md rounded-lg p-6 md:p-8 mt-6">
+          <h2 className="text-2xl font-bold mb-4">About this role</h2>
+          <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+            {job.description}
+          </div>
         </div>
-      </div>
+      </AnimatedContainer>
 
       {/* Expiry Warning */}
       {expiryStatus.isExpired && (
@@ -161,46 +171,48 @@ export default async function JobPage({ params }: JobPageProps) {
       )}
 
       {/* Apply Section */}
-      <div className="bg-gray-50 rounded-lg p-6 mt-8 shadow-md">
-        {/* Urgent Expiry Notice */}
-        {!expiryStatus.isExpired && expiryStatus.isUrgent && expiryStatus.text && (
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
-            <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-orange-600 text-sm font-medium">
-              {expiryStatus.text} — Apply soon!
-            </p>
+      <AnimatedContainer animation="slide-in-right" delay={300}>
+        <div className="bg-gray-50 rounded-lg p-6 mt-8 shadow-md">
+          {/* Urgent Expiry Notice */}
+          {!expiryStatus.isExpired && expiryStatus.isUrgent && expiryStatus.text && (
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
+              <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-orange-600 text-sm font-medium">
+                {expiryStatus.text} — Apply soon!
+              </p>
+            </div>
+          )}
+
+          {/* Non-urgent Expiry Notice */}
+          {!expiryStatus.isExpired && !expiryStatus.isUrgent && expiryStatus.text && (
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-gray-500 text-sm">
+                {expiryStatus.text}
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-4">
+            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
+            <SaveJobButton jobId={job.id} />
           </div>
-        )}
 
-        {/* Non-urgent Expiry Notice */}
-        {!expiryStatus.isExpired && !expiryStatus.isUrgent && expiryStatus.text && (
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
-            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-gray-500 text-sm">
-              {expiryStatus.text}
-            </p>
+          {/* Share Section */}
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200">
+            <span className="text-sm text-gray-500">Share this job:</span>
+            <ShareButtons
+              url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
+              title={job.title}
+              company={job.employer}
+            />
           </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-4">
-          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
-          <SaveJobButton jobId={job.id} />
         </div>
-
-        {/* Share Section */}
-        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-200">
-          <span className="text-sm text-gray-500">Share this job:</span>
-          <ShareButtons
-            url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
-            title={job.title}
-            company={job.employer}
-          />
-        </div>
-      </div>
+      </AnimatedContainer>
 
       {/* Footer Info */}
       <div className="mt-8 text-sm text-gray-500">

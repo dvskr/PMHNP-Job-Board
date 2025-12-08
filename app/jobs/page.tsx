@@ -6,6 +6,7 @@ import JobCard from '@/components/JobCard';
 import JobFilters from '@/components/JobFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
+import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import { Job } from '@prisma/client';
 
 interface FilterState {
@@ -293,8 +294,14 @@ export default function JobsPage() {
           {/* Jobs Grid */}
           {!loading && !error && jobs.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+              {jobs.map((job, index) => (
+                <AnimatedContainer
+                  key={job.id}
+                  animation="fade-in-up"
+                  delay={Math.min(index * 50, 600)}
+                >
+                  <JobCard job={job} />
+                </AnimatedContainer>
               ))}
             </div>
           )}
@@ -306,13 +313,13 @@ export default function JobsPage() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 transition-opacity"
+            className="fixed inset-0 bg-black/50 animate-fade-in"
             onClick={() => setIsAlertModalOpen(false)}
           />
           
           {/* Modal */}
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative w-full max-w-md transform rounded-2xl bg-white p-6 shadow-xl transition-all">
+            <div className="relative w-full max-w-md transform rounded-2xl bg-white p-6 shadow-xl animate-scale-in">
               {/* Close Button */}
               <button
                 onClick={() => setIsAlertModalOpen(false)}

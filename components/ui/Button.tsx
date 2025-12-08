@@ -23,13 +23,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     // Base styles for all buttons
-    const baseStyles = 'rounded-lg font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'rounded-lg font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95';
 
     // Variant styles
     const variantStyles = {
-      primary: 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md',
-      secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-900',
-      outline: 'border border-gray-300 hover:border-primary-500 text-gray-700 hover:text-primary-600 bg-transparent hover:bg-primary-50',
+      primary: 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md hover:-translate-y-0.5',
+      secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-900 hover:shadow-sm',
+      outline: 'border border-gray-300 hover:border-primary-500 text-gray-700 hover:text-primary-600 bg-transparent hover:bg-primary-50 hover:-translate-y-0.5',
       ghost: 'bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-900',
       danger: 'bg-red-600 hover:bg-red-700 text-white',
     };
