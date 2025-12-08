@@ -12,10 +12,10 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-20 px-4">
+      <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">About PMHNP Jobs</h1>
-          <p className="text-xl md:text-2xl text-primary-100 max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">About PMHNP Jobs</h1>
+          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
             The dedicated job board for Psychiatric Mental Health Nurse Practitioners
           </p>
         </div>

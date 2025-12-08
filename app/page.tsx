@@ -17,16 +17,16 @@ export default function Home() {
             The #1 job board for psychiatric mental health nurse practitioners. 
             200+ remote and in-person jobs updated daily.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/jobs"
-              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors"
+              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
             >
               Browse Jobs
             </Link>
             <Link
               href="/post-job"
-              className="inline-block bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white hover:bg-blue-400 transition-colors"
+              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-200 hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
             >
               Post a Job — $99
             </Link>

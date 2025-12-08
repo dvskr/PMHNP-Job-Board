@@ -50,7 +50,7 @@ export default function EmailSignupForm({ source = 'unknown', placeholder = 'Ent
           onChange={(e) => setEmail(e.target.value)}
           placeholder={placeholder}
           required
-          className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-4 py-3 rounded-lg border border-gray-600 bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <button
           type="submit"
@@ -64,14 +64,14 @@ export default function EmailSignupForm({ source = 'unknown', placeholder = 'Ent
       {message && (
         <p
           className={`mt-4 text-sm ${
-            message.type === 'success' ? 'text-green-600' : 'text-red-600'
+            message.type === 'success' ? 'text-green-400' : 'text-red-400'
           }`}
         >
           {message.text}
         </p>
       )}
 
-      <p className="mt-4 text-xs text-gray-500">
+      <p className="mt-4 text-xs text-gray-400">
         No spam, unsubscribe anytime. We respect your privacy.
       </p>
     </div>

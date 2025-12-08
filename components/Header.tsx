@@ -58,10 +58,15 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* Desktop CTA Button */}
-          <div className="hidden lg:block">
+          {/* Desktop CTA Buttons */}
+          <div className="hidden lg:flex items-center gap-3">
+            <Link href="/post-job">
+              <button className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                Post a Job
+              </button>
+            </Link>
             <Link href="/#subscribe">
-              <Button variant="primary" size="md">
+              <Button variant="outline" size="md">
                 Sign up for alerts
               </Button>
             </Link>
