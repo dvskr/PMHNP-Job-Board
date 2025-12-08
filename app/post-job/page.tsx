@@ -177,14 +177,15 @@ export default function PostJobPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Post a Job</h1>
-        <p className="text-gray-600">
-          Reach thousands of qualified psychiatric nurse practitioners
-        </p>
-      </div>
+    <>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-32 lg:pb-8">
+        {/* Page Header */}
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Post a Job</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Reach thousands of qualified psychiatric nurse practitioners
+          </p>
+        </div>
 
       {/* Draft Loaded Message */}
       {draftLoaded && (
@@ -206,15 +207,15 @@ export default function PostJobPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form id="job-post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-8">
         {/* Job Details Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-6">Job Details</h2>
+        <div className="bg-white rounded-lg shadow-md p-5 md:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold mb-5 lg:mb-6">Job Details</h2>
           
-          <div className="space-y-6">
+          <div className="space-y-5 lg:space-y-6">
             {/* Job Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 Job Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -222,18 +223,19 @@ export default function PostJobPage() {
                 id="title"
                 placeholder="e.g. Remote PMHNP - Telepsychiatry"
                 {...register('title')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
+                style={{ minHeight: '44px' }}
               />
               {errors.title && (
-                <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.title.message}</p>
               )}
             </div>
 
             {/* Company Name */}
             <div>
-              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
                 Company Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -241,56 +243,61 @@ export default function PostJobPage() {
                 id="companyName"
                 placeholder="e.g. Mindful Health Partners"
                 {...register('companyName')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.companyName ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.companyName ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
+                style={{ minHeight: '44px' }}
               />
               {errors.companyName && (
-                <p className="mt-1 text-sm text-red-500">{errors.companyName.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.companyName.message}</p>
               )}
             </div>
 
             {/* Company Website */}
             <div>
-              <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-2">
                 Company Website
               </label>
               <input
                 type="url"
+                inputMode="url"
                 id="companyWebsite"
                 placeholder="https://www.example.com"
                 {...register('companyWebsite')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.companyWebsite ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
+                style={{ minHeight: '44px' }}
               />
               {errors.companyWebsite && (
-                <p className="mt-1 text-sm text-red-500">{errors.companyWebsite.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.companyWebsite.message}</p>
               )}
             </div>
 
             {/* Contact Email */}
             <div>
-              <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-2">
                 Contact Email <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
+                inputMode="email"
                 id="contactEmail"
                 placeholder="hiring@example.com"
                 {...register('contactEmail')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.contactEmail ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.contactEmail ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
+                style={{ minHeight: '44px' }}
               />
               {errors.contactEmail && (
-                <p className="mt-1 text-sm text-red-500">{errors.contactEmail.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.contactEmail.message}</p>
               )}
             </div>
 
             {/* Location */}
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
                 Location <span className="text-red-500">*</span>
               </label>
               <input
@@ -298,104 +305,109 @@ export default function PostJobPage() {
                 id="location"
                 placeholder="e.g. Remote, New York NY"
                 {...register('location')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.location ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.location ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
+                style={{ minHeight: '44px' }}
               />
               {errors.location && (
-                <p className="mt-1 text-sm text-red-500">{errors.location.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.location.message}</p>
               )}
             </div>
 
             {/* Work Mode */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Work Mode <span className="text-red-500">*</span>
               </label>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
                 {workModes.map((mode) => (
-                  <label key={mode} className="flex items-center cursor-pointer">
+                  <label key={mode} className="flex items-center cursor-pointer touch-manipulation py-1">
                     <input
                       type="radio"
                       value={mode}
                       {...register('mode')}
-                      className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                      className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
-                    <span className="ml-2 text-sm text-gray-600">{mode}</span>
+                    <span className="ml-3 text-base text-gray-700">{mode}</span>
                   </label>
                 ))}
               </div>
               {errors.mode && (
-                <p className="mt-1 text-sm text-red-500">{errors.mode.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.mode.message}</p>
               )}
             </div>
 
             {/* Job Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Job Type <span className="text-red-500">*</span>
               </label>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
                 {jobTypes.map((type) => (
-                  <label key={type} className="flex items-center cursor-pointer">
+                  <label key={type} className="flex items-center cursor-pointer touch-manipulation py-1">
                     <input
                       type="radio"
                       value={type}
                       {...register('jobType')}
-                      className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                      className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
                     />
-                    <span className="ml-2 text-sm text-gray-600">{type}</span>
+                    <span className="ml-3 text-base text-gray-700">{type}</span>
                   </label>
                 ))}
               </div>
               {errors.jobType && (
-                <p className="mt-1 text-sm text-red-500">{errors.jobType.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.jobType.message}</p>
               )}
             </div>
 
             {/* Salary Range */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Salary Range (Annual)
               </label>
-              <div className="flex flex-col sm:flex-row gap-4 mb-2">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3">
                 <div className="flex-1">
                   <input
                     type="number"
+                    inputMode="numeric"
                     placeholder="Min $"
                     disabled={salaryCompetitive}
                     {...register('salaryMin', { valueAsNumber: true })}
-                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : ''
-                    } border-gray-300`}
+                    className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                      salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
+                    }`}
+                    style={{ minHeight: '44px' }}
                   />
                 </div>
                 <div className="flex-1">
                   <input
                     type="number"
+                    inputMode="numeric"
                     placeholder="Max $"
                     disabled={salaryCompetitive}
                     {...register('salaryMax', { valueAsNumber: true })}
-                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : ''
-                    } border-gray-300`}
+                    className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                      salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
+                    }`}
+                    style={{ minHeight: '44px' }}
                   />
                 </div>
               </div>
-              <label className="flex items-center cursor-pointer">
+              <label className="flex items-center cursor-pointer touch-manipulation py-2">
                 <input
                   type="checkbox"
                   checked={salaryCompetitive}
                   onChange={(e) => handleCompetitiveChange(e.target.checked)}
-                  className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-600">Competitive salary (don't display range)</span>
+                <span className="ml-3 text-sm sm:text-base text-gray-700">Competitive salary (don't display range)</span>
               </label>
             </div>
 
             {/* Job Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 Job Description <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -403,32 +415,34 @@ export default function PostJobPage() {
                 rows={8}
                 placeholder="Describe the role, responsibilities, requirements, benefits..."
                 {...register('description')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.description ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
               />
               {errors.description && (
-                <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.description.message}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">Minimum 200 characters</p>
+              <p className="mt-2 text-xs text-gray-500">Minimum 200 characters</p>
             </div>
 
             {/* Apply URL */}
             <div>
-              <label htmlFor="applyUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="applyUrl" className="block text-sm font-medium text-gray-700 mb-2">
                 How to Apply URL <span className="text-red-500">*</span>
               </label>
               <input
                 type="url"
+                inputMode="url"
                 id="applyUrl"
                 placeholder="https://www.example.com/careers/apply"
                 {...register('applyUrl')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.applyUrl ? 'border-red-500' : 'border-gray-300'
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
+                  errors.applyUrl ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
+                style={{ minHeight: '44px' }}
               />
               {errors.applyUrl && (
-                <p className="mt-1 text-sm text-red-500">{errors.applyUrl.message}</p>
+                <p className="mt-2 text-sm font-medium text-red-600">{errors.applyUrl.message}</p>
               )}
             </div>
           </div>
@@ -495,14 +509,15 @@ export default function PostJobPage() {
           )}
         </div>
 
-        {/* Submit Buttons */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3">
+        {/* Submit Buttons - Desktop */}
+        <div className="hidden lg:flex flex-row justify-end gap-3">
           {/* Save Draft Button */}
           <button
             type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft}
             className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ minHeight: '48px' }}
           >
             {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
@@ -511,13 +526,41 @@ export default function PostJobPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ minHeight: '48px' }}
           >
-            {isSubmitting ? 'Processing...' : 'Preview Your Job'}
+            {isSubmitting ? 'Processing...' : 'Continue to Payment →'}
           </button>
         </div>
+
+        {/* Mobile-only spacer for sticky button */}
+        <div className="lg:hidden h-4"></div>
       </form>
+
+      {/* Sticky Submit Buttons - Mobile Only */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 shadow-lg safe-bottom">
+        <div className="px-4 py-3 pb-safe flex flex-col gap-2">
+          <button
+            type="submit"
+            form="job-post-form"
+            disabled={isSubmitting}
+            className="w-full bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            style={{ minHeight: '48px' }}
+          >
+            {isSubmitting ? 'Processing...' : 'Continue to Payment →'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={savingDraft}
+            className="w-full border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            {savingDraft ? 'Saving...' : 'Save Draft for Later'}
+          </button>
+        </div>
+      </div>
     </div>
+    </>
   );
 }
 

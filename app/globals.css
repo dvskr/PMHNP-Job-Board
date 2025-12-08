@@ -77,3 +77,20 @@ html {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* Safe area padding for iPhone notch/home indicator */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pb-safe {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pt-safe {
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+}

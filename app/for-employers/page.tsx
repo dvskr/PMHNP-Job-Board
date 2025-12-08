@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import TestimonialsSection from '@/components/TestimonialsSection';
 import { 
   Target, 
   DollarSign, 
@@ -350,64 +351,29 @@ export default function ForEmployersPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
-          Companies Like Yours Trust PMHNP Jobs
-        </h2>
-        <p className="text-xl text-gray-600 text-center mb-12">
-          Join healthcare organizations finding qualified PMHNPs on our platform
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Testimonial 1 */}
-          <Card padding="lg" variant="elevated">
-            <div className="flex gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="w-5 h-5 fill-accent-500 text-accent-500" />
-              ))}
-            </div>
-            <p className="text-gray-700 mb-4 italic">
-              "We filled our PMHNP position within 2 weeks of posting. The quality of candidates was excellent."
-            </p>
-            <div className="border-t border-gray-200 pt-4">
-              <p className="font-semibold text-gray-900">Sarah Johnson</p>
-              <p className="text-sm text-gray-600">HR Director, Community Health Center</p>
-            </div>
-          </Card>
-
-          {/* Testimonial 2 */}
-          <Card padding="lg" variant="elevated">
-            <div className="flex gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="w-5 h-5 fill-accent-500 text-accent-500" />
-              ))}
-            </div>
-            <p className="text-gray-700 mb-4 italic">
-              "Much more affordable than other job boards, and we reached exactly the audience we needed."
-            </p>
-            <div className="border-t border-gray-200 pt-4">
-              <p className="font-semibold text-gray-900">Michael Chen</p>
-              <p className="text-sm text-gray-600">Practice Manager, Telepsychiatry Group</p>
-            </div>
-          </Card>
-
-          {/* Testimonial 3 */}
-          <Card padding="lg" variant="elevated">
-            <div className="flex gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="w-5 h-5 fill-accent-500 text-accent-500" />
-              ))}
-            </div>
-            <p className="text-gray-700 mb-4 italic">
-              "The dashboard made it easy to track our posting performance. Great value for the price."
-            </p>
-            <div className="border-t border-gray-200 pt-4">
-              <p className="font-semibold text-gray-900">Lisa Martinez</p>
-              <p className="text-sm text-gray-600">Recruiter, Regional Hospital System</p>
-            </div>
-          </Card>
-        </div>
-      </section>
+      <TestimonialsSection
+        title="What Employers Say"
+        testimonials={[
+          {
+            quote: "PMHNP Jobs delivered exactly what we needed - qualified candidates who are specifically looking for psychiatric roles.",
+            author: "David K.",
+            role: "Recruiting Manager",
+            company: "Telehealth Startup"
+          },
+          {
+            quote: "The featured posting was worth every penny. We had 50+ qualified applicants in the first week.",
+            author: "Amanda S.",
+            role: "Practice Owner",
+            company: "Private Practice"
+          },
+          {
+            quote: "We filled our PMHNP position within 2 weeks of posting. The quality of candidates was excellent.",
+            author: "Sarah J.",
+            role: "HR Director",
+            company: "Community Health Center"
+          }
+        ]}
+      />
 
       {/* CTA Section */}
       <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-16">

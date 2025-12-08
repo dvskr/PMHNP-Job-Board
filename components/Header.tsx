@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X, Bookmark } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, X, Bookmark, Briefcase } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 
 export default function Header() {
@@ -11,6 +11,18 @@ export default function Header() {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -24,7 +36,7 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden lg:flex items-center space-x-6">
             <Link href="/jobs" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
               Jobs
             </Link>
@@ -47,7 +59,7 @@ export default function Header() {
           </nav>
 
           {/* Desktop CTA Button */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <Link href="/#subscribe">
               <Button variant="primary" size="md">
                 Sign up for alerts
@@ -58,78 +70,128 @@ export default function Header() {
           {/* Mobile Hamburger Button */}
           <button
             onClick={toggleMenu}
-            className="md:hidden text-gray-600 hover:text-primary-600 transition-colors duration-200"
+            className="lg:hidden text-gray-600 hover:text-primary-600 transition-colors duration-200 p-2 -mr-2 touch-manipulation"
+            style={{ minWidth: '44px', minHeight: '44px' }}
             aria-label="Toggle menu"
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
+      </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden pb-4 pt-2 bg-white shadow-lg rounded-xl mt-2">
-            <nav className="flex flex-col space-y-2 p-4">
+      {/* Mobile Menu Overlay */}
+      {isMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in"
+            onClick={() => setIsMenuOpen(false)}
+            aria-hidden="true"
+          />
+          
+          {/* Full-screen Menu */}
+          <div className="fixed inset-y-0 right-0 w-full sm:w-80 bg-white z-50 lg:hidden shadow-2xl animate-slide-in-right">
+            {/* Menu Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <span className="text-lg font-bold text-gray-900">Menu</span>
+              <button
+                onClick={() => setIsMenuOpen(false)}
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 p-2 -mr-2 touch-manipulation"
+                style={{ minWidth: '44px', minHeight: '44px' }}
+                aria-label="Close menu"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Menu Content */}
+            <nav className="flex flex-col p-4 overflow-y-auto h-[calc(100vh-73px)]">
+              {/* Primary CTA - Post a Job */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="primary" size="lg" className="w-full">
+                    <Briefcase size={20} />
+                    Post a Job
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Navigation Links */}
               <Link
                 href="/jobs"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Jobs
+                Browse Jobs
               </Link>
               <Link
                 href="/for-job-seekers"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
                 onClick={() => setIsMenuOpen(false)}
               >
                 For Job Seekers
               </Link>
               <Link
                 href="/for-employers"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
                 onClick={() => setIsMenuOpen(false)}
               >
                 For Employers
               </Link>
               <Link
                 href="/saved"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2 flex items-center gap-2"
+                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <Bookmark size={16} />
+                <Bookmark size={18} />
                 Saved Jobs
               </Link>
               <Link
-                href="/post-job"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Post Job
-              </Link>
-              <Link
                 href="/salary-guide"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Salary Guide
               </Link>
               <Link
                 href="/about"
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
                 onClick={() => setIsMenuOpen(false)}
               >
                 About
               </Link>
-              <div className="pt-2" onClick={() => setIsMenuOpen(false)}>
-                <Link href="/#subscribe">
-                  <Button variant="primary" size="md" className="w-full">
+
+              {/* Secondary CTA */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <Link href="/#subscribe" onClick={() => setIsMenuOpen(false)}>
+                  <Button variant="outline" size="lg" className="w-full">
                     Sign up for alerts
                   </Button>
                 </Link>
               </div>
+
+              {/* Footer Links */}
+              <div className="mt-auto pt-6 space-y-2">
+                <Link
+                  href="/faq"
+                  className="text-sm text-gray-600 hover:text-primary-600 transition-colors duration-200 block py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  FAQ
+                </Link>
+                <Link
+                  href="/contact"
+                  className="text-sm text-gray-600 hover:text-primary-600 transition-colors duration-200 block py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Contact Us
+                </Link>
+              </div>
             </nav>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </header>
   );
 }
