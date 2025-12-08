@@ -371,3 +371,93 @@ export async function sendRenewalConfirmationEmail(
   }
 }
 
+export async function sendExpiryWarningEmail(
+  email: string,
+  jobTitle: string,
+  expiresAt: Date,
+  viewCount: number,
+  applyClickCount: number,
+  dashboardToken: string,
+  editToken: string,
+  unsubscribeToken: string
+): Promise<EmailResult> {
+  try {
+    // Calculate days until expiry
+    const now = new Date();
+    const timeDiff = expiresAt.getTime() - now.getTime();
+    const daysUntilExpiry = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    
+    // Format expiry date
+    const expiryDateStr = expiresAt.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: `Your job posting expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Your Job Posting is Expiring Soon</h1>
+            
+            <p style="font-size: 16px; margin-bottom: 16px;">
+              Your job posting <strong>"${jobTitle}"</strong> will expire on <strong>${expiryDateStr}</strong>.
+            </p>
+            
+            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin: 24px 0;">
+              <h2 style="color: #1a1a1a; font-size: 18px; margin: 0 0 16px 0;">Performance So Far</h2>
+              <div style="display: flex; gap: 24px;">
+                <div>
+                  <div style="font-size: 32px; font-weight: bold; color: #3b82f6;">${viewCount}</div>
+                  <div style="font-size: 14px; color: #666;">Views</div>
+                </div>
+                <div>
+                  <div style="font-size: 32px; font-weight: bold; color: #3b82f6;">${applyClickCount}</div>
+                  <div style="font-size: 14px; color: #666;">Apply Clicks</div>
+                </div>
+              </div>
+            </div>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">
+              Renew your listing to keep it visible to qualified psychiatric nurse practitioners.
+            </p>
+            
+            <div style="margin-bottom: 24px;">
+              <a href="${BASE_URL}/employer/dashboard/${dashboardToken}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 16px; margin-right: 12px;">
+                Renew Now
+              </a>
+              <a href="${BASE_URL}/jobs/edit/${editToken}" style="display: inline-block; background-color: transparent; color: #3b82f6; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 2px solid #3b82f6;">
+                Edit Job
+              </a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666;">
+              Need help? Reply to this email and we'll get back to you as soon as possible.
+            </p>
+            
+            ${getUnsubscribeFooter(unsubscribeToken)}
+          </body>
+        </html>
+      `,
+    });
+
+    console.log('Expiry warning email sent successfully to:', email);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending expiry warning email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send expiry warning email',
+    };
+  }
+}
+
