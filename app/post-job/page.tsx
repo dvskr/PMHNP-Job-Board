@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const jobPostingSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -34,6 +34,7 @@ const jobTypes = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'] as const;
 export default function PostJobPage() {
   const router = useRouter();
   const [salaryCompetitive, setSalaryCompetitive] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     register,
@@ -50,6 +51,30 @@ export default function PostJobPage() {
   });
 
   const selectedPricingTier = watch('pricingTier');
+
+  // Load saved form data from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('jobFormData');
+    if (savedData) {
+      try {
+        const parsedData: JobPostingFormData = JSON.parse(savedData);
+        
+        // Restore all form fields
+        Object.keys(parsedData).forEach((key) => {
+          const value = parsedData[key as keyof JobPostingFormData];
+          setValue(key as keyof JobPostingFormData, value);
+        });
+
+        // Update salary competitive state
+        if (parsedData.salaryCompetitive) {
+          setSalaryCompetitive(true);
+        }
+      } catch (err) {
+        console.error('Error loading saved form data:', err);
+      }
+    }
+    setIsLoading(false);
+  }, [setValue]);
 
   const onSubmit = (data: JobPostingFormData) => {
     // Store form data in localStorage

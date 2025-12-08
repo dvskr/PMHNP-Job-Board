@@ -33,6 +33,7 @@ export default function EmployerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [renewingJobId, setRenewingJobId] = useState<string | null>(null);
+  const [upgradingJobId, setUpgradingJobId] = useState<string | null>(null);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
@@ -169,6 +170,36 @@ export default function EmployerDashboardPage() {
     }
   };
 
+  const handleUpgradeClick = async (job: Job) => {
+    setUpgradingJobId(job.id);
+
+    try {
+      const response = await fetch('/api/create-upgrade-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: job.id,
+          editToken: job.editToken,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to create checkout');
+      }
+
+      // Redirect to Stripe checkout
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error('Upgrade checkout error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to start upgrade process');
+      setUpgradingJobId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -259,6 +290,18 @@ export default function EmployerDashboardPage() {
                       <Edit size={16} />
                       Edit
                     </Link>
+                    {!job.isFeatured && job.isPublished && !isExpired(job) && (
+                      <button
+                        onClick={() => handleUpgradeClick(job)}
+                        disabled={upgradingJobId === job.id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                        {upgradingJobId === job.id ? 'Processing...' : 'Upgrade to Featured ($100)'}
+                      </button>
+                    )}
                     {shouldShowRenew(job) && (
                       <button
                         onClick={() => handleRenewClick(job)}

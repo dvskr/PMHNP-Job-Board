@@ -106,6 +106,67 @@ export async function POST(request: NextRequest) {
             { status: 500 }
           );
         }
+      } else if (type === 'upgrade') {
+        // Handle upgrade to featured
+        try {
+          // Calculate new expiry date (add 30 days to current expiry since featured gets 60 days total)
+          const currentJob = await prisma.job.findUnique({
+            where: { id: jobId },
+            select: { expiresAt: true },
+          });
+
+          const newExpiresAt = currentJob?.expiresAt ? new Date(currentJob.expiresAt) : new Date();
+          newExpiresAt.setDate(newExpiresAt.getDate() + 30); // Add 30 days (60 total for featured vs 30 for standard)
+
+          // Update job to featured
+          const job = await prisma.job.update({
+            where: { id: jobId },
+            data: {
+              isFeatured: true,
+              expiresAt: newExpiresAt,
+            },
+          });
+
+          // Get employer job
+          const employerJob = await prisma.employerJob.findFirst({
+            where: { jobId: jobId },
+          });
+
+          if (employerJob) {
+            // Get or create email lead for unsubscribe token
+            let emailLead = await prisma.emailLead.findUnique({
+              where: { email: employerJob.contactEmail },
+            });
+
+            if (!emailLead) {
+              emailLead = await prisma.emailLead.create({
+                data: { email: employerJob.contactEmail },
+              });
+            }
+
+            // Send upgrade confirmation email
+            try {
+              await sendConfirmationEmail(
+                employerJob.contactEmail,
+                `✨ ${job.title} (Upgraded to Featured)`,
+                job.id,
+                employerJob.editToken,
+                employerJob.dashboardToken
+              );
+            } catch (emailError) {
+              console.error('Failed to send upgrade confirmation email:', emailError);
+              // Don't throw - job already upgraded
+            }
+          }
+
+          console.log('Job upgraded to featured:', jobId);
+        } catch (prismaError) {
+          console.error('Error upgrading job in database:', prismaError);
+          return NextResponse.json(
+            { error: 'Failed to upgrade job' },
+            { status: 500 }
+          );
+        }
       } else {
         // Original flow: new job posting
         try {
