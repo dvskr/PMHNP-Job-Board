@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import JobCard from '@/components/JobCard';
 import JobFilters from '@/components/JobFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
+import JobsListSkeleton from '@/components/JobsListSkeleton';
 import { Job } from '@prisma/client';
 
 interface FilterState {
@@ -268,14 +269,7 @@ export default function JobsPage() {
           )}
 
           {/* Loading State */}
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                <p className="text-gray-600">Loading jobs...</p>
-              </div>
-            </div>
-          )}
+          {loading && <JobsListSkeleton count={9} />}
 
           {/* Error State */}
           {error && (

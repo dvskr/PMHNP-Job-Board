@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import JobCard from '@/components/JobCard';
+import JobsListSkeleton from '@/components/JobsListSkeleton';
 import { Job } from '@prisma/client';
 import { Bookmark, Trash2, FileCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -242,14 +243,7 @@ export default function SavedJobsPage() {
           )}
 
           {/* Loading State */}
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                <p className="text-gray-600">Loading saved jobs...</p>
-              </div>
-            </div>
-          )}
+          {loading && <JobsListSkeleton count={3} />}
 
           {/* Error State */}
           {error && (
@@ -315,14 +309,7 @@ export default function SavedJobsPage() {
           )}
 
           {/* Loading State */}
-          {appliedLoading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                <p className="text-gray-600">Loading applied jobs...</p>
-              </div>
-            </div>
-          )}
+          {appliedLoading && <JobsListSkeleton count={3} />}
 
           {/* Error State */}
           {appliedError && (
