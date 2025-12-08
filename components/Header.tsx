@@ -38,6 +38,9 @@ export default function Header() {
             <Link href="/salary-guide" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
               Salary Guide
             </Link>
+            <Link href="/about" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
+              About
+            </Link>
           </nav>
 
           {/* Desktop CTA Button */}
@@ -91,6 +94,13 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Salary Guide
+              </Link>
+              <Link
+                href="/about"
+                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                About
               </Link>
               <div className="pt-2" onClick={() => setIsMenuOpen(false)}>
                 <Link href="/#subscribe">
