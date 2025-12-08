@@ -200,6 +200,19 @@ export async function POST(request: NextRequest) {
               console.error('Failed to send confirmation email:', emailError);
               // Don't throw - job already created
             }
+
+            // Clean up any job drafts for this email (no longer needed)
+            try {
+              const deletedDrafts = await prisma.jobDraft.deleteMany({
+                where: { email: employerJob.contactEmail },
+              });
+              if (deletedDrafts.count > 0) {
+                console.log(`Deleted ${deletedDrafts.count} draft(s) for ${employerJob.contactEmail}`);
+              }
+            } catch (draftError) {
+              console.error('Failed to delete job drafts:', draftError);
+              // Don't throw - job already created
+            }
           }
 
           console.log('Job published:', jobId);

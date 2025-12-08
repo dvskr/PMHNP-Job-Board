@@ -278,6 +278,16 @@ export default function EmployerDashboardPage() {
                           {isExpiringSoon(job) && ' ⚠️'}
                         </span>
                       )}
+                      {job.paymentStatus === 'paid' && (
+                        <a
+                          href={`/api/employer/invoice?jobId=${job.id}&token=${token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          Download Invoice
+                        </a>
+                      )}
                     </div>
                   </div>
 

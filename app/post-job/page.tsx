@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 const jobPostingSchema = z.object({
@@ -33,8 +33,12 @@ const jobTypes = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'] as const;
 
 export default function PostJobPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [salaryCompetitive, setSalaryCompetitive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSaveMessage, setDraftSaveMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -51,36 +55,116 @@ export default function PostJobPage() {
   });
 
   const selectedPricingTier = watch('pricingTier');
+  const contactEmail = watch('contactEmail');
 
-  // Load saved form data from localStorage on mount
+  // Load saved form data or draft on mount
   useEffect(() => {
-    const savedData = localStorage.getItem('jobFormData');
-    if (savedData) {
-      try {
-        const parsedData: JobPostingFormData = JSON.parse(savedData);
-        
-        // Restore all form fields
-        Object.keys(parsedData).forEach((key) => {
-          const value = parsedData[key as keyof JobPostingFormData];
-          setValue(key as keyof JobPostingFormData, value);
-        });
+    const loadFormData = async () => {
+      // Check for resume token in URL
+      const resumeToken = searchParams.get('resume');
+      
+      if (resumeToken) {
+        // Load draft from API
+        try {
+          const response = await fetch(`/api/job-draft?token=${resumeToken}`);
+          const result = await response.json();
 
-        // Update salary competitive state
-        if (parsedData.salaryCompetitive) {
-          setSalaryCompetitive(true);
+          if (response.ok && result.success) {
+            const formData = result.formData;
+            
+            // Restore all form fields from draft
+            Object.keys(formData).forEach((key) => {
+              const value = formData[key as keyof JobPostingFormData];
+              setValue(key as keyof JobPostingFormData, value);
+            });
+
+            // Update salary competitive state
+            if (formData.salaryCompetitive) {
+              setSalaryCompetitive(true);
+            }
+
+            setDraftLoaded(true);
+          } else {
+            console.error('Failed to load draft:', result.error);
+          }
+        } catch (err) {
+          console.error('Error loading draft:', err);
         }
-      } catch (err) {
-        console.error('Error loading saved form data:', err);
+      } else {
+        // Try loading from localStorage
+        const savedData = localStorage.getItem('jobFormData');
+        if (savedData) {
+          try {
+            const parsedData: JobPostingFormData = JSON.parse(savedData);
+            
+            // Restore all form fields
+            Object.keys(parsedData).forEach((key) => {
+              const value = parsedData[key as keyof JobPostingFormData];
+              setValue(key as keyof JobPostingFormData, value);
+            });
+
+            // Update salary competitive state
+            if (parsedData.salaryCompetitive) {
+              setSalaryCompetitive(true);
+            }
+          } catch (err) {
+            console.error('Error loading saved form data:', err);
+          }
+        }
       }
-    }
-    setIsLoading(false);
-  }, [setValue]);
+      
+      setIsLoading(false);
+    };
+
+    loadFormData();
+  }, [setValue, searchParams]);
 
   const onSubmit = (data: JobPostingFormData) => {
     // Store form data in localStorage
     localStorage.setItem('jobFormData', JSON.stringify(data));
     // Navigate to preview
     router.push('/post-job/preview');
+  };
+
+  const handleSaveDraft = async () => {
+    // Check if email is filled
+    if (!contactEmail || contactEmail.trim() === '') {
+      setDraftSaveMessage('Please enter your email address first');
+      setTimeout(() => setDraftSaveMessage(null), 3000);
+      return;
+    }
+
+    setSavingDraft(true);
+    setDraftSaveMessage(null);
+
+    try {
+      // Get all current form values
+      const formData = watch();
+
+      const response = await fetch('/api/job-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: contactEmail,
+          formData,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setDraftSaveMessage('Draft saved! Check your email to continue later.');
+      } else {
+        setDraftSaveMessage(result.error || 'Failed to save draft');
+      }
+    } catch (err) {
+      console.error('Error saving draft:', err);
+      setDraftSaveMessage('Failed to save draft. Please try again.');
+    } finally {
+      setSavingDraft(false);
+      // Clear message after 5 seconds
+      setTimeout(() => setDraftSaveMessage(null), 5000);
+    }
   };
 
   const handleCompetitiveChange = (checked: boolean) => {
@@ -101,6 +185,26 @@ export default function PostJobPage() {
           Reach thousands of qualified psychiatric nurse practitioners
         </p>
       </div>
+
+      {/* Draft Loaded Message */}
+      {draftLoaded && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 font-medium">
+            ✓ Welcome back! Your draft has been loaded.
+          </p>
+        </div>
+      )}
+
+      {/* Draft Save Message */}
+      {draftSaveMessage && (
+        <div className={`mb-6 border rounded-lg p-4 ${
+          draftSaveMessage.includes('saved') || draftSaveMessage.includes('Check your email')
+            ? 'bg-green-50 border-green-200 text-green-800'
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <p className="font-medium">{draftSaveMessage}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Job Details Section */}
@@ -391,8 +495,19 @@ export default function PostJobPage() {
           )}
         </div>
 
-        {/* Submit Button */}
-        <div className="flex justify-end">
+        {/* Submit Buttons */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3">
+          {/* Save Draft Button */}
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={savingDraft}
+            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {savingDraft ? 'Saving...' : 'Save Draft'}
+          </button>
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}

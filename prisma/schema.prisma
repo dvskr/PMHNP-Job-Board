@@ -125,3 +125,17 @@ model SiteStat {
 
   @@map("site_stats")
 }
+
+model JobDraft {
+  id          String   @id @default(cuid())
+  email       String
+  formData    Json     @map("form_data")
+  resumeToken String   @unique @default(cuid()) @map("resume_token")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  expiresAt   DateTime @map("expires_at")
+
+  @@index([email])
+  @@index([resumeToken])
+  @@map("job_drafts")
+}

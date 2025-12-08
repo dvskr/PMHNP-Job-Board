@@ -461,3 +461,63 @@ export async function sendExpiryWarningEmail(
   }
 }
 
+export async function sendDraftSavedEmail(
+  email: string,
+  resumeToken: string
+): Promise<EmailResult> {
+  try {
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: 'Continue your PMHNP job posting',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 20px;">Continue Your Job Posting</h1>
+            
+            <p style="font-size: 16px; margin-bottom: 16px;">
+              Your job posting draft has been saved.
+            </p>
+            
+            <p style="font-size: 16px; margin-bottom: 24px;">
+              Click below to continue where you left off:
+            </p>
+            
+            <div style="margin-bottom: 24px;">
+              <a href="${BASE_URL}/post-job?resume=${resumeToken}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                Continue Posting
+              </a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; margin-top: 24px;">
+              Or copy this link:<br>
+              <a href="${BASE_URL}/post-job?resume=${resumeToken}" style="color: #3b82f6; word-break: break-all;">
+                ${BASE_URL}/post-job?resume=${resumeToken}
+              </a>
+            </p>
+            
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
+              <p>This link expires in 30 days.</p>
+              <p>Need help? Reply to this email and we'll get back to you.</p>
+            </div>
+          </body>
+        </html>
+      `,
+    });
+
+    console.log('Draft saved email sent successfully to:', email);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending draft saved email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send draft saved email',
+    };
+  }
+}
+
