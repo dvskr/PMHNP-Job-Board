@@ -20,8 +20,8 @@ export default function JobCard({ job }: JobCardProps) {
   const freshness = getJobFreshness(job.createdAt);
 
   return (
-    <Link href={jobUrl} className="block touch-manipulation">
-      <div className="group bg-white rounded-xl shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full p-4 md:p-6">
+    <Link href={jobUrl} className="block touch-manipulation h-full">
+      <div className="group bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6">
         {/* Title and Badges Row */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
           <h3 className="text-lg md:text-xl font-semibold text-gray-900 group-hover:text-primary-600 transition-colors duration-200 flex-1 leading-tight">

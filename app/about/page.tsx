@@ -164,25 +164,25 @@ export default function AboutPage() {
 
         {/* Contact Section */}
         <section>
-          <Card padding="lg" variant="elevated" className="bg-primary-50 border-primary-200">
+          <Card padding="lg" variant="elevated" className="bg-blue-50 border-blue-200">
             <div className="text-center">
-              <Mail className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+              <Mail className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Get In Touch</h2>
               <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
                 Have questions, feedback, or suggestions? We'd love to hear from you. 
                 We're always looking to improve and serve the PMHNP community better.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
                 <a
                   href="mailto:hello@pmhnpjobs.com"
-                  className="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center shadow-md hover:shadow-lg"
                 >
                   <Mail size={20} />
                   Email Us
                 </a>
                 <Link
                   href="/jobs"
-                  className="inline-flex items-center gap-2 bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold border-2 border-primary-600 hover:bg-primary-50 transition-colors"
+                  className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-colors w-full sm:w-auto justify-center shadow-sm hover:shadow-md"
                 >
                   Browse Jobs
                 </Link>

@@ -293,15 +293,16 @@ export default function JobsPage() {
 
           {/* Jobs Grid */}
           {!loading && !error && jobs.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {jobs.map((job, index) => (
-                <AnimatedContainer
-                  key={job.id}
-                  animation="fade-in-up"
-                  delay={Math.min(index * 50, 600)}
-                >
-                  <JobCard job={job} />
-                </AnimatedContainer>
+                <div key={job.id} className="h-full">
+                  <AnimatedContainer
+                    animation="fade-in-up"
+                    delay={Math.min(index * 50, 600)}
+                  >
+                    <JobCard job={job} />
+                  </AnimatedContainer>
+                </div>
               ))}
             </div>
           )}
