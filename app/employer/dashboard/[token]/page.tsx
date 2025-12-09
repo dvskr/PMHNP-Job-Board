@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
 import { ExternalLink, Edit, RefreshCw } from 'lucide-react';
+import { config } from '@/lib/config';
 
 interface Job {
   id: string;
@@ -278,7 +279,7 @@ export default function EmployerDashboardPage() {
                           {isExpiringSoon(job) && ' ⚠️'}
                         </span>
                       )}
-                      {job.paymentStatus === 'paid' && (
+                      {config.isPaidPostingEnabled && job.paymentStatus === 'paid' && (
                         <a
                           href={`/api/employer/invoice?jobId=${job.id}&token=${token}`}
                           target="_blank"
@@ -309,7 +310,7 @@ export default function EmployerDashboardPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                         </svg>
-                        {upgradingJobId === job.id ? 'Processing...' : 'Upgrade to Featured ($100)'}
+                        {upgradingJobId === job.id ? 'Processing...' : (config.isPaidPostingEnabled ? 'Upgrade to Featured - $100' : 'Upgrade to Featured - Free')}
                       </button>
                     )}
                     {shouldShowRenew(job) && (
@@ -319,7 +320,7 @@ export default function EmployerDashboardPage() {
                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <RefreshCw size={16} className={renewingJobId === job.id ? 'animate-spin' : ''} />
-                        {renewingJobId === job.id ? 'Processing...' : 'Renew'}
+                        {renewingJobId === job.id ? 'Processing...' : (config.isPaidPostingEnabled ? 'Renew - $99' : 'Renew - Free')}
                       </button>
                     )}
                   </div>
@@ -347,7 +348,11 @@ export default function EmployerDashboardPage() {
               <p className="text-sm text-gray-600">{selectedJob.title}</p>
             </div>
 
-            <p className="text-gray-700 mb-6">Choose how you'd like to renew your listing:</p>
+            <p className="text-gray-700 mb-6">
+              {config.isPaidPostingEnabled 
+                ? 'Choose how you\'d like to renew your listing:' 
+                : 'Choose your renewal option (free during launch period):'}
+            </p>
 
             <div className="space-y-3 mb-6">
               {/* Standard Option */}
@@ -357,7 +362,9 @@ export default function EmployerDashboardPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-gray-900 group-hover:text-blue-700">Standard Renewal</span>
-                  <span className="text-2xl font-bold text-gray-900 group-hover:text-blue-700">$99</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-blue-700">
+                    {config.isPaidPostingEnabled ? '$99' : 'FREE'}
+                  </span>
                 </div>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>✓ 30 days of visibility</li>
@@ -372,11 +379,15 @@ export default function EmployerDashboardPage() {
                 className="w-full text-left border-2 border-blue-500 bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-all group relative"
               >
                 <div className="absolute top-2 right-2">
-                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">BEST VALUE</span>
+                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">
+                    {config.isPaidPostingEnabled ? 'BEST VALUE' : 'RECOMMENDED'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-blue-900">Featured Renewal</span>
-                  <span className="text-2xl font-bold text-blue-900">$199</span>
+                  <span className="text-2xl font-bold text-blue-900">
+                    {config.isPaidPostingEnabled ? '$199' : 'FREE'}
+                  </span>
                 </div>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>✓ 60 days of visibility</li>

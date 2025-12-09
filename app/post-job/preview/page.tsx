@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
+import { config } from '@/lib/config';
 
 interface JobFormData {
   title: string;
@@ -27,6 +28,8 @@ export default function PreviewPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<JobFormData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Read form data from localStorage
@@ -53,8 +56,54 @@ export default function PreviewPage() {
     router.push('/post-job');
   };
 
-  const handleContinue = () => {
-    router.push('/post-job/checkout');
+  const handleContinue = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      if (config.isPaidPostingEnabled) {
+        // PAID MODE: Navigate to checkout (existing behavior)
+        router.push('/post-job/checkout');
+      } else {
+        // FREE MODE: Submit directly to post-free API
+        if (!formData) return;
+
+        const response = await fetch('/api/jobs/post-free', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: formData.title,
+            employer: formData.companyName,
+            location: formData.location,
+            mode: formData.mode,
+            jobType: formData.jobType,
+            description: formData.description,
+            applyLink: formData.applyLink,
+            contactEmail: formData.contactEmail,
+            minSalary: formData.minSalary,
+            maxSalary: formData.maxSalary,
+            salaryPeriod: formData.salaryPeriod || 'annual',
+            companyWebsite: formData.companyWebsite,
+            pricing: formData.tier,
+          }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Clear localStorage
+          localStorage.removeItem('jobFormData');
+          // Redirect to success
+          router.push('/success?free=true');
+        } else {
+          setError(result.error || 'Failed to post job');
+        }
+      }
+    } catch (error) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (loading || !formData) {
@@ -66,7 +115,10 @@ export default function PreviewPage() {
   }
 
   const salary = formatSalary(formData.minSalary, formData.maxSalary, formData.salaryPeriod);
-  const price = formData.tier === 'featured' ? 199 : 99;
+  const price = config.isPaidPostingEnabled 
+    ? (formData.tier === 'featured' ? 199 : 99)
+    : 0;
+  const priceLabel = price === 0 ? 'FREE' : `$${price}`;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -216,7 +268,7 @@ export default function PreviewPage() {
                 }
               </p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">${price}</p>
+            <p className="text-2xl font-bold text-gray-900">{priceLabel}</p>
           </div>
 
           <div className="text-sm text-gray-600">
@@ -226,11 +278,19 @@ export default function PreviewPage() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 font-medium">{error}</p>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 sticky bottom-4 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
           <button
             onClick={handleBack}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            disabled={isLoading}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -239,12 +299,19 @@ export default function PreviewPage() {
           </button>
           <button
             onClick={handleContinue}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            disabled={isLoading}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Looks Good - Continue to Payment
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
+            {isLoading 
+              ? 'Processing...'
+              : config.isPaidPostingEnabled 
+                ? 'Looks Good - Continue to Payment' 
+                : 'Looks Good - Post Job (Free)'}
+            {!isLoading && (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

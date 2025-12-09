@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
 import { Job } from '@prisma/client';
+import { config } from '@/lib/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -66,11 +67,14 @@ export async function sendConfirmationEmail(
   jobTitle: string,
   jobId: string,
   editToken: string,
-  dashboardToken: string,
+  dashboardToken?: string,  // Make optional for backward compatibility
   unsubscribeToken?: string
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
+    const dashboardUrl = dashboardToken 
+      ? `${BASE_URL}/employer/dashboard/${dashboardToken}`
+      : null;
 
     await resend.emails.send({
       from: EMAIL_FROM,
@@ -98,20 +102,23 @@ export async function sendConfirmationEmail(
               <a href="${BASE_URL}/jobs/edit/${editToken}" style="color: #3b82f6; text-decoration: underline;">Edit your job post</a>
             </p>
             
-            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 32px 0;">
+            ${dashboardUrl ? `
+              <div style="margin-top: 20px; padding: 16px; background-color: #f0f9ff; border-radius: 8px;">
+                <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e40af;">
+                  📊 Employer Dashboard
+                </p>
+                <p style="margin: 0 0 12px 0; color: #4b5563;">
+                  Manage all your job postings in one place:
+                </p>
+                <a href="${dashboardUrl}" 
+                   style="display: inline-block; background-color: #2563eb; color: white; 
+                          padding: 10px 20px; border-radius: 6px; text-decoration: none;">
+                  View Dashboard
+                </a>
+              </div>
+            ` : ''}
             
-            <!-- Dashboard Section -->
-            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
-              <h3 style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 8px 0;">Manage All Your Jobs</h3>
-              <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px 0;">
-                View and manage all your job postings from your dashboard
-              </p>
-              <a href="${BASE_URL}/employer/dashboard/${dashboardToken}" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                Go to Dashboard
-              </a>
-            </div>
-            
-            <p style="font-size: 14px; color: #666;">
+            <p style="font-size: 14px; color: #666; margin-top: 24px;">
               Need help? Reply to this email and we'll get back to you as soon as possible.
             </p>
             
@@ -428,7 +435,9 @@ export async function sendExpiryWarningEmail(
             </div>
             
             <p style="font-size: 16px; margin-bottom: 24px;">
-              Renew your listing to keep it visible to qualified psychiatric nurse practitioners.
+              ${config.isPaidPostingEnabled 
+                ? 'Renew for just $99 to keep it active for another 30 days.' 
+                : 'Renew now to keep it active - FREE during our launch period!'}
             </p>
             
             <div style="margin-bottom: 24px;">

@@ -224,6 +224,19 @@ export default async function JobPage({ params }: JobPageProps) {
             </div>
           </AnimatedContainer>
         </div>
+
+        {/* Report Job Section */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-sm text-gray-500">
+            See something wrong with this listing?{' '}
+            <a 
+              href={`mailto:support@pmhnpjobs.com?subject=Report Job: ${job.title}&body=Job ID: ${job.id}%0AJob Title: ${job.title}%0ACompany: ${job.employer}%0A%0AReason for report:%0A`}
+              className="text-red-600 hover:text-red-700 hover:underline"
+            >
+              Report this job
+            </a>
+          </p>
+        </div>
       </div>
 
       {/* Sticky Apply Button - Mobile Only */}

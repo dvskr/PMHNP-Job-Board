@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { config } from '@/lib/config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -67,8 +68,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Stripe Checkout session for upgrade
-    const session = await stripe.checkout.sessions.create({
+    // Check if free mode is enabled
+    if (config.isPaidPostingEnabled) {
+      // PAID MODE: Existing Stripe checkout flow
+      
+      // Create Stripe Checkout session for upgrade
+      const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
@@ -92,10 +97,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      sessionId: session.id,
-      url: session.url,
-    });
+      return NextResponse.json({
+        sessionId: session.id,
+        url: session.url,
+      });
+    } else {
+      // FREE MODE: Upgrade directly without payment
+      
+      // Update job to featured
+      await prisma.job.update({
+        where: { id: jobId },
+        data: {
+          isFeatured: true,
+        },
+      });
+      
+      // Update employer job record
+      await prisma.employerJob.update({
+        where: { jobId },
+        data: {
+          paymentStatus: 'free_upgraded',
+        },
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Job upgraded to Featured! It will now appear at the top of search results.',
+        free: true,
+      });
+    }
   } catch (error) {
     console.error('Error creating upgrade checkout session:', error);
     return NextResponse.json(

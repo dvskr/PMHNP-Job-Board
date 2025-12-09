@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { config } from '@/lib/config';
+import { sendRenewalConfirmationEmail } from '@/lib/email-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -56,11 +58,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine price in cents
-    const price = tier === 'featured' ? 19900 : 9900; // $199 or $99
+    // Check if free mode is enabled
+    if (config.isPaidPostingEnabled) {
+      // PAID MODE: Existing Stripe checkout flow
+      
+      // Determine price in cents
+      const price = tier === 'featured' ? 19900 : 9900; // $199 or $99
 
-    // Create Stripe Checkout session
-    const session = await stripe.checkout.sessions.create({
+      // Create Stripe Checkout session
+      const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
@@ -86,10 +92,48 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      sessionId: session.id,
-      url: session.url,
-    });
+      return NextResponse.json({
+        sessionId: session.id,
+        url: session.url,
+      });
+    } else {
+      // FREE MODE: Renew directly without payment
+      
+      // Calculate new expiry (30 days from now)
+      const newExpiresAt = new Date();
+      newExpiresAt.setDate(newExpiresAt.getDate() + 30);
+      
+      // Update job
+      await prisma.job.update({
+        where: { id: jobId },
+        data: {
+          expiresAt: newExpiresAt,
+          isPublished: true,
+        },
+      });
+      
+      // Update employer job record
+      await prisma.employerJob.update({
+        where: { jobId },
+        data: {
+          paymentStatus: 'free_renewed',
+        },
+      });
+      
+      // Send renewal confirmation email
+      try {
+        await sendRenewalConfirmationEmail(employerJob.contactEmail, employerJob.job.title, newExpiresAt);
+      } catch (e) {
+        console.error('Failed to send renewal email:', e);
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Job renewed successfully for another 30 days',
+        free: true,
+        newExpiresAt,
+      });
+    }
   } catch (error) {
     console.error('Error creating renewal checkout session:', error);
     return NextResponse.json(

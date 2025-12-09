@@ -103,6 +103,7 @@ model EmployerJob {
   jobId               String    @unique @map("job_id")
   editToken           String    @unique @map("edit_token")
   dashboardToken      String    @unique @default(cuid()) @map("dashboard_token")
+  // Valid values: 'pending', 'paid', 'failed', 'refunded', 'free', 'free_renewed', 'free_upgraded'
   paymentStatus       String    @map("payment_status")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")

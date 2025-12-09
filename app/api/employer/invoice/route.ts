@@ -44,6 +44,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // GAP FIX 3: Block invoice generation for free posts
+    if (employerJob.paymentStatus === 'free' || 
+        employerJob.paymentStatus === 'free_renewed' || 
+        employerJob.paymentStatus === 'free_upgraded') {
+      return NextResponse.json(
+        { 
+          error: 'Invoices are not available for free job postings.',
+          message: 'Your job was posted during our free launch period. No payment was made, so no invoice is available.'
+        },
+        { status: 400 }
+      );
+    }
+
     // Check if payment was completed
     if (employerJob.paymentStatus !== 'paid') {
       return NextResponse.json(

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { createId } from '@paralleldrive/cuid2';
+import { config } from '@/lib/config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -24,6 +25,17 @@ interface CheckoutRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Block in free mode - users should use /api/jobs/post-free instead
+    if (!config.isPaidPostingEnabled) {
+      return NextResponse.json(
+        { 
+          error: 'Paid posting is currently disabled. Job postings are free during our launch period.',
+          redirect: '/post-job'
+        },
+        { status: 403 }
+      );
+    }
+
     const body: CheckoutRequestBody = await request.json();
 
     // Validate required fields

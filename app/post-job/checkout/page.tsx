@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { config } from '@/lib/config';
 
 interface JobFormData {
   title: string;
@@ -27,6 +28,12 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if free mode is enabled - redirect to post-job page
+    if (!config.isPaidPostingEnabled) {
+      router.push('/post-job');
+      return;
+    }
+
     // Read jobFormData from localStorage
     const storedData = localStorage.getItem('jobFormData');
     

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { config } from '@/lib/config';
 
 const jobPostingSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -39,6 +40,7 @@ export default function PostJobPage() {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaveMessage, setDraftSaveMessage] = useState<string | null>(null);
+  const [emailWarning, setEmailWarning] = useState<string | null>(null);
 
   const {
     register,
@@ -119,11 +121,49 @@ export default function PostJobPage() {
     loadFormData();
   }, [setValue, searchParams]);
 
-  const onSubmit = (data: JobPostingFormData) => {
-    // Store form data in localStorage
-    localStorage.setItem('jobFormData', JSON.stringify(data));
-    // Navigate to preview
-    router.push('/post-job/preview');
+  const onSubmit = async (data: JobPostingFormData) => {
+    if (!config.isPaidPostingEnabled) {
+      // Free posting mode - submit directly
+      try {
+        const response = await fetch('/api/jobs/post-free', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: data.title,
+            employer: data.companyName,
+            location: data.location,
+            mode: data.mode,
+            jobType: data.jobType,
+            description: data.description,
+            applyLink: data.applyUrl,
+            contactEmail: data.contactEmail,
+            minSalary: data.salaryMin,
+            maxSalary: data.salaryMax,
+            salaryPeriod: 'annual',
+            companyWebsite: data.companyWebsite,
+            pricing: data.pricingTier,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Clear form data
+          localStorage.removeItem('jobFormData');
+          // Redirect to success page
+          router.push('/success?free=true');
+        } else {
+          alert(result.error || 'Failed to post job. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error posting job:', error);
+        alert('Failed to post job. Please try again.');
+      }
+    } else {
+      // Paid posting mode - store and navigate to preview
+      localStorage.setItem('jobFormData', JSON.stringify(data));
+      router.push('/post-job/preview');
+    }
   };
 
   const handleSaveDraft = async () => {
@@ -207,6 +247,15 @@ export default function PostJobPage() {
         </div>
       )}
 
+      {/* Free Mode Banner */}
+      {!config.isPaidPostingEnabled && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-green-800 font-medium">
+            🎉 Launch Special: Job postings are FREE for a limited time!
+          </p>
+        </div>
+      )}
+
       <form id="job-post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-8">
         {/* Job Details Section */}
         <div className="bg-white rounded-lg shadow-md p-5 md:p-6">
@@ -276,22 +325,38 @@ export default function PostJobPage() {
 
             {/* Contact Email */}
             <div>
-              <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
                 Contact Email <span className="text-red-500">*</span>
               </label>
+              <p className="text-sm text-gray-500 mb-2">
+                Use your company email (not Gmail/Yahoo) to verify you represent this employer
+              </p>
               <input
                 type="email"
                 inputMode="email"
                 id="contactEmail"
-                placeholder="hiring@example.com"
+                placeholder="hiring@yourcompany.com"
                 {...register('contactEmail')}
-                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
-                  errors.contactEmail ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                onBlur={(e) => {
+                  const FREE_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'live.com', 'msn.com'];
+                  const email = e.target.value.toLowerCase();
+                  const emailDomain = email.split('@')[1];
+                  if (emailDomain && FREE_EMAIL_DOMAINS.includes(emailDomain)) {
+                    setEmailWarning('Please use your company email address (not Gmail, Yahoo, etc.)');
+                  } else {
+                    setEmailWarning(null);
+                  }
+                }}
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.contactEmail || emailWarning ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                 }`}
                 style={{ minHeight: '44px' }}
               />
               {errors.contactEmail && (
                 <p className="mt-2 text-sm font-medium text-red-600">{errors.contactEmail.message}</p>
+              )}
+              {emailWarning && !errors.contactEmail && (
+                <p className="mt-2 text-sm font-medium text-red-600">{emailWarning}</p>
               )}
             </div>
 
@@ -452,6 +517,14 @@ export default function PostJobPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-6">Choose Your Plan</h2>
           
+          {!config.isPaidPostingEnabled && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                🎉 Limited time: Post jobs for FREE during our launch period!
+              </p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Standard Plan */}
             <label
@@ -468,7 +541,9 @@ export default function PostJobPage() {
                 className="absolute top-4 right-4 w-4 h-4 text-blue-500"
               />
               <span className="text-lg font-semibold mb-1">Standard Job</span>
-              <span className="text-3xl font-bold text-gray-900 mb-2">$99</span>
+              <span className="text-3xl font-bold text-gray-900 mb-2">
+                {config.getPricingLabel('standard')}
+              </span>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>• 30-day listing</li>
                 <li>• Shown in job feed</li>
@@ -491,10 +566,12 @@ export default function PostJobPage() {
                 className="absolute top-4 right-4 w-4 h-4 text-blue-500"
               />
               <span className="absolute -top-3 left-4 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                BEST VALUE
+                {!config.isPaidPostingEnabled ? '⭐ RECOMMENDED' : 'BEST VALUE'}
               </span>
               <span className="text-lg font-semibold mb-1">Featured Job</span>
-              <span className="text-3xl font-bold text-gray-900 mb-2">$199</span>
+              <span className="text-3xl font-bold text-gray-900 mb-2">
+                {config.getPricingLabel('featured')}
+              </span>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>• 60-day listing</li>
                 <li>• Featured badge</li>
@@ -526,10 +603,14 @@ export default function PostJobPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ minHeight: '48px' }}
           >
-            {isSubmitting ? 'Processing...' : 'Continue to Payment →'}
+            {isSubmitting 
+              ? 'Processing...' 
+              : !config.isPaidPostingEnabled 
+                ? 'Post Job - Free' 
+                : 'Continue to Payment →'}
           </button>
         </div>
 
@@ -544,10 +625,14 @@ export default function PostJobPage() {
             type="submit"
             form="job-post-form"
             disabled={isSubmitting}
-            className="w-full bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
             style={{ minHeight: '48px' }}
           >
-            {isSubmitting ? 'Processing...' : 'Continue to Payment →'}
+            {isSubmitting 
+              ? 'Processing...' 
+              : !config.isPaidPostingEnabled 
+                ? 'Post Job - Free' 
+                : 'Continue to Payment →'}
           </button>
           <button
             type="button"
