@@ -145,165 +145,65 @@ export async function sendConfirmationEmail(
 
 export async function sendJobAlertEmail(
   email: string,
-  alertName: string,
-  jobs: Job[],
-  manageToken: string,
-  unsubscribeToken: string
-): Promise<EmailResult> {
-  try {
-    const jobCount = jobs.length;
-    const displayJobs = jobs.slice(0, 10);
-    const hasMoreJobs = jobCount > 10;
+  jobs: any[],
+  alertToken: string
+): Promise<void> {
+  const jobCount = jobs.length;
+  const displayJobs = jobs.slice(0, 10);
 
-    // Generate job cards HTML
-    const jobCardsHtml = displayJobs
-      .map((job) => {
-        const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`;
-        const salaryText = job.salaryRange || (job.minSalary ? `$${job.minSalary.toLocaleString()}${job.maxSalary ? ` - $${job.maxSalary.toLocaleString()}` : '+'}` : '');
+  // Build job list HTML
+  const jobListHtml = displayJobs.map(job => `
+    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+      <h3 style="margin: 0 0 8px 0; color: #111827;">
+        <a href="${BASE_URL}/jobs/${slugify(job.title, job.id)}" style="color: #2563eb; text-decoration: none;">
+          ${job.title}
+        </a>
+      </h3>
+      <p style="margin: 0 0 4px 0; color: #6b7280;">${job.employer}</p>
+      <p style="margin: 0; color: #6b7280;">${job.location} • ${job.mode}</p>
+      ${job.minSalary ? `<p style="margin: 4px 0 0 0; color: #059669; font-weight: 600;">
+        $${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? ` - $${(job.maxSalary / 1000).toFixed(0)}k` : '+'}
+      </p>` : ''}
+    </div>
+  `).join('');
 
-        return `
-          <tr>
-            <td style="padding: 0 0 16px 0;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
-                <tr>
-                  <td style="padding: 20px;">
-                    <!-- Job Title -->
-                    <a href="${jobUrl}" style="color: #111827; text-decoration: none; font-size: 17px; font-weight: 600; display: block; margin-bottom: 6px; line-height: 1.3;">
-                      ${job.title}
-                    </a>
-                    
-                    <!-- Company & Location -->
-                    <p style="color: #6b7280; margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;">
-                      ${job.employer}${job.location ? ` · ${job.location}` : ''}
-                    </p>
-                    
-                    <!-- Tags Row -->
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
-                      <tr>
-                        ${job.mode ? `
-                          <td style="padding-right: 8px;">
-                            <span style="display: inline-block; background-color: #f3f4f6; color: #374151; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">
-                              ${job.mode}
-                            </span>
-                          </td>
-                        ` : ''}
-                        ${job.jobType ? `
-                          <td style="padding-right: 8px;">
-                            <span style="display: inline-block; background-color: #f3f4f6; color: #374151; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">
-                              ${job.jobType}
-                            </span>
-                          </td>
-                        ` : ''}
-                        ${salaryText ? `
-                          <td>
-                            <span style="display: inline-block; background-color: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;">
-                              ${salaryText}
-                            </span>
-                          </td>
-                        ` : ''}
-                      </tr>
-                    </table>
-                    
-                    <!-- View Job Button -->
-                    <a href="${jobUrl}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                      View Job
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        `;
-      })
-      .join('');
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #111827;">New PMHNP Jobs Match Your Alert</h1>
+      <p style="color: #4b5563;">
+        We found ${jobCount} new job${jobCount > 1 ? 's' : ''} matching your criteria:
+      </p>
+      
+      ${jobListHtml}
+      
+      <p style="margin-top: 24px;">
+        <a href="${BASE_URL}/jobs" 
+           style="display: inline-block; background-color: #2563eb; color: white; 
+                  padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+          View All Jobs
+        </a>
+      </p>
+      
+      <hr style="margin: 32px 0; border: none; border-top: 1px solid #e5e7eb;" />
+      
+      <p style="font-size: 12px; color: #9ca3af;">
+        <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color: #6b7280;">
+          Manage your alert preferences
+        </a>
+        •
+        <a href="${BASE_URL}/api/job-alerts/unsubscribe?token=${alertToken}" style="color: #6b7280;">
+          Unsubscribe from this alert
+        </a>
+      </p>
+    </div>
+  `;
 
-    await resend.emails.send({
-      from: EMAIL_FROM,
-      to: email,
-      subject: `${jobCount} new job${jobCount !== 1 ? 's' : ''} match "${alertName}"`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta http-equiv="X-UA-Compatible" content="IE=edge">
-            <title>Job Alert: ${alertName}</title>
-            <!--[if mso]>
-            <style type="text/css">
-              body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
-            </style>
-            <![endif]-->
-          </head>
-          <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-            <!-- Wrapper Table -->
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f9fafb;">
-              <tr>
-                <td align="center" style="padding: 40px 20px;">
-                  <!-- Main Container -->
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px;">
-                    
-                    <!-- Header -->
-                    <tr>
-                      <td style="padding-bottom: 32px;">
-                        <h1 style="margin: 0 0 8px 0; color: #111827; font-size: 26px; font-weight: 700; line-height: 1.2;">
-                          Your Job Alert: ${alertName}
-                        </h1>
-                        <p style="margin: 0; color: #6b7280; font-size: 16px;">
-                          <strong style="color: #3b82f6;">${jobCount}</strong> new job${jobCount !== 1 ? 's' : ''} match${jobCount === 1 ? 'es' : ''} your criteria
-                        </p>
-                      </td>
-                    </tr>
-                    
-                    <!-- Job Cards -->
-                    ${jobCardsHtml}
-                    
-                    ${hasMoreJobs ? `
-                      <!-- View More Link -->
-                      <tr>
-                        <td align="center" style="padding: 16px 0 32px 0;">
-                          <a href="${BASE_URL}/jobs" style="color: #3b82f6; font-size: 15px; font-weight: 600; text-decoration: none;">
-                            View ${jobCount - 10} more matching jobs →
-                          </a>
-                        </td>
-                      </tr>
-                    ` : ''}
-                    
-                    <!-- Footer -->
-                    <tr>
-                      <td style="padding-top: 24px; border-top: 1px solid #e5e7eb;">
-                        <p style="margin: 0 0 12px 0; color: #9ca3af; font-size: 13px; line-height: 1.5;">
-                          You're receiving this because you created a job alert at PMHNPJobs.com
-                        </p>
-                        <p style="margin: 0; font-size: 13px;">
-                          <a href="${BASE_URL}/job-alerts/manage?token=${manageToken}" style="color: #3b82f6; text-decoration: none; margin-right: 16px;">
-                            Manage this alert
-                          </a>
-                          <a href="${BASE_URL}/api/email/unsubscribe?token=${unsubscribeToken}" style="color: #6b7280; text-decoration: none;">
-                            Unsubscribe
-                          </a>
-                        </p>
-                      </td>
-                    </tr>
-                    
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </body>
-        </html>
-      `,
-    });
-
-    console.log('Job alert email sent successfully to:', email);
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending job alert email:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to send job alert email',
-    };
-  }
+  await resend.emails.send({
+    from: EMAIL_FROM,
+    to: email,
+    subject: `${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
+    html,
+  });
 }
 
 export async function sendRenewalConfirmationEmail(

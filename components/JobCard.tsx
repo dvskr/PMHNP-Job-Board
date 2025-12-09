@@ -97,6 +97,13 @@ export default function JobCard({ job }: JobCardProps) {
           <p className="text-success-600 font-bold text-lg sm:text-xl mt-1">{salary}</p>
         )}
 
+        {/* Description Summary */}
+        {job.descriptionSummary && (
+          <p className="text-gray-600 text-sm mt-2 line-clamp-2">
+            {job.descriptionSummary}
+          </p>
+        )}
+
         {/* Freshness */}
         <p className="text-gray-400 text-xs mt-auto">{freshness}</p>
       </div>

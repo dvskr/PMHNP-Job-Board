@@ -33,7 +33,14 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
+  // Existing
   { slug: 'headway', name: 'Headway' },
+  
+  // New companies
+  { slug: 'growtherapy', name: 'Grow Therapy' },
+  { slug: 'pathmentalhealth', name: 'Path Mental Health' },
+  { slug: 'riaboregional', name: 'RIA Regional' },
+  { slug: 'blueprintmentalhealth', name: 'Blueprint Mental Health' },
 ];
 
 const PMHNP_KEYWORDS = [

@@ -161,8 +161,44 @@ export default async function JobPage({ params }: JobPageProps) {
             <AnimatedContainer animation="fade-in-up" delay={200}>
               <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold mb-4">About this role</h2>
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-base">
-                  {job.description}
+                <div className="prose prose-gray max-w-none">
+                  {job.description.split('\n').map((paragraph, index) => {
+                    // Empty line = spacing
+                    if (!paragraph.trim()) {
+                      return <div key={index} className="h-4" />;
+                    }
+                    
+                    // Bullet point line
+                    if (paragraph.trim().startsWith('•')) {
+                      return (
+                        <div key={index} className="flex items-start gap-2 ml-4 my-1">
+                          <span className="text-gray-400 mt-1">•</span>
+                          <span className="text-gray-700">{paragraph.trim().slice(1).trim()}</span>
+                        </div>
+                      );
+                    }
+                    
+                    // Check if it looks like a header (ALL CAPS or ends with colon)
+                    const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() && 
+                                     paragraph.trim().length < 50 && 
+                                     paragraph.trim().length > 2;
+                    const endsWithColon = paragraph.trim().endsWith(':');
+                    
+                    if (isHeader || endsWithColon) {
+                      return (
+                        <h3 key={index} className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+                          {paragraph.trim()}
+                        </h3>
+                      );
+                    }
+                    
+                    // Regular paragraph
+                    return (
+                      <p key={index} className="text-gray-700 leading-relaxed mb-3">
+                        {paragraph.trim()}
+                      </p>
+                    );
+                  })}
                 </div>
               </div>
             </AnimatedContainer>

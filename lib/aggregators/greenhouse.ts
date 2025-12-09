@@ -38,9 +38,20 @@ export interface GreenhouseJobRaw {
 }
 
 const GREENHOUSE_COMPANIES = [
+  // Existing
   { slug: 'talkiatry', name: 'Talkiatry' },
   { slug: 'talkspace', name: 'Talkspace' },
   { slug: 'sondermind', name: 'SonderMind' },
+  
+  // New companies
+  { slug: 'cerebral', name: 'Cerebral' },
+  { slug: 'springhealth', name: 'Spring Health' },
+  { slug: 'lyrahealth', name: 'Lyra Health' },
+  { slug: 'modernhealth', name: 'Modern Health' },
+  { slug: 'alma', name: 'Alma' },
+  { slug: 'brightsidehealth', name: 'Brightside Health' },
+  { slug: 'gaborhealth', name: 'Gabor Health' },
+  { slug: 'headway', name: 'Headway' },
 ];
 
 const PMHNP_KEYWORDS = [

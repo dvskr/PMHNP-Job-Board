@@ -15,6 +15,54 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+function cleanDescription(rawDescription: string): string {
+  if (!rawDescription) return '';
+  
+  let cleaned = rawDescription;
+  
+  // Convert HTML block elements to newlines BEFORE stripping tags
+  cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
+  cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+  cleaned = cleaned.replace(/<\/div>/gi, '\n');
+  cleaned = cleaned.replace(/<\/li>/gi, '\n');
+  cleaned = cleaned.replace(/<li>/gi, '• ');
+  cleaned = cleaned.replace(/<\/h[1-6]>/gi, '\n\n');
+  cleaned = cleaned.replace(/<h[1-6][^>]*>/gi, '\n\n');
+  
+  // Remove all remaining HTML tags
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  cleaned = cleaned.replace(/&amp;/g, '&');
+  cleaned = cleaned.replace(/&lt;/g, '<');
+  cleaned = cleaned.replace(/&gt;/g, '>');
+  cleaned = cleaned.replace(/&quot;/g, '"');
+  cleaned = cleaned.replace(/&#39;/g, "'");
+  cleaned = cleaned.replace(/&nbsp;/g, ' ');
+  cleaned = cleaned.replace(/&rsquo;/g, "'");
+  cleaned = cleaned.replace(/&lsquo;/g, "'");
+  cleaned = cleaned.replace(/&rdquo;/g, '"');
+  cleaned = cleaned.replace(/&ldquo;/g, '"');
+  cleaned = cleaned.replace(/&mdash;/g, '—');
+  cleaned = cleaned.replace(/&ndash;/g, '–');
+  cleaned = cleaned.replace(/&bull;/g, '•');
+  cleaned = cleaned.replace(/&#x27;/g, "'");
+  cleaned = cleaned.replace(/&#x2F;/g, '/');
+  cleaned = cleaned.replace(/&hellip;/g, '...');
+  cleaned = cleaned.replace(/&apos;/g, "'");
+  cleaned = cleaned.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+  cleaned = cleaned.replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+  
+  // Clean up whitespace
+  cleaned = cleaned.replace(/[ \t]+/g, ' ');           // Multiple spaces to single
+  cleaned = cleaned.replace(/\n[ \t]+/g, '\n');        // Remove leading spaces on lines
+  cleaned = cleaned.replace(/[ \t]+\n/g, '\n');        // Remove trailing spaces on lines
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');        // Max 2 newlines (1 blank line)
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
+
 function extractSalary(text: string): { min: number | null; max: number | null; period: string | null } {
   // Match patterns like "$120,000", "$120k", "$120,000 - $150,000", "$50/hour"
   const annualPattern = /\$(\d{1,3}(?:,?\d{3})*(?:k)?)\s*(?:-|to)?\s*\$?(\d{1,3}(?:,?\d{3})*(?:k)?)?(?:\s*(?:per\s*)?(?:year|annual|yearly|pa|p\.a\.))?/gi;
@@ -100,6 +148,89 @@ function generateSummary(description: string, maxLength: number = 300): string {
   return truncated + '...';
 }
 
+function validateAndNormalizeSalary(
+  minSalary: number | null,
+  maxSalary: number | null,
+  description: string,
+  title: string
+): { minSalary: number | null; maxSalary: number | null; salaryPeriod: string | null } {
+  let min = minSalary;
+  let max = maxSalary;
+  let period: string | null = null;
+
+  // If no salary data, return nulls
+  if (!min && !max) {
+    return { minSalary: null, maxSalary: null, salaryPeriod: null };
+  }
+
+  // Step 1: Detect salary period from description text
+  const lowerDesc = description.toLowerCase();
+  if (lowerDesc.match(/(?:per\s*hour|\/\s*hr|hourly|an\s*hour)/i)) {
+    period = 'hourly';
+  } else if (lowerDesc.match(/(?:per\s*week|\/\s*week|weekly)/i)) {
+    period = 'weekly';
+  } else if (lowerDesc.match(/(?:per\s*month|\/\s*month|monthly)/i)) {
+    period = 'monthly';
+  } else if (lowerDesc.match(/(?:per\s*year|\/\s*yr|annual|yearly|per\s*annum)/i)) {
+    period = 'annual';
+  } else {
+    // Default: if salary < 500 assume hourly, else assume annual
+    if ((min && min < 500) || (max && max < 500)) {
+      period = 'hourly';
+    } else {
+      period = 'annual';
+    }
+  }
+
+  // Step 2: Reject clearly fake values based on period
+  const isInvalid = (salary: number | null, period: string): boolean => {
+    if (!salary) return false;
+    
+    if (period === 'hourly') {
+      return salary > 300 || salary < 20;
+    } else if (period === 'annual') {
+      return salary > 500000 || salary < 30000;
+    }
+    // For weekly/monthly, use reasonable ranges
+    if (period === 'weekly') {
+      return salary > 10000 || salary < 400;
+    }
+    if (period === 'monthly') {
+      return salary > 40000 || salary < 2000;
+    }
+    
+    return false;
+  };
+
+  if (isInvalid(min, period) && isInvalid(max, period)) {
+    // Both invalid, reject all
+    console.log(`Rejected suspicious salary: ${min}-${max} ${period}`);
+    return { minSalary: null, maxSalary: null, salaryPeriod: null };
+  }
+
+  if (isInvalid(min, period)) {
+    console.log(`Rejected suspicious salary: ${min} ${period}`);
+    min = null;
+  }
+
+  if (isInvalid(max, period)) {
+    console.log(`Rejected suspicious salary: ${max} ${period}`);
+    max = null;
+  }
+
+  // Step 3: Swap if minSalary > maxSalary
+  if (min && max && min > max) {
+    console.log(`Swapping salary range for ${title}: ${min}-${max}`);
+    [min, max] = [max, min];
+  }
+
+  return {
+    minSalary: min ? Math.round(min) : null,
+    maxSalary: max ? Math.round(max) : null,
+    salaryPeriod: period,
+  };
+}
+
 export function normalizeJob(rawJob: any, source: string): NormalizedJob | null {
   try {
     // Extract required fields based on source
@@ -119,8 +250,11 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       description = rawJob.description || '';
       applyLink = rawJob.redirect_url;
       externalId = rawJob.id?.toString();
-      salaryMin = rawJob.salary_min || null;
-      salaryMax = rawJob.salary_max || null;
+      // Adzuna salaries are UNRELIABLE - ignore them completely
+      // Their salary_min/max are monthly values but job titles say "per week"
+      // Better to rely on salary info in the job title/description which is accurate
+      salaryMin = null;
+      salaryMax = null;
     } else {
       // Generic mapping for other sources
       title = rawJob.title;
@@ -137,8 +271,10 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       return null;
     }
 
-    const cleanDescription = stripHtml(description);
-    const fullText = `${title} ${cleanDescription} ${location}`;
+    // Clean the description with proper formatting
+    const fullDescription = cleanDescription(description);
+    const summary = fullDescription.slice(0, 300) + (fullDescription.length > 300 ? '...' : '');
+    const fullText = `${title} ${fullDescription} ${location}`;
 
     // Extract salary from description if not provided
     if (!salaryMin && !salaryMax) {
@@ -147,10 +283,19 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       salaryMax = extracted.max;
     }
 
-    const salaryPeriod = salaryMin || salaryMax ? 'year' : null;
+    // Validate and normalize salary data
+    const validatedSalary = validateAndNormalizeSalary(
+      salaryMin,
+      salaryMax,
+      fullText,
+      title
+    );
+    salaryMin = validatedSalary.minSalary;
+    salaryMax = validatedSalary.maxSalary;
+    const salaryPeriod = validatedSalary.salaryPeriod;
+
     const jobType = detectJobType(fullText);
     const mode = detectMode(fullText);
-    const descriptionSummary = generateSummary(description);
 
     // Set expiration to 30 days from now
     const expiresAt = new Date();
@@ -162,11 +307,11 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       location,
       jobType,
       mode,
-      description: cleanDescription,
-      descriptionSummary,
+      description: fullDescription,
+      descriptionSummary: summary,
       salaryRange: salaryMin && salaryMax ? `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}` : null,
-      minSalary: salaryMin ? Math.round(salaryMin) : null,
-      maxSalary: salaryMax ? Math.round(salaryMax) : null,
+      minSalary: salaryMin,
+      maxSalary: salaryMax,
       salaryPeriod,
       applyLink,
       isFeatured: false,

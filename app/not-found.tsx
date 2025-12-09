@@ -82,13 +82,6 @@ export default function NotFound() {
             </Link>
             <span className="text-gray-400">·</span>
             <Link
-              href="/salary-guide"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
-            >
-              Salary Guide
-            </Link>
-            <span className="text-gray-400">·</span>
-            <Link
               href="/faq"
               className="text-sm text-primary-600 hover:text-primary-700 underline"
             >

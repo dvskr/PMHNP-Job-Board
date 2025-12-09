@@ -44,6 +44,14 @@ export async function fetchAdzunaJobs(): Promise<AdzunaJob[]> {
     }
 
     const data: AdzunaResponse = await response.json();
+    
+    // Debug logging (development only)
+    if (process.env.NODE_ENV === 'development' && data.results && data.results.length > 0) {
+      console.log('=== SAMPLE ADZUNA JOB (first result) ===');
+      console.log(JSON.stringify(data.results[0], null, 2));
+      console.log('=== END SAMPLE ===');
+    }
+    
     return data.results || [];
   } catch (error) {
     console.error('Error fetching Adzuna jobs:', error);

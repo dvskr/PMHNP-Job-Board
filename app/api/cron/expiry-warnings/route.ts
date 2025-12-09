@@ -1,60 +1,69 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sendExpiryWarnings } from '@/lib/expiry-checker';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { sendExpiryWarningEmail } from '@/lib/email-service'
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
+  // Verify cron secret
+  const authHeader = request.headers.get('authorization')
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  
   try {
-    // Verify authorization from Vercel Cron
-    const authHeader = request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
-
-    if (!process.env.CRON_SECRET) {
-      console.error('CRON_SECRET not configured');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    if (authHeader !== expectedAuth) {
-      console.error('Unauthorized cron request');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    console.log('Starting expiry warnings cron job...');
+    // Find jobs expiring in 5 days
+    const fiveDaysFromNow = new Date()
+    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5)
     
-    // Run the expiry warnings check
-    const result = await sendExpiryWarnings();
-
-    console.log('Expiry warnings cron job completed:', result);
-
-    // Return summary
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Expiry warnings processed',
-        summary: {
-          checked: result.checked,
-          warningsSent: result.warningsSent,
-          errors: result.errors,
+    const fourDaysFromNow = new Date()
+    fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 4)
+    
+    const expiringJobs = await prisma.job.findMany({
+      where: {
+        isPublished: true,
+        sourceType: 'employer',
+        expiresAt: {
+          gte: fourDaysFromNow,
+          lte: fiveDaysFromNow,
         },
-        timestamp: new Date().toISOString(),
       },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Error in expiry warnings cron job:', error);
+      include: {
+        employerJobs: true,
+      },
+    })
     
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
+    let sentCount = 0
+    const errors: string[] = []
+    
+    for (const job of expiringJobs) {
+      const employerJob = job.employerJobs[0]
+      if (employerJob?.contactEmail) {
+        try {
+          await sendExpiryWarningEmail(
+            employerJob.contactEmail,
+            job.title,
+            job.expiresAt!,
+            job.viewCount || 0,
+            job.applyClickCount || 0,
+            employerJob.dashboardToken || employerJob.editToken,
+            employerJob.editToken,
+            employerJob.unsubscribeToken || ''
+          )
+          sentCount++
+        } catch (e) {
+          errors.push(`Job ${job.id}: ${e}`)
+          console.error(`Failed to send expiry warning for job ${job.id}:`, e)
+        }
+      }
+    }
+    
+    return NextResponse.json({ 
+      success: true, 
+      warningsSent: sentCount,
+      errors,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error('Cron expiry-warnings error:', error)
+    return NextResponse.json({ error: 'Expiry warnings failed' }, { status: 500 })
   }
 }
-

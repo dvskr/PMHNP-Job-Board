@@ -13,12 +13,9 @@ const jobPostingSchema = z.object({
   companyWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   contactEmail: z.string().email('Must be a valid email address'),
   location: z.string().min(1, 'Location is required'),
-  mode: z.enum(['Remote', 'Hybrid', 'In-Person'], {
-    required_error: 'Please select a work mode',
-  }),
-  jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem'], {
-    required_error: 'Please select a job type',
-  }),
+  mode: z.enum(['Remote', 'Hybrid', 'In-Person']),
+  jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem']),
+  salaryPeriod: z.enum(['hourly', 'weekly', 'monthly', 'annual']).optional(),
   salaryMin: z.number().positive().optional().nullable(),
   salaryMax: z.number().positive().optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
@@ -31,6 +28,12 @@ type JobPostingFormData = z.infer<typeof jobPostingSchema>;
 
 const workModes = ['Remote', 'Hybrid', 'In-Person'] as const;
 const jobTypes = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'] as const;
+const salaryPeriods = [
+  { value: 'hourly', label: 'Hourly' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'annual', label: 'Annual' },
+] as const;
 
 export default function PostJobPage() {
   const router = useRouter();
@@ -53,11 +56,13 @@ export default function PostJobPage() {
     defaultValues: {
       pricingTier: 'standard',
       salaryCompetitive: false,
+      salaryPeriod: 'annual',
     },
   });
 
   const selectedPricingTier = watch('pricingTier');
   const contactEmail = watch('contactEmail');
+  const salaryPeriod = watch('salaryPeriod');
 
   // Load saved form data or draft on mount
   useEffect(() => {
@@ -139,7 +144,7 @@ export default function PostJobPage() {
             contactEmail: data.contactEmail,
             minSalary: data.salaryMin,
             maxSalary: data.salaryMax,
-            salaryPeriod: 'annual',
+            salaryPeriod: data.salaryPeriod || 'annual',
             companyWebsite: data.companyWebsite,
             pricing: data.pricingTier,
           }),
@@ -429,14 +434,47 @@ export default function PostJobPage() {
             {/* Salary Range */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Salary Range (Annual)
+                Salary Range
               </label>
+              
+              {/* Salary Period Selector */}
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  Pay Period
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {salaryPeriods.map((period) => (
+                    <label
+                      key={period.value}
+                      className="relative flex items-center justify-center cursor-pointer touch-manipulation"
+                      style={{ minHeight: '44px' }}
+                    >
+                      <input
+                        type="radio"
+                        value={period.value}
+                        disabled={salaryCompetitive}
+                        {...register('salaryPeriod')}
+                        className="sr-only peer"
+                      />
+                      <div className={`w-full border-2 rounded-lg px-4 py-2.5 text-center transition-all ${
+                        salaryCompetitive
+                          ? 'bg-gray-100 cursor-not-allowed border-gray-300 text-gray-400'
+                          : 'border-gray-300 peer-checked:border-primary-600 peer-checked:bg-primary-50 peer-checked:text-primary-700 hover:border-primary-400'
+                      }`}>
+                        <span className="text-sm font-medium">{period.label}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Min and Max Salary Inputs */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3">
                 <div className="flex-1">
                   <input
                     type="number"
                     inputMode="numeric"
-                    placeholder="Min $"
+                    placeholder={`Min ${salaryPeriod === 'hourly' ? '$/hr' : salaryPeriod === 'weekly' ? '$/week' : salaryPeriod === 'monthly' ? '$/month' : '$ annual'}`}
                     disabled={salaryCompetitive}
                     {...register('salaryMin', { valueAsNumber: true })}
                     className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${
@@ -449,7 +487,7 @@ export default function PostJobPage() {
                   <input
                     type="number"
                     inputMode="numeric"
-                    placeholder="Max $"
+                    placeholder={`Max ${salaryPeriod === 'hourly' ? '$/hr' : salaryPeriod === 'weekly' ? '$/week' : salaryPeriod === 'monthly' ? '$/month' : '$ annual'}`}
                     disabled={salaryCompetitive}
                     {...register('salaryMax', { valueAsNumber: true })}
                     className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${

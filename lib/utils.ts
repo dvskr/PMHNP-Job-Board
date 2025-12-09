@@ -22,29 +22,36 @@ export function formatSalary(
   max?: number | null,
   period?: string | null
 ): string {
-  if (!min && !max) {
-    return '';
+  if (!min && !max) return '';
+  
+  const formatNumber = (n: number, period: string): string => {
+    if (period === 'hourly') return `$${n}`;
+    if (period === 'weekly') return `$${n.toLocaleString()}`;
+    if (period === 'monthly') return `$${n.toLocaleString()}`;
+    // Annual - use k format for thousands
+    if (n >= 1000) return `$${Math.round(n / 1000)}k`;
+    return `$${n}`;
+  };
+  
+  const suffix: { [key: string]: string } = {
+    'hourly': '/hr',
+    'weekly': '/week',
+    'monthly': '/mo',
+    'annual': '/yr',
+  };
+  
+  const periodKey = period || 'annual';
+  const periodSuffix = suffix[periodKey] || '/yr';
+  
+  if (min && max && min !== max) {
+    return `${formatNumber(min, periodKey)}-${formatNumber(max, periodKey)}${periodSuffix}`;
   }
-
-  const isAnnual = period?.toLowerCase() === 'year' || period?.toLowerCase() === 'annual' || !period;
-  const suffix = period ? `/${period}` : '/year';
-
-  if (min && max) {
-    if (isAnnual) {
-      return `$${min / 1000}k-${max / 1000}k${suffix}`;
-    } else {
-      return `$${min}-${max}${suffix}`;
-    }
-  }
-
   if (min) {
-    if (isAnnual) {
-      return `$${min / 1000}k+${suffix}`;
-    } else {
-      return `$${min}+${suffix}`;
-    }
+    return `${formatNumber(min, periodKey)}+${periodSuffix}`;
   }
-
+  if (max) {
+    return `Up to ${formatNumber(max, periodKey)}${periodSuffix}`;
+  }
   return '';
 }
 

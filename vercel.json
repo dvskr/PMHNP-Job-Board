@@ -1,13 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/ingest",
+      "path": "/api/cron/ingest-jobs",
       "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron/send-alerts",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/expiry-warnings",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-expired",
+      "schedule": "0 2 * * *"
     }
   ]
 }
-
