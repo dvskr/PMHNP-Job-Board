@@ -30,47 +30,33 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-2xl font-bold text-primary-600 hover:text-primary-700 transition-colors duration-200">
+            <Link href="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-200">
               PMHNP Jobs
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-6">
-            <Link href="/jobs" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
-              Jobs
+          {/* Desktop Navigation - Centered Buttons */}
+          <nav className="hidden lg:flex items-center gap-3 absolute left-1/2 transform -translate-x-1/2">
+            <Link href="/jobs">
+              <button className="bg-gray-100 text-gray-700 px-5 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors shadow-sm">
+                Jobs
+              </button>
             </Link>
-            <Link href="/for-job-seekers" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium text-sm">
-              For Job Seekers
+            <Link href="/saved">
+              <button className="bg-gray-100 text-gray-700 px-5 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors shadow-sm flex items-center gap-2">
+                <Bookmark size={16} />
+                Saved
+              </button>
             </Link>
-            <Link href="/for-employers" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium text-sm">
-              For Employers
-            </Link>
-            <Link href="/saved" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium flex items-center gap-2">
-              <Bookmark size={16} />
-              Saved
-            </Link>
-            <Link href="/salary-guide" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
-              Salary
-            </Link>
-            <Link href="/about" className="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">
-              About
-            </Link>
-          </nav>
-
-          {/* Desktop CTA Buttons */}
-          <div className="hidden lg:flex items-center gap-3">
             <Link href="/post-job">
-              <button className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+              <button className="bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
                 Post a Job
               </button>
             </Link>
-            <Link href="/#subscribe">
-              <Button variant="outline" size="md">
-                Sign up for alerts
-              </Button>
-            </Link>
-          </div>
+          </nav>
+
+          {/* Spacer for layout balance */}
+          <div className="hidden lg:block w-32"></div>
 
           {/* Mobile Hamburger Button */}
           <button
@@ -131,20 +117,6 @@ export default function Header() {
                 Browse Jobs
               </Link>
               <Link
-                href="/for-job-seekers"
-                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                For Job Seekers
-              </Link>
-              <Link
-                href="/for-employers"
-                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                For Employers
-              </Link>
-              <Link
                 href="/saved"
                 className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
@@ -152,32 +124,9 @@ export default function Header() {
                 <Bookmark size={18} />
                 Saved Jobs
               </Link>
-              <Link
-                href="/salary-guide"
-                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Salary Guide
-              </Link>
-              <Link
-                href="/about"
-                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                About
-              </Link>
-
-              {/* Secondary CTA */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <Link href="/#subscribe" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="outline" size="lg" className="w-full">
-                    Sign up for alerts
-                  </Button>
-                </Link>
-              </div>
 
               {/* Footer Links */}
-              <div className="mt-auto pt-6 space-y-2">
+              <div className="mt-auto pt-6 space-y-2 border-t border-gray-200">
                 <Link
                   href="/faq"
                   className="text-sm text-gray-600 hover:text-primary-600 transition-colors duration-200 block py-2"

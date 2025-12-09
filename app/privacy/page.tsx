@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         {/* Header */}
         <header className="mb-12 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-3 mb-3">
-            <Shield className="w-10 h-10 text-primary-600" />
+            <Shield className="w-10 h-10 text-blue-600" />
             <h1 className="text-4xl font-bold text-gray-900">
               Privacy Policy
             </h1>
@@ -315,7 +315,7 @@ export default function PrivacyPage() {
               We will respond to your inquiry within 30 days.
             </p>
             <p className="text-gray-700 leading-relaxed mt-4">
-              For general questions about our service, please visit our <Link href="/faq" className="text-primary-600 hover:text-primary-700 underline">FAQ page</Link> or <Link href="/about" className="text-primary-600 hover:text-primary-700 underline">About page</Link>.
+              For general questions about our service, please visit our <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">FAQ page</Link> or <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">Contact page</Link>.
             </p>
           </section>
 
@@ -362,21 +362,21 @@ export default function PrivacyPage() {
         {/* Bottom Navigation */}
         <footer className="mt-12 pt-8 border-t border-gray-200">
           <div className="flex flex-wrap gap-4 justify-center text-sm">
-            <Link href="/terms" className="text-primary-600 hover:text-primary-700 underline">
+            <Link href="/terms" className="text-blue-600 hover:text-blue-700 underline">
               Terms of Service
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/faq" className="text-primary-600 hover:text-primary-700 underline">
+            <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">
               FAQ
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/about" className="text-primary-600 hover:text-primary-700 underline">
+            <Link href="/about" className="text-blue-600 hover:text-blue-700 underline">
               About Us
             </Link>
             <span className="text-gray-400">·</span>
-            <a href="mailto:hello@pmhnpjobs.com" className="text-primary-600 hover:text-primary-700 underline">
+            <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">
               Contact
-            </a>
+            </Link>
           </div>
         </footer>
       </article>

@@ -62,13 +62,13 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-16 px-4">
+      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <Mail className="w-16 h-16 mx-auto mb-6 opacity-90" />
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Contact Us
           </h1>
-          <p className="text-xl text-primary-100 max-w-2xl mx-auto">
+          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
             We're here to help. Reach out with any questions.
           </p>
         </div>
@@ -158,7 +158,7 @@ export default function ContactPage() {
                   <select
                     id="subject"
                     {...register('subject', { required: 'Please select a subject' })}
-                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200 ${
+                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
                       errors.subject ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                     }`}
                   >
@@ -193,7 +193,7 @@ export default function ContactPage() {
                         message: 'Message must be at least 10 characters'
                       }
                     })}
-                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200 resize-vertical ${
+                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-vertical ${
                       errors.message ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -230,14 +230,14 @@ export default function ContactPage() {
               <div className="space-y-4">
                 {/* Email */}
                 <div className="flex items-start">
-                  <Mail className="w-5 h-5 text-primary-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <Mail className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       Email
                     </p>
                     <a
                       href="mailto:hello@pmhnpjobs.com"
-                      className="text-sm text-primary-600 hover:text-primary-700 underline"
+                      className="text-sm text-blue-600 hover:text-blue-700 underline"
                     >
                       hello@pmhnpjobs.com
                     </a>
@@ -246,7 +246,7 @@ export default function ContactPage() {
 
                 {/* Response Time */}
                 <div className="flex items-start">
-                  <Clock className="w-5 h-5 text-primary-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <Clock className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       Response Time
@@ -259,7 +259,7 @@ export default function ContactPage() {
 
                 {/* FAQ Link */}
                 <div className="flex items-start">
-                  <HelpCircle className="w-5 h-5 text-primary-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <HelpCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       Quick Answers
@@ -269,7 +269,7 @@ export default function ContactPage() {
                     </p>
                     <Link
                       href="/faq"
-                      className="text-sm text-primary-600 hover:text-primary-700 underline"
+                      className="text-sm text-blue-600 hover:text-blue-700 underline"
                     >
                       Visit FAQ →
                     </Link>
@@ -279,33 +279,28 @@ export default function ContactPage() {
             </Card>
 
             {/* Additional Help Card */}
-            <Card padding="lg" variant="bordered" className="bg-primary-50 border-primary-200">
+            <Card padding="lg" variant="bordered" className="bg-blue-50 border-blue-200">
               <h3 className="text-lg font-bold text-gray-900 mb-3">
                 Looking for Something Else?
               </h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/for-job-seekers" className="text-primary-700 hover:text-primary-800 underline">
-                    Job Seeker Resources
+                  <Link href="/faq" className="text-blue-700 hover:text-blue-800 underline">
+                    FAQ
                   </Link>
                 </li>
                 <li>
-                  <Link href="/for-employers" className="text-primary-700 hover:text-primary-800 underline">
-                    Employer Information
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="text-primary-700 hover:text-primary-800 underline">
+                  <Link href="/about" className="text-blue-700 hover:text-blue-800 underline">
                     About PMHNP Jobs
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="text-primary-700 hover:text-primary-800 underline">
+                  <Link href="/terms" className="text-blue-700 hover:text-blue-800 underline">
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="text-primary-700 hover:text-primary-800 underline">
+                  <Link href="/privacy" className="text-blue-700 hover:text-blue-800 underline">
                     Privacy Policy
                   </Link>
                 </li>

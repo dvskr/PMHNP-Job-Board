@@ -87,13 +87,13 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary-600 to-primary-800 text-white py-20 px-4">
+      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <HelpCircle className="w-16 h-16 mx-auto mb-6 opacity-90" />
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Frequently Asked Questions
           </h1>
-          <p className="text-xl text-primary-100 max-w-3xl mx-auto">
+          <p className="text-xl text-blue-100 max-w-3xl mx-auto">
             Find answers to common questions about PMHNP Jobs
           </p>
         </div>
@@ -133,24 +133,24 @@ export default function FAQPage() {
 
         {/* Still Have Questions Section */}
         <section>
-          <Card padding="lg" variant="elevated" className="bg-primary-50 border-primary-200 text-center">
-            <Mail className="w-12 h-12 text-primary-600 mx-auto mb-4" />
+          <Card padding="lg" variant="elevated" className="bg-blue-50 border-blue-200 text-center">
+            <Mail className="w-12 h-12 text-blue-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Still Have Questions?
             </h2>
             <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
               Didn't find your answer? We're here to help. Reach out and we'll get back to you within 24 hours.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:hello@pmhnpjobs.com">
-                <Button variant="primary" size="lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
+              <a href="mailto:hello@pmhnpjobs.com" className="w-full sm:w-auto">
+                <Button variant="primary" size="lg" className="w-full">
                   <Mail size={20} />
                   Email Us
                 </Button>
               </a>
-              <Link href="/for-job-seekers">
-                <Button variant="outline" size="lg">
-                  Learn More for Job Seekers
+              <Link href="/contact" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full">
+                  Contact Us
                 </Button>
               </Link>
             </div>
