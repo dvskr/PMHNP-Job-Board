@@ -4,6 +4,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import FAQAccordion from '@/components/FAQAccordion';
 import { Mail, HelpCircle } from 'lucide-react';
+import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
@@ -41,15 +42,27 @@ export default function FAQPage() {
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: "Standard postings are $99 for 30 days. Featured postings are $199 for 60 days and include premium placement at the top of search results, highlighting in job alerts, and a 'Featured' badge."
+      answer: config.isPaidPostingEnabled 
+        ? "We offer two posting options: Standard ($99) for a 30-day listing with full features, and Featured ($199) which includes priority placement, a featured badge, and highlighted inclusion in our email digest."
+        : "During our launch period, job postings are completely FREE! This includes both Standard and Featured listings. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
+    },
+    {
+      question: "Is there a free trial?",
+      answer: config.isPaidPostingEnabled
+        ? "We don't offer a free trial, but our pricing is straightforward with no hidden fees. You only pay when you post a job, and your listing stays active for 30 days."
+        : "Even better - we're currently offering FREE job postings during our launch period! No credit card required. Simply create your listing and it goes live immediately."
     },
     {
       question: "What's the difference between Standard and Featured?",
-      answer: "Featured jobs appear at the top of search results, are highlighted in job alerts with special formatting, display a prominent 'Featured' badge, and last for 60 days instead of 30. Featured postings typically receive 3-5x more views and applications."
+      answer: config.isPaidPostingEnabled
+        ? "Featured jobs appear at the top of search results, are highlighted in job alerts with special formatting, display a prominent 'Featured' badge, and last for 60 days instead of 30. Featured postings typically receive 3-5x more views and applications."
+        : "Featured jobs appear at the top of search results, are highlighted in job alerts with special formatting, and display a prominent 'Featured' badge. During our free launch period, both options are free - we recommend choosing Featured for maximum visibility!"
     },
     {
       question: "How long do job postings last?",
-      answer: "Standard postings are active for 30 days. Featured postings are active for 60 days. You can renew your posting at any time from your employer dashboard before or after it expires."
+      answer: config.isPaidPostingEnabled
+        ? "Standard postings are active for 30 days. Featured postings are active for 60 days. You can renew your posting at any time from your employer dashboard before or after it expires."
+        : "All postings are active for 30 days. You can renew your posting at any time from your employer dashboard before or after it expires - completely free during our launch period!"
     },
     {
       question: "Can I edit my job posting?",
@@ -57,7 +70,9 @@ export default function FAQPage() {
     },
     {
       question: "How do I access my employer dashboard?",
-      answer: "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at hello@pmhnpjobs.com."
+      answer: config.isPaidPostingEnabled
+        ? "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at hello@pmhnpjobs.com."
+        : "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, and renew listings for free during our launch period. If you've lost the link, contact us at hello@pmhnpjobs.com."
     },
     {
       question: "Do you offer refunds?",

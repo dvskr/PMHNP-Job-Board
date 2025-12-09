@@ -4,6 +4,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import TestimonialsSection from '@/components/TestimonialsSection';
+import { config } from '@/lib/config';
 import { 
   Target, 
   DollarSign, 
@@ -107,115 +108,169 @@ export default function ForEmployersPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-white py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
-            Simple, Transparent Pricing
-          </h2>
-          <p className="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
-            Choose the plan that works best for your hiring needs. No subscriptions, no contracts.
-          </p>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Standard Plan */}
-            <Card padding="lg" variant="bordered" className="relative">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  Standard Post
-                </h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-gray-900">$99</span>
-                  <span className="text-gray-600">per posting</span>
-                </div>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">30-day listing</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Included in job alerts</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Basic analytics (views, clicks)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Edit anytime</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700">Employer dashboard access</span>
-                </li>
-              </ul>
-
-              <Link href="/post-job">
-                <Button variant="outline" size="lg" className="w-full">
-                  Get Started
-                </Button>
-              </Link>
-            </Card>
-
-            {/* Featured Plan */}
-            <Card padding="lg" variant="elevated" className="relative border-2 border-primary-500">
-              <div className="absolute top-0 right-0 mt-4 mr-4">
-                <Badge variant="featured" size="md">
-                  Most Popular
-                </Badge>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  Featured Post
-                  <Sparkles className="w-6 h-6 text-accent-500" />
-                </h3>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-gray-900">$199</span>
-                  <span className="text-gray-600">per posting</span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-sm font-semibold text-primary-600 mb-2">
-                  Everything in Standard, plus:
+      {!config.isPaidPostingEnabled ? (
+        // FREE MODE
+        <section className="py-16 bg-gradient-to-b from-green-50 to-white">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              🎉 Launch Special
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Post Jobs for FREE
+            </h2>
+            <p className="text-xl text-gray-600 mb-8">
+              For a limited time, all job postings are completely free. 
+              Get your PMHNP positions in front of qualified candidates today.
+            </p>
+            
+            <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              <div className="bg-white p-6 rounded-xl shadow-md border-2 border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Standard Post</h3>
+                <p className="text-3xl font-bold text-gray-900 my-2">
+                  <span className="line-through text-gray-400 text-lg">$99</span> FREE
                 </p>
+                <ul className="text-left text-gray-600 space-y-2 mt-4">
+                  <li>✓ 30-day listing</li>
+                  <li>✓ Included in job alerts</li>
+                  <li>✓ Full job description</li>
+                </ul>
               </div>
-
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">60-day listing (2x longer)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">Top placement in search results</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">Highlighted in job alerts</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">"Featured" badge on your listing</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 font-medium">Priority visibility</span>
-                </li>
-              </ul>
-
-              <Link href="/post-job">
-                <Button variant="primary" size="lg" className="w-full">
-                  Get Featured
-                </Button>
-              </Link>
-            </Card>
+              
+              <div className="bg-white p-6 rounded-xl shadow-md border-2 border-blue-500">
+                <div className="text-blue-600 text-sm font-semibold mb-1">RECOMMENDED</div>
+                <h3 className="text-lg font-semibold text-gray-900">Featured Post</h3>
+                <p className="text-3xl font-bold text-gray-900 my-2">
+                  <span className="line-through text-gray-400 text-lg">$199</span> FREE
+                </p>
+                <ul className="text-left text-gray-600 space-y-2 mt-4">
+                  <li>✓ Everything in Standard</li>
+                  <li>✓ Featured badge</li>
+                  <li>✓ Top placement in results</li>
+                  <li>✓ Highlighted in email digest</li>
+                </ul>
+              </div>
+            </div>
+            
+            <Link 
+              href="/post-job"
+              className="inline-block mt-8 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
+            >
+              Post a Job - Free
+            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        // PAID MODE
+        <section className="bg-white py-16">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
+              Choose the plan that works best for your hiring needs. No subscriptions, no contracts.
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {/* Standard Plan */}
+              <Card padding="lg" variant="bordered" className="relative">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Standard Post
+                  </h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-gray-900">$99</span>
+                    <span className="text-gray-600">per posting</span>
+                  </div>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">30-day listing</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">Included in job alerts</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">Basic analytics (views, clicks)</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">Edit anytime</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700">Employer dashboard access</span>
+                  </li>
+                </ul>
+
+                <Link href="/post-job">
+                  <Button variant="outline" size="lg" className="w-full">
+                    Get Started
+                  </Button>
+                </Link>
+              </Card>
+
+              {/* Featured Plan */}
+              <Card padding="lg" variant="elevated" className="relative border-2 border-primary-500">
+                <div className="absolute top-0 right-0 mt-4 mr-4">
+                  <Badge variant="featured" size="md">
+                    Most Popular
+                  </Badge>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    Featured Post
+                    <Sparkles className="w-6 h-6 text-accent-500" />
+                  </h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-gray-900">$199</span>
+                    <span className="text-gray-600">per posting</span>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-primary-600 mb-2">
+                    Everything in Standard, plus:
+                  </p>
+                </div>
+
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 font-medium">60-day listing (2x longer)</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 font-medium">Top placement in search results</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 font-medium">Highlighted in job alerts</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 font-medium">"Featured" badge on your listing</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-gray-700 font-medium">Priority visibility</span>
+                  </li>
+                </ul>
+
+                <Link href="/post-job">
+                  <Button variant="primary" size="lg" className="w-full">
+                    Get Featured
+                  </Button>
+                </Link>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* How It Works Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
