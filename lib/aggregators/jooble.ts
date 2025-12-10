@@ -28,18 +28,33 @@ const SEARCH_KEYWORDS = [
 ];
 
 /**
- * Helper function to parse job type from string
+ * Helper function to clean up job snippet/description
  */
-function parseJobType(type: string | undefined): string {
-  if (!type) return 'Full-Time';
+function cleanSnippet(snippet: string): string {
+  if (!snippet) return '';
   
-  const typeLower = type.toLowerCase();
+  let cleaned = snippet.trim();
   
-  if (typeLower.includes('part')) return 'Part-Time';
-  if (typeLower.includes('contract')) return 'Contract';
-  if (typeLower.includes('per diem') || typeLower.includes('prn')) return 'Per Diem';
+  // Remove ALL ellipsis markers (leading, trailing, and middle)
+  // Replace ... with a space to avoid word concatenation
+  cleaned = cleaned.replace(/\.{2,}/g, ' ');
   
-  return 'Full-Time';
+  // Remove common snippet artifacts
+  cleaned = cleaned.replace(/^Description Summary:\s*/i, '');
+  cleaned = cleaned.replace(/^About (this|the) (role|position|job):\s*/i, '');
+  
+  // Clean up multiple spaces
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  
+  // Remove leading/trailing whitespace
+  cleaned = cleaned.trim();
+  
+  // Add proper ending if it doesn't have punctuation
+  if (cleaned && !cleaned.match(/[.!?]$/)) {
+    cleaned += '.';
+  }
+  
+  return cleaned;
 }
 
 /**
@@ -89,15 +104,11 @@ export async function fetchJoobleJobs(): Promise<any[]> {
           
           allJobs.push({
             title: job.title,
-            employer: job.company || 'Company Not Listed',
+            company: job.company || 'Company Not Listed',
             location: job.location || 'United States',
-            description: job.snippet || '',
-            salary: job.salary || null,
-            applyLink: job.link,
-            externalId: `jooble_${job.id}`,
-            sourceProvider: 'jooble',
-            jobType: parseJobType(job.type),
-            updatedAt: job.updated,
+            description: cleanSnippet(job.snippet),
+            url: job.link,
+            id: `jooble_${job.id}`,
           });
         }
       }

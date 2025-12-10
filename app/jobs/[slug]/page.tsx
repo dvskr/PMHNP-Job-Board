@@ -161,6 +161,16 @@ export default async function JobPage({ params }: JobPageProps) {
             <AnimatedContainer animation="fade-in-up" delay={200}>
               <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold mb-4">About this role</h2>
+                
+                {/* Note for external jobs */}
+                {job.sourceType === 'external' && job.sourceProvider && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-800">
+                      <span className="font-semibold">Preview:</span> This is a summary from {job.sourceProvider}. Click <strong>"Apply Now"</strong> below to view the complete job description and application details.
+                    </p>
+                  </div>
+                )}
+                
                 <div className="prose prose-gray max-w-none">
                   {job.description.split('\n').map((paragraph, index) => {
                     // Empty line = spacing
