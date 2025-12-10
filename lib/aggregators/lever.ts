@@ -33,11 +33,11 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
-  // Working companies only (verified via testing)
-  'carbonhealth',        // Carbon Health - no PMHNP currently, monitoring
+  // Only working company (verified via testing)
+  'carbonhealth',        // Carbon Health - monitoring for future PMHNP jobs
   
-  // Note: Removed 13 companies that returned 404 (not on Lever)
-  // Can be re-added if they join Lever in the future
+  // Removed 13 companies with 404 errors (not on Lever or wrong slugs)
+  // Saves ~7 seconds per ingestion
 ];
 
 const PMHNP_KEYWORDS = [
