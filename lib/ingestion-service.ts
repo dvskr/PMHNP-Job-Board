@@ -4,6 +4,7 @@ import { fetchUSAJobs } from '@/lib/aggregators/usajobs';
 import { fetchGreenhouseJobs } from '@/lib/aggregators/greenhouse';
 import { fetchLeverJobs } from '@/lib/aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
+import { fetchCareerJetJobs } from './aggregators/careerjet';
 import { normalizeJob } from '@/lib/job-normalizer';
 import { isDuplicate } from '@/lib/deduplicator';
 
@@ -40,6 +41,9 @@ export async function ingestJobs(source: string): Promise<IngestionResult> {
       break;
     case 'jooble':
       rawJobs = await fetchJoobleJobs();
+      break;
+    case 'careerjet':
+      rawJobs = await fetchCareerJetJobs();
       break;
     default:
       console.warn(`Unknown source: ${source}`);
