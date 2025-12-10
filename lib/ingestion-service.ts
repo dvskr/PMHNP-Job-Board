@@ -23,7 +23,7 @@ export interface IngestionResult {
  * Fetch raw jobs from a specific source
  */
 async function fetchFromSource(source: JobSource): Promise<any[]> {
-  switch (source.toLowerCase()) {
+  switch (source) {
     case 'adzuna':
       return await fetchAdzunaJobs();
     case 'usajobs':

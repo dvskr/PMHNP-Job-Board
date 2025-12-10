@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ingestJobs } from '@/lib/ingestion-service';
+import { ingestJobs, type JobSource } from '@/lib/ingestion-service';
 
 interface IngestRequestBody {
-  sources: string[];
-}
-
-interface SourceResult {
-  source: string;
-  added: number;
-  skipped: number;
-  errors: number;
-  total: number;
+  sources?: string[];
 }
 
 export async function POST(request: NextRequest) {
@@ -35,39 +27,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body: IngestRequestBody = await request.json();
+    const body: IngestRequestBody = await request.json().catch(() => ({}));
     
     // Default to all sources if none provided
     const sources = (body.sources && Array.isArray(body.sources) && body.sources.length > 0)
-      ? body.sources
-      : ['adzuna', 'usajobs', 'greenhouse', 'lever'];
+      ? body.sources as JobSource[]
+      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble'];
 
-    // Process each source
-    const results: SourceResult[] = [];
+    console.log(`[API] Starting ingestion for sources: ${sources.join(', ')}`);
 
-    for (const source of sources) {
-      const result = await ingestJobs(source);
-      results.push({
-        source,
-        ...result,
-      });
-    }
+    // Run comprehensive ingestion (new service handles everything)
+    const results = await ingestJobs(sources);
 
     // Calculate totals
     const totals = results.reduce(
       (acc, r) => ({
+        fetched: acc.fetched + r.fetched,
         added: acc.added + r.added,
-        skipped: acc.skipped + r.skipped,
+        duplicates: acc.duplicates + r.duplicates,
         errors: acc.errors + r.errors,
-        total: acc.total + r.total,
+        duration: acc.duration + r.duration,
       }),
-      { added: 0, skipped: 0, errors: 0, total: 0 }
+      { fetched: 0, added: 0, duplicates: 0, errors: 0, duration: 0 }
     );
 
     return NextResponse.json({
       success: true,
       results,
       totals,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error in ingest API:', error);
