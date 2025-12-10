@@ -26,7 +26,7 @@ $headers = @{
     "Content-Type" = "application/json"
 }
 
-# Fetch from all sources (excluding careerjet since it's not working)
+# Fetch from all sources (excluding careerjet - no PMHNP jobs)
 $body = @{
     sources = @("adzuna", "usajobs", "greenhouse", "lever", "jooble")
 } | ConvertTo-Json

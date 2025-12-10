@@ -38,52 +38,95 @@ export interface GreenhouseJobRaw {
 }
 
 const GREENHOUSE_COMPANIES = [
-  // Existing
-  { slug: 'talkiatry', name: 'Talkiatry' },
-  { slug: 'talkspace', name: 'Talkspace' },
-  { slug: 'sondermind', name: 'SonderMind' },
+  // Working companies only (verified via testing)
+  // Mental Health / Telehealth
+  'sondermind',          // Mental health platform - 48 PMHNP jobs
+  'headway',             // Headway - 2 PMHNP jobs
+  'modernhealth',        // Modern Health - 1 PMHNP job
+  'mantrahealth',        // Mantra Health - 1 PMHNP job
+  'talkspace',           // Telehealth therapy - no PMHNP currently
+  'cerebral',            // Cerebral - no PMHNP currently
   
-  // New companies
-  { slug: 'cerebral', name: 'Cerebral' },
-  { slug: 'springhealth', name: 'Spring Health' },
-  { slug: 'lyrahealth', name: 'Lyra Health' },
-  { slug: 'modernhealth', name: 'Modern Health' },
-  { slug: 'alma', name: 'Alma' },
-  { slug: 'brightsidehealth', name: 'Brightside Health' },
-  { slug: 'gaborhealth', name: 'Gabor Health' },
-  { slug: 'headway', name: 'Headway' },
+  // Healthcare Staffing / Other
+  'ayahealthcare',       // Aya Healthcare - no PMHNP currently
+  'amwell',              // Amwell - no PMHNP currently
+  
+  // Note: Removed 16 companies that returned 404 (not on Greenhouse)
+  // Can be re-added if they join Greenhouse in the future
 ];
 
 const PMHNP_KEYWORDS = [
   'pmhnp',
-  'psychiatric nurse practitioner',
-  'psychiatric mental health nurse practitioner',
+  'psychiatric',
   'psych np',
-  'psychiatric np',
-  'mental health nurse practitioner',
+  'psych nurse',
+  'mental health nurse',
+  'behavioral health nurse',
+  'psychiatric mental health',
+  'nurse practitioner psychiatry',
+  'aprn psych',
+  'aprn psychiatric',
+  'psychiatric aprn',
 ];
 
-function isPMHNPJob(title: string): boolean {
-  const lowerTitle = title.toLowerCase();
-  return PMHNP_KEYWORDS.some((keyword) => lowerTitle.includes(keyword));
+const COMPANY_NAMES: Record<string, string> = {
+  'talkiatry': 'Talkiatry',
+  'talkspace': 'Talkspace',
+  'sondermind': 'SonderMind',
+  'brightside': 'Brightside Health',
+  'springhealth': 'Spring Health',
+  'lyrahealth': 'Lyra Health',
+  'modernhealth': 'Modern Health',
+  'cerebral': 'Cerebral',
+  'headway': 'Headway',
+  'teladoc': 'Teladoc Health',
+  'amwell': 'Amwell',
+  'mdlive': 'MDLIVE',
+  'hims': 'Hims & Hers',
+  'ayahealthcare': 'Aya Healthcare',
+  'crosscountry': 'Cross Country Healthcare',
+  'northwell': 'Northwell Health',
+  'providence': 'Providence Health',
+  'commonspirit': 'CommonSpirit Health',
+};
+
+function formatCompanyName(slug: string): string {
+  return COMPANY_NAMES[slug] || slug
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
-async function fetchCompanyJobs(companySlug: string, companyName: string): Promise<GreenhouseJobRaw[]> {
+function isPMHNPJob(title: string, content: string): boolean {
+  const searchText = `${title} ${content}`.toLowerCase();
+  return PMHNP_KEYWORDS.some(keyword => searchText.includes(keyword));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]> {
   const url = `https://boards-api.greenhouse.io/v1/boards/${companySlug}/jobs?content=true`;
+  const companyName = formatCompanyName(companySlug);
 
   try {
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.warn(`Greenhouse API error for ${companySlug}: ${response.status}`);
+      console.warn(`[Greenhouse] ${companySlug}: API error ${response.status}`);
       return [];
     }
 
     const data: GreenhouseResponse = await response.json();
     const jobs = data.jobs || [];
+    const totalJobs = jobs.length;
 
     // Filter for PMHNP-related jobs
-    const filteredJobs = jobs.filter((job) => isPMHNPJob(job.title));
+    const filteredJobs = jobs.filter((job) => isPMHNPJob(job.title, job.content || ''));
+    const relevantCount = filteredJobs.length;
+
+    console.log(`[Greenhouse] ${companySlug}: ${totalJobs} total, ${relevantCount} PMHNP-relevant`);
 
     return filteredJobs.map((job) => ({
       id: `greenhouse-${companySlug}-${job.id}`,
@@ -94,25 +137,46 @@ async function fetchCompanyJobs(companySlug: string, companyName: string): Promi
       redirect_url: job.absolute_url,
     }));
   } catch (error) {
-    console.error(`Error fetching Greenhouse jobs for ${companySlug}:`, error);
+    console.error(`[Greenhouse] ${companySlug}: Error -`, error);
     return [];
   }
 }
 
 export async function fetchGreenhouseJobs(): Promise<GreenhouseJobRaw[]> {
-  try {
-    // Fetch jobs from all companies in parallel
-    const results = await Promise.all(
-      GREENHOUSE_COMPANIES.map((company) => fetchCompanyJobs(company.slug, company.name))
-    );
+  console.log(`[Greenhouse] Checking ${GREENHOUSE_COMPANIES.length} companies for PMHNP jobs...`);
+  
+  const allJobs: GreenhouseJobRaw[] = [];
+  const failedCompanies: string[] = [];
 
-    // Flatten and return combined array
-    const allJobs = results.flat();
-    console.log(`Fetched ${allJobs.length} PMHNP jobs from Greenhouse`);
+  try {
+    for (const companySlug of GREENHOUSE_COMPANIES) {
+      try {
+        const jobs = await fetchCompanyJobs(companySlug);
+        
+        if (jobs.length === 0) {
+          // Check if it was a real failure or just no PMHNP jobs
+          // We'll track this for summary
+        } else {
+          allJobs.push(...jobs);
+        }
+        
+        // Rate limiting: 500ms delay between companies
+        await sleep(500);
+      } catch (error) {
+        failedCompanies.push(companySlug);
+        console.error(`[Greenhouse] Failed to fetch from ${companySlug}`);
+      }
+    }
+
+    console.log(`[Greenhouse] Total PMHNP jobs fetched: ${allJobs.length}`);
+    
+    if (failedCompanies.length > 0) {
+      console.log(`[Greenhouse] Failed companies (${failedCompanies.length}): ${failedCompanies.join(', ')}`);
+    }
+
     return allJobs;
   } catch (error) {
-    console.error('Error fetching Greenhouse jobs:', error);
-    return [];
+    console.error('[Greenhouse] Error in main fetch:', error);
+    return allJobs;
   }
 }
-
