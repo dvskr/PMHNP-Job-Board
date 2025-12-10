@@ -6,7 +6,7 @@ import { fetchLeverJobs } from '@/lib/aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchCareerJetJobs } from './aggregators/careerjet';
 import { normalizeJob } from '@/lib/job-normalizer';
-import { isDuplicate } from '@/lib/deduplicator';
+import { checkDuplicate } from '@/lib/deduplicator';
 
 interface IngestionResult {
   added: number;
@@ -64,10 +64,17 @@ export async function ingestJobs(source: string): Promise<IngestionResult> {
         continue;
       }
 
-      // Check for duplicates
-      const duplicate = await isDuplicate(normalizedJob);
+      // Check for duplicates using multi-strategy deduplication
+      const dupCheck = await checkDuplicate({
+        title: normalizedJob.title,
+        employer: normalizedJob.employer,
+        location: normalizedJob.location,
+        externalId: normalizedJob.externalId,
+        sourceProvider: normalizedJob.sourceProvider,
+        applyLink: normalizedJob.applyLink,
+      });
       
-      if (duplicate) {
+      if (dupCheck.isDuplicate) {
         result.skipped++;
         continue;
       }
@@ -84,7 +91,14 @@ export async function ingestJobs(source: string): Promise<IngestionResult> {
     }
   }
 
+  // Calculate and log duplicate rate
+  const duplicateRate = result.total > 0 
+    ? ((result.skipped / result.total) * 100).toFixed(1) 
+    : '0.0';
+  
   console.log(`Ingestion complete for ${source}:`, result);
+  console.log(`Duplicate Rate: ${duplicateRate}%`);
+  
   return result;
 }
 

@@ -45,6 +45,7 @@ export default function JobsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     location: '',
@@ -54,22 +55,25 @@ export default function JobsPage() {
     maxSalary: undefined,
   });
   const [quickFilters, setQuickFilters] = useState<QuickFilter[]>([]);
+  
+  const JOBS_PER_PAGE = 20;
+  const totalPages = Math.ceil(total / JOBS_PER_PAGE);
 
-  const fetchJobs = useCallback(async (currentFilters: FilterState) => {
+  const fetchJobs = useCallback(async (currentFilters: FilterState, page: number = 1) => {
     try {
       setLoading(true);
       setError(null);
       
       // Build query string from filters
       const params = new URLSearchParams();
+      params.set('page', page.toString());
       Object.entries(currentFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
           params.set(key, value.toString());
         }
       });
       
-      const queryString = params.toString();
-      const url = queryString ? `/api/jobs?${queryString}` : '/api/jobs';
+      const url = `/api/jobs?${params.toString()}`;
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -78,6 +82,9 @@ export default function JobsPage() {
       const data: { jobs: Job[]; total: number } = await response.json();
       setJobs(data.jobs);
       setTotal(data.total);
+      
+      // Scroll to top when page changes
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -127,15 +134,19 @@ export default function JobsPage() {
       minSalary: searchParams.get('minSalary') ? parseInt(searchParams.get('minSalary')!) : undefined,
       maxSalary: searchParams.get('maxSalary') ? parseInt(searchParams.get('maxSalary')!) : undefined,
     };
+    const page = parseInt(searchParams.get('page') || '1');
     setFilters(newFilters);
-    fetchJobs(newFilters);
+    setCurrentPage(page);
+    fetchJobs(newFilters, page);
   }, [searchParams, fetchJobs]);
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
+    setCurrentPage(1); // Reset to page 1 when filters change
     
     // Build query string
     const params = new URLSearchParams();
+    params.set('page', '1');
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
         params.set(key, value.toString());
@@ -143,11 +154,31 @@ export default function JobsPage() {
     });
     
     // Update URL
-    const queryString = params.toString();
-    router.push(queryString ? `/jobs?${queryString}` : '/jobs');
+    router.push(`/jobs?${params.toString()}`);
     
     // Re-fetch jobs with new filters
-    fetchJobs(newFilters);
+    fetchJobs(newFilters, 1);
+  };
+  
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    
+    setCurrentPage(newPage);
+    
+    // Build query string with new page
+    const params = new URLSearchParams();
+    params.set('page', newPage.toString());
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        params.set(key, value.toString());
+      }
+    });
+    
+    // Update URL
+    router.push(`/jobs?${params.toString()}`);
+    
+    // Fetch jobs for new page
+    fetchJobs(filters, newPage);
   };
 
   // Count active filters
@@ -264,9 +295,16 @@ export default function JobsPage() {
 
           {/* Results Count */}
           {!loading && !error && (
-            <p className="text-sm text-gray-500 mb-4">
-              {total} job{total !== 1 ? 's' : ''} found
-            </p>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">
+                Showing {Math.min((currentPage - 1) * JOBS_PER_PAGE + 1, total)}-{Math.min(currentPage * JOBS_PER_PAGE, total)} of {total} job{total !== 1 ? 's' : ''}
+              </p>
+              {totalPages > 1 && (
+                <p className="text-sm text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+              )}
+            </div>
           )}
 
           {/* Loading State */}
@@ -293,18 +331,70 @@ export default function JobsPage() {
 
           {/* Jobs Grid */}
           {!loading && !error && jobs.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {jobs.map((job, index) => (
-                <div key={job.id} className="h-full">
-                  <AnimatedContainer
-                    animation="fade-in-up"
-                    delay={Math.min(index * 50, 600)}
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {jobs.map((job, index) => (
+                  <div key={job.id} className="h-full">
+                    <AnimatedContainer
+                      animation="fade-in-up"
+                      delay={Math.min(index * 50, 600)}
+                    >
+                      <JobCard job={job} />
+                    </AnimatedContainer>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    <JobCard job={job} />
-                  </AnimatedContainer>
+                    Previous
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 7) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 4) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 3) {
+                        pageNum = totalPages - 6 + i;
+                      } else {
+                        pageNum = currentPage - 3 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
