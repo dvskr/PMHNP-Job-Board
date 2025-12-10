@@ -1,4 +1,5 @@
 import { Job } from '@prisma/client';
+import { normalizeSalary, type SalaryNormalizationResult } from './salary-normalizer';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'>;
 
@@ -301,6 +302,15 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Normalize salary to annual equivalent
+    const normalizedSalaryData = normalizeSalary({
+      salaryRange: salaryMin && salaryMax ? `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}` : null,
+      minSalary: salaryMin,
+      maxSalary: salaryMax,
+      salaryPeriod,
+      title,
+    });
+
     return {
       title,
       employer,
@@ -313,6 +323,10 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       minSalary: salaryMin,
       maxSalary: salaryMax,
       salaryPeriod,
+      normalizedMinSalary: normalizedSalaryData.normalizedMinSalary,
+      normalizedMaxSalary: normalizedSalaryData.normalizedMaxSalary,
+      salaryIsEstimated: normalizedSalaryData.salaryIsEstimated,
+      salaryConfidence: normalizedSalaryData.salaryConfidence,
       applyLink,
       isFeatured: false,
       isPublished: true,

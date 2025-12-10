@@ -20,6 +20,13 @@ model Job {
   minSalary             Int?      @map("min_salary")
   maxSalary             Int?      @map("max_salary")
   salaryPeriod          String?   @map("salary_period")
+  
+  // Normalized salary fields (always annual)
+  normalizedMinSalary   Int?      @map("normalized_min_salary")
+  normalizedMaxSalary   Int?      @map("normalized_max_salary")
+  salaryIsEstimated     Boolean   @default(false) @map("salary_is_estimated")
+  salaryConfidence      Float?    @map("salary_confidence")
+  
   applyLink             String    @map("apply_link")
   isFeatured            Boolean   @default(false) @map("is_featured")
   isPublished           Boolean   @default(true) @map("is_published")
