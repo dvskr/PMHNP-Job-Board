@@ -212,16 +212,19 @@ export default function JobsPage() {
     return false;
   };
 
-  // Handle quick filter click
+  // Handle quick filter click (only one at a time)
   const handleQuickFilterClick = (qf: QuickFilter) => {
     const isActive = isQuickFilterActive(qf);
     const params = new URLSearchParams(searchParams.toString());
 
     if (isActive) {
-      // Remove filter
+      // Remove this filter
       params.delete(qf.filterKey);
     } else {
-      // Add filter
+      // Remove all quick filter keys first
+      quickFilters.forEach(filter => params.delete(filter.filterKey));
+      
+      // Add only this filter
       params.set(qf.filterKey, qf.filterValue.toString());
     }
 
