@@ -182,3 +182,23 @@ model Company {
   @@index([isVerified])
   @@map("companies")
 }
+
+model SourceStats {
+  id              String   @id @default(uuid())
+  source          String   // adzuna, jooble, etc.
+  date            DateTime @db.Date  // Stats for this day
+  jobsFetched     Int      @default(0) @map("jobs_fetched")
+  jobsAdded       Int      @default(0) @map("jobs_added")
+  jobsDuplicate   Int      @default(0) @map("jobs_duplicate")
+  jobsExpired     Int      @default(0) @map("jobs_expired")
+  avgQualityScore Float?   @map("avg_quality_score")
+  totalViews      Int      @default(0) @map("total_views")
+  totalApplyClicks Int     @default(0) @map("total_apply_clicks")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@unique([source, date])
+  @@index([source])
+  @@index([date])
+  @@map("source_stats")
+}

@@ -9,6 +9,7 @@ import { normalizeJob } from '@/lib/job-normalizer';
 import { checkDuplicate } from '@/lib/deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
+import { recordIngestionStats } from './source-analytics';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet';
 
@@ -138,6 +139,13 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
       duplicateRate: `${duplicateRate}%`,
       duration: `${(duration / 1000).toFixed(1)}s`
     });
+
+    // Record stats
+    try {
+      await recordIngestionStats(source, fetched, added, duplicates);
+    } catch (statsError) {
+      console.error(`Failed to record stats for ${source}:`, statsError);
+    }
 
     return { source, fetched, added, duplicates, errors, duration };
 

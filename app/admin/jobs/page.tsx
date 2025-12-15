@@ -19,8 +19,22 @@ interface Stats {
   lastUpdated: string;
 }
 
+interface SourcePerformance {
+  source: string;
+  totalJobs: number;
+  jobsLast7Days: number;
+  jobsLast30Days: number;
+  avgQualityScore: number;
+  totalViews: number;
+  totalApplyClicks: number;
+  clickThroughRate: number;
+  duplicateRate: number;
+  costPerJob: number | null;
+}
+
 export default function AdminJobsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [sourceAnalytics, setSourceAnalytics] = useState<SourcePerformance[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -46,10 +60,30 @@ export default function AdminJobsPage() {
     }
   };
 
+  const fetchSourceAnalytics = async () => {
+    try {
+      const response = await fetch('/api/analytics/sources');
+      
+      if (!response.ok) {
+        console.error('Failed to fetch source analytics');
+        return;
+      }
+      
+      const data = await response.json();
+      setSourceAnalytics(data.sources || []);
+    } catch (err) {
+      console.error('Error fetching source analytics:', err);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
+    fetchSourceAnalytics();
     // Auto-refresh every 60 seconds
-    const interval = setInterval(fetchStats, 60000);
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchSourceAnalytics();
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -175,6 +209,50 @@ export default function AdminJobsPage() {
           <p className="text-3xl font-bold text-purple-600">{avgDailyNew}</p>
         </div>
       </div>
+
+      {/* Top Sources Summary */}
+      {sourceAnalytics && sourceAnalytics.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
+            <h3 className="text-sm font-medium text-blue-700 mb-3">🏆 Best for Volume</h3>
+            {(() => {
+              const bestVolume = [...sourceAnalytics].sort((a, b) => b.totalJobs - a.totalJobs)[0];
+              return (
+                <>
+                  <p className="text-2xl font-bold text-blue-900 capitalize">{bestVolume.source}</p>
+                  <p className="text-sm text-blue-600 mt-1">{bestVolume.totalJobs.toLocaleString()} active jobs</p>
+                </>
+              );
+            })()}
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
+            <h3 className="text-sm font-medium text-green-700 mb-3">⭐ Best for Quality</h3>
+            {(() => {
+              const bestQuality = [...sourceAnalytics].sort((a, b) => b.avgQualityScore - a.avgQualityScore)[0];
+              return (
+                <>
+                  <p className="text-2xl font-bold text-green-900 capitalize">{bestQuality.source}</p>
+                  <p className="text-sm text-green-600 mt-1">{(bestQuality.avgQualityScore * 100).toFixed(0)}% quality score</p>
+                </>
+              );
+            })()}
+          </div>
+          
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
+            <h3 className="text-sm font-medium text-purple-700 mb-3">🎯 Best for Clicks</h3>
+            {(() => {
+              const bestClicks = [...sourceAnalytics].sort((a, b) => b.clickThroughRate - a.clickThroughRate)[0];
+              return (
+                <>
+                  <p className="text-2xl font-bold text-purple-900 capitalize">{bestClicks.source}</p>
+                  <p className="text-sm text-purple-600 mt-1">{(bestClicks.clickThroughRate * 100).toFixed(1)}% CTR</p>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Jobs by Source */}
       <div className="bg-white rounded-lg shadow mb-8">
@@ -305,6 +383,123 @@ export default function AdminJobsPage() {
           </div>
         </div>
       </div>
+
+      {/* Source Performance */}
+      {sourceAnalytics && sourceAnalytics.length > 0 && (
+        <div className="bg-white rounded-lg shadow mb-8">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Source Performance</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Source
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Active Jobs
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      7-Day Adds
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quality
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Views
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Clicks
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      CTR
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Dup Rate
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sourceAnalytics.map((source, index) => {
+                    // Performance scoring for color coding
+                    const qualityScore = source.avgQualityScore * 100;
+                    const ctr = source.clickThroughRate * 100;
+                    const dupRate = source.duplicateRate * 100;
+                    
+                    // Color coding logic
+                    const getQualityColor = (score: number) => {
+                      if (score >= 75) return 'text-green-700 bg-green-50';
+                      if (score >= 50) return 'text-yellow-700 bg-yellow-50';
+                      return 'text-red-700 bg-red-50';
+                    };
+                    
+                    const getCtrColor = (rate: number) => {
+                      if (rate >= 5) return 'text-green-700 bg-green-50';
+                      if (rate >= 2) return 'text-yellow-700 bg-yellow-50';
+                      return 'text-gray-700 bg-gray-50';
+                    };
+                    
+                    const getDupColor = (rate: number) => {
+                      if (rate >= 50) return 'text-red-700 bg-red-50';
+                      if (rate >= 30) return 'text-yellow-700 bg-yellow-50';
+                      return 'text-green-700 bg-green-50';
+                    };
+                    
+                    return (
+                      <tr key={source.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
+                          {source.source}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
+                          {source.totalJobs.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                          {source.jobsLast7Days.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
+                          <span className={`px-2 py-1 rounded-full font-medium ${getQualityColor(qualityScore)}`}>
+                            {qualityScore.toFixed(0)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                          {source.totalViews.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                          {source.totalApplyClicks.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
+                          <span className={`px-2 py-1 rounded-full font-medium ${getCtrColor(ctr)}`}>
+                            {ctr.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
+                          <span className={`px-2 py-1 rounded-full font-medium ${getDupColor(dupRate)}`}>
+                            {dupRate.toFixed(0)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-green-200"></span>
+                <span>Good performance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-yellow-200"></span>
+                <span>Average performance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-red-200"></span>
+                <span>Needs improvement</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Actions Section */}
       <div className="bg-white rounded-lg shadow">
