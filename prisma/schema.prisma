@@ -53,6 +53,7 @@ model Job {
   company               Company?  @relation(fields: [companyId], references: [id])
   
   employerJobs          EmployerJob[]
+  applyClicks           ApplyClick[]
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -201,4 +202,20 @@ model SourceStats {
   @@index([source])
   @@index([date])
   @@map("source_stats")
+}
+
+model ApplyClick {
+  id              String   @id @default(uuid())
+  jobId           String   @map("job_id")
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  source          String?  // Job's sourceProvider
+  timestamp       DateTime @default(now())
+  sessionId       String?  @map("session_id")  // For deduping
+  referrer        String?  // Where user came from
+  userAgent       String?  @map("user_agent")
+  
+  @@index([jobId])
+  @@index([source])
+  @@index([timestamp])
+  @@map("apply_clicks")
 }

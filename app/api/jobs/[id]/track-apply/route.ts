@@ -25,6 +25,23 @@ export async function POST(
       },
     });
 
+    // Get job to know its source
+    const job = await prisma.job.findUnique({
+      where: { id },
+      select: { sourceProvider: true },
+    });
+
+    // Create detailed click record
+    await prisma.applyClick.create({
+      data: {
+        jobId: id,
+        source: job?.sourceProvider || 'unknown',
+        sessionId: request.headers.get('x-session-id') || null,
+        referrer: request.headers.get('referer') || null,
+        userAgent: request.headers.get('user-agent') || null,
+      },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     // If job not found, still return success (don't break the apply flow)

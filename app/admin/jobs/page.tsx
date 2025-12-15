@@ -32,9 +32,34 @@ interface SourcePerformance {
   costPerJob: number | null;
 }
 
+interface ClickAnalytics {
+  summary: {
+    totalClicks: number;
+    uniqueJobs: number;
+    avgClicksPerJob: number;
+  };
+  bySource: Array<{
+    source: string;
+    clicks: number;
+    jobs: number;
+    avgPerJob: number;
+  }>;
+  byDay: Array<{
+    date: string;
+    clicks: number;
+  }>;
+  topJobs: Array<{
+    jobId: string;
+    title: string;
+    employer: string;
+    clicks: number;
+  }>;
+}
+
 export default function AdminJobsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [sourceAnalytics, setSourceAnalytics] = useState<SourcePerformance[] | null>(null);
+  const [clickAnalytics, setClickAnalytics] = useState<ClickAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -76,13 +101,31 @@ export default function AdminJobsPage() {
     }
   };
 
+  const fetchClickAnalytics = async () => {
+    try {
+      const response = await fetch('/api/analytics/clicks?days=30');
+      
+      if (!response.ok) {
+        console.error('Failed to fetch click analytics');
+        return;
+      }
+      
+      const data = await response.json();
+      setClickAnalytics(data);
+    } catch (err) {
+      console.error('Error fetching click analytics:', err);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchSourceAnalytics();
+    fetchClickAnalytics();
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
       fetchStats();
       fetchSourceAnalytics();
+      fetchClickAnalytics();
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -496,6 +539,158 @@ export default function AdminJobsPage() {
                 <span className="inline-block w-3 h-3 rounded-full bg-red-200"></span>
                 <span>Needs improvement</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply Click Analytics */}
+      {clickAnalytics && (
+        <div className="space-y-8 mb-8">
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Apply Click Analytics (Last 30 Days)</h2>
+              
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-6 border border-indigo-200">
+                  <h3 className="text-sm font-medium text-indigo-700 mb-2">Total Clicks</h3>
+                  <p className="text-3xl font-bold text-indigo-900">{clickAnalytics.summary.totalClicks.toLocaleString()}</p>
+                  <p className="text-xs text-indigo-600 mt-1">{clickAnalytics.summary.uniqueJobs} unique jobs</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-6 border border-teal-200">
+                  <h3 className="text-sm font-medium text-teal-700 mb-2">Avg Clicks per Job</h3>
+                  <p className="text-3xl font-bold text-teal-900">{clickAnalytics.summary.avgClicksPerJob.toFixed(2)}</p>
+                  <p className="text-xs text-teal-600 mt-1">Engagement rate</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow p-6 border border-amber-200">
+                  <h3 className="text-sm font-medium text-amber-700 mb-2">Best Converting Source</h3>
+                  {(() => {
+                    const best = clickAnalytics.bySource.length > 0 ? clickAnalytics.bySource[0] : null;
+                    return best ? (
+                      <>
+                        <p className="text-3xl font-bold text-amber-900 capitalize">{best.source}</p>
+                        <p className="text-xs text-amber-600 mt-1">{best.clicks} clicks ({best.avgPerJob.toFixed(2)} per job)</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-amber-600">No data</p>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Clicks by Source */}
+              {clickAnalytics.bySource.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Clicks by Source</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Source
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Total Clicks
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Jobs Clicked
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Avg per Job
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Performance
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {clickAnalytics.bySource.map((sourceData, index) => {
+                          const performance = sourceData.avgPerJob;
+                          const getPerformanceColor = () => {
+                            if (performance >= 0.5) return 'text-green-700 bg-green-50';
+                            if (performance >= 0.3) return 'text-yellow-700 bg-yellow-50';
+                            return 'text-red-700 bg-red-50';
+                          };
+                          
+                          return (
+                            <tr key={sourceData.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
+                                {sourceData.source}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
+                                {sourceData.clicks.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                                {sourceData.jobs.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                                {sourceData.avgPerJob.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
+                                <span className={`px-2 py-1 rounded-full font-medium ${getPerformanceColor()}`}>
+                                  {performance >= 0.5 ? '🔥 Hot' : performance >= 0.3 ? '👍 Good' : '📊 Low'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Top 10 Most Clicked Jobs */}
+              {clickAnalytics.topJobs.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Top 10 Most Clicked Jobs</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Rank
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Job Title
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Employer
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Clicks
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {clickAnalytics.topJobs.map((job, index) => (
+                          <tr key={job.jobId} className={index < 3 ? 'bg-yellow-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className={`font-bold ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-500' : index === 2 ? 'text-amber-600' : ''}`}>
+                                #{index + 1}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                              {job.title}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-600">
+                              {job.employer}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {job.clicks} clicks
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
