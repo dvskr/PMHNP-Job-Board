@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Default to all sources if none provided
     const sources = (body.sources && Array.isArray(body.sources) && body.sources.length > 0)
       ? body.sources as JobSource[]
-      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble'];
+      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet'];
 
     console.log(`[API] Starting ingestion for sources: ${sources.join(', ')}`);
 

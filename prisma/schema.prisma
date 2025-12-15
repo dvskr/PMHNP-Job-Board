@@ -48,6 +48,10 @@ model Job {
   updatedAt             DateTime  @updatedAt @map("updated_at")
   expiresAt             DateTime? @map("expires_at")
   
+  // Company relation
+  companyId             String?   @map("company_id")
+  company               Company?  @relation(fields: [companyId], references: [id])
+  
   employerJobs          EmployerJob[]
 
   @@index([isPublished])
@@ -57,6 +61,7 @@ model Job {
   @@index([minSalary, maxSalary])
   @@index([state])
   @@index([isRemote])
+  @@index([companyId])
   @@map("jobs")
 }
 
@@ -156,4 +161,24 @@ model JobDraft {
   @@index([email])
   @@index([resumeToken])
   @@map("job_drafts")
+}
+
+model Company {
+  id              String   @id @default(uuid())
+  name            String   @unique  // Canonical name
+  normalizedName  String   @unique @map("normalized_name")  // For matching
+  aliases         String[] @default([])  // Alternative names
+  logoUrl         String?  @map("logo_url")
+  website         String?
+  description     String?
+  jobCount        Int      @default(0) @map("job_count")
+  isVerified      Boolean  @default(false) @map("is_verified")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  jobs            Job[]
+  
+  @@index([normalizedName])
+  @@index([isVerified])
+  @@map("companies")
 }

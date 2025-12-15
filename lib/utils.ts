@@ -25,9 +25,10 @@ export function formatSalary(
   if (!min && !max) return '';
   
   const formatNumber = (n: number, period: string): string => {
-    if (period === 'hourly') return `$${n}`;
-    if (period === 'weekly') return `$${n.toLocaleString()}`;
-    if (period === 'monthly') return `$${n.toLocaleString()}`;
+    // For hourly/weekly/monthly, show the raw number with comma formatting
+    if (period === 'hourly' || period === 'weekly' || period === 'monthly') {
+      return `$${n.toLocaleString()}`;
+    }
     // Annual - use k format for thousands
     if (n >= 1000) return `$${Math.round(n / 1000)}k`;
     return `$${n}`;
@@ -47,7 +48,7 @@ export function formatSalary(
     return `${formatNumber(min, periodKey)}-${formatNumber(max, periodKey)}${periodSuffix}`;
   }
   if (min) {
-    return `${formatNumber(min, periodKey)}+${periodSuffix}`;
+    return `${formatNumber(min, periodKey)}${periodSuffix}`;
   }
   if (max) {
     return `Up to ${formatNumber(max, periodKey)}${periodSuffix}`;

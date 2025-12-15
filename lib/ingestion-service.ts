@@ -8,6 +8,7 @@ import { fetchCareerJetJobs } from './aggregators/careerjet';
 import { normalizeJob } from '@/lib/job-normalizer';
 import { checkDuplicate } from '@/lib/deduplicator';
 import { parseJobLocation } from './location-parser';
+import { linkJobToCompany } from './company-normalizer';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet';
 
@@ -104,6 +105,13 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
           await parseJobLocation(createdJob.id);
         } catch (locationError) {
           console.error(`Failed to parse location for job ${createdJob.id}:`, locationError);
+        }
+
+        // Link to company
+        try {
+          await linkJobToCompany(createdJob.id);
+        } catch (companyError) {
+          console.error(`Failed to link company for job ${createdJob.id}:`, companyError);
         }
 
         added++;

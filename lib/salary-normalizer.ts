@@ -123,8 +123,9 @@ function normalizeSingleSalary(
   
   // Adjust confidence based on reasonableness
   if (!isReasonableSalary(annualSalary, confidence)) {
-    console.warn(`[Salary] Suspicious salary: $${annualSalary} annual (from $${salary} ${period})`);
-    return null; // Reject unreasonable salaries
+    // Silently reject unreasonable salaries during normalization
+    // Original salary values are still preserved in the job record
+    return null;
   }
   
   // Adjust confidence based on period (annual is most reliable)
@@ -174,8 +175,6 @@ export function normalizeSalary(job: {
     job.maxSalary
   );
 
-  console.log(`[Salary] Detected period: ${period} for min=${job.minSalary}, max=${job.maxSalary}`);
-
   // Normalize min salary
   if (job.minSalary) {
     const normalized = normalizeSingleSalary(job.minSalary, period, isEstimated);
@@ -202,7 +201,7 @@ export function normalizeSalary(job: {
   // If we have both min and max, validate the range
   if (result.normalizedMinSalary && result.normalizedMaxSalary) {
     if (result.normalizedMinSalary > result.normalizedMaxSalary) {
-      console.warn(`[Salary] Invalid range: min > max, swapping`);
+      // Swap min and max if they're reversed
       [result.normalizedMinSalary, result.normalizedMaxSalary] = 
         [result.normalizedMaxSalary, result.normalizedMinSalary];
     }
@@ -210,9 +209,9 @@ export function normalizeSalary(job: {
     // Check if range is too wide (indicates bad data)
     const rangeRatio = result.normalizedMaxSalary / result.normalizedMinSalary;
     if (rangeRatio > 2.5) {
-      console.warn(`[Salary] Suspiciously wide range: ${result.normalizedMinSalary}-${result.normalizedMaxSalary}`);
+      // Wide salary range detected - reduce confidence
       if (result.salaryConfidence) {
-        result.salaryConfidence *= 0.7; // Reduce confidence
+        result.salaryConfidence *= 0.7;
       }
     }
   }
