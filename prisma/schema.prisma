@@ -21,6 +21,14 @@ model Job {
   maxSalary             Int?      @map("max_salary")
   salaryPeriod          String?   @map("salary_period")
   
+  // Parsed location data
+  city                  String?
+  state                 String?
+  stateCode             String?   @map("state_code")
+  country               String?   @default("US")
+  isRemote              Boolean   @default(false) @map("is_remote")
+  isHybrid              Boolean   @default(false) @map("is_hybrid")
+  
   // Normalized salary fields (always annual)
   normalizedMinSalary   Int?      @map("normalized_min_salary")
   normalizedMaxSalary   Int?      @map("normalized_max_salary")
@@ -47,6 +55,8 @@ model Job {
   @@index([location])
   @@index([createdAt(sort: Desc)])
   @@index([minSalary, maxSalary])
+  @@index([state])
+  @@index([isRemote])
   @@map("jobs")
 }
 

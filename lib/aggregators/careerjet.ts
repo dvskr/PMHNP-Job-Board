@@ -18,12 +18,8 @@ interface CareerJetResponse {
   jobs: CareerJetJob[];
 }
 
-// Try multiple API endpoints (different regions/domains)
-const API_ENDPOINTS = [
-  'https://public.api.careerjet.net/search',
-  'https://api.careerjet.com/search',
-  'https://www.careerjet.com/api/search',
-];
+// CareerJet public search endpoint (no auth required, just affiliate ID)
+const API_ENDPOINT = 'https://public.api.careerjet.net/search';
 
 const SEARCH_QUERIES = [
   'PMHNP',
@@ -69,19 +65,18 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch with timeout
+ * Fetch with timeout (simple, no auth)
  */
-async function fetchWithTimeout(url: string, timeoutMs: number = 10000): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs: number = 15000
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; PMHNP-JobBoard/1.0)',
-        'Accept': 'application/json',
-      },
     });
     clearTimeout(timeoutId);
     return response;
@@ -92,52 +87,42 @@ async function fetchWithTimeout(url: string, timeoutMs: number = 10000): Promise
 }
 
 /**
- * Try fetching from multiple API endpoints with retry logic
+ * Fetch from CareerJet API with retry logic
  */
 async function fetchFromCareerJetWithRetry(
   params: URLSearchParams,
-  maxRetries: number = 2
+  maxRetries: number = 1
 ): Promise<CareerJetResponse | null> {
-  for (const endpoint of API_ENDPOINTS) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const url = `${endpoint}?${params}`;
-        console.log(`[CareerJet] Trying ${endpoint} (attempt ${attempt + 1}/${maxRetries + 1})`);
-        
-        const response = await fetchWithTimeout(url, 10000);
-        
-        if (!response.ok) {
-          if (response.status === 429) {
-            console.log(`[CareerJet] Rate limited, waiting...`);
-            await sleep(5000);
-            continue;
-          }
-          if (response.status >= 500) {
-            console.log(`[CareerJet] Server error ${response.status}, trying next...`);
-            continue;
-          }
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json() as CareerJetResponse;
-        
-        if (data.type === 'ERROR') {
-          console.error(`[CareerJet] API error response from ${endpoint}`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const url = `${API_ENDPOINT}?${params}`;
+      
+      const response = await fetchWithTimeout(url, 15000);
+      
+      if (!response.ok) {
+        console.error(`[CareerJet] HTTP error ${response.status}`);
+        if (attempt < maxRetries) {
+          await sleep(1000);
           continue;
         }
-        
-        console.log(`[CareerJet] ✓ Success with ${endpoint}`);
-        return data;
-        
-      } catch (error: any) {
-        const errorMsg = error.message || String(error);
-        console.log(`[CareerJet] ${endpoint} failed (${errorMsg})`);
-        
-        if (attempt < maxRetries) {
-          const backoffMs = 1000 * Math.pow(2, attempt);
-          console.log(`[CareerJet] Retrying in ${backoffMs}ms...`);
-          await sleep(backoffMs);
-        }
+        return null;
+      }
+
+      const data = await response.json() as CareerJetResponse;
+      
+      if (data.type === 'ERROR') {
+        console.error(`[CareerJet] API returned error`);
+        return null;
+      }
+      
+      return data;
+      
+    } catch (error: any) {
+      const errorMsg = error.message || String(error);
+      console.log(`[CareerJet] Request failed (${errorMsg})`);
+      
+      if (attempt < maxRetries) {
+        await sleep(1000);
       }
     }
   }
@@ -160,16 +145,14 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
   const allJobs: any[] = [];
   const seenUrls = new Set<string>();
 
-  console.log('[CareerJet] Starting job fetch with enhanced retry logic...');
-  let successfulRequests = 0;
-  let failedRequests = 0;
+  console.log('[CareerJet] Starting job fetch...');
 
   for (const query of SEARCH_QUERIES) {
     try {
       console.log(`[CareerJet] Searching for: "${query}"`);
       
-      // Fetch up to 2 pages (50 jobs per page) - reduced to minimize failures
-      for (let page = 1; page <= 2; page++) {
+      // Fetch up to 3 pages (50 jobs per page)
+      for (let page = 1; page <= 3; page++) {
         const params = new URLSearchParams({
           locale_code: 'en_US',
           keywords: query,
@@ -178,22 +161,18 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
           page: page.toString(),
           pagesize: '50',
           sort: 'date',
-          user_ip: '8.8.8.8', // Add user IP as some APIs require it
-          user_agent: 'Mozilla/5.0',
         });
 
         const data = await fetchFromCareerJetWithRetry(params);
+
         
         if (!data) {
-          console.warn(`[CareerJet] All endpoints failed for "${query}" page ${page}`);
-          failedRequests++;
-          break; // Move to next query
+          console.warn(`[CareerJet] Request failed for "${query}" page ${page}`);
+          break;
         }
         
-        successfulRequests++;
-        
         const jobs = data.jobs || [];
-        console.log(`[CareerJet] ✓ Page ${page}: ${jobs.length} jobs (${data.hits} total available)`);
+        console.log(`[CareerJet] Page ${page}: ${jobs.length} jobs`);
 
         if (jobs.length === 0) {
           break;
@@ -217,23 +196,21 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
 
           allJobs.push({
             title: job.title,
-            company: job.company || 'Company Not Listed',
+            employer: job.company || 'Company Not Listed',
             location: job.locations || 'United States',
             description: job.description || '',
             salary: job.salary || null,
-            url: job.url,
-            id: `careerjet_${hashString(job.url)}`,
+            applyLink: job.url,
+            externalId: `careerjet_${hashString(job.url)}`,
             sourceProvider: 'careerjet',
             postedDate: job.date,
             sourceSite: job.site,
           });
         }
-        
-        console.log(`[CareerJet] Added ${addedFromPage} relevant jobs from page ${page}`);
 
-        // Rate limiting: wait between page requests
-        if (page < 2 && page < data.pages) {
-          await sleep(2000);
+        // Rate limiting: wait 1500ms between page requests
+        if (page < 3 && page < data.pages) {
+          await sleep(1500);
         }
 
         // Stop if we've reached the last page
@@ -243,17 +220,12 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
       }
 
       // Delay between different queries
-      await sleep(2000);
+      await sleep(1500);
 
     } catch (error) {
-      console.error(`[CareerJet] Fatal error processing query "${query}":`, error);
-      failedRequests++;
-      // Continue to next query
+      console.error(`[CareerJet] Error processing query "${query}":`, error);
     }
   }
-
-  console.log(`[CareerJet] Fetch complete: ${successfulRequests} successful, ${failedRequests} failed`);
-  console.log(`[CareerJet] Total unique jobs fetched: ${allJobs.length}`);
 
   console.log(`[CareerJet] Total unique jobs fetched: ${allJobs.length}`);
   

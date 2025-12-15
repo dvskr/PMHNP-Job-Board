@@ -2,11 +2,25 @@
  * Backfill script to add normalized salary data to existing jobs
  */
 
+import 'dotenv/config';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.local if it exists (takes precedence)
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { prisma } from '../lib/prisma';
 import { normalizeSalary } from '../lib/salary-normalizer';
 
 async function backfillNormalizedSalaries() {
   console.log('Starting salary normalization backfill...\n');
+  
+  // Debug: Check if DATABASE_URL is loaded
+  if (!process.env.DATABASE_URL) {
+    console.error('ERROR: DATABASE_URL is not set!');
+    process.exit(1);
+  }
+  console.log('✓ DATABASE_URL is loaded\n');
   
   try {
     // Get all jobs that have salary data but no normalized salary

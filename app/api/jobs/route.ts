@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const mode = searchParams.get('mode');
     const minSalary = searchParams.get('minSalary');
     const maxSalary = searchParams.get('maxSalary');
+    const state = searchParams.get('state');
+    const isRemote = searchParams.get('isRemote');
     const page = parseInt(searchParams.get('page') || '1');
 
     const whereClause: any = {
@@ -44,6 +46,32 @@ export async function GET(request: NextRequest) {
 
     if (maxSalary) {
       whereClause.maxSalary = { lte: parseInt(maxSalary) };
+    }
+
+    if (state) {
+      // Match either state name or state code
+      // If OR already exists (from search), combine with AND
+      if (whereClause.OR) {
+        whereClause.AND = [
+          { OR: whereClause.OR },
+          {
+            OR: [
+              { state: { equals: state, mode: 'insensitive' } },
+              { stateCode: { equals: state.toUpperCase() } },
+            ],
+          },
+        ];
+        delete whereClause.OR;
+      } else {
+        whereClause.OR = [
+          { state: { equals: state, mode: 'insensitive' } },
+          { stateCode: { equals: state.toUpperCase() } },
+        ];
+      }
+    }
+
+    if (isRemote === 'true') {
+      whereClause.isRemote = true;
     }
 
     const [jobs, total] = await Promise.all([

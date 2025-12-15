@@ -1,5 +1,6 @@
 import { Job } from '@prisma/client';
 import { normalizeSalary, type SalaryNormalizationResult } from './salary-normalizer';
+import { parseLocation, type ParsedLocation } from './location-parser';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'>;
 
@@ -311,6 +312,9 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       title,
     });
 
+    // Parse location into structured data
+    const parsedLocationData = parseLocation(location);
+
     return {
       title,
       employer,
@@ -327,6 +331,12 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       normalizedMaxSalary: normalizedSalaryData.normalizedMaxSalary,
       salaryIsEstimated: normalizedSalaryData.salaryIsEstimated,
       salaryConfidence: normalizedSalaryData.salaryConfidence,
+      city: parsedLocationData.city,
+      state: parsedLocationData.state,
+      stateCode: parsedLocationData.stateCode,
+      country: parsedLocationData.country,
+      isRemote: parsedLocationData.isRemote,
+      isHybrid: parsedLocationData.isHybrid,
       applyLink,
       isFeatured: false,
       isPublished: true,

@@ -7,6 +7,7 @@ import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchCareerJetJobs } from './aggregators/careerjet';
 import { normalizeJob } from '@/lib/job-normalizer';
 import { checkDuplicate } from '@/lib/deduplicator';
+import { parseJobLocation } from './location-parser';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet';
 
@@ -94,9 +95,16 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         }
 
         // Insert the job
-        await prisma.job.create({
+        const createdJob = await prisma.job.create({
           data: normalizedJob,
         });
+
+        // Parse location
+        try {
+          await parseJobLocation(createdJob.id);
+        } catch (locationError) {
+          console.error(`Failed to parse location for job ${createdJob.id}:`, locationError);
+        }
 
         added++;
         

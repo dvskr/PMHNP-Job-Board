@@ -1,3 +1,10 @@
+import 'dotenv/config';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.local if it exists (takes precedence)
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { fetchCareerJetJobs } from '../lib/aggregators/careerjet'
 
 async function test() {
