@@ -6,6 +6,7 @@ import ApplyButton from '@/components/ApplyButton';
 import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
+import JobStructuredData from '@/components/JobStructuredData';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -93,6 +94,10 @@ export default async function JobPage({ params }: JobPageProps) {
 
   return (
     <>
+      <JobStructuredData 
+        job={job} 
+        baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'} 
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
           {/* Main Content */}
