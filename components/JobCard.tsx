@@ -19,6 +19,25 @@ export default function JobCard({ job }: JobCardProps) {
   const isNew = isNewJob(job.createdAt);
   const freshness = getJobFreshness(job.createdAt);
 
+  // Calculate job age for freshness indicator
+  const getJobAgeIndicator = () => {
+    const now = new Date();
+    const createdAt = new Date(job.createdAt);
+    const ageInMs = now.getTime() - createdAt.getTime();
+    const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
+
+    if (ageInDays < 1) {
+      return { text: '🆕 New', className: 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium' };
+    } else if (ageInDays < 7) {
+      return { text: 'Recent', className: 'bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full font-medium' };
+    } else if (ageInDays >= 30) {
+      return { text: '⚠️ May be filled', className: 'text-yellow-600 text-xs italic' };
+    }
+    return null;
+  };
+
+  const ageIndicator = getJobAgeIndicator();
+
   return (
     <Link href={jobUrl} className="block touch-manipulation h-full">
       <div className="group bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6">
@@ -105,7 +124,14 @@ export default function JobCard({ job }: JobCardProps) {
         )}
 
         {/* Freshness */}
-        <p className="text-gray-400 text-xs mt-auto">{freshness}</p>
+        <div className="flex items-center gap-2 mt-auto">
+          <p className="text-gray-400 text-xs">{freshness}</p>
+          {ageIndicator && (
+            <span className={ageIndicator.className}>
+              {ageIndicator.text}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );
