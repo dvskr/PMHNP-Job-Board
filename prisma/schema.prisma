@@ -219,3 +219,25 @@ model ApplyClick {
   @@index([timestamp])
   @@map("apply_clicks")
 }
+
+model EmployerLead {
+  id              String   @id @default(uuid())
+  companyName     String   @map("company_name")
+  contactName     String?  @map("contact_name")
+  contactEmail    String?  @map("contact_email")
+  contactTitle    String?  @map("contact_title")
+  website         String?
+  linkedInUrl     String?  @map("linkedin_url")
+  notes           String?
+  status          String   @default("prospect")  // prospect, contacted, responded, converted, declined
+  source          String?  // where we found them
+  lastContactedAt DateTime? @map("last_contacted_at")
+  nextFollowUpAt  DateTime? @map("next_follow_up_at")
+  jobsPosted      Int      @default(0) @map("jobs_posted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@index([status])
+  @@index([companyName])
+  @@map("employer_leads")
+}
