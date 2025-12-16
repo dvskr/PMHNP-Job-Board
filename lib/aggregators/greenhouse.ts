@@ -38,21 +38,23 @@ export interface GreenhouseJobRaw {
 }
 
 const GREENHOUSE_COMPANIES = [
-  // Working companies only (verified via testing)
-  // Mental Health / Telehealth
-  'sondermind',          // Mental health platform - 48 PMHNP jobs
-  'headway',             // Headway - 2 PMHNP jobs
-  'modernhealth',        // Modern Health - 1 PMHNP job
-  'mantrahealth',        // Mantra Health - 1 PMHNP job
-  'talkspace',           // Telehealth therapy - no PMHNP currently
-  'cerebral',            // Cerebral - no PMHNP currently
+  // VERIFIED WORKING - Primary sources
+  'sondermind',          // 48 PMHNP jobs - PRIMARY SOURCE
+  'headway',             // 2 PMHNP jobs
+  'modernhealth',        // 1 PMHNP job
+  'mantrahealth',        // 1 PMHNP job
+  'cerebral',            // 1 PMHNP job (new!)
+  'twochairs',           // 3 PMHNP jobs (new!)
   
-  // Healthcare Staffing / Other
-  'ayahealthcare',       // Aya Healthcare - no PMHNP currently
-  'amwell',              // Amwell - no PMHNP currently
+  // VERIFIED WORKING - Monitoring (no PMHNP currently)
+  'talkspace',           // On Greenhouse, checking regularly
+  'ayahealthcare',       // On Greenhouse, checking regularly
+  'amwell',              // On Greenhouse, checking regularly
+  'octave',              // On Greenhouse, checking regularly
+  'growtherapy',         // On Greenhouse, checking regularly
   
-  // Note: Removed 16 companies that returned 404 (not on Greenhouse)
-  // Can be re-added if they join Greenhouse in the future
+  // REMOVED (404 errors - not on Greenhouse):
+  // lifestancehealth, lifestance, brightsidehealth, elliementalhealth, thriveworks
 ];
 
 const PMHNP_KEYWORDS = [
@@ -70,10 +72,12 @@ const PMHNP_KEYWORDS = [
 ];
 
 const COMPANY_NAMES: Record<string, string> = {
+  // Verified companies
   'talkiatry': 'Talkiatry',
   'talkspace': 'Talkspace',
   'sondermind': 'SonderMind',
   'brightside': 'Brightside Health',
+  'brightsidehealth': 'Brightside Health',
   'springhealth': 'Spring Health',
   'lyrahealth': 'Lyra Health',
   'modernhealth': 'Modern Health',
@@ -88,6 +92,16 @@ const COMPANY_NAMES: Record<string, string> = {
   'northwell': 'Northwell Health',
   'providence': 'Providence Health',
   'commonspirit': 'CommonSpirit Health',
+  'mantrahealth': 'Mantra Health',
+  
+  // New additions
+  'lifestancehealth': 'LifeStance Health',
+  'lifestance': 'LifeStance Health',
+  'twochairs': 'Two Chairs',
+  'elliementalhealth': 'Ellie Mental Health',
+  'thriveworks': 'Thriveworks',
+  'octave': 'Octave',
+  'growtherapy': 'Grow Therapy',
 };
 
 function formatCompanyName(slug: string): string {

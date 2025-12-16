@@ -33,11 +33,28 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
-  // Only working company (verified via testing)
-  'carbonhealth',        // Carbon Health - monitoring for future PMHNP jobs
+  // Mental Health (Primary - high PMHNP volume)
+  'headway',
+  'talkspace', 
+  'lyrahealth',
+  'springhealth',
+  'modernhealth',
+  'alma',
+  'cerebral',
+  'brightside',
+  'gaborhealth',
   
-  // Removed 13 companies with 404 errors (not on Lever or wrong slugs)
-  // Saves ~7 seconds per ingestion
+  // Healthcare/Telehealth
+  'carbonhealth',
+  'onemedical',
+  'zocdoc',
+  'devoted',
+  'clover',
+  
+  // Healthcare Staffing
+  'nomadhealth',
+  'trustedhealth',
+  'incrediblehealth',
 ];
 
 const PMHNP_KEYWORDS = [
@@ -52,17 +69,25 @@ const PMHNP_KEYWORDS = [
 ];
 
 const COMPANY_NAMES: Record<string, string> = {
+  // Mental Health
   'headway': 'Headway',
-  'growtherapy': 'Grow Therapy',
-  'twochairs': 'Two Chairs',
+  'talkspace': 'Talkspace',
+  'lyrahealth': 'Lyra Health',
+  'springhealth': 'Spring Health',
+  'modernhealth': 'Modern Health',
   'alma': 'Alma',
-  'octavebioscience': 'Octave Bioscience',
-  'riaboregional': 'RIA Regional',
+  'cerebral': 'Cerebral',
+  'brightside': 'Brightside Health',
+  'gaborhealth': 'Gabor Health',
+  
+  // Healthcare/Telehealth
+  'carbonhealth': 'Carbon Health',
+  'onemedical': 'One Medical',
   'zocdoc': 'Zocdoc',
   'devoted': 'Devoted Health',
   'clover': 'Clover Health',
-  'onemedical': 'One Medical',
-  'carbonhealth': 'Carbon Health',
+  
+  // Healthcare Staffing
   'nomadhealth': 'Nomad Health',
   'trustedhealth': 'Trusted Health',
   'incrediblehealth': 'Incredible Health',

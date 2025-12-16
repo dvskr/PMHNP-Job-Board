@@ -9,23 +9,11 @@
       "schedule": "0 1,7,13,19 * * *"
     },
     {
-      "path": "/api/cron/ingest?source=careerjet",
-      "schedule": "0 2,10,18 * * *"
-    },
-    {
       "path": "/api/cron/freshness-decay",
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/cron/ingest?source=usajobs",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/api/cron/ingest?source=greenhouse",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/ingest?source=lever",
       "schedule": "0 */6 * * *"
     },
     {

@@ -247,11 +247,12 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
 
     if (source === 'adzuna') {
       title = rawJob.title;
-      employer = rawJob.company?.display_name || 'Unknown Company';
-      location = rawJob.location?.display_name || 'Unknown Location';
+      employer = rawJob.company?.display_name || rawJob.employer || 'Unknown Company';
+      location = rawJob.location?.display_name || rawJob.location || 'Unknown Location';
       description = rawJob.description || '';
-      applyLink = rawJob.redirect_url;
-      externalId = rawJob.id?.toString();
+      // Aggregator already normalizes to applyLink, but fallback to redirect_url for direct API calls
+      applyLink = rawJob.applyLink || rawJob.redirect_url;
+      externalId = rawJob.externalId || rawJob.id?.toString();
       // Adzuna salaries are UNRELIABLE - ignore them completely
       // Their salary_min/max are monthly values but job titles say "per week"
       // Better to rely on salary info in the job title/description which is accurate
@@ -263,8 +264,8 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       employer = rawJob.company || rawJob.employer || 'Unknown Company';
       location = rawJob.location || 'Unknown Location';
       description = rawJob.description || '';
-      applyLink = rawJob.url || rawJob.redirect_url || rawJob.apply_link;
-      externalId = rawJob.id?.toString() || rawJob.external_id;
+      applyLink = rawJob.applyLink || rawJob.url || rawJob.redirect_url || rawJob.apply_link;
+      externalId = rawJob.externalId || rawJob.id?.toString() || rawJob.external_id;
     }
 
     // Validate required fields
