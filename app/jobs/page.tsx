@@ -140,7 +140,7 @@ export default function JobsPage() {
     fetchJobs(newFilters, page);
   }, [searchParams, fetchJobs]);
 
-  const handleFilterChange = (newFilters: FilterState) => {
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
     setFilters(newFilters);
     setCurrentPage(1); // Reset to page 1 when filters change
     
@@ -158,7 +158,7 @@ export default function JobsPage() {
     
     // Re-fetch jobs with new filters
     fetchJobs(newFilters, 1);
-  };
+  }, [router, fetchJobs]);
   
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;

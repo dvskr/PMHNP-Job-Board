@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
@@ -21,9 +21,29 @@ interface JobFiltersProps {
 const workModes = ['Remote', 'Hybrid', 'In-Person'];
 const jobTypes = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'];
 
-export default function JobFilters({ currentFilters, onFilterChange }: JobFiltersProps) {
+function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [tempFilters, setTempFilters] = useState<FilterState>(currentFilters);
+  // Local state for text inputs to prevent re-render issues
+  const [searchInput, setSearchInput] = useState(currentFilters.search || '');
+  const [locationInput, setLocationInput] = useState(currentFilters.location || '');
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const isInitialMount = useRef(true);
+
+  // Only update local inputs when filters change externally (not from user typing)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    // Only update if the values are actually different
+    if (currentFilters.search !== searchInput) {
+      setSearchInput(currentFilters.search || '');
+    }
+    if (currentFilters.location !== locationInput) {
+      setLocationInput(currentFilters.location || '');
+    }
+  }, [currentFilters.search, currentFilters.location]); // Only depend on these specific values
 
   // Update temp filters when drawer opens
   useEffect(() => {
@@ -49,6 +69,32 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
     key => currentFilters[key as keyof FilterState] !== undefined && currentFilters[key as keyof FilterState] !== ''
   ).length;
 
+  // Debounced handler for text inputs (search, location)
+  const handleDebouncedInputChange = useCallback((key: keyof FilterState, value: string) => {
+    // Update local input state immediately
+    if (key === 'search') {
+      setSearchInput(value);
+    } else if (key === 'location') {
+      setLocationInput(value);
+    }
+
+    // Debounce the actual filter change
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      const newFilters = { ...currentFilters };
+      if (value === '') {
+        delete newFilters[key];
+      } else {
+        (newFilters as any)[key] = value;
+      }
+      onFilterChange(newFilters);
+    }, 500); // 500ms delay
+  }, [currentFilters, onFilterChange]);
+
+  // Immediate handler for non-text inputs (radio buttons, etc.)
   const handleInputChange = (key: keyof FilterState, value: string | number | undefined) => {
     const newFilters = { ...currentFilters };
     if (value === '' || value === undefined) {
@@ -82,9 +128,15 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
     setTempFilters({});
   };
 
-  const FilterContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+  // Memoize FilterContent to prevent inputs from being recreated on every render
+  const renderFilterContent = useCallback((isMobile: boolean) => {
     const filters = isMobile ? tempFilters : currentFilters;
+    const handleTextChange = isMobile ? handleTempInputChange : handleDebouncedInputChange;
     const handleChange = isMobile ? handleTempInputChange : handleInputChange;
+    
+    // Use local state for text inputs on desktop
+    const searchValue = isMobile ? (filters.search || '') : searchInput;
+    const locationValue = isMobile ? (filters.location || '') : locationInput;
 
     return (
       <div className="space-y-6">
@@ -99,8 +151,8 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
               type="text"
               id={isMobile ? "search-mobile" : "search"}
               placeholder="Job title, company..."
-              value={filters.search || ''}
-              onChange={(e) => handleChange('search', e.target.value)}
+              value={searchValue}
+              onChange={(e) => handleTextChange('search', e.target.value)}
               className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
             />
           </div>
@@ -115,8 +167,8 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
             type="text"
             id={isMobile ? "location-mobile" : "location"}
             placeholder="Remote, New York, etc."
-            value={filters.location || ''}
-            onChange={(e) => handleChange('location', e.target.value)}
+            value={locationValue}
+            onChange={(e) => handleTextChange('location', e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
           />
         </div>
@@ -199,7 +251,7 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
         )}
       </div>
     );
-  };
+  }, [tempFilters, currentFilters, searchInput, locationInput, handleTempInputChange, handleDebouncedInputChange, handleInputChange, handleClearAll]);
 
   return (
     <>
@@ -255,7 +307,7 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
 
             {/* Drawer Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-4">
-              <FilterContent isMobile={true} />
+              {renderFilterContent(true)}
             </div>
 
             {/* Drawer Footer - Fixed */}
@@ -290,10 +342,16 @@ export default function JobFilters({ currentFilters, onFilterChange }: JobFilter
       <aside className="hidden lg:block w-64 flex-shrink-0">
         <div className="sticky top-20 bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-6">Filters</h2>
-          <FilterContent isMobile={false} />
+          {renderFilterContent(false)}
         </div>
       </aside>
     </>
   );
 }
+
+// Memoize the component to prevent re-renders when parent re-renders
+export default memo(JobFiltersComponent, (prevProps, nextProps) => {
+  // Only re-render if currentFilters actually changed
+  return JSON.stringify(prevProps.currentFilters) === JSON.stringify(nextProps.currentFilters);
+});
 

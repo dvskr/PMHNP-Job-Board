@@ -26,8 +26,9 @@ export default function JobCard({ job }: JobCardProps) {
     const ageInMs = now.getTime() - createdAt.getTime();
     const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
-    if (ageInDays < 1) {
-      return { text: '🆕 New', className: 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium' };
+    // Skip indicator for jobs < 3 days (the existing "New" badge handles this)
+    if (ageInDays < 3) {
+      return null;
     } else if (ageInDays < 7) {
       return { text: 'Recent', className: 'bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full font-medium' };
     } else if (ageInDays >= 30) {
