@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, Mail, Phone, Building, Save, Loader2, Lock, CheckCircle } from 'lucide-react'
+import { User, Mail, Phone, Building, Save, Loader2, Lock, CheckCircle, AlertTriangle, X } from 'lucide-react'
 import AvatarUpload from '@/components/auth/AvatarUpload'
 import ResumeUpload from '@/components/auth/ResumeUpload'
 
@@ -25,6 +25,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [sendingReset, setSendingReset] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
@@ -140,6 +142,32 @@ export default function SettingsPage() {
       console.error('Error removing resume:', error)
       setMessage({ type: 'error', text: 'Failed to remove resume' })
     }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    
+    try {
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+      })
+      
+      if (res.ok) {
+        // Sign out and redirect
+        const supabase = createClient()
+        await supabase.auth.signOut()
+        router.push('/')
+      } else {
+        setMessage({ type: 'error', text: 'Failed to delete account' })
+        setDeleting(false)
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      setMessage({ type: 'error', text: 'Failed to delete account' })
+      setDeleting(false)
+    }
+    
+    setShowDeleteModal(false)
   }
 
   const handleSave = async () => {
@@ -476,6 +504,79 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Danger Zone */}
+      <div className="bg-white shadow-md rounded-lg p-6 mt-6 border border-red-200">
+        <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
+        <p className="text-gray-600 text-sm mb-4">
+          Once you delete your account, there is no going back. Please be certain.
+        </p>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+        >
+          Delete Account
+        </button>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <h3 className="text-xl font-semibold text-gray-900 text-center mb-2">
+              Delete Account?
+            </h3>
+            <p className="text-gray-600 text-center mb-2">
+              Are you sure you want to delete your account?
+            </p>
+            <p className="text-red-600 text-sm text-center font-medium mb-6">
+              This action cannot be undone.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Account'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
