@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+
+type JsonInputValue =
+  | string
+  | number
+  | boolean
+  | { [key: string]: JsonInputValue }
+  | JsonInputValue[];
 
 // Helper function to mask email (e.g., "s***@email.com")
 function maskEmail(email: string): string {
@@ -87,15 +93,15 @@ export async function POST(request: NextRequest) {
     // Build update data
     const updateData: {
       isSubscribed?: boolean;
-      preferences?: Prisma.InputJsonValue;
+      preferences?: JsonInputValue;
     } = {};
 
     if (typeof isSubscribed === 'boolean') {
       updateData.isSubscribed = isSubscribed;
     }
 
-    if (preferences !== undefined) {
-      updateData.preferences = preferences;
+    if (preferences !== undefined && preferences !== null) {
+      updateData.preferences = preferences as JsonInputValue;
     }
 
     // Update EmailLead
