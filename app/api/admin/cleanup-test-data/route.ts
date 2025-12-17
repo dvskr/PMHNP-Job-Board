@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { Job } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   // Simple password protection (change this to something secure)
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       deletedCount,
-      jobs: testJobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))
+      jobs: testJobs.map((j) => ({ id: j.id, title: j.title, employer: j.employer }))
     })
   } catch (error) {
     console.error('Cleanup error:', error)
