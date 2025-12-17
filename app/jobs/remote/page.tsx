@@ -3,6 +3,13 @@ import Link from 'next/link';
 import { Wifi, Home, Clock, Globe, TrendingUp, Building2, Lightbulb, Bell } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
+import { Job } from '@/lib/types';
+
+// Type definition for Prisma groupBy result
+interface EmployerGroupResult {
+  employer: string;
+  _count: { employer: number };
+}
 
 /**
  * Fetch remote jobs
@@ -71,13 +78,16 @@ async function getRemoteStats() {
     take: 8,
   });
 
+  // Process with explicit typing
+  const processedEmployers = topEmployers.map((e: EmployerGroupResult) => ({
+    name: e.employer,
+    count: e._count.employer,
+  }));
+
   return {
     totalJobs,
     avgSalary,
-    topEmployers: topEmployers.map(e => ({
-      name: e.employer,
-      count: e._count.employer,
-    })),
+    topEmployers: processedEmployers,
   };
 }
 
@@ -233,7 +243,7 @@ export default async function RemoteJobsPage() {
                 </div>
               ) : (
                 <div className="grid gap-4 md:gap-6">
-                  {jobs.map((job) => (
+                  {jobs.map((job: Job) => (
                     <JobCard key={job.id} job={job} />
                   ))}
                 </div>

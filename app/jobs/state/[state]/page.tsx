@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { MapPin, TrendingUp, Building2, Bell } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
+import { Job } from '@/lib/types';
+
+// Type definition for Prisma groupBy result
+interface EmployerGroupResult {
+  employer: string;
+  _count: { employer: number };
+}
 
 // State name to code mappings
 const STATE_CODES: Record<string, string> = {
@@ -156,13 +163,16 @@ async function getStateStats(stateName: string, stateCode: string) {
     take: 5,
   });
 
+  // Process with explicit typing
+  const processedEmployers = topEmployers.map((e: EmployerGroupResult) => ({
+    name: e.employer,
+    count: e._count.employer,
+  }));
+
   return {
     totalJobs,
     avgSalary,
-    topEmployers: topEmployers.map((e: { employer: string; _count: { employer: number } }) => ({
-      name: e.employer,
-      count: e._count.employer,
-    })),
+    topEmployers: processedEmployers,
   };
 }
 
@@ -321,7 +331,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                 </div>
               ) : (
                 <div className="grid gap-4 md:gap-6">
-                  {jobs.map((job) => (
+                  {jobs.map((job: Job) => (
                     <JobCard key={job.id} job={job} />
                   ))}
                 </div>

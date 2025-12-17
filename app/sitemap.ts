@@ -1,6 +1,13 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 
+// Type for job query result
+interface JobSitemapData {
+  id: string;
+  title: string;
+  updatedAt: Date;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'
   
@@ -80,7 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     take: 1000, // Limit to most recent 1000 jobs
   })
   
-  const jobPages = jobs.map((job) => {
+  const jobPages = jobs.map((job: JobSitemapData) => {
     // Create slug from title and ID
     const slug = `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${job.id}`
     return {

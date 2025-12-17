@@ -4,6 +4,18 @@ import Link from 'next/link';
 import { MapPin, Building2, TrendingUp, Bell, Navigation } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
+import { Job } from '@/lib/types';
+
+// Type definitions for Prisma groupBy results
+interface EmployerGroupResult {
+  employer: string;
+  _count: { employer: number };
+}
+
+interface CityGroupResult {
+  city: string | null;
+  _count: { city: number } | null;
+}
 
 interface CityPageProps {
   params: Promise<{ city: string }>;
@@ -139,22 +151,28 @@ async function getCityStats(cityName: string) {
     take: 5,
   }) : [];
 
+  // Process top employers with explicit typing
+  const processedEmployers = topEmployers.map((e: EmployerGroupResult) => ({
+    name: e.employer,
+    count: e._count.employer,
+  }));
+
+  // Process nearby cities with explicit typing
+  const processedCities = nearbyCities
+    .filter((c: CityGroupResult) => c.city !== null)
+    .map((c: CityGroupResult) => ({
+      name: c.city!,
+      count: c._count?.city || 0,
+      slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
+    }));
+
   return {
     totalJobs,
     state,
     stateCode,
     avgSalary,
-    topEmployers: topEmployers.map((e: { employer: string; _count: { employer: number } }) => ({
-      name: e.employer,
-      count: e._count.employer,
-    })),
-    nearbyCities: nearbyCities
-      .filter((c: { city: string | null }) => c.city !== null)
-      .map((c: { city: string | null; _count: { city: number } | null }) => ({
-        name: c.city!,
-        count: c._count?.city || 0,
-        slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
-      })),
+    topEmployers: processedEmployers,
+    nearbyCities: processedCities,
   };
 }
 
@@ -211,11 +229,11 @@ export async function generateStaticParams() {
     take: 30,
   });
 
-  return topCities
-    .filter((c: { city: string | null }) => c.city !== null)
-    .map((c: { city: string | null }) => ({
-      city: c.city!.toLowerCase().replace(/\s+/g, '-'),
-    }));
+  // Process with explicit typing
+  const filteredCities = topCities.filter((c: CityGroupResult) => c.city !== null);
+  return filteredCities.map((c: CityGroupResult) => ({
+    city: c.city!.toLowerCase().replace(/\s+/g, '-'),
+  }));
 }
 
 /**
@@ -318,7 +336,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
               </div>
 
               <div className="grid gap-4 md:gap-6">
-                {jobs.map((job) => (
+                {jobs.map((job: Job) => (
                   <JobCard key={job.id} job={job} />
                 ))}
               </div>
