@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+type ClickBySourceGroup = { source: string | null; _count: { id: number } };
+type SourceStat = { source: string; clicks: number; jobs: number; avgPerJob: number };
+type ClickTimestampRow = { timestamp: Date };
+type DayStat = { date: string; clicks: number };
+type TopJobGroup = { jobId: string; _count: { id: number } };
+
 interface ClickAnalytics {
   summary: {
     totalClicks: number;
@@ -90,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     // Get job counts by source for the same period
     const sourceStats = await Promise.all(
-      clicksBySource.map(async (item: { source: string | null; _count: { id: number } }) => {
+      (clicksBySource as unknown as ClickBySourceGroup[]).map(async (item: ClickBySourceGroup): Promise<SourceStat> => {
         const source = item.source || 'unknown';
         
         // Count unique jobs for this source
@@ -117,7 +123,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Sort by clicks descending
-    const bySource = sourceStats.sort((a: { source: string; clicks: number; jobs: number; avgPerJob: number }, b: { source: string; clicks: number; jobs: number; avgPerJob: number }) => b.clicks - a.clicks);
+    const bySource = sourceStats.sort((a: SourceStat, b: SourceStat) => b.clicks - a.clicks);
 
     // 3. Clicks by Day
     const clicksRaw = await prisma.applyClick.findMany({
@@ -129,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     // Group by date
     const clicksByDay = new Map<string, number>();
-    clicksRaw.forEach(click => {
+    (clicksRaw as unknown as ClickTimestampRow[]).forEach((click: ClickTimestampRow) => {
       const date = click.timestamp.toISOString().split('T')[0];
       clicksByDay.set(date, (clicksByDay.get(date) || 0) + 1);
     });
@@ -137,7 +143,7 @@ export async function GET(request: NextRequest) {
     // Convert to array and sort by date
     const byDay = Array.from(clicksByDay.entries())
       .map(([date, clicks]) => ({ date, clicks }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a: DayStat, b: DayStat) => a.date.localeCompare(b.date));
 
     // 4. Top Jobs by Clicks
     const topJobsData = await prisma.applyClick.groupBy({
@@ -156,7 +162,7 @@ export async function GET(request: NextRequest) {
 
     // Get job details for top jobs
     const topJobs = await Promise.all(
-      topJobsData.map(async (item) => {
+      (topJobsData as unknown as TopJobGroup[]).map(async (item: TopJobGroup) => {
         const job = await prisma.job.findUnique({
           where: { id: item.jobId },
           select: {
