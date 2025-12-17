@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       deletedCount,
-      jobs: testJobs.map((j) => ({ id: j.id, title: j.title, employer: j.employer }))
+      jobs: testJobs.map((j: typeof testJobs[number]) => ({ id: j.id, title: j.title, employer: j.employer }))
     })
   } catch (error) {
     console.error('Cleanup error:', error)
