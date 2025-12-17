@@ -110,10 +110,10 @@ export async function GET(request: NextRequest) {
         unpublishedJobs,
         featuredJobs: featuredCount,
         jobTypeDistribution: Object.fromEntries(
-          jobTypeDistribution.map(jt => [jt.jobType || 'unspecified', jt._count])
+          jobTypeDistribution.map((jt: typeof jobTypeDistribution[number]) => [jt.jobType || 'unspecified', jt._count])
         ),
         modeDistribution: Object.fromEntries(
-          modeDistribution.map(m => [m.mode || 'unspecified', m._count])
+          modeDistribution.map((m: typeof modeDistribution[number]) => [m.mode || 'unspecified', m._count])
         ),
       },
       lastUpdated: new Date().toISOString(),
