@@ -27,7 +27,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
   // Local state for text inputs to prevent re-render issues
   const [searchInput, setSearchInput] = useState(currentFilters.search || '');
   const [locationInput, setLocationInput] = useState(currentFilters.location || '');
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isInitialMount = useRef(true);
 
   // Only update local inputs when filters change externally (not from user typing)

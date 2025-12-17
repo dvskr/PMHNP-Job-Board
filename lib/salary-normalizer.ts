@@ -27,11 +27,17 @@ const PERIOD_MULTIPLIERS: Record<string, number> = {
 
 // Typical PMHNP salary ranges for validation
 const PMHNP_SALARY_RANGES = {
-  min: 85000,    // Low end for PMHNP
-  max: 200000,   // High end for PMHNP
+  // W-2 / Salaried positions
+  min: 80000,           // Minimum reasonable annual salary
+  max: 250000,          // Maximum reasonable W-2 annual salary
+  
+  // Contract / Hourly positions (these convert to higher annual equivalents)
+  contractorHourlyMin: 50,   // $50/hour minimum for contractor PMHNP
+  contractorHourlyMax: 350,  // $350/hour maximum (high-end contractors)
+  
   typical: {
     min: 100000,
-    max: 140000,
+    max: 160000,
   },
 };
 
@@ -95,13 +101,51 @@ function detectSalaryPeriod(
 
 /**
  * Validate if salary is reasonable for PMHNP role
+ * Handles hourly contractor rates and annual salaries differently
  */
-function isReasonableSalary(annual: number, confidence: number = 1.0): boolean {
-  // Allow wider range for estimated salaries
-  const minThreshold = confidence < 0.5 ? PMHNP_SALARY_RANGES.min * 0.5 : PMHNP_SALARY_RANGES.min * 0.8;
-  const maxThreshold = confidence < 0.5 ? PMHNP_SALARY_RANGES.max * 1.5 : PMHNP_SALARY_RANGES.max * 1.2;
+function isReasonableSalary(
+  annual: number, 
+  originalPeriod: string,
+  originalSalary: number,
+  confidence: number = 1.0
+): boolean {
+  // For hourly rates, validate the hourly amount (not the annual conversion)
+  // PMHNP contractors can earn $50-350/hour, which converts to $104k-$728k annually
+  if (originalPeriod === 'hourly' || originalPeriod === 'hour') {
+    const hourlyRate = originalSalary;
+    const minHourly = PMHNP_SALARY_RANGES.contractorHourlyMin;
+    const maxHourly = PMHNP_SALARY_RANGES.contractorHourlyMax;
+    
+    const isValid = hourlyRate >= minHourly && hourlyRate <= maxHourly;
+    
+    if (!isValid) {
+      console.log(
+        `[Salary] Rejected hourly rate: $${hourlyRate}/hr (outside $${minHourly}-${maxHourly}/hr range)`
+      );
+    }
+    
+    return isValid;
+  }
   
-  return annual >= minThreshold && annual <= maxThreshold;
+  // For annual salaries, validate against annual thresholds
+  // Allow wider ranges for estimated/low-confidence salaries
+  const minThreshold = confidence < 0.5 
+    ? PMHNP_SALARY_RANGES.min * 0.6   // $48k minimum for low-confidence
+    : PMHNP_SALARY_RANGES.min * 0.8;   // $64k minimum for high-confidence
+  
+  const maxThreshold = confidence < 0.5 
+    ? 400000   // $400k max for low-confidence (catches high contractor estimates)
+    : 300000;  // $300k max for high-confidence
+  
+  const isValid = annual >= minThreshold && annual <= maxThreshold;
+  
+  if (!isValid) {
+    console.log(
+      `[Salary] Rejected annual salary: $${annual.toLocaleString()} (outside $${minThreshold.toLocaleString()}-${maxThreshold.toLocaleString()} range, confidence: ${confidence})`
+    );
+  }
+  
+  return isValid;
 }
 
 /**
@@ -121,17 +165,17 @@ function normalizeSingleSalary(
     confidence = 0.6; // Lower confidence for estimated salaries
   }
   
-  // Adjust confidence based on reasonableness
-  if (!isReasonableSalary(annualSalary, confidence)) {
-    // Silently reject unreasonable salaries during normalization
-    // Original salary values are still preserved in the job record
+  // Validate salary based on period and original value
+  // Pass the original salary and period for proper validation
+  if (!isReasonableSalary(annualSalary, period, salary, confidence)) {
+    // Salary rejected - original values are still preserved in the job record
     return null;
   }
   
   // Adjust confidence based on period (annual is most reliable)
-  if (period === 'hourly') {
+  if (period === 'hourly' || period === 'hour') {
     confidence *= 0.9; // Hourly conversions slightly less certain
-  } else if (period === 'daily' || period === 'weekly') {
+  } else if (period === 'daily' || period === 'weekly' || period === 'day' || period === 'week') {
     confidence *= 0.85; // Weekly/daily conversions less certain
   }
   

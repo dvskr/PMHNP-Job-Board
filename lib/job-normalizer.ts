@@ -253,11 +253,9 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       // Aggregator already normalizes to applyLink, but fallback to redirect_url for direct API calls
       applyLink = rawJob.applyLink || rawJob.redirect_url;
       externalId = rawJob.externalId || rawJob.id?.toString();
-      // Adzuna salaries are UNRELIABLE - ignore them completely
-      // Their salary_min/max are monthly values but job titles say "per week"
-      // Better to rely on salary info in the job title/description which is accurate
-      salaryMin = null;
-      salaryMax = null;
+      // Adzuna provides salary_min/max as annual salaries - use them
+      salaryMin = rawJob.minSalary || null;
+      salaryMax = rawJob.maxSalary || null;
     } else {
       // Generic mapping for other sources
       title = rawJob.title;
@@ -346,6 +344,7 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
       sourceProvider: source,
       externalId,
       expiresAt,
+      companyId: null,
     };
   } catch (error) {
     console.error('Error normalizing job:', error);

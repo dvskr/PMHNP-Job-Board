@@ -86,8 +86,8 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
           title: normalizedJob.title,
           employer: normalizedJob.employer,
           location: normalizedJob.location,
-          externalId: normalizedJob.externalId,
-          sourceProvider: normalizedJob.sourceProvider,
+          externalId: normalizedJob.externalId ?? undefined,
+          sourceProvider: normalizedJob.sourceProvider ?? undefined,
           applyLink: normalizedJob.applyLink,
         });
         

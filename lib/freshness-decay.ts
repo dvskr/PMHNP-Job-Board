@@ -51,7 +51,7 @@ export function calculateDecayPenalty(createdAt: Date): number {
 
     // Find the highest applicable penalty
     for (const rule of DECAY_SCHEDULE) {
-      if (ageInDays >= rule.daysOld && rule.qualityPenalty !== undefined) {
+      if (ageInDays >= rule.daysOld && 'qualityPenalty' in rule) {
         penalty = rule.qualityPenalty;
       }
     }

@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import OrganizationStructuredData from '@/components/OrganizationStructuredData';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -88,6 +89,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <GoogleAnalytics />
         <OrganizationStructuredData baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'} />
         <Header />
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>

@@ -122,7 +122,13 @@ export async function POST(request: NextRequest) {
       
       // Send renewal confirmation email
       try {
-        await sendRenewalConfirmationEmail(employerJob.contactEmail, employerJob.job.title, newExpiresAt);
+        await sendRenewalConfirmationEmail(
+          employerJob.contactEmail,
+          employerJob.job.title,
+          newExpiresAt,
+          employerJob.dashboardToken,
+          employerJob.editToken // Using editToken as unsubscribe token
+        );
       } catch (e) {
         console.error('Failed to send renewal email:', e);
       }

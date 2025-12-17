@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
             job.applyClickCount || 0,
             employerJob.dashboardToken || employerJob.editToken,
             employerJob.editToken,
-            employerJob.unsubscribeToken || ''
+            employerJob.editToken // Using editToken as unsubscribe token
           )
           sentCount++
         } catch (e) {

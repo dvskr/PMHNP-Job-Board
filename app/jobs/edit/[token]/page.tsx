@@ -12,10 +12,10 @@ const editJobSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
   location: z.string().min(1, 'Location is required'),
   mode: z.enum(['Remote', 'Hybrid', 'In-Person'], {
-    required_error: 'Please select a work mode',
+    message: 'Please select a work mode',
   }),
   jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem'], {
-    required_error: 'Please select a job type',
+    message: 'Please select a job type',
   }),
   salaryMin: z.number().positive().optional().nullable(),
   salaryMax: z.number().positive().optional().nullable(),

@@ -1,4 +1,17 @@
-import { parseLocation, formatLocation } from '../lib/location-parser';
+import { parseLocation, ParsedLocation } from '../lib/location-parser';
+
+// Helper function to format parsed location
+function formatLocation(parsed: ParsedLocation): string {
+  if (parsed.isRemote) {
+    return 'Remote';
+  }
+  const parts = [];
+  if (parsed.city) parts.push(parsed.city);
+  if (parsed.stateCode) parts.push(parsed.stateCode);
+  else if (parsed.state) parts.push(parsed.state);
+  if (parsed.country && parsed.country !== 'US') parts.push(parsed.country);
+  return parts.join(', ') || 'Unknown';
+}
 
 const testLocations = [
   'Remote',

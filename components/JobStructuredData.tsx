@@ -56,7 +56,6 @@ export default function JobStructuredData({ job, baseUrl }: JobStructuredDataPro
     "hiringOrganization": {
       "@type": "Organization",
       "name": job.employer,
-      "sameAs": job.companyWebsite || undefined,
     },
     "jobLocation": createJobLocation(job),
     "baseSalary": job.normalizedMinSalary ? {

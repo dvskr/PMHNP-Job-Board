@@ -1,5 +1,5 @@
 import { config } from 'dotenv'
-import { prisma } from '../lib/prisma.ts'
+import { prisma } from '../lib/prisma'
 
 // Load environment variables
 config()

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Helper function to mask email (e.g., "s***@email.com")
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     // Build update data
     const updateData: {
       isSubscribed?: boolean;
-      preferences?: Record<string, unknown>;
+      preferences?: Prisma.InputJsonValue;
     } = {};
 
     if (typeof isSubscribed === 'boolean') {

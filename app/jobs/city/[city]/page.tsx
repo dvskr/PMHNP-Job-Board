@@ -125,10 +125,7 @@ async function getCityStats(cityName: string) {
       isPublished: true,
       state: state,
       city: {
-        not: {
-          equals: cityName,
-          mode: 'insensitive',
-        },
+        not: cityName,
       },
     },
     _count: {
@@ -155,7 +152,7 @@ async function getCityStats(cityName: string) {
       .filter(c => c.city !== null)
       .map(c => ({
         name: c.city!,
-        count: c._count.city,
+        count: c._count?.city || 0,
         slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
       })),
   };
