@@ -1,11 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable Turbopack - use Webpack instead
-  // Required for @react-pdf/renderer compatibility
-  experimental: {
-    turbo: false,
-  },
+  // Webpack is used by default (Turbopack is opt-in in Next.js 16)
+  // This ensures compatibility with @react-pdf/renderer
 };
 
 export default nextConfig;
