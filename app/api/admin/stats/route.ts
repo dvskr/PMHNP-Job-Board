@@ -97,10 +97,10 @@ export async function GET(request: NextRequest) {
       totalActive: stats.totalActive,
       addedLast24h: stats.addedLast24h,
       bySource: Object.fromEntries(
-        bySource.map(s => [s.sourceProvider || 'unknown', s._count])
+        bySource.map((s: typeof bySource[number]) => [s.sourceProvider || 'unknown', s._count])
       ),
       jobsByDay,
-      topEmployers: topEmployers.map(e => ({ 
+      topEmployers: topEmployers.map((e: typeof topEmployers[number]) => ({ 
         employer: e.employer, 
         count: e._count 
       })),
