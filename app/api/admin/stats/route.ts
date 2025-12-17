@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     
     // Filter out null employers and take top 10
     const topEmployers = allEmployers
-      .filter(e => e.employer !== null)
+      .filter((e: typeof allEmployers[number]) => e.employer !== null)
       .slice(0, 10);
 
     // Additional useful metrics
