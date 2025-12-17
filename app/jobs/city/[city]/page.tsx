@@ -144,13 +144,13 @@ async function getCityStats(cityName: string) {
     state,
     stateCode,
     avgSalary,
-    topEmployers: topEmployers.map(e => ({
+    topEmployers: topEmployers.map((e: { employer: string; _count: { employer: number } }) => ({
       name: e.employer,
       count: e._count.employer,
     })),
     nearbyCities: nearbyCities
-      .filter(c => c.city !== null)
-      .map(c => ({
+      .filter((c: { city: string | null }) => c.city !== null)
+      .map((c: { city: string | null; _count: { city: number } | null }) => ({
         name: c.city!,
         count: c._count?.city || 0,
         slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
@@ -212,8 +212,8 @@ export async function generateStaticParams() {
   });
 
   return topCities
-    .filter(c => c.city !== null)
-    .map(c => ({
+    .filter((c: { city: string | null }) => c.city !== null)
+    .map((c: { city: string | null }) => ({
       city: c.city!.toLowerCase().replace(/\s+/g, '-'),
     }));
 }

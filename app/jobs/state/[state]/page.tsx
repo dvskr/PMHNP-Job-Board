@@ -159,7 +159,7 @@ async function getStateStats(stateName: string, stateCode: string) {
   return {
     totalJobs,
     avgSalary,
-    topEmployers: topEmployers.map(e => ({
+    topEmployers: topEmployers.map((e: { employer: string; _count: { employer: number } }) => ({
       name: e.employer,
       count: e._count.employer,
     })),
