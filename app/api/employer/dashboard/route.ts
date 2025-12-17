@@ -1,6 +1,21 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
+type EmployerJobWithJob = {
+  editToken: string;
+  paymentStatus: string | null;
+  job: {
+    id: string;
+    title: string;
+    isPublished: boolean;
+    isFeatured: boolean;
+    viewCount: number;
+    applyClickCount: number;
+    createdAt: Date;
+    expiresAt: Date | null;
+  };
+};
+
 function maskEmail(email: string): string {
   const [username, domain] = email.split('@');
   if (!username || !domain) return email;
@@ -39,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Find all EmployerJobs with the same contactEmail
-    const allEmployerJobs = await prisma.employerJob.findMany({
+    const allEmployerJobs = (await prisma.employerJob.findMany({
       where: { contactEmail: employerJob.contactEmail },
       include: {
         job: {
@@ -56,10 +71,10 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: 'desc' },
-    });
+    })) as unknown as EmployerJobWithJob[];
 
     // Format the response
-    const jobs = allEmployerJobs.map((ej) => ({
+    const jobs = allEmployerJobs.map((ej: EmployerJobWithJob) => ({
       id: ej.job.id,
       title: ej.job.title,
       isPublished: ej.job.isPublished,
