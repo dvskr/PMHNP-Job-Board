@@ -3,6 +3,36 @@ import Link from 'next/link';
 import { MapPin, Wifi, TrendingUp, Globe } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
+// Type definitions for Prisma groupBy results
+interface StateGroupResult {
+  state: string | null;
+  stateCode: string | null;
+  _count: { state: number };
+}
+
+interface CityGroupResult {
+  city: string | null;
+  state: string | null;
+  stateCode: string | null;
+  _count: { city: number };
+}
+
+// Type definitions for processed/rendered data
+interface ProcessedState {
+  name: string;
+  code: string;
+  count: number;
+  slug: string;
+}
+
+interface ProcessedCity {
+  name: string;
+  state: string;
+  stateCode: string;
+  count: number;
+  slug: string;
+}
+
 /**
  * Fetch job counts by state
  */
@@ -56,25 +86,31 @@ async function getLocationStats() {
     where: { isPublished: true },
   });
 
+  // Process states with explicit typing
+  const processedStates = stateData
+    .filter((s: StateGroupResult) => s.state !== null)
+    .map((s: StateGroupResult) => ({
+      name: s.state!,
+      code: s.stateCode || '',
+      count: s._count.state,
+      slug: s.state!.toLowerCase().replace(/\s+/g, '-'),
+    }));
+
+  // Process cities with explicit typing
+  const processedCities = topCities
+    .filter((c: CityGroupResult) => c.city !== null && c.state !== null)
+    .map((c: CityGroupResult) => ({
+      name: c.city!,
+      state: c.state!,
+      stateCode: c.stateCode || '',
+      count: c._count.city,
+      slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
+    }));
+
   return {
-    states: stateData
-      .filter(s => s.state !== null)
-      .map(s => ({
-        name: s.state!,
-        code: s.stateCode || '',
-        count: s._count.state,
-        slug: s.state!.toLowerCase().replace(/\s+/g, '-'),
-      })),
+    states: processedStates,
     remoteCount,
-    topCities: topCities
-      .filter(c => c.city !== null && c.state !== null)
-      .map(c => ({
-        name: c.city!,
-        state: c.state!,
-        stateCode: c.stateCode || '',
-        count: c._count.city,
-        slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
-      })),
+    topCities: processedCities,
     totalJobs,
   };
 }
@@ -189,7 +225,7 @@ export default async function LocationsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {stats.states.map((state) => (
+                {stats.states.map((state: ProcessedState) => (
                   <Link
                     key={state.code}
                     href={`/jobs/state/${state.slug}`}
@@ -236,7 +272,7 @@ export default async function LocationsPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {stats.topCities.map((city, index) => (
+                {stats.topCities.map((city: ProcessedCity) => (
                   <Link
                     key={`${city.slug}-${city.state}`}
                     href={`/jobs/city/${city.slug}`}
