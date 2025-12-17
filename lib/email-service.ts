@@ -286,7 +286,7 @@ export async function sendExpiryWarningEmail(
   applyClickCount: number,
   dashboardToken: string,
   editToken: string,
-  unsubscribeToken: string
+  unsubscribeToken: string | null
 ): Promise<EmailResult> {
   try {
     // Calculate days until expiry
@@ -353,7 +353,7 @@ export async function sendExpiryWarningEmail(
               Need help? Reply to this email and we'll get back to you as soon as possible.
             </p>
             
-            ${getUnsubscribeFooter(unsubscribeToken)}
+            ${unsubscribeToken ? getUnsubscribeFooter(unsubscribeToken) : ''}
           </body>
         </html>
       `,
