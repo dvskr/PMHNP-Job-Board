@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Mail, Phone, Building, Save, Loader2, Lock, CheckCircle } from 'lucide-react'
+import AvatarUpload from '@/components/auth/AvatarUpload'
 
 interface Profile {
   firstName: string | null
@@ -12,6 +13,7 @@ interface Profile {
   phone: string | null
   company: string | null
   role: string
+  avatarUrl: string | null
   createdAt?: string
 }
 
@@ -50,6 +52,50 @@ export default function SettingsPage() {
     fetchProfile()
   }, [router])
 
+  const handleAvatarUpload = async (url: string) => {
+    if (!profile) return
+
+    // Update profile state
+    setProfile({ ...profile, avatarUrl: url })
+    
+    // Save to database
+    try {
+      await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: url }),
+      })
+      
+      setMessage({ type: 'success', text: 'Avatar updated!' })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error) {
+      console.error('Error updating avatar:', error)
+      setMessage({ type: 'error', text: 'Failed to update avatar' })
+    }
+  }
+
+  const handleAvatarRemove = async () => {
+    if (!profile) return
+
+    // Update profile state
+    setProfile({ ...profile, avatarUrl: null })
+    
+    // Save to database
+    try {
+      await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: null }),
+      })
+      
+      setMessage({ type: 'success', text: 'Avatar removed!' })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error) {
+      console.error('Error removing avatar:', error)
+      setMessage({ type: 'error', text: 'Failed to remove avatar' })
+    }
+  }
+
   const handleSave = async () => {
     if (!profile) return
 
@@ -65,6 +111,7 @@ export default function SettingsPage() {
           lastName: profile.lastName,
           phone: profile.phone,
           company: profile.company,
+          avatarUrl: profile.avatarUrl,
         }),
       })
 
@@ -183,6 +230,19 @@ export default function SettingsPage() {
       {/* Profile Information */}
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Information</h2>
+        
+        {/* Avatar Upload */}
+        <div className="flex flex-col items-center mb-6">
+          <AvatarUpload
+            currentAvatarUrl={profile.avatarUrl}
+            userEmail={profile.email}
+            onUploadComplete={handleAvatarUpload}
+            onRemove={handleAvatarRemove}
+          />
+          <p className="text-sm text-gray-500 mt-2">
+            {profile.avatarUrl ? 'Click to change or remove photo' : 'Click to upload photo'}
+          </p>
+        </div>
         
         <div className="space-y-4">
           {/* First Name */}

@@ -19,6 +19,7 @@ interface UserMenuProps {
 export default function UserMenu({ user }: UserMenuProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,6 +30,22 @@ export default function UserMenu({ user }: UserMenuProps) {
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profileRes = await fetch('/api/auth/profile')
+        if (profileRes.ok) {
+          const profile = await profileRes.json()
+          setAvatarUrl(profile.avatarUrl)
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      }
+    }
+
+    fetchProfile()
   }, [])
 
   const handleSignOut = async () => {
@@ -52,9 +69,9 @@ export default function UserMenu({ user }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        {user.avatarUrl ? (
+        {avatarUrl ? (
           <img
-            src={user.avatarUrl}
+            src={avatarUrl}
             alt={displayName}
             className="w-8 h-8 rounded-full object-cover"
           />
