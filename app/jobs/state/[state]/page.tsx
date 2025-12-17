@@ -12,6 +12,12 @@ interface EmployerGroupResult {
   _count: { employer: number };
 }
 
+// Type definition for processed/rendered data
+interface ProcessedEmployer {
+  name: string;
+  count: number;
+}
+
 // State name to code mappings
 const STATE_CODES: Record<string, string> = {
   'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
@@ -365,7 +371,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                     <h3 className="font-bold text-gray-900">Top Employers</h3>
                   </div>
                   <ul className="space-y-3">
-                    {stats.topEmployers.map((employer, index) => (
+                    {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
                       <li key={index} className="flex items-center justify-between">
                         <span className="text-sm text-gray-700 truncate flex-1">
                           {employer.name}

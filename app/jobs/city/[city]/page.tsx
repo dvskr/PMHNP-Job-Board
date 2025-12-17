@@ -17,6 +17,18 @@ interface CityGroupResult {
   _count: { city: number } | null;
 }
 
+// Type definitions for processed/rendered data
+interface ProcessedEmployer {
+  name: string;
+  count: number;
+}
+
+interface ProcessedCity {
+  name: string;
+  count: number;
+  slug: string;
+}
+
 interface CityPageProps {
   params: Promise<{ city: string }>;
 }
@@ -369,7 +381,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                     <h3 className="font-bold text-gray-900">Top Employers</h3>
                   </div>
                   <ul className="space-y-3">
-                    {stats.topEmployers.map((employer, index) => (
+                    {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
                       <li key={index} className="flex items-center justify-between">
                         <span className="text-sm text-gray-700 truncate flex-1">
                           {employer.name}
@@ -412,7 +424,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                     <h3 className="font-bold text-gray-900">Nearby Cities</h3>
                   </div>
                   <ul className="space-y-2">
-                    {stats.nearbyCities.map((city, index) => (
+                    {stats.nearbyCities.map((city: ProcessedCity, index: number) => (
                       <li key={index}>
                         <Link
                           href={`/jobs/city/${city.slug}`}

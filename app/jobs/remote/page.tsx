@@ -11,6 +11,12 @@ interface EmployerGroupResult {
   _count: { employer: number };
 }
 
+// Type definition for processed/rendered data
+interface ProcessedEmployer {
+  name: string;
+  count: number;
+}
+
 /**
  * Fetch remote jobs
  */
@@ -277,7 +283,7 @@ export default async function RemoteJobsPage() {
                     <h3 className="font-bold text-gray-900">Hiring Remotely</h3>
                   </div>
                   <ul className="space-y-3">
-                    {stats.topEmployers.map((employer, index) => (
+                    {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
                       <li key={index} className="flex items-center justify-between">
                         <span className="text-sm text-gray-700 truncate flex-1">
                           {employer.name}
