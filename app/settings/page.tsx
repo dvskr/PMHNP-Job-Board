@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Mail, Phone, Building, Save, Loader2, Lock, CheckCircle } from 'lucide-react'
 import AvatarUpload from '@/components/auth/AvatarUpload'
+import ResumeUpload from '@/components/auth/ResumeUpload'
 
 interface Profile {
   firstName: string | null
@@ -14,6 +15,7 @@ interface Profile {
   company: string | null
   role: string
   avatarUrl: string | null
+  resumeUrl: string | null
   createdAt?: string
 }
 
@@ -96,6 +98,50 @@ export default function SettingsPage() {
     }
   }
 
+  const handleResumeUpload = async (url: string) => {
+    if (!profile) return
+
+    // Update profile state
+    setProfile({ ...profile, resumeUrl: url })
+    
+    // Save to database
+    try {
+      await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeUrl: url }),
+      })
+      
+      setMessage({ type: 'success', text: 'Resume uploaded!' })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error) {
+      console.error('Error uploading resume:', error)
+      setMessage({ type: 'error', text: 'Failed to upload resume' })
+    }
+  }
+
+  const handleResumeRemove = async () => {
+    if (!profile) return
+
+    // Update profile state
+    setProfile({ ...profile, resumeUrl: null })
+    
+    // Save to database
+    try {
+      await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeUrl: null }),
+      })
+      
+      setMessage({ type: 'success', text: 'Resume removed!' })
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error) {
+      console.error('Error removing resume:', error)
+      setMessage({ type: 'error', text: 'Failed to remove resume' })
+    }
+  }
+
   const handleSave = async () => {
     if (!profile) return
 
@@ -112,6 +158,7 @@ export default function SettingsPage() {
           phone: profile.phone,
           company: profile.company,
           avatarUrl: profile.avatarUrl,
+          resumeUrl: profile.resumeUrl,
         }),
       })
 
@@ -382,6 +429,22 @@ export default function SettingsPage() {
           )}
         </button>
       </div>
+
+      {/* Resume Section - Only for Job Seekers */}
+      {profile.role === 'job_seeker' && (
+        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Resume</h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Upload your resume to quickly apply to jobs
+          </p>
+          <ResumeUpload
+            currentResumeUrl={profile.resumeUrl}
+            userEmail={profile.email}
+            onUploadComplete={handleResumeUpload}
+            onRemove={handleResumeRemove}
+          />
+        </div>
+      )}
 
       {/* Account Info */}
       <div className="bg-white shadow-md rounded-lg p-6">

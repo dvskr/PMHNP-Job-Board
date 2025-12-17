@@ -75,7 +75,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { firstName, lastName, phone, company, avatarUrl } = body
+    const { firstName, lastName, phone, company, avatarUrl, resumeUrl } = body
 
     const updatedProfile = await prisma.userProfile.update({
       where: { supabaseId: user.id },
@@ -85,6 +85,7 @@ export async function PATCH(request: NextRequest) {
         phone: phone || null,
         company: company || null,
         avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined,
+        resumeUrl: resumeUrl !== undefined ? resumeUrl : undefined,
         updatedAt: new Date(),
       },
     })
