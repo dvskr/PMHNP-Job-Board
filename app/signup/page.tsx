@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import SignUpForm from '@/components/auth/SignUpForm'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 import { getCurrentUser } from '@/lib/auth/protect'
 
 export const metadata = {
@@ -30,6 +31,17 @@ export default async function SignUpPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
+          <GoogleSignInButton mode="signup" />
+          
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or sign up with email</span>
+            </div>
+          </div>
+
           <SignUpForm />
         </div>
       </div>
