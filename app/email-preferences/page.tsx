@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
@@ -10,7 +10,7 @@ interface PreferencesData {
   isSubscribed: boolean;
 }
 
-export default function EmailPreferencesPage() {
+function EmailPreferencesContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -217,6 +217,25 @@ export default function EmailPreferencesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading your preferences...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function EmailPreferencesPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <EmailPreferencesContent />
+    </Suspense>
   );
 }
 

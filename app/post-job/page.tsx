@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { config } from '@/lib/config';
 
 const jobPostingSchema = z.object({
@@ -35,7 +35,7 @@ const salaryPeriods = [
   { value: 'annual', label: 'Annual' },
 ] as const;
 
-export default function PostJobPage() {
+function PostJobContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [salaryCompetitive, setSalaryCompetitive] = useState(false);
@@ -687,3 +687,21 @@ export default function PostJobPage() {
   );
 }
 
+function LoadingFallback() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading form...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PostJobPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PostJobContent />
+    </Suspense>
+  );
+}

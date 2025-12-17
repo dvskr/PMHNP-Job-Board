@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import JobCard from '@/components/JobCard';
 import JobFilters from '@/components/JobFilters';
@@ -35,7 +35,7 @@ interface QuickFilter {
   count: number;
 }
 
-export default function JobsPage() {
+function JobsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -449,5 +449,21 @@ export default function JobsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <JobsListSkeleton count={9} />
+    </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <JobsContent />
+    </Suspense>
   );
 }

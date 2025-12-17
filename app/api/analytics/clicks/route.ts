@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 
     // Get job counts by source for the same period
     const sourceStats = await Promise.all(
-      clicksBySource.map(async (item) => {
+      clicksBySource.map(async (item: { source: string | null; _count: { id: number } }) => {
         const source = item.source || 'unknown';
         
         // Count unique jobs for this source

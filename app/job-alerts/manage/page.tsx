@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -49,7 +49,7 @@ function formatDate(dateString: string): string {
   });
 }
 
-export default function ManageAlertsPage() {
+function ManageAlertsContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
@@ -402,3 +402,21 @@ export default function ManageAlertsPage() {
   );
 }
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex items-center gap-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="text-slate-600">Loading alerts...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function ManageAlertsPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ManageAlertsContent />
+    </Suspense>
+  );
+}

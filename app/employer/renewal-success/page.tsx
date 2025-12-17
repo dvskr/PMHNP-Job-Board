@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ interface RenewalData {
   tier: string;
 }
 
-export default function RenewalSuccessPage() {
+function RenewalSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get('session_id');
@@ -153,3 +153,21 @@ export default function RenewalSuccessPage() {
   );
 }
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center p-4">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function RenewalSuccessPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <RenewalSuccessContent />
+    </Suspense>
+  );
+}
