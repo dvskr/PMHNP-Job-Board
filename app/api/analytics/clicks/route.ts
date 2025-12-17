@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Sort by clicks descending
-    const bySource = sourceStats.sort((a, b) => b.clicks - a.clicks);
+    const bySource = sourceStats.sort((a: { source: string; clicks: number; jobs: number; avgPerJob: number }, b: { source: string; clicks: number; jobs: number; avgPerJob: number }) => b.clicks - a.clicks);
 
     // 3. Clicks by Day
     const clicksRaw = await prisma.applyClick.findMany({
