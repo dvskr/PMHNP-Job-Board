@@ -25,6 +25,8 @@ if (!globalForPrisma.pool) {
 
 const adapter = new PrismaPg(globalForPrisma.pool)
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = new PrismaClient({ adapter })
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma = globalForPrisma.prisma

@@ -75,21 +75,20 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { firstName, lastName, phone, company, resumeUrl, avatarUrl } = body
+    const { firstName, lastName, phone, company } = body
 
-    const profile = await prisma.userProfile.update({
+    const updatedProfile = await prisma.userProfile.update({
       where: { supabaseId: user.id },
       data: {
-        ...(firstName !== undefined && { firstName }),
-        ...(lastName !== undefined && { lastName }),
-        ...(phone !== undefined && { phone }),
-        ...(company !== undefined && { company }),
-        ...(resumeUrl !== undefined && { resumeUrl }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
-      }
+        firstName: firstName || null,
+        lastName: lastName || null,
+        phone: phone || null,
+        company: company || null,
+        updatedAt: new Date(),
+      },
     })
 
-    return NextResponse.json(profile)
+    return NextResponse.json(updatedProfile)
   } catch (error) {
     console.error('Profile PATCH error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Menu, X, Bookmark, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
+import HeaderAuth from '@/components/auth/HeaderAuth';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -55,8 +56,10 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* Spacer for layout balance */}
-          <div className="hidden lg:block w-32"></div>
+          {/* Auth Section - Desktop */}
+          <div className="hidden lg:flex items-center">
+            <HeaderAuth />
+          </div>
 
           {/* Mobile Hamburger Button */}
           <button
@@ -98,6 +101,11 @@ export default function Header() {
 
             {/* Menu Content */}
             <nav className="flex flex-col p-4 overflow-y-auto h-[calc(100vh-73px)]">
+              {/* Auth Section - Mobile */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <HeaderAuth />
+              </div>
+
               {/* Primary CTA - Post a Job */}
               <div className="mb-6 pb-6 border-b border-gray-200">
                 <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
