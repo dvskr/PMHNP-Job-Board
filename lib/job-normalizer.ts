@@ -1,4 +1,4 @@
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 import { normalizeSalary, type SalaryNormalizationResult } from './salary-normalizer';
 import { parseLocation, type ParsedLocation } from './location-parser';
 

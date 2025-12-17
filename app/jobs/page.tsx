@@ -7,7 +7,7 @@ import JobFilters from '@/components/JobFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 
 interface FilterState {
   search?: string;

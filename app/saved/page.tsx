@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import JobCard from '@/components/JobCard';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 import { Bookmark, Trash2, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';

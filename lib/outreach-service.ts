@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { EmployerLead } from '@prisma/client';
+import { EmployerLead } from '@/lib/types';
 
 const TEMPLATES = {
   initial: {

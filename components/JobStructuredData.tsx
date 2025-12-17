@@ -1,4 +1,4 @@
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 
 interface JobStructuredDataProps {
   job: Job;

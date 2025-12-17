@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 import { config } from '@/lib/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MapPin, CheckCircle } from 'lucide-react';
 import { formatSalary, slugify, isNewJob, getJobFreshness } from '@/lib/utils';
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import Badge from '@/components/ui/Badge';
 

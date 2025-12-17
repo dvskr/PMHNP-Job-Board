@@ -1,6 +1,6 @@
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
 import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
-import { Job } from '@prisma/client';
+import { Job } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
 import ShareButtons from '@/components/ShareButtons';
