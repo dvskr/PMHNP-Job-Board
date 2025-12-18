@@ -241,7 +241,7 @@ export async function parseAllLocations(): Promise<{
       const batch = jobs.slice(i, i + batchSize);
       
       await Promise.all(
-        batch.map(async (job) => {
+        batch.map(async (job: { id: string; location: string }) => {
           try {
             const parsed = parseLocation(job.location);
             stats.processed++;
