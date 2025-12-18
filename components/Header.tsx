@@ -67,7 +67,7 @@ export default function Header() {
             className="lg:hidden text-gray-600 hover:text-primary-600 transition-colors duration-200 p-2 -mr-2 touch-manipulation"
             style={{ minWidth: '44px', minHeight: '44px' }}
             aria-label="Toggle menu"
-            aria-expanded={isMenuOpen}
+            aria-expanded={isMenuOpen ? "true" : "false"}
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>

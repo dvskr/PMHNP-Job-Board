@@ -17,11 +17,19 @@ export default function TestimonialCard({
 }: TestimonialCardProps) {
   // Generate initials from author name
   const getInitials = (name: string) => {
-    const names = name.trim().split(' ');
+    if (!name || name.trim().length === 0) {
+      return '??'; // Fallback for empty names
+    }
+    
+    const trimmedName = name.trim();
+    const names = trimmedName.split(' ').filter(n => n.length > 0);
+    
     if (names.length >= 2) {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    
+    // For single name, use first two characters (or pad with ?)
+    return (trimmedName.substring(0, 2) + '?').substring(0, 2).toUpperCase();
   };
 
   // Generate a consistent color based on author name
@@ -34,6 +42,11 @@ export default function TestimonialCard({
       'from-orange-500 to-orange-700',
       'from-teal-500 to-teal-700',
     ];
+    
+    if (!name || name.trim().length === 0) {
+      return colors[0]; // Default to first color
+    }
+    
     const index = name.charCodeAt(0) % colors.length;
     return colors[index];
   };
