@@ -16,7 +16,8 @@ interface JobPageProps {
 
 async function getJob(id: string): Promise<Job | null> {
   try {
-    const response = await fetch(`http://localhost:3000/api/jobs/${id}`, {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/jobs/${id}`, {
       cache: 'no-store',
     });
     const data = await response.json();
