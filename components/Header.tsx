@@ -103,7 +103,7 @@ export default function Header() {
             <nav className="flex flex-col p-4 overflow-y-auto h-[calc(100vh-73px)]">
               {/* Auth Section - Mobile */}
               <div className="mb-6 pb-6 border-b border-gray-200">
-                <HeaderAuth />
+                <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
               </div>
 
               {/* Primary CTA - Post a Job */}

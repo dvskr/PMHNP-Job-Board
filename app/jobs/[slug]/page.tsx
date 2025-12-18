@@ -292,7 +292,7 @@ export default async function JobPage({ params }: JobPageProps) {
       </div>
 
       {/* Sticky Apply Button - Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 shadow-lg safe-bottom">
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-gray-200 shadow-lg safe-bottom">
         <div className="px-4 py-3 pb-safe">
           <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
         </div>
