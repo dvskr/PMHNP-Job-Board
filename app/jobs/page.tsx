@@ -84,15 +84,10 @@ function JobsContent() {
     const filters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
     setCurrentFilters(filters);
     fetchJobs(filters);
-  }, [searchParams, fetchJobs]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only depend on searchParams, not fetchJobs
 
-  // Handle filter changes from LinkedInFilters
-  const handleFilterChange = useCallback((newFilters: FilterState) => {
-    setCurrentFilters(newFilters);
-    fetchJobs(newFilters);
-  }, [fetchJobs]);
-
-  // Count active filters
+  // Count active filters (including search)
   const activeFilterCount = 
     currentFilters.workMode.length +
     currentFilters.jobType.length +
@@ -124,7 +119,7 @@ function JobsContent() {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Filters */}
         <aside className="w-full lg:w-80 flex-shrink-0">
-          <LinkedInFilters onFilterChange={handleFilterChange} />
+          <LinkedInFilters />
         </aside>
         
         {/* Job Results */}
@@ -218,6 +213,7 @@ function JobsContent() {
               <button
                 onClick={() => setIsAlertModalOpen(false)}
                 className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close create alert modal"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
