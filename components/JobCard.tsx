@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, CheckCircle } from 'lucide-react';
-import { formatSalary, slugify, isNewJob, getJobFreshness } from '@/lib/utils';
+import { MapPin, CheckCircle, DollarSign } from 'lucide-react';
+import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import Badge from '@/components/ui/Badge';
@@ -15,7 +15,6 @@ export default function JobCard({ job }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
   const applied = isApplied(job.id);
   const jobUrl = `/jobs/${slugify(job.title, job.id)}`;
-  const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const isNew = isNewJob(job.createdAt);
   const freshness = getJobFreshness(job.createdAt);
 
@@ -112,9 +111,12 @@ export default function JobCard({ job }: JobCardProps) {
           </div>
         </div>
 
-        {/* Salary - Prominent on mobile */}
-        {salary && (
-          <p className="text-success-600 font-bold text-lg sm:text-xl mt-1">{salary}</p>
+        {/* Salary - Prominent display with icon */}
+        {job.displaySalary && (
+          <div className="flex items-center gap-1 text-success-600 font-bold text-lg sm:text-xl mt-1">
+            <DollarSign className="w-5 h-5" />
+            <span>{job.displaySalary}</span>
+          </div>
         )}
 
         {/* Description Summary */}

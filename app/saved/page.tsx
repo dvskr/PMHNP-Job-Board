@@ -158,11 +158,6 @@ export default function SavedJobsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">My Jobs</h1>
-      </div>
-
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-8">
         <nav className="flex gap-8">
@@ -301,10 +296,10 @@ export default function SavedJobsPage() {
       {activeTab === 'applied' && (
         <>
           {/* Header */}
-          {appliedJobs.length > 0 && (
+          {appliedJobsData.length > 0 && (
             <div className="mb-6">
               <p className="text-gray-600">
-                {appliedJobs.length} application{appliedJobs.length !== 1 ? 's' : ''} tracked
+                {appliedJobsData.length} application{appliedJobsData.length !== 1 ? 's' : ''} tracked
               </p>
             </div>
           )}
