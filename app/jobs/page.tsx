@@ -1,42 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import JobCard from '@/components/JobCard';
-import JobFilters from '@/components/JobFilters';
+import LinkedInFilters from '@/components/jobs/LinkedInFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import { Job } from '@/lib/types';
-
-interface FilterState {
-  search?: string;
-  location?: string;
-  jobType?: string;
-  mode?: string;
-  minSalary?: number;
-  maxSalary?: number;
-}
-
-interface CategoryCounts {
-  byMode: Record<string, number>;
-  byJobType: Record<string, number>;
-  byState: Record<string, number>;
-  special: {
-    highPaying: number;
-    newThisWeek: number;
-  };
-}
-
-interface QuickFilter {
-  label: string;
-  filterKey: string;
-  filterValue: string | number;
-  count: number;
-}
+import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
+import { parseFiltersFromParams } from '@/lib/filters';
 
 function JobsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -45,33 +20,45 @@ function JobsContent() {
   const [error, setError] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    location: '',
-    jobType: '',
-    mode: '',
-    minSalary: undefined,
-    maxSalary: undefined,
-  });
-  const [quickFilters, setQuickFilters] = useState<QuickFilter[]>([]);
-  
-  const JOBS_PER_PAGE = 20;
-  const totalPages = Math.ceil(total / JOBS_PER_PAGE);
+  const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  const fetchJobs = useCallback(async (currentFilters: FilterState, page: number = 1) => {
+  const fetchJobs = useCallback(async (filters: FilterState) => {
     try {
       setLoading(true);
       setError(null);
       
       // Build query string from filters
       const params = new URLSearchParams();
-      params.set('page', page.toString());
-      Object.entries(currentFilters).forEach(([key, value]: [string, string | number | undefined]) => {
-        if (value !== undefined && value !== '') {
-          params.set(key, value.toString());
-        }
+      
+      // Add search
+      if (filters.search) {
+        params.set('q', filters.search);
+      }
+      
+      // Add location
+      if (filters.location) {
+        params.set('location', filters.location);
+      }
+      
+      // Add work modes (multi-select)
+      filters.workMode.forEach((mode: string) => {
+        params.append('workMode', mode);
       });
+      
+      // Add job types (multi-select)
+      filters.jobType.forEach((type: string) => {
+        params.append('jobType', type);
+      });
+      
+      // Add salary
+      if (filters.salaryMin) {
+        params.set('salaryMin', filters.salaryMin.toString());
+      }
+      
+      // Add posted within
+      if (filters.postedWithin) {
+        params.set('postedWithin', filters.postedWithin);
+      }
       
       const url = `/api/jobs?${params.toString()}`;
       
@@ -83,7 +70,7 @@ function JobsContent() {
       setJobs(data.jobs);
       setTotal(data.total);
       
-      // Scroll to top when page changes
+      // Scroll to top when results change
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -92,99 +79,27 @@ function JobsContent() {
     }
   }, []);
 
-  // Fetch category counts for quick filters
+  // Fetch jobs when filters change
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const response = await fetch('/api/jobs/categories');
-        if (!response.ok) return;
-        const data: CategoryCounts = await response.json();
-
-        const chips: QuickFilter[] = [];
-
-        if (data.byMode['Remote']) {
-          chips.push({ label: 'Remote', filterKey: 'mode', filterValue: 'Remote', count: data.byMode['Remote'] });
-        }
-        if (data.byJobType['Full-Time']) {
-          chips.push({ label: 'Full-Time', filterKey: 'jobType', filterValue: 'Full-Time', count: data.byJobType['Full-Time'] });
-        }
-        if (data.special.newThisWeek > 0) {
-          chips.push({ label: 'New This Week', filterKey: 'posted', filterValue: 'week', count: data.special.newThisWeek });
-        }
-        if (data.special.highPaying > 0) {
-          chips.push({ label: 'High Paying', filterKey: 'minSalary', filterValue: 150000, count: data.special.highPaying });
-        }
-
-        setQuickFilters(chips);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    }
-
-    fetchCategories();
-  }, []);
-
-  // Read URL params on mount and when they change
-  useEffect(() => {
-    const newFilters: FilterState = {
-      search: searchParams.get('search') || '',
-      location: searchParams.get('location') || '',
-      jobType: searchParams.get('jobType') || '',
-      mode: searchParams.get('mode') || '',
-      minSalary: searchParams.get('minSalary') ? parseInt(searchParams.get('minSalary')!) : undefined,
-      maxSalary: searchParams.get('maxSalary') ? parseInt(searchParams.get('maxSalary')!) : undefined,
-    };
-    const page = parseInt(searchParams.get('page') || '1');
-    setFilters(newFilters);
-    setCurrentPage(page);
-    fetchJobs(newFilters, page);
+    const filters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
+    setCurrentFilters(filters);
+    fetchJobs(filters);
   }, [searchParams, fetchJobs]);
 
+  // Handle filter changes from LinkedInFilters
   const handleFilterChange = useCallback((newFilters: FilterState) => {
-    setFilters(newFilters);
-    setCurrentPage(1); // Reset to page 1 when filters change
-    
-    // Build query string
-    const params = new URLSearchParams();
-    params.set('page', '1');
-    Object.entries(newFilters).forEach(([key, value]: [string, string | number | undefined]) => {
-      if (value !== undefined && value !== '') {
-        params.set(key, value.toString());
-      }
-    });
-    
-    // Update URL
-    router.push(`/jobs?${params.toString()}`);
-    
-    // Re-fetch jobs with new filters
-    fetchJobs(newFilters, 1);
-  }, [router, fetchJobs]);
-  
-  const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    
-    setCurrentPage(newPage);
-    
-    // Build query string with new page
-    const params = new URLSearchParams();
-    params.set('page', newPage.toString());
-    Object.entries(filters).forEach(([key, value]: [string, string | number | undefined]) => {
-      if (value !== undefined && value !== '') {
-        params.set(key, value.toString());
-      }
-    });
-    
-    // Update URL
-    router.push(`/jobs?${params.toString()}`);
-    
-    // Fetch jobs for new page
-    fetchJobs(filters, newPage);
-  };
+    setCurrentFilters(newFilters);
+    fetchJobs(newFilters);
+  }, [fetchJobs]);
 
   // Count active filters
-  const activeFilterCount = Object.values(filters).filter(
-    (value: string | number | undefined) => value !== undefined && value !== ''
-  ).length;
+  const activeFilterCount = 
+    currentFilters.workMode.length +
+    currentFilters.jobType.length +
+    (currentFilters.salaryMin ? 1 : 0) +
+    (currentFilters.postedWithin ? 1 : 0) +
+    (currentFilters.location ? 1 : 0) +
+    (currentFilters.search ? 1 : 0);
 
   // Handle alert creation success
   const handleAlertSuccess = () => {
@@ -195,118 +110,55 @@ function JobsContent() {
 
   // Build initial filters for alert form
   const alertFilters = {
-    keyword: filters.search || undefined,
-    location: filters.location || undefined,
-    mode: filters.mode || undefined,
-    jobType: filters.jobType || undefined,
-    minSalary: filters.minSalary,
-    maxSalary: filters.maxSalary,
-  };
-
-  // Check if a quick filter is active
-  const isQuickFilterActive = (qf: QuickFilter): boolean => {
-    if (qf.filterKey === 'mode') return filters.mode === qf.filterValue;
-    if (qf.filterKey === 'jobType') return filters.jobType === qf.filterValue;
-    if (qf.filterKey === 'minSalary') return filters.minSalary === qf.filterValue;
-    if (qf.filterKey === 'posted') return searchParams.get('posted') === qf.filterValue;
-    return false;
-  };
-
-  // Handle quick filter click (only one at a time)
-  const handleQuickFilterClick = (qf: QuickFilter) => {
-    const isActive = isQuickFilterActive(qf);
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (isActive) {
-      // Remove this filter
-      params.delete(qf.filterKey);
-    } else {
-      // Remove all quick filter keys first
-      quickFilters.forEach((filter: QuickFilter) => params.delete(filter.filterKey));
-      
-      // Add only this filter
-      params.set(qf.filterKey, qf.filterValue.toString());
-    }
-
-    router.push(`/jobs?${params.toString()}`);
+    keyword: currentFilters.search || undefined,
+    location: currentFilters.location || undefined,
+    mode: currentFilters.workMode.length > 0 ? currentFilters.workMode[0] : undefined,
+    jobType: currentFilters.jobType.length > 0 ? currentFilters.jobType[0] : undefined,
+    minSalary: currentFilters.salaryMin || undefined,
+    maxSalary: undefined,
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Active Filters Badge & Create Alert Button */}
-      {activeFilterCount > 0 && (
-        <div className="mb-6 flex items-center gap-4">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
-            {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
-          </span>
-          <button
-            onClick={() => setIsAlertModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-              />
-            </svg>
-            Create Alert for This Search
-          </button>
-        </div>
-      )}
-
-      {/* Main Content with Filters */}
-      <div className="flex gap-8">
-        {/* Filters Sidebar */}
-        <JobFilters
-          currentFilters={filters}
-          onFilterChange={handleFilterChange}
-        />
-
-        {/* Jobs Content */}
-        <div className="flex-1">
-          {/* Quick Filter Chips */}
-          {quickFilters.length > 0 && (
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {quickFilters.map((qf: QuickFilter) => {
-                const isActive = isQuickFilterActive(qf);
-                return (
-                  <button
-                    key={qf.label}
-                    onClick={() => handleQuickFilterClick(qf)}
-                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <span>{qf.label}</span>
-                    <span className={`text-xs ${isActive ? 'text-blue-200' : 'text-gray-500'}`}>
-                      ({qf.count})
-                    </span>
-                  </button>
-                );
-              })}
+      {/* Main Content with LinkedIn-Style Layout */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar Filters */}
+        <aside className="w-full lg:w-80 flex-shrink-0">
+          <LinkedInFilters onFilterChange={handleFilterChange} />
+        </aside>
+        
+        {/* Job Results */}
+        <main className="flex-1">
+          {/* Create Alert Button (shown when filters are active) */}
+          {activeFilterCount > 0 && (
+            <div className="mb-6">
+              <button
+                onClick={() => setIsAlertModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                  />
+                </svg>
+                Create Alert for This Search
+              </button>
             </div>
           )}
-
           {/* Results Count */}
           {!loading && !error && (
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-gray-500">
-                Showing {Math.min((currentPage - 1) * JOBS_PER_PAGE + 1, total)}-{Math.min(currentPage * JOBS_PER_PAGE, total)} of {total} job{total !== 1 ? 's' : ''}
+                Showing {total.toLocaleString()} job{total !== 1 ? 's' : ''}
               </p>
-              {totalPages > 1 && (
-                <p className="text-sm text-gray-500">
-                  Page {currentPage} of {totalPages}
-                </p>
-              )}
             </div>
           )}
 
@@ -334,72 +186,20 @@ function JobsContent() {
 
           {/* Jobs Grid */}
           {!loading && !error && jobs.length > 0 && (
-            <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {jobs.map((job: Job, index: number) => (
-                  <div key={job.id} className="h-full">
-                    <AnimatedContainer
-                      animation="fade-in-up"
-                      delay={Math.min(index * 50, 600)}
-                    >
-                      <JobCard job={job} />
-                    </AnimatedContainer>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="mt-8 flex justify-center items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {jobs.map((job: Job, index: number) => (
+                <div key={job.id} className="h-full">
+                  <AnimatedContainer
+                    animation="fade-in-up"
+                    delay={Math.min(index * 50, 600)}
                   >
-                    Previous
-                  </button>
-                  
-                  <div className="flex gap-1">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 7) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 4) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 3) {
-                        pageNum = totalPages - 6 + i;
-                      } else {
-                        pageNum = currentPage - 3 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            currentPage === pageNum
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Next
-                  </button>
+                    <JobCard job={job} />
+                  </AnimatedContainer>
                 </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
-        </div>
+        </main>
       </div>
 
       {/* Alert Modal */}

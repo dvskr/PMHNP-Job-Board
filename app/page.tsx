@@ -28,7 +28,7 @@ export default function Home() {
               href="/post-job"
               className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-200 hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
             >
-              Post a Job — Free for 1 Month
+              Post a Job for Free
             </Link>
           </div>
         </div>
@@ -101,7 +101,7 @@ export default function Home() {
             href="/post-job"
             className="inline-block bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-600 transition-colors"
           >
-            Post a Job — Free for 1 Month
+            Post a Job for Free
           </Link>
         </div>
       </section>

@@ -27,6 +27,7 @@ export interface Job {
   normalizedMaxSalary: number | null;
   salaryIsEstimated: boolean;
   salaryConfidence: number | null;
+  displaySalary: string | null;
   applyLink: string;
   isFeatured: boolean;
   isPublished: boolean;

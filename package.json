@@ -11,7 +11,12 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "audit:jobs": "ts-node --project scripts/tsconfig.json scripts/audit-and-fix-jobs.ts",
+    "audit:salaries": "ts-node --project scripts/tsconfig.json scripts/audit-salaries.ts",
+    "fix:locations": "ts-node --project scripts/tsconfig.json scripts/fix-missing-locations.ts",
+    "fix:salaries": "ts-node --project scripts/tsconfig.json scripts/fix-all-salaries.ts",
+    "populate:display-salaries": "ts-node --project scripts/tsconfig.json scripts/populate-display-salaries.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
