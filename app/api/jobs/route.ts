@@ -1,92 +1,58 @@
-import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    
-    const search = searchParams.get('search');
-    const location = searchParams.get('location');
-    const jobType = searchParams.get('jobType');
-    const mode = searchParams.get('mode');
-    const minSalary = searchParams.get('minSalary');
-    const maxSalary = searchParams.get('maxSalary');
-    const state = searchParams.get('state');
-    const isRemote = searchParams.get('isRemote');
+    const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const skip = (page - 1) * limit;
 
-    const whereClause: any = {
-      isPublished: true,
-    };
+    // Parse filters from URL
+    const filters = parseFiltersFromParams(searchParams);
+    const where = buildWhereClause(filters);
 
-    if (search) {
-      whereClause.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { employer: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (location) {
-      whereClause.location = { contains: location, mode: 'insensitive' };
-    }
-
-    if (jobType) {
-      whereClause.jobType = jobType;
-    }
-
-    if (mode) {
-      whereClause.mode = mode;
-    }
-
-    if (minSalary) {
-      whereClause.minSalary = { gte: parseInt(minSalary) };
-    }
-
-    if (maxSalary) {
-      whereClause.maxSalary = { lte: parseInt(maxSalary) };
-    }
-
-    if (state) {
-      // Match either state name or state code
-      // If OR already exists (from search), combine with AND
-      if (whereClause.OR) {
-        whereClause.AND = [
-          { OR: whereClause.OR },
-          {
-            OR: [
-              { state: { equals: state, mode: 'insensitive' } },
-              { stateCode: { equals: state.toUpperCase() } },
-            ],
-          },
-        ];
-        delete whereClause.OR;
-      } else {
-        whereClause.OR = [
-          { state: { equals: state, mode: 'insensitive' } },
-          { stateCode: { equals: state.toUpperCase() } },
-        ];
-      }
-    }
-
-    if (isRemote === 'true') {
-      whereClause.isRemote = true;
-    }
-
+    // Get jobs
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
-        where: whereClause,
+        where,
         orderBy: [
           { isFeatured: 'desc' },
           { createdAt: 'desc' },
         ],
-        take: 20,
-        skip: (page - 1) * 20,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          employer: true,
+          location: true,
+          city: true,
+          state: true,
+          jobType: true,
+          isRemote: true,
+          isHybrid: true,
+          // Salary fields
+          displaySalary: true,          // For display
+          normalizedMinSalary: true,    // For filtering
+          normalizedMaxSalary: true,    // For filtering
+          salaryPeriod: true,           // For context
+          // Other fields
+          description: true,
+          createdAt: true,
+          isFeatured: true,
+        },
       }),
-      prisma.job.count({ where: whereClause }),
+      prisma.job.count({ where }),
     ]);
 
-    return NextResponse.json({ jobs, total });
+    return NextResponse.json({
+      jobs,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return NextResponse.json(

@@ -275,9 +275,6 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      {/* Page Title */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
-
       {/* Success/Error Message */}
       {message && (
         <div

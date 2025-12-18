@@ -34,6 +34,7 @@ model Job {
   normalizedMaxSalary Int?    @map("normalized_max_salary")
   salaryIsEstimated   Boolean @default(false) @map("salary_is_estimated")
   salaryConfidence    Float?  @map("salary_confidence")
+  displaySalary       String? @map("display_salary") // User-friendly format: "$145-$200/hr" or "$150k-$180k/yr"
 
   applyLink          String    @map("apply_link")
   isFeatured         Boolean   @default(false) @map("is_featured")

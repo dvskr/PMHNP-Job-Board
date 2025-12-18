@@ -249,7 +249,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12 md:py-16">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -313,7 +313,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                 </h2>
                 <Link 
                   href="/jobs"
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
                   View All States →
                 </Link>
@@ -330,7 +330,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                   </p>
                   <Link
                     href="/jobs"
-                    className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                    className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                   >
                     Browse All Jobs
                   </Link>
@@ -347,7 +347,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               {/* Job Alert CTA */}
-              <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl p-6 text-white mb-6 shadow-lg">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-6 shadow-lg">
                 <Bell className="h-8 w-8 mb-3" />
                 <h3 className="text-lg font-bold mb-2">
                   Get {stateName} Job Alerts
@@ -357,7 +357,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                 </p>
                 <Link
                   href={`/job-alerts?location=${encodeURIComponent(stateName)}`}
-                  className="block w-full text-center px-4 py-2 bg-white text-primary-700 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                  className="block w-full text-center px-4 py-2 bg-white text-blue-700 rounded-lg font-medium hover:bg-blue-50 transition-colors"
                 >
                   Create Alert
                 </Link>
@@ -367,7 +367,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
               {stats.topEmployers.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5 text-primary-600" />
+                    <Building2 className="h-5 w-5 text-blue-600" />
                     <h3 className="font-bold text-gray-900">Top Employers</h3>
                   </div>
                   <ul className="space-y-3">
@@ -376,7 +376,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                         <span className="text-sm text-gray-700 truncate flex-1">
                           {employer.name}
                         </span>
-                        <span className="text-sm font-medium text-primary-600 ml-2">
+                        <span className="text-sm font-medium text-blue-600 ml-2">
                           {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
                         </span>
                       </li>

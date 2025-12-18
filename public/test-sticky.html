@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sticky Filter Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Sticky Filter Panel Test</h1>
+    
+    <div class="flex gap-6">
+      <!-- Sticky Sidebar (Same classes as LinkedInFilters) -->
+      <aside class="w-80 flex-shrink-0">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+          <!-- Header - Fixed -->
+          <div class="p-4 border-b border-gray-200 flex-shrink-0 bg-blue-50">
+            <h2 class="font-semibold">Filters (STICKY HEADER)</h2>
+          </div>
+          
+          <!-- Results Count - Fixed -->
+          <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+            <p class="text-sm">1,374 jobs found</p>
+          </div>
+          
+          <!-- Scrollable Content -->
+          <div class="flex-1 overflow-y-auto p-4">
+            <div class="space-y-4">
+              <div class="border border-dashed border-blue-300 p-4 rounded">Work Mode Section</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Job Type Section</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Date Posted Section</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Salary Section</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Extra Section 1</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Extra Section 2</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Extra Section 3</div>
+              <div class="border border-dashed border-blue-300 p-4 rounded">Extra Section 4</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      
+      <!-- Main Content -->
+      <main class="flex-1">
+        <h2 class="text-2xl font-bold mb-4">Job Listings (Scroll Down to See Sticky Effect)</h2>
+        
+        <!-- Lots of content to enable scrolling -->
+        <div class="space-y-4">
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #1</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #2</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #3</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #4</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #5</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #6</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #7</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #8</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #9</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="font-semibold text-lg">Job Card #10</h3>
+            <p class="text-gray-600 mt-2">Company Name • Location</p>
+            <p class="text-gray-500 text-sm mt-2">This is a sample job description that shows how the sticky filter works when you scroll.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+    
+    <div class="fixed bottom-4 right-4 bg-yellow-400 text-black px-4 py-2 rounded-lg shadow-lg font-mono text-sm">
+      <div>Screen Width: <span id="width"></span>px</div>
+      <div class="text-xs mt-1">Need ≥1024px for sticky</div>
+    </div>
+  </div>
+  
+  <script>
+    function updateWidth() {
+      document.getElementById('width').textContent = window.innerWidth;
+    }
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+  </script>
+</body>
+</html>
+
