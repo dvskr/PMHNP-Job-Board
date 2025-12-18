@@ -38,7 +38,9 @@ export async function GET(request: NextRequest) {
     // Group by day
     const jobsByDay = recentJobs.reduce((acc: Record<string, number>, job: typeof recentJobs[number]) => {
       const day = job.createdAt.toISOString().split('T')[0];
-      acc[day] = (acc[day] || 0) + 1;
+      if (day) {
+        acc[day] = (acc[day] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
 

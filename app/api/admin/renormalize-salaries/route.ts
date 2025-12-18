@@ -134,7 +134,9 @@ export async function GET(request: NextRequest) {
 
             // Track source-level stats
             const source = job.sourceProvider || 'unknown';
-            sourceBreakdown[source].after++;
+            if (sourceBreakdown[source]) {
+              sourceBreakdown[source].after++;
+            }
 
             // Check if this is a NEW normalization (previously failed, now succeeds)
             if (!hadBefore && hasNow) {

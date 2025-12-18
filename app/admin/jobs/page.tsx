@@ -206,7 +206,7 @@ export default function AdminJobsPage() {
 
   const sortedDays = Object.entries(stats.jobsByDay).sort(([a]: [string, number], [b]: [string, number]) => a.localeCompare(b));
   const trend = sortedDays.length >= 2
-    ? sortedDays[sortedDays.length - 1][1] > sortedDays[sortedDays.length - 2][1]
+    ? (sortedDays[sortedDays.length - 1]?.[1] ?? 0) > (sortedDays[sortedDays.length - 2]?.[1] ?? 0)
     : null;
 
   return (
@@ -260,6 +260,7 @@ export default function AdminJobsPage() {
             <h3 className="text-sm font-medium text-blue-700 mb-3">🏆 Best for Volume</h3>
             {(() => {
               const bestVolume = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.totalJobs - a.totalJobs)[0];
+              if (!bestVolume) return <p className="text-sm text-gray-500">No data</p>;
               return (
                 <>
                   <p className="text-2xl font-bold text-blue-900 capitalize">{bestVolume.source}</p>
@@ -273,6 +274,7 @@ export default function AdminJobsPage() {
             <h3 className="text-sm font-medium text-green-700 mb-3">⭐ Best for Quality</h3>
             {(() => {
               const bestQuality = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.avgQualityScore - a.avgQualityScore)[0];
+              if (!bestQuality) return <p className="text-sm text-gray-500">No data</p>;
               return (
                 <>
                   <p className="text-2xl font-bold text-green-900 capitalize">{bestQuality.source}</p>
@@ -286,6 +288,7 @@ export default function AdminJobsPage() {
             <h3 className="text-sm font-medium text-purple-700 mb-3">🎯 Best for Clicks</h3>
             {(() => {
               const bestClicks = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.clickThroughRate - a.clickThroughRate)[0];
+              if (!bestClicks) return <p className="text-sm text-gray-500">No data</p>;
               return (
                 <>
                   <p className="text-2xl font-bold text-purple-900 capitalize">{bestClicks.source}</p>

@@ -113,6 +113,7 @@ export default function SavedJobsPage() {
         setAppliedLoading(false);
       }
     }
+    return undefined;
   }, [activeTab, appliedJobs, appliedInitialized]);
 
   const formatAppliedDate = (date: Date): string => {

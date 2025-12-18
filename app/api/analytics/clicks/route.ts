@@ -137,7 +137,9 @@ export async function GET(request: NextRequest) {
     const clicksByDay = new Map<string, number>();
     (clicksRaw as unknown as ClickTimestampRow[]).forEach((click: ClickTimestampRow) => {
       const date = click.timestamp.toISOString().split('T')[0];
-      clicksByDay.set(date, (clicksByDay.get(date) || 0) + 1);
+      if (date) {
+        clicksByDay.set(date, (clicksByDay.get(date) || 0) + 1);
+      }
     });
 
     // Convert to array and sort by date

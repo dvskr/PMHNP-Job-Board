@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // Find all Adzuna jobs with salaries that need fixing (< 10000 means stored in thousands)
     const adzunaJobs = await prisma.job.findMany({
