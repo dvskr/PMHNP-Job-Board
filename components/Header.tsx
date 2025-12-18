@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, X, Bookmark, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
@@ -31,8 +32,15 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-200">
-              PMHNP Jobs
+            <Link href="/" className="flex items-center">
+              <Image 
+                src="/logo.svg" 
+                alt="PMHNP Jobs" 
+                width={160} 
+                height={40}
+                priority
+                className="h-10 w-auto"
+              />
             </Link>
           </div>
 
