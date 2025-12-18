@@ -224,13 +224,6 @@ function PostJobContent() {
   return (
     <>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-32 lg:pb-8">
-        {/* Page Header */}
-        <div className="mb-6 lg:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Post a Job</h1>
-          <p className="text-gray-600 text-sm sm:text-base">
-            Reach thousands of qualified psychiatric nurse practitioners
-          </p>
-        </div>
 
       {/* Draft Loaded Message */}
       {draftLoaded && (
@@ -580,7 +573,7 @@ function PostJobContent() {
               />
               <span className="text-lg font-semibold mb-1">Standard Job</span>
               <span className="text-3xl font-bold text-gray-900 mb-2">
-                {config.getPricingLabel('standard')}
+                FREE
               </span>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>• 30-day listing</li>
@@ -608,7 +601,7 @@ function PostJobContent() {
               </span>
               <span className="text-lg font-semibold mb-1">Featured Job</span>
               <span className="text-3xl font-bold text-gray-900 mb-2">
-                {config.getPricingLabel('featured')}
+                FREE
               </span>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>• 60-day listing</li>
