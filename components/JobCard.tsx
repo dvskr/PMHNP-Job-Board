@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, CheckCircle, DollarSign } from 'lucide-react';
+import { MapPin, CheckCircle } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
@@ -111,11 +111,10 @@ export default function JobCard({ job }: JobCardProps) {
           </div>
         </div>
 
-        {/* Salary - Prominent display with icon */}
+        {/* Salary - Prominent display */}
         {job.displaySalary && (
-          <div className="flex items-center gap-1 text-success-600 font-bold text-lg sm:text-xl mt-1">
-            <DollarSign className="w-5 h-5" />
-            <span>{job.displaySalary}</span>
+          <div className="text-success-600 font-bold text-lg sm:text-xl mt-1">
+            {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
           </div>
         )}
 
