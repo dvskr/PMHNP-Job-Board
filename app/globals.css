@@ -113,9 +113,18 @@ button, input, select, textarea {
   -webkit-perspective: 1000px;
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling - with data attribute to allow disabling during route transitions */
 html {
   scroll-behavior: smooth;
+}
+
+/* Disable smooth scrolling during route transitions to prevent warning */
+html[data-scroll-behavior="smooth"] {
+  scroll-behavior: smooth;
+}
+
+html:not([data-scroll-behavior]) {
+  scroll-behavior: auto;
 }
 
 /* Selection color */
