@@ -56,18 +56,19 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <div className="flex items-center gap-3">
         <button
           onClick={handleApply}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg"
+          className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 lg:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg w-full lg:w-auto touch-manipulation"
+          style={{ minHeight: '52px' }}
         >
           {applied ? 'Apply Again' : 'Apply Now'}
           <ExternalLink size={20} />
         </button>
 
         {applied && (
-          <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm font-medium">
+          <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm font-medium">
             <svg
               className="h-4 w-4"
               fill="none"
@@ -87,7 +88,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
       </div>
 
       {applied && appliedDate && (
-        <p className="text-sm text-gray-500 mt-2">
+        <p className="text-sm text-gray-500 mt-2 text-center lg:text-left">
           Applied on {formatAppliedDate(appliedDate)}
         </p>
       )}
@@ -95,7 +96,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
       {!applied && (
         <button
           onClick={() => markApplied(jobId)}
-          className="text-sm text-gray-500 hover:underline mt-2 text-left"
+          className="text-sm text-gray-500 hover:underline mt-2 text-center lg:text-left py-2 touch-manipulation"
         >
           Already applied? Mark as applied
         </button>

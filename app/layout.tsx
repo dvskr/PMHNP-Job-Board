@@ -66,6 +66,11 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/icon-512.svg',
+  },
+  
   robots: {
     index: true,
     follow: true,

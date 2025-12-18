@@ -130,6 +130,15 @@ export default function SavedJobsPage() {
     setJobs([]);
   };
 
+  const handleClearApplied = () => {
+    if (confirm('Are you sure you want to clear your application history? This cannot be undone.')) {
+      localStorage.removeItem('appliedJobs');
+      setAppliedJobsData([]);
+      // Force a page reload to reset the hook state
+      window.location.reload();
+    }
+  };
+
   const handleRemoveJob = (jobId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -297,10 +306,17 @@ export default function SavedJobsPage() {
         <>
           {/* Header */}
           {appliedJobsData.length > 0 && (
-            <div className="mb-6">
+            <div className="flex items-center justify-between mb-6">
               <p className="text-gray-600">
                 {appliedJobsData.length} application{appliedJobsData.length !== 1 ? 's' : ''} tracked
               </p>
+              <button
+                onClick={handleClearApplied}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 size={16} />
+                Clear history
+              </button>
             </div>
           )}
 
