@@ -271,7 +271,7 @@ export async function getIngestionStats(): Promise<{
     });
 
     const bySource: Record<string, number> = {};
-    jobsBySource.forEach(item => {
+    jobsBySource.forEach((item: { sourceProvider: string | null; _count: number }) => {
       if (item.sourceProvider) {
         bySource[item.sourceProvider] = item._count;
       }
