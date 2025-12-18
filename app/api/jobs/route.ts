@@ -34,14 +34,17 @@ export async function GET(request: NextRequest) {
           isRemote: true,
           isHybrid: true,
           // Salary fields
-          displaySalary: true,          // For display
-          normalizedMinSalary: true,    // For filtering
-          normalizedMaxSalary: true,    // For filtering
-          salaryPeriod: true,           // For context
+          displaySalary: true,           // For display
+          normalizedMinSalary: true,     // For filtering
+          normalizedMaxSalary: true,     // For filtering
+          salaryPeriod: true,            // For context
           // Other fields
           description: true,
+          descriptionSummary: true,      // For JobCard preview
           createdAt: true,
           isFeatured: true,
+          isVerifiedEmployer: true,      // For JobCard badge
+          mode: true,                    // For JobCard work mode display
         },
       }),
       prisma.job.count({ where }),
