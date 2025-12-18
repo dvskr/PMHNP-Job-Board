@@ -110,8 +110,8 @@ export default function AboutPage() {
                 <li className="flex items-start gap-3">
                   <DollarSign className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-gray-900">Affordable Pricing</p>
-                    <p className="text-sm text-gray-600">Standard ($99) and Featured ($199) posting options</p>
+                    <p className="font-semibold text-gray-900">Free for 1 Month</p>
+                    <p className="text-sm text-gray-600">Post your job for free during our launch period</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">

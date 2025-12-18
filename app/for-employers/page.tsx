@@ -24,7 +24,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'For Employers | PMHNP Jobs',
-  description: 'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post jobs starting at $99. Reach thousands of PMHNPs.',
+  description: 'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post jobs free for 1 month. Reach thousands of PMHNPs.',
 };
 
 export default function ForEmployersPage() {
@@ -72,10 +72,10 @@ export default function ForEmployersPage() {
               <DollarSign className="w-8 h-8 text-success-600" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Affordable Pricing
+              Free for 1 Month
             </h3>
             <p className="text-sm text-gray-600">
-              Starting at just $99. No subscriptions, no hidden fees, no surprises.
+              Post your job for free during our launch period. No credit card required.
             </p>
           </Card>
 
@@ -303,10 +303,10 @@ export default function ForEmployersPage() {
               2
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-3">
-              Choose Your Plan
+              Preview & Publish
             </h3>
             <p className="text-gray-600">
-              Select Standard or Featured posting. Complete payment securely with Stripe.
+              Review your job posting and publish it instantly. No payment required during launch period.
             </p>
           </Card>
 
