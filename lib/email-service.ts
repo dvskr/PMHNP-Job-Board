@@ -152,7 +152,7 @@ export async function sendJobAlertEmail(
   const displayJobs = jobs.slice(0, 10);
 
   // Build job list HTML
-  const jobListHtml = displayJobs.map(job => `
+  const jobListHtml = displayJobs.map((job: any) => `
     <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
       <h3 style="margin: 0 0 8px 0; color: #111827;">
         <a href="${BASE_URL}/jobs/${slugify(job.title, job.id)}" style="color: #2563eb; text-decoration: none;">

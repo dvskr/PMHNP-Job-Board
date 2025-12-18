@@ -36,7 +36,7 @@ function extractState(location: string): string | null {
   }
 
   // Check if location contains full state name
-  for (const [, fullName] of Object.entries(stateAbbreviations)) {
+  for (const [, fullName] of Object.entries(stateAbbreviations) as [string, string][]) {
     if (location.toLowerCase().includes(fullName.toLowerCase())) {
       return fullName;
     }
@@ -107,10 +107,10 @@ export async function GET() {
 
     // Sort states by count and take top 10
     const sortedStates = Object.entries(byState)
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
       .slice(0, 10);
     const topStates: Record<string, number> = {};
-    for (const [state, count] of sortedStates) {
+    for (const [state, count] of sortedStates as [string, number][]) {
       topStates[state] = count;
     }
 

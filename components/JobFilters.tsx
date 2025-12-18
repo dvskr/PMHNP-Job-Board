@@ -321,7 +321,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
                 Apply Filters
                 {Object.keys(tempFilters).length > 0 && (
                   <span className="ml-1">
-                    ({Object.keys(tempFilters).filter(key => tempFilters[key as keyof FilterState]).length})
+                    ({Object.keys(tempFilters).filter((key: string) => tempFilters[key as keyof FilterState]).length})
                   </span>
                 )}
               </Button>

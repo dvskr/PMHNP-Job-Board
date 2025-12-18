@@ -61,7 +61,7 @@ export function findCanonicalName(name: string): string | null {
 
   // Check each canonical company and its aliases
   for (const [canonicalName, aliases] of Object.entries(KNOWN_COMPANIES)) {
-    const normalizedAliases = aliases.map(alias => normalizeCompanyName(alias));
+    const normalizedAliases = aliases.map((alias: string) => normalizeCompanyName(alias));
     
     if (normalizedAliases.includes(normalized)) {
       return canonicalName;

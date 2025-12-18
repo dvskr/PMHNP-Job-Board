@@ -205,7 +205,7 @@ export async function ingestJobs(
   console.log(`  Errors:     ${totals.errors} jobs (${((totals.errors / totals.fetched) * 100).toFixed(1)}%)`);
   console.log(`  Duration:   ${(overallDuration / 1000).toFixed(1)}s`);
   console.log('\nBY SOURCE:');
-  results.forEach(r => {
+  results.forEach((r: IngestionResult) => {
     const rate = r.fetched > 0 ? ((r.duplicates / r.fetched) * 100).toFixed(0) : '0';
     console.log(`  ${r.source.padEnd(12)} - ${r.added.toString().padStart(3)} added, ${r.duplicates.toString().padStart(3)} dup (${rate}%), ${r.errors.toString().padStart(2)} err`);
   });

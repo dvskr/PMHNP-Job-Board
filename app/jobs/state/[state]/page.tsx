@@ -217,12 +217,12 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
  */
 export async function generateStaticParams() {
   // Generate URL-friendly slugs for all states
-  const stateParams = Object.keys(STATE_CODES).map(stateName => ({
+  const stateParams = Object.keys(STATE_CODES).map((stateName: string) => ({
     state: stateName.toLowerCase().replace(/\s+/g, '-'),
   }));
 
   // Also add state codes as params
-  const codeParams = Object.values(STATE_CODES).map(code => ({
+  const codeParams = Object.values(STATE_CODES).map((code: string) => ({
     state: code.toLowerCase(),
   }));
 

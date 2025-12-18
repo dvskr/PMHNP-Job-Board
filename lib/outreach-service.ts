@@ -188,13 +188,13 @@ export async function suggestTargetCompanies(): Promise<string[]> {
   });
   
   const existingCompanyNames = new Set(
-    existingLeads.map(lead => lead.companyName.toLowerCase())
+    existingLeads.map((lead: { companyName: string }) => lead.companyName.toLowerCase())
   );
   
   // Filter out companies already in leads
   const suggestions = companies
-    .filter(company => !existingCompanyNames.has(company.employer.toLowerCase()))
-    .map(company => company.employer)
+    .filter((company: { employer: string; _count: { employer: number } }) => !existingCompanyNames.has(company.employer.toLowerCase()))
+    .map((company: { employer: string; _count: { employer: number } }) => company.employer)
     .slice(0, 20); // Return top 20
   
   return suggestions;

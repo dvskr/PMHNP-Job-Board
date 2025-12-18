@@ -20,7 +20,7 @@ function normalizeTitle(title: string): string {
   
   // Remove common words
   const commonWords = ['the', 'a', 'an', 'at', 'in', 'for', 'to', 'and', 'or'];
-  const words = normalized.split(/\s+/).filter(word => 
+  const words = normalized.split(/\s+/).filter((word: string) => 
     word.length > 0 && !commonWords.includes(word)
   );
   
@@ -45,7 +45,7 @@ function normalizeCompany(company: string): string {
     'health', 'healthcare', 'medical', 'group', 'services'
   ];
   
-  const words = normalized.split(/\s+/).filter(word => 
+  const words = normalized.split(/\s+/).filter((word: string) => 
     word.length > 0 && !suffixes.includes(word)
   );
   
@@ -76,7 +76,7 @@ function normalizeApplyUrl(url: string): string {
     
     // Remove tracking parameters
     const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'ref', 'source'];
-    trackingParams.forEach(param => urlObj.searchParams.delete(param));
+    trackingParams.forEach((param: string) => urlObj.searchParams.delete(param));
     
     // Return normalized URL: hostname + pathname + remaining params
     return urlObj.hostname + urlObj.pathname + urlObj.search;
@@ -295,12 +295,12 @@ export async function checkDuplicateBatch(
   for (let i = 0; i < jobs.length; i += batchSize) {
     const batch = jobs.slice(i, i + batchSize);
     const batchResults = await Promise.all(
-      batch.map((job, batchIndex) => 
-        checkDuplicate(job).then(result => ({ index: i + batchIndex, result }))
+      batch.map((job: { title: string; employer: string; location: string; externalId?: string; sourceProvider?: string; applyLink?: string }, batchIndex: number) => 
+        checkDuplicate(job).then((result: DuplicateCheckResult) => ({ index: i + batchIndex, result }))
       )
     );
     
-    batchResults.forEach(({ index, result }) => {
+    batchResults.forEach(({ index, result }: { index: number; result: DuplicateCheckResult }) => {
       results.set(index, result);
     });
   }

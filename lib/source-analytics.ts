@@ -46,14 +46,14 @@ export async function recordIngestionStats(
     // Calculate quality score (0-1 scale)
     let qualityScore = 0;
     if (sourceJobs.length > 0) {
-      const scores = sourceJobs.map(job => {
+      const scores = sourceJobs.map((job: { minSalary: number | null; descriptionSummary: string | null; city: string | null; state: string | null }) => {
         let score = 0.5; // Base score
         if (job.minSalary) score += 0.2; // Has salary
         if (job.descriptionSummary && job.descriptionSummary.length > 100) score += 0.1; // Good description
         if (job.city && job.state) score += 0.2; // Complete location
         return score;
       });
-      qualityScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+      qualityScore = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
     }
 
     // Upsert SourceStats for today
@@ -143,9 +143,9 @@ export async function getSourcePerformance(
     const totalApplyClicks = stats.reduce((sum, s) => sum + s.totalApplyClicks, 0);
 
     // Calculate average quality score
-    const qualityScores = stats.filter(s => s.avgQualityScore !== null).map(s => s.avgQualityScore!);
+    const qualityScores = stats.filter((s: any) => s.avgQualityScore !== null).map((s: any) => s.avgQualityScore!);
     const avgQualityScore = qualityScores.length > 0
-      ? qualityScores.reduce((a, b) => a + b, 0) / qualityScores.length
+      ? qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length
       : 0;
 
     // Calculate click-through rate
@@ -252,7 +252,7 @@ export async function updateDailyStats(): Promise<void> {
         });
 
         // Calculate quality score
-        const qualityScores = jobsData.map(job => {
+        const qualityScores = jobsData.map((job: { minSalary: number | null; descriptionSummary: string | null; city: string | null; state: string | null; viewCount: number; applyClickCount: number }) => {
           let score = 0.5; // Base score
           if (job.minSalary) score += 0.2; // Has salary
           if (job.descriptionSummary && job.descriptionSummary.length > 100) score += 0.1;
@@ -261,12 +261,12 @@ export async function updateDailyStats(): Promise<void> {
         });
 
         const avgQualityScore = qualityScores.length > 0
-          ? qualityScores.reduce((a, b) => a + b, 0) / qualityScores.length
+          ? qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length
           : 0;
 
         // Sum views and clicks
-        const totalViews = jobsData.reduce((sum, j) => sum + j.viewCount, 0);
-        const totalApplyClicks = jobsData.reduce((sum, j) => sum + j.applyClickCount, 0);
+        const totalViews = jobsData.reduce((sum: number, j: { viewCount: number; applyClickCount: number }) => sum + j.viewCount, 0);
+        const totalApplyClicks = jobsData.reduce((sum: number, j: { viewCount: number; applyClickCount: number }) => sum + j.applyClickCount, 0);
 
         // Update or create today's stats
         await prisma.sourceStats.upsert({
@@ -327,7 +327,7 @@ export async function getSourceTrends(
       },
     });
 
-    return stats.map(s => ({
+    return stats.map((s: { date: Date; jobsAdded: number; jobsDuplicate: number }) => ({
       date: s.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
       added: s.jobsAdded,
       duplicates: s.jobsDuplicate,

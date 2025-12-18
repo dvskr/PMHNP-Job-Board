@@ -96,7 +96,7 @@ const COMPANY_NAMES: Record<string, string> = {
 function formatCompanyName(slug: string): string {
   return COMPANY_NAMES[slug] || slug
     .split(/[-_]/)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
