@@ -199,9 +199,9 @@ export default function SavedJobsPage() {
             <span className="flex items-center gap-2">
               <FileCheck size={18} />
               Applied
-              {appliedJobs.length > 0 && (
+              {(activeTab === 'applied' ? appliedJobsData.length : appliedJobs.length) > 0 && (
                 <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                  {appliedJobs.length}
+                  {activeTab === 'applied' ? appliedJobsData.length : appliedJobs.length}
                 </span>
               )}
             </span>
@@ -312,7 +312,7 @@ export default function SavedJobsPage() {
               </p>
               <button
                 onClick={handleClearApplied}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300 font-medium"
               >
                 <Trash2 size={16} />
                 Clear history
