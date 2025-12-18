@@ -133,7 +133,7 @@ export async function fetchUSAJobs(): Promise<USAJobRaw[]> {
     const data: USAJobsResponse = await response.json();
     const results = data.SearchResult?.SearchResultItems || [];
 
-    return results.map((item) => {
+    return results.map((item: USAJobsSearchResult) => {
       const job = item.MatchedObjectDescriptor;
       const remuneration = job.PositionRemuneration?.[0];
       const location = job.PositionLocation?.[0]?.LocationName || 'United States';

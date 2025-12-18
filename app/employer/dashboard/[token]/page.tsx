@@ -232,7 +232,7 @@ export default function EmployerDashboardPage() {
         {/* Jobs List */}
         {data.jobs.length > 0 && (
           <div className="space-y-4">
-            {data.jobs.map((job) => (
+            {data.jobs.map((job: Job) => (
               <div key={job.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   {/* Job Info */}

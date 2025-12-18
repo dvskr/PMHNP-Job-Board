@@ -43,7 +43,7 @@ export default function BottomNav() {
     <>
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-bottom">
         <div className="flex items-center justify-around px-2 py-2 pb-safe">
-          {navItems.map((item) => {
+          {navItems.map((item: typeof navItems[number]) => {
             const Icon = item.icon;
             const active = isActive(item.href);
 

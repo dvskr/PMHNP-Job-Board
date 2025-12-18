@@ -113,8 +113,8 @@ function ManageAlertsContent() {
         throw new Error(data.error || 'Failed to update alert');
       }
 
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === alert.id ? { ...a, isActive: !a.isActive } : a))
+      setAlerts((prev: JobAlert[]) =>
+        prev.map((a: JobAlert) => (a.id === alert.id ? { ...a, isActive: !a.isActive } : a))
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update alert');
@@ -137,8 +137,8 @@ function ManageAlertsContent() {
         throw new Error(data.error || 'Failed to update alert');
       }
 
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === alert.id ? { ...a, frequency: newFrequency } : a))
+      setAlerts((prev: JobAlert[]) =>
+        prev.map((a: JobAlert) => (a.id === alert.id ? { ...a, frequency: newFrequency } : a))
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update alert');
@@ -159,7 +159,7 @@ function ManageAlertsContent() {
         throw new Error(data.error || 'Failed to delete alert');
       }
 
-      setAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+      setAlerts((prev: JobAlert[]) => prev.filter((a: JobAlert) => a.id !== alert.id));
       setDeleteConfirm(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete alert');
@@ -243,7 +243,7 @@ function ManageAlertsContent() {
 
         {/* Alerts List */}
         <div className="space-y-4">
-          {alerts.map((alert) => (
+          {alerts.map((alert: JobAlert) => (
             <div
               key={alert.id}
               className={`bg-white rounded-xl shadow-sm border transition-all ${

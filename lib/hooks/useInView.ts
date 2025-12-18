@@ -18,8 +18,8 @@ export default function useInView(options: UseInViewOptions = {}) {
 
     // Create Intersection Observer
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
+      (entries: IntersectionObserverEntry[]) => {
+        entries.forEach((entry: IntersectionObserverEntry) => {
           if (entry.isIntersecting) {
             setIsInView(true);
             

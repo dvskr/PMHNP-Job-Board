@@ -43,7 +43,7 @@ export default function SavedJobsPage() {
       const data: { jobs: Job[]; total: number } = await response.json();
       
       // Filter to only saved jobs
-      const savedJobs = data.jobs.filter((job) => ids.includes(job.id));
+      const savedJobs = data.jobs.filter((job: Job) => ids.includes(job.id));
       setJobs(savedJobs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -71,7 +71,7 @@ export default function SavedJobsPage() {
       const data: { jobs: Job[]; total: number } = await response.json();
       
       // Filter to only applied jobs
-      const appliedJobsList = data.jobs.filter((job) => ids.includes(job.id));
+      const appliedJobsList = data.jobs.filter((job: Job) => ids.includes(job.id));
       setAppliedJobsData(appliedJobsList);
     } catch (err) {
       setAppliedError(err instanceof Error ? err.message : 'An error occurred');
@@ -132,10 +132,10 @@ export default function SavedJobsPage() {
   const handleRemoveJob = (jobId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const updatedIds = savedIds.filter((id) => id !== jobId);
+    const updatedIds = savedIds.filter((id: string) => id !== jobId);
     localStorage.setItem('savedJobs', JSON.stringify(updatedIds));
     setSavedIds(updatedIds);
-    setJobs(jobs.filter((job) => job.id !== jobId));
+    setJobs(jobs.filter((job: Job) => job.id !== jobId));
   };
 
   // Sort jobs based on selected option
@@ -143,9 +143,9 @@ export default function SavedJobsPage() {
     const sorted = [...jobsToSort];
     switch (sortBy) {
       case 'salary':
-        return sorted.sort((a, b) => (b.maxSalary || b.minSalary || 0) - (a.maxSalary || a.minSalary || 0));
+        return sorted.sort((a: Job, b: Job) => (b.maxSalary || b.minSalary || 0) - (a.maxSalary || a.minSalary || 0));
       case 'title':
-        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+        return sorted.sort((a: Job, b: Job) => a.title.localeCompare(b.title));
       case 'recent':
       default:
         // Keep original order (order saved)
@@ -277,7 +277,7 @@ export default function SavedJobsPage() {
           {/* Jobs Grid */}
           {!loading && !error && sortedJobs.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedJobs.map((job) => (
+              {sortedJobs.map((job: Job) => (
                 <div key={job.id} className="relative group">
                   <JobCard job={job} />
                   <button
@@ -338,7 +338,7 @@ export default function SavedJobsPage() {
           {/* Jobs Grid */}
           {!appliedLoading && !appliedError && appliedJobsData.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {appliedJobsData.map((job) => {
+              {appliedJobsData.map((job: Job) => {
                 const appliedDate = getAppliedDate(job.id);
                 return (
                   <div key={job.id} className="flex flex-col">

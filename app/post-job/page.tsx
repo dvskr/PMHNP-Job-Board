@@ -80,7 +80,7 @@ function PostJobContent() {
             const formData = result.formData;
             
             // Restore all form fields from draft
-            Object.keys(formData).forEach((key) => {
+            Object.keys(formData).forEach((key: string) => {
               const value = formData[key as keyof JobPostingFormData];
               setValue(key as keyof JobPostingFormData, value);
             });
@@ -105,7 +105,7 @@ function PostJobContent() {
             const parsedData: JobPostingFormData = JSON.parse(savedData);
             
             // Restore all form fields
-            Object.keys(parsedData).forEach((key) => {
+            Object.keys(parsedData).forEach((key: string) => {
               const value = parsedData[key as keyof JobPostingFormData];
               setValue(key as keyof JobPostingFormData, value);
             });
@@ -391,7 +391,7 @@ function PostJobContent() {
                 Work Mode <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-                {workModes.map((mode) => (
+                {workModes.map((mode: typeof workModes[number]) => (
                   <label key={mode} className="flex items-center cursor-pointer touch-manipulation py-1">
                     <input
                       type="radio"
@@ -414,7 +414,7 @@ function PostJobContent() {
                 Job Type <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-                {jobTypes.map((type) => (
+                {jobTypes.map((type: typeof jobTypes[number]) => (
                   <label key={type} className="flex items-center cursor-pointer touch-manipulation py-1">
                     <input
                       type="radio"
@@ -443,7 +443,7 @@ function PostJobContent() {
                   Pay Period
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {salaryPeriods.map((period) => (
+                  {salaryPeriods.map((period: typeof salaryPeriods[number]) => (
                     <label
                       key={period.value}
                       className="relative flex items-center justify-center cursor-pointer touch-manipulation"

@@ -358,7 +358,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 Work Mode <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
-                {workModes.map((mode) => (
+                {workModes.map((mode: typeof workModes[number]) => (
                   <label key={mode} className="flex items-center cursor-pointer">
                     <input
                       type="radio"
@@ -381,7 +381,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 Job Type <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
-                {jobTypes.map((type) => (
+                {jobTypes.map((type: typeof jobTypes[number]) => (
                   <label key={type} className="flex items-center cursor-pointer">
                     <input
                       type="radio"

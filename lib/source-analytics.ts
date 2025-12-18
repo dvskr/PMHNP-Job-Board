@@ -188,12 +188,12 @@ export async function getAllSourcesPerformance(): Promise<SourcePerformance[]> {
     });
 
     const uniqueSources = sources
-      .map(s => s.sourceProvider)
+      .map((s: { sourceProvider: string | null }) => s.sourceProvider)
       .filter((s): s is string => s !== null);
 
     // Get performance for each source
     const performances = await Promise.all(
-      uniqueSources.map(source => getSourcePerformance(source))
+      uniqueSources.map((source: string) => getSourcePerformance(source))
     );
 
     // Sort by total jobs descending
@@ -222,7 +222,7 @@ export async function updateDailyStats(): Promise<void> {
     });
 
     const uniqueSources = sources
-      .map(s => s.sourceProvider)
+      .map((s: { sourceProvider: string | null }) => s.sourceProvider)
       .filter((s): s is string => s !== null);
 
     for (const source of uniqueSources) {

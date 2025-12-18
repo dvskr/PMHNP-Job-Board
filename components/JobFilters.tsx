@@ -179,7 +179,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
             Work Mode
           </label>
           <div className="space-y-3">
-            {workModes.map((mode) => (
+            {workModes.map((mode: string) => (
               <label key={mode} className="flex items-center cursor-pointer touch-manipulation py-1">
                 <input
                   type="radio"
@@ -201,7 +201,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
             Job Type
           </label>
           <div className="space-y-3">
-            {jobTypes.map((type) => (
+            {jobTypes.map((type: string) => (
               <label key={type} className="flex items-center cursor-pointer touch-manipulation py-1">
                 <input
                   type="radio"

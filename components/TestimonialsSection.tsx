@@ -52,7 +52,7 @@ export default function TestimonialsSection({
 
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, index) => (
+          {testimonials.map((testimonial: Testimonial, index: number) => (
             <TestimonialCard
               key={index}
               quote={testimonial.quote}

@@ -26,7 +26,7 @@ export default function CategoryChips({ categories, layout = 'row' }: CategoryCh
           : 'flex flex-wrap gap-3'
       }
     >
-      {categories.map((category) => (
+      {categories.map((category: Category) => (
         <Link
           key={category.label}
           href={category.href}

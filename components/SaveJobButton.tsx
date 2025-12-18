@@ -21,7 +21,7 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
     
     if (isSaved) {
       // Remove from saved
-      const updatedJobs = savedJobs.filter((id) => id !== jobId);
+      const updatedJobs = savedJobs.filter((id: string) => id !== jobId);
       localStorage.setItem('savedJobs', JSON.stringify(updatedJobs));
       setIsSaved(false);
     } else {

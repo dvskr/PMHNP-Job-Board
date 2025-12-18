@@ -137,12 +137,12 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
     const totalJobs = jobs.length;
 
     // Filter for PMHNP-related jobs
-    const filteredJobs = jobs.filter((job) => isPMHNPJob(job.title, job.content || ''));
+    const filteredJobs = jobs.filter((job: GreenhouseJob) => isPMHNPJob(job.title, job.content || ''));
     const relevantCount = filteredJobs.length;
 
     console.log(`[Greenhouse] ${companySlug}: ${totalJobs} total, ${relevantCount} PMHNP-relevant`);
 
-    return filteredJobs.map((job) => ({
+    return filteredJobs.map((job: GreenhouseJob) => ({
       id: `greenhouse-${companySlug}-${job.id}`,
       title: job.title,
       company: companyName,

@@ -67,7 +67,7 @@ function JobsContent() {
       // Build query string from filters
       const params = new URLSearchParams();
       params.set('page', page.toString());
-      Object.entries(currentFilters).forEach(([key, value]) => {
+      Object.entries(currentFilters).forEach(([key, value]: [string, string | number | undefined]) => {
         if (value !== undefined && value !== '') {
           params.set(key, value.toString());
         }
@@ -147,7 +147,7 @@ function JobsContent() {
     // Build query string
     const params = new URLSearchParams();
     params.set('page', '1');
-    Object.entries(newFilters).forEach(([key, value]) => {
+    Object.entries(newFilters).forEach(([key, value]: [string, string | number | undefined]) => {
       if (value !== undefined && value !== '') {
         params.set(key, value.toString());
       }
@@ -168,7 +168,7 @@ function JobsContent() {
     // Build query string with new page
     const params = new URLSearchParams();
     params.set('page', newPage.toString());
-    Object.entries(filters).forEach(([key, value]) => {
+    Object.entries(filters).forEach(([key, value]: [string, string | number | undefined]) => {
       if (value !== undefined && value !== '') {
         params.set(key, value.toString());
       }
@@ -183,7 +183,7 @@ function JobsContent() {
 
   // Count active filters
   const activeFilterCount = Object.values(filters).filter(
-    (value) => value !== undefined && value !== ''
+    (value: string | number | undefined) => value !== undefined && value !== ''
   ).length;
 
   // Handle alert creation success
@@ -222,7 +222,7 @@ function JobsContent() {
       params.delete(qf.filterKey);
     } else {
       // Remove all quick filter keys first
-      quickFilters.forEach(filter => params.delete(filter.filterKey));
+      quickFilters.forEach((filter: QuickFilter) => params.delete(filter.filterKey));
       
       // Add only this filter
       params.set(qf.filterKey, qf.filterValue.toString());
@@ -274,7 +274,7 @@ function JobsContent() {
           {/* Quick Filter Chips */}
           {quickFilters.length > 0 && (
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {quickFilters.map((qf) => {
+              {quickFilters.map((qf: QuickFilter) => {
                 const isActive = isQuickFilterActive(qf);
                 return (
                   <button
@@ -336,7 +336,7 @@ function JobsContent() {
           {!loading && !error && jobs.length > 0 && (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {jobs.map((job, index) => (
+                {jobs.map((job: Job, index: number) => (
                   <div key={job.id} className="h-full">
                     <AnimatedContainer
                       animation="fade-in-up"

@@ -199,12 +199,12 @@ export default function AdminJobsPage() {
   if (!stats) return null;
 
   const avgDailyNew = Object.keys(stats.jobsByDay).length > 0
-    ? Math.round(Object.values(stats.jobsByDay).reduce((a, b) => a + b, 0) / Object.keys(stats.jobsByDay).length)
+    ? Math.round(Object.values(stats.jobsByDay).reduce((a: number, b: number) => a + b, 0) / Object.keys(stats.jobsByDay).length)
     : 0;
 
-  const totalBySource = Object.values(stats.bySource).reduce((a, b) => a + b, 0);
+  const totalBySource = Object.values(stats.bySource).reduce((a: number, b: number) => a + b, 0);
 
-  const sortedDays = Object.entries(stats.jobsByDay).sort(([a], [b]) => a.localeCompare(b));
+  const sortedDays = Object.entries(stats.jobsByDay).sort(([a]: [string, number], [b]: [string, number]) => a.localeCompare(b));
   const trend = sortedDays.length >= 2
     ? sortedDays[sortedDays.length - 1][1] > sortedDays[sortedDays.length - 2][1]
     : null;
@@ -259,7 +259,7 @@ export default function AdminJobsPage() {
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
             <h3 className="text-sm font-medium text-blue-700 mb-3">🏆 Best for Volume</h3>
             {(() => {
-              const bestVolume = [...sourceAnalytics].sort((a, b) => b.totalJobs - a.totalJobs)[0];
+              const bestVolume = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.totalJobs - a.totalJobs)[0];
               return (
                 <>
                   <p className="text-2xl font-bold text-blue-900 capitalize">{bestVolume.source}</p>
@@ -272,7 +272,7 @@ export default function AdminJobsPage() {
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
             <h3 className="text-sm font-medium text-green-700 mb-3">⭐ Best for Quality</h3>
             {(() => {
-              const bestQuality = [...sourceAnalytics].sort((a, b) => b.avgQualityScore - a.avgQualityScore)[0];
+              const bestQuality = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.avgQualityScore - a.avgQualityScore)[0];
               return (
                 <>
                   <p className="text-2xl font-bold text-green-900 capitalize">{bestQuality.source}</p>
@@ -285,7 +285,7 @@ export default function AdminJobsPage() {
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
             <h3 className="text-sm font-medium text-purple-700 mb-3">🎯 Best for Clicks</h3>
             {(() => {
-              const bestClicks = [...sourceAnalytics].sort((a, b) => b.clickThroughRate - a.clickThroughRate)[0];
+              const bestClicks = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.clickThroughRate - a.clickThroughRate)[0];
               return (
                 <>
                   <p className="text-2xl font-bold text-purple-900 capitalize">{bestClicks.source}</p>
@@ -318,8 +318,8 @@ export default function AdminJobsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {Object.entries(stats.bySource)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([source, count]) => (
+                  .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+                  .map(([source, count]: [string, number]) => (
                     <tr key={source}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
                         {source}
@@ -366,7 +366,7 @@ export default function AdminJobsPage() {
           </h2>
           <div className="space-y-3">
             {sortedDays.length > 0 ? (
-              sortedDays.map(([date, count]) => (
+              sortedDays.map(([date, count]: [string, number]) => (
                 <div key={date} className="flex items-center">
                   <div className="w-32 text-sm text-gray-600">{date}</div>
                   <div className="flex-1 flex items-center">
@@ -408,7 +408,7 @@ export default function AdminJobsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {stats.topEmployers.map((employer, index) => (
+                {stats.topEmployers.map((employer: { employer: string; count: number }, index: number) => (
                   <tr key={employer.employer}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       #{index + 1}
@@ -463,7 +463,7 @@ export default function AdminJobsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sourceAnalytics.map((source, index) => {
+                  {sourceAnalytics.map((source: SourcePerformance, index: number) => {
                     // Performance scoring for color coding
                     const qualityScore = source.avgQualityScore * 100;
                     const ctr = source.clickThroughRate * 100;
@@ -607,7 +607,7 @@ export default function AdminJobsPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {clickAnalytics.bySource.map((sourceData, index) => {
+                        {clickAnalytics.bySource.map((sourceData: { source: string; clicks: number; jobs: number; avgPerJob: number }, index: number) => {
                           const performance = sourceData.avgPerJob;
                           const getPerformanceColor = () => {
                             if (performance >= 0.5) return 'text-green-700 bg-green-50';
@@ -666,7 +666,7 @@ export default function AdminJobsPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {clickAnalytics.topJobs.map((job, index) => (
+                        {clickAnalytics.topJobs.map((job: { jobId: string; title: string; employer: string; clicks: number }, index: number) => (
                           <tr key={job.jobId} className={index < 3 ? 'bg-yellow-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                               <span className={`font-bold ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-500' : index === 2 ? 'text-amber-600' : ''}`}>
@@ -709,7 +709,7 @@ export default function AdminJobsPage() {
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Sources</option>
-                {Object.keys(stats.bySource).map((source) => (
+                {Object.keys(stats.bySource).map((source: string) => (
                   <option key={source} value={source}>
                     {source.charAt(0).toUpperCase() + source.slice(1)}
                   </option>

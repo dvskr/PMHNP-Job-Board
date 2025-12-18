@@ -86,7 +86,7 @@ function buildJobsWhereClause(alert: JobAlert, sinceDate: Date | null) {
 
 function generateJobListHtml(jobs: Job[]): string {
   return jobs
-    .map((job) => {
+    .map((job: Job) => {
       const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`;
       const salaryText = job.salaryRange || (job.minSalary ? `$${job.minSalary.toLocaleString()}+` : '');
 

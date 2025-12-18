@@ -97,7 +97,7 @@ export default function PopularCategories() {
             Popular Categories
           </h2>
           <div className="flex justify-center gap-3">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5].map((i: number) => (
               <div
                 key={i}
                 className="h-10 w-28 bg-gray-100 rounded-full animate-pulse"

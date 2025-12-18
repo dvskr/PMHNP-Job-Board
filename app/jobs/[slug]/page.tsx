@@ -177,7 +177,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
                 
                 <div className="prose prose-gray max-w-none">
-                  {job.description.split('\n').map((paragraph, index) => {
+                  {job.description.split('\n').map((paragraph: string, index: number) => {
                     // Empty line = spacing
                     if (!paragraph.trim()) {
                       return <div key={index} className="h-4" />;

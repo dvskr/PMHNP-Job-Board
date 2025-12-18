@@ -21,7 +21,7 @@ export default function StaggeredList({
 
   return (
     <div className={className}>
-      {childrenArray.map((child, index) => (
+      {childrenArray.map((child: React.ReactNode, index: number) => (
         <AnimatedContainer
           key={index}
           animation={animation}

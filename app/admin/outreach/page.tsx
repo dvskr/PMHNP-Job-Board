@@ -77,10 +77,10 @@ export default function OutreachPage() {
   };
 
   const getStats = () => {
-    const prospects = leads.filter(l => l.status === 'prospect').length;
-    const contacted = leads.filter(l => l.status === 'contacted').length;
-    const converted = leads.filter(l => l.status === 'converted').length;
-    const responded = leads.filter(l => l.status === 'responded').length;
+  const prospects = leads.filter((l: EmployerLead) => l.status === 'prospect').length;
+  const contacted = leads.filter((l: EmployerLead) => l.status === 'contacted').length;
+  const converted = leads.filter((l: EmployerLead) => l.status === 'converted').length;
+  const responded = leads.filter((l: EmployerLead) => l.status === 'responded').length;
     
     return { prospects, contacted, converted, responded, total: leads.length };
   };
@@ -120,7 +120,7 @@ export default function OutreachPage() {
         
         // Remove from suggestions if added from there
         if (companyName) {
-          setSuggestions(prev => prev.filter(s => s !== companyName));
+          setSuggestions((prev: string[]) => prev.filter((s: string) => s !== companyName));
         }
       }
     } catch (error) {
@@ -181,7 +181,7 @@ export default function OutreachPage() {
   };
 
   const stats = getStats();
-  const filteredLeads = leads.filter(l => l.status === activeStatus);
+  const filteredLeads = leads.filter((l: EmployerLead) => l.status === activeStatus);
 
   if (loading) {
     return (
@@ -338,7 +338,7 @@ export default function OutreachPage() {
         <Card padding="lg" variant="bordered" className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Email Templates</h3>
           <div className="space-y-4">
-            {['initial', 'followUp', 'freeOffer'].map((template) => (
+            {(['initial', 'followUp', 'freeOffer'] as const).map((template: 'initial' | 'followUp' | 'freeOffer') => (
               <div key={template} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-gray-900 capitalize">
@@ -380,7 +380,7 @@ export default function OutreachPage() {
             Top companies actively hiring PMHNPs (3+ job postings)
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {suggestions.slice(0, 12).map((company) => (
+            {suggestions.slice(0, 12).map((company: string) => (
               <div
                 key={company}
                 className="flex items-center justify-between border border-gray-200 rounded-lg p-3"
@@ -403,8 +403,8 @@ export default function OutreachPage() {
         {/* Tab Headers */}
         <div className="border-b border-gray-200 overflow-x-auto">
           <div className="flex min-w-max">
-            {STATUS_OPTIONS.map((status) => {
-              const count = leads.filter(l => l.status === status).length;
+            {STATUS_OPTIONS.map((status: string) => {
+              const count = leads.filter((l: EmployerLead) => l.status === status).length;
               return (
                 <button
                   key={status}
@@ -430,7 +430,7 @@ export default function OutreachPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {filteredLeads.map((lead) => (
+              {filteredLeads.map((lead: EmployerLead) => (
                 <div
                   key={lead.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -474,7 +474,7 @@ export default function OutreachPage() {
                       onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
                       className="text-sm border border-gray-300 rounded px-2 py-1"
                     >
-                      {STATUS_OPTIONS.map((status) => (
+                      {STATUS_OPTIONS.map((status: string) => (
                         <option key={status} value={status}>
                           {status}
                         </option>

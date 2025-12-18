@@ -28,7 +28,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
 
   return (
     <div className="divide-y divide-gray-200">
-      {items.map((item, index) => {
+      {items.map((item: FAQItem, index: number) => {
         const isOpen = openIndex === index;
 
         return (

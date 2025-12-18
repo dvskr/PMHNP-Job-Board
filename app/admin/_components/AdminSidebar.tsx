@@ -80,7 +80,7 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
-          {navItems.map((item) => {
+          {navItems.map((item: typeof navItems[number]) => {
             const Icon = item.icon;
             const active = isActive(item.href);
 
