@@ -70,8 +70,10 @@ function JobsContent() {
       setJobs(data.jobs);
       setTotal(data.total);
       
-      // Scroll to top when results change
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Scroll to top when results change - use requestAnimationFrame to avoid forced reflow
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
