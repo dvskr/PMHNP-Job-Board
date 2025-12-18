@@ -64,10 +64,10 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
 }
 
 interface LinkedInFiltersProps {
-  onFilterChange?: (filters: FilterState) => void;
+  // No props needed - component manages its own state via URL
 }
 
-export default function LinkedInFilters({ onFilterChange }: LinkedInFiltersProps) {
+export default function LinkedInFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -79,6 +79,19 @@ export default function LinkedInFilters({ onFilterChange }: LinkedInFiltersProps
   const [searchInput, setSearchInput] = useState(filters.search);
   const [locationInput, setLocationInput] = useState(filters.location || '');
 
+  // Sync filters with URL changes (browser back/forward)
+  useEffect(() => {
+    const newFilters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
+    
+    // Only update if filters actually changed to prevent infinite loop
+    const filtersChanged = JSON.stringify(newFilters) !== JSON.stringify(filters);
+    if (filtersChanged) {
+      setFilters(newFilters);
+      setSearchInput(newFilters.search);
+      setLocationInput(newFilters.location || '');
+    }
+  }, [searchParams]); // Don't include filters in deps
+
   // Fetch filter counts
   const fetchCounts = useCallback(async (currentFilters: FilterState) => {
     try {
@@ -87,6 +100,11 @@ export default function LinkedInFilters({ onFilterChange }: LinkedInFiltersProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentFilters),
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data: FilterCounts = await response.json();
       setCounts(data);
     } catch (error) {
@@ -100,10 +118,18 @@ export default function LinkedInFilters({ onFilterChange }: LinkedInFiltersProps
   useEffect(() => {
     const params = filtersToParams(filters);
     const newUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
-    router.push(newUrl, { scroll: false });
+    
+    // Only push if URL actually changed to prevent infinite loop
+    const currentUrl = window.location.pathname + (window.location.search ? window.location.search : '');
+    const targetUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
+    
+    if (currentUrl !== targetUrl) {
+      router.push(targetUrl, { scroll: false });
+    }
+    
     fetchCounts(filters);
-    onFilterChange?.(filters);
-  }, [filters, router, fetchCounts, onFilterChange]);
+    // Don't call onFilterChange here - let parent handle URL changes via searchParams
+  }, [filters, router, fetchCounts]);
 
   // Toggle array-based filter (workMode, jobType)
   const toggleArrayFilter = (key: 'workMode' | 'jobType', value: string) => {
@@ -139,8 +165,9 @@ export default function LinkedInFilters({ onFilterChange }: LinkedInFiltersProps
     setSingleFilter('location', locationInput || null);
   };
 
-  // Count active filters
+  // Count active filters (including search)
   const activeFilterCount = 
+    (filters.search ? 1 : 0) +
     filters.workMode.length +
     filters.jobType.length +
     (filters.salaryMin ? 1 : 0) +
@@ -230,6 +257,7 @@ export default function LinkedInFilters({ onFilterChange }: LinkedInFiltersProps
                 <button
                   onClick={pill.onRemove}
                   className="hover:bg-blue-100 rounded-full p-0.5"
+                  aria-label={`Remove ${pill.label} filter`}
                 >
                   <X className="w-3 h-3" />
                 </button>

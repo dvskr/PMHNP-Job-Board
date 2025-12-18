@@ -17,6 +17,9 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
       <button
         onClick={() => setIsOpen(true)}
         className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
+        aria-label="Open filter menu"
+        aria-expanded={isOpen ? "true" : "false"}
+        aria-controls="filter-drawer"
       >
         <SlidersHorizontal className="w-4 h-4" />
         <span className="font-medium">Filters</span>
@@ -32,11 +35,16 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Drawer */}
       <div
+        id="filter-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filter options"
         className={`fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
@@ -46,6 +54,7 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
           <button
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-gray-100 rounded-full"
+            aria-label="Close filter menu"
           >
             <X className="w-5 h-5" />
           </button>

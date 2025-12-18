@@ -136,16 +136,21 @@ async function auditSalaries() {
 
   // Print results
   console.log('📈 SALARY COVERAGE:');
-  console.log(`  ✅ With normalized salary: ${stats.withNormalizedSalary} (${(stats.withNormalizedSalary/allJobs.length*100).toFixed(1)}%)`);
-  console.log(`  📊 Estimated salaries: ${stats.estimatedSalaries}`);
-  console.log(`  ⚠️  With raw salary only (not normalized): ${stats.withRawSalaryOnly}`);
-  console.log(`  ❌ No salary data: ${stats.noSalaryData} (${(stats.noSalaryData/allJobs.length*100).toFixed(1)}%)`);
-  console.log(`  📝 Salary mentioned in description: ${stats.salaryInDescription}`);
+  
+  if (allJobs.length > 0) {
+    console.log(`  ✅ With normalized salary: ${stats.withNormalizedSalary} (${(stats.withNormalizedSalary/allJobs.length*100).toFixed(1)}%)`);
+    console.log(`  📊 Estimated salaries: ${stats.estimatedSalaries}`);
+    console.log(`  ⚠️  With raw salary only (not normalized): ${stats.withRawSalaryOnly}`);
+    console.log(`  ❌ No salary data: ${stats.noSalaryData} (${(stats.noSalaryData/allJobs.length*100).toFixed(1)}%)`);
+    console.log(`  📝 Salary mentioned in description: ${stats.salaryInDescription}`);
+  } else {
+    console.log('  No jobs found.');
+  }
 
   console.log('\n📡 BY SOURCE:');
   const sortedSources = Object.entries(stats.bySource).sort((a, b) => b[1].total - a[1].total);
   for (const [source, data] of sortedSources) {
-    const pct = (data.withSalary / data.total * 100).toFixed(1);
+    const pct = data.total > 0 ? (data.withSalary / data.total * 100).toFixed(1) : '0.0';
     console.log(`  ${source}: ${data.withSalary}/${data.total} (${pct}%)`);
   }
 
@@ -225,10 +230,13 @@ async function auditSalaries() {
   console.log('✅ Salary Audit Complete\n');
 
   await prisma.$disconnect();
+  await pool.end();
 }
 
-auditSalaries().catch((error) => {
+auditSalaries().catch(async (error) => {
   console.error('Error:', error);
+  await prisma.$disconnect();
+  await pool.end();
   process.exit(1);
 });
 

@@ -170,9 +170,13 @@ async function fixAllSalaries() {
 
   console.log('\n📈 FINAL COVERAGE:');
   console.log(`  Total jobs: ${finalStats._count._all}`);
-  console.log(`  With normalized salary: ${withSalary} (${(withSalary / finalStats._count._all * 100).toFixed(1)}%)`);
-  console.log(`  With display salary: ${withDisplay} (${(withDisplay / finalStats._count._all * 100).toFixed(1)}%)`);
-
+  
+  if (finalStats._count._all > 0) {
+    console.log(`  With normalized salary: ${withSalary} (${(withSalary / finalStats._count._all * 100).toFixed(1)}%)`);
+    console.log(`  With display salary: ${withDisplay} (${(withDisplay / finalStats._count._all * 100).toFixed(1)}%)`);
+  } else {
+    console.log('  No jobs found to calculate coverage.');
+  }
   // Sample output
   console.log('\n📋 SAMPLE JOBS WITH NEW DISPLAY FORMAT:');
   const samples = await prisma.job.findMany({

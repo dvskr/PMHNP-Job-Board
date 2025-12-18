@@ -14,8 +14,9 @@ const THRESHOLDS = {
 };
 
 // Conversion factor for hourly → annual
-// 30 hrs/week × 50 weeks = 1,500 hours (realistic for contractors)
-const HOURLY_TO_ANNUAL_HOURS = 1500;
+// 40 hrs/week × 52 weeks = 2,080 hours (standard full-time)
+// This matches the conversion in lib/salary-normalizer.ts
+const HOURLY_TO_ANNUAL_HOURS = 2080;
 
 // ============================================
 // TYPES
@@ -187,7 +188,17 @@ function processAnnualSalary(
   if (minSalary && maxSalary && minSalary !== maxSalary) {
     displaySalary = `${formatK(minSalary)}-${formatK(maxSalary)}/yr`;
   } else {
-    displaySalary = `${formatK(minSalary || maxSalary!)}/yr`;
+    const salaryValue = minSalary || maxSalary;
+    if (!salaryValue) {
+      return {
+        normalizedMin: null,
+        normalizedMax: null,
+        displaySalary: null,
+        salaryType: 'annual',
+        isValid: false,
+      };
+    }
+    displaySalary = `${formatK(salaryValue)}/yr`;
   }
 
   return {
@@ -338,12 +349,15 @@ export function formatSalaryDisplay(
     if (minHr && maxHr && minHr !== maxHr) {
       return `${minHr}-${maxHr}/hr`;
     }
-    return `${minHr || maxHr}/hr`;
+    const hrRate = minHr || maxHr;
+    return hrRate ? `${hrRate}/hr` : null;
   }
 
   // Default to annual format
   if (normalizedMin && normalizedMax && normalizedMin !== normalizedMax) {
     return `${formatK(normalizedMin)}-${formatK(normalizedMax)}/yr`;
   }
-  return `${formatK(normalizedMin || normalizedMax!)}/yr`;
+  
+  const salaryValue = normalizedMin || normalizedMax;
+  return salaryValue ? `${formatK(salaryValue)}/yr` : null;
 }

@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     const workModeBase = buildWhereClause(workModeFilters);
     
     const [remoteCount, hybridCount, onsiteCount] = await Promise.all([
-      prisma.job.count({ where: { ...workModeBase, isRemote: true } }),
-      prisma.job.count({ where: { ...workModeBase, isHybrid: true } }),
-      prisma.job.count({ where: { ...workModeBase, isRemote: false, isHybrid: false } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isRemote: true }] } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isHybrid: true }] } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isRemote: false, isHybrid: false }] } }),
     ]);
 
     // Job Type counts
@@ -47,37 +47,53 @@ export async function POST(request: NextRequest) {
     const [anySalary, over100k, over150k, over200k] = await Promise.all([
       prisma.job.count({
         where: {
-          ...salaryBase,
-          OR: [
-            { normalizedMinSalary: { not: null } },
-            { normalizedMaxSalary: { not: null } },
+          AND: [
+            salaryBase,
+            {
+              OR: [
+                { normalizedMinSalary: { not: null } },
+                { normalizedMaxSalary: { not: null } },
+              ],
+            },
           ],
         },
       }),
       prisma.job.count({
         where: {
-          ...salaryBase,
-          OR: [
-            { normalizedMinSalary: { gte: 100000 } },
-            { normalizedMaxSalary: { gte: 100000 } },
+          AND: [
+            salaryBase,
+            {
+              OR: [
+                { normalizedMinSalary: { gte: 100000 } },
+                { normalizedMaxSalary: { gte: 100000 } },
+              ],
+            },
           ],
         },
       }),
       prisma.job.count({
         where: {
-          ...salaryBase,
-          OR: [
-            { normalizedMinSalary: { gte: 150000 } },
-            { normalizedMaxSalary: { gte: 150000 } },
+          AND: [
+            salaryBase,
+            {
+              OR: [
+                { normalizedMinSalary: { gte: 150000 } },
+                { normalizedMaxSalary: { gte: 150000 } },
+              ],
+            },
           ],
         },
       }),
       prisma.job.count({
         where: {
-          ...salaryBase,
-          OR: [
-            { normalizedMinSalary: { gte: 200000 } },
-            { normalizedMaxSalary: { gte: 200000 } },
+          AND: [
+            salaryBase,
+            {
+              OR: [
+                { normalizedMinSalary: { gte: 200000 } },
+                { normalizedMaxSalary: { gte: 200000 } },
+              ],
+            },
           ],
         },
       }),
@@ -92,20 +108,26 @@ export async function POST(request: NextRequest) {
     const [day, week, month] = await Promise.all([
       prisma.job.count({
         where: {
-          ...postedBase,
-          createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+          AND: [
+            postedBase,
+            { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+          ],
         },
       }),
       prisma.job.count({
         where: {
-          ...postedBase,
-          createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
+          AND: [
+            postedBase,
+            { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+          ],
         },
       }),
       prisma.job.count({
         where: {
-          ...postedBase,
-          createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
+          AND: [
+            postedBase,
+            { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+          ],
         },
       }),
     ]);

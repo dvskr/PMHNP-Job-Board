@@ -525,6 +525,7 @@ export default function SettingsPage() {
               onClick={() => setShowDeleteModal(false)}
               disabled={deleting}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              aria-label="Close delete account modal"
             >
               <X className="w-5 h-5" />
             </button>

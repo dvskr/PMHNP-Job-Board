@@ -231,7 +231,7 @@ export default async function LocationsPage() {
                     href={`/jobs/state/${state.slug}`}
                     className="group"
                   >
-                    <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-primary-400 hover:shadow-md transition-all duration-200 h-full">
+                    <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-blue-400 hover:shadow-md transition-all duration-200 h-full">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1">
