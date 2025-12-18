@@ -23,6 +23,11 @@ function cleanDescription(rawDescription: string): string {
   
   let cleaned = rawDescription;
   
+  // Convert literal \n and \r\n strings to actual newlines
+  cleaned = cleaned.replace(/\\r\\n/g, '\n');
+  cleaned = cleaned.replace(/\\n/g, '\n');
+  cleaned = cleaned.replace(/\\r/g, '\n');
+  
   // Convert HTML block elements to newlines BEFORE stripping tags
   cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
   cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
@@ -55,6 +60,16 @@ function cleanDescription(rawDescription: string): string {
   cleaned = cleaned.replace(/&apos;/g, "'");
   cleaned = cleaned.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
   cleaned = cleaned.replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+  
+  // Remove duplicate headers (e.g., "Job Description Job Description:")
+  cleaned = cleaned.replace(/^(Job Description[:\s]*){2,}/i, 'Job Description:\n\n');
+  cleaned = cleaned.replace(/\n(Job Description[:\s]*){2,}/gi, '\nJob Description:\n\n');
+  
+  // Remove common repetitive prefixes
+  cleaned = cleaned.replace(/^Job Description[:\s]*Job Description[:\s]*/i, '');
+  cleaned = cleaned.replace(/^Job Description[:\s]*/i, '');
+  cleaned = cleaned.replace(/^Description[:\s]*Description[:\s]*/i, '');
+  cleaned = cleaned.replace(/^Description[:\s]*/i, '');
   
   // Clean up whitespace
   cleaned = cleaned.replace(/[ \t]+/g, ' ');           // Multiple spaces to single

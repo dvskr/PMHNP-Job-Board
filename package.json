@@ -16,7 +16,8 @@
     "audit:salaries": "ts-node --project scripts/tsconfig.json scripts/audit-salaries.ts",
     "fix:locations": "ts-node --project scripts/tsconfig.json scripts/fix-missing-locations.ts",
     "fix:salaries": "ts-node --project scripts/tsconfig.json scripts/fix-all-salaries.ts",
-    "populate:display-salaries": "ts-node --project scripts/tsconfig.json scripts/populate-display-salaries.ts"
+    "populate:display-salaries": "ts-node --project scripts/tsconfig.json scripts/populate-display-salaries.ts",
+    "clean:descriptions": "ts-node --project scripts/tsconfig.json scripts/clean-job-descriptions.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
