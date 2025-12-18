@@ -308,25 +308,25 @@ export default function LinkedInFilters() {
           </div>
         </form>
 
-        {/* Work Mode */}
-        <FilterSection title="Work Mode">
+        {/* Date Posted */}
+        <FilterSection title="Date Posted">
           <CheckboxFilter
-            label="Remote"
-            count={counts?.workMode.remote || 0}
-            checked={filters.workMode.includes('remote')}
-            onChange={() => toggleArrayFilter('workMode', 'remote')}
+            label="Past 24 hours"
+            count={counts?.postedWithin['24h'] || 0}
+            checked={filters.postedWithin === '24h'}
+            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
           />
           <CheckboxFilter
-            label="Hybrid"
-            count={counts?.workMode.hybrid || 0}
-            checked={filters.workMode.includes('hybrid')}
-            onChange={() => toggleArrayFilter('workMode', 'hybrid')}
+            label="Past week"
+            count={counts?.postedWithin['7d'] || 0}
+            checked={filters.postedWithin === '7d'}
+            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '7d' ? null : '7d')}
           />
           <CheckboxFilter
-            label="On-site"
-            count={counts?.workMode.onsite || 0}
-            checked={filters.workMode.includes('onsite')}
-            onChange={() => toggleArrayFilter('workMode', 'onsite')}
+            label="Past month"
+            count={counts?.postedWithin['30d'] || 0}
+            checked={filters.postedWithin === '30d'}
+            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '30d' ? null : '30d')}
           />
         </FilterSection>
 
@@ -358,25 +358,25 @@ export default function LinkedInFilters() {
           />
         </FilterSection>
 
-        {/* Date Posted */}
-        <FilterSection title="Date Posted">
+        {/* Work Mode */}
+        <FilterSection title="Work Mode">
           <CheckboxFilter
-            label="Past 24 hours"
-            count={counts?.postedWithin['24h'] || 0}
-            checked={filters.postedWithin === '24h'}
-            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
+            label="Remote"
+            count={counts?.workMode.remote || 0}
+            checked={filters.workMode.includes('remote')}
+            onChange={() => toggleArrayFilter('workMode', 'remote')}
           />
           <CheckboxFilter
-            label="Past week"
-            count={counts?.postedWithin['7d'] || 0}
-            checked={filters.postedWithin === '7d'}
-            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '7d' ? null : '7d')}
+            label="Hybrid"
+            count={counts?.workMode.hybrid || 0}
+            checked={filters.workMode.includes('hybrid')}
+            onChange={() => toggleArrayFilter('workMode', 'hybrid')}
           />
           <CheckboxFilter
-            label="Past month"
-            count={counts?.postedWithin['30d'] || 0}
-            checked={filters.postedWithin === '30d'}
-            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '30d' ? null : '30d')}
+            label="On-site"
+            count={counts?.workMode.onsite || 0}
+            checked={filters.workMode.includes('onsite')}
+            onChange={() => toggleArrayFilter('workMode', 'onsite')}
           />
         </FilterSection>
 
