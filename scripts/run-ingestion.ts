@@ -48,9 +48,10 @@ async function runIngestion() {
     try {
       const stats = await getIngestionStats();
       console.log(`📈 CURRENT DATABASE STATS:`);
-      console.log(`  - Total Jobs: ${stats.totalJobs ?? 0}`);
-      console.log(`  - Published: ${stats.publishedJobs ?? 0}`);
-      console.log(`  - Expired: ${stats.expiredJobs ?? 0}\n`);
+      console.log(`  - Total Active: ${stats.totalActive}`);
+      console.log(`  - Added Last 24h: ${stats.addedLast24h}`);
+      console.log(`  - By Source:`, stats.bySource);
+      console.log();
     } catch (error) {
       console.log('⚠️  Could not fetch stats\n');
     }
