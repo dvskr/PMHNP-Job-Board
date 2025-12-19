@@ -3,6 +3,10 @@ import Link from 'next/link';
 import { MapPin, Wifi, TrendingUp, Globe } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
+// Force dynamic rendering - don't try to statically generate during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Revalidate every hour
+
 // Type definitions for Prisma groupBy results
 interface StateGroupResult {
   state: string | null;
