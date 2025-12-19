@@ -1,6 +1,6 @@
-// Load environment first
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env' });
+// Load environment BEFORE any imports
+import { config } from 'dotenv';
+config({ path: '.env.local' });
 
 import { prisma } from '../lib/prisma';
 
