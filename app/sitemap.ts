@@ -75,29 +75,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
   
-  // Dynamic job pages
-  const jobs = await prisma.job.findMany({
-    where: { isPublished: true },
-    select: {
-      id: true,
-      title: true,
-      updatedAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 1000, // Limit to most recent 1000 jobs
-  })
-  
-  const jobPages = jobs.map((job: JobSitemapData) => {
-    // Create slug from title and ID
-    const slug = `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${job.id}`
-    return {
-      url: `${baseUrl}/jobs/${slug}`,
-      lastModified: job.updatedAt,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    }
-  })
-  
-  return [...staticPages, ...jobPages]
+  try {
+    // Dynamic job pages
+    const jobs = await prisma.job.findMany({
+      where: { isPublished: true },
+      select: {
+        id: true,
+        title: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1000, // Limit to most recent 1000 jobs
+    })
+    
+    const jobPages = jobs.map((job: JobSitemapData) => {
+      // Create slug from title and ID
+      const slug = `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${job.id}`
+      return {
+        url: `${baseUrl}/jobs/${slug}`,
+        lastModified: job.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      }
+    })
+    
+    return [...staticPages, ...jobPages]
+  } catch (error) {
+    console.error('Error generating sitemap, returning static pages only:', error)
+    // Return static pages if database is unavailable during build
+    return staticPages
+  }
 }
 

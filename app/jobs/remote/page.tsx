@@ -5,6 +5,10 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 
+// Force dynamic rendering - don't try to statically generate during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Revalidate every hour
+
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {
   employer: string;
