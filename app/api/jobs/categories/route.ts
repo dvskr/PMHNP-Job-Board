@@ -132,10 +132,21 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching job categories:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch job categories' },
-      { status: 500 }
-    );
+    // Return empty categories instead of error to prevent UI breaking
+    return NextResponse.json({
+      byMode: {},
+      byJobType: {},
+      byState: {},
+      special: {
+        highPaying: 0,
+        newThisWeek: 0,
+      },
+    }, {
+      status: 200, // Return 200 with empty data instead of 500
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
+    });
   }
 }
 

@@ -223,29 +223,35 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
  * Generate static params for top cities
  */
 export async function generateStaticParams() {
-  // Get top 30 cities by job count
-  const topCities = await prisma.job.groupBy({
-    by: ['city'],
-    where: {
-      isPublished: true,
-      city: { not: null },
-    },
-    _count: {
-      city: true,
-    },
-    orderBy: {
-      _count: {
-        city: 'desc',
+  try {
+    // Get top 30 cities by job count
+    const topCities = await prisma.job.groupBy({
+      by: ['city'],
+      where: {
+        isPublished: true,
+        city: { not: null },
       },
-    },
-    take: 30,
-  });
+      _count: {
+        city: true,
+      },
+      orderBy: {
+        _count: {
+          city: 'desc',
+        },
+      },
+      take: 30,
+    });
 
-  // Process with explicit typing
-  const filteredCities = topCities.filter((c: CityGroupResult) => c.city !== null);
-  return filteredCities.map((c: CityGroupResult) => ({
-    city: c.city!.toLowerCase().replace(/\s+/g, '-'),
-  }));
+    // Process with explicit typing
+    const filteredCities = topCities.filter((c: CityGroupResult) => c.city !== null);
+    return filteredCities.map((c: CityGroupResult) => ({
+      city: c.city!.toLowerCase().replace(/\s+/g, '-'),
+    }));
+  } catch (error) {
+    console.log('Could not generate static params for cities, will use dynamic rendering');
+    // Return empty array to avoid build failure, pages will be generated on-demand
+    return [];
+  }
 }
 
 /**
