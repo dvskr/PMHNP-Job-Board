@@ -21,10 +21,17 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch stats' },
-      { status: 500 }
-    );
+    // Return zeros instead of error to prevent UI breaking
+    return NextResponse.json({
+      totalJobs: 0,
+      totalSubscribers: 0,
+      totalCompanies: 0,
+    }, {
+      status: 200, // Return 200 with empty data instead of 500
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
+    });
   }
 }
 
