@@ -6,6 +6,10 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 
+// Force dynamic rendering - don't try to statically generate during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Revalidate every hour
+
 // Type definitions for Prisma groupBy results
 interface EmployerGroupResult {
   employer: string;
@@ -192,65 +196,38 @@ async function getCityStats(cityName: string) {
  * Generate metadata for SEO
  */
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
-  const { city: cityParam } = await params;
-  const cityName = parseCityParam(cityParam);
-  const stats = await getCityStats(cityName);
-
-  if (stats.totalJobs === 0) {
-    return {
-      title: `PMHNP Jobs in ${cityName}`,
-      description: `Find psychiatric mental health nurse practitioner jobs in ${cityName}.`,
-    };
-  }
-
-  const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
-
-  return {
-    title: `PMHNP Jobs in ${location} - ${stats.totalJobs} Psychiatric NP Positions`,
-    description: `Find ${stats.totalJobs} PMHNP jobs in ${location}. Psychiatric mental health nurse practitioner positions${stats.avgSalary > 0 ? ` with average salary $${stats.avgSalary}k` : ''}. Apply today.`,
-    openGraph: {
-      title: `${stats.totalJobs} PMHNP Jobs in ${location}`,
-      description: `Browse psychiatric mental health nurse practitioner jobs in ${cityName}${stats.avgSalary > 0 ? `. Average salary: $${stats.avgSalary}k/year` : ''}.`,
-      type: 'website',
-    },
-    alternates: {
-      canonical: `/jobs/city/${cityParam}`,
-    },
-  };
-}
-
-/**
- * Generate static params for top cities
- */
-export async function generateStaticParams() {
   try {
-    // Get top 30 cities by job count
-    const topCities = await prisma.job.groupBy({
-      by: ['city'],
-      where: {
-        isPublished: true,
-        city: { not: null },
-      },
-      _count: {
-        city: true,
-      },
-      orderBy: {
-        _count: {
-          city: 'desc',
-        },
-      },
-      take: 30,
-    });
+    const { city: cityParam } = await params;
+    const cityName = parseCityParam(cityParam);
+    const stats = await getCityStats(cityName);
 
-    // Process with explicit typing
-    const filteredCities = topCities.filter((c: CityGroupResult) => c.city !== null);
-    return filteredCities.map((c: CityGroupResult) => ({
-      city: c.city!.toLowerCase().replace(/\s+/g, '-'),
-    }));
+    if (stats.totalJobs === 0) {
+      return {
+        title: `PMHNP Jobs in ${cityName}`,
+        description: `Find psychiatric mental health nurse practitioner jobs in ${cityName}.`,
+      };
+    }
+
+    const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
+
+    return {
+      title: `PMHNP Jobs in ${location} - ${stats.totalJobs} Psychiatric NP Positions`,
+      description: `Find ${stats.totalJobs} PMHNP jobs in ${location}. Psychiatric mental health nurse practitioner positions${stats.avgSalary > 0 ? ` with average salary $${stats.avgSalary}k` : ''}. Apply today.`,
+      openGraph: {
+        title: `${stats.totalJobs} PMHNP Jobs in ${location}`,
+        description: `Browse psychiatric mental health nurse practitioner jobs in ${cityName}${stats.avgSalary > 0 ? `. Average salary: $${stats.avgSalary}k/year` : ''}.`,
+        type: 'website',
+      },
+      alternates: {
+        canonical: `/jobs/city/${cityParam}`,
+      },
+    };
   } catch (error) {
-    console.log('Could not generate static params for cities, will use dynamic rendering');
-    // Return empty array to avoid build failure, pages will be generated on-demand
-    return [];
+    console.error('Error generating metadata:', error);
+    return {
+      title: 'PMHNP Jobs by City',
+      description: 'Find psychiatric mental health nurse practitioner jobs by city.',
+    };
   }
 }
 

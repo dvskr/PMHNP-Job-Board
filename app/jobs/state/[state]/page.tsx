@@ -6,6 +6,10 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 
+// Force dynamic rendering - don't try to statically generate during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Revalidate every hour
+
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {
   employer: string;
@@ -186,47 +190,38 @@ async function getStateStats(stateName: string, stateCode: string) {
  * Generate metadata for SEO
  */
 export async function generateMetadata({ params }: StatePageProps): Promise<Metadata> {
-  const { state: stateParam } = await params;
-  const stateInfo = parseStateParam(stateParam);
-  
-  if (!stateInfo) {
+  try {
+    const { state: stateParam } = await params;
+    const stateInfo = parseStateParam(stateParam);
+    
+    if (!stateInfo) {
+      return {
+        title: 'State Not Found',
+      };
+    }
+
+    const { name: stateName, code: stateCode } = stateInfo;
+    const stats = await getStateStats(stateName, stateCode);
+
     return {
-      title: 'State Not Found',
+      title: `PMHNP Jobs in ${stateName} - ${stats.totalJobs} Psychiatric NP Positions`,
+      description: `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Psychiatric mental health nurse practitioner positions with average salary $${stats.avgSalary}k. Remote and in-person opportunities.`,
+      openGraph: {
+        title: `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
+        description: `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Average salary: $${stats.avgSalary}k/year.`,
+        type: 'website',
+      },
+      alternates: {
+        canonical: `/jobs/state/${stateParam}`,
+      },
+    };
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+    return {
+      title: 'PMHNP Jobs by State',
+      description: 'Find psychiatric mental health nurse practitioner jobs by state.',
     };
   }
-
-  const { name: stateName, code: stateCode } = stateInfo;
-  const stats = await getStateStats(stateName, stateCode);
-
-  return {
-    title: `PMHNP Jobs in ${stateName} - ${stats.totalJobs} Psychiatric NP Positions`,
-    description: `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Psychiatric mental health nurse practitioner positions with average salary $${stats.avgSalary}k. Remote and in-person opportunities.`,
-    openGraph: {
-      title: `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
-      description: `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Average salary: $${stats.avgSalary}k/year.`,
-      type: 'website',
-    },
-    alternates: {
-      canonical: `/jobs/state/${stateParam}`,
-    },
-  };
-}
-
-/**
- * Generate static params for all states
- */
-export async function generateStaticParams() {
-  // Generate URL-friendly slugs for all states
-  const stateParams = Object.keys(STATE_CODES).map((stateName: string) => ({
-    state: stateName.toLowerCase().replace(/\s+/g, '-'),
-  }));
-
-  // Also add state codes as params
-  const codeParams = Object.values(STATE_CODES).map((code: string) => ({
-    state: code.toLowerCase(),
-  }));
-
-  return [...stateParams, ...codeParams];
 }
 
 /**
