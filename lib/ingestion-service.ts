@@ -10,7 +10,6 @@ import { checkDuplicate } from '@/lib/deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
-import { cleanAllJobDescriptions } from './description-cleaner';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet';
 
@@ -212,11 +211,10 @@ export async function ingestJobs(
   });
   console.log('='.repeat(80) + '\n');
 
-  // Run description cleanup after ingestion
+  // Run post-ingestion cleanup if any jobs were added
   if (totals.added > 0) {
-    console.log('Running post-ingestion cleanup...\n');
-    const cleanupResult = await cleanAllJobDescriptions();
-    console.log(`[CLEANUP] ${cleanupResult.cleaned} jobs cleaned, ${cleanupResult.skipped} already clean\n`);
+    const { cleanAllJobDescriptions } = await import('./description-cleaner');
+    await cleanAllJobDescriptions();
   }
 
   return results;

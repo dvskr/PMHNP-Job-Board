@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma';
 
 function cleanDescription(rawDescription: string): string {
   if (!rawDescription) return '';
@@ -63,84 +63,70 @@ function cleanDescription(rawDescription: string): string {
   return cleaned;
 }
 
-/**
- * Clean descriptions for all jobs (removes HTML tags and entities)
- * Returns the number of jobs cleaned
- */
 export async function cleanAllJobDescriptions(): Promise<{
   total: number;
   cleaned: number;
   skipped: number;
   errors: number;
 }> {
-  console.log('\n[CLEANUP] Starting description cleanup...');
+  console.log('[POST-INGESTION CLEANUP] Checking for jobs with HTML tags...');
   
-  try {
-    // Get all jobs
-    const jobs = await prisma.job.findMany({
-      select: {
-        id: true,
-        description: true,
-        descriptionSummary: true,
-      },
-    });
-    
-    console.log(`[CLEANUP] Found ${jobs.length} jobs to check`);
-    
-    let cleaned = 0;
-    let skipped = 0;
-    let errors = 0;
-    
-    for (const job of jobs) {
-      try {
-        // Check if description has HTML tags
-        const hasHtml = /<[^>]+>/.test(job.description || '') || /<[^>]+>/.test(job.descriptionSummary || '');
-        
-        if (!hasHtml) {
-          skipped++;
-          continue;
-        }
-        
-        // Clean the description
-        const cleanedDescription = cleanDescription(job.description || '');
-        const cleanedSummary = cleanedDescription.slice(0, 300) + (cleanedDescription.length > 300 ? '...' : '');
-        
-        // Update the job
-        await prisma.job.update({
-          where: { id: job.id },
-          data: {
-            description: cleanedDescription,
-            descriptionSummary: cleanedSummary,
-          },
-        });
-        
-        cleaned++;
-        
-        if (cleaned % 50 === 0) {
-          console.log(`[CLEANUP] Cleaned ${cleaned} jobs...`);
-        }
-      } catch (error) {
-        console.error(`[CLEANUP] Error cleaning job ${job.id}:`, error);
-        errors++;
+  // Get all jobs
+  const jobs = await prisma.job.findMany({
+    select: {
+      id: true,
+      description: true,
+      descriptionSummary: true,
+    },
+  });
+  
+  let cleaned = 0;
+  let skipped = 0;
+  let errors = 0;
+  
+  for (const job of jobs) {
+    try {
+      // Check if description has HTML tags
+      const hasHtml = /<[^>]+>/.test(job.description || '') || /<[^>]+>/.test(job.descriptionSummary || '');
+      
+      if (!hasHtml) {
+        skipped++;
+        continue;
       }
+      
+      // Clean the description
+      const cleanedDescription = cleanDescription(job.description || '');
+      const cleanedSummary = cleanedDescription.slice(0, 300) + (cleanedDescription.length > 300 ? '...' : '');
+      
+      // Update the job
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          description: cleanedDescription,
+          descriptionSummary: cleanedSummary,
+        },
+      });
+      
+      cleaned++;
+    } catch (error) {
+      console.error(`[POST-INGESTION CLEANUP] Error cleaning job ${job.id}:`, error);
+      errors++;
     }
-    
-    console.log(`[CLEANUP] Complete: ${cleaned} cleaned, ${skipped} skipped, ${errors} errors`);
-    
-    return {
-      total: jobs.length,
-      cleaned,
-      skipped,
-      errors,
-    };
-  } catch (error) {
-    console.error('[CLEANUP] Fatal error:', error);
-    return {
-      total: 0,
-      cleaned: 0,
-      skipped: 0,
-      errors: 0,
-    };
   }
+  
+  const result = {
+    total: jobs.length,
+    cleaned,
+    skipped,
+    errors,
+  };
+  
+  if (cleaned > 0) {
+    console.log(`[POST-INGESTION CLEANUP] ✨ Cleaned ${cleaned} jobs, ${skipped} already clean, ${errors} errors`);
+  } else {
+    console.log(`[POST-INGESTION CLEANUP] ✓ All ${skipped} jobs already clean`);
+  }
+  
+  return result;
 }
 
