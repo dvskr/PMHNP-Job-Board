@@ -16,19 +16,25 @@ function JobsContent() {
   
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  const fetchJobs = useCallback(async (filters: FilterState) => {
+  const fetchJobs = useCallback(async (filters: FilterState, page: number = 1) => {
     try {
       setLoading(true);
       setError(null);
       
       // Build query string from filters
       const params = new URLSearchParams();
+      
+      // Add pagination
+      params.set('page', page.toString());
+      params.set('limit', '50'); // Show 50 jobs per page
       
       // Add search
       if (filters.search) {
@@ -66,9 +72,11 @@ function JobsContent() {
       if (!response.ok) {
         throw new Error('Failed to fetch jobs');
       }
-      const data: { jobs: Job[]; total: number } = await response.json();
+      const data: { jobs: Job[]; total: number; totalPages: number; page: number } = await response.json();
       setJobs(data.jobs);
       setTotal(data.total);
+      setTotalPages(data.totalPages);
+      setCurrentPage(data.page);
       
       // Scroll to top when results change - use requestAnimationFrame to avoid forced reflow
       requestAnimationFrame(() => {
@@ -85,9 +93,17 @@ function JobsContent() {
   useEffect(() => {
     const filters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
     setCurrentFilters(filters);
-    fetchJobs(filters);
+    setCurrentPage(1); // Reset to page 1 when filters change
+    fetchJobs(filters, 1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams, not fetchJobs
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchJobs(currentFilters, newPage);
+    }
+  };
 
   // Count active filters (including search)
   const activeFilterCount = 
@@ -154,7 +170,13 @@ function JobsContent() {
           {!loading && !error && (
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-gray-500">
-                Showing {total.toLocaleString()} job{total !== 1 ? 's' : ''}
+                {total > 0 ? (
+                  <>
+                    Showing {((currentPage - 1) * 50) + 1}-{Math.min(currentPage * 50, total)} of {total.toLocaleString()} job{total !== 1 ? 's' : ''}
+                  </>
+                ) : (
+                  <>Showing {total} jobs</>
+                )}
               </p>
             </div>
           )}
@@ -183,18 +205,99 @@ function JobsContent() {
 
           {/* Jobs Grid */}
           {!loading && !error && jobs.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {jobs.map((job: Job, index: number) => (
-                <div key={job.id} className="h-full">
-                  <AnimatedContainer
-                    animation="fade-in-up"
-                    delay={Math.min(index * 50, 600)}
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {jobs.map((job: Job, index: number) => (
+                  <div key={job.id} className="h-full">
+                    <AnimatedContainer
+                      animation="fade-in-up"
+                      delay={Math.min(index * 50, 600)}
+                    >
+                      <JobCard job={job} />
+                    </AnimatedContainer>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Previous page"
                   >
-                    <JobCard job={job} />
-                  </AnimatedContainer>
+                    Previous
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {/* First Page */}
+                    {currentPage > 3 && (
+                      <>
+                        <button
+                          onClick={() => handlePageChange(1)}
+                          className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          1
+                        </button>
+                        {currentPage > 4 && (
+                          <span className="px-2 text-gray-500">...</span>
+                        )}
+                      </>
+                    )}
+
+                    {/* Pages around current */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => {
+                        const distance = Math.abs(page - currentPage);
+                        return distance <= 2 || page === 1 || page === totalPages;
+                      })
+                      .filter(page => page !== 1 && page !== totalPages)
+                      .map(page => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            page === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                    {/* Last Page */}
+                    {currentPage < totalPages - 2 && (
+                      <>
+                        {currentPage < totalPages - 3 && (
+                          <span className="px-2 text-gray-500">...</span>
+                        )}
+                        <button
+                          onClick={() => handlePageChange(totalPages)}
+                          className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          {totalPages}
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Next page"
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </main>
       </div>
