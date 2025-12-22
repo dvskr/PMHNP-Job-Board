@@ -77,26 +77,25 @@ export default function AvatarUpload({
       setPreview(previewUrl)
       setUploading(true)
 
-      const supabase = createClient()
-      
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.${fileExt}`
+      // Upload via API endpoint (handles auth and RLS policies)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', 'avatar')
 
-      // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true })
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (uploadError) throw uploadError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
+      const { url } = await response.json()
 
       // Call callback with new URL
-      onUploadComplete(publicUrl)
+      onUploadComplete(url)
       
       // Clean up preview
       URL.revokeObjectURL(previewUrl)

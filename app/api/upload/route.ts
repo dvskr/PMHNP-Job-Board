@@ -1,26 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadResume, uploadAvatar, validateFile } from '@/lib/supabase-storage';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user from Supabase session
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please sign in.' },
+        { status: 401 }
+      );
+    }
+
     // Get the form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string;
     const uploadType = formData.get('type') as 'resume' | 'avatar';
 
     // Validate required fields
     if (!file) {
       return NextResponse.json(
         { error: 'No file provided' },
-        { status: 400 }
-      );
-    }
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
         { status: 400 }
       );
     }
@@ -45,22 +49,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload based on type
+    // Upload based on type (using authenticated user's ID)
     let result;
     if (uploadType === 'resume') {
-      result = await uploadResume(buffer, file.name, file.type, userId);
+      result = await uploadResume(buffer, file.name, file.type, user.id);
       
       // Update user profile with resume URL
       await prisma.userProfile.update({
-        where: { supabaseId: userId },
+        where: { supabaseId: user.id },
         data: { resumeUrl: result.url },
       });
     } else {
-      result = await uploadAvatar(buffer, file.name, file.type, userId);
+      result = await uploadAvatar(buffer, file.name, file.type, user.id);
       
       // Update user profile with avatar URL
       await prisma.userProfile.update({
-        where: { supabaseId: userId },
+        where: { supabaseId: user.id },
         data: { avatarUrl: result.url },
       });
     }
