@@ -76,33 +76,26 @@ export default function ResumeUpload({
     try {
       setUploading(true)
 
-      const supabase = createClient()
+      // Upload via API endpoint (handles auth and RLS policies)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', 'resume')
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
+
+      const { url } = await response.json()
       
-      // Generate unique filename
-      const timestamp = Date.now()
-      const uploadFileName = `${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}-resume-${timestamp}.pdf`
-
-      // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(uploadFileName, file, { upsert: true })
-
-      if (uploadError) throw uploadError
-
-      // Get signed URL (for private files, valid for 1 year)
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from('resumes')
-        .createSignedUrl(uploadFileName, 60 * 60 * 24 * 365) // 1 year
-
-      if (urlError) throw urlError
-      if (!urlData?.signedUrl) throw new Error('Failed to get signed URL')
-
-      // Store the actual storage path, not the signed URL (signed URLs expire)
-      const publicPath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/resumes/${uploadFileName}`
-      
-      // Call callback with storage path
+      // Call callback with the URL
       setFileName(file.name)
-      onUploadComplete(publicPath)
+      onUploadComplete(url)
     } catch (err: any) {
       console.error('Upload error:', err)
       setError(err.message || 'Failed to upload resume')
