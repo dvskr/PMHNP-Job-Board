@@ -64,9 +64,8 @@ export function slugify(title: string, id: string): string {
     .replace(/-+/g, '-')
     .trim();
   
-  const idSuffix = id.slice(-8);
-  
-  return `${slug}-${idSuffix}`;
+  // Use full UUID to match database slugs
+  return `${slug}-${id}`;
 }
 
 export function isNewJob(createdAt: Date): boolean {
