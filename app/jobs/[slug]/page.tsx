@@ -36,7 +36,12 @@ async function getJob(id: string): Promise<Job | null> {
 export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
-  const id = slug.split('-').pop();
+  
+  // Extract UUID from end of slug (format: title-words-UUID)
+  // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)
+  const uuidMatch = slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
+  const id = uuidMatch ? uuidMatch[1] : null;
+  
   if (!id) {
     return { title: 'Job Not Found' };
   }
@@ -77,7 +82,11 @@ export async function generateMetadata({ params }: JobPageProps) {
 
 export default async function JobPage({ params }: JobPageProps) {
   const resolvedParams = await params;
-  const id = resolvedParams.slug.split('-').pop();
+  
+  // Extract UUID from end of slug (format: title-words-UUID)
+  // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)
+  const uuidMatch = resolvedParams.slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
+  const id = uuidMatch ? uuidMatch[1] : null;
   
   if (!id) {
     return <JobNotFound />;
