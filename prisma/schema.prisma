@@ -10,6 +10,7 @@ datasource db {
 model Job {
   id                 String  @id @default(uuid())
   title              String
+  slug               String? @unique // SEO-friendly URL slug
   employer           String
   location           String
   jobType            String? @map("job_type")
@@ -64,6 +65,7 @@ model Job {
   @@index([state])
   @@index([isRemote])
   @@index([companyId])
+  @@index([slug])
   @@map("jobs")
 }
 

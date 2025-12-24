@@ -1,6 +1,5 @@
 // Load environment BEFORE any imports
-import { config } from 'dotenv';
-config({ path: '.env.local' });
+import 'dotenv/config';
 
 import { prisma } from '../lib/prisma';
 import { type JobSource } from '../lib/ingestion-service';

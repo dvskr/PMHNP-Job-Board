@@ -7,12 +7,12 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const idSuffix = resolvedParams.id;
+    const jobId = resolvedParams.id;
 
-    // Find job where ID ends with the provided suffix (last 8 chars of UUID)
-    const job = await prisma.job.findFirst({
+    // Find job by exact ID
+    const job = await prisma.job.findUnique({
       where: {
-        id: { endsWith: idSuffix },
+        id: jobId,
       },
     });
 
