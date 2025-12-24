@@ -41,7 +41,7 @@ function EmailPreferencesContent() {
           email: data.email,
           isSubscribed: data.isSubscribed,
         });
-      } catch (err) {
+      } catch {
         setError('Failed to load preferences');
       } finally {
         setLoading(false);
@@ -86,7 +86,7 @@ function EmailPreferencesContent() {
       } else {
         setError(data.message || 'Failed to update preferences');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to update preferences');
     } finally {
       setUpdating(false);

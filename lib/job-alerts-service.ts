@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { sendJobAlertEmail } from '@/lib/email-service'
+import { Prisma } from '@prisma/client'
 
 export async function sendJobAlerts(): Promise<{
   sent: number
@@ -45,7 +46,7 @@ export async function sendJobAlerts(): Promise<{
     for (const alert of alerts) {
       try {
         // Build the query based on alert criteria
-        const whereClause: any = {
+        const whereClause: Prisma.JobWhereInput = {
           isPublished: true,
           createdAt: {
             gt: alert.lastSentAt || alert.createdAt,

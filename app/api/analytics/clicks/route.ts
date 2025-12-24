@@ -60,7 +60,10 @@ export async function GET(request: NextRequest) {
     startDate.setHours(0, 0, 0, 0);
 
     // Build where clause
-    const whereClause: any = {
+    const whereClause: {
+      timestamp: { gte: Date };
+      source?: string;
+    } = {
       timestamp: {
         gte: startDate,
       },

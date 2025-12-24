@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -23,8 +23,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
-    // Generate ID for label association if not provided
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate ID for label association if not provided using React's useId hook
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
     // Base input styles
     const baseInputStyles = 'w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors duration-200';

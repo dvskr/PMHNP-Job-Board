@@ -39,7 +39,6 @@ function PostJobContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [salaryCompetitive, setSalaryCompetitive] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaveMessage, setDraftSaveMessage] = useState<string | null>(null);
@@ -120,7 +119,7 @@ function PostJobContent() {
         }
       }
       
-      setIsLoading(false);
+      setDraftLoaded(true);
     };
 
     loadFormData();
@@ -497,7 +496,7 @@ function PostJobContent() {
                   onChange={(e) => handleCompetitiveChange(e.target.checked)}
                   className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-3 text-sm sm:text-base text-gray-700">Competitive salary (don't display range)</span>
+                <span className="ml-3 text-sm sm:text-base text-gray-700">Competitive salary (don&apos;t display range)</span>
               </label>
             </div>
 

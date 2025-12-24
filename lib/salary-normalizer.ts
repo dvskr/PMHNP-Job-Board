@@ -53,7 +53,7 @@ function detectSalaryPeriod(
   // If period is explicitly provided, use it
   if (salaryPeriod) {
     const normalized = salaryPeriod.toLowerCase().trim();
-    for (const [period, _] of Object.entries(PERIOD_MULTIPLIERS)) {
+    for (const [period] of Object.entries(PERIOD_MULTIPLIERS)) {
       if (normalized.includes(period)) {
         return period;
       }

@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Database
+prisma/migrations/
+*.db
+*.db-journal
+
+# Misc
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Test coverage
+coverage/
+
+# Package locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+

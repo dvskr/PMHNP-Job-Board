@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { prisma } from '../lib/prisma';
+import { type JobSource } from '../lib/ingestion-service';
 
 async function runIngestion() {
   try {
@@ -16,7 +17,7 @@ async function runIngestion() {
     const { ingestJobs, getIngestionStats } = await import('../lib/ingestion-service');
 
     // Run ingestion for all working sources
-    const sources: any[] = ['adzuna', 'jooble', 'greenhouse'];
+    const sources: JobSource[] = ['adzuna', 'jooble', 'greenhouse'];
     console.log(`📡 Sources: ${sources.join(', ')}\n`);
 
     const results = await ingestJobs(sources);
@@ -52,7 +53,7 @@ async function runIngestion() {
       console.log(`  - Added Last 24h: ${stats.addedLast24h}`);
       console.log(`  - By Source:`, stats.bySource);
       console.log();
-    } catch (error) {
+    } catch {
       console.log('⚠️  Could not fetch stats\n');
     }
 

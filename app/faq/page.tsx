@@ -154,7 +154,7 @@ export default function FAQPage() {
               Still Have Questions?
             </h2>
             <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
-              Didn't find your answer? We're here to help. Reach out and we'll get back to you within 24 hours.
+              Didn&apos;t find your answer? We&apos;re here to help. Reach out and we&apos;ll get back to you within 24 hours.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
               <a href="mailto:hello@pmhnpjobs.com" className="w-full sm:w-auto">

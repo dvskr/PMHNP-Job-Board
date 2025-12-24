@@ -63,9 +63,7 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
   );
 }
 
-interface LinkedInFiltersProps {
-  // No props needed - component manages its own state via URL
-}
+// Empty interface removed - not needed
 
 export default function LinkedInFilters() {
   const router = useRouter();
@@ -90,7 +88,7 @@ export default function LinkedInFilters() {
       setSearchInput(newFilters.search);
       setLocationInput(newFilters.location || '');
     }
-  }, [searchParams]); // Don't include filters in deps
+  }, [searchParams, filters]);
 
   // Fetch filter counts
   const fetchCounts = useCallback(async (currentFilters: FilterState) => {
@@ -117,7 +115,6 @@ export default function LinkedInFilters() {
   // Update URL and fetch counts when filters change
   useEffect(() => {
     const params = filtersToParams(filters);
-    const newUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
     
     // Only push if URL actually changed to prevent infinite loop
     const currentUrl = window.location.pathname + (window.location.search ? window.location.search : '');

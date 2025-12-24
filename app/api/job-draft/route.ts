@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendDraftSavedEmail } from '@/lib/email-service';
+import { Prisma } from '@prisma/client';
 
 interface SaveDraftBody {
   email: string;
-  formData: Record<string, any>;
+  formData: Record<string, unknown>;
 }
 
 // POST - Save draft
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       draft = await prisma.jobDraft.update({
         where: { id: existingDraft.id },
         data: {
-          formData,
+          formData: formData as Prisma.InputJsonValue,
           expiresAt,
           updatedAt: new Date(),
         },
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       draft = await prisma.jobDraft.create({
         data: {
           email,
-          formData,
+          formData: formData as Prisma.InputJsonValue,
           expiresAt,
         },
       });

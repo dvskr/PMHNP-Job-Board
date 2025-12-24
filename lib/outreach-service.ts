@@ -100,13 +100,13 @@ export async function updateLeadStatus(
   status: string,
   notes?: string
 ): Promise<void> {
-  const updateData: any = {
+  const updateData: { status: string; notes?: string; contactedAt?: Date } = {
     status,
   };
   
-  // Set lastContactedAt if status is 'contacted'
+  // Set contactedAt if status is 'contacted'
   if (status === 'contacted') {
-    updateData.lastContactedAt = new Date();
+    updateData.contactedAt = new Date();
   }
   
   // Append to notes if provided

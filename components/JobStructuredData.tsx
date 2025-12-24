@@ -1,8 +1,8 @@
 import { Job } from '@/lib/types';
+import { useMemo } from 'react';
 
 interface JobStructuredDataProps {
   job: Job;
-  baseUrl: string;
 }
 
 function mapJobType(jobType: string | null): string {
@@ -38,12 +38,26 @@ function createJobLocation(job: Job): object {
   };
 }
 
-export default function JobStructuredData({ job, baseUrl }: JobStructuredDataProps) {
-  // Convert date strings to Date objects if needed
-  const datePosted = job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt);
-  const validThrough = job.expiresAt 
-    ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
-    : new Date(Date.now() + 30*24*60*60*1000);
+export default function JobStructuredData({ job }: JobStructuredDataProps) {
+  // Get current date once per render (memoized)
+  const thirtyDaysFromNow = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 30);
+    return date;
+  }, []);
+
+  // Convert date strings to Date objects if needed (memoized to avoid recomputation)
+  const datePosted = useMemo(() => 
+    job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt),
+    [job.createdAt]
+  );
+  
+  const validThrough = useMemo(() => 
+    job.expiresAt 
+      ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
+      : thirtyDaysFromNow,
+    [job.expiresAt, thirtyDaysFromNow]
+  );
 
   const structuredData = {
     "@context": "https://schema.org",

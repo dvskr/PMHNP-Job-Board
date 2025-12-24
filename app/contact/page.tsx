@@ -69,7 +69,7 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-            We're here to help. Reach out with any questions.
+            We&apos;re here to help. Reach out with any questions.
           </p>
         </div>
       </section>
@@ -94,7 +94,7 @@ export default function ContactPage() {
                         Message sent successfully!
                       </p>
                       <p className="text-sm text-green-800 mt-1">
-                        Thanks! We'll respond within 24-48 hours.
+                        Thanks! We&apos;ll respond within 24-48 hours.
                       </p>
                     </div>
                   </div>

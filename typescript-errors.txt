@@ -1,0 +1,48 @@
+﻿
+> pmhnp-job-board@0.1.0 type-check
+> tsc --noEmit
+
+app/api/admin/renormalize-salaries/route.ts(155,15): error TS2353: Object literal may only specify known properties, and 'employer' does not exist in type '{ id: string; title: string; source: string; rawMin: number | null; rawMax: number | null; rawPeriod: string | null; normalizedMin: number | null; normalizedMax: number | null; }'.
+app/employer/renewal-success/page.tsx(29,13): error TS7030: Not all code paths return a value.
+app/settings/page.tsx(244,15): error TS18046: 'error' is of type 'unknown'.
+components/JobFilters.tsx(53,13): error TS7030: Not all code paths return a value.
+components/JobFilters.tsx(98,9): error TS2322: Type 'string | number' is not assignable to type 'undefined'.
+  Type 'string' is not assignable to type 'undefined'.
+components/JobFilters.tsx(110,7): error TS2322: Type 'string | number' is not assignable to type 'undefined'.
+  Type 'string' is not assignable to type 'undefined'.
+components/JobFilters.tsx(120,7): error TS2322: Type 'string | number' is not assignable to type 'undefined'.
+  Type 'string' is not assignable to type 'undefined'.
+lib/ingestion-service.ts(33,7): error TS2322: Type 'USAJobRaw[]' is not assignable to type 'Record<string, unknown>[]'.
+  Type 'USAJobRaw' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'USAJobRaw'.
+lib/ingestion-service.ts(35,7): error TS2322: Type 'GreenhouseJobRaw[]' is not assignable to type 'Record<string, unknown>[]'.
+  Type 'GreenhouseJobRaw' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'GreenhouseJobRaw'.
+lib/ingestion-service.ts(37,7): error TS2322: Type 'LeverJobRaw[]' is not assignable to type 'Record<string, unknown>[]'.
+  Type 'LeverJobRaw' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'LeverJobRaw'.
+lib/job-alerts-service.ts(86,48): error TS2345: Argument of type '{ id: string; title: string; employer: string; location: string; jobType: string | null; mode: string | null; description: string; descriptionSummary: string | null; salaryRange: string | null; ... 26 more ...; companyId: string | null; }[]' is not assignable to parameter of type '{ id: string; title: string; employer: string; location: string; minSalary?: number | undefined; maxSalary?: number | undefined; salaryPeriod?: string | undefined; jobType?: string | undefined; mode?: string | undefined; slug?: string | undefined; }[]'.
+  Type '{ id: string; title: string; employer: string; location: string; jobType: string | null; mode: string | null; description: string; descriptionSummary: string | null; salaryRange: string | null; ... 26 more ...; companyId: string | null; }' is not assignable to type '{ id: string; title: string; employer: string; location: string; minSalary?: number | undefined; maxSalary?: number | undefined; salaryPeriod?: string | undefined; jobType?: string | undefined; mode?: string | undefined; slug?: string | undefined; }'.
+    Types of property 'minSalary' are incompatible.
+      Type 'number | null' is not assignable to type 'number | undefined'.
+        Type 'null' is not assignable to type 'number | undefined'.
+lib/job-normalizer.ts(265,7): error TS2322: Type 'unknown' is not assignable to type 'string'.
+lib/job-normalizer.ts(266,34): error TS2339: Property 'display_name' does not exist on type '{}'.
+lib/job-normalizer.ts(267,35): error TS2339: Property 'display_name' does not exist on type '{}'.
+lib/job-normalizer.ts(268,7): error TS2322: Type '{}' is not assignable to type 'string'.
+lib/job-normalizer.ts(270,7): error TS2322: Type 'unknown' is not assignable to type 'string'.
+lib/job-normalizer.ts(271,7): error TS2322: Type '{} | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+lib/job-normalizer.ts(273,7): error TS2322: Type '{} | null' is not assignable to type 'number | null'.
+  Type '{}' is not assignable to type 'number'.
+lib/job-normalizer.ts(274,7): error TS2322: Type '{} | null' is not assignable to type 'number | null'.
+  Type '{}' is not assignable to type 'number'.
+lib/job-normalizer.ts(277,7): error TS2322: Type 'unknown' is not assignable to type 'string'.
+lib/job-normalizer.ts(278,7): error TS2322: Type '{}' is not assignable to type 'string'.
+lib/job-normalizer.ts(279,7): error TS2322: Type '{}' is not assignable to type 'string'.
+lib/job-normalizer.ts(280,7): error TS2322: Type '{}' is not assignable to type 'string'.
+lib/job-normalizer.ts(281,7): error TS2322: Type 'unknown' is not assignable to type 'string'.
+lib/job-normalizer.ts(282,7): error TS2322: Type 'unknown' is not assignable to type 'string'.
+lib/outreach-service.ts(109,16): error TS2551: Property 'lastContactedAt' does not exist on type '{ status: string; notes?: string | undefined; contactedAt?: Date | undefined; }'. Did you mean 'contactedAt'?
+scripts/run-ingestion.ts(22,38): error TS2345: Argument of type 'string[]' is not assignable to parameter of type 'JobSource[]'.
+  Type 'string' is not assignable to type 'JobSource'.

@@ -556,7 +556,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               <p className="text-sm text-gray-600">{job.title}</p>
             </div>
 
-            <p className="text-gray-700 mb-6">Choose how you'd like to renew your listing:</p>
+            <p className="text-gray-700 mb-6">Choose how you&apos;d like to renew your listing:</p>
 
             <div className="space-y-3 mb-6">
               {/* Standard Option */}
