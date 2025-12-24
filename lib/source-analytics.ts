@@ -137,13 +137,12 @@ export async function getSourcePerformance(
 
     // Aggregate stats
     const totalFetched = stats.reduce((sum, s) => sum + s.jobsFetched, 0);
-    const totalAdded = stats.reduce((sum, s) => sum + s.jobsAdded, 0);
     const totalDuplicates = stats.reduce((sum, s) => sum + s.jobsDuplicate, 0);
     const totalViews = stats.reduce((sum, s) => sum + s.totalViews, 0);
     const totalApplyClicks = stats.reduce((sum, s) => sum + s.totalApplyClicks, 0);
 
     // Calculate average quality score
-    const qualityScores = stats.filter((s: any) => s.avgQualityScore !== null).map((s: any) => s.avgQualityScore!);
+    const qualityScores = stats.filter((s) => s.avgQualityScore !== null).map((s) => s.avgQualityScore!);
     const avgQualityScore = qualityScores.length > 0
       ? qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length
       : 0;

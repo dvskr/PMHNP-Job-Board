@@ -12,8 +12,11 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
 
   useEffect(() => {
     // Read saved jobs from localStorage
-    const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-    setIsSaved(savedJobs.includes(jobId));
+    const timer = setTimeout(() => {
+      const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+      setIsSaved(savedJobs.includes(jobId));
+    }, 0);
+    return () => clearTimeout(timer);
   }, [jobId]);
 
   const toggleSave = () => {

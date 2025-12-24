@@ -48,7 +48,16 @@ export async function GET(request: NextRequest) {
     };
 
     const sourceBreakdown: SourceBreakdown = {};
-    const newlyNormalizedJobs: any[] = [];
+    const newlyNormalizedJobs: Array<{
+      id: string;
+      title: string;
+      source: string;
+      rawMin: number | null;
+      rawMax: number | null;
+      rawPeriod: string | null;
+      normalizedMin: number | null;
+      normalizedMax: number | null;
+    }> = [];
 
     console.log('[Renormalize] Starting salary re-normalization...');
 
@@ -142,9 +151,9 @@ export async function GET(request: NextRequest) {
             if (!hadBefore && hasNow) {
               stats.newlyNormalized++;
               newlyNormalizedJobs.push({
+                id: job.id,
                 title: job.title,
-                employer: job.employer,
-                source: job.sourceProvider,
+                source: job.sourceProvider || 'unknown',
                 rawMin: job.minSalary,
                 rawMax: job.maxSalary,
                 rawPeriod: job.salaryPeriod,
@@ -155,9 +164,10 @@ export async function GET(request: NextRequest) {
               console.log(`[Renormalize] NEW: ${job.title} | ${job.sourceProvider} | $${job.minSalary}-${job.maxSalary} ${job.salaryPeriod} → $${normalized.normalizedMinSalary}-${normalized.normalizedMaxSalary}`);
             }
           }
-        } catch (error: any) {
+        } catch (error) {
           stats.errors++;
-          console.error(`[Renormalize] Error processing job ${job.id}:`, error.message);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`[Renormalize] Error processing job ${job.id}:`, errorMessage);
         }
       }
     }
@@ -182,10 +192,11 @@ export async function GET(request: NextRequest) {
       newlyNormalizedCount: newlyNormalizedJobs.length,
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[Renormalize] Fatal error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message: errorMessage },
       { status: 500 }
     );
   }

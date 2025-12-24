@@ -39,7 +39,7 @@ export default function TermsPage() {
               1. Acceptance of Terms
             </h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              By accessing and using PMHNP Jobs ("the Service", "our Service"), you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to abide by these Terms of Service, please do not use this Service.
+              By accessing and using PMHNP Jobs (&quot;the Service&quot;, &quot;our Service&quot;), you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to abide by these Terms of Service, please do not use this Service.
             </p>
             <p className="text-gray-700 leading-relaxed">
               These terms apply to all visitors, users, and others who access or use the Service, including but not limited to job seekers, employers, and recruiters.
@@ -166,7 +166,7 @@ export default function TermsPage() {
               7. Disclaimer
             </h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              <strong>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.</strong>
+              <strong>THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.</strong>
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">
               To the fullest extent permitted by law, we disclaim all warranties, express or implied, including but not limited to:
@@ -211,7 +211,7 @@ export default function TermsPage() {
               We reserve the right to modify or replace these Terms of Service at any time at our sole discretion. We will make reasonable efforts to notify users of material changes by:
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-              <li>Updating the "Last updated" date at the top of this page</li>
+              <li>Updating the &quot;Last updated&quot; date at the top of this page</li>
               <li>Sending email notifications to registered users (where applicable)</li>
               <li>Posting a notice on our homepage</li>
             </ul>

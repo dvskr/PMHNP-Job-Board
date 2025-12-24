@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
-import { Job } from '@/lib/types';
 import { config } from '@/lib/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -145,14 +144,14 @@ export async function sendConfirmationEmail(
 
 export async function sendJobAlertEmail(
   email: string,
-  jobs: any[],
+  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; salaryPeriod?: string | null; jobType?: string | null; mode?: string | null; slug?: string | null }>,
   alertToken: string
 ): Promise<void> {
   const jobCount = jobs.length;
   const displayJobs = jobs.slice(0, 10);
 
   // Build job list HTML
-  const jobListHtml = displayJobs.map((job: any) => `
+  const jobListHtml = displayJobs.map((job) => `
     <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
       <h3 style="margin: 0 0 8px 0; color: #111827;">
         <a href="${BASE_URL}/jobs/${slugify(job.title, job.id)}" style="color: #2563eb; text-decoration: none;">

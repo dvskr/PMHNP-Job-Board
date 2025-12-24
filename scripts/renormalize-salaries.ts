@@ -172,9 +172,9 @@ async function renormalizeSalaries() {
         } else {
           stats.stillNoSalary++;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         stats.errors++;
-        console.error(`\n   ❌ Error processing job ${job.id}: ${error.message}`);
+        console.error(`\n   ❌ Error processing job ${job.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -213,11 +213,11 @@ async function renormalizeSalaries() {
   const sortedSources = Object.entries(sourceBreakdown).sort((a, b) => b[1].total - a[1].total);
   
   for (const [source, data] of sortedSources) {
-    const beforePct = (data.before / data.total * 100).toFixed(1);
+    // const beforePct = (data.before / data.total * 100).toFixed(1); // Percentage tracking (currently unused)
     const afterPct = (data.after / data.total * 100).toFixed(1);
     const change = data.after - data.before;
     const changeStr = change > 0 ? `+${change}` : `${change}`;
-    const changePct = change > 0 ? ` (+${(change / data.total * 100).toFixed(1)}%)` : '';
+    // const changePct = change > 0 ? ` (+${(change / data.total * 100).toFixed(1)}%)` : ''; // Change percentage (currently unused)
     
     console.log(
       `   ${source.padEnd(15)} ${data.total.toString().padStart(5)}    ` +

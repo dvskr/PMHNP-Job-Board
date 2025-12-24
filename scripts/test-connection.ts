@@ -14,7 +14,7 @@ async function testConnection() {
     console.log(`  DIRECT_URL: ${process.env.DIRECT_URL ? '✓ Set' : '✗ Not set'}\n`);
     
     console.log('Attempting to connect...');
-    const result = await prisma.$queryRaw`SELECT 1 as test`;
+    await prisma.$queryRaw`SELECT 1 as test`;
     console.log('✅ Connection successful!\n');
     
     console.log('Counting jobs...');

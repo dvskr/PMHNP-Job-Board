@@ -83,7 +83,7 @@ export default function PrivacyPage() {
               We use the information we collect in the following ways:
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-              <li><strong>To send job alerts:</strong> Send you email notifications about jobs matching your criteria (only if you've subscribed)</li>
+              <li><strong>To send job alerts:</strong> Send you email notifications about jobs matching your criteria (only if you&apos;ve subscribed)</li>
               <li><strong>To process job postings:</strong> Publish and manage job listings from employers</li>
               <li><strong>To improve our service:</strong> Analyze usage patterns to enhance user experience and fix issues</li>
               <li><strong>To communicate with you:</strong> Send confirmation emails, dashboard links, renewal reminders, and service updates</li>
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
               <li>Save your job searches and filters</li>
-              <li>Remember jobs you've saved or applied to</li>
+              <li>Remember jobs you&apos;ve saved or applied to</li>
               <li>Store draft job posting data</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
@@ -228,7 +228,7 @@ export default function PrivacyPage() {
               You can unsubscribe from marketing emails at any time by:
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-              <li>Clicking the "Unsubscribe" link in any email we send you</li>
+              <li>Clicking the &quot;Unsubscribe&quot; link in any email we send you</li>
               <li>Contacting us at hello@pmhnpjobs.com</li>
             </ul>
 
@@ -261,14 +261,14 @@ export default function PrivacyPage() {
               We are not responsible for the privacy practices or content of these third-party sites. We encourage you to read the privacy policies of any website you visit.
             </p>
             <p className="text-gray-700 leading-relaxed">
-              When you click "Apply Now" on a job listing, you will be directed to the employer's website or application system. Your interactions with that site are governed by their privacy policy, not ours.
+              When you click &quot;Apply Now&quot; on a job listing, you will be directed to the employer&apos;s website or application system. Your interactions with that site are governed by their privacy policy, not ours.
             </p>
           </section>
 
           {/* Section 8 */}
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              8. Children's Privacy
+              8. Children&apos;s Privacy
             </h2>
             <p className="text-gray-700 leading-relaxed mb-4">
               Our Service is not intended for individuals under the age of 18. We do not knowingly collect personal information from children under 18.
@@ -290,7 +290,7 @@ export default function PrivacyPage() {
               We will notify you of any changes by:
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-              <li>Updating the "Last updated" date at the top of this Privacy Policy</li>
+              <li>Updating the &quot;Last updated&quot; date at the top of this Privacy Policy</li>
               <li>Sending an email notification to subscribers for significant changes</li>
               <li>Posting a notice on our homepage</li>
             </ul>
@@ -309,7 +309,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-none text-gray-700 space-y-2">
               <li><strong>Email:</strong> hello@pmhnpjobs.com</li>
-              <li><strong>Subject line:</strong> "Privacy Inquiry"</li>
+              <li><strong>Subject line:</strong> &quot;Privacy Inquiry&quot;</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
               We will respond to your inquiry within 30 days.
@@ -334,7 +334,7 @@ export default function PrivacyPage() {
               <li>The right to non-discrimination for exercising your CCPA rights</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              To exercise these rights, please contact us at hello@pmhnpjobs.com with "CCPA Request" in the subject line.
+              To exercise these rights, please contact us at hello@pmhnpjobs.com with &quot;CCPA Request&quot; in the subject line.
             </p>
           </section>
 
@@ -354,7 +354,7 @@ export default function PrivacyPage() {
               <li>The right to withdraw consent at any time</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              To exercise these rights, please contact us at hello@pmhnpjobs.com with "GDPR Request" in the subject line.
+              To exercise these rights, please contact us at hello@pmhnpjobs.com with &quot;GDPR Request&quot; in the subject line.
             </p>
           </section>
         </div>

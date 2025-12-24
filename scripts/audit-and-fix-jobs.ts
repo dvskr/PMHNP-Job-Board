@@ -34,7 +34,7 @@ async function auditAndFixJobs() {
   };
 
   // Track fixes to apply
-  const fixes: Array<{ id: string; data: any }> = [];
+  const fixes: Array<{ id: string; data: Record<string, unknown> }> = [];
 
   for (const job of allJobs) {
     // Fix 1: Job Type - Infer from title/description if missing

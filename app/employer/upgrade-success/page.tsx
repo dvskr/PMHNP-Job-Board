@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle } from 'lucide-react';
@@ -8,7 +8,6 @@ import { CheckCircle } from 'lucide-react';
 function UpgradeSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // In a real implementation, you could fetch the dashboard token from the session

@@ -35,7 +35,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function fetchAdzunaJobs(): Promise<any[]> {
+export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>> {
   const appId = process.env.ADZUNA_APP_ID;
   const appKey = process.env.ADZUNA_APP_KEY;
 
@@ -44,7 +44,7 @@ export async function fetchAdzunaJobs(): Promise<any[]> {
     return [];
   }
 
-  const allJobs: any[] = [];
+  const allJobs: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
 
   console.log(`[Adzuna] Starting fetch with ${SEARCH_QUERIES.length} search queries...`);

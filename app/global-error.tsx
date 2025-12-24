@@ -75,7 +75,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 lineHeight: '1.6',
               }}
             >
-              We're sorry, a critical error occurred. Please try again or reload the page.
+              We&apos;re sorry, a critical error occurred. Please try again or reload the page.
             </p>
 
             {/* Buttons */}

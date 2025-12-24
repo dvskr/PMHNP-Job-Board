@@ -34,7 +34,7 @@ export default function EmailSignupForm({ source = 'unknown', placeholder = 'Ent
       } else {
         setMessage({ type: 'error', text: data.error || 'Something went wrong' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to subscribe. Please try again.' });
     } finally {
       setLoading(false);

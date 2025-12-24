@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
 import { 
   Search, 
   Bookmark, 
@@ -106,7 +105,7 @@ export default function ForJobSeekersPage() {
             Everything You Need to Find Your Next Role
           </h2>
           <p className="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
-            We've built the most comprehensive PMHNP job search platform with features designed specifically for you.
+            We&apos;ve built the most comprehensive PMHNP job search platform with features designed specifically for you.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -150,7 +149,7 @@ export default function ForJobSeekersPage() {
                 Application Tracking
               </h3>
               <p className="text-gray-600 text-sm">
-                Keep track of where you've applied and when. Stay organized throughout your search.
+                Keep track of where you&apos;ve applied and when. Stay organized throughout your search.
               </p>
             </Card>
 

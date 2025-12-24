@@ -84,7 +84,7 @@ export default function SignUpForm() {
           router.push('/dashboard')
         }
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
@@ -99,7 +99,7 @@ export default function SignUpForm() {
         </div>
         <h3 className="text-xl font-semibold text-gray-900">Check your email</h3>
         <p className="text-gray-600">
-          We've sent a confirmation link to <strong>{email}</strong>
+          We&apos;ve sent a confirmation link to <strong>{email}</strong>
         </p>
         <Link
           href="/login"
