@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         // Handle both email signup metadata and Google OAuth metadata
         let firstName = metadata.first_name || null
         let lastName = metadata.last_name || null
-        let avatarUrl = metadata.avatar_url || null
+        const avatarUrl = metadata.avatar_url || null
 
         // For Google OAuth, parse full_name if firstName/lastName not provided
         if (!firstName && !lastName && metadata.full_name) {

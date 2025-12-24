@@ -117,8 +117,8 @@ async function fetchFromCareerJetWithRetry(
       
       return data;
       
-    } catch (error: any) {
-      const errorMsg = error.message || String(error);
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
       console.log(`[CareerJet] Request failed (${errorMsg})`);
       
       if (attempt < maxRetries) {
@@ -134,7 +134,7 @@ async function fetchFromCareerJetWithRetry(
  * Fetches PMHNP jobs from CareerJet API
  * @returns Array of normalized job objects
  */
-export async function fetchCareerJetJobs(): Promise<any[]> {
+export async function fetchCareerJetJobs(): Promise<Array<Record<string, unknown>>> {
   const affiliateId = process.env.CAREERJET_AFFILIATE_ID;
   
   if (!affiliateId) {
@@ -142,7 +142,7 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
     return [];
   }
 
-  const allJobs: any[] = [];
+  const allJobs: Array<Record<string, unknown>> = [];
   const seenUrls = new Set<string>();
 
   console.log('[CareerJet] Starting job fetch...');
@@ -179,7 +179,7 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
         }
 
         // Process each job
-        let addedFromPage = 0;
+        // Track jobs added per page (currently unused)
         for (const job of jobs) {
           // Skip if already seen
           if (seenUrls.has(job.url)) {
@@ -192,7 +192,6 @@ export async function fetchCareerJetJobs(): Promise<any[]> {
           }
 
           seenUrls.add(job.url);
-          addedFromPage++;
 
           allJobs.push({
             title: job.title,

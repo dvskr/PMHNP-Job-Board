@@ -237,11 +237,11 @@ export default function SettingsPage() {
       
       // Clear message after 5 seconds
       setTimeout(() => setMessage(null), 5000)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending reset email:', error)
       setMessage({ 
         type: 'error', 
-        text: error.message || 'Failed to send reset email. Please try again.' 
+        text: error instanceof Error ? error.message : 'Failed to send reset email. Please try again.' 
       })
     } finally {
       setSendingReset(false)
@@ -434,7 +434,7 @@ export default function SettingsPage() {
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Change Password</h2>
         <p className="text-sm text-gray-600 mb-4">
-          We'll send you an email with a link to reset your password.
+          We&apos;ll send you an email with a link to reset your password.
         </p>
         <button
           onClick={handlePasswordReset}
@@ -464,7 +464,6 @@ export default function SettingsPage() {
           </p>
           <ResumeUpload
             currentResumeUrl={profile.resumeUrl}
-            userEmail={profile.email}
             onUploadComplete={handleResumeUpload}
             onRemove={handleResumeRemove}
           />

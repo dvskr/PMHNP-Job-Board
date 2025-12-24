@@ -50,7 +50,10 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    setAppliedJobsMap(getStoredAppliedJobs());
+    const timer = setTimeout(() => {
+      setAppliedJobsMap(getStoredAppliedJobs());
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Sync across tabs via storage event

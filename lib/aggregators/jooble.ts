@@ -68,7 +68,7 @@ function sleep(ms: number): Promise<void> {
  * Fetches PMHNP jobs from Jooble API
  * @returns Array of normalized job objects
  */
-export async function fetchJoobleJobs(): Promise<any[]> {
+export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>> {
   const apiKey = process.env.JOOBLE_API_KEY;
   
   if (!apiKey) {
@@ -76,7 +76,7 @@ export async function fetchJoobleJobs(): Promise<any[]> {
     return [];
   }
 
-  const allJobs: any[] = [];
+  const allJobs: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
 
   for (const keyword of SEARCH_KEYWORDS) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
@@ -37,19 +37,28 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
       return;
     }
     // Only update if the values are actually different
-    if (currentFilters.search !== searchInput) {
-      setSearchInput(currentFilters.search || '');
-    }
-    if (currentFilters.location !== locationInput) {
-      setLocationInput(currentFilters.location || '');
-    }
-  }, [currentFilters.search, currentFilters.location]); // Only depend on these specific values
+    // Use startTransition to avoid blocking updates
+    const timer = setTimeout(() => {
+      if (currentFilters.search !== searchInput) {
+        setSearchInput(currentFilters.search || '');
+      }
+      if (currentFilters.location !== locationInput) {
+        setLocationInput(currentFilters.location || '');
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [currentFilters.search, currentFilters.location, searchInput, locationInput]);
 
   // Update temp filters when drawer opens
   useEffect(() => {
     if (isMobileOpen) {
-      setTempFilters(currentFilters);
+      const timer = setTimeout(() => {
+        setTempFilters(currentFilters);
+      }, 0);
+      return () => clearTimeout(timer);
     }
+    // No return needed when drawer is closed
+    return undefined;
   }, [isMobileOpen, currentFilters]);
 
   // Prevent body scroll when drawer is open
@@ -86,43 +95,43 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
     debounceTimerRef.current = setTimeout(() => {
       const newFilters = { ...currentFilters };
       if (value === '') {
-        delete newFilters[key];
+        delete (newFilters as Record<string, unknown>)[key];
       } else {
-        (newFilters as any)[key] = value;
+        (newFilters as Record<string, unknown>)[key] = value;
       }
       onFilterChange(newFilters);
     }, 500); // 500ms delay
   }, [currentFilters, onFilterChange]);
 
   // Immediate handler for non-text inputs (radio buttons, etc.)
-  const handleInputChange = (key: keyof FilterState, value: string | number | undefined) => {
+  const handleInputChange = useCallback((key: keyof FilterState, value: string | number | undefined) => {
     const newFilters = { ...currentFilters };
     if (value === '' || value === undefined) {
-      delete newFilters[key];
+      delete (newFilters as Record<string, unknown>)[key];
     } else {
-      (newFilters as any)[key] = value;
+      (newFilters as Record<string, unknown>)[key] = value;
     }
     onFilterChange(newFilters);
-  };
+  }, [currentFilters, onFilterChange]);
 
-  const handleTempInputChange = (key: keyof FilterState, value: string | number | undefined) => {
+  const handleTempInputChange = useCallback((key: keyof FilterState, value: string | number | undefined) => {
     const newFilters = { ...tempFilters };
     if (value === '' || value === undefined) {
-      delete newFilters[key];
+      delete (newFilters as Record<string, unknown>)[key];
     } else {
-      (newFilters as any)[key] = value;
+      (newFilters as Record<string, unknown>)[key] = value;
     }
     setTempFilters(newFilters);
-  };
+  }, [tempFilters]);
 
   const handleApplyFilters = () => {
     onFilterChange(tempFilters);
     setIsMobileOpen(false);
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     onFilterChange({});
-  };
+  }, [onFilterChange]);
 
   const handleClearAllMobile = () => {
     setTempFilters({});

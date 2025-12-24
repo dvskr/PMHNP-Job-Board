@@ -33,7 +33,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
         {/* Subtext */}
         <p className="text-lg text-gray-600 mb-8">
-          We're sorry, an unexpected error occurred. Please try again or return to the homepage.
+          We&apos;re sorry, an unexpected error occurred. Please try again or return to the homepage.
         </p>
 
         {/* Action Buttons */}

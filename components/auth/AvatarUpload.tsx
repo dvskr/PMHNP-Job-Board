@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Camera, Loader2, User, AlertCircle, Trash2 } from 'lucide-react'
 
@@ -13,7 +14,6 @@ interface AvatarUploadProps {
 
 export default function AvatarUpload({ 
   currentAvatarUrl, 
-  userEmail, 
   onUploadComplete,
   onRemove 
 }: AvatarUploadProps) {
@@ -45,9 +45,9 @@ export default function AvatarUpload({
 
       // Call callback to update database
       onRemove()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Remove error:', err)
-      setError(err.message || 'Failed to remove avatar')
+      setError(err instanceof Error ? err.message : 'Failed to remove avatar')
     } finally {
       setRemoving(false)
     }
@@ -100,9 +100,9 @@ export default function AvatarUpload({
       // Clean up preview
       URL.revokeObjectURL(previewUrl)
       setPreview(null)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload error:', err)
-      setError(err.message || 'Failed to upload image')
+      setError(err instanceof Error ? err.message : 'Failed to upload image')
       setPreview(null)
     } finally {
       setUploading(false)
@@ -114,7 +114,6 @@ export default function AvatarUpload({
   }
 
   const displayUrl = preview || currentAvatarUrl
-  const initials = userEmail[0].toUpperCase()
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -124,9 +123,11 @@ export default function AvatarUpload({
           {uploading ? (
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           ) : displayUrl ? (
-            <img 
+            <Image 
               src={displayUrl} 
               alt="Profile" 
+              width={128}
+              height={128}
               className="w-full h-full object-cover"
             />
           ) : (

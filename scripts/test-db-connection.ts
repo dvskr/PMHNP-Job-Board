@@ -35,7 +35,7 @@ async function testConnection() {
     console.log('✅ Connection successful!\n');
     
     console.log('Testing query...');
-    const result = await client.query('SELECT 1 as test');
+    await client.query('SELECT 1 as test');
     console.log('✅ Query successful!\n');
     
     console.log('Counting jobs...');

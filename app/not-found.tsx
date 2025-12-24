@@ -27,7 +27,7 @@ export default function NotFound() {
 
         {/* Subtext */}
         <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-          Oops! The page you're looking for doesn't exist or has been moved.
+          Oops! The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
 
         {/* Search Suggestion */}
@@ -40,7 +40,7 @@ export default function NotFound() {
               </p>
             </div>
             <p className="text-sm text-gray-600">
-              Browse our 200+ PMHNP positions or use filters to find exactly what you're looking for.
+              Browse our 200+ PMHNP positions or use filters to find exactly what you&apos;re looking for.
             </p>
           </div>
         </div>

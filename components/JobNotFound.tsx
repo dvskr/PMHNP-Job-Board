@@ -35,7 +35,7 @@ export default function JobNotFound() {
         {/* Suggestions */}
         <div className="mb-8">
           <p className="text-sm font-semibold text-gray-900 mb-4">
-            Here's what you can do:
+            Here&apos;s what you can do:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-8">
             <div className="flex items-start gap-3 text-left">

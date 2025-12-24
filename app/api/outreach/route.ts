@@ -34,13 +34,14 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: allLeads });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error fetching outreach data:', error);
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to fetch outreach data',
-        details: error.message,
+        details: errorMessage,
       },
       { status: 500 }
     );
@@ -149,13 +150,14 @@ export async function POST(request: NextRequest) {
       },
       { status: 400 }
     );
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error processing outreach request:', error);
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to process outreach request',
-        details: error.message,
+        details: errorMessage,
       },
       { status: 500 }
     );

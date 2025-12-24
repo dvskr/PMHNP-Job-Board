@@ -171,7 +171,7 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
         
         // Rate limiting: 500ms delay between companies
         await sleep(500);
-      } catch (error) {
+      } catch {
         failedCompanies.push(companySlug);
         console.error(`[Lever] Failed to fetch from ${companySlug}`);
       }

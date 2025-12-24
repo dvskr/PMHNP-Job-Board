@@ -242,7 +242,7 @@ export default async function RemoteJobsPage() {
                     No remote jobs available
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    We don't have any active remote PMHNP positions right now. Check back soon!
+                    We don&apos;t have any active remote PMHNP positions right now. Check back soon!
                   </p>
                   <Link
                     href="/jobs"
@@ -375,7 +375,7 @@ export default async function RemoteJobsPage() {
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
                   Remote work may require multi-state licensure. Check if your employer participates 
-                  in the Nurse Licensure Compact (NLC) or if they'll support additional state licenses.
+                  in the Nurse Licensure Compact (NLC) or if they&apos;ll support additional state licenses.
                 </p>
               </div>
               <div>
@@ -383,7 +383,7 @@ export default async function RemoteJobsPage() {
                   Technology Requirements
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  You'll typically need a reliable computer, webcam, headset, and high-speed internet 
+                  You&apos;ll typically need a reliable computer, webcam, headset, and high-speed internet 
                   (minimum 10 Mbps). Some employers provide equipment or technology stipends.
                 </p>
               </div>

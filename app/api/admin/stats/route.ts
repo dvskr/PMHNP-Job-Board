@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getIngestionStats } from '@/lib/ingestion-service';
 
@@ -6,7 +6,7 @@ import { getIngestionStats } from '@/lib/ingestion-service';
  * GET handler for admin statistics
  * Provides comprehensive metrics about the job board
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('[Admin Stats] Fetching comprehensive statistics...');
 

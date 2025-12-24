@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // Helper function to detect if a salary is hourly based on the job description
@@ -22,7 +22,7 @@ function detectHourlySalary(description: string, title: string, salary: number |
   return hasHourlyKeyword || likelyHourly
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Find all jobs with salaries < 500 and period 'year' (likely hourly rates misclassified)
     const suspectJobs = await prisma.job.findMany({

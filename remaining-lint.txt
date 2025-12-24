@@ -1,0 +1,179 @@
+﻿
+> pmhnp-job-board@0.1.0 lint
+> eslint
+
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\api\admin\fix-salaries\route.ts
+  4:28  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\api\admin\fix-salary-periods\route.ts
+  25:28  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\api\admin\stats\route.ts
+  9:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\api\auth\delete-account\route.ts
+  6:30  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\api\job-draft\route.ts
+  48:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\api\jobs\post-free\route.ts
+  119:14  warning  '_draftError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\email-preferences\page.tsx
+  44:16  warning  '_err' is defined but never used  @typescript-eslint/no-unused-vars
+  89:14  warning  '_err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\employer\upgrade-success\page.tsx
+  3:21  warning  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\for-employers\page.tsx
+  22:3  warning  'Star' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\for-job-seekers\page.tsx
+  4:8  warning  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\forgot-password\page.tsx
+  32:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\post-job\page.tsx
+  42:10  warning  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\post-job\preview\page.tsx
+    5:8   warning  'Link' is defined but never used   @typescript-eslint/no-unused-vars
+  102:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\privacy\page.tsx
+  271:26  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\app\reset-password\page.tsx
+  68:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\EmailSignupForm.tsx
+  37:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\JobFilters.tsx
+    3:58  warning  'useMemo' is defined but never used                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   98:24  error    Unexpected any. Specify a different type                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  105:9   warning  The 'handleInputChange' function makes the dependencies of useCallback Hook (at line 261) change on every render. Move it inside the useCallback callback. Alternatively, wrap the definition of 'handleInputChange' in its own useCallback() Hook          react-hooks/exhaustive-deps
+  110:22  error    Unexpected any. Specify a different type                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  115:9   warning  The 'handleTempInputChange' function makes the dependencies of useCallback Hook (at line 261) change on every render. Move it inside the useCallback callback. Alternatively, wrap the definition of 'handleTempInputChange' in its own useCallback() Hook  react-hooks/exhaustive-deps
+  120:22  error    Unexpected any. Specify a different type                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  130:9   warning  The 'handleClearAll' function makes the dependencies of useCallback Hook (at line 261) change on every render. Move it inside the useCallback callback. Alternatively, wrap the definition of 'handleClearAll' in its own useCallback() Hook                react-hooks/exhaustive-deps
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\JobNotFound.tsx
+  38:17  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\JobStructuredData.tsx
+  42:50  warning  'baseUrl' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  52:18  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\JobStructuredData.tsx:52:18
+  50 |     job.expiresAt 
+  51 |       ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
+> 52 |       : new Date(Date.now() + 30*24*60*60*1000),
+     |                  ^^^^^^^^^^ Cannot call impure function
+  53 |     [job.expiresAt]
+  54 |   );
+  55 |  react-hooks/purity
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\TestimonialCard.tsx
+  73:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\AvatarUpload.tsx
+  117:9   warning  'initials' is assigned a value but never used                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  127:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\LoginForm.tsx
+   39:14  warning  'err' is defined but never used                                  @typescript-eslint/no-unused-vars
+  129:12  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\ResumeUpload.tsx
+  16:3  warning  'userEmail' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\SignUpForm.tsx
+   87:14  warning  'err' is defined but never used                                  @typescript-eslint/no-unused-vars
+  102:13  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\UserMenu.tsx
+  73:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\jobs\LinkedInFilters.tsx
+   66:11  error    An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+   66:11  warning  'LinkedInFiltersProps' is defined but never used                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   93:6   warning  React Hook useEffect has a missing dependency: 'filters'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  120:11  warning  'newUrl' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\aggregators\adzuna.ts
+  38:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  47:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\aggregators\careerjet.ts
+  120:21  error    Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  137:53  error    Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  145:18  error    Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  195:11  warning  'addedFromPage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\aggregators\greenhouse.ts
+   11:13  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  179:16  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\aggregators\jooble.ts
+  71:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\aggregators\lever.ts
+  174:16  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\deduplicator.ts
+  83:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\email-service.ts
+  3:10  warning  'Job' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\ingestion-service.ts
+  28:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\job-alerts-service.ts
+  48:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\job-normalizer.ts
+    2:32  warning  'SalaryNormalizationResult' is defined but never used  @typescript-eslint/no-unused-vars
+    3:30  warning  'ParsedLocation' is defined but never used             @typescript-eslint/no-unused-vars
+  147:10  warning  'generateSummary' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\salary-normalizer.ts
+  56:25  warning  '_' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\source-analytics.ts
+  140:11  warning  'totalAdded' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\lib\supabase\server.ts
+  18:20  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  26:20  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\scripts\fix-all-salaries.ts
+  110:13  warning  'source' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\scripts\renormalize-salaries.ts
+  216:11  warning  'beforePct' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  220:11  warning  'changePct' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\scripts\run-ingestion.ts
+  55:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\scripts\test-connection.ts
+  17:11  warning  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\scripts\test-db-connection.ts
+  38:11  warning  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 70 problems (21 errors, 49 warnings)
+

@@ -289,8 +289,8 @@ export default async function StateJobsPage({ params }: StatePageProps) {
               </h2>
               <p className="text-gray-600 leading-relaxed mb-4">
                 {stateName} offers diverse opportunities for psychiatric mental health nurse practitioners 
-                across various healthcare settings. Whether you're interested in telepsychiatry, outpatient 
-                clinics, hospitals, or private practice, you'll find positions that match your career goals.
+                across various healthcare settings. Whether you&apos;re interested in telepsychiatry, outpatient 
+                clinics, hospitals, or private practice, you&apos;ll find positions that match your career goals.
               </p>
               <p className="text-gray-600 leading-relaxed">
                 Browse {stats.totalJobs} current PMHNP openings in {stateName} below, featuring both 
@@ -321,7 +321,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                     No jobs found in {stateName}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    We don't have any active PMHNP positions in this state right now.
+                    We don&apos;t have any active PMHNP positions in this state right now.
                   </p>
                   <Link
                     href="/jobs"

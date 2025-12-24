@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
     const validLimit = Math.min(Math.max(limit, 1), 500);
 
     // Determine sort order
-    let orderBy: any = { jobCount: 'desc' };
+    let orderBy: 
+      | { jobCount: 'desc' } 
+      | { name: 'asc' } 
+      | { createdAt: 'desc' } 
+      | { isVerified: 'desc' } = { jobCount: 'desc' };
     if (sort === 'name') {
       orderBy = { name: 'asc' };
     } else if (sort === 'createdAt') {

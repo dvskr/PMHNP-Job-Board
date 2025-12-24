@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
 import { config } from '@/lib/config';
@@ -99,7 +98,7 @@ export default function PreviewPage() {
           setError(result.error || 'Failed to post job');
         }
       }
-    } catch (error) {
+    } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);

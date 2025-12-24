@@ -80,7 +80,7 @@ function normalizeApplyUrl(url: string): string {
     
     // Return normalized URL: hostname + pathname + remaining params
     return urlObj.hostname + urlObj.pathname + urlObj.search;
-  } catch (error) {
+  } catch {
     // If URL parsing fails, return cleaned string
     return url.toLowerCase().replace(/[?&](utm_source|utm_medium|utm_campaign|ref|source)=[^&]*/g, '');
   }

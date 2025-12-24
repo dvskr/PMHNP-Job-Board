@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-require('dotenv').config();
+import 'dotenv/config';
 
 // US State abbreviations and full names
 const STATE_ABBREV_TO_FULL: Record<string, string> = {

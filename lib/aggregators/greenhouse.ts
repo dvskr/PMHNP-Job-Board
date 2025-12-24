@@ -8,7 +8,7 @@ interface GreenhouseJob {
   };
   absolute_url: string;
   internal_job_id: number;
-  metadata: any[];
+  metadata: Array<Record<string, unknown>>;
   departments: Array<{
     id: number;
     name: string;
@@ -176,7 +176,7 @@ export async function fetchGreenhouseJobs(): Promise<GreenhouseJobRaw[]> {
         
         // Rate limiting: 500ms delay between companies
         await sleep(500);
-      } catch (error) {
+      } catch {
         failedCompanies.push(companySlug);
         console.error(`[Greenhouse] Failed to fetch from ${companySlug}`);
       }
