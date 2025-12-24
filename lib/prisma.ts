@@ -8,39 +8,28 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 if (!globalForPrisma.pool) {
-  // Use DIRECT_URL for scripts/CLI, DATABASE_URL for app runtime
-  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL
+  // IMPORTANT: Use DATABASE_URL (pooled via PgBouncer) for app runtime
+  // Only use DIRECT_URL for migrations/scripts that need schema access
+  const connectionString = process.env.DATABASE_URL
   
   if (!connectionString) {
-    throw new Error('DATABASE_URL or DIRECT_URL must be set')
+    throw new Error('DATABASE_URL must be set')
   }
   
-  // Conservative pool size to work within Supabase Session mode limits
-  // Supabase Session mode has limited connections shared across all workers
-  // Default: 2 connections per pool (safe for 3 build workers = 6 total)
-  // Can be overridden via DATABASE_POOL_SIZE env var for production runtime
-  const poolSize = parseInt(process.env.DATABASE_POOL_SIZE || '2', 10)
-  
-  console.log(`[Prisma] Initializing connection pool (size: ${poolSize})...`)
+  console.log('[Prisma] Initializing connection pool...')
   
   globalForPrisma.pool = new Pool({ 
     connectionString,
-    max: poolSize,
-    idleTimeoutMillis: 10000, // 10 seconds idle timeout
+    max: 5, // Keep low for serverless - PgBouncer handles pooling
+    idleTimeoutMillis: 20000, // 20 seconds
     connectionTimeoutMillis: 10000, // 10 seconds to connect
-    allowExitOnIdle: true, // Allow connections to close when idle
+    allowExitOnIdle: true, // Allow cleanup in serverless
   })
   
   // Handle pool errors gracefully
   globalForPrisma.pool.on('error', (err) => {
     console.error('[Prisma] Unexpected error on idle client:', err)
   })
-  
-  if (process.env.NODE_ENV === 'development') {
-    globalForPrisma.pool.on('connect', () => {
-      console.log('[Prisma] New client connected to database')
-    })
-  }
 }
 
 const adapter = new PrismaPg(globalForPrisma.pool)
