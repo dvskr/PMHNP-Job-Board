@@ -359,7 +359,7 @@ export default async function LocationsPage() {
                 <p className="leading-relaxed">
                   When choosing a location, consider factors like cost of living, state licensing requirements, 
                   scope of practice regulations, professional development opportunities, and quality of life. 
-                  Research each state's specific PMHNP practice environment.
+                  Research each state&apos;s specific PMHNP practice environment.
                 </p>
               </div>
             </div>

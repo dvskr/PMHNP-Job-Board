@@ -1,0 +1,20 @@
+﻿
+> pmhnp-job-board@0.1.0 lint
+> eslint
+
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\TestimonialCard.tsx
+  73:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\AvatarUpload.tsx
+   16:3   warning  'userEmail' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  126:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\components\auth\UserMenu.tsx
+  73:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\daggu\OneDrive\Desktop\PMHNP-Job-Board\scripts\fix-all-salaries.ts
+  67:11  warning  'source' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 5 problems (0 errors, 5 warnings)
+

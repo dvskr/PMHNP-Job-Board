@@ -97,7 +97,6 @@ export default async function JobPage({ params }: JobPageProps) {
     <>
       <JobStructuredData 
         job={job} 
-        baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'} 
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
@@ -172,7 +171,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 {job.sourceType === 'external' && job.sourceProvider && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                     <p className="text-sm text-blue-800">
-                      <span className="font-semibold">Preview:</span> This is a summary from {job.sourceProvider}. Click <strong>"Apply Now"</strong> below to view the complete job description and application details.
+                      <span className="font-semibold">Preview:</span> This is a summary from {job.sourceProvider}. Click <strong>&quot;Apply Now&quot;</strong> below to view the complete job description and application details.
                     </p>
                   </div>
                 )}

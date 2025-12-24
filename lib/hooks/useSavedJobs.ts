@@ -63,7 +63,10 @@ export default function useSavedJobs(): UseSavedJobsReturn {
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    setSavedJobsMap(getStoredSavedJobs());
+    const timer = setTimeout(() => {
+      setSavedJobsMap(getStoredSavedJobs());
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Sync across tabs via storage event

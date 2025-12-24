@@ -6,14 +6,12 @@ import { FileText, Upload, Loader2, Download, Trash2, CheckCircle, AlertCircle }
 
 interface ResumeUploadProps {
   currentResumeUrl: string | null
-  userEmail: string
   onUploadComplete: (url: string) => void
   onRemove?: () => void
 }
 
 export default function ResumeUpload({ 
   currentResumeUrl, 
-  userEmail, 
   onUploadComplete,
   onRemove 
 }: ResumeUploadProps) {
@@ -47,9 +45,9 @@ export default function ResumeUpload({
       // Call callback to update database
       setFileName(null)
       onRemove()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Remove error:', err)
-      setError(err.message || 'Failed to remove resume')
+      setError(err instanceof Error ? err.message : 'Failed to remove resume')
     } finally {
       setRemoving(false)
     }
@@ -96,9 +94,9 @@ export default function ResumeUpload({
       // Call callback with the URL
       setFileName(file.name)
       onUploadComplete(url)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload error:', err)
-      setError(err.message || 'Failed to upload resume')
+      setError(err instanceof Error ? err.message : 'Failed to upload resume')
     } finally {
       setUploading(false)
       // Reset file input
@@ -134,9 +132,9 @@ export default function ResumeUpload({
 
       // Open in new tab
       window.open(data.signedUrl, '_blank')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Download error:', err)
-      setError(err.message || 'Failed to download resume')
+      setError(err instanceof Error ? err.message : 'Failed to download resume')
     } finally {
       setDownloading(false)
     }

@@ -64,21 +64,21 @@ export function processSalary(input: RawSalaryInput): ProcessedSalary {
 
   // Process based on type
   if (detectedType === 'hourly') {
-    return processHourlySalary(min, max, raw);
+    return processHourlySalary(min, max);
   } else if (detectedType === 'annual') {
-    return processAnnualSalary(min, max, raw);
+    return processAnnualSalary(min, max);
   } else if (detectedType === 'daily') {
-    return processDailySalary(min, max, raw);
+    return processDailySalary(min, max);
   }
 
   // Try to infer from values
   if (min || max) {
     const value = min || max;
     if (value && value >= THRESHOLDS.MIN_HOURLY && value <= THRESHOLDS.MAX_HOURLY) {
-      return processHourlySalary(min, max, raw);
+      return processHourlySalary(min, max);
     }
     if (value && value >= THRESHOLDS.MIN_ANNUAL) {
-      return processAnnualSalary(min, max, raw);
+      return processAnnualSalary(min, max);
     }
   }
 
@@ -125,8 +125,7 @@ function detectSalaryType(
 
 function processHourlySalary(
   min?: number | null,
-  max?: number | null,
-  raw?: string | null
+  max?: number | null
 ): ProcessedSalary {
   // Validate range
   const minRate = min || null;
@@ -166,8 +165,7 @@ function processHourlySalary(
 
 function processAnnualSalary(
   min?: number | null,
-  max?: number | null,
-  raw?: string | null
+  max?: number | null
 ): ProcessedSalary {
   const minSalary = min || null;
   const maxSalary = max || min || null;
@@ -212,8 +210,7 @@ function processAnnualSalary(
 
 function processDailySalary(
   min?: number | null,
-  max?: number | null,
-  raw?: string | null
+  max?: number | null
 ): ProcessedSalary {
   const minRate = min || null;
   const maxRate = max || min || null;

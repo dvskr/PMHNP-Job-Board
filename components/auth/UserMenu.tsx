@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Settings, LayoutDashboard, LogOut, ChevronDown, Shield } from 'lucide-react'
 
@@ -70,9 +71,11 @@ export default function UserMenu({ user }: UserMenuProps) {
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
         {avatarUrl ? (
-          <img
+          <Image
             src={avatarUrl}
             alt={displayName}
+            width={32}
+            height={32}
             className="w-8 h-8 rounded-full object-cover"
           />
         ) : (

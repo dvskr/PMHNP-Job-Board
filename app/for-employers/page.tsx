@@ -18,8 +18,7 @@ import {
   Download,
   Check,
   Sparkles,
-  Mail,
-  Star
+  Mail
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -253,7 +252,7 @@ export default function ForEmployersPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700 font-medium">"Featured" badge on your listing</span>
+                    <span className="text-gray-700 font-medium">&quot;Featured&quot; badge on your listing</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" />
@@ -376,7 +375,7 @@ export default function ForEmployersPage() {
                 Renew Easily
               </h3>
               <p className="text-gray-600 text-sm">
-                Extend your posting with one click when needed. Keep your listing active as long as you're hiring.
+                Extend your posting with one click when needed. Keep your listing active as long as you&apos;re hiring.
               </p>
             </Card>
 

@@ -1,10 +1,12 @@
 import { Job } from '@/lib/types';
-import { normalizeSalary, type SalaryNormalizationResult } from './salary-normalizer';
-import { parseLocation, type ParsedLocation } from './location-parser';
+import { normalizeSalary } from './salary-normalizer';
+import { parseLocation } from './location-parser';
 import { formatDisplaySalary } from './salary-display';
 
 type NormalizedJob = Omit<Job, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'applyClickCount'>;
 
+/*
+// Helper function to strip HTML tags (currently unused)
 function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, ' ')
@@ -17,6 +19,7 @@ function stripHtml(html: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+*/
 
 function cleanDescription(rawDescription: string): string {
   if (!rawDescription) return '';
@@ -95,10 +98,10 @@ function extractSalary(text: string): { min: number | null; max: number | null; 
 
   match = annualPattern.exec(text);
   if (match) {
-    let min = match[1].toLowerCase().includes('k') 
+    const min = match[1].toLowerCase().includes('k') 
       ? parseFloat(match[1].replace(/k/i, '').replace(/,/g, '')) * 1000
       : parseFloat(match[1].replace(/,/g, ''));
-    let max = match[2] 
+    const max = match[2] 
       ? (match[2].toLowerCase().includes('k')
           ? parseFloat(match[2].replace(/k/i, '').replace(/,/g, '')) * 1000
           : parseFloat(match[2].replace(/,/g, '')))
@@ -144,6 +147,10 @@ function detectMode(text: string): string | null {
   return null;
 }
 
+/*
+// Commented out functions below (currently unused)
+/*
+// Helper function to generate job description summary (currently unused)
 function generateSummary(description: string, maxLength: number = 300): string {
   const cleanDescription = stripHtml(description);
   if (cleanDescription.length <= maxLength) {
@@ -165,6 +172,7 @@ function generateSummary(description: string, maxLength: number = 300): string {
   
   return truncated + '...';
 }
+*/
 
 function validateAndNormalizeSalary(
   minSalary: number | null,
@@ -249,7 +257,7 @@ function validateAndNormalizeSalary(
   };
 }
 
-export function normalizeJob(rawJob: any, source: string): NormalizedJob | null {
+export function normalizeJob(rawJob: Record<string, unknown>, source: string): NormalizedJob | null {
   try {
     // Extract required fields based on source
     let title: string;
@@ -262,24 +270,26 @@ export function normalizeJob(rawJob: any, source: string): NormalizedJob | null 
     let salaryMax: number | null = null;
 
     if (source === 'adzuna') {
-      title = rawJob.title;
-      employer = rawJob.company?.display_name || rawJob.employer || 'Unknown Company';
-      location = rawJob.location?.display_name || rawJob.location || 'Unknown Location';
-      description = rawJob.description || '';
+      title = String(rawJob.title || '');
+      employer = (rawJob.company as Record<string, unknown>)?.display_name as string || 
+                 String(rawJob.employer || 'Unknown Company');
+      location = (rawJob.location as Record<string, unknown>)?.display_name as string || 
+                 String(rawJob.location || 'Unknown Location');
+      description = String(rawJob.description || '');
       // Aggregator already normalizes to applyLink, but fallback to redirect_url for direct API calls
-      applyLink = rawJob.applyLink || rawJob.redirect_url;
-      externalId = rawJob.externalId || rawJob.id?.toString();
+      applyLink = String(rawJob.applyLink || rawJob.redirect_url || '');
+      externalId = String(rawJob.externalId || (rawJob.id as string | number)?.toString() || '');
       // Adzuna provides salary_min/max as annual salaries - use them
-      salaryMin = rawJob.minSalary || null;
-      salaryMax = rawJob.maxSalary || null;
+      salaryMin = typeof rawJob.minSalary === 'number' ? rawJob.minSalary : null;
+      salaryMax = typeof rawJob.maxSalary === 'number' ? rawJob.maxSalary : null;
     } else {
       // Generic mapping for other sources
-      title = rawJob.title;
-      employer = rawJob.company || rawJob.employer || 'Unknown Company';
-      location = rawJob.location || 'Unknown Location';
-      description = rawJob.description || '';
-      applyLink = rawJob.applyLink || rawJob.url || rawJob.redirect_url || rawJob.apply_link;
-      externalId = rawJob.externalId || rawJob.id?.toString() || rawJob.external_id;
+      title = String(rawJob.title || '');
+      employer = String(rawJob.company || rawJob.employer || 'Unknown Company');
+      location = String(rawJob.location || 'Unknown Location');
+      description = String(rawJob.description || '');
+      applyLink = String(rawJob.applyLink || rawJob.url || rawJob.redirect_url || rawJob.apply_link || '');
+      externalId = String(rawJob.externalId || (rawJob.id as string | number)?.toString() || rawJob.external_id || '');
     }
 
     // Validate required fields

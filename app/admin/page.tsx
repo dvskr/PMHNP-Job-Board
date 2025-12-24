@@ -36,8 +36,8 @@ export default function AdminDashboard() {
         setStats(prev => ({
           ...prev,
           totalJobs: jobs.length,
-          publishedJobs: jobs.filter((j: any) => j.isPublished).length,
-          featuredJobs: jobs.filter((j: any) => j.isFeatured).length,
+          publishedJobs: jobs.filter((j: { isPublished: boolean }) => j.isPublished).length,
+          featuredJobs: jobs.filter((j: { isFeatured: boolean }) => j.isFeatured).length,
         }));
       }
 
@@ -46,8 +46,8 @@ export default function AdminDashboard() {
         setStats(prev => ({
           ...prev,
           totalLeads: leads.length,
-          prospects: leads.filter((l: any) => l.status === 'prospect').length,
-          converted: leads.filter((l: any) => l.status === 'converted').length,
+          prospects: leads.filter((l: { status: string }) => l.status === 'prospect').length,
+          converted: leads.filter((l: { status: string }) => l.status === 'converted').length,
         }));
       }
     } catch (error) {

@@ -1,0 +1,20 @@
+﻿
+> pmhnp-job-board@0.1.0 type-check
+> tsc --noEmit
+
+app/employer/renewal-success/page.tsx(73,18): error TS1005: ';' expected.
+app/employer/renewal-success/page.tsx(74,24): error TS1005: ';' expected.
+app/employer/renewal-success/page.tsx(75,11): error TS1109: Expression expected.
+app/employer/renewal-success/page.tsx(75,12): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(76,9): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(76,11): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(83,7): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(83,8): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(84,7): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(84,8): error TS1005: 'try' expected.
+app/employer/renewal-success/page.tsx(84,14): error TS1003: Identifier expected.
+app/employer/renewal-success/page.tsx(91,8): error TS1005: ';' expected.
+app/employer/renewal-success/page.tsx(92,3): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(92,4): error TS1128: Declaration or statement expected.
+app/employer/renewal-success/page.tsx(92,17): error TS1005: ';' expected.
+app/employer/renewal-success/page.tsx(200,1): error TS1128: Declaration or statement expected.

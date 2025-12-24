@@ -65,7 +65,7 @@ function ResetPasswordContent() {
       setTimeout(() => {
         router.push('/login')
       }, 3000)
-    } catch (err) {
+      } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

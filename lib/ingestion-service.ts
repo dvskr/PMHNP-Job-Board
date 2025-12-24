@@ -25,16 +25,16 @@ export interface IngestionResult {
 /**
  * Fetch raw jobs from a specific source
  */
-async function fetchFromSource(source: JobSource): Promise<any[]> {
+async function fetchFromSource(source: JobSource): Promise<Array<Record<string, unknown>>> {
   switch (source) {
     case 'adzuna':
       return await fetchAdzunaJobs();
     case 'usajobs':
-      return await fetchUSAJobs();
+      return await fetchUSAJobs() as unknown as Array<Record<string, unknown>>;
     case 'greenhouse':
-      return await fetchGreenhouseJobs();
+      return await fetchGreenhouseJobs() as unknown as Array<Record<string, unknown>>;
     case 'lever':
-      return await fetchLeverJobs();
+      return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
     case 'jooble':
       return await fetchJoobleJobs();
     case 'careerjet':

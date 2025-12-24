@@ -47,7 +47,6 @@ async function fixAllSalaries() {
   for (const job of jobs) {
     try {
       let processed = null;
-      let source = '';
 
       // PRIORITY 1: Fix suspiciously high values (> $400k)
       // These are likely hourly rates converted with wrong factor
@@ -64,7 +63,6 @@ async function fixAllSalaries() {
             raw: job.salaryRange,
             type: 'hourly',
           });
-          source = 'corrected-high';
           if (processed.isValid) {
             stats.correctedHighValues++;
             console.log(`🔧 Fixed high value: ${job.title}`);
@@ -89,13 +87,13 @@ async function fixAllSalaries() {
             processed.normalizedMin !== job.normalizedMinSalary ||
             processed.normalizedMax !== job.normalizedMaxSalary
           ) {
-            source = 'raw-data';
+            // source = 'raw-data'; // Tracking where fix came from (currently unused)
             stats.fixedFromRaw++;
           } else if (job.displaySalary === processed.displaySalary) {
             stats.alreadyCorrect++;
             continue; // No update needed
           } else {
-            source = 'display-update';
+            // source = 'display-update'; // Tracking where fix came from (currently unused)
             stats.fixedFromRaw++;
           }
         }
@@ -107,7 +105,7 @@ async function fixAllSalaries() {
         if (extracted) {
           processed = processSalary(extracted);
           if (processed.isValid) {
-            source = 'description';
+            // const source = 'description'; // Tracking where fix came from (currently unused)
             stats.extractedFromDescription++;
             console.log(`📝 Extracted: ${job.title} → ${processed.displaySalary}`);
           }

@@ -51,7 +51,7 @@ function SuccessContent() {
           <h2 className="font-semibold text-green-800 mb-2">What happens next?</h2>
           <ul className="text-sm text-green-700 space-y-1 text-left">
             <li>✓ Your job is now visible to candidates</li>
-            <li>✓ You'll receive a confirmation email shortly</li>
+            <li>✓ You&apos;ll receive a confirmation email shortly</li>
             <li>✓ Your listing will appear in search results</li>
             <li>✓ Candidates can start applying immediately</li>
           </ul>

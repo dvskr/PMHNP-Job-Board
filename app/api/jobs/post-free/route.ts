@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       await prisma.jobDraft.deleteMany({
         where: { email: contactEmail },
       });
-    } catch (draftError) {
+    } catch {
       // Ignore - draft may not exist
       console.log('No draft to clean up');
     }

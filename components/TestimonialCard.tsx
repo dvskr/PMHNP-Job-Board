@@ -1,4 +1,5 @@
 import { Quote } from 'lucide-react';
+import Image from 'next/image';
 
 interface TestimonialCardProps {
   quote: string;
@@ -70,9 +71,11 @@ export default function TestimonialCard({
         {/* Avatar */}
         <div className="flex-shrink-0">
           {image ? (
-            <img
+            <Image
               src={image}
               alt={author}
+              width={48}
+              height={48}
               className="w-12 h-12 rounded-full object-cover border-2 border-primary-100"
             />
           ) : (

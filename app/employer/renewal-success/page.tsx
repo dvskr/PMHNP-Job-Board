@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,38 +14,64 @@ interface RenewalData {
 
 function RenewalSuccessContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const sessionId = searchParams.get('session_id');
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [renewalData, setRenewalData] = useState<RenewalData | null>(null);
+  const [state, setState] = useState<{
+    loading: boolean;
+    error: string | null;
+    renewalData: RenewalData | null;
+  }>({
+    loading: true,
+    error: null,
+    renewalData: null,
+  });
 
   useEffect(() => {
     if (!sessionId) {
-      setError('No session ID provided');
-      setLoading(false);
-      return;
+      // Use a timeout to defer state update to avoid setting state during render
+      const timer = setTimeout(() => {
+        setState({
+          loading: false,
+          error: 'No session ID provided',
+          renewalData: null,
+        });
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     // Fetch session details
-    fetch(`/api/verify-renewal-session?session_id=${sessionId}`)
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`/api/verify-renewal-session?session_id=${sessionId}`);
+        const data = await res.json();
+        
         if (data.error) {
-          setError(data.error);
+          setState({
+            loading: false,
+            error: data.error,
+            renewalData: null,
+          });
         } else {
-          setRenewalData(data);
+          setState({
+            loading: false,
+            error: null,
+            renewalData: data,
+          });
         }
-      })
-      .catch((err) => {
-        console.error('Error fetching session:', err);
-        setError('Failed to verify renewal');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      } catch {
+        setState({
+          loading: false,
+          error: 'Failed to verify renewal',
+          renewalData: null,
+        });
+      }
+    };
+
+    fetchData();
+    return () => {}; // Explicit cleanup function for all paths
   }, [sessionId]);
+
+  const { loading, error, renewalData } = state;
 
   if (loading) {
     return (

@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true)
-    } catch (err) {
+      } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
           Reset your password
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Enter your email and we'll send you a reset link
+          Enter your email and we&apos;ll send you a reset link
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h3 className="text-xl font-semibold text-gray-900">Check your email</h3>
               <p className="text-gray-600">
-                We've sent a password reset link to <strong>{email}</strong>
+                We&apos;ve sent a password reset link to <strong>{email}</strong>
               </p>
               <Link
                 href="/login"
