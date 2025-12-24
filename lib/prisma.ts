@@ -8,30 +8,27 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 if (!globalForPrisma.pool) {
-  // Use DIRECT_URL for scripts/CLI, DATABASE_URL for app runtime
-  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL
+  // IMPORTANT: Use DATABASE_URL (pooled via PgBouncer) for app runtime
+  // Only use DIRECT_URL for migrations/scripts that need schema access
+  const connectionString = process.env.DATABASE_URL
   
   if (!connectionString) {
-    throw new Error('DATABASE_URL or DIRECT_URL must be set')
+    throw new Error('DATABASE_URL must be set')
   }
   
   console.log('[Prisma] Initializing connection pool...')
   
   globalForPrisma.pool = new Pool({ 
     connectionString,
-    max: 10, // Increased for better concurrency
-    idleTimeoutMillis: 30000, // 30 seconds
+    max: 5, // Keep low for serverless - PgBouncer handles pooling
+    idleTimeoutMillis: 20000, // 20 seconds
     connectionTimeoutMillis: 10000, // 10 seconds to connect
-    allowExitOnIdle: false, // Keep pool alive
+    allowExitOnIdle: true, // Allow cleanup in serverless
   })
   
   // Handle pool errors gracefully
   globalForPrisma.pool.on('error', (err) => {
     console.error('[Prisma] Unexpected error on idle client:', err)
-  })
-  
-  globalForPrisma.pool.on('connect', () => {
-    console.log('[Prisma] New client connected to database')
   })
 }
 
