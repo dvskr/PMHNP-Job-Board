@@ -140,6 +140,19 @@ export async function POST(request: NextRequest) {
 
     console.log('Job created successfully with ID:', job.id);
 
+    // Generate and update slug
+    const slug = `${trimmedTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()}-${job.id}`;
+    
+    await prisma.job.update({
+      where: { id: job.id },
+      data: { slug },
+    });
+
     // Create employer job record
     const employerJobData = {
       employerName: trimmedEmployer,

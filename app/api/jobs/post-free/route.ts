@@ -84,6 +84,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Generate and update slug
+    const slug = `${title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()}-${job.id}`;
+    
+    await prisma.job.update({
+      where: { id: job.id },
+      data: { slug },
+    });
+
     // Create employer job record
     await prisma.employerJob.create({
       data: {

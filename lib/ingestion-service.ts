@@ -101,6 +101,19 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
           data: normalizedJob,
         });
 
+        // Generate and update slug
+        const slug = `${normalizedJob.title
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim()}-${createdJob.id}`;
+        
+        await prisma.job.update({
+          where: { id: createdJob.id },
+          data: { slug },
+        });
+
         // Parse location
         try {
           await parseJobLocation(createdJob.id);
