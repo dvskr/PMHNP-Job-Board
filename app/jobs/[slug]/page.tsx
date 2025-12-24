@@ -7,6 +7,7 @@ import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
+import { prisma } from '@/lib/prisma';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -16,17 +17,22 @@ interface JobPageProps {
 
 async function getJob(id: string): Promise<Job | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/jobs/${id}`, {
-      cache: 'no-store',
+    // Query database directly instead of HTTP fetch to avoid Vercel deployment protection issues
+    const job = await prisma.job.findUnique({
+      where: { id },
     });
-    const data = await response.json();
-    
-    if (data.error) {
+
+    if (!job) {
       return null;
     }
-    
-    return data;
+
+    // Increment view count
+    await prisma.job.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+
+    return job as Job;
   } catch (error) {
     console.error('Error fetching job:', error);
     return null;
