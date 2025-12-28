@@ -18,15 +18,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'),
-  
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'),
+
   title: {
     default: 'PMHNP Jobs - Psychiatric Nurse Practitioner Job Board',
     template: '%s | PMHNP Jobs',
   },
-  
+
   description: 'The #1 job board for Psychiatric Mental Health Nurse Practitioners. Find remote and in-person PMHNP jobs with salary transparency. 200+ jobs updated daily.',
-  
+
   keywords: [
     'PMHNP jobs',
     'psychiatric nurse practitioner jobs',
@@ -37,11 +37,11 @@ export const metadata: Metadata = {
     'PMHNP career',
     'nurse practitioner psychiatry',
   ],
-  
+
   authors: [{ name: 'PMHNP Jobs' }],
   creator: 'PMHNP Jobs',
   publisher: 'PMHNP Jobs',
-  
+
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -58,19 +58,19 @@ export const metadata: Metadata = {
       },
     ],
   },
-  
+
   twitter: {
     card: 'summary_large_image',
     title: 'PMHNP Jobs - Psychiatric Nurse Practitioner Job Board',
     description: 'Find your next PMHNP position. 1000+ remote and in-person jobs updated daily.',
     images: ['/og-image.svg'],
   },
-  
+
   icons: {
     icon: '/favicon.svg',
     apple: '/icon-512.svg',
   },
-  
+
   robots: {
     index: true,
     follow: true,
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  
+
   verification: {
     google: 'YOUR_VERIFICATION_CODE_HERE',
   },
@@ -99,7 +99,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <GoogleAnalytics />
-        <OrganizationStructuredData baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'} />
+        <OrganizationStructuredData baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'} />
         <Header />
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>
         <Footer />

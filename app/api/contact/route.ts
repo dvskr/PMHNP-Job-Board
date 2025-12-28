@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,8 +57,8 @@ export async function POST(request: NextRequest) {
     // 1. Send notification email to support team
     try {
       await resend.emails.send({
-        from: 'PMHNP Jobs <noreply@pmhnpjobs.com>',
-        to: 'hello@pmhnpjobs.com',
+        from: EMAIL_FROM,
+        to: 'hello@pmhnphiring.com',
         subject: `Contact Form: ${trimmedSubject}`,
         html: `
           <!DOCTYPE html>
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
     // 2. Send confirmation email to user
     try {
       await resend.emails.send({
-        from: 'PMHNP Jobs <noreply@pmhnpjobs.com>',
+        from: EMAIL_FROM,
         to: trimmedEmail,
         subject: 'We received your message',
         html: `
@@ -260,13 +261,13 @@ export async function POST(request: NextRequest) {
                 
                 <ul style="color: #4b5563; margin: 15px 0;">
                   <li style="margin-bottom: 8px;">
-                    <a href="https://pmhnpjobs.com/jobs" style="color: #0D9488; text-decoration: none;">Browse available PMHNP jobs</a>
+                    <a href="https://pmhnphiring.com/jobs" style="color: #0D9488; text-decoration: none;">Browse available PMHNP jobs</a>
                   </li>
                   <li style="margin-bottom: 8px;">
-                    <a href="https://pmhnpjobs.com/faq" style="color: #0D9488; text-decoration: none;">Check out our FAQ</a>
+                    <a href="https://pmhnphiring.com/faq" style="color: #0D9488; text-decoration: none;">Check out our FAQ</a>
                   </li>
                   <li style="margin-bottom: 8px;">
-                    <a href="https://pmhnpjobs.com/about" style="color: #0D9488; text-decoration: none;">Learn more about us</a>
+                    <a href="https://pmhnphiring.com/about" style="color: #0D9488; text-decoration: none;">Learn more about us</a>
                   </li>
                 </ul>
                 
@@ -276,8 +277,8 @@ export async function POST(request: NextRequest) {
                     The #1 job board for psychiatric nurse practitioners
                   </p>
                   <p style="margin: 0;">
-                    <a href="mailto:hello@pmhnpjobs.com">hello@pmhnpjobs.com</a> | 
-                    <a href="https://pmhnpjobs.com">pmhnpjobs.com</a>
+                    <a href="mailto:hello@pmhnphiring.com">hello@pmhnphiring.com</a> | 
+                    <a href="https://pmhnphiring.com">pmhnphiring.com</a>
                   </p>
                 </div>
               </div>
@@ -294,9 +295,9 @@ export async function POST(request: NextRequest) {
 
     // Return success response
     return NextResponse.json(
-      { 
-        success: true, 
-        message: 'Message sent! We\'ll get back to you within 24-48 hours.' 
+      {
+        success: true,
+        message: 'Message sent! We\'ll get back to you within 24-48 hours.'
       },
       { status: 200 }
     );
@@ -304,9 +305,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Contact form error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to send message. Please try again or email us directly at hello@pmhnpjobs.com.' 
+      {
+        success: false,
+        error: 'Failed to send message. Please try again or email us directly at hello@pmhnphiring.com.'
       },
       { status: 500 }
     );

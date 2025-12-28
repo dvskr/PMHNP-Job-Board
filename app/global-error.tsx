@@ -193,13 +193,13 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               >
                 If this keeps happening, please email us at{' '}
                 <a
-                  href="mailto:hello@pmhnpjobs.com"
+                  href="mailto:hello@pmhnphiring.com"
                   style={{
                     color: '#0d9488',
                     textDecoration: 'underline',
                   }}
                 >
-                  hello@pmhnpjobs.com
+                  hello@pmhnphiring.com
                 </a>
               </p>
             </div>

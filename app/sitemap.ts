@@ -23,8 +23,8 @@ const US_STATES = [
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'
-  
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
+
   // Static pages
   const staticPages = [
     {
@@ -90,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   // SEO Landing Pages
-  
+
   // Remote jobs page
   const remoteJobsPage = {
     url: `${baseUrl}/jobs/remote`,
@@ -114,8 +114,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }))
-  
-  
+
+
   try {
     // Dynamic job pages
     const jobs = await prisma.job.findMany({
@@ -128,7 +128,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       orderBy: { createdAt: 'desc' },
       take: 1000, // Limit to most recent 1000 jobs
     })
-    
+
     const jobPages = jobs.map((job: JobSitemapData) => {
       // Create slug from title and ID
       const slug = `${job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${job.id}`
@@ -168,7 +168,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'weekly' as const,
         priority: 0.7,
       }))
-    
+
     return [
       ...staticPages,
       remoteJobsPage,

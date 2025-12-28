@@ -32,18 +32,18 @@ export default function AboutPage() {
             </div>
             <div className="space-y-4 text-gray-700 leading-relaxed">
               <p className="text-lg">
-                We believe that Psychiatric Mental Health Nurse Practitioners deserve a dedicated job resource 
+                We believe that Psychiatric Mental Health Nurse Practitioners deserve a dedicated job resource
                 that understands their unique career needs and aspirations.
               </p>
               <p>
-                PMHNP Jobs was created to solve a simple problem: it&apos;s too hard for PMHNPs to find quality job 
-                opportunities, and too difficult for employers to connect with qualified candidates. Traditional 
-                job boards are cluttered with irrelevant listings, making it time-consuming to find roles that 
+                PMHNP Jobs was created to solve a simple problem: it&apos;s too hard for PMHNPs to find quality job
+                opportunities, and too difficult for employers to connect with qualified candidates. Traditional
+                job boards are cluttered with irrelevant listings, making it time-consuming to find roles that
                 match your specialization.
               </p>
               <p>
-                Our platform aggregates opportunities from multiple sources, provides salary transparency, and 
-                helps connect PMHNPs with the right opportunities—whether you&apos;re looking for remote telehealth 
+                Our platform aggregates opportunities from multiple sources, provides salary transparency, and
+                helps connect PMHNPs with the right opportunities—whether you&apos;re looking for remote telehealth
                 positions, hospital roles, or private practice opportunities.
               </p>
             </div>
@@ -53,7 +53,7 @@ export default function AboutPage() {
         {/* What We Offer Section */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">What We Offer</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* For Job Seekers */}
             <Card padding="lg" variant="bordered">
@@ -139,23 +139,23 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Why We Built This</h2>
             <div className="space-y-4 text-gray-700 leading-relaxed">
               <p>
-                The idea for PMHNP Jobs came from a simple observation: Psychiatric Mental Health Nurse 
-                Practitioners were underserved by existing job boards. General nursing job sites were 
-                cluttered with irrelevant positions, and it took hours to find PMHNP-specific opportunities 
+                The idea for PMHNP Jobs came from a simple observation: Psychiatric Mental Health Nurse
+                Practitioners were underserved by existing job boards. General nursing job sites were
+                cluttered with irrelevant positions, and it took hours to find PMHNP-specific opportunities
                 scattered across multiple platforms.
               </p>
               <p>
-                We noticed that PMHNPs were spending valuable time searching through hundreds of listings 
-                that weren&apos;t relevant to their specialization. Meanwhile, employers looking to hire PMHNPs 
+                We noticed that PMHNPs were spending valuable time searching through hundreds of listings
+                that weren&apos;t relevant to their specialization. Meanwhile, employers looking to hire PMHNPs
                 struggled to reach the right candidates in an efficient, cost-effective way.
               </p>
               <p>
-                We built PMHNP Jobs to bridge this gap. Our goal is simple: create a dedicated space where 
-                PMHNPs can quickly find relevant opportunities, and where employers can connect with qualified 
+                We built PMHNP Jobs to bridge this gap. Our goal is simple: create a dedicated space where
+                PMHNPs can quickly find relevant opportunities, and where employers can connect with qualified
                 candidates without breaking the bank.
               </p>
               <p className="text-base italic text-gray-600 border-l-4 border-primary-500 pl-4">
-                &quot;We&apos;re committed to making the job search process easier, more transparent, and more efficient 
+                &quot;We&apos;re committed to making the job search process easier, more transparent, and more efficient
                 for everyone in the PMHNP community.&quot;
               </p>
             </div>
@@ -169,12 +169,12 @@ export default function AboutPage() {
               <Mail className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Get In Touch</h2>
               <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
-                Have questions, feedback, or suggestions? We&apos;d love to hear from you. 
+                Have questions, feedback, or suggestions? We&apos;d love to hear from you.
                 We&apos;re always looking to improve and serve the PMHNP community better.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
                 <a
-                  href="mailto:hello@pmhnpjobs.com"
+                  href="mailto:hello@pmhnphiring.com"
                   className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center shadow-md hover:shadow-lg"
                 >
                   <Mail size={20} />

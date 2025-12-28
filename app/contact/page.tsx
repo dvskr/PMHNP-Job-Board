@@ -125,7 +125,7 @@ export default function ContactPage() {
                   label="Name"
                   type="text"
                   placeholder="Your full name"
-                  {...register('name', { 
+                  {...register('name', {
                     required: 'Name is required',
                     minLength: {
                       value: 2,
@@ -140,7 +140,7 @@ export default function ContactPage() {
                   label="Email"
                   type="email"
                   placeholder="your.email@example.com"
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'Email is required',
                     pattern: {
                       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -158,9 +158,8 @@ export default function ContactPage() {
                   <select
                     id="subject"
                     {...register('subject', { required: 'Please select a subject' })}
-                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
-                      errors.subject ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${errors.subject ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                   >
                     <option value="">Select a subject...</option>
                     <option value="General Inquiry">General Inquiry</option>
@@ -186,16 +185,15 @@ export default function ContactPage() {
                     id="message"
                     rows={6}
                     placeholder="Tell us how we can help..."
-                    {...register('message', { 
+                    {...register('message', {
                       required: 'Message is required',
                       minLength: {
                         value: 10,
                         message: 'Message must be at least 10 characters'
                       }
                     })}
-                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-vertical ${
-                      errors.message ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-vertical ${errors.message ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                   />
                   {errors.message && (
                     <p className="mt-1.5 text-sm text-red-600">
@@ -236,10 +234,10 @@ export default function ContactPage() {
                       Email
                     </p>
                     <a
-                      href="mailto:hello@pmhnpjobs.com"
+                      href="mailto:hello@pmhnphiring.com"
                       className="text-sm text-blue-600 hover:text-blue-700 underline"
                     >
-                      hello@pmhnpjobs.com
+                      hello@pmhnphiring.com
                     </a>
                   </div>
                 </div>

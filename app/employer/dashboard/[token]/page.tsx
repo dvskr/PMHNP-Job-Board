@@ -83,8 +83,8 @@ export default function EmployerDashboardPage() {
           <p className="text-gray-600 mb-6">{error}</p>
           <p className="text-sm text-gray-500 mb-4">
             Need help? Contact us at{' '}
-            <a href="mailto:support@pmhnpjobs.com" className="text-blue-600 hover:underline">
-              support@pmhnpjobs.com
+            <a href="mailto:support@pmhnphiring.com" className="text-blue-600 hover:underline">
+              support@pmhnphiring.com
             </a>
           </p>
           <Link
@@ -333,8 +333,8 @@ export default function EmployerDashboardPage() {
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
           Need help?{' '}
-          <a href="mailto:support@pmhnpjobs.com" className="text-blue-600 hover:underline">
-            Contact support@pmhnpjobs.com
+          <a href="mailto:support@pmhnphiring.com" className="text-blue-600 hover:underline">
+            Contact support@pmhnphiring.com
           </a>
         </div>
       </div>
@@ -349,8 +349,8 @@ export default function EmployerDashboardPage() {
             </div>
 
             <p className="text-gray-700 mb-6">
-              {config.isPaidPostingEnabled 
-                ? 'Choose how you\'d like to renew your listing:' 
+              {config.isPaidPostingEnabled
+                ? 'Choose how you\'d like to renew your listing:'
                 : 'Choose your renewal option (free during launch period):'}
             </p>
 
