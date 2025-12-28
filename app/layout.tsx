@@ -48,10 +48,10 @@ export const metadata: Metadata = {
     url: '/',
     siteName: 'PMHNP Jobs',
     title: 'PMHNP Jobs - Find Psychiatric Nurse Practitioner Positions',
-    description: 'The #1 job board for PMHNPs. Browse 200+ remote and in-person psychiatric NP jobs with salary transparency.',
+    description: 'The #1 job board for PMHNPs. Browse 1000+ remote and in-person psychiatric NP jobs with salary transparency.',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.svg',
         width: 1200,
         height: 630,
         alt: 'PMHNP Jobs - Psychiatric Nurse Practitioner Job Board',
@@ -62,8 +62,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'PMHNP Jobs - Psychiatric Nurse Practitioner Job Board',
-    description: 'Find your next PMHNP position. 200+ remote and in-person jobs updated daily.',
-    images: ['/og-image.png'],
+    description: 'Find your next PMHNP position. 1000+ remote and in-person jobs updated daily.',
+    images: ['/og-image.svg'],
   },
   
   icons: {

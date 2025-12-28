@@ -3,12 +3,12 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import TestimonialsSection from '@/components/TestimonialsSection';
+
 import { config } from '@/lib/config';
-import { 
-  Target, 
-  DollarSign, 
-  Clock, 
+import {
+  Target,
+  DollarSign,
+  Clock,
   TrendingUp,
   FileText,
   Award,
@@ -118,10 +118,10 @@ export default function ForEmployersPage() {
               Post Jobs for FREE
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              For a limited time, all job postings are completely free. 
+              For a limited time, all job postings are completely free.
               Get your PMHNP positions in front of qualified candidates today.
             </p>
-            
+
             <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
               <div className="bg-white p-6 rounded-xl shadow-md border-2 border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Standard Post</h3>
@@ -134,7 +134,7 @@ export default function ForEmployersPage() {
                   <li>✓ Full job description</li>
                 </ul>
               </div>
-              
+
               <div className="bg-white p-6 rounded-xl shadow-md border-2 border-blue-500">
                 <div className="text-blue-600 text-sm font-semibold mb-1">RECOMMENDED</div>
                 <h3 className="text-lg font-semibold text-gray-900">Featured Post</h3>
@@ -149,8 +149,8 @@ export default function ForEmployersPage() {
                 </ul>
               </div>
             </div>
-            
-            <Link 
+
+            <Link
               href="/post-job"
               className="inline-block mt-8 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
             >
@@ -404,30 +404,7 @@ export default function ForEmployersPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <TestimonialsSection
-        title="What Employers Say"
-        testimonials={[
-          {
-            quote: "PMHNP Jobs delivered exactly what we needed - qualified candidates who are specifically looking for psychiatric roles.",
-            author: "David K.",
-            role: "Recruiting Manager",
-            company: "Telehealth Startup"
-          },
-          {
-            quote: "The featured posting was worth every penny. We had 50+ qualified applicants in the first week.",
-            author: "Amanda S.",
-            role: "Practice Owner",
-            company: "Private Practice"
-          },
-          {
-            quote: "We filled our PMHNP position within 2 weeks of posting. The quality of candidates was excellent.",
-            author: "Sarah J.",
-            role: "HR Director",
-            company: "Community Health Center"
-          }
-        ]}
-      />
+
 
       {/* CTA Section */}
       <section className="bg-white py-16">
