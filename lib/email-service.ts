@@ -17,7 +17,7 @@ function getUnsubscribeFooter(unsubscribeToken: string): string {
   return `
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
       <p>You're receiving this because you signed up at PMHNPJobs.com</p>
-      <p><a href="${BASE_URL}/email-preferences?token=${unsubscribeToken}" style="color: #3b82f6;">Manage preferences</a> | <a href="${BASE_URL}/api/email/unsubscribe?token=${unsubscribeToken}" style="color: #3b82f6;">Unsubscribe</a></p>
+      <p><a href="${BASE_URL}/email-preferences?token=${unsubscribeToken}" style="color: #3b82f6;">Manage preferences</a> | <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color: #3b82f6;">Unsubscribe</a></p>
     </div>
   `;
 }
@@ -71,7 +71,7 @@ export async function sendConfirmationEmail(
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
-    const dashboardUrl = dashboardToken 
+    const dashboardUrl = dashboardToken
       ? `${BASE_URL}/employer/dashboard/${dashboardToken}`
       : null;
 
@@ -292,7 +292,7 @@ export async function sendExpiryWarningEmail(
     const now = new Date();
     const timeDiff = expiresAt.getTime() - now.getTime();
     const daysUntilExpiry = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    
+
     // Format expiry date
     const expiryDateStr = expiresAt.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -334,9 +334,9 @@ export async function sendExpiryWarningEmail(
             </div>
             
             <p style="font-size: 16px; margin-bottom: 24px;">
-              ${config.isPaidPostingEnabled 
-                ? 'Renew for just $99 to keep it active for another 30 days.' 
-                : 'Renew now to keep it active - FREE during our launch period!'}
+              ${config.isPaidPostingEnabled
+          ? 'Renew for just $99 to keep it active for another 30 days.'
+          : 'Renew now to keep it active - FREE during our launch period!'}
             </p>
             
             <div style="margin-bottom: 24px;">

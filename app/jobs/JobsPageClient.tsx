@@ -11,18 +11,26 @@ import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
 
-function JobsContent() {
+interface JobsContentProps {
+  initialJobs: Job[];
+  initialTotal: number;
+  initialPage: number;
+  initialTotalPages: number;
+}
+
+function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages }: JobsContentProps) {
   const searchParams = useSearchParams();
   
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const [total, setTotal] = useState(initialTotal);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1) => {
     try {
@@ -93,6 +101,13 @@ function JobsContent() {
   useEffect(() => {
     const filters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
     setCurrentFilters(filters);
+    
+    // Skip fetch on initial load - we already have server-rendered data
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+    
     setCurrentPage(1); // Reset to page 1 when filters change
     fetchJobs(filters, 1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -361,10 +376,15 @@ function LoadingFallback() {
   );
 }
 
-export default function JobsPage() {
+export default function JobsPageClient({ initialJobs, initialTotal, initialPage, initialTotalPages }: JobsContentProps) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <JobsContent />
+      <JobsContent 
+        initialJobs={initialJobs}
+        initialTotal={initialTotal}
+        initialPage={initialPage}
+        initialTotalPages={initialTotalPages}
+      />
     </Suspense>
   );
 }
