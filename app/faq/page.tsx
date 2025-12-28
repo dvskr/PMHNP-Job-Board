@@ -71,19 +71,19 @@ export default function FAQPage() {
     {
       question: "How do I access my employer dashboard?",
       answer: config.isPaidPostingEnabled
-        ? "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at hello@pmhnpjobs.com."
-        : "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, and renew listings for free during our launch period. If you've lost the link, contact us at hello@pmhnpjobs.com."
+        ? "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at hello@pmhnphiring.com."
+        : "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, and renew listings for free during our launch period. If you've lost the link, contact us at hello@pmhnphiring.com."
     },
     {
       question: "Do you offer refunds?",
-      answer: "Contact us at hello@pmhnpjobs.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
+      answer: "Contact us at hello@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
     },
   ];
 
   const generalFaqs = [
     {
       question: "How do I contact support?",
-      answer: "Email us at hello@pmhnpjobs.com and we'll respond within 24 hours (usually much faster). You can also use our contact form for general inquiries."
+      answer: "Email us at hello@pmhnphiring.com and we'll respond within 24 hours (usually much faster). You can also use our contact form for general inquiries."
     },
     {
       question: "Is my information secure?",
@@ -157,7 +157,7 @@ export default function FAQPage() {
               Didn&apos;t find your answer? We&apos;re here to help. Reach out and we&apos;ll get back to you within 24 hours.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
-              <a href="mailto:hello@pmhnpjobs.com" className="w-full sm:w-auto">
+              <a href="mailto:hello@pmhnphiring.com" className="w-full sm:w-auto">
                 <Button variant="primary" size="lg" className="w-full">
                   <Mail size={20} />
                   Email Us

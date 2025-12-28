@@ -5,7 +5,7 @@ import { slugify } from '@/lib/utils';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Jobs <noreply@rolerabbit.com>';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 // Batch size for processing alerts
 const BATCH_SIZE = 50;
@@ -146,7 +146,7 @@ async function sendAlertEmail(
           ` : ''}
           
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-            <p>You're receiving this because you created a job alert at PMHNPJobs.com</p>
+            <p>You're receiving this because you created a job alert at PMHNPHiring.com</p>
             <p>
               <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #3b82f6;">Manage this alert</a> | 
               <a href="${BASE_URL}/api/job-alerts?token=${alert.token}" style="color: #3b82f6;">Delete alert</a>

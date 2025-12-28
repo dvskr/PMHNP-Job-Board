@@ -229,7 +229,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
               <li>Clicking the &quot;Unsubscribe&quot; link in any email we send you</li>
-              <li>Contacting us at hello@pmhnpjobs.com</li>
+              <li>Contacting us at hello@pmhnphiring.com</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -240,7 +240,7 @@ export default function PrivacyPage() {
             </p>
 
             <p className="text-gray-700 leading-relaxed">
-              To exercise any of these rights, please contact us at hello@pmhnpjobs.com. We will respond to your request within 30 days.
+              To exercise any of these rights, please contact us at hello@pmhnphiring.com. We will respond to your request within 30 days.
             </p>
           </section>
 
@@ -308,7 +308,7 @@ export default function PrivacyPage() {
               If you have any questions about this Privacy Policy, or if you wish to exercise your privacy rights, please contact us:
             </p>
             <ul className="list-none text-gray-700 space-y-2">
-              <li><strong>Email:</strong> hello@pmhnpjobs.com</li>
+              <li><strong>Email:</strong> hello@pmhnphiring.com</li>
               <li><strong>Subject line:</strong> &quot;Privacy Inquiry&quot;</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
@@ -334,7 +334,7 @@ export default function PrivacyPage() {
               <li>The right to non-discrimination for exercising your CCPA rights</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              To exercise these rights, please contact us at hello@pmhnpjobs.com with &quot;CCPA Request&quot; in the subject line.
+              To exercise these rights, please contact us at hello@pmhnphiring.com with &quot;CCPA Request&quot; in the subject line.
             </p>
           </section>
 
@@ -354,7 +354,7 @@ export default function PrivacyPage() {
               <li>The right to withdraw consent at any time</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              To exercise these rights, please contact us at hello@pmhnpjobs.com with &quot;GDPR Request&quot; in the subject line.
+              To exercise these rights, please contact us at hello@pmhnphiring.com with &quot;GDPR Request&quot; in the subject line.
             </p>
           </section>
         </div>

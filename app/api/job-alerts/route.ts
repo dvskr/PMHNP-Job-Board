@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Jobs <noreply@rolerabbit.com>';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 interface CreateAlertBody {
   email: string;
@@ -72,7 +72,7 @@ async function sendAlertConfirmationEmail(
             <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 16px;">Browse Jobs Now</a>
             
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-              <p>You're receiving this because you created a job alert at PMHNPJobs.com</p>
+              <p>You're receiving this because you created a job alert at PMHNPHiring.com</p>
               <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #3b82f6;">Manage this alert</a> | <a href="${BASE_URL}/api/job-alerts?token=${token}" style="color: #3b82f6;">Delete alert</a></p>
             </div>
           </body>
