@@ -8,6 +8,20 @@ interface JobSitemapData {
   updatedAt: Date;
 }
 
+// All 50 US states + DC
+const US_STATES = [
+  'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado',
+  'connecticut', 'delaware', 'florida', 'georgia', 'hawaii', 'idaho',
+  'illinois', 'indiana', 'iowa', 'kansas', 'kentucky', 'louisiana',
+  'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota',
+  'mississippi', 'missouri', 'montana', 'nebraska', 'nevada',
+  'new-hampshire', 'new-jersey', 'new-mexico', 'new-york',
+  'north-carolina', 'north-dakota', 'ohio', 'oklahoma', 'oregon',
+  'pennsylvania', 'rhode-island', 'south-carolina', 'south-dakota',
+  'tennessee', 'texas', 'utah', 'vermont', 'virginia', 'washington',
+  'west-virginia', 'wisconsin', 'wyoming', 'district-of-columbia'
+]
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'
   
@@ -74,6 +88,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
     },
   ]
+
+  // SEO Landing Pages
+  
+  // Remote jobs page
+  const remoteJobsPage = {
+    url: `${baseUrl}/jobs/remote`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  // Locations hub page
+  const locationsPage = {
+    url: `${baseUrl}/jobs/locations`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }
+
+  // All US state pages
+  const statePages = US_STATES.map(state => ({
+    url: `${baseUrl}/jobs/state/${state}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+  
   
   try {
     // Dynamic job pages
@@ -98,12 +139,53 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       }
     })
+
+    // Get top cities with jobs (cities with most job postings)
+    const topCities = await prisma.job.groupBy({
+      by: ['city'],
+      where: {
+        isPublished: true,
+        city: {
+          not: null,
+        },
+      },
+      _count: {
+        city: true,
+      },
+      orderBy: {
+        _count: {
+          city: 'desc',
+        },
+      },
+      take: 100, // Top 100 cities
+    })
+
+    const cityPages = topCities
+      .filter(city => city.city) // Filter out nulls
+      .map(city => ({
+        url: `${baseUrl}/jobs/city/${city.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }))
     
-    return [...staticPages, ...jobPages]
+    return [
+      ...staticPages,
+      remoteJobsPage,
+      locationsPage,
+      ...statePages,
+      ...cityPages,
+      ...jobPages,
+    ]
   } catch (error) {
     console.error('Error generating sitemap, returning static pages only:', error)
-    // Return static pages if database is unavailable during build
-    return staticPages
+    // Return static pages and SEO landing pages if database is unavailable during build
+    return [
+      ...staticPages,
+      remoteJobsPage,
+      locationsPage,
+      ...statePages,
+    ]
   }
 }
 
