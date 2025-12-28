@@ -12,7 +12,7 @@ export default function OrganizationStructuredData({ baseUrl }: OrganizationStru
     "description": "The #1 job board for Psychiatric Mental Health Nurse Practitioners. Find remote and in-person PMHNP jobs with salary transparency.",
     "contactPoint": {
       "@type": "ContactPoint",
-      "email": "support@pmhnpjobs.com",
+      "email": "support@pmhnphiring.com",
       "contactType": "customer service"
     },
     "sameAs": [

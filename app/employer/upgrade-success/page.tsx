@@ -74,7 +74,7 @@ function UpgradeSuccessContent() {
           {/* Alternative Link */}
           <p className="mt-4 text-sm text-gray-500">
             Need help?{' '}
-            <a href="mailto:support@pmhnpjobs.com" className="text-blue-600 hover:underline font-medium">
+            <a href="mailto:support@pmhnphiring.com" className="text-blue-600 hover:underline font-medium">
               Contact Support
             </a>
           </p>
@@ -85,7 +85,7 @@ function UpgradeSuccessContent() {
           <p>
             Your upgraded listing is now live at{' '}
             <Link href="/jobs" className="text-blue-600 hover:underline font-medium">
-              PMHNPJobs.com
+              PMHNPHiring.com
             </Link>
           </p>
         </div>

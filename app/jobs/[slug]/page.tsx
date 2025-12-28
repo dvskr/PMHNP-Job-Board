@@ -42,18 +42,18 @@ async function getJob(id: string): Promise<Job | null> {
 export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
-  
+
   // Extract UUID from end of slug (format: title-words-UUID)
   // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)
   const uuidMatch = slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
   const id = uuidMatch ? uuidMatch[1] : null;
-  
+
   if (!id) {
     return { title: 'Job Not Found' };
   }
 
   const job = await getJob(id);
-  
+
   if (!job) {
     return { title: 'Job Not Found' };
   }
@@ -88,12 +88,12 @@ export async function generateMetadata({ params }: JobPageProps) {
 
 export default async function JobPage({ params }: JobPageProps) {
   const resolvedParams = await params;
-  
+
   // Extract UUID from end of slug (format: title-words-UUID)
   // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)
   const uuidMatch = resolvedParams.slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
   const id = uuidMatch ? uuidMatch[1] : null;
-  
+
   if (!id) {
     return <JobNotFound />;
   }
@@ -110,8 +110,8 @@ export default async function JobPage({ params }: JobPageProps) {
 
   return (
     <>
-      <JobStructuredData 
-        job={job} 
+      <JobStructuredData
+        job={job}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
@@ -122,7 +122,7 @@ export default async function JobPage({ params }: JobPageProps) {
               <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight">{job.title}</h1>
                 <p className="text-lg sm:text-xl text-gray-600 mb-3">{job.employer}</p>
-                
+
                 {/* Metadata Row */}
                 <div className="flex flex-wrap gap-3 sm:gap-4 text-gray-600 text-sm sm:text-base mb-3">
                   <div className="flex items-center gap-2">
@@ -181,7 +181,7 @@ export default async function JobPage({ params }: JobPageProps) {
             <AnimatedContainer animation="fade-in-up" delay={200}>
               <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold mb-4">About this role</h2>
-                
+
                 {/* Note for external jobs */}
                 {job.sourceType === 'external' && job.sourceProvider && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -190,14 +190,14 @@ export default async function JobPage({ params }: JobPageProps) {
                     </p>
                   </div>
                 )}
-                
+
                 <div className="prose prose-gray max-w-none">
                   {job.description.split('\n').map((paragraph: string, index: number) => {
                     // Empty line = spacing
                     if (!paragraph.trim()) {
                       return <div key={index} className="h-4" />;
                     }
-                    
+
                     // Bullet point line
                     if (paragraph.trim().startsWith('•')) {
                       return (
@@ -207,13 +207,13 @@ export default async function JobPage({ params }: JobPageProps) {
                         </div>
                       );
                     }
-                    
+
                     // Check if it looks like a header (ALL CAPS or ends with colon)
-                    const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() && 
-                                     paragraph.trim().length < 50 && 
-                                     paragraph.trim().length > 2;
+                    const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
+                      paragraph.trim().length < 50 &&
+                      paragraph.trim().length > 2;
                     const endsWithColon = paragraph.trim().endsWith(':');
-                    
+
                     if (isHeader || endsWithColon) {
                       return (
                         <h3 key={index} className="text-lg font-semibold text-gray-900 mt-6 mb-2">
@@ -221,7 +221,7 @@ export default async function JobPage({ params }: JobPageProps) {
                         </h3>
                       );
                     }
-                    
+
                     // Regular paragraph
                     return (
                       <p key={index} className="text-gray-700 leading-relaxed mb-3">
@@ -295,8 +295,8 @@ export default async function JobPage({ params }: JobPageProps) {
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-500">
             See something wrong with this listing?{' '}
-            <a 
-              href={`mailto:support@pmhnpjobs.com?subject=Report Job: ${job.title}&body=Job ID: ${job.id}%0AJob Title: ${job.title}%0ACompany: ${job.employer}%0A%0AReason for report:%0A`}
+            <a
+              href={`mailto:support@pmhnphiring.com?subject=Report Job: ${job.title}&body=Job ID: ${job.id}%0AJob Title: ${job.title}%0ACompany: ${job.employer}%0A%0AReason for report:%0A`}
               className="text-red-600 hover:text-red-700 hover:underline"
             >
               Report this job

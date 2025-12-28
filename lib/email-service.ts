@@ -5,7 +5,7 @@ import { config } from '@/lib/config';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Jobs <noreply@rolerabbit.com>';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 interface EmailResult {
   success: boolean;
@@ -16,7 +16,7 @@ interface EmailResult {
 function getUnsubscribeFooter(unsubscribeToken: string): string {
   return `
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-      <p>You're receiving this because you signed up at PMHNPJobs.com</p>
+      <p>You're receiving this because you signed up at PMHNPHiring.com</p>
       <p><a href="${BASE_URL}/email-preferences?token=${unsubscribeToken}" style="color: #3b82f6;">Manage preferences</a> | <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color: #3b82f6;">Unsubscribe</a></p>
     </div>
   `;

@@ -44,7 +44,7 @@ function RenewalSuccessContent() {
       try {
         const res = await fetch(`/api/verify-renewal-session?session_id=${sessionId}`);
         const data = await res.json();
-        
+
         if (data.error) {
           setState({
             loading: false,
@@ -68,7 +68,7 @@ function RenewalSuccessContent() {
     };
 
     fetchData();
-    return () => {}; // Explicit cleanup function for all paths
+    return () => { }; // Explicit cleanup function for all paths
   }, [sessionId]);
 
   const { loading, error, renewalData } = state;
@@ -167,7 +167,7 @@ function RenewalSuccessContent() {
           <p className="text-sm text-gray-500">
             Need help?{' '}
             <a
-              href="mailto:support@pmhnpjobs.com"
+              href="mailto:support@pmhnphiring.com"
               className="text-blue-600 hover:underline"
             >
               Contact support
