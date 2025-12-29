@@ -54,7 +54,7 @@ export default function PrivacyPage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               We may collect information about you in a variety of ways. The information we may collect on the Site includes:
             </p>
-            
+
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               Personal Data
             </h3>
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               We may share your information in the following situations:
             </p>
-            
+
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               Service Providers
             </h3>
@@ -143,7 +143,7 @@ export default function PrivacyPage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               We use cookies and similar tracking technologies to track activity on our service and hold certain information.
             </p>
-            
+
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               What Are Cookies?
             </h3>
@@ -199,7 +199,7 @@ export default function PrivacyPage() {
             <p className="text-gray-700 leading-relaxed mb-4">
               Depending on your location, you may have certain rights regarding your personal information:
             </p>
-            
+
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
               Access and Portability
             </h3>
@@ -229,7 +229,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
               <li>Clicking the &quot;Unsubscribe&quot; link in any email we send you</li>
-              <li>Contacting us at hello@pmhnphiring.com</li>
+              <li>Contacting us at support@pmhnphiring.com</li>
             </ul>
 
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -240,7 +240,7 @@ export default function PrivacyPage() {
             </p>
 
             <p className="text-gray-700 leading-relaxed">
-              To exercise any of these rights, please contact us at hello@pmhnphiring.com. We will respond to your request within 30 days.
+              To exercise any of these rights, please contact us at support@pmhnphiring.com. We will respond to your request within 30 days.
             </p>
           </section>
 
@@ -308,7 +308,7 @@ export default function PrivacyPage() {
               If you have any questions about this Privacy Policy, or if you wish to exercise your privacy rights, please contact us:
             </p>
             <ul className="list-none text-gray-700 space-y-2">
-              <li><strong>Email:</strong> hello@pmhnphiring.com</li>
+              <li><strong>Email:</strong> support@pmhnphiring.com</li>
               <li><strong>Subject line:</strong> &quot;Privacy Inquiry&quot;</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
@@ -334,7 +334,7 @@ export default function PrivacyPage() {
               <li>The right to non-discrimination for exercising your CCPA rights</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              To exercise these rights, please contact us at hello@pmhnphiring.com with &quot;CCPA Request&quot; in the subject line.
+              To exercise these rights, please contact us at support@pmhnphiring.com with &quot;CCPA Request&quot; in the subject line.
             </p>
           </section>
 
@@ -354,7 +354,7 @@ export default function PrivacyPage() {
               <li>The right to withdraw consent at any time</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              To exercise these rights, please contact us at hello@pmhnphiring.com with &quot;GDPR Request&quot; in the subject line.
+              To exercise these rights, please contact us at support@pmhnphiring.com with &quot;GDPR Request&quot; in the subject line.
             </p>
           </section>
         </div>

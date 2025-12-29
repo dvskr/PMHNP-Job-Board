@@ -234,10 +234,10 @@ export default function ContactPage() {
                       Email
                     </p>
                     <a
-                      href="mailto:hello@pmhnphiring.com"
+                      href="mailto:support@pmhnphiring.com"
                       className="text-sm text-blue-600 hover:text-blue-700 underline"
                     >
-                      hello@pmhnphiring.com
+                      support@pmhnphiring.com
                     </a>
                   </div>
                 </div>

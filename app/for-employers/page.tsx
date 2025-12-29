@@ -421,7 +421,7 @@ export default function ForEmployersPage() {
                 Post a Job
               </button>
             </Link>
-            <a href="mailto:hello@pmhnphiring.com" className="w-full sm:w-auto">
+            <a href="mailto:support@pmhnphiring.com" className="w-full sm:w-auto">
               <button className="border-2 border-blue-600 text-blue-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors w-full shadow-sm hover:shadow-md">
                 Contact Us
               </button>

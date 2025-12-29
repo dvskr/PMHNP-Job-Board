@@ -136,7 +136,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
               <li>Job posting fees are generally non-refundable</li>
               <li>Refund requests may be considered within 7 days of purchase on a case-by-case basis</li>
-              <li>Contact us at hello@pmhnphiring.com to request a refund</li>
+              <li>Contact us at support@pmhnphiring.com to request a refund</li>
               <li>We reserve the right to issue refunds at our sole discretion</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
@@ -232,7 +232,7 @@ export default function TermsPage() {
               If you have any questions about these Terms of Service, please contact us:
             </p>
             <ul className="list-none text-gray-700 space-y-2">
-              <li><strong>Email:</strong> hello@pmhnphiring.com</li>
+              <li><strong>Email:</strong> support@pmhnphiring.com</li>
               <li><strong>Website:</strong> <Link href="/" className="text-blue-600 hover:text-blue-700 underline">pmhnphiring.com</Link></li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
