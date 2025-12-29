@@ -77,7 +77,7 @@ export default function SignUpForm() {
         })
 
         setSuccess(true)
-        
+
         // If email confirmation is disabled, redirect to dashboard
         if (data.session) {
           router.refresh()
@@ -129,11 +129,10 @@ export default function SignUpForm() {
           <button
             type="button"
             onClick={() => setRole('job_seeker')}
-            className={`p-4 border rounded-lg text-center transition-all ${
-              role === 'job_seeker'
+            className={`p-4 border rounded-lg text-center transition-all ${role === 'job_seeker'
                 ? 'border-blue-600 bg-blue-50 text-blue-700'
                 : 'border-gray-200 hover:border-gray-300'
-            }`}
+              }`}
           >
             <User className="w-6 h-6 mx-auto mb-2" />
             <span className="font-medium">Job Seeker</span>
@@ -142,11 +141,10 @@ export default function SignUpForm() {
           <button
             type="button"
             onClick={() => setRole('employer')}
-            className={`p-4 border rounded-lg text-center transition-all ${
-              role === 'employer'
+            className={`p-4 border rounded-lg text-center transition-all ${role === 'employer'
                 ? 'border-blue-600 bg-blue-50 text-blue-700'
                 : 'border-gray-200 hover:border-gray-300'
-            }`}
+              }`}
           >
             <Building2 className="w-6 h-6 mx-auto mb-2" />
             <span className="font-medium">Employer</span>
@@ -167,7 +165,7 @@ export default function SignUpForm() {
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             required
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <div>
@@ -180,7 +178,7 @@ export default function SignUpForm() {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             required
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
       </div>
@@ -199,7 +197,7 @@ export default function SignUpForm() {
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Your company"
             />
           </div>
@@ -219,7 +217,7 @@ export default function SignUpForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="you@example.com"
           />
         </div>
@@ -239,7 +237,7 @@ export default function SignUpForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={8}
-            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="••••••••"
           />
           <button
@@ -271,7 +269,7 @@ export default function SignUpForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="••••••••"
           />
           <button
