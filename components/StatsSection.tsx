@@ -1,43 +1,30 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import StatsSkeleton from '@/components/StatsSkeleton';
-
 interface Stats {
   totalJobs: number;
   totalSubscribers: number;
   totalCompanies: number;
 }
 
-export default function StatsSection() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+export default async function StatsSection() {
+  // Fetch stats server-side
+  let stats: Stats | null = null;
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch('/api/stats');
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/stats`, {
+      cache: 'no-store', // Always get fresh data
+      // Alternative: next: { revalidate: 60 } // Cache for 60 seconds
+    });
 
-    fetchStats();
-  }, []);
+    if (response.ok) {
+      stats = await response.json();
+    }
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+  }
 
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
   };
-
-  if (loading) {
-    return <StatsSkeleton />;
-  }
 
   return (
     <section className="py-16 px-4 bg-white">
