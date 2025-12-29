@@ -28,8 +28,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || generatedId;
 
     // Base input styles
-    const baseInputStyles = 'w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 transition-colors duration-200';
-    
+    const baseInputStyles = 'w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-500 transition-colors duration-200';
+
     // Focus and error styles
     const focusStyles = error
       ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100 focus:outline-none'
@@ -39,8 +39,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const paddingStyles = leftIcon
       ? 'pl-10'
       : rightIcon
-      ? 'pr-10'
-      : '';
+        ? 'pr-10'
+        : '';
 
     // Combine all input styles
     const inputClasses = [

@@ -91,7 +91,7 @@ export default function JobCard({ job }: JobCardProps) {
             <MapPin size={16} />
             <span>{job.location}</span>
           </div>
-          
+
           {/* Job Type and Mode Badges */}
           <div className="flex gap-2 flex-wrap">
             {job.jobType && (
@@ -113,7 +113,7 @@ export default function JobCard({ job }: JobCardProps) {
 
         {/* Salary - Prominent display */}
         {job.displaySalary && (
-          <div className="text-success-600 font-bold text-lg sm:text-xl mt-1">
+          <div className="text-teal-700 font-bold text-lg sm:text-xl mt-1">
             {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
           </div>
         )}
