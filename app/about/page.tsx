@@ -174,7 +174,7 @@ export default function AboutPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
                 <a
-                  href="mailto:hello@pmhnphiring.com"
+                  href="mailto:support@pmhnphiring.com"
                   className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center shadow-md hover:shadow-lg"
                 >
                   <Mail size={20} />

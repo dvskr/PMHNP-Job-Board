@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     try {
       await resend.emails.send({
         from: EMAIL_FROM,
-        to: 'hello@pmhnphiring.com',
+        to: 'support@pmhnphiring.com',
         subject: `Contact Form: ${trimmedSubject}`,
         html: `
           <!DOCTYPE html>
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
                     The #1 job board for psychiatric nurse practitioners
                   </p>
                   <p style="margin: 0;">
-                    <a href="mailto:hello@pmhnphiring.com">hello@pmhnphiring.com</a> | 
+                    <a href="mailto:support@pmhnphiring.com">support@pmhnphiring.com</a> | 
                     <a href="https://pmhnphiring.com">pmhnphiring.com</a>
                   </p>
                 </div>
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to send message. Please try again or email us directly at hello@pmhnphiring.com.'
+        error: 'Failed to send message. Please try again or email us directly at support@pmhnphiring.com.'
       },
       { status: 500 }
     );

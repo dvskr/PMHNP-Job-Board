@@ -1,7 +1,10 @@
 import Link from 'next/link';
-import EmailSignupForm from '@/components/EmailSignupForm';
+import dynamic from 'next/dynamic';
 import StatsSection from '@/components/StatsSection';
-import PopularCategories from '@/components/PopularCategories';
+
+// Lazy-load below-the-fold components
+const PopularCategories = dynamic(() => import('@/components/PopularCategories'));
+const EmailSignupForm = dynamic(() => import('@/components/EmailSignupForm'));
 
 
 export default function Home() {
@@ -14,7 +17,7 @@ export default function Home() {
             Find Your Next PMHNP Role
           </h1>
           <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            The #1 job board for psychiatric mental health nurse practitioners. 
+            The #1 job board for psychiatric mental health nurse practitioners.
             200+ remote and in-person jobs updated daily.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
