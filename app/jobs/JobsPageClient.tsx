@@ -20,7 +20,7 @@ interface JobsContentProps {
 
 function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages }: JobsContentProps) {
   const searchParams = useSearchParams();
-  
+
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [total, setTotal] = useState(initialTotal);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
@@ -36,46 +36,46 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     try {
       setLoading(true);
       setError(null);
-      
+
       // Build query string from filters
       const params = new URLSearchParams();
-      
+
       // Add pagination
       params.set('page', page.toString());
       params.set('limit', '50'); // Show 50 jobs per page
-      
+
       // Add search
       if (filters.search) {
         params.set('q', filters.search);
       }
-      
+
       // Add location
       if (filters.location) {
         params.set('location', filters.location);
       }
-      
+
       // Add work modes (multi-select)
       filters.workMode.forEach((mode: string) => {
         params.append('workMode', mode);
       });
-      
+
       // Add job types (multi-select)
       filters.jobType.forEach((type: string) => {
         params.append('jobType', type);
       });
-      
+
       // Add salary
       if (filters.salaryMin) {
         params.set('salaryMin', filters.salaryMin.toString());
       }
-      
+
       // Add posted within
       if (filters.postedWithin) {
         params.set('postedWithin', filters.postedWithin);
       }
-      
+
       const url = `/api/jobs?${params.toString()}`;
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch jobs');
@@ -85,7 +85,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       setTotal(data.total);
       setTotalPages(data.totalPages);
       setCurrentPage(data.page);
-      
+
       // Scroll to top when results change - use requestAnimationFrame to avoid forced reflow
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -101,16 +101,16 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   useEffect(() => {
     const filters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
     setCurrentFilters(filters);
-    
+
     // Skip fetch on initial load - we already have server-rendered data
     if (isInitialLoad) {
       setIsInitialLoad(false);
       return;
     }
-    
+
     setCurrentPage(1); // Reset to page 1 when filters change
     fetchJobs(filters, 1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams, not fetchJobs
 
   // Handle page change
@@ -121,7 +121,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   };
 
   // Count active filters (including search)
-  const activeFilterCount = 
+  const activeFilterCount =
     currentFilters.workMode.length +
     currentFilters.jobType.length +
     (currentFilters.salaryMin ? 1 : 0) +
@@ -150,13 +150,61 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Main Content with LinkedIn-Style Layout */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Sidebar Filters */}
-        <aside className="w-full lg:w-80 flex-shrink-0">
+        {/* Sidebar Filters - Hidden on mobile by default, visible on desktop */}
+        <aside className="hidden lg:block w-full lg:w-80 flex-shrink-0">
           <LinkedInFilters />
         </aside>
-        
+
         {/* Job Results */}
         <main className="flex-1">
+          {/* Mobile Filter Button - Only shown on mobile */}
+          <div className="lg:hidden mb-4">
+            <button
+              onClick={() => {
+                // Create a simple filter drawer toggle
+                const drawer = document.createElement('div');
+                drawer.className = 'fixed inset-0 z-50 lg:hidden';
+                drawer.innerHTML = `
+                  <div class="fixed inset-0 bg-black/50" onclick="this.parentElement.remove()"></div>
+                  <div class="fixed inset-y-0 left-0 w-full max-w-sm bg-white overflow-y-auto shadow-xl">
+                    <div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+                      <h2 class="text-lg font-semibold">Filters</h2>
+                      <button onclick="this.closest('.fixed.inset-0').remove()" class="p-2 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div id="mobile-filters-container" class="p-4"></div>
+                  </div>
+                `;
+                document.body.appendChild(drawer);
+                document.body.style.overflow = 'hidden';
+
+                // Mount filters in drawer
+                const container = drawer.querySelector('#mobile-filters-container');
+                const filtersClone = document.querySelector('aside.hidden')?.cloneNode(true);
+                if (container && filtersClone) {
+                  (filtersClone as HTMLElement).className = '';
+                  container.appendChild(filtersClone);
+                }
+
+                // Clean up on close
+                drawer.querySelectorAll('[onclick]').forEach(el => {
+                  el.addEventListener('click', () => {
+                    document.body.style.overflow = '';
+                  });
+                });
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-blue-500 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </button>
+          </div>
+
           {/* Create Alert Button (shown when filters are active) */}
           {activeFilterCount > 0 && (
             <div className="mb-6">
@@ -275,11 +323,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                            page === currentPage
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${page === currentPage
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            }`}
                         >
                           {page}
                         </button>
@@ -325,7 +372,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
             className="fixed inset-0 bg-black/50 animate-fade-in"
             onClick={() => setIsAlertModalOpen(false)}
           />
-          
+
           {/* Modal */}
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative w-full max-w-md transform rounded-2xl bg-white p-6 shadow-xl animate-scale-in">
@@ -342,7 +389,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
               {/* Modal Header */}
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Create Job Alert</h2>
-              
+
               {/* Alert Form */}
               <CreateAlertForm
                 initialFilters={alertFilters}
@@ -379,7 +426,7 @@ function LoadingFallback() {
 export default function JobsPageClient({ initialJobs, initialTotal, initialPage, initialTotalPages }: JobsContentProps) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <JobsContent 
+      <JobsContent
         initialJobs={initialJobs}
         initialTotal={initialTotal}
         initialPage={initialPage}

@@ -27,9 +27,8 @@ function CheckboxFilter({ label, count, checked, onChange, disabled }: CheckboxF
         />
         <span className="text-sm text-gray-700">{label}</span>
       </div>
-      <span className={`text-xs px-2 py-0.5 rounded-full ${
-        count === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-600'
-      }`}>
+      <span className={`text-xs px-2 py-0.5 rounded-full ${count === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-600'
+        }`}>
         {count.toLocaleString()}
       </span>
     </label>
@@ -68,8 +67,8 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
 export default function LinkedInFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const [filters, setFilters] = useState<FilterState>(() => 
+
+  const [filters, setFilters] = useState<FilterState>(() =>
     parseFiltersFromParams(new URLSearchParams(searchParams.toString()))
   );
   const [counts, setCounts] = useState<FilterCounts | null>(null);
@@ -80,7 +79,7 @@ export default function LinkedInFilters() {
   // Sync filters with URL changes (browser back/forward)
   useEffect(() => {
     const newFilters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
-    
+
     // Only update if filters actually changed to prevent infinite loop
     const filtersChanged = JSON.stringify(newFilters) !== JSON.stringify(filters);
     if (filtersChanged) {
@@ -98,11 +97,11 @@ export default function LinkedInFilters() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentFilters),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data: FilterCounts = await response.json();
       setCounts(data);
     } catch (error) {
@@ -115,15 +114,15 @@ export default function LinkedInFilters() {
   // Update URL and fetch counts when filters change
   useEffect(() => {
     const params = filtersToParams(filters);
-    
+
     // Only push if URL actually changed to prevent infinite loop
     const currentUrl = window.location.pathname + (window.location.search ? window.location.search : '');
     const targetUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
-    
+
     if (currentUrl !== targetUrl) {
       router.push(targetUrl, { scroll: false });
     }
-    
+
     fetchCounts(filters);
     // Don't call onFilterChange here - let parent handle URL changes via searchParams
   }, [filters, router, fetchCounts]);
@@ -163,7 +162,7 @@ export default function LinkedInFilters() {
   };
 
   // Count active filters (including search)
-  const activeFilterCount = 
+  const activeFilterCount =
     (filters.search ? 1 : 0) +
     filters.workMode.length +
     filters.jobType.length +
@@ -174,7 +173,7 @@ export default function LinkedInFilters() {
   // Get active filter pills
   const getActiveFilters = () => {
     const pills: Array<{ key: string; label: string; onRemove: () => void }> = [];
-    
+
     filters.workMode.forEach((wm: string) => {
       pills.push({
         key: `workMode-${wm}`,
@@ -182,7 +181,7 @@ export default function LinkedInFilters() {
         onRemove: () => toggleArrayFilter('workMode', wm),
       });
     });
-    
+
     filters.jobType.forEach((jt: string) => {
       pills.push({
         key: `jobType-${jt}`,
@@ -190,7 +189,7 @@ export default function LinkedInFilters() {
         onRemove: () => toggleArrayFilter('jobType', jt),
       });
     });
-    
+
     if (filters.salaryMin) {
       pills.push({
         key: 'salary',
@@ -198,7 +197,7 @@ export default function LinkedInFilters() {
         onRemove: () => setSingleFilter('salaryMin', null),
       });
     }
-    
+
     if (filters.postedWithin) {
       const labels: Record<string, string> = {
         '24h': 'Past 24 hours',
@@ -211,7 +210,7 @@ export default function LinkedInFilters() {
         onRemove: () => setSingleFilter('postedWithin', null),
       });
     }
-    
+
     if (filters.location) {
       pills.push({
         key: 'location',
@@ -222,7 +221,7 @@ export default function LinkedInFilters() {
         },
       });
     }
-    
+
     return pills;
   };
 
@@ -277,129 +276,129 @@ export default function LinkedInFilters() {
       {/* Scrollable Filter Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
-        {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Job title, company..."
-              value={searchInput}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          {/* Search */}
+          <form onSubmit={handleSearchSubmit} className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Job title, company..."
+                value={searchInput}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </form>
+
+          {/* Location */}
+          <form onSubmit={handleLocationSubmit} className="mb-4">
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="City, state, or 'Remote'"
+                value={locationInput}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationInput(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </form>
+
+          {/* Date Posted */}
+          <FilterSection title="Date Posted">
+            <CheckboxFilter
+              label="Past 24 hours"
+              count={counts?.postedWithin['24h'] || 0}
+              checked={filters.postedWithin === '24h'}
+              onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
             />
-          </div>
-        </form>
-
-        {/* Location */}
-        <form onSubmit={handleLocationSubmit} className="mb-4">
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="City, state, or 'Remote'"
-              value={locationInput}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationInput(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <CheckboxFilter
+              label="Past week"
+              count={counts?.postedWithin['7d'] || 0}
+              checked={filters.postedWithin === '7d'}
+              onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '7d' ? null : '7d')}
             />
-          </div>
-        </form>
+            <CheckboxFilter
+              label="Past month"
+              count={counts?.postedWithin['30d'] || 0}
+              checked={filters.postedWithin === '30d'}
+              onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '30d' ? null : '30d')}
+            />
+          </FilterSection>
 
-        {/* Date Posted */}
-        <FilterSection title="Date Posted">
-          <CheckboxFilter
-            label="Past 24 hours"
-            count={counts?.postedWithin['24h'] || 0}
-            checked={filters.postedWithin === '24h'}
-            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
-          />
-          <CheckboxFilter
-            label="Past week"
-            count={counts?.postedWithin['7d'] || 0}
-            checked={filters.postedWithin === '7d'}
-            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '7d' ? null : '7d')}
-          />
-          <CheckboxFilter
-            label="Past month"
-            count={counts?.postedWithin['30d'] || 0}
-            checked={filters.postedWithin === '30d'}
-            onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '30d' ? null : '30d')}
-          />
-        </FilterSection>
+          {/* Job Type */}
+          <FilterSection title="Job Type">
+            <CheckboxFilter
+              label="Full-Time"
+              count={counts?.jobType['Full-Time'] || 0}
+              checked={filters.jobType.includes('Full-Time')}
+              onChange={() => toggleArrayFilter('jobType', 'Full-Time')}
+            />
+            <CheckboxFilter
+              label="Part-Time"
+              count={counts?.jobType['Part-Time'] || 0}
+              checked={filters.jobType.includes('Part-Time')}
+              onChange={() => toggleArrayFilter('jobType', 'Part-Time')}
+            />
+            <CheckboxFilter
+              label="Contract"
+              count={counts?.jobType['Contract'] || 0}
+              checked={filters.jobType.includes('Contract')}
+              onChange={() => toggleArrayFilter('jobType', 'Contract')}
+            />
+            <CheckboxFilter
+              label="Per Diem"
+              count={counts?.jobType['Per Diem'] || 0}
+              checked={filters.jobType.includes('Per Diem')}
+              onChange={() => toggleArrayFilter('jobType', 'Per Diem')}
+            />
+          </FilterSection>
 
-        {/* Job Type */}
-        <FilterSection title="Job Type">
-          <CheckboxFilter
-            label="Full-Time"
-            count={counts?.jobType['Full-Time'] || 0}
-            checked={filters.jobType.includes('Full-Time')}
-            onChange={() => toggleArrayFilter('jobType', 'Full-Time')}
-          />
-          <CheckboxFilter
-            label="Part-Time"
-            count={counts?.jobType['Part-Time'] || 0}
-            checked={filters.jobType.includes('Part-Time')}
-            onChange={() => toggleArrayFilter('jobType', 'Part-Time')}
-          />
-          <CheckboxFilter
-            label="Contract"
-            count={counts?.jobType['Contract'] || 0}
-            checked={filters.jobType.includes('Contract')}
-            onChange={() => toggleArrayFilter('jobType', 'Contract')}
-          />
-          <CheckboxFilter
-            label="Per Diem"
-            count={counts?.jobType['Per Diem'] || 0}
-            checked={filters.jobType.includes('Per Diem')}
-            onChange={() => toggleArrayFilter('jobType', 'Per Diem')}
-          />
-        </FilterSection>
+          {/* Work Mode */}
+          <FilterSection title="Work Mode">
+            <CheckboxFilter
+              label="Remote"
+              count={counts?.workMode.remote || 0}
+              checked={filters.workMode.includes('remote')}
+              onChange={() => toggleArrayFilter('workMode', 'remote')}
+            />
+            <CheckboxFilter
+              label="Hybrid"
+              count={counts?.workMode.hybrid || 0}
+              checked={filters.workMode.includes('hybrid')}
+              onChange={() => toggleArrayFilter('workMode', 'hybrid')}
+            />
+            <CheckboxFilter
+              label="On-site"
+              count={counts?.workMode.onsite || 0}
+              checked={filters.workMode.includes('onsite')}
+              onChange={() => toggleArrayFilter('workMode', 'onsite')}
+            />
+          </FilterSection>
 
-        {/* Work Mode */}
-        <FilterSection title="Work Mode">
-          <CheckboxFilter
-            label="Remote"
-            count={counts?.workMode.remote || 0}
-            checked={filters.workMode.includes('remote')}
-            onChange={() => toggleArrayFilter('workMode', 'remote')}
-          />
-          <CheckboxFilter
-            label="Hybrid"
-            count={counts?.workMode.hybrid || 0}
-            checked={filters.workMode.includes('hybrid')}
-            onChange={() => toggleArrayFilter('workMode', 'hybrid')}
-          />
-          <CheckboxFilter
-            label="On-site"
-            count={counts?.workMode.onsite || 0}
-            checked={filters.workMode.includes('onsite')}
-            onChange={() => toggleArrayFilter('workMode', 'onsite')}
-          />
-        </FilterSection>
-
-        {/* Salary */}
-        <FilterSection title="Salary" defaultExpanded={false}>
-          <CheckboxFilter
-            label="$100,000+"
-            count={counts?.salary.over100k || 0}
-            checked={filters.salaryMin === 100000}
-            onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 100000 ? null : 100000)}
-          />
-          <CheckboxFilter
-            label="$150,000+"
-            count={counts?.salary.over150k || 0}
-            checked={filters.salaryMin === 150000}
-            onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 150000 ? null : 150000)}
-          />
-          <CheckboxFilter
-            label="$200,000+"
-            count={counts?.salary.over200k || 0}
-            checked={filters.salaryMin === 200000}
-            onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 200000 ? null : 200000)}
-          />
-        </FilterSection>
+          {/* Salary */}
+          <FilterSection title="Salary" defaultExpanded={false}>
+            <CheckboxFilter
+              label="$100,000+"
+              count={counts?.salary.over100k || 0}
+              checked={filters.salaryMin === 100000}
+              onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 100000 ? null : 100000)}
+            />
+            <CheckboxFilter
+              label="$150,000+"
+              count={counts?.salary.over150k || 0}
+              checked={filters.salaryMin === 150000}
+              onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 150000 ? null : 150000)}
+            />
+            <CheckboxFilter
+              label="$200,000+"
+              count={counts?.salary.over200k || 0}
+              checked={filters.salaryMin === 200000}
+              onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 200000 ? null : 200000)}
+            />
+          </FilterSection>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
