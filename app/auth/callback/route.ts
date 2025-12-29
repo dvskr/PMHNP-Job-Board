@@ -10,9 +10,9 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    
+
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    
+
     if (!error && data.user) {
       // Check if profile exists, create if not
       const existingProfile = await prisma.userProfile.findUnique({
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
       if (!existingProfile && data.user.email) {
         const metadata = data.user.user_metadata || {}
-        
+
         // Handle both email signup metadata and Google OAuth metadata
         let firstName = metadata.first_name || null
         let lastName = metadata.last_name || null
@@ -47,19 +47,23 @@ export async function GET(request: Request) {
         })
       }
 
-      // Get profile for redirect logic
+      // If 'next' parameter is explicitly provided, use it
+      // This is important for password reset flows and other auth redirects
+      if (requestUrl.searchParams.has('next')) {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+
+      // Otherwise, redirect based on role
       const profile = await prisma.userProfile.findUnique({
         where: { supabaseId: data.user.id }
       })
 
-      // Redirect based on role or 'next' parameter
       if (profile?.role === 'admin') {
         return NextResponse.redirect(`${origin}/admin/jobs`)
       } else if (profile?.role === 'employer') {
         return NextResponse.redirect(`${origin}/employer/dashboard`)
       } else {
-        // Use 'next' parameter if provided, otherwise default to /dashboard
-        return NextResponse.redirect(`${origin}${next}`)
+        return NextResponse.redirect(`${origin}/dashboard`)
       }
     }
   }
