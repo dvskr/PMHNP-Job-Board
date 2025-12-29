@@ -33,7 +33,7 @@ export default function SettingsPage() {
     const fetchProfile = async () => {
       try {
         const res = await fetch('/api/auth/profile')
-        
+
         if (res.status === 401) {
           router.push('/login')
           return
@@ -61,7 +61,7 @@ export default function SettingsPage() {
 
     // Update profile state
     setProfile({ ...profile, avatarUrl: url })
-    
+
     // Save to database
     try {
       await fetch('/api/auth/profile', {
@@ -69,7 +69,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatarUrl: url }),
       })
-      
+
       setMessage({ type: 'success', text: 'Avatar updated!' })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
@@ -83,7 +83,7 @@ export default function SettingsPage() {
 
     // Update profile state
     setProfile({ ...profile, avatarUrl: null })
-    
+
     // Save to database
     try {
       await fetch('/api/auth/profile', {
@@ -91,7 +91,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatarUrl: null }),
       })
-      
+
       setMessage({ type: 'success', text: 'Avatar removed!' })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
     // Update profile state
     setProfile({ ...profile, resumeUrl: url })
-    
+
     // Save to database
     try {
       await fetch('/api/auth/profile', {
@@ -113,7 +113,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeUrl: url }),
       })
-      
+
       setMessage({ type: 'success', text: 'Resume uploaded!' })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
     // Update profile state
     setProfile({ ...profile, resumeUrl: null })
-    
+
     // Save to database
     try {
       await fetch('/api/auth/profile', {
@@ -135,7 +135,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeUrl: null }),
       })
-      
+
       setMessage({ type: 'success', text: 'Resume removed!' })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
@@ -146,12 +146,12 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     setDeleting(true)
-    
+
     try {
       const res = await fetch('/api/auth/delete-account', {
         method: 'DELETE',
       })
-      
+
       if (res.ok) {
         // Sign out and redirect
         const supabase = createClient()
@@ -166,7 +166,7 @@ export default function SettingsPage() {
       setMessage({ type: 'error', text: 'Failed to delete account' })
       setDeleting(false)
     }
-    
+
     setShowDeleteModal(false)
   }
 
@@ -197,7 +197,7 @@ export default function SettingsPage() {
       const updated = await res.json()
       setProfile(updated)
       setMessage({ type: 'success', text: 'Profile updated!' })
-      
+
       // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
@@ -213,19 +213,19 @@ export default function SettingsPage() {
 
     setSendingReset(true)
     setMessage(null)
-    
+
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       })
 
       if (error) {
         // Handle rate limit error specifically
         if (error.message?.includes('seconds') || error.message?.includes('rate limit')) {
-          setMessage({ 
-            type: 'error', 
-            text: 'Please wait before requesting another reset email. For security, password resets are rate limited.' 
+          setMessage({
+            type: 'error',
+            text: 'Please wait before requesting another reset email. For security, password resets are rate limited.'
           })
         } else {
           throw error
@@ -234,14 +234,14 @@ export default function SettingsPage() {
       }
 
       setMessage({ type: 'success', text: 'Password reset email sent! Check your inbox.' })
-      
+
       // Clear message after 5 seconds
       setTimeout(() => setMessage(null), 5000)
     } catch (error: unknown) {
       console.error('Error sending reset email:', error)
-      setMessage({ 
-        type: 'error', 
-        text: error instanceof Error ? error.message : 'Failed to send reset email. Please try again.' 
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to send reset email. Please try again.'
       })
     } finally {
       setSendingReset(false)
@@ -278,11 +278,10 @@ export default function SettingsPage() {
       {/* Success/Error Message */}
       {message && (
         <div
-          className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
-            message.type === 'success'
+          className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${message.type === 'success'
               ? 'bg-green-50 border border-green-200'
               : 'bg-red-50 border border-red-200'
-          }`}
+            }`}
         >
           {message.type === 'success' ? (
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
@@ -290,9 +289,8 @@ export default function SettingsPage() {
             <div className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5">⚠️</div>
           )}
           <p
-            className={`text-sm ${
-              message.type === 'success' ? 'text-green-600' : 'text-red-600'
-            }`}
+            className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'
+              }`}
           >
             {message.text}
           </p>
@@ -302,7 +300,7 @@ export default function SettingsPage() {
       {/* Profile Information */}
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Information</h2>
-        
+
         {/* Avatar Upload */}
         <div className="flex flex-col items-center mb-6">
           <AvatarUpload
@@ -315,7 +313,7 @@ export default function SettingsPage() {
             {profile.avatarUrl ? 'Click to change or remove photo' : 'Click to upload photo'}
           </p>
         </div>
-        
+
         <div className="space-y-4">
           {/* First Name */}
           <div>
