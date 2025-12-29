@@ -160,3 +160,24 @@ html:not([data-scroll-behavior]) {
 .pt-safe {
   padding-top: calc(0.5rem + env(safe-area-inset-top));
 }
+
+/* Global input text color fix - ensure all inputs have dark, readable text */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  color: #111827 !important; /* gray-900 - dark text for readability */
+}
+
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: #6b7280 !important; /* gray-500 - visible but clearly placeholder */
+  opacity: 1; /* Firefox fix */
+}
+
+/* Ensure input text is never light colored */
+input:focus:not([type="checkbox"]):not([type="radio"]),
+textarea:focus,
+select:focus {
+  color: #111827 !important; /* gray-900 */
+}
