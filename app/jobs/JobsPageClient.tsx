@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { LayoutGrid, List } from 'lucide-react';
 import JobCard from '@/components/JobCard';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
@@ -31,6 +32,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [showToast, setShowToast] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1) => {
     try {
@@ -229,7 +231,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               </button>
             </div>
           )}
-          {/* Results Count */}
+          {/* Results Count and View Toggle */}
           {!loading && !error && (
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-gray-500">
@@ -241,6 +243,32 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                   <>Showing {total} jobs</>
                 )}
               </p>
+
+              {/* View Mode Toggle */}
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded transition-all ${viewMode === 'grid'
+                      ? 'bg-white shadow-sm text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  aria-label="Grid view"
+                  title="Grid view"
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded transition-all ${viewMode === 'list'
+                      ? 'bg-white shadow-sm text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  aria-label="List view"
+                  title="List view"
+                >
+                  <List size={18} />
+                </button>
+              </div>
             </div>
           )}
 
@@ -266,17 +294,17 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
             </div>
           )}
 
-          {/* Jobs Grid */}
+          {/* Jobs Grid/List */}
           {!loading && !error && jobs.length > 0 && (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start' : 'flex flex-col gap-4'}>
                 {jobs.map((job: Job, index: number) => (
-                  <div key={job.id} className="h-full">
+                  <div key={job.id} className={viewMode === 'grid' ? 'h-full' : ''}>
                     <AnimatedContainer
                       animation="fade-in-up"
                       delay={Math.min(index * 50, 600)}
                     >
-                      <JobCard job={job} />
+                      <JobCard job={job} viewMode={viewMode} />
                     </AnimatedContainer>
                   </div>
                 ))}
