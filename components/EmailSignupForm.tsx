@@ -50,7 +50,7 @@ export default function EmailSignupForm({ source = 'unknown', placeholder = 'Ent
           onChange={(e) => setEmail(e.target.value)}
           placeholder={placeholder}
           required
-          className="flex-1 px-4 py-3 rounded-lg border border-gray-600 bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <button
           type="submit"
