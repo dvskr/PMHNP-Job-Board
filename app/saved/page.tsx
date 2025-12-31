@@ -7,6 +7,7 @@ import { Job } from '@/lib/types';
 import { Bookmark, Trash2, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
+import useSavedJobs from '@/lib/hooks/useSavedJobs';
 
 type TabType = 'saved' | 'applied';
 type SortOption = 'recent' | 'salary' | 'title';
@@ -14,10 +15,12 @@ type SortOption = 'recent' | 'salary' | 'title';
 export default function SavedJobsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('saved');
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [savedIds, setSavedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+
+  // Saved jobs hook - single source of truth
+  const { savedJobs: savedIds, removeJob, clearAll: clearSavedJobs } = useSavedJobs();
 
   // Applied jobs hook
   const { appliedJobs, getAppliedDate } = useAppliedJobs();
@@ -41,7 +44,7 @@ export default function SavedJobsPage() {
         throw new Error('Failed to fetch jobs');
       }
       const data: { jobs: Job[]; total: number } = await response.json();
-      
+
       // Filter to only saved jobs
       const savedJobs = data.jobs.filter((job: Job) => ids.includes(job.id));
       setJobs(savedJobs);
@@ -69,7 +72,7 @@ export default function SavedJobsPage() {
         throw new Error('Failed to fetch jobs');
       }
       const data: { jobs: Job[]; total: number } = await response.json();
-      
+
       // Filter to only applied jobs
       const appliedJobsList = data.jobs.filter((job: Job) => ids.includes(job.id));
       setAppliedJobsData(appliedJobsList);
@@ -81,17 +84,15 @@ export default function SavedJobsPage() {
   };
 
   useEffect(() => {
-    // Read saved jobs from localStorage
-    const saved = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-    setSavedIds(saved);
-    fetchSavedJobs(saved);
-  }, []);
+    // Fetch saved jobs whenever savedIds changes
+    fetchSavedJobs(savedIds);
+  }, [savedIds]);
 
   // Fetch applied jobs when tab changes or appliedJobs changes
   useEffect(() => {
     // Create a stable key from the applied job IDs
     const idsKey = appliedJobs.sort().join(',');
-    
+
     // Only fetch if we're on the applied tab and IDs have actually changed
     if (activeTab === 'applied') {
       if (appliedJobs.length > 0) {
@@ -125,8 +126,7 @@ export default function SavedJobsPage() {
   };
 
   const handleClearAll = () => {
-    localStorage.removeItem('savedJobs');
-    setSavedIds([]);
+    clearSavedJobs();
     setJobs([]);
   };
 
@@ -142,9 +142,7 @@ export default function SavedJobsPage() {
   const handleRemoveJob = (jobId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const updatedIds = savedIds.filter((id: string) => id !== jobId);
-    localStorage.setItem('savedJobs', JSON.stringify(updatedIds));
-    setSavedIds(updatedIds);
+    removeJob(jobId);
     setJobs(jobs.filter((job: Job) => job.id !== jobId));
   };
 
@@ -172,11 +170,10 @@ export default function SavedJobsPage() {
         <nav className="flex gap-8">
           <button
             onClick={() => setActiveTab('saved')}
-            className={`pb-4 px-1 text-sm font-medium transition-colors relative ${
-              activeTab === 'saved'
+            className={`pb-4 px-1 text-sm font-medium transition-colors relative ${activeTab === 'saved'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2">
               <Bookmark size={18} />
@@ -190,11 +187,10 @@ export default function SavedJobsPage() {
           </button>
           <button
             onClick={() => setActiveTab('applied')}
-            className={`pb-4 px-1 text-sm font-medium transition-colors relative ${
-              activeTab === 'applied'
+            className={`pb-4 px-1 text-sm font-medium transition-colors relative ${activeTab === 'applied'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2">
               <FileCheck size={18} />
