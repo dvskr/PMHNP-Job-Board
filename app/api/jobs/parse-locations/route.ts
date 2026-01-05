@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseAllLocations } from '@/lib/location-parser';
+import { logger } from '@/lib/logger';
 
 /**
  * Verify CRON_SECRET for authentication
@@ -9,12 +10,12 @@ function verifyCronSecret(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
-    console.error('[Parse Locations] CRON_SECRET not set');
+    logger.error('[Parse Locations] CRON_SECRET not set');
     return false;
   }
 
   if (!authHeader) {
-    console.error('[Parse Locations] No authorization header');
+    logger.error('[Parse Locations] No authorization header');
     return false;
   }
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Parse Locations] Starting manual location parsing...');
+    logger.info('[Parse Locations] Starting manual location parsing...');
     const startTime = Date.now();
 
     // Parse all locations
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime;
 
-    console.log('[Parse Locations] Complete:', {
+    logger.info('[Parse Locations] Complete', {
       processed: results.processed,
       parsed: results.parsed,
       remote: results.remote,
@@ -63,9 +64,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Parse Locations] Error:', error);
+    logger.error('[Parse Locations] Error', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to parse locations',
         message: error instanceof Error ? error.message : 'Unknown error',
       },

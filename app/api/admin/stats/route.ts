@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getIngestionStats } from '@/lib/ingestion-service';
+import { logger } from '@/lib/logger';
 
 /**
  * GET handler for admin statistics
@@ -8,7 +9,7 @@ import { getIngestionStats } from '@/lib/ingestion-service';
  */
 export async function GET() {
   try {
-    console.log('[Admin Stats] Fetching comprehensive statistics...');
+    logger.info('[Admin Stats] Fetching comprehensive statistics');
 
     // Get basic ingestion stats
     const stats = await getIngestionStats();
@@ -23,18 +24,18 @@ export async function GET() {
     // Jobs added per day (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const recentJobs = await prisma.job.findMany({
-      where: { 
+      where: {
         createdAt: { gte: sevenDaysAgo },
         isPublished: true,
       },
-      select: { 
-        createdAt: true, 
-        sourceProvider: true 
+      select: {
+        createdAt: true,
+        sourceProvider: true
       },
     });
-    
+
     // Group by day
     const jobsByDay = recentJobs.reduce((acc: Record<string, number>, job: typeof recentJobs[number]) => {
       const day = job.createdAt.toISOString().split('T')[0];
@@ -47,17 +48,17 @@ export async function GET() {
     // Top employers by job count
     const allEmployers = await prisma.job.groupBy({
       by: ['employer'],
-      where: { 
+      where: {
         isPublished: true,
       },
       _count: true,
-      orderBy: { 
-        _count: { 
-          employer: 'desc' 
-        } 
+      orderBy: {
+        _count: {
+          employer: 'desc'
+        }
       },
     });
-    
+
     // Filter out null employers and take top 10
     const topEmployers = allEmployers
       .filter((e: typeof allEmployers[number]) => e.employer !== null)
@@ -65,8 +66,8 @@ export async function GET() {
 
     // Additional useful metrics
     const totalJobs = await prisma.job.count();
-    const publishedJobs = await prisma.job.count({ 
-      where: { isPublished: true } 
+    const publishedJobs = await prisma.job.count({
+      where: { isPublished: true }
     });
     const unpublishedJobs = totalJobs - publishedJobs;
 
@@ -86,13 +87,13 @@ export async function GET() {
 
     // Featured jobs count
     const featuredCount = await prisma.job.count({
-      where: { 
+      where: {
         isPublished: true,
         isFeatured: true,
       },
     });
 
-    console.log('[Admin Stats] Successfully fetched all statistics');
+    logger.info('[Admin Stats] Successfully fetched all statistics');
 
     return NextResponse.json({
       success: true,
@@ -102,9 +103,9 @@ export async function GET() {
         bySource.map((s: typeof bySource[number]) => [s.sourceProvider || 'unknown', s._count])
       ),
       jobsByDay,
-      topEmployers: topEmployers.map((e: typeof topEmployers[number]) => ({ 
-        employer: e.employer, 
-        count: e._count 
+      topEmployers: topEmployers.map((e: typeof topEmployers[number]) => ({
+        employer: e.employer,
+        count: e._count
       })),
       additionalMetrics: {
         totalJobs,
@@ -122,8 +123,8 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('[Admin Stats] Error fetching statistics:', error);
-    
+    logger.error('[Admin Stats] Error fetching statistics', error);
+
     return NextResponse.json(
       {
         success: false,

@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeContactForm } from '@/lib/sanitize';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResult = await rateLimit(request, 'contact', RATE_LIMITS.contact);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await request.json();
-    const { name, email, subject, message } = body;
+
+    // Sanitize inputs
+    const sanitized = sanitizeContactForm(body);
+    const { name: trimmedName, email: trimmedEmail, subject: trimmedSubject, message: trimmedMessage } = sanitized;
 
     // Validate all required fields
-    if (!name || !email || !subject || !message) {
+    if (!trimmedName || !trimmedEmail || !trimmedSubject || !trimmedMessage) {
       return NextResponse.json(
         { success: false, error: 'All fields are required.' },
         { status: 400 }
@@ -18,21 +28,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate field lengths
-    if (name.trim().length === 0) {
+    if (trimmedName.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Name cannot be empty.' },
         { status: 400 }
       );
     }
 
-    if (subject.trim().length === 0) {
+    if (trimmedSubject.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Subject cannot be empty.' },
         { status: 400 }
       );
     }
 
-    if (message.trim().length === 0) {
+    if (trimmedMessage.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Message cannot be empty.' },
         { status: 400 }
@@ -41,18 +51,12 @@ export async function POST(request: NextRequest) {
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimmedEmail)) {
       return NextResponse.json(
         { success: false, error: 'Please provide a valid email address.' },
         { status: 400 }
       );
     }
-
-    // Trim all fields
-    const trimmedName = name.trim();
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedSubject = subject.trim();
-    const trimmedMessage = message.trim();
 
     // 1. Send notification email to support team
     try {
@@ -162,9 +166,9 @@ export async function POST(request: NextRequest) {
         replyTo: trimmedEmail,
       });
 
-      console.log(`Contact form submission from ${trimmedEmail} - Subject: ${trimmedSubject}`);
+      logger.info('Contact form submission', { email: trimmedEmail, subject: trimmedSubject });
     } catch (emailError) {
-      console.error('Error sending notification email:', emailError);
+      logger.error('Error sending notification email', emailError);
       // Continue to send confirmation email even if notification fails
     }
 
@@ -287,9 +291,9 @@ export async function POST(request: NextRequest) {
         `,
       });
 
-      console.log(`Confirmation email sent to ${trimmedEmail}`);
+      logger.info('Confirmation email sent', { email: trimmedEmail });
     } catch (confirmationError) {
-      console.error('Error sending confirmation email:', confirmationError);
+      logger.error('Error sending confirmation email', confirmationError);
       // Don't fail the request if confirmation email fails
     }
 
@@ -303,7 +307,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Contact form error:', error);
+    logger.error('Contact form error', error);
     return NextResponse.json(
       {
         success: false,

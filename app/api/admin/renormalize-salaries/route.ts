@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizeSalary } from '@/lib/salary-normalizer';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes timeout
 
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       normalizedMax: number | null;
     }> = [];
 
-    console.log('[Renormalize] Starting salary re-normalization...');
+    logger.info('[Renormalize] Starting salary re-normalization...');
 
     // Fetch all published jobs
     const jobs = await prisma.job.findMany({
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     });
 
     stats.total = jobs.length;
-    console.log(`[Renormalize] Found ${jobs.length} published jobs`);
+    logger.info(`[Renormalize] Found ${jobs.length} published jobs`);
 
     // Initialize source breakdown
     for (const job of jobs) {
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
         sourceBreakdown[source] = { total: 0, before: 0, after: 0 };
       }
       sourceBreakdown[source].total++;
-      
+
       if (job.normalizedMinSalary || job.normalizedMaxSalary) {
         sourceBreakdown[source].before++;
         stats.previouslyNormalized++;
@@ -99,12 +100,12 @@ export async function GET(request: NextRequest) {
     const BATCH_SIZE = 50;
     for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
       const batch = jobs.slice(i, i + BATCH_SIZE);
-      console.log(`[Renormalize] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(jobs.length / BATCH_SIZE)}`);
+      logger.debug(`[Renormalize] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(jobs.length / BATCH_SIZE)}`);
 
       for (const job of batch) {
         try {
           const hadBefore = job.normalizedMinSalary !== null || job.normalizedMaxSalary !== null;
-          
+
           // Track if job has raw salary data
           if (job.minSalary || job.maxSalary) {
             stats.hadRawSalary++;
@@ -160,14 +161,14 @@ export async function GET(request: NextRequest) {
                 normalizedMin: normalized.normalizedMinSalary,
                 normalizedMax: normalized.normalizedMaxSalary,
               });
-              
-              console.log(`[Renormalize] NEW: ${job.title} | ${job.sourceProvider} | $${job.minSalary}-${job.maxSalary} ${job.salaryPeriod} → $${normalized.normalizedMinSalary}-${normalized.normalizedMaxSalary}`);
+
+              logger.info(`[Renormalize] NEW: ${job.title} | ${job.sourceProvider} | $${job.minSalary}-${job.maxSalary} ${job.salaryPeriod} → $${normalized.normalizedMinSalary}-${normalized.normalizedMaxSalary}`);
             }
           }
         } catch (error) {
           stats.errors++;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[Renormalize] Error processing job ${job.id}:`, errorMessage);
+          logger.error(`[Renormalize] Error processing job ${job.id}`, errorMessage);
         }
       }
     }
@@ -194,7 +195,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[Renormalize] Fatal error:', error);
+    logger.error('[Renormalize] Fatal error', error);
     return NextResponse.json(
       { error: 'Internal server error', message: errorMessage },
       { status: 500 }

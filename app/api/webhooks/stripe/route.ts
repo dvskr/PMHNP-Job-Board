@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
+import { logger } from '@/lib/logger';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
         process.env.STRIPE_WEBHOOK_SECRET!
       );
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      logger.error('Webhook signature verification failed', err);
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 400 }
@@ -30,13 +31,13 @@ export async function POST(request: NextRequest) {
     // Handle checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
+
       const jobId = session.metadata?.jobId;
       const type = session.metadata?.type;
       const tier = session.metadata?.tier;
-      
+
       if (!jobId) {
-        console.error('No job ID in session metadata');
+        logger.error('No job ID in session metadata', null, { sessionId: session.id });
         return NextResponse.json(
           { error: 'Missing job ID' },
           { status: 400 }
@@ -93,14 +94,14 @@ export async function POST(request: NextRequest) {
                 emailLead.unsubscribeToken
               );
             } catch (emailError) {
-              console.error('Failed to send renewal confirmation email:', emailError);
+              logger.error('Failed to send renewal confirmation email', emailError, { jobId });
               // Don't throw - job already renewed
             }
           }
 
-          console.log('Job renewed:', jobId);
+          logger.info('Job renewed', { jobId, tier });
         } catch (prismaError) {
-          console.error('Error renewing job in database:', prismaError);
+          logger.error('Error renewing job in database', prismaError, { jobId });
           return NextResponse.json(
             { error: 'Failed to renew job' },
             { status: 500 }
@@ -154,14 +155,14 @@ export async function POST(request: NextRequest) {
                 employerJob.dashboardToken
               );
             } catch (emailError) {
-              console.error('Failed to send upgrade confirmation email:', emailError);
+              logger.error('Failed to send upgrade confirmation email', emailError, { jobId });
               // Don't throw - job already upgraded
             }
           }
 
-          console.log('Job upgraded to featured:', jobId);
+          logger.info('Job upgraded to featured', { jobId });
         } catch (prismaError) {
-          console.error('Error upgrading job in database:', prismaError);
+          logger.error('Error upgrading job in database', prismaError, { jobId });
           return NextResponse.json(
             { error: 'Failed to upgrade job' },
             { status: 500 }
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
                 employerJob.dashboardToken
               );
             } catch (emailError) {
-              console.error('Failed to send confirmation email:', emailError);
+              logger.error('Failed to send confirmation email', emailError, { jobId });
               // Don't throw - job already created
             }
 
@@ -207,17 +208,17 @@ export async function POST(request: NextRequest) {
                 where: { email: employerJob.contactEmail },
               });
               if (deletedDrafts.count > 0) {
-                console.log(`Deleted ${deletedDrafts.count} draft(s) for ${employerJob.contactEmail}`);
+                logger.debug('Deleted drafts', { count: deletedDrafts.count, email: employerJob.contactEmail });
               }
             } catch (draftError) {
-              console.error('Failed to delete job drafts:', draftError);
+              logger.error('Failed to delete job drafts', draftError, { jobId });
               // Don't throw - job already created
             }
           }
 
-          console.log('Job published:', jobId);
+          logger.info('Job published', { jobId });
         } catch (prismaError) {
-          console.error('Error updating job in database:', prismaError);
+          logger.error('Error updating job in database', prismaError, { jobId });
           return NextResponse.json(
             { error: 'Failed to update job' },
             { status: 500 }
@@ -228,10 +229,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
+    logger.error('Webhook error', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }
 }
+
