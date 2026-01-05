@@ -8,21 +8,21 @@
   --color-primary: #0D9488;
   --color-primary-dark: #0F766E;
   --color-primary-light: #14B8A6;
-  
+
   /* Backgrounds */
   --bg-primary: #FFFFFF;
   --bg-secondary: #F9FAFB;
   --bg-tertiary: #F3F4F6;
-  
+
   /* Text */
   --text-primary: #111827;
   --text-secondary: #4B5563;
   --text-tertiary: #9CA3AF;
-  
+
   /* Borders */
   --border-color: #E5E7EB;
   --border-color-dark: #D1D5DB;
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
@@ -36,12 +36,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Dark mode disabled as per user request for white background */
 
 /* Base styles */
 body {
@@ -49,14 +44,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  
+
   /* Better font rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1;
   font-kerning: normal;
-  
+
   /* Prevent layout shift and improve rendering */
   font-optical-sizing: auto;
 }
@@ -73,27 +68,48 @@ body {
 }
 
 /* Better text rendering for all text elements */
-h1, h2, h3, h4, h5, h6, p, span, a, button, input, textarea, label, div {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+button,
+input,
+textarea,
+label,
+div {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* Ensure crisp text on all screens */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
   body {
     -webkit-font-smoothing: subpixel-antialiased;
   }
 }
 
 /* Prevent fractional pixels causing blur */
-img, svg, video, canvas, iframe {
+img,
+svg,
+video,
+canvas,
+iframe {
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
 }
 
 /* Ensure buttons and inputs have sharp text */
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -134,8 +150,13 @@ html:not([data-scroll-behavior]) {
 
 /* Shimmer animation for skeleton loading */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .animate-shimmer {
@@ -165,19 +186,23 @@ html:not([data-scroll-behavior]) {
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
-  color: #111827 !important; /* gray-900 - dark text for readability */
+  color: #111827 !important;
+  /* gray-900 - dark text for readability */
 }
 
 input::placeholder,
 textarea::placeholder,
 select::placeholder {
-  color: #6b7280 !important; /* gray-500 - visible but clearly placeholder */
-  opacity: 1; /* Firefox fix */
+  color: #6b7280 !important;
+  /* gray-500 - visible but clearly placeholder */
+  opacity: 1;
+  /* Firefox fix */
 }
 
 /* Ensure input text is never light colored */
 input:focus:not([type="checkbox"]):not([type="radio"]),
 textarea:focus,
 select:focus {
-  color: #111827 !important; /* gray-900 */
+  color: #111827 !important;
+  /* gray-900 */
 }
