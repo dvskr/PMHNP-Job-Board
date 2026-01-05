@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const STORAGE_KEY = 'appliedJobs';
 
@@ -74,7 +74,7 @@ export default function useAppliedJobs(): UseAppliedJobsReturn {
   }, []);
 
   // Get array of applied job IDs
-  const appliedJobs = Object.keys(appliedJobsMap);
+  const appliedJobs = useMemo(() => Object.keys(appliedJobsMap), [appliedJobsMap]);
 
   // Check if a job is applied
   const isApplied = useCallback(

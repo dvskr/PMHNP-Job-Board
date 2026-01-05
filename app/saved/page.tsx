@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import JobCard from '@/components/JobCard';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import { Job } from '@/lib/types';
@@ -30,7 +30,7 @@ export default function SavedJobsPage() {
   const [appliedInitialized, setAppliedInitialized] = useState(false);
   const lastFetchedIds = useRef<string>('');
 
-  const fetchSavedJobs = async (ids: string[]) => {
+  const fetchSavedJobs = useCallback(async (ids: string[]) => {
     if (ids.length === 0) {
       setJobs([]);
       setLoading(false);
@@ -53,7 +53,7 @@ export default function SavedJobsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const fetchAppliedJobs = async (ids: string[]) => {
     if (ids.length === 0) {
@@ -86,7 +86,7 @@ export default function SavedJobsPage() {
   useEffect(() => {
     // Fetch saved jobs whenever savedIds changes
     fetchSavedJobs(savedIds);
-  }, [savedIds]);
+  }, [savedIds, fetchSavedJobs]);
 
   // Fetch applied jobs when tab changes or appliedJobs changes
   useEffect(() => {
@@ -171,8 +171,8 @@ export default function SavedJobsPage() {
           <button
             onClick={() => setActiveTab('saved')}
             className={`pb-4 px-1 text-sm font-medium transition-colors relative ${activeTab === 'saved'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
               }`}
           >
             <span className="flex items-center gap-2">
@@ -188,8 +188,8 @@ export default function SavedJobsPage() {
           <button
             onClick={() => setActiveTab('applied')}
             className={`pb-4 px-1 text-sm font-medium transition-colors relative ${activeTab === 'applied'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
               }`}
           >
             <span className="flex items-center gap-2">
