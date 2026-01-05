@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma';
 import { sendWelcomeEmail } from '@/lib/email-service';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeEmail } from '@/lib/sanitize';
+import { logger } from '@/lib/logger';
 
 interface SubscribeRequestBody {
   email: string;
@@ -9,9 +12,16 @@ interface SubscribeRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResult = await rateLimit(request, 'subscribe', RATE_LIMITS.subscribe);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body: SubscribeRequestBody = await request.json();
-    const { email, source } = body;
+    const { source } = body;
+
+    // Sanitize email input
+    const email = sanitizeEmail(body.email);
 
     // Validate email
     const emailRegex = /\S+@\S+\.\S+/;
@@ -35,6 +45,7 @@ export async function POST(request: NextRequest) {
           data: { isSubscribed: true },
         });
 
+        logger.info('User resubscribed', { email });
         return NextResponse.json({
           success: true,
           message: 'Welcome back! You have been resubscribed.',
@@ -51,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Create new email lead with generated tokens
     // Generate random IDs in cuid2-like format
     const generateCuid = () => crypto.randomBytes(16).toString('base64url').substring(0, 24);
-    
+
     const emailLead = await prisma.emailLead.create({
       data: {
         email: email.toLowerCase(),
@@ -64,12 +75,13 @@ export async function POST(request: NextRequest) {
     // Send welcome email with unsubscribe token
     await sendWelcomeEmail(email, emailLead.unsubscribeToken);
 
+    logger.info('New subscriber added', { email, source });
     return NextResponse.json({
       success: true,
       message: 'Subscribed successfully!',
     });
   } catch (error) {
-    console.error('Error subscribing:', error);
+    logger.error('Error subscribing', error);
     return NextResponse.json(
       { success: false, error: 'Failed to subscribe' },
       { status: 500 }

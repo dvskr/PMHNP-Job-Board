@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { createId } from '@paralleldrive/cuid2';
 import { config } from '@/lib/config';
+import { logger } from '@/lib/logger';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeJobPosting } from '@/lib/sanitize';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -24,11 +27,15 @@ interface CheckoutRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting (IP based) - strictly limit checkout creation to prevent spam
+  const rateLimitResult = await rateLimit(request, 'checkout', RATE_LIMITS.postJob);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     // Block in free mode - users should use /api/jobs/post-free instead
     if (!config.isPaidPostingEnabled) {
       return NextResponse.json(
-        { 
+        {
           error: 'Paid posting is currently disabled. Job postings are free during our launch period.',
           redirect: '/post-job'
         },
@@ -36,7 +43,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body: CheckoutRequestBody = await request.json();
+    const rawBody: CheckoutRequestBody = await request.json();
+
+    // Sanitize inputs
+    // We reuse sanitizeJobPosting but map fields to match sanitization expectations or handle manually
+    // The checkout body structure is slightly different from post-free, so we'll do manual sanitization/validation reusing util functions where possible
+
+    // Manual trim and basic sanitization (simulating what sanitizeJobPosting does)
+    const body = {
+      ...rawBody,
+      title: rawBody.title?.trim(),
+      companyName: rawBody.companyName?.trim(),
+      companyWebsite: rawBody.companyWebsite?.trim(),
+      contactEmail: rawBody.contactEmail?.trim().toLowerCase(),
+      location: rawBody.location?.trim(),
+      description: rawBody.description?.trim(),
+      applyUrl: rawBody.applyUrl?.trim(),
+    };
 
     // Validate required fields
     const {
@@ -64,7 +87,7 @@ export async function POST(request: NextRequest) {
     const trimmedApplyLink = applyLink?.trim();
 
     if (!trimmedTitle || !trimmedEmployer || !trimmedLocation || !mode || !jobType || !trimmedDescription || !trimmedApplyLink || !trimmedContactEmail || !pricing) {
-      console.error('Validation failed. Missing required fields:', {
+      logger.warn('Validation failed. Missing required fields', {
         title: !!trimmedTitle,
         employer: !!trimmedEmployer,
         location: !!trimmedLocation,
@@ -110,11 +133,11 @@ export async function POST(request: NextRequest) {
     const dashboardToken = createId();
 
     // Log the data we're about to use
-    console.log('Creating job with data:', {
+    // Log the data we're about to use
+    logger.info('Creating job for checkout', {
       employer: trimmedEmployer,
       contactEmail: trimmedContactEmail,
-      companyWebsite,
-      applyLink: trimmedApplyLink,
+      pricing,
     });
 
     // Create job in database first (unpublished, pending payment)
@@ -138,7 +161,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('Job created successfully with ID:', job.id);
+    logger.info('Job created successfully', { jobId: job.id });
 
     // Generate and update slug
     const slug = `${trimmedTitle
@@ -147,7 +170,7 @@ export async function POST(request: NextRequest) {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim()}-${job.id}`;
-    
+
     await prisma.job.update({
       where: { id: job.id },
       data: { slug },
@@ -164,7 +187,7 @@ export async function POST(request: NextRequest) {
       paymentStatus: 'pending',
     };
 
-    console.log('Creating employer job with data:', employerJobData);
+    logger.debug('Creating employer job record', { jobId: job.id, email: trimmedContactEmail });
 
     const employerJob = await prisma.employerJob.create({
       data: employerJobData,
@@ -201,7 +224,7 @@ export async function POST(request: NextRequest) {
       url: session.url,
     });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    logger.error('Error creating checkout session', error);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

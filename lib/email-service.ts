@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
 import { config } from '@/lib/config';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -50,10 +51,10 @@ export async function sendWelcomeEmail(email: string, unsubscribeToken: string):
       `,
     });
 
-    console.log('Welcome email sent successfully to:', email);
+    logger.info('Welcome email sent', { email });
     return { success: true };
   } catch (error) {
-    console.error('Error sending welcome email:', error);
+    logger.error('Error sending welcome email', error, { email });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send welcome email',
@@ -131,10 +132,10 @@ export async function sendConfirmationEmail(
       `,
     });
 
-    console.log('Confirmation email sent successfully to:', employerEmail);
+    logger.info('Confirmation email sent', { email: employerEmail, jobId });
     return { success: true };
   } catch (error) {
-    console.error('Error sending confirmation email:', error);
+    logger.error('Error sending confirmation email', error, { email: employerEmail });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send confirmation email',
@@ -266,10 +267,10 @@ export async function sendRenewalConfirmationEmail(
       `,
     });
 
-    console.log('Renewal confirmation email sent successfully to:', email);
+    logger.info('Renewal confirmation email sent', { email });
     return { success: true };
   } catch (error) {
-    console.error('Error sending renewal confirmation email:', error);
+    logger.error('Error sending renewal confirmation email', error, { email });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send renewal confirmation email',
@@ -358,10 +359,10 @@ export async function sendExpiryWarningEmail(
       `,
     });
 
-    console.log('Expiry warning email sent successfully to:', email);
+    logger.info('Expiry warning email sent', { email });
     return { success: true };
   } catch (error) {
-    console.error('Error sending expiry warning email:', error);
+    logger.error('Error sending expiry warning email', error, { email });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send expiry warning email',
@@ -418,10 +419,10 @@ export async function sendDraftSavedEmail(
       `,
     });
 
-    console.log('Draft saved email sent successfully to:', email);
+    logger.info('Draft saved email sent', { email });
     return { success: true };
   } catch (error) {
-    console.error('Error sending draft saved email:', error);
+    logger.error('Error sending draft saved email', error, { email });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send draft saved email',

@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeJobAlert } from '@/lib/sanitize';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -79,17 +82,25 @@ async function sendAlertConfirmationEmail(
         </html>
       `,
     });
-    console.log('Alert confirmation email sent to:', email);
+    logger.info('Alert confirmation email sent', { email });
   } catch (error) {
-    console.error('Error sending alert confirmation email:', error);
+    logger.error('Error sending alert confirmation email', error, { email });
   }
 }
 
 // POST - Create new job alert
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResult = await rateLimit(request, 'jobAlerts', RATE_LIMITS.jobAlerts);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body: CreateAlertBody = await request.json();
-    const { email, name, keyword, location, mode, jobType, minSalary, maxSalary, frequency = 'weekly' } = body;
+
+    // Sanitize inputs
+    const sanitized = sanitizeJobAlert(body);
+    const { email, name, keyword, location, mode, jobType, minSalary, maxSalary } = sanitized;
+    const frequency = sanitized.frequency || 'weekly';
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -172,7 +183,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error creating job alert:', error);
+    logger.error('Error creating job alert', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create job alert' },
       { status: 500 }
@@ -223,7 +234,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching job alert:', error);
+    logger.error('Error fetching job alert', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch job alert' },
       { status: 500 }
@@ -264,7 +275,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Job alert deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting job alert:', error);
+    logger.error('Error deleting job alert', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete job alert' },
       { status: 500 }
