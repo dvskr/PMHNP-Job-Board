@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
+import { anonymizeEmail } from '@/lib/server-utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -208,7 +209,8 @@ export async function POST(request: NextRequest) {
                 where: { email: employerJob.contactEmail },
               });
               if (deletedDrafts.count > 0) {
-                logger.debug('Deleted drafts', { count: deletedDrafts.count, email: employerJob.contactEmail });
+                const anonymizedEmail = anonymizeEmail(employerJob.contactEmail);
+                logger.debug('Deleted drafts', { count: deletedDrafts.count, email: anonymizedEmail });
               }
             } catch (draftError) {
               logger.error('Failed to delete job drafts', draftError, { jobId });

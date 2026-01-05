@@ -81,11 +81,23 @@ export function getEnv(): Env {
         console.warn(message);
         console.warn('⚠️  Continuing with defaults for missing optional variables...\n');
 
-        // Parse again with defaults applied
-        cachedEnv = envSchema.parse({
+        // Parse again with defaults applied using safeParse to prevent crashing
+        const fallbackResult = envSchema.safeParse({
             ...process.env,
             NODE_ENV: process.env.NODE_ENV || 'development',
+            // Default required keys to prevent throwing if missed in dev (though they should be there)
+            DATABASE_URL: process.env.DATABASE_URL || 'postgresql://dev:dev@localhost:5432/dev',
+            NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co',
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'demo-key',
         });
+
+        if (fallbackResult.success) {
+            cachedEnv = fallbackResult.data;
+            return cachedEnv;
+        }
+
+        // If even fallback fails, throw a clear error
+        throw new Error(`Failed to initialize environment: ${fallbackResult.error.message}`);
         return cachedEnv;
     }
 
