@@ -1,14 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow, differenceInHours, differenceInDays, differenceInWeeks, format } from 'date-fns';
-import crypto from 'crypto';
 
-export function anonymizeEmail(email: string): string {
-  if (!email) return 'unknown';
-  // Use a simple hash for correlation without exposing PII
-  // In production, you might want to salt this with a secret env var
-  return crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex').substring(0, 16);
-}
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));

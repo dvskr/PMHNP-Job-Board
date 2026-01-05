@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 /**
  * Structured Logger for Production
  * 

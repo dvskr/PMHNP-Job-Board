@@ -46,19 +46,15 @@ export async function POST(request: NextRequest) {
     const rawBody: CheckoutRequestBody = await request.json();
 
     // Sanitize inputs
-    // We reuse sanitizeJobPosting but map fields to match sanitization expectations or handle manually
-    // The checkout body structure is slightly different from post-free, so we'll do manual sanitization/validation reusing util functions where possible
-
-    // Manual trim and basic sanitization (simulating what sanitizeJobPosting does)
     const body = {
       ...rawBody,
-      title: rawBody.title?.trim(),
-      companyName: rawBody.companyName?.trim(),
-      companyWebsite: rawBody.companyWebsite?.trim(),
-      contactEmail: rawBody.contactEmail?.trim().toLowerCase(),
-      location: rawBody.location?.trim(),
-      description: rawBody.description?.trim(),
-      applyUrl: rawBody.applyUrl?.trim(),
+      title: sanitizeJobPosting({ ...rawBody, title: rawBody.title || '' } as any).title,
+      companyName: sanitizeJobPosting({ ...rawBody, employer: rawBody.companyName || '' } as any).employer,
+      companyWebsite: rawBody.companyWebsite ? sanitizeUrl(rawBody.companyWebsite) : undefined,
+      contactEmail: sanitizeEmail(rawBody.contactEmail || ''),
+      location: sanitizeJobPosting({ ...rawBody, location: rawBody.location || '' } as any).location,
+      description: sanitizeJobPosting({ ...rawBody, description: rawBody.description || '' } as any).description,
+      applyUrl: sanitizeUrl(rawBody.applyUrl || ''),
     };
 
     // Validate required fields

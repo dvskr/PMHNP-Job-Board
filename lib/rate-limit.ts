@@ -146,7 +146,7 @@ export async function checkRateLimit(key: string, config: RateLimitConfig): Prom
 }
 
 /**
- * Rate limit middlewareMain function to use in API routes
+ * Rate limit middleware function to use in API routes
  */
 export async function rateLimit(
     request: Request,

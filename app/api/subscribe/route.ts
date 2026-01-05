@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeEmail } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
-import { anonymizeEmail } from '@/lib/utils';
+import { anonymizeEmail } from '@/lib/server-utils';
 
 interface SubscribeRequestBody {
   email: string;
