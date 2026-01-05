@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeEmail } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
+import { anonymizeEmail } from '@/lib/utils';
 
 interface SubscribeRequestBody {
   email: string;
@@ -45,7 +46,8 @@ export async function POST(request: NextRequest) {
           data: { isSubscribed: true },
         });
 
-        logger.info('User resubscribed', { email });
+        const anonymizedEmail = anonymizeEmail(email);
+        logger.info('User resubscribed', { email: anonymizedEmail });
         return NextResponse.json({
           success: true,
           message: 'Welcome back! You have been resubscribed.',
@@ -75,7 +77,8 @@ export async function POST(request: NextRequest) {
     // Send welcome email with unsubscribe token
     await sendWelcomeEmail(email, emailLead.unsubscribeToken);
 
-    logger.info('New subscriber added', { email, source });
+    const anonymizedEmail = anonymizeEmail(email);
+    logger.info('New subscriber added', { email: anonymizedEmail, source });
     return NextResponse.json({
       success: true,
       message: 'Subscribed successfully!',

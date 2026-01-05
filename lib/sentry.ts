@@ -6,6 +6,7 @@
  */
 
 import { getEnv, isFeatureEnabled } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 // Simple Sentry-like interface for when Sentry is not available
 interface ErrorContext {
@@ -21,7 +22,7 @@ let sentryInitialized = false;
  */
 export function initSentry(): void {
     if (!isFeatureEnabled('sentry')) {
-        console.log('Sentry DSN not configured, error monitoring disabled');
+        logger.info('Sentry DSN not configured, error monitoring disabled');
         return;
     }
 
@@ -32,7 +33,7 @@ export function initSentry(): void {
     // Replace this with actual Sentry integration when ready
 
     sentryInitialized = true;
-    console.log('Error monitoring initialized');
+    logger.info('Error monitoring initialized');
 }
 
 /**
@@ -43,17 +44,14 @@ export function captureException(error: Error | unknown, context?: ErrorContext)
 
     // Always log to console in development
     if (env.NODE_ENV === 'development') {
-        console.error('[Sentry] Exception captured:', error);
-        if (context) {
-            console.error('[Sentry] Context:', context);
-        }
+        logger.error('[Sentry] Exception captured', error, context as any);
     }
 
     // In production with Sentry DSN, this would send to Sentry
     // Sentry.captureException(error, { extra: context?.extra, tags: context?.tags });
 
     if (!sentryInitialized && env.NODE_ENV === 'production') {
-        console.error('[Error]', error);
+        logger.error('[Error]', error);
     }
 }
 
@@ -64,7 +62,8 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
     const env = getEnv();
 
     if (env.NODE_ENV === 'development') {
-        console.log(`[Sentry] ${level}: ${message}`);
+        const logMethod = level === 'warning' ? 'warn' : level;
+        logger[logMethod](`[Sentry] ${message}`);
     }
 
     // In production: Sentry.captureMessage(message, level);
@@ -76,7 +75,7 @@ export function captureMessage(message: string, level: 'info' | 'warning' | 'err
 export function setUser(user: { id?: string; email?: string } | null): void {
     // In production: Sentry.setUser(user);
     if (process.env.NODE_ENV === 'development' && user) {
-        console.log('[Sentry] User context set:', user);
+        logger.debug('[Sentry] User context set', { user });
     }
 }
 
@@ -91,7 +90,7 @@ export function addBreadcrumb(breadcrumb: {
 }): void {
     // In production: Sentry.addBreadcrumb(breadcrumb);
     if (process.env.NODE_ENV === 'development') {
-        console.log('[Sentry] Breadcrumb:', breadcrumb);
+        logger.debug('[Sentry] Breadcrumb', breadcrumb as any);
     }
 }
 

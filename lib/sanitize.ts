@@ -55,6 +55,11 @@ export function sanitizeUrl(url: string): string {
         return '';
     }
 
+    // Block protocol-relative URLs (e.g., //evil.com)
+    if (trimmed.startsWith('//')) {
+        return '';
+    }
+
     // Allow only http, https, mailto protocols
     if (!/^(https?:\/\/|mailto:)/i.test(trimmed) && !trimmed.startsWith('/')) {
         return '';

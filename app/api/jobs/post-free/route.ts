@@ -106,8 +106,14 @@ export async function POST(request: NextRequest) {
         description: sanitized.description,
         descriptionSummary: sanitized.description.slice(0, 300),
         applyLink: sanitized.applyLink,
-        minSalary: sanitized.minSalary ? parseInt(String(sanitized.minSalary)) : null,
-        maxSalary: sanitized.maxSalary ? parseInt(String(sanitized.maxSalary)) : null,
+        minSalary: (() => {
+          const val = Number(sanitized.minSalary);
+          return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
+        })(),
+        maxSalary: (() => {
+          const val = Number(sanitized.maxSalary);
+          return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
+        })(),
         salaryPeriod: sanitized.salaryPeriod || null,
         isFeatured: pricing === 'featured',
         isPublished: true,
