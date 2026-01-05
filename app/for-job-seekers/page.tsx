@@ -1,14 +1,14 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
-import { 
-  Search, 
-  Bookmark, 
-  CheckCircle, 
-  Database, 
-  DollarSign, 
-  Bell, 
-  FileCheck, 
+import {
+  Search,
+  Bookmark,
+  CheckCircle,
+  Database,
+  DollarSign,
+  Bell,
+  FileCheck,
   Heart,
   Sparkles,
   Monitor,
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function ForJobSeekersPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
