@@ -1,10 +1,12 @@
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 import StatsSection from '@/components/StatsSection';
 
+export const dynamic = 'force-dynamic';
+
 // Lazy-load below-the-fold components
-const PopularCategories = dynamic(() => import('@/components/PopularCategories'));
-const EmailSignupForm = dynamic(() => import('@/components/EmailSignupForm'));
+const PopularCategories = dynamicImport(() => import('@/components/PopularCategories'));
+const EmailSignupForm = dynamicImport(() => import('@/components/EmailSignupForm'));
 
 
 export default function Home() {
