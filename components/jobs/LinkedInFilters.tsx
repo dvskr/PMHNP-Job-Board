@@ -25,9 +25,9 @@ function CheckboxFilter({ label, count, checked, onChange, disabled }: CheckboxF
           disabled={disabled}
           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
-        <span className="text-sm text-gray-700">{label}</span>
+        <span className="text-sm text-black font-medium">{label}</span>
       </div>
-      <span className={`text-xs px-2 py-0.5 rounded-full ${count === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-600'
+      <span className={`text-xs px-2 py-0.5 rounded-full ${count === 0 ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-800'
         }`}>
         {(count || 0).toLocaleString()}
       </span>
@@ -50,11 +50,11 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between w-full text-left"
       >
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-sm font-bold text-black">{title}</h3>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-gray-500" />
+          <ChevronUp className="w-4 h-4 text-gray-700" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-gray-500" />
+          <ChevronDown className="w-4 h-4 text-gray-700" />
         )}
       </button>
       {expanded && <div className="mt-3">{children}</div>}
@@ -230,11 +230,11 @@ export default function LinkedInFilters() {
       {/* Header - Fixed at top */}
       <div className="p-4 border-b border-gray-200 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-900">Filters</h2>
+          <h2 className="text-base font-bold text-black">Filters</h2>
           {activeFilterCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="text-sm text-blue-700 hover:text-blue-900 font-medium"
             >
               Clear all ({activeFilterCount})
             </button>
@@ -247,7 +247,7 @@ export default function LinkedInFilters() {
             {getActiveFilters().map((pill: { key: string; label: string; onRemove: () => void }) => (
               <span
                 key={pill.key}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 text-xs font-medium rounded-full"
               >
                 {pill.label}
                 <button
@@ -265,8 +265,8 @@ export default function LinkedInFilters() {
 
       {/* Results Count - Fixed */}
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold text-gray-900">
+        <p className="text-sm text-gray-800 font-medium">
+          <span className="font-bold text-black">
             {isLoading || !counts ? '...' : counts.total.toLocaleString()}
           </span>
           {' '}jobs found

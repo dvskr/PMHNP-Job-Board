@@ -8,7 +8,7 @@ export default function Footer() {
           {/* About */}
           <div>
             <h3 className="text-sm font-semibold text-white mb-2">PMHNP Jobs</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-300 leading-relaxed">
               The #1 job board for psychiatric nurse practitioners
             </p>
           </div>
@@ -18,32 +18,32 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-2">Resources</h3>
             <ul className="space-y-1">
               <li>
-                <Link href="/jobs" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Browse Jobs
                 </Link>
               </li>
               <li>
-                <Link href="/for-job-seekers" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/for-job-seekers" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   For Job Seekers
                 </Link>
               </li>
               <li>
-                <Link href="/post-job" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/post-job" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Post a Job
                 </Link>
               </li>
               <li>
-                <Link href="/for-employers" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/for-employers" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   For Employers
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/about" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/faq" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   FAQ
                 </Link>
               </li>
@@ -55,32 +55,32 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-2">Jobs by Location</h3>
             <ul className="space-y-1">
               <li>
-                <Link href="/jobs/state/california" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs/state/california" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   California PMHNP Jobs
                 </Link>
               </li>
               <li>
-                <Link href="/jobs/state/texas" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs/state/texas" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Texas PMHNP Jobs
                 </Link>
               </li>
               <li>
-                <Link href="/jobs/state/new-york" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs/state/new-york" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   New York PMHNP Jobs
                 </Link>
               </li>
               <li>
-                <Link href="/jobs/state/florida" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs/state/florida" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Florida PMHNP Jobs
                 </Link>
               </li>
               <li>
-                <Link href="/jobs/remote" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs/remote" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Remote PMHNP Jobs
                 </Link>
               </li>
               <li>
-                <Link href="/jobs/locations" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/jobs/locations" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   All Locations
                 </Link>
               </li>
@@ -92,17 +92,17 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-2">Legal</h3>
             <ul className="space-y-1">
               <li>
-                <Link href="/privacy" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/privacy" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/terms" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-xs text-gray-400 hover:text-primary-400 transition-colors">
+                <Link href="/contact" className="text-xs text-gray-300 hover:text-primary-400 transition-colors">
                   Contact Us
                 </Link>
               </li>
