@@ -54,22 +54,22 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="text-3xl mb-4">🎯</div>
-              <h3 className="text-xl font-semibold mb-2">Specialized Focus</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-bold mb-2 text-black">Specialized Focus</h3>
+              <p className="text-black font-medium">
                 Only psychiatric nurse practitioner jobs. No filtering through irrelevant listings.
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="text-3xl mb-4">🏠</div>
-              <h3 className="text-xl font-semibold mb-2">Remote & In-Person</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-bold mb-2 text-black">Remote & In-Person</h3>
+              <p className="text-black font-medium">
                 Find telehealth, hybrid, and on-site positions that match your lifestyle.
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="text-3xl mb-4">📧</div>
-              <h3 className="text-xl font-semibold mb-2">Weekly Alerts</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-bold mb-2 text-black">Weekly Alerts</h3>
+              <p className="text-black font-medium">
                 Get new jobs delivered to your inbox. Never miss an opportunity.
               </p>
             </div>
@@ -82,10 +82,10 @@ export default function Home() {
       {/* Email Signup Section */}
       <section id="subscribe" className="bg-blue-50 py-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-black mb-4">
             Get PMHNP Job Alerts
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-800 font-medium mb-8">
             New psychiatric nurse practitioner jobs delivered weekly
           </p>
           <EmailSignupForm source="homepage" />
@@ -95,10 +95,10 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-black mb-4">
             Hiring PMHNPs?
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-800 font-medium mb-8">
             Reach thousands of qualified psychiatric nurse practitioners actively looking for their next role.
           </p>
           <Link
