@@ -82,7 +82,30 @@ function formatLog(level: LogLevel, message: string, context?: LogContext, error
 
     // JSON in production, pretty in development
     if (process.env.NODE_ENV === 'production') {
-        return JSON.stringify(entry);
+        try {
+            return JSON.stringify(entry);
+        } catch (err) {
+            // Fallback for circular references or other serialization errors
+            try {
+                // Simple cycle-breaking serializer
+                const getCircularReplacer = () => {
+                    const seen = new WeakSet();
+                    return (key: string, value: unknown) => {
+                        if (typeof value === "object" && value !== null) {
+                            if (seen.has(value)) {
+                                return "[Circular]";
+                            }
+                            seen.add(value);
+                        }
+                        return value;
+                    };
+                };
+                return JSON.stringify(entry, getCircularReplacer());
+            } catch (fallbackErr) {
+                // Ultimate fallback
+                return `{"timestamp":"${entry.timestamp}","level":"error","message":"Failed to serialize log entry","error":"${String(err)}"}`;
+            }
+        }
     }
 
     // Pretty format for development

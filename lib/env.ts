@@ -46,7 +46,7 @@ const envSchema = z.object({
 
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
-    NODE_ENV: z.enum(['development', 'production', 'test']).optional().default('development'),
+    NODE_ENV: z.enum(['development', 'production', 'test']),
 });
 
 export type Env = z.infer<typeof envSchema>;
