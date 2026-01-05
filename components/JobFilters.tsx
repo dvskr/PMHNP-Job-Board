@@ -142,7 +142,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
     const filters = isMobile ? tempFilters : currentFilters;
     const handleTextChange = isMobile ? handleTempInputChange : handleDebouncedInputChange;
     const handleChange = isMobile ? handleTempInputChange : handleInputChange;
-    
+
     // Use local state for text inputs on desktop
     const searchValue = isMobile ? (filters.search || '') : searchInput;
     const locationValue = isMobile ? (filters.location || '') : locationInput;
@@ -151,25 +151,25 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
       <div className="space-y-6">
         {/* Search Input */}
         <div>
-          <label htmlFor={isMobile ? "search-mobile" : "search"} className="block font-medium text-sm text-gray-700 mb-2">
+          <label htmlFor={isMobile ? "search-mobile" : "search"} className="block font-bold text-sm text-black mb-2">
             Search
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
             <input
               type="text"
               id={isMobile ? "search-mobile" : "search"}
               placeholder="Job title, company..."
               value={searchValue}
               onChange={(e) => handleTextChange('search', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+              className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-black"
             />
           </div>
         </div>
 
         {/* Location Input */}
         <div>
-          <label htmlFor={isMobile ? "location-mobile" : "location"} className="block font-medium text-sm text-gray-700 mb-2">
+          <label htmlFor={isMobile ? "location-mobile" : "location"} className="block font-bold text-sm text-black mb-2">
             Location
           </label>
           <input
@@ -178,13 +178,13 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
             placeholder="Remote, New York, etc."
             value={locationValue}
             onChange={(e) => handleTextChange('location', e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+            className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-black"
           />
         </div>
 
         {/* Work Mode Radio Buttons */}
         <div>
-          <label className="block font-medium text-sm text-gray-700 mb-3">
+          <label className="block font-bold text-sm text-black mb-3">
             Work Mode
           </label>
           <div className="space-y-3">
@@ -198,7 +198,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
                   onChange={(e) => handleChange('mode', e.target.value)}
                   className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
                 />
-                <span className="ml-3 text-base text-gray-700">{mode}</span>
+                <span className="ml-3 text-base text-gray-900 font-medium">{mode}</span>
               </label>
             ))}
           </div>
@@ -206,7 +206,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
 
         {/* Job Type Radio Buttons */}
         <div>
-          <label className="block font-medium text-sm text-gray-700 mb-3">
+          <label className="block font-bold text-sm text-black mb-3">
             Job Type
           </label>
           <div className="space-y-3">
@@ -220,7 +220,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
                   onChange={(e) => handleChange('jobType', e.target.value)}
                   className="w-5 h-5 text-primary-600 border-gray-300 focus:ring-primary-500"
                 />
-                <span className="ml-3 text-base text-gray-700">{type}</span>
+                <span className="ml-3 text-base text-gray-900 font-medium">{type}</span>
               </label>
             ))}
           </div>
@@ -228,7 +228,7 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
 
         {/* Salary Range */}
         <div>
-          <label className="block font-medium text-sm text-gray-700 mb-2">
+          <label className="block font-bold text-sm text-black mb-2">
             Salary Range
           </label>
           <div className="flex gap-3">
@@ -285,12 +285,12 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
       {isMobileOpen && (
         <>
           {/* Backdrop Overlay */}
-          <div 
+          <div
             className="lg:hidden fixed inset-0 bg-black/60 z-50 animate-fade-in"
             onClick={() => setIsMobileOpen(false)}
             aria-hidden="true"
           />
-          
+
           {/* Slide-over Panel */}
           <div className="lg:hidden fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white shadow-2xl animate-slide-in-right flex flex-col">
             {/* Drawer Header */}
@@ -321,9 +321,9 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
 
             {/* Drawer Footer - Fixed */}
             <div className="border-t border-gray-200 p-4 bg-white shrink-0 space-y-2">
-              <Button 
-                variant="primary" 
-                size="lg" 
+              <Button
+                variant="primary"
+                size="lg"
                 className="w-full"
                 onClick={handleApplyFilters}
               >
@@ -334,9 +334,9 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
                   </span>
                 )}
               </Button>
-              <Button 
-                variant="outline" 
-                size="md" 
+              <Button
+                variant="outline"
+                size="md"
                 className="w-full"
                 onClick={handleClearAllMobile}
               >

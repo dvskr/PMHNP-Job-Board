@@ -58,7 +58,7 @@ export default function PreviewPage() {
   const handleContinue = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       if (config.isPaidPostingEnabled) {
         // PAID MODE: Navigate to checkout (existing behavior)
@@ -86,9 +86,9 @@ export default function PreviewPage() {
             pricing: formData.tier,
           }),
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           // Clear localStorage
           localStorage.removeItem('jobFormData');
@@ -114,13 +114,13 @@ export default function PreviewPage() {
   }
 
   const salary = formatSalary(formData.minSalary, formData.maxSalary, formData.salaryPeriod);
-  const price = config.isPaidPostingEnabled 
+  const price = config.isPaidPostingEnabled
     ? (formData.tier === 'featured' ? 199 : 99)
     : 0;
   const priceLabel = price === 0 ? 'FREE' : `$${price}`;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-white py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -134,9 +134,9 @@ export default function PreviewPage() {
             <h2 className="text-lg font-semibold text-gray-900">How it appears in job listings</h2>
             <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
           </div>
-          
+
           {/* Job Card Preview */}
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4">
+          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4">
             <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-3">
               {/* Title and Badges Row */}
               <div className="flex items-start justify-between gap-2">
@@ -193,7 +193,7 @@ export default function PreviewPage() {
             <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
           </div>
 
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4">
+          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4">
             <div className="bg-white rounded-lg p-6">
               {/* Title and Company */}
               <h1 className="text-2xl md:text-3xl font-bold mb-2">{formData.title}</h1>
@@ -254,14 +254,14 @@ export default function PreviewPage() {
         {/* Section 3: Pricing Summary */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h2>
-          
+
           <div className="flex items-center justify-between mb-4 pb-4 border-b">
             <div>
               <p className="font-semibold text-gray-900">
                 {formData.tier === 'featured' ? 'Featured Job Post' : 'Standard Job Post'}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {formData.tier === 'featured' 
+                {formData.tier === 'featured'
                   ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
                   : '✓ 30 days active ✓ Email to subscribers'
                 }
@@ -301,10 +301,10 @@ export default function PreviewPage() {
             disabled={isLoading}
             className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading 
+            {isLoading
               ? 'Processing...'
-              : config.isPaidPostingEnabled 
-                ? 'Looks Good - Continue to Payment' 
+              : config.isPaidPostingEnabled
+                ? 'Looks Good - Continue to Payment'
                 : 'Looks Good - Post Job (Free)'}
             {!isLoading && (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

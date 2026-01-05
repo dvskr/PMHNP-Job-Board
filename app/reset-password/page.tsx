@@ -22,7 +22,7 @@ function ResetPasswordContent() {
     // Check for error parameters in URL
     const errorCode = searchParams.get('error_code')
     const errorDescription = searchParams.get('error_description')
-    
+
     if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
       setLinkExpired(true)
       setError('This password reset link has expired. Please request a new one.')
@@ -50,7 +50,7 @@ function ResetPasswordContent() {
 
     try {
       const supabase = createClient()
-      
+
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
       })
@@ -61,11 +61,11 @@ function ResetPasswordContent() {
       }
 
       setSuccess(true)
-      
+
       setTimeout(() => {
         router.push('/login')
       }, 3000)
-      } catch {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
@@ -73,7 +73,7 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center">
           <span className="text-3xl font-bold text-blue-600">PMHNP Jobs</span>
@@ -215,7 +215,7 @@ function ResetPasswordContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="text-center">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
         <p className="text-gray-600">Loading...</p>

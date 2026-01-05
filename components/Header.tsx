@@ -34,10 +34,10 @@ export default function Header() {
           <div className="hidden lg:flex items-center gap-4 absolute left-1/2 transform -translate-x-1/2 -ml-20">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <Image 
-                src="/logo.svg" 
-                alt="PMHNP Jobs" 
-                width={200} 
+              <Image
+                src="/logo.svg"
+                alt="PMHNP Jobs"
+                width={200}
                 height={50}
                 priority
                 className="h-12 w-auto"
@@ -49,12 +49,12 @@ export default function Header() {
 
             {/* Desktop Navigation Buttons */}
             <Link href="/jobs">
-              <button className="bg-gray-100 text-gray-700 px-5 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors shadow-sm">
+              <button className="bg-gray-100 text-black px-5 py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors shadow-sm">
                 Jobs
               </button>
             </Link>
             <Link href="/saved">
-              <button className="bg-gray-100 text-gray-700 px-5 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors shadow-sm flex items-center gap-2">
+              <button className="bg-gray-100 text-black px-5 py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors shadow-sm flex items-center gap-2">
                 <Bookmark size={16} />
                 Saved
               </button>
@@ -69,10 +69,10 @@ export default function Header() {
           {/* Mobile Logo */}
           <div className="flex-shrink-0 lg:hidden">
             <Link href="/" className="flex items-center">
-              <Image 
-                src="/logo.svg" 
-                alt="PMHNP Jobs" 
-                width={200} 
+              <Image
+                src="/logo.svg"
+                alt="PMHNP Jobs"
+                width={200}
                 height={50}
                 priority
                 className="h-12 w-auto"
@@ -105,12 +105,12 @@ export default function Header() {
       {isMenuOpen && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in"
             onClick={() => setIsMenuOpen(false)}
             aria-hidden="true"
           />
-          
+
           {/* Full-screen Menu */}
           <div className="fixed inset-y-0 right-0 w-full sm:w-80 bg-white z-50 lg:hidden shadow-2xl animate-slide-in-right">
             {/* Menu Header */}
@@ -146,14 +146,14 @@ export default function Header() {
               {/* Navigation Links */}
               <Link
                 href="/jobs"
-                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3"
+                className="text-black hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Browse Jobs
               </Link>
               <Link
                 href="/saved"
-                className="text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-medium py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
+                className="text-black hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Bookmark size={18} />
@@ -164,14 +164,14 @@ export default function Header() {
               <div className="mt-auto pt-6 space-y-2 border-t border-gray-200">
                 <Link
                   href="/faq"
-                  className="text-sm text-gray-600 hover:text-primary-600 transition-colors duration-200 block py-2"
+                  className="text-sm text-gray-800 hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   FAQ
                 </Link>
                 <Link
                   href="/contact"
-                  className="text-sm text-gray-600 hover:text-primary-600 transition-colors duration-200 block py-2"
+                  className="text-sm text-gray-800 hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Contact Us

@@ -120,24 +120,24 @@ export default async function JobPage({ params }: JobPageProps) {
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
               <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight">{job.title}</h1>
-                <p className="text-lg sm:text-xl text-gray-600 mb-3">{job.employer}</p>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight text-black">{job.title}</h1>
+                <p className="text-lg sm:text-xl text-gray-900 mb-3 font-medium">{job.employer}</p>
 
                 {/* Metadata Row */}
-                <div className="flex flex-wrap gap-3 sm:gap-4 text-gray-600 text-sm sm:text-base mb-3">
+                <div className="flex flex-wrap gap-3 sm:gap-4 text-gray-900 text-sm sm:text-base mb-3 font-medium">
                   <div className="flex items-center gap-2">
-                    <MapPin size={18} className="shrink-0" />
+                    <MapPin size={18} className="shrink-0 text-gray-700" />
                     <span>{job.location}</span>
                   </div>
                   {job.jobType && (
                     <div className="flex items-center gap-2">
-                      <Briefcase size={18} className="shrink-0" />
+                      <Briefcase size={18} className="shrink-0 text-gray-700" />
                       <span>{job.jobType}</span>
                     </div>
                   )}
                   {job.mode && (
                     <div className="flex items-center gap-2">
-                      <Monitor size={18} className="shrink-0" />
+                      <Monitor size={18} className="shrink-0 text-gray-700" />
                       <span>{job.mode}</span>
                     </div>
                   )}
@@ -145,7 +145,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
                 {/* Salary */}
                 {salary && (
-                  <p className="text-xl sm:text-2xl lg:text-3xl text-success-600 font-bold mb-3">{salary}</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl text-black font-bold mb-3">{salary}</p>
                 )}
 
                 {/* Badges Row */}
@@ -180,7 +180,7 @@ export default async function JobPage({ params }: JobPageProps) {
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
               <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4">About this role</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 text-black">About this role</h2>
 
                 {/* Note for external jobs */}
                 {job.sourceType === 'external' && job.sourceProvider && (
@@ -202,8 +202,8 @@ export default async function JobPage({ params }: JobPageProps) {
                     if (paragraph.trim().startsWith('•')) {
                       return (
                         <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                          <span className="text-gray-400 mt-1">•</span>
-                          <span className="text-gray-700">{paragraph.trim().slice(1).trim()}</span>
+                          <span className="text-gray-900 mt-1 font-bold">•</span>
+                          <span className="text-black">{paragraph.trim().slice(1).trim()}</span>
                         </div>
                       );
                     }
@@ -216,7 +216,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
                     if (isHeader || endsWithColon) {
                       return (
-                        <h3 key={index} className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+                        <h3 key={index} className="text-lg font-bold text-black mt-6 mb-2">
                           {paragraph.trim()}
                         </h3>
                       );
@@ -224,7 +224,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
                     // Regular paragraph
                     return (
-                      <p key={index} className="text-gray-700 leading-relaxed mb-3">
+                      <p key={index} className="text-black leading-relaxed mb-3">
                         {paragraph.trim()}
                       </p>
                     );
