@@ -98,7 +98,6 @@ export function getEnv(): Env {
 
         // If even fallback fails, throw a clear error
         throw new Error(`Failed to initialize environment: ${fallbackResult.error.message}`);
-        return cachedEnv;
     }
 
     cachedEnv = result.data;
