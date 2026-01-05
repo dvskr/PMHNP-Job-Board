@@ -6,7 +6,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { config } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
-import { sanitizeJobPosting } from '@/lib/sanitize';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
