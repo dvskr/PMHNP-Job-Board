@@ -6,45 +6,50 @@ import { buildWhereClause } from '@/lib/filters';
 export async function POST(request: NextRequest) {
   try {
     const filters: FilterState = await request.json();
-    
-    // Base where clause with current filters (for calculating counts of other options)
+
+    // Base filters for all counts (excludes the specific category being counted)
     const baseFilters = { ...filters };
-    
-    // Calculate counts for each filter category
-    // The key is: show count IF user selects this option (considering other active filters)
-    
+
     // Work Mode counts
+    // We want to see counts for other work modes given current filters, 
+    // BUT satisfying the other active filters (like jobType, salary, etc)
     const workModeFilters = { ...baseFilters, workMode: [] };
     const workModeBase = buildWhereClause(workModeFilters);
-    
-    const [remoteCount, hybridCount, onsiteCount] = await Promise.all([
-      prisma.job.count({ where: { AND: [workModeBase, { isRemote: true }] } }),
-      prisma.job.count({ where: { AND: [workModeBase, { isHybrid: true }] } }),
-      prisma.job.count({ where: { AND: [workModeBase, { isRemote: false, isHybrid: false }] } }),
-    ]);
 
     // Job Type counts
     const jobTypeFilters = { ...baseFilters, jobType: [] };
     const jobTypeBase = buildWhereClause(jobTypeFilters);
-    
-    const jobTypeCounts = await prisma.job.groupBy({
-      by: ['jobType'],
-      where: jobTypeBase,
-      _count: { _all: true },
-    });
-    
-    const jobTypeMap: Record<string, number> = {};
-    for (const jt of jobTypeCounts) {
-      if (jt.jobType) {
-        jobTypeMap[jt.jobType] = jt._count._all;
-      }
-    }
 
     // Salary counts
     const salaryFilters = { ...baseFilters, salaryMin: null };
     const salaryBase = buildWhereClause(salaryFilters);
-    
-    const [anySalary, over100k, over150k, over200k] = await Promise.all([
+
+    // Posted Within counts
+    const postedFilters = { ...baseFilters, postedWithin: null };
+    const postedBase = buildWhereClause(postedFilters);
+
+    const now = new Date();
+
+    const [
+      remoteCount, hybridCount, onsiteCount,
+      jobTypeCounts,
+      anySalary, over100k, over150k, over200k,
+      day, week, month,
+      total
+    ] = await Promise.all([
+      // Work Mode
+      prisma.job.count({ where: { AND: [workModeBase, { isRemote: true }] } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isHybrid: true }] } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isRemote: false, isHybrid: false }] } }),
+
+      // Job Type
+      prisma.job.groupBy({
+        by: ['jobType'],
+        where: jobTypeBase,
+        _count: { _all: true },
+      }),
+
+      // Salary
       prisma.job.count({
         where: {
           AND: [
@@ -97,15 +102,9 @@ export async function POST(request: NextRequest) {
           ],
         },
       }),
-    ]);
 
-    // Posted Within counts
-    const now = new Date();
-    const postedFilters = { ...baseFilters, postedWithin: null };
-    const postedBase = buildWhereClause(postedFilters);
-    
-    // Note: Using createdAt field (Job model doesn't have postedAt)
-    const [day, week, month] = await Promise.all([
+      // Posted Within
+      // Note: Using createdAt field (Job model doesn't have postedAt)
       prisma.job.count({
         where: {
           AND: [
@@ -130,12 +129,19 @@ export async function POST(request: NextRequest) {
           ],
         },
       }),
+
+      // Total
+      prisma.job.count({
+        where: buildWhereClause(filters),
+      }),
     ]);
 
-    // Total with all current filters
-    const total = await prisma.job.count({
-      where: buildWhereClause(filters),
-    });
+    const jobTypeMap: Record<string, number> = {};
+    for (const jt of jobTypeCounts) {
+      if (jt.jobType) {
+        jobTypeMap[jt.jobType] = jt._count._all;
+      }
+    }
 
     const counts: FilterCounts = {
       workMode: {
@@ -172,4 +178,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

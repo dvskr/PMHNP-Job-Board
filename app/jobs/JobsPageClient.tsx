@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, SlidersHorizontal } from 'lucide-react';
 import JobCard from '@/components/JobCard';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
 import JobsListSkeleton from '@/components/JobsListSkeleton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
+import MobileFilterDrawer from '@/components/MobileFilterDrawer';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
@@ -33,6 +34,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1) => {
     try {
@@ -162,50 +164,19 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
           {/* Mobile Filter Button - Only shown on mobile */}
           <div className="lg:hidden mb-4">
             <button
-              onClick={() => {
-                // Create a simple filter drawer toggle
-                const drawer = document.createElement('div');
-                drawer.className = 'fixed inset-0 z-50 lg:hidden';
-                drawer.innerHTML = `
-                  <div class="fixed inset-0 bg-black/50" onclick="this.parentElement.remove()"></div>
-                  <div class="fixed inset-y-0 left-0 w-full max-w-sm bg-white overflow-y-auto shadow-xl">
-                    <div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
-                      <h2 class="text-lg font-semibold">Filters</h2>
-                      <button onclick="this.closest('.fixed.inset-0').remove()" class="p-2 hover:bg-gray-100 rounded-lg">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                      </button>
-                    </div>
-                    <div id="mobile-filters-container" class="p-4"></div>
-                  </div>
-                `;
-                document.body.appendChild(drawer);
-                document.body.style.overflow = 'hidden';
-
-                // Mount filters in drawer
-                const container = drawer.querySelector('#mobile-filters-container');
-                const filtersClone = document.querySelector('aside.hidden')?.cloneNode(true);
-                if (container && filtersClone) {
-                  (filtersClone as HTMLElement).className = '';
-                  container.appendChild(filtersClone);
-                }
-
-                // Clean up on close
-                drawer.querySelectorAll('[onclick]').forEach(el => {
-                  el.addEventListener('click', () => {
-                    document.body.style.overflow = '';
-                  });
-                });
-              }}
+              onClick={() => setIsMobileFilterOpen(true)}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-blue-500 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
+              <SlidersHorizontal className="w-5 h-5" />
               Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
             </button>
           </div>
+
+          {/* Mobile Filter Drawer */}
+          <MobileFilterDrawer
+            isOpen={isMobileFilterOpen}
+            onClose={() => setIsMobileFilterOpen(false)}
+          />
 
           {/* Create Alert Button (shown when filters are active) */}
           {activeFilterCount > 0 && (
@@ -249,8 +220,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded transition-all ${viewMode === 'grid'
-                      ? 'bg-white shadow-sm text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white shadow-sm text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
                   aria-label="Grid view"
                   title="Grid view"
@@ -260,8 +231,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 <button
                   onClick={() => setViewMode('list')}
                   className={`p-2 rounded transition-all ${viewMode === 'list'
-                      ? 'bg-white shadow-sm text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white shadow-sm text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
                   aria-label="List view"
                   title="List view"

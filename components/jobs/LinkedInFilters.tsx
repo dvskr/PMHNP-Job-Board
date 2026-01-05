@@ -29,7 +29,7 @@ function CheckboxFilter({ label, count, checked, onChange, disabled }: CheckboxF
       </div>
       <span className={`text-xs px-2 py-0.5 rounded-full ${count === 0 ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-600'
         }`}>
-        {count.toLocaleString()}
+        {(count || 0).toLocaleString()}
       </span>
     </label>
   );
@@ -267,7 +267,7 @@ export default function LinkedInFilters() {
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
         <p className="text-sm text-gray-600">
           <span className="font-semibold text-gray-900">
-            {isLoading ? '...' : counts?.total.toLocaleString()}
+            {isLoading || !counts ? '...' : counts.total.toLocaleString()}
           </span>
           {' '}jobs found
         </p>

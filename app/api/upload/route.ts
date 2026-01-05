@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { uploadResume, uploadAvatar, validateFile } from '@/lib/supabase-storage';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for uploads (stricter)
+  const rateLimitResult = await rateLimit(request, 'upload', { limit: 10, windowSeconds: 60 });
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     // Get authenticated user from Supabase session
     const supabase = await createClient();
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest) {
     let result;
     if (uploadType === 'resume') {
       result = await uploadResume(buffer, file.name, file.type, user.id);
-      
+
       // Update user profile with resume URL
       await prisma.userProfile.update({
         where: { supabaseId: user.id },
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       result = await uploadAvatar(buffer, file.name, file.type, user.id);
-      
+
       // Update user profile with avatar URL
       await prisma.userProfile.update({
         where: { supabaseId: user.id },
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
       path: result.path,
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    logger.error('Error uploading file', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
     return NextResponse.json(
       { error: errorMessage },
