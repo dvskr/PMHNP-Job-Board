@@ -160,7 +160,7 @@ export async function sendJobAlertEmail(
         </a>
       </h3>
       <p style="margin: 0 0 4px 0; color: #6b7280;">${job.employer}</p>
-      <p style="margin: 0; color: #6b7280;">${job.location} • ${job.mode}</p>
+      <p style="margin: 0; color: #6b7280;">${job.location}${job.mode ? ` • ${job.mode}` : ''}</p>
       ${job.minSalary ? `<p style="margin: 4px 0 0 0; color: #059669; font-weight: 600;">
         $${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? ` - $${(job.maxSalary / 1000).toFixed(0)}k` : '+'}
       </p>` : ''}
