@@ -1,20 +1,18 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import StatsSection from '@/components/StatsSection';
+import PopularCategories from '@/components/PopularCategories';
+import TestimonialsSection from '@/components/TestimonialsSection';
 
-// Lazy load non-critical components
+// Lazy load only the client component
 const EmailSignupForm = dynamic(() => import('@/components/EmailSignupForm'), {
   loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
 });
-const StatsSection = dynamic(() => import('@/components/StatsSection'), {
-  loading: () => <div className="h-52 bg-white" />,
-});
-const PopularCategories = dynamic(() => import('@/components/PopularCategories'), {
-  loading: () => <div className="h-44 bg-white" />,
-});
-const TestimonialsSection = dynamic(() => import('@/components/TestimonialsSection'), {
-  loading: () => <div className="h-96 bg-gray-50" />,
-});
 
+/**
+ * Home Page Component
+ * Displays the landing page with hero section, stats, categories, features, and CTAs
+ */
 export default function Home() {
   return (
     <div>

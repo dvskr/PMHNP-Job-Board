@@ -183,12 +183,13 @@ html:not([data-scroll-behavior]) {
 }
 
 /* Hide any third-party banners or overlays that might be injected */
-[class*="product-hunt"],
-[id*="product-hunt"],
-[class*="producthunt"],
-[id*="producthunt"],
+/* Use more specific selectors to avoid unintended matches */
 [data-ph-banner],
-[data-product-hunt] {
+[data-product-hunt],
+#product-hunt-banner,
+#producthunt-banner,
+.product-hunt-banner,
+.producthunt-banner {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

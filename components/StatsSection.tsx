@@ -4,6 +4,14 @@ interface Stats {
   totalCompanies: number;
 }
 
+/**
+ * StatsSection Component (Server Component)
+ * 
+ * Displays site statistics including total jobs, subscribers, and companies.
+ * Fetches data server-side from the stats API endpoint.
+ * 
+ * @returns JSX.Element - A section displaying formatted statistics
+ */
 export default async function StatsSection() {
   // Fetch stats server-side
   let stats: Stats | null = null;
@@ -22,6 +30,11 @@ export default async function StatsSection() {
     console.error('Error fetching stats:', error);
   }
 
+  /**
+   * Formats a number with locale-specific thousand separators
+   * @param num - The number to format
+   * @returns Formatted string (e.g., "1,234")
+   */
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
   };
