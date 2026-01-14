@@ -1,46 +1,20 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="goldGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#D4AF37"/>
-      <stop offset="100%" style="stop-color:#B8960F"/>
+    <linearGradient id="blueGradLarge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38bdf8"/>
+      <stop offset="100%" style="stop-color:#0ea5e9"/>
     </linearGradient>
   </defs>
   
-  <!-- Dark Blue Background -->
-  <rect width="512" height="512" fill="#001F54" rx="64"/>
+  <!-- Outer ring - fills most of the space -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#38bdf8" stroke-width="40"/>
   
-  <!-- Brain Icon -->
-  <g transform="translate(256, 256)">
-    <!-- Left Hemisphere -->
-    <path d="M -120 -100 C -160 -100, -180 -60, -180 -20 C -180 20, -160 80, -120 120 L -120 140 C -120 160, -100 180, -60 180 L -20 180 L -20 -100 Z" 
-          fill="url(#goldGrad512)" 
-          stroke="#D4AF37" 
-          stroke-width="8"/>
-    
-    <!-- Right Hemisphere -->
-    <path d="M 120 -100 C 160 -100, 180 -60, 180 -20 C 180 20, 160 80, 120 120 L 120 140 C 120 160, 100 180, 60 180 L 20 180 L 20 -100 Z" 
-          fill="url(#goldGrad512)" 
-          stroke="#D4AF37" 
-          stroke-width="8"/>
-    
-    <!-- Brain Folds - Left -->
-    <path d="M -100 -40 Q -140 0, -120 40 M -100 60 Q -140 100, -120 140 M -80 80 Q -110 120, -90 160" 
-          fill="none" 
-          stroke="#001F54" 
-          stroke-width="12" 
-          stroke-linecap="round"/>
-    
-    <!-- Brain Folds - Right -->
-    <path d="M 100 -40 Q 140 0, 120 40 M 100 60 Q 140 100, 120 140 M 80 80 Q 110 120, 90 160" 
-          fill="none" 
-          stroke="#001F54" 
-          stroke-width="12" 
-          stroke-linecap="round"/>
-    
-    <!-- Center Line -->
-    <line x1="0" y1="-80" x2="0" y2="160" 
-          stroke="#001F54" 
-          stroke-width="16" 
-          stroke-linecap="round"/>
-  </g>
+  <!-- Center filled circle -->
+  <circle cx="256" cy="256" r="170" fill="url(#blueGradLarge)"/>
+  
+  <!-- Medical cross - vertical -->
+  <rect x="220" y="160" width="72" height="192" fill="white" rx="12"/>
+  
+  <!-- Medical cross - horizontal -->
+  <rect x="160" y="220" width="192" height="72" fill="white" rx="12"/>
 </svg>
