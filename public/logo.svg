@@ -1,41 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" width="560" height="160">
   <defs>
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#D4AF37"/>
-      <stop offset="100%" style="stop-color:#B8960F"/>
+    <linearGradient id="blueGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38bdf8"/>
+      <stop offset="100%" style="stop-color:#0ea5e9"/>
     </linearGradient>
   </defs>
   
-  <!-- Brain Icon -->
-  <g transform="translate(40, 40) scale(0.35)">
-    <!-- Gold Brain Path -->
-    <path d="M50 10 C 30 10, 20 20, 20 35 C 20 40, 22 45, 25 48 L 25 65 C 25 75, 30 80, 40 85 L 40 88 L 50 88 L 50 85 C 60 80, 65 75, 65 65 L 65 48 C 68 45, 70 40, 70 35 C 70 20, 60 10, 50 10 Z M 30 25 C 28 25, 26 27, 26 30 C 26 33, 28 35, 30 35 L 35 35 C 35 32, 32 28, 30 25 Z M 60 25 C 62 25, 64 27, 64 30 C 64 33, 62 35, 60 35 L 55 35 C 55 32, 58 28, 60 25 Z" 
-          fill="url(#goldGrad)" 
-          stroke="#D4AF37" 
-          stroke-width="3"/>
+  <!-- Icon -->
+  <g transform="translate(40, 40)">
+    <!-- Outer ring -->
+    <circle cx="0" cy="0" r="28" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
     
-    <!-- Brain Folds - Left Hemisphere -->
-    <path d="M 32 40 Q 28 45, 30 50 M 32 52 Q 28 57, 30 62 M 35 55 Q 32 60, 34 65" 
-          fill="none" 
-          stroke="#001F54" 
-          stroke-width="2.5" 
-          stroke-linecap="round"/>
+    <!-- Inner ring -->
+    <circle cx="0" cy="0" r="21" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.5"/>
     
-    <!-- Brain Folds - Right Hemisphere -->
-    <path d="M 58 40 Q 62 45, 60 50 M 58 52 Q 62 57, 60 62 M 55 55 Q 58 60, 56 65" 
-          fill="none" 
-          stroke="#001F54" 
-          stroke-width="2.5" 
-          stroke-linecap="round"/>
+    <!-- Center filled circle -->
+    <circle cx="0" cy="0" r="14" fill="url(#blueGradDark)"/>
     
-    <!-- Center Line -->
-    <line x1="45" y1="25" x2="45" y2="80" 
-          stroke="#001F54" 
-          stroke-width="3" 
-          stroke-linecap="round"/>
+    <!-- Medical cross - vertical -->
+    <rect x="-2.5" y="-8" width="5" height="16" fill="white" rx="1"/>
+    
+    <!-- Medical cross - horizontal -->
+    <rect x="-8" y="-2.5" width="16" height="5" fill="white" rx="1"/>
   </g>
   
   <!-- Text -->
   <text x="85" y="40" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="32" font-weight="800" fill="#1f2937">PMHNP</text>
-  <text x="85" y="60" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="500" letter-spacing="2" fill="#D4AF37">JOBS</text>
+  <text x="85" y="60" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="500" letter-spacing="2" fill="#38bdf8">HIRING</text>
 </svg>

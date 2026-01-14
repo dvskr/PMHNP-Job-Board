@@ -1,44 +1,37 @@
-<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#001F54"/>
-      <stop offset="100%" style="stop-color:#003366"/>
-    </linearGradient>
-    <linearGradient id="goldGradOG" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#D4AF37"/>
-      <stop offset="100%" style="stop-color:#B8960F"/>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
     </linearGradient>
   </defs>
   
   <!-- Background -->
-  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+  <rect width="1200" height="630" fill="url(#purpleGrad)"/>
   
-  <!-- Brain Icon -->
-  <g transform="translate(300, 315)">
-    <!-- Left Hemisphere -->
-    <path d="M -80 -70 C -110 -70, -125 -40, -125 -10 C -125 15, -110 55, -80 85 L -80 95 C -80 110, -70 120, -50 120 L -15 120 L -15 -70 Z" 
-          fill="url(#goldGradOG)" 
-          stroke="#D4AF37" 
-          stroke-width="5"/>
-    
-    <!-- Right Hemisphere -->
-    <path d="M 80 -70 C 110 -70, 125 -40, 125 -10 C 125 15, 110 55, 80 85 L 80 95 C 80 110, 70 120, 50 120 L 15 120 L 15 -70 Z" 
-          fill="url(#goldGradOG)" 
-          stroke="#D4AF37" 
-          stroke-width="5"/>
-    
-    <!-- Brain Folds -->
-    <path d="M -65 -30 Q -100 0, -80 30 M -65 45 Q -100 70, -80 100" 
-          fill="none" stroke="#001F54" stroke-width="8" stroke-linecap="round"/>
-    <path d="M 65 -30 Q 100 0, 80 30 M 65 45 Q 100 70, 80 100" 
-          fill="none" stroke="#001F54" stroke-width="8" stroke-linecap="round"/>
-    
-    <!-- Center Line -->
-    <line x1="0" y1="-55" x2="0" y2="110" 
-          stroke="#001F54" stroke-width="10" stroke-linecap="round"/>
-  </g>
+  <!-- Main Headline -->
+  <text x="600" y="200" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="80" font-weight="800" fill="white" text-anchor="middle">
+    Find Your Next PMHNP Role
+  </text>
   
-  <!-- Text -->
-  <text x="500" y="280" font-family="system-ui, sans-serif" font-size="96" font-weight="800" fill="white">PMHNP Jobs</text>
-  <text x="500" y="360" font-family="system-ui, sans-serif" font-size="42" font-weight="500" fill="#D4AF37">Psychiatric Nurse Practitioner Job Board</text>
+  <!-- Subtitle -->
+  <text x="600" y="280" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="32" font-weight="500" fill="rgba(255,255,255,0.95)" text-anchor="middle">
+    The #1 job board for Psychiatric Mental Health
+  </text>
+  <text x="600" y="320" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="32" font-weight="500" fill="rgba(255,255,255,0.95)" text-anchor="middle">
+    Nurse Practitioners
+  </text>
+  
+  <!-- Stats Line -->
+  <text x="600" y="395" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="28" font-weight="500" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+    1000+ Jobs  •  Remote &amp; On-site  •  Updated Daily
+  </text>
+  
+  <!-- Curved Wave -->
+  <path d="M 0 480 Q 300 450 600 480 T 1200 480 L 1200 630 L 0 630 Z" fill="white"/>
+  
+  <!-- Domain -->
+  <text x="600" y="570" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="48" font-weight="700" fill="#6366f1" text-anchor="middle">
+    pmhnphiring.com
+  </text>
 </svg>
