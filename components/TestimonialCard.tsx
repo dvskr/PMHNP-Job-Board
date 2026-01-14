@@ -92,7 +92,7 @@ export default function TestimonialCard({
           <p className="font-semibold text-gray-900 truncate">
             {author}
           </p>
-          <p className="text-sm text-gray-600 truncate">
+          <p className="text-sm text-gray-700 truncate">
             {role}
           </p>
           {company && (
