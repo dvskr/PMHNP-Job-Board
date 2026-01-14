@@ -182,6 +182,21 @@ html:not([data-scroll-behavior]) {
   padding-top: calc(0.5rem + env(safe-area-inset-top));
 }
 
+/* Hide any third-party banners or overlays that might be injected */
+/* Use more specific selectors to avoid unintended matches */
+[data-ph-banner],
+[data-product-hunt],
+#product-hunt-banner,
+#producthunt-banner,
+.product-hunt-banner,
+.producthunt-banner {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
 /* Global input text color fix - ensure all inputs have dark, readable text */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,

@@ -4,6 +4,14 @@ interface Stats {
   totalCompanies: number;
 }
 
+/**
+ * StatsSection Component (Server Component)
+ * 
+ * Displays site statistics including total jobs, subscribers, and companies.
+ * Fetches data server-side from the stats API endpoint.
+ * 
+ * @returns JSX.Element - A section displaying formatted statistics
+ */
 export default async function StatsSection() {
   // Fetch stats server-side
   let stats: Stats | null = null;
@@ -22,17 +30,22 @@ export default async function StatsSection() {
     console.error('Error fetching stats:', error);
   }
 
+  /**
+   * Formats a number with locale-specific thousand separators
+   * @param num - The number to format
+   * @returns Formatted string (e.g., "1,234")
+   */
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
   };
 
   return (
-    <section className="py-16 px-4 bg-white">
+    <section className="py-16 px-4 bg-white" style={{ minHeight: '208px' }}>
       <div className="max-w-5xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
           {/* Total Jobs */}
           <div>
-            <div className="text-4xl font-bold text-blue-600 mb-2">
+            <div className="text-4xl font-bold text-blue-600 mb-2" style={{ minHeight: '48px' }}>
               {stats ? formatNumber(stats.totalJobs) : '0'}+
             </div>
             <div className="text-gray-600">Active Jobs</div>
@@ -40,7 +53,7 @@ export default async function StatsSection() {
 
           {/* Total Companies */}
           <div>
-            <div className="text-4xl font-bold text-blue-600 mb-2">
+            <div className="text-4xl font-bold text-blue-600 mb-2" style={{ minHeight: '48px' }}>
               {stats ? formatNumber(stats.totalCompanies) : '0'}+
             </div>
             <div className="text-gray-600">Companies Hiring</div>
