@@ -1,20 +1,46 @@
 <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#38bdf8"/>
-      <stop offset="100%" style="stop-color:#0ea5e9"/>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4AF37"/>
+      <stop offset="100%" style="stop-color:#B8960F"/>
     </linearGradient>
   </defs>
   
-  <!-- Outer ring - much larger, fills almost entire space -->
-  <circle cx="24" cy="24" r="22" fill="none" stroke="#38bdf8" stroke-width="4"/>
+  <!-- Dark Blue Background -->
+  <rect width="48" height="48" fill="#001F54" rx="8"/>
   
-  <!-- Center filled circle - much larger -->
-  <circle cx="24" cy="24" r="16" fill="url(#blueGrad)"/>
-  
-  <!-- Medical cross - vertical - much larger -->
-  <rect x="21" y="14" width="6" height="20" fill="white" rx="1.5"/>
-  
-  <!-- Medical cross - horizontal - much larger -->
-  <rect x="14" y="21" width="20" height="6" fill="white" rx="1.5"/>
+  <!-- Simplified Brain Icon -->
+  <g transform="translate(24, 24)">
+    <!-- Left Hemisphere -->
+    <path d="M -12 -10 C -16 -10, -18 -6, -18 -2 C -18 2, -16 8, -12 12 L -12 14 C -12 16, -10 18, -6 18 L -2 18 L -2 -10 Z" 
+          fill="url(#goldGradient)" 
+          stroke="#D4AF37" 
+          stroke-width="1.5"/>
+    
+    <!-- Right Hemisphere -->
+    <path d="M 12 -10 C 16 -10, 18 -6, 18 -2 C 18 2, 16 8, 12 12 L 12 14 C 12 16, 10 18, 6 18 L 2 18 L 2 -10 Z" 
+          fill="url(#goldGradient)" 
+          stroke="#D4AF37" 
+          stroke-width="1.5"/>
+    
+    <!-- Brain Folds - Left -->
+    <path d="M -10 -4 Q -14 0, -12 4 M -10 6 Q -14 10, -12 14" 
+          fill="none" 
+          stroke="#001F54" 
+          stroke-width="1.5" 
+          stroke-linecap="round"/>
+    
+    <!-- Brain Folds - Right -->
+    <path d="M 10 -4 Q 14 0, 12 4 M 10 6 Q 14 10, 12 14" 
+          fill="none" 
+          stroke="#001F54" 
+          stroke-width="1.5" 
+          stroke-linecap="round"/>
+    
+    <!-- Center Line -->
+    <line x1="0" y1="-8" x2="0" y2="16" 
+          stroke="#001F54" 
+          stroke-width="2" 
+          stroke-linecap="round"/>
+  </g>
 </svg>
