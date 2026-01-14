@@ -7,18 +7,19 @@ import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import OrganizationStructuredData from '@/components/OrganizationStructuredData';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-import ProductHuntBanner from '@/components/ProductHuntBanner';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: 'swap',
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: 'swap',
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -104,7 +105,6 @@ export default function RootLayout({
       >
         <GoogleAnalytics />
         <OrganizationStructuredData baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'} />
-        <ProductHuntBanner />
         <Header />
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>
         <Footer />

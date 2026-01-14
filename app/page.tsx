@@ -1,13 +1,19 @@
 import Link from 'next/link';
-import dynamicImport from 'next/dynamic';
-import StatsSection from '@/components/StatsSection';
+import dynamic from 'next/dynamic';
 
-export const dynamic = 'force-dynamic';
-
-// Lazy-load below-the-fold components
-const PopularCategories = dynamicImport(() => import('@/components/PopularCategories'));
-const EmailSignupForm = dynamicImport(() => import('@/components/EmailSignupForm'));
-
+// Lazy load non-critical components
+const EmailSignupForm = dynamic(() => import('@/components/EmailSignupForm'), {
+  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
+});
+const StatsSection = dynamic(() => import('@/components/StatsSection'), {
+  loading: () => <div className="h-52 bg-white" />,
+});
+const PopularCategories = dynamic(() => import('@/components/PopularCategories'), {
+  loading: () => <div className="h-44 bg-white" />,
+});
+const TestimonialsSection = dynamic(() => import('@/components/TestimonialsSection'), {
+  loading: () => <div className="h-96 bg-gray-50" />,
+});
 
 export default function Home() {
   return (
@@ -18,8 +24,8 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
             Find Your Next PMHNP Role
           </h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            The #1 job board for psychiatric mental health nurse practitioners.
+          <p className="text-xl md:text-2xl text-blue-50 mb-8 max-w-2xl mx-auto">
+            The #1 job board for psychiatric mental health nurse practitioners. 
             200+ remote and in-person jobs updated daily.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -31,7 +37,7 @@ export default function Home() {
             </Link>
             <Link
               href="/post-job"
-              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-200 hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
+              className="inline-block bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-500 hover:bg-blue-600 transition-colors w-full sm:w-auto text-center"
             >
               Post a Job for Free
             </Link>
@@ -54,22 +60,22 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="text-3xl mb-4">🎯</div>
-              <h3 className="text-xl font-bold mb-2 text-black">Specialized Focus</h3>
-              <p className="text-black font-medium">
+              <h3 className="text-xl font-semibold mb-2">Specialized Focus</h3>
+              <p className="text-gray-600">
                 Only psychiatric nurse practitioner jobs. No filtering through irrelevant listings.
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="text-3xl mb-4">🏠</div>
-              <h3 className="text-xl font-bold mb-2 text-black">Remote & In-Person</h3>
-              <p className="text-black font-medium">
+              <h3 className="text-xl font-semibold mb-2">Remote & In-Person</h3>
+              <p className="text-gray-600">
                 Find telehealth, hybrid, and on-site positions that match your lifestyle.
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <div className="text-3xl mb-4">📧</div>
-              <h3 className="text-xl font-bold mb-2 text-black">Weekly Alerts</h3>
-              <p className="text-black font-medium">
+              <h3 className="text-xl font-semibold mb-2">Weekly Alerts</h3>
+              <p className="text-gray-600">
                 Get new jobs delivered to your inbox. Never miss an opportunity.
               </p>
             </div>
@@ -77,15 +83,16 @@ export default function Home() {
         </div>
       </section>
 
-
+      {/* Testimonials Section */}
+      <TestimonialsSection />
 
       {/* Email Signup Section */}
       <section id="subscribe" className="bg-blue-50 py-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-black mb-4">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Get PMHNP Job Alerts
           </h2>
-          <p className="text-gray-800 font-medium mb-8">
+          <p className="text-gray-700 mb-8">
             New psychiatric nurse practitioner jobs delivered weekly
           </p>
           <EmailSignupForm source="homepage" />
@@ -95,15 +102,15 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-black mb-4">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Hiring PMHNPs?
           </h2>
-          <p className="text-gray-800 font-medium mb-8">
+          <p className="text-gray-700 mb-8">
             Reach thousands of qualified psychiatric nurse practitioners actively looking for their next role.
           </p>
           <Link
             href="/post-job"
-            className="inline-block bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-600 transition-colors"
+            className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
           >
             Post a Job for Free
           </Link>

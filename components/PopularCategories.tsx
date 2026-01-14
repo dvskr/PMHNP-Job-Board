@@ -87,7 +87,7 @@ export default async function PopularCategories() {
   }
 
   return (
-    <section className="py-12 px-4 bg-white">
+    <section className="py-12 px-4 bg-white" style={{ minHeight: '176px' }}>
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
           Popular Categories
