@@ -7,6 +7,9 @@ import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import Badge from '@/components/ui/Badge';
+import ShareButton from '@/components/ShareButton';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 interface JobCardProps {
   job: Job;
@@ -43,8 +46,8 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // List view - horizontal layout
   if (viewMode === 'list') {
     return (
-      <Link href={jobUrl} className="block touch-manipulation w-full">
-        <div className="group !bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-5">
+      <div className="group !bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-5 relative">
+        <Link href={jobUrl} className="block touch-manipulation w-full">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
             {/* Left Side - Main Info */}
             <div className="flex-1 min-w-0">
@@ -119,21 +122,31 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </div>
             )}
           </div>
+        </Link>
+        {/* Share Button - Positioned absolutely to avoid Link nesting */}
+        <div className="absolute top-4 right-4" onClick={(e) => e.stopPropagation()}>
+          <ShareButton
+            url={`${BASE_URL}${jobUrl}`}
+            title={`${job.title} at ${job.employer}`}
+            description={`${job.title} position at ${job.employer}. ${job.location}. Apply now on PMHNP Hiring.`}
+            variant="icon"
+          />
         </div>
-      </Link>
+      </div>
     );
   }
 
   // Grid view - default vertical card layout
   return (
-    <Link href={jobUrl} className="block touch-manipulation h-full">
-      <div className="group !bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6">
-        {/* Title and Badges Row */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
-          <h3 className="text-lg md:text-xl font-bold text-black group-hover:text-primary-800 transition-colors duration-200 flex-1 leading-tight">
-            {job.title}
-          </h3>
-          <div className="flex gap-2 flex-wrap shrink-0">
+    <div className="group !bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6 relative">
+      <Link href={jobUrl} className="block touch-manipulation h-full">
+        <div className="flex flex-col gap-2 sm:gap-3 h-full">
+          {/* Title and Badges Row */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
+            <h3 className="text-lg md:text-xl font-bold text-black group-hover:text-primary-800 transition-colors duration-200 flex-1 leading-tight">
+              {job.title}
+            </h3>
+            <div className="flex gap-2 flex-wrap shrink-0">
             {isNew && (
               <span className="hover:brightness-105 transition-all duration-200">
                 <Badge variant="warning" size="sm">
@@ -212,17 +225,27 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </p>
         )}
 
-        {/* Freshness */}
-        <div className="flex items-center gap-2 mt-auto">
-          <p className="text-black font-medium text-xs">{freshness}</p>
-          {ageIndicator && (
-            <span className={ageIndicator.className}>
-              {ageIndicator.text}
-            </span>
-          )}
+          {/* Freshness */}
+          <div className="flex items-center gap-2 mt-auto">
+            <p className="text-black font-medium text-xs">{freshness}</p>
+            {ageIndicator && (
+              <span className={ageIndicator.className}>
+                {ageIndicator.text}
+              </span>
+            )}
+          </div>
         </div>
+      </Link>
+      {/* Share Button - Positioned absolutely to avoid Link nesting */}
+      <div className="absolute top-4 right-4" onClick={(e) => e.stopPropagation()}>
+        <ShareButton
+          url={`${BASE_URL}${jobUrl}`}
+          title={`${job.title} at ${job.employer}`}
+          description={`${job.title} position at ${job.employer}. ${job.location}. Apply now on PMHNP Hiring.`}
+          variant="icon"
+        />
       </div>
-    </Link>
+    </div>
   );
 }
 

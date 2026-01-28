@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import OrganizationStructuredData from '@/components/OrganizationStructuredData';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
+import ExitIntentPopup from '@/components/ExitIntentPopup';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -111,6 +112,7 @@ export default function RootLayout({
         <Header />
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>
         <Footer />
+        <ExitIntentPopup />
         <BottomNav />
       </body>
     </html>

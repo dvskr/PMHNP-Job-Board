@@ -4,6 +4,7 @@ import { Job } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
 import ShareButtons from '@/components/ShareButtons';
+import ShareButton from '@/components/ShareButton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
@@ -39,6 +40,34 @@ async function getJob(id: string): Promise<Job | null> {
   }
 }
 
+// Helper to format salary for OG image
+function formatSalaryForOG(job: Job): string {
+  if (!job.minSalary && !job.maxSalary) return '';
+  
+  const formatNum = (num: number) => {
+    if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
+    return `$${num}`;
+  };
+
+  if (job.minSalary && job.maxSalary) {
+    return `${formatNum(job.minSalary)} - ${formatNum(job.maxSalary)}`;
+  }
+  if (job.minSalary) return `From ${formatNum(job.minSalary)}`;
+  if (job.maxSalary) return `Up to ${formatNum(job.maxSalary)}`;
+  return '';
+}
+
+// Helper to get location string
+function getLocationString(job: Job): string {
+  if (job.mode?.toLowerCase() === 'remote') {
+    return job.state ? `Remote (${job.state})` : 'Remote';
+  }
+  const parts = [];
+  if (job.city) parts.push(job.city);
+  if (job.state) parts.push(job.state);
+  return parts.join(', ') || job.location || 'United States';
+}
+
 export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
@@ -59,6 +88,26 @@ export async function generateMetadata({ params }: JobPageProps) {
   }
 
   const description = job.descriptionSummary || job.description.slice(0, 160);
+  
+  // Prepare OG image parameters
+  const title = job.title;
+  const company = job.employer;
+  const location = getLocationString(job);
+  const salary = formatSalaryForOG(job);
+  const mode = job.mode || '';
+  const jobType = job.jobType || '';
+
+  // Build OG image URL with params
+  const ogImageParams = new URLSearchParams({
+    title,
+    company,
+    location,
+    ...(salary && { salary }),
+    ...(mode && { mode }),
+    ...(jobType && { jobType }),
+  });
+
+  const ogImageUrl = `${BASE_URL}/api/og?${ogImageParams.toString()}`;
 
   return {
     title: `${job.title} at ${job.employer} | PMHNP Jobs`,
@@ -71,10 +120,10 @@ export async function generateMetadata({ params }: JobPageProps) {
       siteName: 'PMHNP Jobs',
       images: [
         {
-          url: `${BASE_URL}/og-image.png`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: job.title,
+          alt: `${job.title} at ${job.employer}`,
         },
       ],
     },
@@ -82,6 +131,7 @@ export async function generateMetadata({ params }: JobPageProps) {
       card: 'summary_large_image',
       title: `${job.title} at ${job.employer}`,
       description,
+      images: [ogImageUrl],
     },
   };
 }
@@ -266,11 +316,17 @@ export default async function JobPage({ params }: JobPageProps) {
                 {/* Share Section - Desktop */}
                 <div className="pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-500 mb-3">Share this job:</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
                     <ShareButtons
                       url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
                       title={job.title}
                       company={job.employer}
+                    />
+                    <ShareButton
+                      url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
+                      title={`${job.title} at ${job.employer}`}
+                      description={`${job.title} position at ${job.employer}. ${job.location}. ${salary ? salary + '. ' : ''}Apply now on PMHNP Hiring.`}
+                      variant="icon"
                     />
                   </div>
                 </div>
@@ -279,11 +335,17 @@ export default async function JobPage({ params }: JobPageProps) {
               {/* Mobile-only share section below content */}
               <div className="lg:hidden bg-white rounded-lg shadow-md p-5 mb-4">
                 <p className="text-sm text-gray-500 mb-3">Share this job:</p>
-                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                   <ShareButtons
                     url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
                     title={job.title}
                     company={job.employer}
+                  />
+                  <ShareButton
+                    url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
+                    title={`${job.title} at ${job.employer}`}
+                    description={`${job.title} position at ${job.employer}. ${job.location}. ${salary ? salary + '. ' : ''}Apply now on PMHNP Hiring.`}
+                    variant="icon"
                   />
                 </div>
               </div>

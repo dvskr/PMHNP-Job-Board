@@ -29,9 +29,8 @@ export default function Footer() {
                   Saved Jobs
                 </Link>
               </li>
-              {/* Job Alerts and Salary Guide placeholders if pages don't exist yet, mapped to existing or likely routes */}
               <li>
-                <Link href="/jobs" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <Link href="/job-alerts" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Job Alerts
                 </Link>
               </li>
