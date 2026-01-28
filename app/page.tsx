@@ -1,13 +1,8 @@
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
 import TestimonialsSection from '@/components/TestimonialsSection';
-
-// Lazy load only the client component
-const EmailSignupForm = dynamic(() => import('@/components/EmailSignupForm'), {
-  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
-});
+import HomepageJobAlertForm from '@/components/HomepageJobAlertForm';
 
 /**
  * Home Page Component
@@ -84,16 +79,46 @@ export default function Home() {
       {/* Testimonials Section */}
       <TestimonialsSection />
 
-      {/* Email Signup Section */}
-      <section id="subscribe" className="bg-blue-50 py-16 px-4">
+      {/* Job Alerts Section */}
+      <section className="bg-blue-50 py-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
             Get PMHNP Job Alerts
           </h2>
-          <p className="text-gray-700 mb-8">
-            New psychiatric nurse practitioner jobs delivered weekly
+          <p className="text-gray-600 mb-8">
+            New psychiatric nurse practitioner jobs delivered to your inbox
           </p>
-          <EmailSignupForm source="homepage" />
+          <HomepageJobAlertForm className="max-w-2xl mx-auto" />
+        </div>
+      </section>
+
+      {/* Salary Guide Section */}
+      <section className="bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-lg font-semibold text-blue-600 mb-2">📊 Know Your Worth</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+            Get the Free 2026 PMHNP Salary Guide
+          </h2>
+          <p className="text-gray-600 mb-8">
+            Pay rates by state • Telehealth vs in-person • Negotiation tips
+          </p>
+          <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
+            <iframe 
+              src="https://subscribe-forms.beehiiv.com/ec7a9528-db98-40ff-948a-fa8f637fd4f0"
+              className="w-full"
+              data-test-id="beehiiv-embed"
+              frameBorder="0"
+              scrolling="no"
+              style={{ 
+                height: '280px', 
+                backgroundColor: 'transparent',
+                border: 'none'
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-3">
+              No spam. Unsubscribe anytime.
+            </p>
+          </div>
         </div>
       </section>
 
