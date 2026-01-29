@@ -10,6 +10,14 @@ interface CategoryCounts {
   };
 }
 
+/**
+ * PopularCategories Component (Server Component)
+ * 
+ * Fetches and displays popular job categories as clickable chips.
+ * Categories include work modes, job types, high-paying positions, and top states.
+ * 
+ * @returns JSX.Element | null - A section with category chips, or null if no categories
+ */
 export default async function PopularCategories() {
   // Fetch categories server-side
   let categories: { label: string; count: number; href: string }[] = [];
@@ -87,7 +95,7 @@ export default async function PopularCategories() {
   }
 
   return (
-    <section className="py-12 px-4 bg-white">
+    <section className="py-12 px-4 bg-white min-h-44">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
           Popular Categories
