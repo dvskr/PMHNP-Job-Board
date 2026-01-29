@@ -4,8 +4,8 @@ import { DollarSign, TrendingUp, MapPin, Briefcase, Building2, GraduationCap, Ar
 import { prisma } from '@/lib/prisma';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 86400; // Revalidate daily
+// Enable ISR with daily revalidation
+export const revalidate = 86400;
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
@@ -185,11 +185,16 @@ export default async function SalaryGuidePage() {
     ],
   };
 
+  // Sanitize JSON for safe injection into script tag (escape < to prevent XSS)
+  const sanitizeJson = (obj: object): string => {
+    return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }}
       />
 
       <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
@@ -238,18 +243,18 @@ export default async function SalaryGuidePage() {
                 </h2>
                 <div className="prose prose-gray max-w-none">
                   <p className="text-gray-600 leading-relaxed mb-4">
-                    Psychiatric Mental Health Nurse Practitioners (PMHNPs) are among the highest-paid 
-                    nursing specialties in the United States. The average PMHNP salary is <strong>${Math.round(overallStats.avgSalary / 1000).toLocaleString()}k per year</strong>, 
-                    with salaries typically ranging from ${Math.round(overallStats.minSalary / 1000)}k to ${Math.round(overallStats.maxSalary / 1000)}k+ 
+                    Psychiatric Mental Health Nurse Practitioners (PMHNPs) are among the highest-paid
+                    nursing specialties in the United States. The average PMHNP salary is <strong>${Math.round(overallStats.avgSalary / 1000).toLocaleString()}k per year</strong>,
+                    with salaries typically ranging from ${Math.round(overallStats.minSalary / 1000)}k to ${Math.round(overallStats.maxSalary / 1000)}k+
                     depending on location, experience, and practice setting.
                   </p>
                   <p className="text-gray-600 leading-relaxed mb-4">
-                    The demand for PMHNPs continues to grow due to the nationwide mental health crisis 
-                    and shortage of psychiatric providers. This high demand translates to competitive 
+                    The demand for PMHNPs continues to grow due to the nationwide mental health crisis
+                    and shortage of psychiatric providers. This high demand translates to competitive
                     salaries, sign-on bonuses, and excellent benefits for qualified practitioners.
                   </p>
                   <p className="text-gray-600 leading-relaxed">
-                    Based on our analysis of <strong>{overallStats.jobsWithSalary.toLocaleString()} job postings</strong> with 
+                    Based on our analysis of <strong>{overallStats.jobsWithSalary.toLocaleString()} job postings</strong> with
                     salary data, here&apos;s what you can expect to earn as a PMHNP.
                   </p>
                 </div>
@@ -286,7 +291,7 @@ export default async function SalaryGuidePage() {
                             Jobs
                           </th>
                           <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            
+
                           </th>
                         </tr>
                       </thead>
@@ -353,7 +358,7 @@ export default async function SalaryGuidePage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Geographic Location</h3>
                         <p className="text-sm text-gray-600">
-                          States with higher cost of living and greater demand (CA, NY, MA) typically 
+                          States with higher cost of living and greater demand (CA, NY, MA) typically
                           offer 20-40% higher salaries than rural areas.
                         </p>
                       </div>
@@ -365,7 +370,7 @@ export default async function SalaryGuidePage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Experience Level</h3>
                         <p className="text-sm text-gray-600">
-                          Entry-level PMHNPs start around $100-120k. With 5+ years experience, 
+                          Entry-level PMHNPs start around $100-120k. With 5+ years experience,
                           salaries can reach $150-180k or more.
                         </p>
                       </div>
@@ -377,7 +382,7 @@ export default async function SalaryGuidePage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Employment Type</h3>
                         <p className="text-sm text-gray-600">
-                          1099 contractors and travel PMHNPs often earn 20-50% more than W2 employees, 
+                          1099 contractors and travel PMHNPs often earn 20-50% more than W2 employees,
                           though without traditional benefits.
                         </p>
                       </div>
@@ -391,7 +396,7 @@ export default async function SalaryGuidePage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Practice Setting</h3>
                         <p className="text-sm text-gray-600">
-                          Private practice and telehealth positions often pay more than hospital or 
+                          Private practice and telehealth positions often pay more than hospital or
                           community health settings.
                         </p>
                       </div>
@@ -403,7 +408,7 @@ export default async function SalaryGuidePage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Specialization</h3>
                         <p className="text-sm text-gray-600">
-                          Subspecialties like addiction psychiatry, child/adolescent, or forensic 
+                          Subspecialties like addiction psychiatry, child/adolescent, or forensic
                           psychiatry can command premium pay.
                         </p>
                       </div>
@@ -415,7 +420,7 @@ export default async function SalaryGuidePage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Negotiation</h3>
                         <p className="text-sm text-gray-600">
-                          PMHNPs who negotiate can often secure 5-15% higher starting salaries 
+                          PMHNPs who negotiate can often secure 5-15% higher starting salaries
                           plus signing bonuses and better benefits.
                         </p>
                       </div>
@@ -464,9 +469,9 @@ export default async function SalaryGuidePage() {
                       How much do PMHNPs make?
                     </h3>
                     <p className="text-gray-600">
-                      The average PMHNP salary in {currentYear} is approximately ${Math.round(overallStats.avgSalary / 1000)}k per year, 
-                      with a typical range of ${Math.round(overallStats.minSalary / 1000)}k to ${Math.round(overallStats.maxSalary / 1000)}k+ 
-                      depending on location, experience, and setting. Top earners in high-demand areas 
+                      The average PMHNP salary in {currentYear} is approximately ${Math.round(overallStats.avgSalary / 1000)}k per year,
+                      with a typical range of ${Math.round(overallStats.minSalary / 1000)}k to ${Math.round(overallStats.maxSalary / 1000)}k+
+                      depending on location, experience, and setting. Top earners in high-demand areas
                       can make $200,000 or more.
                     </p>
                   </div>
@@ -477,9 +482,9 @@ export default async function SalaryGuidePage() {
                     <p className="text-gray-600">
                       {topPayingStates.length > 0 ? (
                         <>
-                          {topPayingStates[0].state} typically offers the highest PMHNP salaries, 
-                          with averages around ${Math.round(topPayingStates[0].avgSalary / 1000)}k. 
-                          Other high-paying states include {topPayingStates.slice(1, 4).map(s => s.state).join(', ')}. 
+                          {topPayingStates[0].state} typically offers the highest PMHNP salaries,
+                          with averages around ${Math.round(topPayingStates[0].avgSalary / 1000)}k.
+                          Other high-paying states include {topPayingStates.slice(1, 4).map(s => s.state).join(', ')}.
                           However, consider cost of living when comparing salaries across states.
                         </>
                       ) : (
@@ -492,8 +497,8 @@ export default async function SalaryGuidePage() {
                       Do remote PMHNPs make less than in-person?
                     </h3>
                     <p className="text-gray-600">
-                      Not necessarily. Remote/telehealth PMHNP positions often pay comparably to 
-                      in-person roles, and sometimes more due to the flexibility and expanded patient 
+                      Not necessarily. Remote/telehealth PMHNP positions often pay comparably to
+                      in-person roles, and sometimes more due to the flexibility and expanded patient
                       access they provide. Telehealth PMHNPs typically earn $130,000-$180,000 annually.
                     </p>
                   </div>
@@ -502,10 +507,10 @@ export default async function SalaryGuidePage() {
                       How can I increase my PMHNP salary?
                     </h3>
                     <p className="text-gray-600">
-                      To maximize your earning potential: gain experience in high-demand specialties 
-                      (addiction, child/adolescent), consider travel or locum positions, pursue 
-                      additional certifications, negotiate your salary and benefits, consider 
-                      private practice ownership, and be willing to work in underserved areas 
+                      To maximize your earning potential: gain experience in high-demand specialties
+                      (addiction, child/adolescent), consider travel or locum positions, pursue
+                      additional certifications, negotiate your salary and benefits, consider
+                      private practice ownership, and be willing to work in underserved areas
                       with higher pay incentives.
                     </p>
                   </div>
@@ -514,8 +519,8 @@ export default async function SalaryGuidePage() {
                       How much do travel PMHNPs make?
                     </h3>
                     <p className="text-gray-600">
-                      Travel and locum tenens PMHNPs typically earn 20-50% more than permanent positions, 
-                      with annual compensation ranging from $150,000 to $250,000+ including housing stipends, 
+                      Travel and locum tenens PMHNPs typically earn 20-50% more than permanent positions,
+                      with annual compensation ranging from $150,000 to $250,000+ including housing stipends,
                       travel allowances, and benefits. Hourly rates range from $80-150+.
                     </p>
                   </div>

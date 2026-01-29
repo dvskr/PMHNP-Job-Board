@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Bell, MapPin, Briefcase, Zap, CheckCircle, AlertCircle } from 'lucide-react';
@@ -35,6 +35,13 @@ function JobAlertsContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | ''; text: string }>({ type: '', text: '' });
   const [emailError, setEmailError] = useState('');
+
+  // Watch for searchParams changes (e.g., from quick links)
+  useEffect(() => {
+    setLocation(searchParams.get('location') || '');
+    setMode(searchParams.get('mode') || '');
+    setJobType(searchParams.get('jobType') || '');
+  }, [searchParams]);
 
   // Email validation
   const validateEmail = (email: string): boolean => {
@@ -175,11 +182,10 @@ function JobAlertsContent() {
                       if (emailError) setEmailError('');
                     }}
                     placeholder="you@example.com"
-                    className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                      emailError
+                    className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${emailError
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
                         : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500'
-                    }`}
+                      }`}
                   />
                   {emailError && (
                     <p className="mt-1.5 text-xs text-red-600">{emailError}</p>

@@ -42,24 +42,28 @@ async function checkCompanyCounts() {
   const sampleEmployers = companyGroups
     .slice(0, 30)
     .map(g => g.employer);
-  
+
   // Look for similar names
   const kaisers = sampleEmployers.filter(e => e.toLowerCase().includes('kaiser'));
   const healths = sampleEmployers.filter(e => e.toLowerCase().includes('health'));
-  
+
   if (kaisers.length > 0) {
     console.log('\n🏥 Kaiser variations:');
-    kaisers.forEach(k => console.log(`   - ${k}`));
+    kaisers.forEach(k => {
+      console.log(`   - ${k}`);
+    });
   }
-  
+
   if (healths.length > 3) {
     console.log('\n🏥 Health-related companies (first 10):');
-    healths.slice(0, 10).forEach(h => console.log(`   - ${h}`));
+    healths.slice(0, 10).forEach(h => {
+      console.log(`   - ${h}`);
+    });
   }
 
   // 5. Show jobs linked vs not linked to companies table
   const jobsLinkedToCompanies = await prisma.job.count({
-    where: { 
+    where: {
       isPublished: true,
       companyId: { not: null }
     }
@@ -69,7 +73,7 @@ async function checkCompanyCounts() {
   console.log('-'.repeat(80));
   console.log(`   Linked: ${jobsLinkedToCompanies} jobs`);
   console.log(`   Not Linked: ${totalJobs - jobsLinkedToCompanies} jobs`);
-  console.log(`   Percentage: ${((jobsLinkedToCompanies / totalJobs) * 100).toFixed(1)}%\n`);
+  console.log(`   Percentage: ${totalJobs === 0 ? 'N/A' : ((jobsLinkedToCompanies / totalJobs) * 100).toFixed(1) + '%'}\n`);
 
   // Summary
   console.log('\n' + '='.repeat(80));

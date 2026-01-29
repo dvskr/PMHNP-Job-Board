@@ -10,7 +10,7 @@ export default function SalaryGuideForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !email.includes('@')) {
       setStatus('error');
       setMessage('Please enter a valid email');
@@ -18,7 +18,7 @@ export default function SalaryGuideForm() {
     }
 
     setStatus('loading');
-    
+
     try {
       const response = await fetch('/api/salary-guide', {
         method: 'POST',
@@ -71,6 +71,7 @@ export default function SalaryGuideForm() {
 
   return (
     <form onSubmit={handleSubmit} style={{
+      position: 'relative',
       background: 'white',
       borderRadius: '8px',
       padding: '8px',
@@ -137,12 +138,12 @@ export default function SalaryGuideForm() {
         )}
       </button>
       {status === 'error' && (
-        <span style={{ 
-          position: 'absolute', 
-          bottom: '-20px', 
-          left: '8px', 
-          fontSize: '0.7rem', 
-          color: '#ef4444' 
+        <span style={{
+          position: 'absolute',
+          bottom: '-20px',
+          left: '8px',
+          fontSize: '0.7rem',
+          color: '#ef4444'
         }}>{message}</span>
       )}
     </form>

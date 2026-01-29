@@ -175,7 +175,7 @@ async function sendAlertEmail(
               </p>
               <p style="margin: 0; font-size: 12px; color: #6b7280;">
                 <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #6b7280;">Manage alert</a> | 
-                <a href="${BASE_URL}/api/job-alerts?token=${alert.token}" style="color: #6b7280;">Delete alert</a>
+                <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #6b7280;">Delete alert</a>
               </p>
             </td>
           </tr>

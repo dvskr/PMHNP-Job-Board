@@ -230,10 +230,10 @@ async function fetchCompanyData() {
   // Create a deduplicated version (by company name)
   console.log('\n💾 Creating deduplicated version...');
   const deduped = new Map<string, CompanyData>();
-  
+
   // Priority order: companies > employer_jobs > employer_leads > jobs > user_profiles
   const priorityOrder = ['companies', 'employer_jobs', 'employer_leads', 'jobs', 'user_profiles'];
-  
+
   allCompanyData
     .sort((a, b) => {
       return priorityOrder.indexOf(a.source_table) - priorityOrder.indexOf(b.source_table);
@@ -256,7 +256,7 @@ async function fetchCompanyData() {
 
   const dedupedArray = Array.from(deduped.values());
   fs.writeFileSync('company-data-unique.json', JSON.stringify(dedupedArray, null, 2));
-  
+
   const dedupedCsv = csvHeader + dedupedArray.map((c) => {
     const name = `"${c.company_name.replace(/"/g, '""')}"`;
     const website = c.website ? `"${c.website.replace(/"/g, '""')}"` : '';
@@ -264,7 +264,7 @@ async function fetchCompanyData() {
     return `${name},${website},${location},${c.source_table}`;
   }).join('\n');
   fs.writeFileSync('company-data-unique.csv', dedupedCsv);
-  
+
   console.log(`✅ Deduplicated data: ${dedupedArray.length} unique companies`);
   console.log(`   - With website: ${dedupedArray.filter(c => c.website).length}`);
   console.log(`   - With location: ${dedupedArray.filter(c => c.location).length}`);
@@ -281,8 +281,10 @@ async function fetchCompanyData() {
   await pool.end();
 }
 
-fetchCompanyData().catch((error) => {
+fetchCompanyData().catch(async (error) => {
   console.error('❌ Error:', error);
+  await prisma.$disconnect();
+  await pool.end();
   process.exit(1);
 });
 

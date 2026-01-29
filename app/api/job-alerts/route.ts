@@ -107,7 +107,7 @@ async function sendAlertConfirmationEmail(
             
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
               <p>You're receiving this because you signed up at PMHNPHiring.com</p>
-              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #3b82f6;">Manage your alerts</a> · <a href="${BASE_URL}/api/job-alerts/${token}" style="color: #3b82f6;">Unsubscribe</a></p>
+              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #3b82f6;">Manage your alerts</a> · <a href="${BASE_URL}/job-alerts/unsubscribe?token=${token}" style="color: #3b82f6;">Unsubscribe</a></p>
             </div>
           </body>
         </html>
