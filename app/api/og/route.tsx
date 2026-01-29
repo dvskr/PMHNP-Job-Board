@@ -183,8 +183,8 @@ export async function GET(request: NextRequest) {
         </div>
       ),
       {
-        width: 1200,
-        height: 630,
+        width: 2400,  // 2x resolution for sharper image on social media
+        height: 1260, // 2x resolution
         // CRITICAL: Cache headers for speed
         headers: {
           'Content-Type': 'image/png',
