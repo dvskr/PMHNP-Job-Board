@@ -13,6 +13,18 @@ interface TestimonialsSectionProps {
   testimonials?: Testimonial[];
 }
 
+/**
+ * TestimonialsSection Component (Server Component)
+ * 
+ * Displays user testimonials in a grid layout.
+ * Shows default testimonials if none are provided.
+ * 
+ * @param props - Component properties
+ * @param props.title - Optional custom title for the section
+ * @param props.testimonials - Optional array of testimonial objects
+ * @returns JSX.Element - A section containing testimonial cards
+ */
+
 // Default placeholder testimonials
 const defaultTestimonials: Testimonial[] = [
   {

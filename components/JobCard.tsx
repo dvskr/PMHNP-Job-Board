@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { MapPin, CheckCircle } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
@@ -12,7 +13,7 @@ interface JobCardProps {
   viewMode?: 'grid' | 'list';
 }
 
-export default function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
+function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
   const applied = isApplied(job.id);
   const jobUrl = `/jobs/${slugify(job.title, job.id)}`;
@@ -224,4 +225,7 @@ export default function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     </Link>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(JobCard);
 
