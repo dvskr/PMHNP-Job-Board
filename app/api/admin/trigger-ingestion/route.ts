@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Admin] Triggering ingestion for: ${source || 'all sources'}`);
 
     // Build the URL for the cron endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
     const cronUrl = source 
       ? `${baseUrl}/api/cron/ingest?source=${source}`
       : `${baseUrl}/api/cron/ingest`;

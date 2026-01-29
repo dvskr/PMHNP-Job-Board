@@ -12,6 +12,8 @@ import MobileFilterDrawer from '@/components/MobileFilterDrawer';
 import { Job } from '@/lib/types';
 import { FilterState, DEFAULT_FILTERS } from '@/types/filters';
 import { parseFiltersFromParams } from '@/lib/filters';
+import { useFilterPersistence } from '@/lib/hooks/useFilterPersistence';
+import { useViewMode } from '@/lib/hooks/useViewMode';
 
 interface JobsContentProps {
   initialJobs: Job[];
@@ -33,8 +35,11 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [showToast, setShowToast] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { viewMode, setViewMode } = useViewMode('grid');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  
+  // Persist filter preferences across sessions
+  useFilterPersistence();
 
   const fetchJobs = useCallback(async (filters: FilterState, page: number = 1) => {
     try {

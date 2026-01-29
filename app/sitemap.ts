@@ -76,6 +76,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     },
     {
+      url: `${baseUrl}/job-alerts`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/signup`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/login`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.4,
+    },
+    {
       url: `${baseUrl}/terms`,
       lastModified: new Date(),
       changeFrequency: 'yearly' as const,
@@ -97,6 +115,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
     changeFrequency: 'daily' as const,
     priority: 0.9,
+  }
+
+  // Travel/Locum jobs page
+  const travelJobsPage = {
+    url: `${baseUrl}/jobs/travel`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  // Salary guide page
+  const salaryGuidePage = {
+    url: `${baseUrl}/salary-guide`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.9,
+  }
+
+  // Resources page
+  const resourcesPage = {
+    url: `${baseUrl}/resources`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
   }
 
   // Locations hub page
@@ -172,6 +214,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...staticPages,
       remoteJobsPage,
+      travelJobsPage,
+      salaryGuidePage,
+      resourcesPage,
       locationsPage,
       ...statePages,
       ...cityPages,
@@ -183,6 +228,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...staticPages,
       remoteJobsPage,
+      travelJobsPage,
+      salaryGuidePage,
+      resourcesPage,
       locationsPage,
       ...statePages,
     ]

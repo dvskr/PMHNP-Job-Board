@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MapPin, TrendingUp, Building2, Bell } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -203,16 +204,23 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
     const { name: stateName, code: stateCode } = stateInfo;
     const stats = await getStateStats(stateName, stateCode);
 
+    // Build optimized title with job count and salary for better CTR
+    const title = stats.avgSalary > 0
+      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} | $${stats.avgSalary}k Avg Salary | PMHNP Hiring`
+      : `${stats.totalJobs} PMHNP Jobs in ${stateName} | Psychiatric NP Positions | PMHNP Hiring`;
+
+    const description = stats.avgSalary > 0
+      ? `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Average salary $${stats.avgSalary}k. Remote and in-person psychiatric nurse practitioner positions. Apply today!`
+      : `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Remote and in-person psychiatric nurse practitioner positions available. Apply today!`;
+
     return {
-      title: `PMHNP Jobs in ${stateName} - ${stats.totalJobs} Psychiatric NP Positions`,
-      description: stats.avgSalary > 0
-        ? `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Psychiatric mental health nurse practitioner positions with average salary $${stats.avgSalary}k. Remote and in-person opportunities.`
-        : `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Remote and in-person psychiatric nurse practitioner positions. Apply today.`,
+      title,
+      description,
       openGraph: {
-        title: `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
-        description: stats.avgSalary > 0
-          ? `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Average salary: $${stats.avgSalary}k/year.`
-          : `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Remote and in-person opportunities.`,
+        title: stats.avgSalary > 0
+          ? `${stats.totalJobs} PMHNP Jobs in ${stateName} | $${stats.avgSalary}k Average`
+          : `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
+        description,
         type: 'website',
       },
       alternates: {
@@ -245,8 +253,20 @@ export default async function StateJobsPage({ params }: StatePageProps) {
     getStateStats(stateName, stateCode),
   ]);
 
+  // Build breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Jobs', href: '/jobs' },
+    { label: stateName },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Breadcrumbs */}
+      <div className="container mx-auto px-4 pt-4">
+        <Breadcrumbs items={breadcrumbItems} />
+      </div>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">

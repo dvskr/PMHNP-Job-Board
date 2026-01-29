@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface BadgeProps {
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'featured';
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'featured';
   size?: 'sm' | 'md';
   children: React.ReactNode;
   className?: string;
@@ -20,6 +20,7 @@ const Badge: React.FC<BadgeProps> = ({
   const variantStyles = {
     default: 'bg-gray-100 text-black',
     primary: 'bg-primary-50 text-black',
+    secondary: 'bg-gray-200 text-gray-600',
     success: 'bg-green-100 text-black',
     warning: 'bg-amber-100 text-black',
     danger: 'bg-red-100 text-black',

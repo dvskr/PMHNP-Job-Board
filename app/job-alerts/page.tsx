@@ -106,16 +106,16 @@ function JobAlertsContent() {
     <div className="min-h-screen bg-slate-50">
       {/* Hero Section - Compact */}
       <div className="bg-gradient-to-b from-blue-600 to-blue-700 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+        <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10">
               <Bell className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold">
+              <h1 className="text-2xl font-bold">
                 Never Miss Your Dream PMHNP Job
               </h1>
-              <p className="text-sm text-blue-100">
+              <p className="text-sm text-blue-200">
                 Get personalized job alerts delivered to your inbox.
               </p>
             </div>
@@ -123,10 +123,10 @@ function JobAlertsContent() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-        <div className="grid lg:grid-cols-5 gap-5 lg:gap-8">
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="flex flex-wrap gap-6">
           {/* Main Form Card */}
-          <div className="lg:col-span-3">
+          <div className="flex-1 min-w-[300px]">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-6">
               <h2 className="text-xl font-semibold text-slate-900 mb-2">
                 Create Your Job Alert
@@ -340,7 +340,7 @@ function JobAlertsContent() {
           </div>
 
           {/* Benefits Sidebar */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="flex-1 min-w-[250px] flex flex-col gap-4">
             {/* Benefits Card */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-900 mb-4">Why Set Up Alerts?</h3>

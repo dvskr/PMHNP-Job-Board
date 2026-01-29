@@ -1,5 +1,7 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
 import TestimonialsSection from '@/components/TestimonialsSection';
@@ -13,11 +15,52 @@ const SalaryGuideSection = dynamic(() => import('@/components/SalaryGuideSection
   loading: () => <div className="h-64 bg-teal-100 animate-pulse" />,
 });
 
+// Revalidate every 60 seconds
+export const revalidate = 60;
+
+/**
+ * Get total job count for dynamic metadata
+ */
+async function getTotalJobCount(): Promise<number> {
+  try {
+    const count = await prisma.job.count({
+      where: { isPublished: true },
+    });
+    return count;
+  } catch {
+    return 200; // Fallback
+  }
+}
+
+/**
+ * Generate dynamic metadata with job count
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const totalJobs = await getTotalJobCount();
+  const jobCountDisplay = totalJobs > 1000 
+    ? `${Math.floor(totalJobs / 100) * 100}+` 
+    : totalJobs.toLocaleString();
+
+  return {
+    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board`,
+    description: `Find ${jobCountDisplay} PMHNP jobs across the United States. The #1 job board for psychiatric mental health nurse practitioners. Remote and in-person positions updated daily.`,
+    openGraph: {
+      title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
+      description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
+    },
+  };
+}
+
 /**
  * Home Page Component
  * Displays the landing page with hero section, stats, categories, features, and CTAs
  */
-export default function Home() {
+export default async function Home() {
+  const totalJobs = await getTotalJobCount();
+  const jobCountDisplay = totalJobs > 1000 
+    ? `${Math.floor(totalJobs / 100) * 100}+` 
+    : totalJobs.toLocaleString();
+
   return (
     <div>
       {/* Hero Section */}
@@ -28,14 +71,14 @@ export default function Home() {
           </h1>
           <p className="text-xl md:text-2xl text-blue-50 mb-8 max-w-2xl mx-auto">
             The #1 job board for psychiatric mental health nurse practitioners. 
-            200+ remote and in-person jobs updated daily.
+            {jobCountDisplay} remote and in-person jobs updated daily.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/jobs"
               className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
             >
-              Browse Jobs
+              Browse {jobCountDisplay} Jobs
             </Link>
             <Link
               href="/post-job"

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, CheckCircle } from 'lucide-react';
+import { MapPin, CheckCircle, Eye } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
+import { useViewedJobs } from '@/lib/hooks/useViewedJobs';
 import Badge from '@/components/ui/Badge';
 import ShareModal from '@/components/ShareModal';
 
@@ -25,6 +26,7 @@ interface JobCardProps {
 
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
+  const { isViewed, markAsViewed, isHydrated } = useViewedJobs();
   const [showShareMenu, setShowShareMenu] = useState(false);
   const applied = isApplied(job.id);
   const jobSlug = slugify(job.title, job.id);
@@ -34,6 +36,12 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const freshness = getJobFreshness(job.createdAt);
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
+  const viewed = isHydrated && isViewed(jobSlug);
+
+  // Mark job as viewed when card is clicked
+  const handleCardClick = () => {
+    markAsViewed(jobSlug);
+  };
 
   const handleShareClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,8 +72,8 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // List view - horizontal layout
   if (viewMode === 'list') {
     return (
-      <Link href={jobUrl} className="block touch-manipulation w-full">
-        <div className="group !bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-5">
+      <Link href={jobUrl} className="block touch-manipulation w-full" onClick={handleCardClick}>
+        <div className={`group !bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-5 ${viewed ? 'opacity-80' : ''}`}>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
             {/* Left Side - Main Info */}
             <div className="flex-1 min-w-0">
@@ -77,6 +85,12 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 <div className="flex gap-1.5 flex-wrap">
                   {isNew && (
                     <Badge variant="warning" size="sm">New</Badge>
+                  )}
+                  {viewed && !applied && (
+                    <Badge variant="secondary" size="sm">
+                      <Eye size={12} />
+                      Viewed
+                    </Badge>
                   )}
                   {applied && (
                     <Badge variant="success" size="sm">
@@ -165,8 +179,8 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
 
   // Grid view - default vertical card layout
   return (
-    <Link href={jobUrl} className="block touch-manipulation h-full">
-      <div className="group !bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6">
+    <Link href={jobUrl} className="block touch-manipulation h-full" onClick={handleCardClick}>
+      <div className={`group !bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6 ${viewed ? 'opacity-80' : ''}`}>
         {/* Title and Badges Row */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
           <h3 className="text-lg md:text-xl font-bold text-black group-hover:text-primary-800 transition-colors duration-200 flex-1 leading-tight">
@@ -177,6 +191,14 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               <span className="hover:brightness-105 transition-all duration-200">
                 <Badge variant="warning" size="sm">
                   New
+                </Badge>
+              </span>
+            )}
+            {viewed && !applied && (
+              <span className="hover:brightness-105 transition-all duration-200">
+                <Badge variant="secondary" size="sm">
+                  <Eye size={12} />
+                  Viewed
                 </Badge>
               </span>
             )}

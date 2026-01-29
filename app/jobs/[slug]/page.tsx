@@ -7,9 +7,11 @@ import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import RelatedJobs from '@/components/RelatedJobs';
 import { prisma } from '@/lib/prisma';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 interface JobPageProps {
   params: { slug: string };
@@ -37,6 +39,90 @@ async function getJob(id: string): Promise<Job | null> {
     console.error('Error fetching job:', error);
     return null;
   }
+}
+
+interface RelatedJobsParams {
+  currentJobId: string;
+  employer: string;
+  city?: string | null;
+  state?: string | null;
+  mode?: string | null;
+  limit?: number;
+}
+
+async function getRelatedJobs({
+  currentJobId,
+  employer,
+  city,
+  state,
+  mode,
+  limit = 4,
+}: RelatedJobsParams) {
+  const existingIds = [currentJobId];
+  let relatedJobs: Job[] = [];
+
+  // Priority 1: Same employer
+  const sameEmployerJobs = await prisma.job.findMany({
+    where: {
+      id: { notIn: existingIds },
+      employer: employer,
+      isPublished: true,
+    },
+    take: limit,
+    orderBy: { createdAt: 'desc' },
+  });
+  relatedJobs = [...relatedJobs, ...sameEmployerJobs];
+  existingIds.push(...sameEmployerJobs.map(j => j.id));
+
+  if (relatedJobs.length >= limit) {
+    return relatedJobs.slice(0, limit) as Job[];
+  }
+
+  // Priority 2: Same city
+  if (city && relatedJobs.length < limit) {
+    const sameCityJobs = await prisma.job.findMany({
+      where: {
+        id: { notIn: existingIds },
+        city: { equals: city, mode: 'insensitive' },
+        isPublished: true,
+      },
+      take: limit - relatedJobs.length,
+      orderBy: { createdAt: 'desc' },
+    });
+    relatedJobs = [...relatedJobs, ...sameCityJobs];
+    existingIds.push(...sameCityJobs.map(j => j.id));
+  }
+
+  // Priority 3: Same state
+  if (state && relatedJobs.length < limit) {
+    const sameStateJobs = await prisma.job.findMany({
+      where: {
+        id: { notIn: existingIds },
+        state: { equals: state, mode: 'insensitive' },
+        isPublished: true,
+      },
+      take: limit - relatedJobs.length,
+      orderBy: { createdAt: 'desc' },
+    });
+    relatedJobs = [...relatedJobs, ...sameStateJobs];
+    existingIds.push(...sameStateJobs.map(j => j.id));
+  }
+
+  // Priority 4: Same work mode (Remote, Hybrid, etc.)
+  if (mode && relatedJobs.length < limit) {
+    const sameModeJobs = await prisma.job.findMany({
+      where: {
+        id: { notIn: existingIds },
+        mode: { equals: mode, mode: 'insensitive' },
+        isPublished: true,
+      },
+      take: limit - relatedJobs.length,
+      orderBy: { createdAt: 'desc' },
+    });
+    relatedJobs = [...relatedJobs, ...sameModeJobs];
+  }
+
+  return relatedJobs as Job[];
 }
 
 export async function generateMetadata({ params }: JobPageProps) {
@@ -146,9 +232,46 @@ export default async function JobPage({ params }: JobPageProps) {
     return <JobNotFound />;
   }
 
+  // Fetch related jobs in parallel with main job
+  const relatedJobs = await getRelatedJobs({
+    currentJobId: job.id,
+    employer: job.employer,
+    city: job.city,
+    state: job.state,
+    mode: job.mode,
+    limit: 4,
+  });
+
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);
   const expiryStatus = getExpiryStatus(job.expiresAt);
+
+  // Build breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Jobs', href: '/jobs' },
+  ];
+
+  // Add state if available
+  if (job.state) {
+    breadcrumbItems.push({
+      label: job.state,
+      href: `/jobs/state/${job.state.toLowerCase().replace(/\s+/g, '-')}`,
+    });
+  }
+
+  // Add city if available
+  if (job.city) {
+    breadcrumbItems.push({
+      label: job.city,
+      href: `/jobs/city/${job.city.toLowerCase().replace(/\s+/g, '-')}`,
+    });
+  }
+
+  // Current page (no link)
+  breadcrumbItems.push({
+    label: `${job.title} at ${job.employer}`,
+  });
 
   return (
     <>
@@ -156,6 +279,8 @@ export default async function JobPage({ params }: JobPageProps) {
         job={job}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={breadcrumbItems} />
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
           {/* Main Content */}
           <div>
@@ -332,6 +457,15 @@ export default async function JobPage({ params }: JobPageProps) {
             </div>
           </AnimatedContainer>
         </div>
+
+        {/* Related Jobs Section */}
+        {relatedJobs.length > 0 && (
+          <RelatedJobs 
+            jobs={relatedJobs} 
+            currentJobId={job.id}
+            title="Similar PMHNP Jobs"
+          />
+        )}
 
         {/* Report Job Section */}
         <div className="mt-8 pt-6 border-t border-gray-200">
