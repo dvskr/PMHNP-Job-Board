@@ -205,10 +205,14 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
 
     return {
       title: `PMHNP Jobs in ${stateName} - ${stats.totalJobs} Psychiatric NP Positions`,
-      description: `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Psychiatric mental health nurse practitioner positions with average salary $${stats.avgSalary}k. Remote and in-person opportunities.`,
+      description: stats.avgSalary > 0
+        ? `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Psychiatric mental health nurse practitioner positions with average salary $${stats.avgSalary}k. Remote and in-person opportunities.`
+        : `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Remote and in-person psychiatric nurse practitioner positions. Apply today.`,
       openGraph: {
         title: `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
-        description: `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Average salary: $${stats.avgSalary}k/year.`,
+        description: stats.avgSalary > 0
+          ? `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Average salary: $${stats.avgSalary}k/year.`
+          : `Browse psychiatric mental health nurse practitioner jobs in ${stateName}. Remote and in-person opportunities.`,
         type: 'website',
       },
       alternates: {
