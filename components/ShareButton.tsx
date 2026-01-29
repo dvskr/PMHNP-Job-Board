@@ -30,6 +30,7 @@ export default function ShareButton({ url, title, description = '', variant = 'b
     return (
       <div className="relative">
         <button
+          type="button"
           onClick={handleShare}
           className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
           aria-label="Share"
@@ -55,6 +56,7 @@ export default function ShareButton({ url, title, description = '', variant = 'b
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={handleShare}
         className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
         aria-label="Share Job"

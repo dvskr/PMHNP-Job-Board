@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email } = body;
-    
+
     logger.info('Salary guide request received', { email });
 
     if (!email || !email.includes('@')) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       where: { email: normalizedEmail },
       update: {
         updatedAt: new Date(),
-        source: 'salary-guide',
+        // Preserve original source, don't overwrite it
       },
       create: {
         email: normalizedEmail,
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     });
 
     logger.info('Salary guide email sent successfully', { email: normalizedEmail, emailId: emailResult.data?.id });
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error('Error sending salary guide', error);

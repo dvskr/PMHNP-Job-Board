@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 // Pages where popup should never show
@@ -25,6 +25,7 @@ export default function ExitIntentPopup() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const pathname = usePathname();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if popup should be shown on this path
   const shouldShowOnPath = useCallback(() => {
@@ -34,15 +35,20 @@ export default function ExitIntentPopup() {
   // Check if popup was recently dismissed
   const wasRecentlyDismissed = useCallback(() => {
     if (typeof window === 'undefined') return true;
-    
-    const dismissedAt = localStorage.getItem(STORAGE_KEY);
-    if (!dismissedAt) return false;
 
-    const dismissedDate = new Date(parseInt(dismissedAt, 10));
-    const now = new Date();
-    const daysSinceDismissed = (now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
-    
-    return daysSinceDismissed < DISMISS_DURATION_DAYS;
+    try {
+      const dismissedAt = localStorage.getItem(STORAGE_KEY);
+      if (!dismissedAt) return false;
+
+      const dismissedDate = new Date(parseInt(dismissedAt, 10));
+      const now = new Date();
+      const daysSinceDismissed = (now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      return daysSinceDismissed < DISMISS_DURATION_DAYS;
+    } catch {
+      // localStorage not available (private/incognito mode)
+      return false;
+    }
   }, []);
 
   // Show popup
@@ -57,7 +63,11 @@ export default function ExitIntentPopup() {
   // Dismiss popup and save to localStorage
   const dismissPopup = useCallback(() => {
     setIsVisible(false);
-    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+    try {
+      localStorage.setItem(STORAGE_KEY, Date.now().toString());
+    } catch {
+      // localStorage not available, silently fail
+    }
   }, []);
 
   // Close popup without long-term dismissal (just for this session)
@@ -68,7 +78,7 @@ export default function ExitIntentPopup() {
   useEffect(() => {
     // Don't run on excluded paths
     if (!shouldShowOnPath()) return;
-    
+
     // Don't run if already dismissed recently
     if (wasRecentlyDismissed()) return;
 
@@ -122,6 +132,16 @@ export default function ExitIntentPopup() {
     };
   }, [isVisible]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,8 +159,11 @@ export default function ExitIntentPopup() {
 
       if (res.ok && data.success) {
         setStatus('success');
-        // Auto-close after 4 seconds
-        setTimeout(() => {
+        // Auto-close after 4 seconds, tracked via ref for cleanup
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
           dismissPopup();
         }, 4000);
       } else {
@@ -158,7 +181,7 @@ export default function ExitIntentPopup() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={closePopup}
       />
@@ -220,7 +243,7 @@ export default function ExitIntentPopup() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900"
                   disabled={status === 'loading'}
                 />
-                
+
                 {status === 'error' && (
                   <p className="text-red-600 text-sm mb-3">{errorMessage}</p>
                 )}

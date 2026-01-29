@@ -5,9 +5,8 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate every hour
+// Enable ISR - revalidate every hour
+export const revalidate = 3600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
@@ -84,7 +83,7 @@ async function getTravelStats(jobs: Job[]) {
       return (min + max) / 2;
     });
     avgSalary = Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length / 1000);
-    
+
     const allMin = jobsWithSalary.map(j => j.normalizedMinSalary || j.normalizedMaxSalary || 0);
     const allMax = jobsWithSalary.map(j => j.normalizedMaxSalary || j.normalizedMinSalary || 0);
     minSalary = Math.round(Math.min(...allMin) / 1000);
@@ -248,7 +247,7 @@ export default async function TravelJobsPage() {
                 Travel PMHNP Jobs & Locum Assignments
               </h1>
               <p className="text-lg md:text-xl text-blue-100 mb-6 max-w-2xl mx-auto">
-                High-paying travel psychiatric nurse practitioner positions across the United States. 
+                High-paying travel psychiatric nurse practitioner positions across the United States.
                 Flexible schedules, competitive pay, and new adventures await.
               </p>
 
@@ -321,21 +320,21 @@ export default async function TravelJobsPage() {
                 </h2>
                 <div className="prose prose-gray max-w-none">
                   <p className="text-gray-600 leading-relaxed mb-4">
-                    Travel PMHNP jobs offer psychiatric mental health nurse practitioners the opportunity 
-                    to work temporary assignments across the country while earning premium pay. Whether 
-                    you&apos;re looking for locum tenens positions, contract work, or per diem assignments, 
+                    Travel PMHNP jobs offer psychiatric mental health nurse practitioners the opportunity
+                    to work temporary assignments across the country while earning premium pay. Whether
+                    you&apos;re looking for locum tenens positions, contract work, or per diem assignments,
                     the travel healthcare industry provides unmatched flexibility and compensation.
                   </p>
                   <p className="text-gray-600 leading-relaxed mb-4">
-                    As a travel PMHNP, you&apos;ll fill critical staffing needs at hospitals, clinics, 
-                    telehealth companies, and behavioral health facilities. Assignments typically range 
-                    from 8-26 weeks, with many offering extension opportunities. Most positions include 
-                    comprehensive benefits packages with housing stipends, travel reimbursement, and 
+                    As a travel PMHNP, you&apos;ll fill critical staffing needs at hospitals, clinics,
+                    telehealth companies, and behavioral health facilities. Assignments typically range
+                    from 8-26 weeks, with many offering extension opportunities. Most positions include
+                    comprehensive benefits packages with housing stipends, travel reimbursement, and
                     competitive hourly rates.
                   </p>
                   {stats.avgSalary > 0 && (
                     <p className="text-gray-600 leading-relaxed">
-                      Current travel PMHNP positions are offering average compensation of <strong>${stats.avgSalary}k annually</strong>, 
+                      Current travel PMHNP positions are offering average compensation of <strong>${stats.avgSalary}k annually</strong>,
                       {stats.minSalary > 0 && stats.maxSalary > 0 && (
                         <> with salaries ranging from ${stats.minSalary}k to ${stats.maxSalary}k</>
                       )} depending on location, experience, and assignment type.
@@ -493,8 +492,8 @@ export default async function TravelJobsPage() {
                       What is a travel PMHNP?
                     </h3>
                     <p className="text-gray-600">
-                      A travel PMHNP is a psychiatric mental health nurse practitioner who takes temporary 
-                      assignments at healthcare facilities across different locations, typically lasting 8-26 weeks. 
+                      A travel PMHNP is a psychiatric mental health nurse practitioner who takes temporary
+                      assignments at healthcare facilities across different locations, typically lasting 8-26 weeks.
                       Travel PMHNPs fill staffing gaps, cover leaves of absence, and help facilities meet patient demand.
                     </p>
                   </div>
@@ -503,9 +502,9 @@ export default async function TravelJobsPage() {
                       How much do travel PMHNPs make?
                     </h3>
                     <p className="text-gray-600">
-                      Travel PMHNPs typically earn $100,000-$200,000+ annually, significantly higher than permanent 
-                      positions. Many assignments also include housing stipends ($1,500-$3,000/month), travel 
-                      reimbursement, health insurance, and 401k matching. Hourly rates range from $75-150+ 
+                      Travel PMHNPs typically earn $100,000-$200,000+ annually, significantly higher than permanent
+                      positions. Many assignments also include housing stipends ($1,500-$3,000/month), travel
+                      reimbursement, health insurance, and 401k matching. Hourly rates range from $75-150+
                       depending on location and specialty.
                     </p>
                   </div>
@@ -514,9 +513,9 @@ export default async function TravelJobsPage() {
                       What are locum tenens PMHNP jobs?
                     </h3>
                     <p className="text-gray-600">
-                      Locum tenens (Latin for &quot;to hold a place&quot;) PMHNP jobs are temporary positions where 
-                      psychiatric nurse practitioners fill in at healthcare facilities. These assignments can 
-                      range from a few days to several months and offer flexibility, higher pay, and the 
+                      Locum tenens (Latin for &quot;to hold a place&quot;) PMHNP jobs are temporary positions where
+                      psychiatric nurse practitioners fill in at healthcare facilities. These assignments can
+                      range from a few days to several months and offer flexibility, higher pay, and the
                       opportunity to work in different settings and locations.
                     </p>
                   </div>
@@ -525,9 +524,9 @@ export default async function TravelJobsPage() {
                       What qualifications do I need for travel PMHNP jobs?
                     </h3>
                     <p className="text-gray-600">
-                      To work as a travel PMHNP, you typically need: an active PMHNP certification (ANCC or AANP), 
-                      at least 1-2 years of clinical experience, state licensure (or willingness to obtain compact 
-                      license), DEA certification, and current BLS/ACLS certifications. Some positions may require 
+                      To work as a travel PMHNP, you typically need: an active PMHNP certification (ANCC or AANP),
+                      at least 1-2 years of clinical experience, state licensure (or willingness to obtain compact
+                      license), DEA certification, and current BLS/ACLS certifications. Some positions may require
                       additional credentials.
                     </p>
                   </div>
@@ -536,8 +535,8 @@ export default async function TravelJobsPage() {
                       Do travel PMHNPs get benefits?
                     </h3>
                     <p className="text-gray-600">
-                      Yes! Most travel PMHNP positions through staffing agencies include comprehensive benefits: 
-                      health, dental, and vision insurance, 401k with employer matching, housing stipends or free 
+                      Yes! Most travel PMHNP positions through staffing agencies include comprehensive benefits:
+                      health, dental, and vision insurance, 401k with employer matching, housing stipends or free
                       housing, travel reimbursement, license reimbursement, CEU allowances, and referral bonuses.
                     </p>
                   </div>
