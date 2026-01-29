@@ -1,14 +1,66 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
 import TestimonialsSection from '@/components/TestimonialsSection';
-import HomepageJobAlertForm from '@/components/HomepageJobAlertForm';
+
+// Lazy load client components
+const HomepageJobAlertForm = dynamic(() => import('@/components/HomepageJobAlertForm'), {
+  loading: () => <div className="h-32 bg-white/50 animate-pulse rounded-lg max-w-xl mx-auto" />,
+});
+
+const SalaryGuideSection = dynamic(() => import('@/components/SalaryGuideSection'), {
+  loading: () => <div className="h-64 bg-teal-100 animate-pulse" />,
+});
+
+// Revalidate every 60 seconds
+export const revalidate = 60;
+
+/**
+ * Get total job count for dynamic metadata
+ */
+async function getTotalJobCount(): Promise<number> {
+  try {
+    const count = await prisma.job.count({
+      where: { isPublished: true },
+    });
+    return count;
+  } catch {
+    return 200; // Fallback
+  }
+}
+
+/**
+ * Generate dynamic metadata with job count
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const totalJobs = await getTotalJobCount();
+  const jobCountDisplay = totalJobs > 1000 
+    ? `${Math.floor(totalJobs / 100) * 100}+` 
+    : totalJobs.toLocaleString();
+
+  return {
+    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board`,
+    description: `Find ${jobCountDisplay} PMHNP jobs across the United States. The #1 job board for psychiatric mental health nurse practitioners. Remote and in-person positions updated daily.`,
+    openGraph: {
+      title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
+      description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
+    },
+  };
+}
 
 /**
  * Home Page Component
  * Displays the landing page with hero section, stats, categories, features, and CTAs
  */
-export default function Home() {
+export default async function Home() {
+  const totalJobs = await getTotalJobCount();
+  const jobCountDisplay = totalJobs > 1000 
+    ? `${Math.floor(totalJobs / 100) * 100}+` 
+    : totalJobs.toLocaleString();
+
   return (
     <div>
       {/* Hero Section */}
@@ -19,14 +71,14 @@ export default function Home() {
           </h1>
           <p className="text-xl md:text-2xl text-blue-50 mb-8 max-w-2xl mx-auto">
             The #1 job board for psychiatric mental health nurse practitioners. 
-            200+ remote and in-person jobs updated daily.
+            {jobCountDisplay} remote and in-person jobs updated daily.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/jobs"
               className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
             >
-              Browse Jobs
+              Browse {jobCountDisplay} Jobs
             </Link>
             <Link
               href="/post-job"
@@ -76,49 +128,22 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Salary Guide Section */}
+      <SalaryGuideSection />
+
       {/* Testimonials Section */}
       <TestimonialsSection />
 
       {/* Job Alerts Section */}
-      <section className="bg-blue-50 py-16 px-4">
+      <section id="subscribe" className="bg-blue-50 py-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Get PMHNP Job Alerts
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-700 mb-8">
             New psychiatric nurse practitioner jobs delivered to your inbox
           </p>
-          <HomepageJobAlertForm className="max-w-2xl mx-auto" />
-        </div>
-      </section>
-
-      {/* Salary Guide Section */}
-      <section className="bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-lg font-semibold text-blue-600 mb-2">📊 Know Your Worth</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            Get the Free 2026 PMHNP Salary Guide
-          </h2>
-          <p className="text-gray-600 mb-8">
-            Pay rates by state • Telehealth vs in-person • Negotiation tips
-          </p>
-          <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6">
-            <iframe 
-              src="https://subscribe-forms.beehiiv.com/ec7a9528-db98-40ff-948a-fa8f637fd4f0"
-              className="w-full"
-              data-test-id="beehiiv-embed"
-              frameBorder="0"
-              scrolling="no"
-              style={{ 
-                height: '280px', 
-                backgroundColor: 'transparent',
-                border: 'none'
-              }}
-            />
-            <p className="text-xs text-gray-500 mt-3">
-              No spam. Unsubscribe anytime.
-            </p>
-          </div>
+          <HomepageJobAlertForm />
         </div>
       </section>
 

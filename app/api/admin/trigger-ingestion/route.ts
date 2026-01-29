@@ -12,8 +12,14 @@ export async function POST(request: NextRequest) {
     console.log(`[Admin] Triggering ingestion for: ${source || 'all sources'}`);
 
     // Build the URL for the cron endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const cronUrl = source 
+    // Use localhost in development, require NEXT_PUBLIC_BASE_URL in production
+    let baseUrl: string;
+    if (process.env.NODE_ENV === 'production') {
+      baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
+    } else {
+      baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    }
+    const cronUrl = source
       ? `${baseUrl}/api/cron/ingest?source=${source}`
       : `${baseUrl}/api/cron/ingest`;
 
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('[Admin] Error triggering ingestion:', error);
-    
+
     return NextResponse.json(
       {
         success: false,

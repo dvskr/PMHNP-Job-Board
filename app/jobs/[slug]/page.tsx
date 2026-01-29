@@ -4,13 +4,14 @@ import { Job } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
 import ShareButtons from '@/components/ShareButtons';
-import ShareButton from '@/components/ShareButton';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import RelatedJobs from '@/components/RelatedJobs';
 import { prisma } from '@/lib/prisma';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 interface JobPageProps {
   params: { slug: string };
@@ -40,32 +41,88 @@ async function getJob(id: string): Promise<Job | null> {
   }
 }
 
-// Helper to format salary for OG image
-function formatSalaryForOG(job: Job): string {
-  if (!job.minSalary && !job.maxSalary) return '';
-  
-  const formatNum = (num: number) => {
-    if (num >= 1000) return `$${(num / 1000).toFixed(0)}k`;
-    return `$${num}`;
-  };
-
-  if (job.minSalary && job.maxSalary) {
-    return `${formatNum(job.minSalary)} - ${formatNum(job.maxSalary)}`;
-  }
-  if (job.minSalary) return `From ${formatNum(job.minSalary)}`;
-  if (job.maxSalary) return `Up to ${formatNum(job.maxSalary)}`;
-  return '';
+interface RelatedJobsParams {
+  currentJobId: string;
+  employer: string;
+  city?: string | null;
+  state?: string | null;
+  mode?: string | null;
+  limit?: number;
 }
 
-// Helper to get location string
-function getLocationString(job: Job): string {
-  if (job.mode?.toLowerCase() === 'remote') {
-    return job.state ? `Remote (${job.state})` : 'Remote';
+async function getRelatedJobs({
+  currentJobId,
+  employer,
+  city,
+  state,
+  mode,
+  limit = 4,
+}: RelatedJobsParams) {
+  const existingIds = [currentJobId];
+  let relatedJobs: Job[] = [];
+
+  // Priority 1: Same employer
+  const sameEmployerJobs = await prisma.job.findMany({
+    where: {
+      id: { notIn: existingIds },
+      employer: employer,
+      isPublished: true,
+    },
+    take: limit,
+    orderBy: { createdAt: 'desc' },
+  });
+  relatedJobs = [...relatedJobs, ...sameEmployerJobs];
+  existingIds.push(...sameEmployerJobs.map(j => j.id));
+
+  if (relatedJobs.length >= limit) {
+    return relatedJobs.slice(0, limit) as Job[];
   }
-  const parts = [];
-  if (job.city) parts.push(job.city);
-  if (job.state) parts.push(job.state);
-  return parts.join(', ') || job.location || 'United States';
+
+  // Priority 2: Same city
+  if (city && relatedJobs.length < limit) {
+    const sameCityJobs = await prisma.job.findMany({
+      where: {
+        id: { notIn: existingIds },
+        city: { equals: city, mode: 'insensitive' },
+        isPublished: true,
+      },
+      take: limit - relatedJobs.length,
+      orderBy: { createdAt: 'desc' },
+    });
+    relatedJobs = [...relatedJobs, ...sameCityJobs];
+    existingIds.push(...sameCityJobs.map(j => j.id));
+  }
+
+  // Priority 3: Same state
+  if (state && relatedJobs.length < limit) {
+    const sameStateJobs = await prisma.job.findMany({
+      where: {
+        id: { notIn: existingIds },
+        state: { equals: state, mode: 'insensitive' },
+        isPublished: true,
+      },
+      take: limit - relatedJobs.length,
+      orderBy: { createdAt: 'desc' },
+    });
+    relatedJobs = [...relatedJobs, ...sameStateJobs];
+    existingIds.push(...sameStateJobs.map(j => j.id));
+  }
+
+  // Priority 4: Same work mode (Remote, Hybrid, etc.)
+  if (mode && relatedJobs.length < limit) {
+    const sameModeJobs = await prisma.job.findMany({
+      where: {
+        id: { notIn: existingIds },
+        mode: { equals: mode, mode: 'insensitive' },
+        isPublished: true,
+      },
+      take: limit - relatedJobs.length,
+      orderBy: { createdAt: 'desc' },
+    });
+    relatedJobs = [...relatedJobs, ...sameModeJobs];
+  }
+
+  return relatedJobs as Job[];
 }
 
 export async function generateMetadata({ params }: JobPageProps) {
@@ -88,26 +145,47 @@ export async function generateMetadata({ params }: JobPageProps) {
   }
 
   const description = job.descriptionSummary || job.description.slice(0, 160);
-  
-  // Prepare OG image parameters
-  const title = job.title;
-  const company = job.employer;
-  const location = getLocationString(job);
-  const salary = formatSalaryForOG(job);
-  const mode = job.mode || '';
-  const jobType = job.jobType || '';
 
-  // Build OG image URL with params
-  const ogImageParams = new URLSearchParams({
-    title,
-    company,
-    location,
-    ...(salary && { salary }),
-    ...(mode && { mode }),
-    ...(jobType && { jobType }),
-  });
+  // Format salary for OG image
+  const formatOGSalary = () => {
+    if (job.normalizedMinSalary && job.normalizedMaxSalary) {
+      return `$${Math.round(job.normalizedMinSalary / 1000)}k-$${Math.round(job.normalizedMaxSalary / 1000)}k`;
+    }
+    if (job.normalizedMinSalary) return `$${Math.round(job.normalizedMinSalary / 1000)}k+`;
+    if (job.normalizedMaxSalary) return `Up to $${Math.round(job.normalizedMaxSalary / 1000)}k`;
+    if (job.minSalary && job.maxSalary) {
+      return `$${Math.round(job.minSalary / 1000)}k-$${Math.round(job.maxSalary / 1000)}k`;
+    }
+    return '';
+  };
 
-  const ogImageUrl = `${BASE_URL}/api/og?${ogImageParams.toString()}`;
+  // Format location for OG image
+  const formatOGLocation = () => {
+    if (job.isRemote) return 'Remote';
+    if (job.city && job.state) return `${job.city}, ${job.state}`;
+    if (job.state) return job.state;
+    if (job.location) return job.location;
+    return '';
+  };
+
+  // Check if job is new (less than 7 days old)
+  const isNew = job.createdAt
+    ? (Date.now() - new Date(job.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
+    : false;
+
+  // Build dynamic OG image URL
+  const ogImageUrl = new URL('/api/og', BASE_URL);
+  ogImageUrl.searchParams.set('title', job.title);
+  ogImageUrl.searchParams.set('company', job.employer);
+
+  const salary = formatOGSalary();
+  if (salary) ogImageUrl.searchParams.set('salary', salary);
+
+  const location = formatOGLocation();
+  if (location) ogImageUrl.searchParams.set('location', location);
+
+  if (job.jobType) ogImageUrl.searchParams.set('jobType', job.jobType);
+  if (isNew) ogImageUrl.searchParams.set('isNew', 'true');
 
   return {
     title: `${job.title} at ${job.employer} | PMHNP Jobs`,
@@ -117,10 +195,10 @@ export async function generateMetadata({ params }: JobPageProps) {
       description,
       type: 'website',
       url: `${BASE_URL}/jobs/${slug}`,
-      siteName: 'PMHNP Jobs',
+      siteName: 'PMHNP Hiring',
       images: [
         {
-          url: ogImageUrl,
+          url: ogImageUrl.toString(),
           width: 1200,
           height: 630,
           alt: `${job.title} at ${job.employer}`,
@@ -131,7 +209,7 @@ export async function generateMetadata({ params }: JobPageProps) {
       card: 'summary_large_image',
       title: `${job.title} at ${job.employer}`,
       description,
-      images: [ogImageUrl],
+      images: [ogImageUrl.toString()],
     },
   };
 }
@@ -154,9 +232,47 @@ export default async function JobPage({ params }: JobPageProps) {
     return <JobNotFound />;
   }
 
+  // Fetch related jobs in parallel with main job
+  const relatedJobs = await getRelatedJobs({
+    currentJobId: job.id,
+    employer: job.employer,
+    city: job.city,
+    state: job.state,
+    mode: job.mode,
+    limit: 4,
+  });
+
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);
   const expiryStatus = getExpiryStatus(job.expiresAt);
+
+  // Build breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Jobs', href: '/jobs' },
+  ];
+
+  // Add state if available
+  if (job.state) {
+    breadcrumbItems.push({
+      label: job.state,
+      href: `/jobs/state/${job.state.toLowerCase().replace(/\s+/g, '-')}`,
+    });
+  }
+
+  // Add city if available
+  if (job.city) {
+    breadcrumbItems.push({
+      label: job.city,
+      href: `/jobs/city/${job.city.toLowerCase().replace(/\s+/g, '-')}`,
+    });
+  }
+
+  // Current page (no link)
+  breadcrumbItems.push({
+    label: `${job.title} at ${job.employer}`,
+    href: '',
+  });
 
   return (
     <>
@@ -164,6 +280,8 @@ export default async function JobPage({ params }: JobPageProps) {
         job={job}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={breadcrumbItems} />
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
           {/* Main Content */}
           <div>
@@ -316,17 +434,11 @@ export default async function JobPage({ params }: JobPageProps) {
                 {/* Share Section - Desktop */}
                 <div className="pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-500 mb-3">Share this job:</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <ShareButtons
                       url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
                       title={job.title}
                       company={job.employer}
-                    />
-                    <ShareButton
-                      url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
-                      title={`${job.title} at ${job.employer}`}
-                      description={`${job.title} position at ${job.employer}. ${job.location}. ${salary ? salary + '. ' : ''}Apply now on PMHNP Hiring.`}
-                      variant="icon"
                     />
                   </div>
                 </div>
@@ -335,23 +447,26 @@ export default async function JobPage({ params }: JobPageProps) {
               {/* Mobile-only share section below content */}
               <div className="lg:hidden bg-white rounded-lg shadow-md p-5 mb-4">
                 <p className="text-sm text-gray-500 mb-3">Share this job:</p>
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                   <ShareButtons
                     url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
                     title={job.title}
                     company={job.employer}
-                  />
-                  <ShareButton
-                    url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
-                    title={`${job.title} at ${job.employer}`}
-                    description={`${job.title} position at ${job.employer}. ${job.location}. ${salary ? salary + '. ' : ''}Apply now on PMHNP Hiring.`}
-                    variant="icon"
                   />
                 </div>
               </div>
             </div>
           </AnimatedContainer>
         </div>
+
+        {/* Related Jobs Section */}
+        {relatedJobs.length > 0 && (
+          <RelatedJobs
+            jobs={relatedJobs}
+            currentJobId={job.id}
+            title="Similar PMHNP Jobs"
+          />
+        )}
 
         {/* Report Job Section */}
         <div className="mt-8 pt-6 border-t border-gray-200">

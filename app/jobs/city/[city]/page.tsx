@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MapPin, Building2, TrendingUp, Bell, Navigation } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { Job } from '@/lib/types';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -210,12 +211,23 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 
     const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
 
+    // Build optimized title with job count and salary for better CTR
+    const title = stats.avgSalary > 0
+      ? `${stats.totalJobs} PMHNP Jobs in ${location} | $${stats.avgSalary}k Avg Salary | PMHNP Hiring`
+      : `${stats.totalJobs} PMHNP Jobs in ${location} | Psychiatric NP Positions | PMHNP Hiring`;
+
+    const description = stats.avgSalary > 0
+      ? `Find ${stats.totalJobs} PMHNP jobs in ${location}. Average salary $${stats.avgSalary}k. Remote and in-person psychiatric nurse practitioner positions. Apply today!`
+      : `Find ${stats.totalJobs} PMHNP jobs in ${location}. Remote and in-person psychiatric nurse practitioner positions available. Apply today!`;
+
     return {
-      title: `PMHNP Jobs in ${location} - ${stats.totalJobs} Psychiatric NP Positions`,
-      description: `Find ${stats.totalJobs} PMHNP jobs in ${location}. Psychiatric mental health nurse practitioner positions${stats.avgSalary > 0 ? ` with average salary $${stats.avgSalary}k` : ''}. Apply today.`,
+      title,
+      description,
       openGraph: {
-        title: `${stats.totalJobs} PMHNP Jobs in ${location}`,
-        description: `Browse psychiatric mental health nurse practitioner jobs in ${cityName}${stats.avgSalary > 0 ? `. Average salary: $${stats.avgSalary}k/year` : ''}.`,
+        title: stats.avgSalary > 0
+          ? `${stats.totalJobs} PMHNP Jobs in ${location} | $${stats.avgSalary}k Average`
+          : `${stats.totalJobs} PMHNP Jobs in ${location}`,
+        description,
         type: 'website',
       },
       alternates: {
@@ -237,7 +249,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 export default async function CityJobsPage({ params }: CityPageProps) {
   const { city: cityParam } = await params;
   const cityName = parseCityParam(cityParam);
-  
+
   const [jobs, stats] = await Promise.all([
     getCityJobs(cityName),
     getCityStats(cityName),
@@ -250,8 +262,30 @@ export default async function CityJobsPage({ params }: CityPageProps) {
 
   const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
 
+  // Build breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Jobs', href: '/jobs' },
+  ];
+
+  // Add state if available
+  if (stats.state) {
+    breadcrumbItems.push({
+      label: stats.state,
+      href: `/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`,
+    });
+  }
+
+  // Current city (no link)
+  breadcrumbItems.push({ label: cityName, href: '' });
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Breadcrumbs */}
+      <div className="container mx-auto px-4 pt-4">
+        <Breadcrumbs items={breadcrumbItems} />
+      </div>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
@@ -268,7 +302,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Discover {stats.totalJobs} psychiatric mental health nurse practitioner {stats.totalJobs === 1 ? 'position' : 'positions'}
             </p>
-            
+
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
@@ -299,14 +333,14 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 PMHNP Job Market in {cityName}
               </h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                {cityName} offers {stats.totalJobs === 1 ? 'a' : stats.totalJobs} active PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'} across 
-                various healthcare settings including hospitals, outpatient clinics, telepsychiatry, and 
-                private practices. The local mental health care landscape provides diverse opportunities 
+                {cityName} offers {stats.totalJobs === 1 ? 'a' : stats.totalJobs} active PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'} across
+                various healthcare settings including hospitals, outpatient clinics, telepsychiatry, and
+                private practices. The local mental health care landscape provides diverse opportunities
                 for psychiatric nurse practitioners at all career levels.
               </p>
               {stats.avgSalary > 0 && (
                 <p className="text-gray-600 leading-relaxed">
-                  The average salary for PMHNP positions in {cityName} is approximately ${stats.avgSalary},000 
+                  The average salary for PMHNP positions in {cityName} is approximately ${stats.avgSalary},000
                   annually, with opportunities for both full-time and part-time work arrangements.
                 </p>
               )}
@@ -321,7 +355,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   All Jobs ({stats.totalJobs})
                 </h2>
                 {stats.state && (
-                  <Link 
+                  <Link
                     href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Share2 } from 'lucide-react';
 import ShareMenu from './ShareMenu';
 
 interface ShareButtonProps {
@@ -9,54 +8,45 @@ interface ShareButtonProps {
   title: string;
   description?: string;
   variant?: 'icon' | 'button';
-  className?: string;
 }
 
-export default function ShareButton({ 
-  url, 
-  title, 
-  description,
-  variant = 'icon',
-  className = ''
-}: ShareButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function ShareButton({ url, title, description = '', variant = 'button' }: ShareButtonProps) {
+  const [showMenu, setShowMenu] = useState(false);
 
-  // Use native share on mobile if available
+  // Try native share on mobile
   const handleShare = async () => {
-    if (navigator.share && variant === 'icon') {
+    if (navigator.share && variant === 'button') {
       try {
-        await navigator.share({
-          title,
-          text: description,
-          url,
-        });
+        await navigator.share({ title, text: description, url });
         return;
-      } catch (err) {
-        // User cancelled or not supported, fall back to menu
-        if ((err as Error).name === 'AbortError') return;
+      } catch {
+        // User cancelled or not supported, fall through to menu
       }
     }
-    setIsOpen(true);
+    setShowMenu(true);
   };
 
   if (variant === 'icon') {
     return (
-      <div className={`relative ${className}`}>
+      <div className="relative">
         <button
+          type="button"
           onClick={handleShare}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-700"
-          aria-label="Share this job"
-          title="Share"
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Share"
+          aria-expanded={showMenu}
+          aria-haspopup="menu"
         >
-          <Share2 size={18} />
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
         </button>
-        
-        {isOpen && (
+        {showMenu && (
           <ShareMenu
             url={url}
             title={title}
             description={description}
-            onClose={() => setIsOpen(false)}
+            onClose={() => setShowMenu(false)}
           />
         )}
       </div>
@@ -64,24 +54,28 @@ export default function ShareButton({
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div className="relative">
       <button
+        type="button"
         onClick={handleShare}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg text-gray-700 font-medium transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+        aria-label="Share Job"
+        aria-expanded={showMenu}
+        aria-haspopup="menu"
       >
-        <Share2 size={18} />
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+        </svg>
         Share Job
       </button>
-      
-      {isOpen && (
+      {showMenu && (
         <ShareMenu
           url={url}
           title={title}
           description={description}
-          onClose={() => setIsOpen(false)}
+          onClose={() => setShowMenu(false)}
         />
       )}
     </div>
   );
 }
-
