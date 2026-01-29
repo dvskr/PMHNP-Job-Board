@@ -204,6 +204,7 @@ export async function generateMetadata({ params }: JobPageProps) {
           width: 1200,
           height: 630,
           alt: `${job.title} at ${job.employer}`,
+          type: 'image/png',
         },
       ],
     },
