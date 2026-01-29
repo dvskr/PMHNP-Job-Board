@@ -147,18 +147,19 @@ export async function generateMetadata({ params }: JobPageProps) {
   const description = job.descriptionSummary || job.description.slice(0, 160);
 
   // Format salary for OG image - DON'T include if $0k or empty
-  const formatOGSalary = () => {
-    const min = job.normalizedMinSalary || job.minSalary || 0;
-    const max = job.normalizedMaxSalary || job.maxSalary || 0;
+  const formatOGSalary = (): string | null => {
+    // Get salary values, defaulting to 0 if null/undefined
+    const min = Number(job.normalizedMinSalary) || Number(job.minSalary) || 0;
+    const max = Number(job.normalizedMaxSalary) || Number(job.maxSalary) || 0;
 
-    // Only show if we have real non-zero values
-    if (min > 0 && max > 0) {
+    // Must have REAL non-zero values (at least 1000 to be valid)
+    if (min >= 1000 && max >= 1000) {
       return `$${Math.round(min / 1000)}k-$${Math.round(max / 1000)}k`;
     }
-    if (min > 0) return `$${Math.round(min / 1000)}k+`;
-    if (max > 0) return `Up to $${Math.round(max / 1000)}k`;
+    if (min >= 1000) return `$${Math.round(min / 1000)}k+`;
+    if (max >= 1000) return `Up to $${Math.round(max / 1000)}k`;
 
-    return ''; // Return empty if nothing valid
+    return null; // Return null, NOT empty string
   };
 
   // Format location for OG image
@@ -180,8 +181,11 @@ export async function generateMetadata({ params }: JobPageProps) {
   ogImageUrl.searchParams.set('title', job.title);
   ogImageUrl.searchParams.set('company', job.employer);
 
+  // ONLY add salary if formatOGSalary returns a valid value
   const salary = formatOGSalary();
-  if (salary) ogImageUrl.searchParams.set('salary', salary);
+  if (salary && salary.length > 0 && !salary.includes('$0k')) {
+    ogImageUrl.searchParams.set('salary', salary);
+  }
 
   const location = formatOGLocation();
   if (location) ogImageUrl.searchParams.set('location', location);
