@@ -4,10 +4,10 @@ import { Twitter, Facebook, Instagram, Linkedin, AtSign } from 'lucide-react';
 export default function Footer() {
   const socialLinks = [
     { icon: Twitter, href: "https://x.com/pmhnphiring", label: "X" },
-    { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61585484949012", label: "Facebook" },
-    { icon: Instagram, href: "https://www.instagram.com/pmhnphiring", label: "Instagram" },
+    { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61586136316931", label: "Facebook" },
+    { icon: Instagram, href: "https://www.instagram.com/akarilabs.io/", label: "Instagram" },
     { icon: Linkedin, href: "https://www.linkedin.com/company/pmhnp-hiring", label: "LinkedIn" },
-    { icon: AtSign, href: "https://www.threads.com/@pmhnphiring", label: "Threads" },
+    { icon: AtSign, href: "https://www.threads.com/@akarilabs.io?xmt=AQF0ugFsVebpWa0R1k5-DGldUGyjVbVqDr4YB_pinpVt938-threads", label: "Threads" },
   ];
 
   return (
@@ -127,7 +127,7 @@ export default function Footer() {
               The #1 job board for psychiatric NPs
             </span>
           </div>
-          
+
           {/* Social Links */}
           <div className="flex items-center gap-3">
             {socialLinks.map((social) => (
