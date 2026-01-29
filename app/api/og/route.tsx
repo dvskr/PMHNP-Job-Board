@@ -23,8 +23,9 @@ export async function GET(request: NextRequest) {
     const displayTitle = title.length > 45 ? title.slice(0, 45) + '...' : title;
     const displayCompany = company.length > 30 ? company.slice(0, 30) + '...' : company;
 
-    // Build info line - exclude empty or zero salaries
-    const isValidSalary = salary && !/^[\$\s]*0*(\.0+)?[\s]*$/.test(salary);
+    // Build info line - exclude empty or zero salaries (e.g., "$0k-$0k", "$0", "0")
+    // Check if salary contains at least one non-zero digit
+    const isValidSalary = salary && /[1-9]/.test(salary);
     const infoParts: string[] = [];
     if (isValidSalary) infoParts.push(salary);
     if (location) infoParts.push(location);
@@ -181,6 +182,7 @@ export async function GET(request: NextRequest) {
         height: 630,
         // CRITICAL: Cache headers for speed
         headers: {
+          'Content-Type': 'image/png',
           'Cache-Control': 'public, max-age=604800, s-maxage=604800, stale-while-revalidate=2592000',
           'CDN-Cache-Control': 'public, max-age=604800',
           'Vercel-CDN-Cache-Control': 'public, max-age=604800',
