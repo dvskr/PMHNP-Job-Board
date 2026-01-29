@@ -60,6 +60,47 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   const description = job.descriptionSummary || job.description.slice(0, 160);
 
+  // Format salary for OG image
+  const formatOGSalary = () => {
+    if (job.normalizedMinSalary && job.normalizedMaxSalary) {
+      return `$${Math.round(job.normalizedMinSalary / 1000)}k-$${Math.round(job.normalizedMaxSalary / 1000)}k`;
+    }
+    if (job.normalizedMinSalary) return `$${Math.round(job.normalizedMinSalary / 1000)}k+`;
+    if (job.normalizedMaxSalary) return `Up to $${Math.round(job.normalizedMaxSalary / 1000)}k`;
+    if (job.minSalary && job.maxSalary) {
+      return `$${Math.round(job.minSalary / 1000)}k-$${Math.round(job.maxSalary / 1000)}k`;
+    }
+    return '';
+  };
+
+  // Format location for OG image
+  const formatOGLocation = () => {
+    if (job.isRemote) return 'Remote';
+    if (job.city && job.state) return `${job.city}, ${job.state}`;
+    if (job.state) return job.state;
+    if (job.location) return job.location;
+    return '';
+  };
+
+  // Check if job is new (less than 7 days old)
+  const isNew = job.createdAt 
+    ? (Date.now() - new Date(job.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
+    : false;
+
+  // Build dynamic OG image URL
+  const ogImageUrl = new URL('/api/og', BASE_URL);
+  ogImageUrl.searchParams.set('title', job.title);
+  ogImageUrl.searchParams.set('company', job.employer);
+  
+  const salary = formatOGSalary();
+  if (salary) ogImageUrl.searchParams.set('salary', salary);
+  
+  const location = formatOGLocation();
+  if (location) ogImageUrl.searchParams.set('location', location);
+  
+  if (job.jobType) ogImageUrl.searchParams.set('jobType', job.jobType);
+  if (isNew) ogImageUrl.searchParams.set('isNew', 'true');
+
   return {
     title: `${job.title} at ${job.employer} | PMHNP Jobs`,
     description,
@@ -68,13 +109,13 @@ export async function generateMetadata({ params }: JobPageProps) {
       description,
       type: 'website',
       url: `${BASE_URL}/jobs/${slug}`,
-      siteName: 'PMHNP Jobs',
+      siteName: 'PMHNP Hiring',
       images: [
         {
-          url: `${BASE_URL}/og-image.png`,
+          url: ogImageUrl.toString(),
           width: 1200,
           height: 630,
-          alt: job.title,
+          alt: `${job.title} at ${job.employer}`,
         },
       ],
     },
@@ -82,6 +123,7 @@ export async function generateMetadata({ params }: JobPageProps) {
       card: 'summary_large_image',
       title: `${job.title} at ${job.employer}`,
       description,
+      images: [ogImageUrl.toString()],
     },
   };
 }
