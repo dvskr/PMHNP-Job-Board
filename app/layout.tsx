@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import dynamic from 'next/dynamic';
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -88,7 +87,7 @@ export const metadata: Metadata = {
   },
 
   verification: {
-    google: 'YOUR_VERIFICATION_CODE_HERE',
+    google: 'google4912b114c3b602cd',
   },
 };
 
@@ -114,6 +113,7 @@ export default function RootLayout({
         <Footer />
         <ExitIntentPopup />
         <BottomNav />
+        <ExitIntentPopup />
       </body>
     </html>
   );
