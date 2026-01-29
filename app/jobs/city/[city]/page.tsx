@@ -249,7 +249,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 export default async function CityJobsPage({ params }: CityPageProps) {
   const { city: cityParam } = await params;
   const cityName = parseCityParam(cityParam);
-  
+
   const [jobs, stats] = await Promise.all([
     getCityJobs(cityName),
     getCityStats(cityName),
@@ -277,7 +277,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
   }
 
   // Current city (no link)
-  breadcrumbItems.push({ label: cityName });
+  breadcrumbItems.push({ label: cityName, href: '' });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -302,7 +302,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Discover {stats.totalJobs} psychiatric mental health nurse practitioner {stats.totalJobs === 1 ? 'position' : 'positions'}
             </p>
-            
+
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
@@ -333,14 +333,14 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 PMHNP Job Market in {cityName}
               </h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                {cityName} offers {stats.totalJobs === 1 ? 'a' : stats.totalJobs} active PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'} across 
-                various healthcare settings including hospitals, outpatient clinics, telepsychiatry, and 
-                private practices. The local mental health care landscape provides diverse opportunities 
+                {cityName} offers {stats.totalJobs === 1 ? 'a' : stats.totalJobs} active PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'} across
+                various healthcare settings including hospitals, outpatient clinics, telepsychiatry, and
+                private practices. The local mental health care landscape provides diverse opportunities
                 for psychiatric nurse practitioners at all career levels.
               </p>
               {stats.avgSalary > 0 && (
                 <p className="text-gray-600 leading-relaxed">
-                  The average salary for PMHNP positions in {cityName} is approximately ${stats.avgSalary},000 
+                  The average salary for PMHNP positions in {cityName} is approximately ${stats.avgSalary},000
                   annually, with opportunities for both full-time and part-time work arrangements.
                 </p>
               )}
@@ -355,7 +355,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   All Jobs ({stats.totalJobs})
                 </h2>
                 {stats.state && (
-                  <Link 
+                  <Link
                     href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >

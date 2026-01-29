@@ -62,7 +62,7 @@ interface StatePageProps {
  */
 function parseStateParam(stateParam: string): { name: string; code: string } | null {
   const normalized = stateParam.toLowerCase().trim();
-  
+
   // Try as state code (e.g., "ca")
   const upperCode = normalized.toUpperCase();
   if (CODE_TO_STATE[upperCode]) {
@@ -71,7 +71,7 @@ function parseStateParam(stateParam: string): { name: string; code: string } | n
       code: upperCode,
     };
   }
-  
+
   // Try as URL-friendly name (e.g., "california", "new-york")
   if (URL_TO_STATE[normalized]) {
     const stateName = URL_TO_STATE[normalized];
@@ -80,7 +80,7 @@ function parseStateParam(stateParam: string): { name: string; code: string } | n
       code: STATE_CODES[stateName],
     };
   }
-  
+
   // Try direct match with state name
   const directMatch = Object.keys(STATE_CODES).find(
     state => state.toLowerCase() === normalized
@@ -91,7 +91,7 @@ function parseStateParam(stateParam: string): { name: string; code: string } | n
       code: STATE_CODES[directMatch],
     };
   }
-  
+
   return null;
 }
 
@@ -194,7 +194,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
   try {
     const { state: stateParam } = await params;
     const stateInfo = parseStateParam(stateParam);
-    
+
     if (!stateInfo) {
       return {
         title: 'State Not Found',
@@ -257,7 +257,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Jobs', href: '/jobs' },
-    { label: stateName },
+    { label: stateName, href: '' },
   ];
 
   return (
@@ -281,7 +281,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Discover {stats.totalJobs} psychiatric mental health nurse practitioner positions
             </p>
-            
+
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
@@ -312,12 +312,12 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                 About PMHNP Jobs in {stateName}
               </h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                {stateName} offers diverse opportunities for psychiatric mental health nurse practitioners 
-                across various healthcare settings. Whether you&apos;re interested in telepsychiatry, outpatient 
+                {stateName} offers diverse opportunities for psychiatric mental health nurse practitioners
+                across various healthcare settings. Whether you&apos;re interested in telepsychiatry, outpatient
                 clinics, hospitals, or private practice, you&apos;ll find positions that match your career goals.
               </p>
               <p className="text-gray-600 leading-relaxed">
-                Browse {stats.totalJobs} current PMHNP openings in {stateName} below, featuring both 
+                Browse {stats.totalJobs} current PMHNP openings in {stateName} below, featuring both
                 remote and in-person positions with competitive compensation packages.
               </p>
             </div>
@@ -330,7 +330,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                 <h2 className="text-xl font-semibold text-gray-900">
                   All Jobs ({stats.totalJobs})
                 </h2>
-                <Link 
+                <Link
                   href="/jobs"
                   className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
