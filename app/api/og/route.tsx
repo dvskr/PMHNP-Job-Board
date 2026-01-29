@@ -11,8 +11,13 @@ export async function GET(request: NextRequest) {
     // Get parameters with defaults
     const title = searchParams.get('title') || 'PMHNP Position';
     const company = searchParams.get('company') || 'Healthcare Employer';
-    const salary = searchParams.get('salary') || '';
+    let salary = searchParams.get('salary') || '';
     const location = searchParams.get('location') || '';
+
+    // CRITICAL: Remove $0k salaries even if they somehow get passed
+    if (salary.includes('$0k') || salary.includes('$0-') || salary === '$0') {
+      salary = '';
+    }
     const mode = searchParams.get('mode') || '';
     const jobType = searchParams.get('jobType') || '';
     const isNew = searchParams.get('isNew') === 'true';
