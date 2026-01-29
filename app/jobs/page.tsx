@@ -29,9 +29,16 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   
   const filters = parseFiltersFromParams(urlParams);
   
+  // Get total job count
+  const whereClause = buildWhereClause(filters);
+  const totalJobs = await prisma.job.count({ where: whereClause });
+  const jobCountDisplay = totalJobs > 1000 
+    ? `${Math.floor(totalJobs / 100) * 100}+` 
+    : totalJobs.toLocaleString();
+  
   // Build dynamic title and description based on filters
-  let title = 'Browse PMHNP Jobs';
-  let description = 'Search and filter hundreds of PMHNP jobs. Find remote, full-time, part-time, and contract psychiatric nurse practitioner positions updated daily.';
+  let title = `Browse ${jobCountDisplay} PMHNP Jobs`;
+  let description = `Search ${jobCountDisplay} PMHNP jobs. Find remote, full-time, part-time, and contract psychiatric nurse practitioner positions updated daily.`;
   
   // Customize based on active filters
   const titleParts: string[] = [];
@@ -47,12 +54,12 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   }
   
   if (titleParts.length > 0) {
-    title = `${titleParts.join(' ')} PMHNP Jobs`;
-    description = `Find ${titleParts.join(' ')} psychiatric nurse practitioner positions. ${description}`;
+    title = `${jobCountDisplay} ${titleParts.join(' ')} PMHNP Jobs`;
+    description = `Find ${jobCountDisplay} ${titleParts.join(' ').toLowerCase()} psychiatric nurse practitioner positions. ${description}`;
   }
   
   return {
-    title: `${title} - Psychiatric Nurse Practitioner Positions`,
+    title: `${title} | PMHNP Hiring`,
     description,
     openGraph: {
       title: `${title} - Find Your Next Position`,
