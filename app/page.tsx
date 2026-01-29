@@ -4,9 +4,13 @@ import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
 import TestimonialsSection from '@/components/TestimonialsSection';
 
-// Lazy load only the client component
-const EmailSignupForm = dynamic(() => import('@/components/EmailSignupForm'), {
-  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
+// Lazy load client components
+const HomepageJobAlertForm = dynamic(() => import('@/components/HomepageJobAlertForm'), {
+  loading: () => <div className="h-32 bg-white/50 animate-pulse rounded-lg max-w-xl mx-auto" />,
+});
+
+const SalaryGuideSection = dynamic(() => import('@/components/SalaryGuideSection'), {
+  loading: () => <div className="h-64 bg-teal-100 animate-pulse" />,
 });
 
 /**
@@ -81,19 +85,22 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Salary Guide Section */}
+      <SalaryGuideSection />
+
       {/* Testimonials Section */}
       <TestimonialsSection />
 
-      {/* Email Signup Section */}
+      {/* Job Alerts Section */}
       <section id="subscribe" className="bg-blue-50 py-16 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
             Get PMHNP Job Alerts
           </h2>
           <p className="text-gray-700 mb-8">
-            New psychiatric nurse practitioner jobs delivered weekly
+            New psychiatric nurse practitioner jobs delivered to your inbox
           </p>
-          <EmailSignupForm source="homepage" />
+          <HomepageJobAlertForm />
         </div>
       </section>
 
