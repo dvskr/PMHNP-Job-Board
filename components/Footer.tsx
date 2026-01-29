@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { Twitter, Facebook, Instagram, Linkedin, Github, AtSign } from 'lucide-react';
+import { Twitter, Facebook, Instagram, Linkedin, AtSign } from 'lucide-react';
 
 export default function Footer() {
   const socialLinks = [
-    { icon: Twitter, href: "https://x.com/pmhnphiring", label: "X (Twitter)" },
+    { icon: Twitter, href: "https://x.com/pmhnphiring", label: "X" },
     { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61585484949012", label: "Facebook" },
     { icon: Instagram, href: "https://www.instagram.com/pmhnphiring", label: "Instagram" },
     { icon: Linkedin, href: "https://www.linkedin.com/company/pmhnp-hiring", label: "LinkedIn" },
@@ -12,13 +12,13 @@ export default function Footer() {
 
   return (
     <footer className="bg-gray-900 border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 mb-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-8 mb-8">
 
           {/* For Job Seekers */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-4">For Job Seekers</h3>
-            <ul className="space-y-2">
+            <h3 className="text-sm font-semibold text-white mb-3">For Job Seekers</h3>
+            <ul className="space-y-1.5">
               <li>
                 <Link href="/jobs" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Browse Jobs
@@ -35,8 +35,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Login
+                <Link href="/resources" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Resources
                 </Link>
               </li>
             </ul>
@@ -44,8 +44,8 @@ export default function Footer() {
 
           {/* For Employers */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-4">For Employers</h3>
-            <ul className="space-y-2">
+            <h3 className="text-sm font-semibold text-white mb-3">For Employers</h3>
+            <ul className="space-y-1.5">
               <li>
                 <Link href="/post-job" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Post a Job
@@ -57,8 +57,35 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Login
+                <Link href="/for-employers" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Why PMHNP Jobs
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-3">Resources</h3>
+            <ul className="space-y-1.5">
+              <li>
+                <Link href="/salary-guide" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Salary Guide
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs/remote" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Remote Jobs
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs/travel" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Travel Jobs
+                </Link>
+              </li>
+              <li>
+                <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  FAQ
                 </Link>
               </li>
             </ul>
@@ -66,8 +93,8 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-4">Company</h3>
-            <ul className="space-y-2">
+            <h3 className="text-sm font-semibold text-white mb-3">Company</h3>
+            <ul className="space-y-1.5">
               <li>
                 <Link href="/about" className="text-sm text-gray-400 hover:text-white transition-colors">
                   About
@@ -90,75 +117,35 @@ export default function Footer() {
               </li>
             </ul>
           </div>
-
-          {/* Follow Us */}
-          <div>
-            <h3 className="text-sm font-semibold text-white mb-4">Follow Us</h3>
-            <ul className="space-y-2">
-              {socialLinks.map((social) => (
-                <li key={social.label}>
-                  <a
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors group"
-                  >
-                    <social.icon size={16} className="text-gray-500 group-hover:text-white transition-colors" />
-                    <span>{social.label}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Created By */}
-          <div>
-            <h3 className="text-sm font-semibold text-white mb-4">Created By</h3>
-            <div className="flex flex-col space-y-2">
-              <span className="text-sm text-gray-400">Sathish</span>
-              <div className="flex gap-3">
-                <a
-                  href="https://x.com/Sathish_Daggula"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-white transition-colors"
-                  aria-label="Sathish on X"
-                >
-                  <Twitter size={18} />
-                </a>
-                <a
-                  href="https://www.linkedin.com/in/dvskr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-white transition-colors"
-                  aria-label="Sathish on LinkedIn"
-                >
-                  <Linkedin size={18} />
-                </a>
-                <a
-                  href="https://github.com/dvskr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-500 hover:text-white transition-colors"
-                  aria-label="Sathish on GitHub"
-                >
-                  <Github size={18} />
-                </a>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Bottom Section */}
-        <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="pt-6 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-white">PMHNP Jobs</span>
-            <span className="text-xs text-gray-500 border-l border-gray-700 pl-2 ml-2">
-              The #1 job board for psychiatric nurse practitioners
+            <span className="text-xs text-gray-500 hidden sm:inline border-l border-gray-700 pl-2 ml-1">
+              The #1 job board for psychiatric NPs
             </span>
           </div>
+          
+          {/* Social Links */}
+          <div className="flex items-center gap-3">
+            {socialLinks.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-500 hover:text-white transition-colors"
+                aria-label={social.label}
+              >
+                <social.icon size={18} />
+              </a>
+            ))}
+          </div>
+
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} PMHNP Jobs. All rights reserved.
+            © {new Date().getFullYear()} PMHNP Jobs
           </p>
         </div>
       </div>
