@@ -111,6 +111,7 @@ export default function RootLayout({
         <Header />
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>
         <Footer />
+        <ExitIntentPopup />
         <BottomNav />
         <ExitIntentPopup />
       </body>
