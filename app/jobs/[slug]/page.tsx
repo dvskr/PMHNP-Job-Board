@@ -146,17 +146,19 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   const description = job.descriptionSummary || job.description.slice(0, 160);
 
-  // Format salary for OG image
+  // Format salary for OG image - DON'T include if $0k or empty
   const formatOGSalary = () => {
-    if (job.normalizedMinSalary && job.normalizedMaxSalary) {
-      return `$${Math.round(job.normalizedMinSalary / 1000)}k-$${Math.round(job.normalizedMaxSalary / 1000)}k`;
+    const min = job.normalizedMinSalary || job.minSalary || 0;
+    const max = job.normalizedMaxSalary || job.maxSalary || 0;
+
+    // Only show if we have real non-zero values
+    if (min > 0 && max > 0) {
+      return `$${Math.round(min / 1000)}k-$${Math.round(max / 1000)}k`;
     }
-    if (job.normalizedMinSalary) return `$${Math.round(job.normalizedMinSalary / 1000)}k+`;
-    if (job.normalizedMaxSalary) return `Up to $${Math.round(job.normalizedMaxSalary / 1000)}k`;
-    if (job.minSalary && job.maxSalary) {
-      return `$${Math.round(job.minSalary / 1000)}k-$${Math.round(job.maxSalary / 1000)}k`;
-    }
-    return '';
+    if (min > 0) return `$${Math.round(min / 1000)}k+`;
+    if (max > 0) return `Up to $${Math.round(max / 1000)}k`;
+
+    return ''; // Return empty if nothing valid
   };
 
   // Format location for OG image
