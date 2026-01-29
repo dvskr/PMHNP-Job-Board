@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import dynamic from 'next/dynamic';
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import OrganizationStructuredData from '@/components/OrganizationStructuredData';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
+import ExitIntentPopup from '@/components/ExitIntentPopup';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -112,6 +112,7 @@ export default function RootLayout({
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>
         <Footer />
         <BottomNav />
+        <ExitIntentPopup />
       </body>
     </html>
   );
