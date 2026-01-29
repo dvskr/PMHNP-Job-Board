@@ -169,7 +169,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   };
 
   // Check if job is new (less than 7 days old)
-  const isNew = job.createdAt 
+  const isNew = job.createdAt
     ? (Date.now() - new Date(job.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
     : false;
 
@@ -177,13 +177,13 @@ export async function generateMetadata({ params }: JobPageProps) {
   const ogImageUrl = new URL('/api/og', BASE_URL);
   ogImageUrl.searchParams.set('title', job.title);
   ogImageUrl.searchParams.set('company', job.employer);
-  
+
   const salary = formatOGSalary();
   if (salary) ogImageUrl.searchParams.set('salary', salary);
-  
+
   const location = formatOGLocation();
   if (location) ogImageUrl.searchParams.set('location', location);
-  
+
   if (job.jobType) ogImageUrl.searchParams.set('jobType', job.jobType);
   if (isNew) ogImageUrl.searchParams.set('isNew', 'true');
 
@@ -271,6 +271,7 @@ export default async function JobPage({ params }: JobPageProps) {
   // Current page (no link)
   breadcrumbItems.push({
     label: `${job.title} at ${job.employer}`,
+    href: '',
   });
 
   return (
@@ -460,8 +461,8 @@ export default async function JobPage({ params }: JobPageProps) {
 
         {/* Related Jobs Section */}
         {relatedJobs.length > 0 && (
-          <RelatedJobs 
-            jobs={relatedJobs} 
+          <RelatedJobs
+            jobs={relatedJobs}
             currentJobId={job.id}
             title="Similar PMHNP Jobs"
           />
