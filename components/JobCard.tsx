@@ -1,12 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { MapPin, CheckCircle } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import Badge from '@/components/ui/Badge';
+import ShareModal from '@/components/ShareModal';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
+
+// Share icon component
+const ShareIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+  </svg>
+);
 
 interface JobCardProps {
   job: Job;
@@ -15,10 +25,21 @@ interface JobCardProps {
 
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const applied = isApplied(job.id);
-  const jobUrl = `/jobs/${slugify(job.title, job.id)}`;
+  const jobSlug = slugify(job.title, job.id);
+  const jobUrl = `/jobs/${jobSlug}`;
+  const fullJobUrl = `${BASE_URL}/jobs/${jobSlug}`;
   const isNew = isNewJob(job.createdAt);
   const freshness = getJobFreshness(job.createdAt);
+  const shareTitle = `${job.title} at ${job.employer}`;
+  const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowShareMenu(true);
+  };
 
   // Calculate job age for freshness indicator
   const getJobAgeIndicator = () => {
@@ -112,12 +133,30 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </div>
             </div>
 
-            {/* Right Side - Salary */}
-            {job.displaySalary && (
-              <div className="text-black font-bold text-lg md:text-xl md:text-right shrink-0">
-                {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
-              </div>
-            )}
+            {/* Right Side - Salary and Share */}
+            <div className="flex items-center gap-3 shrink-0">
+              {job.displaySalary && (
+                <div className="text-black font-bold text-lg md:text-xl md:text-right">
+                  {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
+                </div>
+              )}
+              {/* Share Button */}
+              <button
+                onClick={handleShareClick}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Share job"
+              >
+                <ShareIcon size={18} />
+              </button>
+              {showShareMenu && (
+                <ShareModal
+                  url={fullJobUrl}
+                  title={shareTitle}
+                  description={shareDescription}
+                  onClose={() => setShowShareMenu(false)}
+                />
+              )}
+            </div>
           </div>
         </div>
       </Link>
@@ -212,13 +251,31 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </p>
         )}
 
-        {/* Freshness */}
-        <div className="flex items-center gap-2 mt-auto">
-          <p className="text-black font-medium text-xs">{freshness}</p>
-          {ageIndicator && (
-            <span className={ageIndicator.className}>
-              {ageIndicator.text}
-            </span>
+        {/* Freshness and Share */}
+        <div className="flex items-center justify-between gap-2 mt-auto">
+          <div className="flex items-center gap-2">
+            <p className="text-black font-medium text-xs">{freshness}</p>
+            {ageIndicator && (
+              <span className={ageIndicator.className}>
+                {ageIndicator.text}
+              </span>
+            )}
+          </div>
+          {/* Share Button */}
+          <button
+            onClick={handleShareClick}
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Share job"
+          >
+            <ShareIcon size={16} />
+          </button>
+          {showShareMenu && (
+            <ShareModal
+              url={fullJobUrl}
+              title={shareTitle}
+              description={shareDescription}
+              onClose={() => setShowShareMenu(false)}
+            />
           )}
         </div>
       </div>
