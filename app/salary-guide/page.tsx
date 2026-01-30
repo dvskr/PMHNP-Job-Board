@@ -553,10 +553,28 @@ export default async function SalaryGuidePage() {
                     Remote
                   </Link>
                   <Link
+                    href="/jobs/telehealth"
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
+                  >
+                    Telehealth
+                  </Link>
+                  <Link
                     href="/jobs/travel"
                     style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
                   >
                     Travel
+                  </Link>
+                  <Link
+                    href="/jobs/new-grad"
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
+                  >
+                    New Grad
+                  </Link>
+                  <Link
+                    href="/jobs/per-diem"
+                    style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
+                  >
+                    Per Diem
                   </Link>
                 </div>
               </div>

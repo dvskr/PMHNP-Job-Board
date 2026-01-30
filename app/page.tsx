@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { Wifi, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
@@ -37,8 +38,8 @@ async function getTotalJobCount(): Promise<number> {
  */
 export async function generateMetadata(): Promise<Metadata> {
   const totalJobs = await getTotalJobCount();
-  const jobCountDisplay = totalJobs > 1000 
-    ? `${Math.floor(totalJobs / 100) * 100}+` 
+  const jobCountDisplay = totalJobs > 1000
+    ? `${Math.floor(totalJobs / 100) * 100}+`
     : totalJobs.toLocaleString();
 
   return {
@@ -57,8 +58,8 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function Home() {
   const totalJobs = await getTotalJobCount();
-  const jobCountDisplay = totalJobs > 1000 
-    ? `${Math.floor(totalJobs / 100) * 100}+` 
+  const jobCountDisplay = totalJobs > 1000
+    ? `${Math.floor(totalJobs / 100) * 100}+`
     : totalJobs.toLocaleString();
 
   return (
@@ -70,7 +71,7 @@ export default async function Home() {
             Find Your Next PMHNP Role
           </h1>
           <p className="text-xl md:text-2xl text-blue-50 mb-8 max-w-2xl mx-auto">
-            The #1 job board for psychiatric mental health nurse practitioners. 
+            The #1 job board for psychiatric mental health nurse practitioners.
             {jobCountDisplay} remote and in-person jobs updated daily.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -95,6 +96,79 @@ export default async function Home() {
 
       {/* Popular Categories */}
       <PopularCategories />
+
+      {/* Browse by Job Type */}
+      <section className="py-12 px-4 bg-gray-50">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
+            Browse by Job Type
+          </h2>
+          <p className="text-gray-600 text-center mb-8">
+            Find positions that match your preferred work style
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {/* Remote Jobs */}
+            <Link
+              href="/jobs/remote"
+              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all text-center"
+            >
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition-colors">
+                <Wifi className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Remote Jobs</h3>
+              <p className="text-xs text-gray-500">Work from anywhere</p>
+            </Link>
+
+            {/* Telehealth Jobs */}
+            <Link
+              href="/jobs/telehealth"
+              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all text-center"
+            >
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition-colors">
+                <Video className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Telehealth</h3>
+              <p className="text-xs text-gray-500">Virtual patient care</p>
+            </Link>
+
+            {/* Travel Jobs */}
+            <Link
+              href="/jobs/travel"
+              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-teal-300 hover:shadow-md transition-all text-center"
+            >
+              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-teal-200 transition-colors">
+                <Plane className="h-6 w-6 text-teal-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Travel/Locum</h3>
+              <p className="text-xs text-gray-500">Explore new places</p>
+            </Link>
+
+            {/* New Grad Jobs */}
+            <Link
+              href="/jobs/new-grad"
+              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all text-center"
+            >
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-200 transition-colors">
+                <GraduationCap className="h-6 w-6 text-amber-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">New Grad</h3>
+              <p className="text-xs text-gray-500">Entry-level roles</p>
+            </Link>
+
+            {/* Per Diem Jobs */}
+            <Link
+              href="/jobs/per-diem"
+              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-green-300 hover:shadow-md transition-all text-center"
+            >
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition-colors">
+                <Calendar className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Per Diem/PRN</h3>
+              <p className="text-xs text-gray-500">Flexible schedules</p>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Features Section */}
       <section className="py-16 px-4 bg-gray-50">

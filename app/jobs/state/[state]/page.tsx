@@ -350,7 +350,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                   </Link>
                 </div>
               ) : (
-                <div className="grid gap-4 md:gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                   {jobs.map((job: Job) => (
                     <JobCard key={job.id} job={job} />
                   ))}
