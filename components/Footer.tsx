@@ -13,11 +13,11 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 border-t border-gray-800">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-8 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-8 gap-y-8 mb-8">
 
           {/* For Job Seekers */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-3">For Job Seekers</h3>
+            <h3 className="text-sm font-semibold text-white mb-3 text-nowrap">For Job Seekers</h3>
             <ul className="space-y-1.5">
               <li>
                 <Link href="/jobs" className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -44,7 +44,7 @@ export default function Footer() {
 
           {/* For Employers */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-3">For Employers</h3>
+            <h3 className="text-sm font-semibold text-white mb-3 text-nowrap">For Employers</h3>
             <ul className="space-y-1.5">
               <li>
                 <Link href="/post-job" className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -66,21 +66,11 @@ export default function Footer() {
 
           {/* Resources */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-3">Resources</h3>
+            <h3 className="text-sm font-semibold text-white mb-3 text-nowrap">Resources</h3>
             <ul className="space-y-1.5">
               <li>
                 <Link href="/salary-guide" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Salary Guide
-                </Link>
-              </li>
-              <li>
-                <Link href="/jobs/remote" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Remote Jobs
-                </Link>
-              </li>
-              <li>
-                <Link href="/jobs/travel" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Travel Jobs
                 </Link>
               </li>
               <li>
@@ -91,9 +81,41 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-3 text-nowrap">Quick Links</h3>
+            <ul className="space-y-1.5">
+              <li>
+                <Link href="/jobs/remote" className="text-sm text-gray-400 hover:text-white transition-colors text-nowrap">
+                  Remote Jobs
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs/telehealth" className="text-sm text-gray-400 hover:text-white transition-colors text-nowrap">
+                  Telehealth Jobs
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs/travel" className="text-sm text-gray-400 hover:text-white transition-colors text-nowrap">
+                  Travel Jobs
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs/new-grad" className="text-sm text-gray-400 hover:text-white transition-colors text-nowrap">
+                  New Grad Jobs
+                </Link>
+              </li>
+              <li>
+                <Link href="/jobs/per-diem" className="text-sm text-gray-400 hover:text-white transition-colors text-nowrap">
+                  Per Diem Jobs
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           {/* Company */}
           <div>
-            <h3 className="text-sm font-semibold text-white mb-3">Company</h3>
+            <h3 className="text-sm font-semibold text-white mb-3 text-nowrap">Company</h3>
             <ul className="space-y-1.5">
               <li>
                 <Link href="/about" className="text-sm text-gray-400 hover:text-white transition-colors">

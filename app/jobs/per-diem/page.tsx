@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { GraduationCap, Sparkles, Users, BookOpen, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Plane, Calendar } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Heart, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Plane, GraduationCap } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -22,21 +22,26 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch new grad jobs with pagination
+ * Fetch per diem/PRN jobs with pagination
  */
-async function getNewGradJobs(skip: number = 0, take: number = 20) {
+async function getPerDiemJobs(skip: number = 0, take: number = 20) {
     const jobs = await prisma.job.findMany({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'per diem', mode: 'insensitive' } },
+                { title: { contains: 'per-diem', mode: 'insensitive' } },
+                { title: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'part-time', mode: 'insensitive' } },
+                { title: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'per diem', mode: 'insensitive' } },
+                { jobType: { contains: 'part-time', mode: 'insensitive' } },
+                { jobType: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'prn', mode: 'insensitive' } },
             ],
+            NOT: {
+                jobType: { equals: 'Full-Time', mode: 'insensitive' },
+            },
         },
         orderBy: [
             { isFeatured: 'desc' },
@@ -50,38 +55,48 @@ async function getNewGradJobs(skip: number = 0, take: number = 20) {
 }
 
 /**
- * Fetch new grad job statistics
+ * Fetch per diem job statistics
  */
-async function getNewGradStats() {
-    // Total new grad jobs
+async function getPerDiemStats() {
+    // Total per diem/PRN jobs
     const totalJobs = await prisma.job.count({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'per diem', mode: 'insensitive' } },
+                { title: { contains: 'per-diem', mode: 'insensitive' } },
+                { title: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'part-time', mode: 'insensitive' } },
+                { title: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'per diem', mode: 'insensitive' } },
+                { jobType: { contains: 'part-time', mode: 'insensitive' } },
+                { jobType: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'prn', mode: 'insensitive' } },
             ],
+            NOT: {
+                jobType: { equals: 'Full-Time', mode: 'insensitive' },
+            },
         },
     });
 
-    // Average salary for new grad positions
+    // Average salary for per diem positions
     const salaryData = await prisma.job.aggregate({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'per diem', mode: 'insensitive' } },
+                { title: { contains: 'per-diem', mode: 'insensitive' } },
+                { title: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'part-time', mode: 'insensitive' } },
+                { title: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'per diem', mode: 'insensitive' } },
+                { jobType: { contains: 'part-time', mode: 'insensitive' } },
+                { jobType: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'prn', mode: 'insensitive' } },
             ],
+            NOT: {
+                jobType: { equals: 'Full-Time', mode: 'insensitive' },
+            },
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
@@ -95,20 +110,25 @@ async function getNewGradStats() {
     const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
     const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
 
-    // Companies hiring new grads
+    // Companies hiring for per diem positions
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'per diem', mode: 'insensitive' } },
+                { title: { contains: 'per-diem', mode: 'insensitive' } },
+                { title: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'part-time', mode: 'insensitive' } },
+                { title: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'per diem', mode: 'insensitive' } },
+                { jobType: { contains: 'part-time', mode: 'insensitive' } },
+                { jobType: { contains: 'part time', mode: 'insensitive' } },
+                { jobType: { contains: 'prn', mode: 'insensitive' } },
             ],
+            NOT: {
+                jobType: { equals: 'Full-Time', mode: 'insensitive' },
+            },
         },
         _count: {
             employer: true,
@@ -138,19 +158,19 @@ async function getNewGradStats() {
  * Generate metadata for SEO
  */
 export async function generateMetadata(): Promise<Metadata> {
-    const stats = await getNewGradStats();
+    const stats = await getPerDiemStats();
 
     return {
-        title: 'New Grad PMHNP Jobs - Entry Level Psychiatric NP Positions',
-        description: `Find new graduate PMHNP jobs and entry-level psychiatric nurse practitioner positions. Fellowships, residencies, and new grad friendly employers. ${stats.totalJobs} positions available.`,
-        keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
+        title: 'Per Diem PMHNP Jobs - PRN & Part-Time Psychiatric NP Positions',
+        description: `Find per diem and PRN PMHNP jobs. Flexible part-time psychiatric nurse practitioner positions. Set your own schedule. ${stats.totalJobs} positions available.`,
+        keywords: ['per diem pmhnp', 'prn pmhnp jobs', 'part time pmhnp', 'flexible pmhnp positions', 'casual pmhnp work'],
         openGraph: {
-            title: `${stats.totalJobs} New Grad PMHNP Jobs - Entry Level Positions`,
-            description: 'Browse new graduate and entry-level psychiatric mental health nurse practitioner positions. Fellowships, residencies, mentorship programs.',
+            title: `${stats.totalJobs} Per Diem PMHNP Jobs - PRN & Part-Time Positions`,
+            description: 'Browse per diem and PRN psychiatric mental health nurse practitioner positions. Flexible schedules, higher hourly rates.',
             type: 'website',
         },
         alternates: {
-            canonical: '/jobs/new-grad',
+            canonical: '/jobs/per-diem',
         },
     };
 }
@@ -160,17 +180,17 @@ interface PageProps {
 }
 
 /**
- * New grad jobs page
+ * Per diem jobs page
  */
-export default async function NewGradJobsPage({ searchParams }: PageProps) {
+export default async function PerDiemJobsPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const page = Math.max(1, parseInt(params.page || '1'));
     const limit = 10;
     const skip = (page - 1) * limit;
 
     const [jobs, stats] = await Promise.all([
-        getNewGradJobs(skip, limit),
-        getNewGradStats(),
+        getPerDiemJobs(skip, limit),
+        getPerDiemStats(),
     ]);
 
     const totalPages = Math.ceil(stats.totalJobs / limit);
@@ -182,21 +202,21 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="flex items-center justify-center gap-2 mb-4">
-                            <GraduationCap className="h-8 w-8" />
-                            <Sparkles className="h-8 w-8" />
+                            <Calendar className="h-8 w-8" />
+                            <Clock className="h-8 w-8" />
                         </div>
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            New Grad PMHNP Jobs
+                            Per Diem PMHNP Jobs
                         </h1>
                         <p className="text-lg md:text-xl text-blue-100 mb-6">
-                            Discover {stats.totalJobs} entry-level and new graduate psychiatric nurse practitioner positions
+                            Discover {stats.totalJobs} per diem, PRN, and part-time psychiatric nurse practitioner positions
                         </p>
 
                         {/* Stats Bar */}
                         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
                             <div className="text-center">
                                 <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                                <div className="text-sm text-blue-100">New Grad Positions</div>
+                                <div className="text-sm text-blue-100">Flexible Positions</div>
                             </div>
                             {stats.avgSalary > 0 && (
                                 <div className="text-center">
@@ -219,45 +239,45 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                     <div className="mb-8 md:mb-12">
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                                Why New Grad PMHNP Positions Matter
+                                Why Choose Per Diem/PRN Work?
                             </h2>
                             <div className="grid md:grid-cols-3 gap-6">
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                            <Users className="h-6 w-6 text-purple-600" />
+                                            <Calendar className="h-6 w-6 text-purple-600" />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900 mb-2">Mentorship Programs</h3>
+                                        <h3 className="font-semibold text-gray-900 mb-2">Flexible Schedule</h3>
                                         <p className="text-sm text-gray-600">
-                                            Many new grad positions include dedicated mentorship from experienced PMHNPs, helping you build confidence and clinical skills.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                            <BookOpen className="h-6 w-6 text-blue-600" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900 mb-2">Training Provided</h3>
-                                        <p className="text-sm text-gray-600">
-                                            Fellowships and residencies offer structured training programs, reduced caseloads, and ongoing education to support your transition.
+                                            Choose when you work. Pick up shifts that fit your lifestyle, whether that&apos;s weekends, evenings, or just a few days a month.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                            <TrendingUp className="h-6 w-6 text-green-600" />
+                                            <DollarSign className="h-6 w-6 text-green-600" />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900 mb-2">Career Growth</h3>
+                                        <h3 className="font-semibold text-gray-900 mb-2">Higher Hourly Rates</h3>
                                         <p className="text-sm text-gray-600">
-                                            Starting with a supportive employer sets the foundation for long-term career success and professional development.
+                                            Per diem positions often pay 15-30% more per hour than salaried roles to compensate for the lack of benefits.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <Heart className="h-6 w-6 text-blue-600" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900 mb-2">Work-Life Balance</h3>
+                                        <p className="text-sm text-gray-600">
+                                            Perfect for semi-retirement, parents, or those pursuing other interests. Control your hours without sacrificing your career.
                                         </p>
                                     </div>
                                 </div>
@@ -270,7 +290,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                         <div className="lg:col-span-3">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-semibold text-gray-900">
-                                    All New Grad Positions ({stats.totalJobs})
+                                    All Per Diem Positions ({stats.totalJobs})
                                 </h2>
                                 <Link
                                     href="/jobs"
@@ -282,12 +302,12 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
 
                             {jobs.length === 0 ? (
                                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                                    <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                        No new grad positions available
+                                        No per diem positions available
                                     </h3>
                                     <p className="text-gray-600 mb-6">
-                                        We don&apos;t have any active new grad PMHNP positions right now. Check back soon or browse all jobs!
+                                        We don&apos;t have any active per diem PMHNP positions right now. Check back soon!
                                     </p>
                                     <Link
                                         href="/jobs"
@@ -309,7 +329,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                         <div className="mt-8 flex items-center justify-center gap-4">
                                             {page > 1 ? (
                                                 <Link
-                                                    href={`/jobs/new-grad?page=${page - 1}`}
+                                                    href={`/jobs/per-diem?page=${page - 1}`}
                                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                                                 >
                                                     ← Previous
@@ -326,7 +346,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
 
                                             {page < totalPages ? (
                                                 <Link
-                                                    href={`/jobs/new-grad?page=${page + 1}`}
+                                                    href={`/jobs/per-diem?page=${page + 1}`}
                                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                                                 >
                                                     Next →
@@ -348,10 +368,10 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                             <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-6 shadow-lg">
                                 <Bell className="h-8 w-8 mb-3" />
                                 <h3 className="text-lg font-bold mb-2">
-                                    Get New Grad Job Alerts
+                                    Get Per Diem Job Alerts
                                 </h3>
                                 <p className="text-sm text-blue-100 mb-4">
-                                    Be the first to know about new graduate-friendly PMHNP positions.
+                                    Be the first to know about new per diem and PRN PMHNP positions.
                                 </p>
                                 <Link
                                     href="/job-alerts"
@@ -361,12 +381,12 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                 </Link>
                             </div>
 
-                            {/* Companies Hiring New Grads */}
+                            {/* Companies Hiring Per Diem */}
                             {stats.topEmployers.length > 0 && (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                                     <div className="flex items-center gap-2 mb-4">
                                         <Building2 className="h-5 w-5 text-blue-600" />
-                                        <h3 className="font-bold text-gray-900">New Grad Friendly</h3>
+                                        <h3 className="font-bold text-gray-900">Top Employers</h3>
                                     </div>
                                     <ul className="space-y-3">
                                         {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
@@ -395,41 +415,41 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                             ${stats.avgSalary}k
                                         </div>
                                         <div className="text-sm text-gray-600">
-                                            Average annual salary
+                                            Average annual equivalent
                                         </div>
                                     </div>
                                     <p className="text-xs text-gray-500">
-                                        Based on new grad PMHNP positions with salary data. Salaries typically increase after the first year.
+                                        Per diem rates often translate to higher annualized pay when worked consistently. Hourly rates typically range from $65-$125/hr.
                                     </p>
                                 </div>
                             )}
 
-                            {/* New Grad Tips */}
+                            {/* Per Diem Tips */}
                             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-sm border border-amber-200 p-6">
                                 <div className="flex items-center gap-2 mb-4">
                                     <Lightbulb className="h-5 w-5 text-amber-600" />
-                                    <h3 className="font-bold text-gray-900">New Grad Tips</h3>
+                                    <h3 className="font-bold text-gray-900">Per Diem Tips</h3>
                                 </div>
                                 <ul className="space-y-3 text-sm text-gray-700">
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Look for positions with mentorship or supervision</span>
+                                        <span>Register with multiple facilities for more shifts</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Ask about caseload expectations and ramp-up period</span>
+                                        <span>Keep your credentials current and accessible</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Consider fellowships for structured training</span>
+                                        <span>Consider your own malpractice insurance</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Prioritize learning over salary initially</span>
+                                        <span>Track hours for tax purposes (1099 income)</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Network with PMHNPs during clinicals</span>
+                                        <span>Build relationships for priority shift offers</span>
                                     </li>
                                 </ul>
                             </div>
@@ -439,43 +459,43 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                     {/* Additional Resources Section */}
                     <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 md:p-8 border border-blue-200">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                            What to Look For as a New Grad PMHNP
+                            Per Diem vs Full-Time: What&apos;s Right for You?
                         </h2>
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Fellowship Programs
+                                    Per Diem Benefits
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    PMHNP fellowships are typically 1-year programs with reduced caseloads, weekly supervision,
-                                    and structured didactic training. They&apos;re excellent for building confidence.
+                                    Higher hourly rates, complete schedule flexibility, no mandatory overtime,
+                                    and the ability to work at multiple facilities. Ideal for those who value autonomy.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Collaborative Agreements
+                                    Considerations
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    Many positions offer collaborative physician relationships for new grads. This provides
-                                    a safety net while you develop independent practice skills.
+                                    Per diem typically means no benefits (health insurance, PTO, retirement).
+                                    You&apos;ll need to plan for taxes, insurance, and irregular income.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Reasonable Expectations
+                                    Who It&apos;s Best For
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    Quality employers offer gradual caseload increases—starting with 4-6 patients per day
-                                    and building to full productivity over 6-12 months.
+                                    PMHNPs who have benefits through a spouse, those semi-retired, parents wanting
+                                    flexible schedules, or those testing different practice settings.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Setting Selection
+                                    Getting Started
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    Consider your comfort level: outpatient offers predictability, while inpatient provides
-                                    more acute experience. Community mental health centers often welcome new grads.
+                                    Many per diem positions require at least 1 year of experience. Start by
+                                    registering with staffing agencies and local hospitals&apos; PRN pools.
                                 </p>
                             </div>
                         </div>
@@ -505,12 +525,12 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                 <div className="font-semibold text-gray-900">Travel Jobs</div>
                                 <div className="text-sm text-gray-500 mt-1">Locum tenens</div>
                             </Link>
-                            <Link href="/jobs/per-diem" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition-all group">
-                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors">
-                                    <Calendar className="h-5 w-5 text-green-600 group-hover:text-white transition-colors" />
+                            <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all group">
+                                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors">
+                                    <GraduationCap className="h-5 w-5 text-indigo-600 group-hover:text-white transition-colors" />
                                 </div>
-                                <div className="font-semibold text-gray-900">Per Diem Jobs</div>
-                                <div className="text-sm text-gray-500 mt-1">Flexible shifts</div>
+                                <div className="font-semibold text-gray-900">New Grad Jobs</div>
+                                <div className="text-sm text-gray-500 mt-1">Entry level</div>
                             </Link>
                         </div>
                     </div>

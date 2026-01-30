@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { GraduationCap, Sparkles, Users, BookOpen, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Plane, Calendar } from 'lucide-react';
+import { Video, Monitor, Globe, Clock, TrendingUp, Building2, Lightbulb, Bell, Wifi, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -22,20 +22,19 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch new grad jobs with pagination
+ * Fetch telehealth jobs with pagination
  */
-async function getNewGradJobs(skip: number = 0, take: number = 20) {
+async function getTelehealthJobs(skip: number = 0, take: number = 10) {
     const jobs = await prisma.job.findMany({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'telehealth', mode: 'insensitive' } },
+                { title: { contains: 'telemedicine', mode: 'insensitive' } },
+                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+                { description: { contains: 'telehealth', mode: 'insensitive' } },
+                { description: { contains: 'telemedicine', mode: 'insensitive' } },
+                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
             ],
         },
         orderBy: [
@@ -50,37 +49,35 @@ async function getNewGradJobs(skip: number = 0, take: number = 20) {
 }
 
 /**
- * Fetch new grad job statistics
+ * Fetch telehealth job statistics
  */
-async function getNewGradStats() {
-    // Total new grad jobs
+async function getTelehealthStats() {
+    // Total telehealth jobs
     const totalJobs = await prisma.job.count({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'telehealth', mode: 'insensitive' } },
+                { title: { contains: 'telemedicine', mode: 'insensitive' } },
+                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+                { description: { contains: 'telehealth', mode: 'insensitive' } },
+                { description: { contains: 'telemedicine', mode: 'insensitive' } },
+                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
             ],
         },
     });
 
-    // Average salary for new grad positions
+    // Average salary for telehealth positions
     const salaryData = await prisma.job.aggregate({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'telehealth', mode: 'insensitive' } },
+                { title: { contains: 'telemedicine', mode: 'insensitive' } },
+                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+                { description: { contains: 'telehealth', mode: 'insensitive' } },
+                { description: { contains: 'telemedicine', mode: 'insensitive' } },
+                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
             ],
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
@@ -95,19 +92,18 @@ async function getNewGradStats() {
     const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
     const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
 
-    // Companies hiring new grads
+    // Top telehealth employers
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
+                { title: { contains: 'telehealth', mode: 'insensitive' } },
+                { title: { contains: 'telemedicine', mode: 'insensitive' } },
+                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+                { description: { contains: 'telehealth', mode: 'insensitive' } },
+                { description: { contains: 'telemedicine', mode: 'insensitive' } },
+                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
             ],
         },
         _count: {
@@ -138,19 +134,19 @@ async function getNewGradStats() {
  * Generate metadata for SEO
  */
 export async function generateMetadata(): Promise<Metadata> {
-    const stats = await getNewGradStats();
+    const stats = await getTelehealthStats();
 
     return {
-        title: 'New Grad PMHNP Jobs - Entry Level Psychiatric NP Positions',
-        description: `Find new graduate PMHNP jobs and entry-level psychiatric nurse practitioner positions. Fellowships, residencies, and new grad friendly employers. ${stats.totalJobs} positions available.`,
-        keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
+        title: 'Telehealth PMHNP Jobs - Telepsychiatry Nurse Practitioner Positions',
+        description: `Find telehealth PMHNP jobs and telepsychiatry positions. Provide virtual psychiatric care from home. Video visit psychiatric NP roles. ${stats.totalJobs} positions available.`,
+        keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner'],
         openGraph: {
-            title: `${stats.totalJobs} New Grad PMHNP Jobs - Entry Level Positions`,
-            description: 'Browse new graduate and entry-level psychiatric mental health nurse practitioner positions. Fellowships, residencies, mentorship programs.',
+            title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
+            description: 'Browse telehealth and telepsychiatry psychiatric mental health nurse practitioner positions. Work from home, competitive pay.',
             type: 'website',
         },
         alternates: {
-            canonical: '/jobs/new-grad',
+            canonical: '/jobs/telehealth',
         },
     };
 }
@@ -160,17 +156,17 @@ interface PageProps {
 }
 
 /**
- * New grad jobs page
+ * Telehealth jobs page
  */
-export default async function NewGradJobsPage({ searchParams }: PageProps) {
+export default async function TelehealthJobsPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const page = Math.max(1, parseInt(params.page || '1'));
     const limit = 10;
     const skip = (page - 1) * limit;
 
     const [jobs, stats] = await Promise.all([
-        getNewGradJobs(skip, limit),
-        getNewGradStats(),
+        getTelehealthJobs(skip, limit),
+        getTelehealthStats(),
     ]);
 
     const totalPages = Math.ceil(stats.totalJobs / limit);
@@ -182,21 +178,21 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="flex items-center justify-center gap-2 mb-4">
-                            <GraduationCap className="h-8 w-8" />
-                            <Sparkles className="h-8 w-8" />
+                            <Video className="h-8 w-8" />
+                            <Monitor className="h-8 w-8" />
                         </div>
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            New Grad PMHNP Jobs
+                            Telehealth PMHNP Jobs
                         </h1>
                         <p className="text-lg md:text-xl text-blue-100 mb-6">
-                            Discover {stats.totalJobs} entry-level and new graduate psychiatric nurse practitioner positions
+                            Discover {stats.totalJobs} telehealth and telepsychiatry psychiatric nurse practitioner positions
                         </p>
 
                         {/* Stats Bar */}
                         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
                             <div className="text-center">
                                 <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                                <div className="text-sm text-blue-100">New Grad Positions</div>
+                                <div className="text-sm text-blue-100">Telehealth Positions</div>
                             </div>
                             {stats.avgSalary > 0 && (
                                 <div className="text-center">
@@ -206,7 +202,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                             )}
                             <div className="text-center">
                                 <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                                <div className="text-sm text-blue-100">Hiring Employers</div>
+                                <div className="text-sm text-blue-100">Telehealth Employers</div>
                             </div>
                         </div>
                     </div>
@@ -219,45 +215,45 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                     <div className="mb-8 md:mb-12">
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                                Why New Grad PMHNP Positions Matter
+                                Why Telehealth PMHNP Practice?
                             </h2>
                             <div className="grid md:grid-cols-3 gap-6">
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                            <Users className="h-6 w-6 text-purple-600" />
+                                            <Video className="h-6 w-6 text-purple-600" />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900 mb-2">Mentorship Programs</h3>
+                                        <h3 className="font-semibold text-gray-900 mb-2">Virtual Patient Care</h3>
                                         <p className="text-sm text-gray-600">
-                                            Many new grad positions include dedicated mentorship from experienced PMHNPs, helping you build confidence and clinical skills.
+                                            Provide quality psychiatric care through video visits. Many patients prefer the convenience and privacy of telehealth appointments.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                            <BookOpen className="h-6 w-6 text-blue-600" />
+                                            <Monitor className="h-6 w-6 text-blue-600" />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900 mb-2">Training Provided</h3>
+                                        <h3 className="font-semibold text-gray-900 mb-2">Work From Home</h3>
                                         <p className="text-sm text-gray-600">
-                                            Fellowships and residencies offer structured training programs, reduced caseloads, and ongoing education to support your transition.
+                                            Eliminate commute time and create your ideal home office setup. Focus on patient care without the overhead of a physical clinic.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                            <TrendingUp className="h-6 w-6 text-green-600" />
+                                            <Globe className="h-6 w-6 text-green-600" />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-900 mb-2">Career Growth</h3>
+                                        <h3 className="font-semibold text-gray-900 mb-2">Multi-State Practice</h3>
                                         <p className="text-sm text-gray-600">
-                                            Starting with a supportive employer sets the foundation for long-term career success and professional development.
+                                            Many telehealth employers help with multi-state licensure, expanding your patient reach and practice opportunities.
                                         </p>
                                     </div>
                                 </div>
@@ -270,7 +266,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                         <div className="lg:col-span-3">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-semibold text-gray-900">
-                                    All New Grad Positions ({stats.totalJobs})
+                                    All Telehealth Positions ({stats.totalJobs})
                                 </h2>
                                 <Link
                                     href="/jobs"
@@ -282,12 +278,12 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
 
                             {jobs.length === 0 ? (
                                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                                    <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                    <Video className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                        No new grad positions available
+                                        No telehealth jobs available
                                     </h3>
                                     <p className="text-gray-600 mb-6">
-                                        We don&apos;t have any active new grad PMHNP positions right now. Check back soon or browse all jobs!
+                                        We don&apos;t have any active telehealth PMHNP positions right now. Check back soon!
                                     </p>
                                     <Link
                                         href="/jobs"
@@ -309,7 +305,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                         <div className="mt-8 flex items-center justify-center gap-4">
                                             {page > 1 ? (
                                                 <Link
-                                                    href={`/jobs/new-grad?page=${page - 1}`}
+                                                    href={`/jobs/telehealth?page=${page - 1}`}
                                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                                                 >
                                                     ← Previous
@@ -326,7 +322,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
 
                                             {page < totalPages ? (
                                                 <Link
-                                                    href={`/jobs/new-grad?page=${page + 1}`}
+                                                    href={`/jobs/telehealth?page=${page + 1}`}
                                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                                                 >
                                                     Next →
@@ -348,10 +344,10 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                             <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-6 shadow-lg">
                                 <Bell className="h-8 w-8 mb-3" />
                                 <h3 className="text-lg font-bold mb-2">
-                                    Get New Grad Job Alerts
+                                    Get Telehealth Job Alerts
                                 </h3>
                                 <p className="text-sm text-blue-100 mb-4">
-                                    Be the first to know about new graduate-friendly PMHNP positions.
+                                    Be the first to know about new telehealth and telepsychiatry PMHNP positions.
                                 </p>
                                 <Link
                                     href="/job-alerts"
@@ -361,12 +357,12 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                 </Link>
                             </div>
 
-                            {/* Companies Hiring New Grads */}
+                            {/* Top Telehealth Employers */}
                             {stats.topEmployers.length > 0 && (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                                     <div className="flex items-center gap-2 mb-4">
                                         <Building2 className="h-5 w-5 text-blue-600" />
-                                        <h3 className="font-bold text-gray-900">New Grad Friendly</h3>
+                                        <h3 className="font-bold text-gray-900">Top Telehealth Employers</h3>
                                     </div>
                                     <ul className="space-y-3">
                                         {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
@@ -399,37 +395,37 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                         </div>
                                     </div>
                                     <p className="text-xs text-gray-500">
-                                        Based on new grad PMHNP positions with salary data. Salaries typically increase after the first year.
+                                        Telehealth positions often offer competitive pay with reduced overhead. Salaries vary by employer and state requirements.
                                     </p>
                                 </div>
                             )}
 
-                            {/* New Grad Tips */}
+                            {/* Telehealth Tips */}
                             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-sm border border-amber-200 p-6">
                                 <div className="flex items-center gap-2 mb-4">
                                     <Lightbulb className="h-5 w-5 text-amber-600" />
-                                    <h3 className="font-bold text-gray-900">New Grad Tips</h3>
+                                    <h3 className="font-bold text-gray-900">Telehealth Tips</h3>
                                 </div>
                                 <ul className="space-y-3 text-sm text-gray-700">
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Look for positions with mentorship or supervision</span>
+                                        <span>Invest in quality camera, microphone, and lighting</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Ask about caseload expectations and ramp-up period</span>
+                                        <span>Ensure reliable high-speed internet</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Consider fellowships for structured training</span>
+                                        <span>Create a professional, private workspace</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Prioritize learning over salary initially</span>
+                                        <span>Learn telehealth-specific assessment techniques</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span className="text-amber-600 font-bold">•</span>
-                                        <span>Network with PMHNPs during clinicals</span>
+                                        <span>Consider multi-state licensure for more opportunities</span>
                                     </li>
                                 </ul>
                             </div>
@@ -439,43 +435,39 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                     {/* Additional Resources Section */}
                     <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 md:p-8 border border-blue-200">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                            What to Look For as a New Grad PMHNP
+                            Telehealth vs In-Person Practice
                         </h2>
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Fellowship Programs
+                                    Telehealth Advantages
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    PMHNP fellowships are typically 1-year programs with reduced caseloads, weekly supervision,
-                                    and structured didactic training. They&apos;re excellent for building confidence.
+                                    No commute, flexible scheduling, lower overhead costs, and the ability to see patients across multiple states. Many patients prefer the convenience of virtual visits.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Collaborative Agreements
+                                    Technology Requirements
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    Many positions offer collaborative physician relationships for new grads. This provides
-                                    a safety net while you develop independent practice skills.
+                                    You&apos;ll need a HIPAA-compliant video platform, reliable internet, professional camera setup, and a private, well-lit workspace for video consultations.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Reasonable Expectations
+                                    Licensure Considerations
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    Quality employers offer gradual caseload increases—starting with 4-6 patients per day
-                                    and building to full productivity over 6-12 months.
+                                    You must be licensed in the state where your patient is located. Many telehealth employers assist with multi-state licensure and credentialing.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-900 mb-2">
-                                    Setting Selection
+                                    Clinical Considerations
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-3">
-                                    Consider your comfort level: outpatient offers predictability, while inpatient provides
-                                    more acute experience. Community mental health centers often welcome new grads.
+                                    While most psychiatric assessments adapt well to telehealth, some situations may require in-person evaluation. Emergency protocols differ in virtual settings.
                                 </p>
                             </div>
                         </div>
@@ -491,19 +483,19 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                 <div className="font-semibold text-gray-900">Remote Jobs</div>
                                 <div className="text-sm text-gray-500 mt-1">Work from home</div>
                             </Link>
-                            <Link href="/jobs/telehealth" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all group">
-                                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors">
-                                    <Video className="h-5 w-5 text-purple-600 group-hover:text-white transition-colors" />
-                                </div>
-                                <div className="font-semibold text-gray-900">Telehealth Jobs</div>
-                                <div className="text-sm text-gray-500 mt-1">Virtual care</div>
-                            </Link>
                             <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-teal-300 hover:shadow-md transition-all group">
                                 <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors">
                                     <Plane className="h-5 w-5 text-teal-600 group-hover:text-white transition-colors" />
                                 </div>
                                 <div className="font-semibold text-gray-900">Travel Jobs</div>
                                 <div className="text-sm text-gray-500 mt-1">Locum tenens</div>
+                            </Link>
+                            <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all group">
+                                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors">
+                                    <GraduationCap className="h-5 w-5 text-indigo-600 group-hover:text-white transition-colors" />
+                                </div>
+                                <div className="font-semibold text-gray-900">New Grad Jobs</div>
+                                <div className="text-sm text-gray-500 mt-1">Entry level</div>
                             </Link>
                             <Link href="/jobs/per-diem" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition-all group">
                                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors">

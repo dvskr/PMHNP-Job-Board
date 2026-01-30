@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { MapPin, Wifi, TrendingUp, Globe } from 'lucide-react';
+import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -156,7 +156,7 @@ export default async function LocationsPage() {
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Explore {stats.totalJobs.toLocaleString()} psychiatric nurse practitioner positions across the United States
             </p>
-            
+
             {/* Quick Stats */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
@@ -212,6 +212,88 @@ export default async function LocationsPage() {
               </Link>
             </div>
           )}
+
+          {/* Browse by Job Type Section */}
+          <div className="mb-12">
+            <div className="flex items-center gap-3 mb-6">
+              <TrendingUp className="h-6 w-6 text-purple-600" />
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Browse by Job Type
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {/* Remote Card */}
+              <Link href="/jobs/remote" className="group">
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-blue-400 hover:shadow-md transition-all h-full flex flex-col">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+                    <Wifi className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">Remote Jobs</h3>
+                  <p className="text-sm text-gray-500 mb-3">Work from anywhere</p>
+                  <div className="text-sm text-blue-600 font-medium flex items-center gap-1 mt-auto">
+                    View Jobs →
+                  </div>
+                </div>
+              </Link>
+
+              {/* Telehealth Card */}
+              <Link href="/jobs/telehealth" className="group">
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-purple-400 hover:shadow-md transition-all h-full flex flex-col">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+                    <Video className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">Telehealth Jobs</h3>
+                  <p className="text-sm text-gray-500 mb-3">Virtual patient care</p>
+                  <div className="text-sm text-purple-600 font-medium flex items-center gap-1 mt-auto">
+                    View Jobs →
+                  </div>
+                </div>
+              </Link>
+
+              {/* Travel Card */}
+              <Link href="/jobs/travel" className="group">
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-teal-400 hover:shadow-md transition-all h-full flex flex-col">
+                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-teal-200 transition-colors">
+                    <Plane className="h-6 w-6 text-teal-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">Travel Jobs</h3>
+                  <p className="text-sm text-gray-500 mb-3">Locum tenens positions</p>
+                  <div className="text-sm text-teal-600 font-medium flex items-center gap-1 mt-auto">
+                    View Jobs →
+                  </div>
+                </div>
+              </Link>
+
+              {/* New Grad Card */}
+              <Link href="/jobs/new-grad" className="group">
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-amber-400 hover:shadow-md transition-all h-full flex flex-col">
+                  <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-amber-200 transition-colors">
+                    <GraduationCap className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">New Grad Jobs</h3>
+                  <p className="text-sm text-gray-500 mb-3">Entry-level friendly</p>
+                  <div className="text-sm text-amber-600 font-medium flex items-center gap-1 mt-auto">
+                    View Jobs →
+                  </div>
+                </div>
+              </Link>
+
+              {/* Per Diem Card */}
+              <Link href="/jobs/per-diem" className="group">
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:border-green-400 hover:shadow-md transition-all h-full flex flex-col">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+                    <Calendar className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-1">Per Diem Jobs</h3>
+                  <p className="text-sm text-gray-500 mb-3">Flexible scheduling</p>
+                  <div className="text-sm text-green-600 font-medium flex items-center gap-1 mt-auto">
+                    View Jobs →
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
 
           {/* States Section */}
           <div className="mb-12">
@@ -316,7 +398,7 @@ export default async function LocationsPage() {
                 </p>
                 <Link
                   href="/jobs"
-                  className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-sm hover:shadow-md"
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
                 >
                   Search All Jobs
                 </Link>
@@ -333,32 +415,32 @@ export default async function LocationsPage() {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">State-by-State Opportunities</h3>
                 <p className="leading-relaxed">
-                  Each state offers unique opportunities for psychiatric mental health nurse practitioners. 
-                  Browse by state to find positions that match your location preferences, licensing, and 
+                  Each state offers unique opportunities for psychiatric mental health nurse practitioners.
+                  Browse by state to find positions that match your location preferences, licensing, and
                   career goals. States vary in demand, salary ranges, and practice requirements.
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Metropolitan Markets</h3>
                 <p className="leading-relaxed">
-                  Major cities typically offer higher concentrations of PMHNP positions across diverse 
-                  settings including hospitals, clinics, private practices, and telehealth companies. 
+                  Major cities typically offer higher concentrations of PMHNP positions across diverse
+                  settings including hospitals, clinics, private practices, and telehealth companies.
                   Urban areas often provide competitive salaries and career advancement opportunities.
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Remote Work Options</h3>
                 <p className="leading-relaxed">
-                  Telehealth has expanded opportunities for PMHNPs to work from anywhere. Remote positions 
-                  offer flexibility, work-life balance, and the ability to serve patients across state lines 
+                  Telehealth has expanded opportunities for PMHNPs to work from anywhere. Remote positions
+                  offer flexibility, work-life balance, and the ability to serve patients across state lines
                   with appropriate licensure.
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Location Considerations</h3>
                 <p className="leading-relaxed">
-                  When choosing a location, consider factors like cost of living, state licensing requirements, 
-                  scope of practice regulations, professional development opportunities, and quality of life. 
+                  When choosing a location, consider factors like cost of living, state licensing requirements,
+                  scope of practice regulations, professional development opportunities, and quality of life.
                   Research each state&apos;s specific PMHNP practice environment.
                 </p>
               </div>

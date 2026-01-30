@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Wifi, Home, Clock, Globe, TrendingUp, Building2, Lightbulb, Bell } from 'lucide-react';
+import { Wifi, Home, Clock, Globe, TrendingUp, Building2, Lightbulb, Bell, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -22,9 +22,9 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch remote jobs
+ * Fetch remote jobs with pagination
  */
-async function getRemoteJobs() {
+async function getRemoteJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
     where: {
       isPublished: true,
@@ -34,7 +34,8 @@ async function getRemoteJobs() {
       { isFeatured: 'desc' },
       { createdAt: 'desc' },
     ],
-    take: 50,
+    skip,
+    take,
   });
 
   return jobs;
@@ -121,14 +122,25 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+interface PageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
 /**
  * Remote jobs page
  */
-export default async function RemoteJobsPage() {
+export default async function RemoteJobsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || '1'));
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
   const [jobs, stats] = await Promise.all([
-    getRemoteJobs(),
+    getRemoteJobs(skip, limit),
     getRemoteStats(),
   ]);
+
+  const totalPages = Math.ceil(stats.totalJobs / limit);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -146,7 +158,7 @@ export default async function RemoteJobsPage() {
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Discover {stats.totalJobs} telehealth and remote psychiatric nurse practitioner positions
             </p>
-            
+
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
@@ -227,7 +239,7 @@ export default async function RemoteJobsPage() {
                 <h2 className="text-xl font-semibold text-gray-900">
                   All Remote Positions ({stats.totalJobs})
                 </h2>
-                <Link 
+                <Link
                   href="/jobs"
                   className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
@@ -252,11 +264,48 @@ export default async function RemoteJobsPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid gap-4 md:gap-6">
-                  {jobs.map((job: Job) => (
-                    <JobCard key={job.id} job={job} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    {jobs.map((job: Job) => (
+                      <JobCard key={job.id} job={job} />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-4">
+                      {page > 1 ? (
+                        <Link
+                          href={`/jobs/remote?page=${page - 1}`}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          ← Previous
+                        </Link>
+                      ) : (
+                        <span className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
+                          ← Previous
+                        </span>
+                      )}
+
+                      <span className="text-sm text-gray-600">
+                        Page {page} of {totalPages}
+                      </span>
+
+                      {page < totalPages ? (
+                        <Link
+                          href={`/jobs/remote?page=${page + 1}`}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Next →
+                        </Link>
+                      ) : (
+                        <span className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
+                          Next →
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -365,7 +414,7 @@ export default async function RemoteJobsPage() {
                   Telehealth Platforms
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Most remote PMHNP positions use HIPAA-compliant platforms like Zoom for Healthcare, 
+                  Most remote PMHNP positions use HIPAA-compliant platforms like Zoom for Healthcare,
                   Doxy.me, or proprietary systems. Many employers provide training and technical support.
                 </p>
               </div>
@@ -374,7 +423,7 @@ export default async function RemoteJobsPage() {
                   Licensure Considerations
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Remote work may require multi-state licensure. Check if your employer participates 
+                  Remote work may require multi-state licensure. Check if your employer participates
                   in the Nurse Licensure Compact (NLC) or if they&apos;ll support additional state licenses.
                 </p>
               </div>
@@ -383,7 +432,7 @@ export default async function RemoteJobsPage() {
                   Technology Requirements
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  You&apos;ll typically need a reliable computer, webcam, headset, and high-speed internet 
+                  You&apos;ll typically need a reliable computer, webcam, headset, and high-speed internet
                   (minimum 10 Mbps). Some employers provide equipment or technology stipends.
                 </p>
               </div>
@@ -392,10 +441,44 @@ export default async function RemoteJobsPage() {
                   Work Environment
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Maintain a professional, private space for patient consultations. Consider background 
+                  Maintain a professional, private space for patient consultations. Consider background
                   noise, lighting, and HIPAA compliance when setting up your home office.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-12 border-t border-gray-200 pt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Explore Other Job Types</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link href="/jobs/telehealth" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors">
+                  <Video className="h-5 w-5 text-purple-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">Telehealth Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Virtual care</div>
+              </Link>
+              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-teal-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors">
+                  <Plane className="h-5 w-5 text-teal-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">Travel Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Locum tenens</div>
+              </Link>
+              <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors">
+                  <GraduationCap className="h-5 w-5 text-indigo-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">New Grad Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Entry level</div>
+              </Link>
+              <Link href="/jobs/per-diem" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors">
+                  <Calendar className="h-5 w-5 text-green-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">Per Diem Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Flexible shifts</div>
+              </Link>
             </div>
           </div>
         </div>
