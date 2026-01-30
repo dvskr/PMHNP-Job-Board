@@ -61,8 +61,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
       return null;
     } else if (ageInDays < 7) {
       return { text: 'Recent', className: 'bg-blue-50 text-blue-900 text-xs px-2 py-1 rounded-full font-bold' };
-    } else if (ageInDays >= 30) {
-      return { text: '⚠️ May be filled', className: 'text-yellow-700 text-xs italic font-medium' };
     }
     return null;
   };
