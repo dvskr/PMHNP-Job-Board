@@ -10,6 +10,7 @@ import JobStructuredData from '@/components/JobStructuredData';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import RelatedJobs from '@/components/RelatedJobs';
 import { prisma } from '@/lib/prisma';
+import { notFound } from 'next/navigation';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
@@ -218,6 +219,9 @@ export async function generateMetadata({ params }: JobPageProps) {
       description,
       images: [ogImageUrl.toString()],
     },
+    alternates: {
+      canonical: `/jobs/${slug}`,
+    },
   };
 }
 
@@ -230,13 +234,13 @@ export default async function JobPage({ params }: JobPageProps) {
   const id = uuidMatch ? uuidMatch[1] : null;
 
   if (!id) {
-    return <JobNotFound />;
+    notFound();
   }
 
   const job = await getJob(id);
 
   if (!job) {
-    return <JobNotFound />;
+    notFound();
   }
 
   // Fetch related jobs in parallel with main job
