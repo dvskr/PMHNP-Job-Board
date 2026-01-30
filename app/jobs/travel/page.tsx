@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Plane, Briefcase, DollarSign, Calendar, MapPin, TrendingUp, Building2, Lightbulb, Bell } from 'lucide-react';
+import { Plane, Briefcase, DollarSign, Calendar, MapPin, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, GraduationCap } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -457,6 +457,40 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                   agencies to find the best opportunities. Keep your CV and credentials always up to date.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-12 border-t border-gray-200 pt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Explore Other Job Types</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-600 transition-colors">
+                  <Wifi className="h-5 w-5 text-blue-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">Remote Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Work from home</div>
+              </Link>
+              <Link href="/jobs/telehealth" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors">
+                  <Video className="h-5 w-5 text-purple-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">Telehealth Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Virtual care</div>
+              </Link>
+              <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors">
+                  <GraduationCap className="h-5 w-5 text-indigo-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">New Grad Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Entry level</div>
+              </Link>
+              <Link href="/jobs/per-diem" className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-green-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors">
+                  <Calendar className="h-5 w-5 text-green-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold text-gray-900">Per Diem Jobs</div>
+                <div className="text-sm text-gray-500 mt-1">Flexible shifts</div>
+              </Link>
             </div>
           </div>
         </div>
