@@ -204,14 +204,9 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
     const { name: stateName, code: stateCode } = stateInfo;
     const stats = await getStateStats(stateName, stateCode);
 
-    // Build optimized title with job count and salary for better CTR
-    const title = stats.avgSalary > 0
-      ? `${stats.totalJobs} PMHNP Jobs in ${stateName} | $${stats.avgSalary}k Avg Salary | PMHNP Hiring`
-      : `${stats.totalJobs} PMHNP Jobs in ${stateName} | Psychiatric NP Positions | PMHNP Hiring`;
+    const title = `${stats.totalJobs} PMHNP Jobs in ${stateName} (${stateCode}) - Apply Now | $${stats.avgSalary}k Avg`;
 
-    const description = stats.avgSalary > 0
-      ? `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Average salary $${stats.avgSalary}k. Remote and in-person psychiatric nurse practitioner positions. Apply today!`
-      : `Find ${stats.totalJobs} PMHNP jobs in ${stateName}. Remote and in-person psychiatric nurse practitioner positions available. Apply today!`;
+    const description = `Browse ${stats.totalJobs} PMHNP jobs in ${stateName}. Psychiatric NP positions: telehealth, inpatient, outpatient. Average salary $${stats.avgSalary}k. New jobs added daily - apply today!`;
 
     return {
       title,

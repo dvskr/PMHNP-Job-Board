@@ -211,14 +211,9 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 
     const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
 
-    // Build optimized title with job count and salary for better CTR
-    const title = stats.avgSalary > 0
-      ? `${stats.totalJobs} PMHNP Jobs in ${location} | $${stats.avgSalary}k Avg Salary | PMHNP Hiring`
-      : `${stats.totalJobs} PMHNP Jobs in ${location} | Psychiatric NP Positions | PMHNP Hiring`;
+    const title = `${stats.totalJobs} PMHNP Jobs in ${location} - Apply Now${stats.avgSalary > 0 ? ` | $${stats.avgSalary}k Avg` : ''}`;
 
-    const description = stats.avgSalary > 0
-      ? `Find ${stats.totalJobs} PMHNP jobs in ${location}. Average salary $${stats.avgSalary}k. Remote and in-person psychiatric nurse practitioner positions. Apply today!`
-      : `Find ${stats.totalJobs} PMHNP jobs in ${location}. Remote and in-person psychiatric nurse practitioner positions available. Apply today!`;
+    const description = `Browse ${stats.totalJobs} PMHNP jobs in ${location}. Psychiatric NP positions: telehealth, inpatient, outpatient.${stats.avgSalary > 0 ? ` Average salary $${stats.avgSalary}k.` : ''} New jobs added daily - apply today!`;
 
     return {
       title,
