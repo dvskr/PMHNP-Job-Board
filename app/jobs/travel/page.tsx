@@ -22,9 +22,9 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch travel/locum jobs
+ * Fetch travel/locum jobs with pagination
  */
-async function getTravelJobs() {
+async function getTravelJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
     where: {
       isPublished: true,
@@ -37,7 +37,8 @@ async function getTravelJobs() {
       { isFeatured: 'desc' },
       { createdAt: 'desc' },
     ],
-    take: 50,
+    skip,
+    take,
   });
 
   return jobs;
@@ -133,14 +134,25 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+interface PageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
 /**
  * Travel jobs page
  */
-export default async function TravelJobsPage() {
+export default async function TravelJobsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || '1'));
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
   const [jobs, stats] = await Promise.all([
-    getTravelJobs(),
+    getTravelJobs(skip, limit),
     getTravelStats(),
   ]);
+
+  const totalPages = Math.ceil(stats.totalJobs / limit);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -264,11 +276,48 @@ export default async function TravelJobsPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="grid gap-4 md:gap-6">
-                  {jobs.map((job: Job) => (
-                    <JobCard key={job.id} job={job} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    {jobs.map((job: Job) => (
+                      <JobCard key={job.id} job={job} />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-4">
+                      {page > 1 ? (
+                        <Link
+                          href={`/jobs/travel?page=${page - 1}`}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          ← Previous
+                        </Link>
+                      ) : (
+                        <span className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
+                          ← Previous
+                        </span>
+                      )}
+
+                      <span className="text-sm text-gray-600">
+                        Page {page} of {totalPages}
+                      </span>
+
+                      {page < totalPages ? (
+                        <Link
+                          href={`/jobs/travel?page=${page + 1}`}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Next →
+                        </Link>
+                      ) : (
+                        <span className="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
+                          Next →
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
