@@ -96,74 +96,42 @@ export default async function Home() {
       {/* Popular Categories */}
       <PopularCategories />
 
-      {/* Browse by Job Type */}
-      <section className="py-12 px-4 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
-            Browse by Job Type
-          </h2>
-          <p className="text-gray-600 text-center mb-8">
-            Find positions that match your preferred work style
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {/* Remote Jobs */}
-            <Link
-              href="/jobs/remote"
-              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all text-center"
-            >
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition-colors">
-                <Wifi className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Remote Jobs</h3>
-              <p className="text-xs text-gray-500">Work from anywhere</p>
+      {/* Explore PMHNP Opportunities */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">Explore PMHNP Opportunities</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link href="/jobs/remote" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">🏠</span>
+              <h3 className="font-semibold text-gray-900 mt-2">Remote Jobs</h3>
             </Link>
-
-            {/* Telehealth Jobs */}
-            <Link
-              href="/jobs/telehealth"
-              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all text-center"
-            >
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition-colors">
-                <Video className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Telehealth</h3>
-              <p className="text-xs text-gray-500">Virtual patient care</p>
+            <Link href="/jobs/telehealth" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">💻</span>
+              <h3 className="font-semibold text-gray-900 mt-2">Telehealth Jobs</h3>
             </Link>
-
-            {/* Travel Jobs */}
-            <Link
-              href="/jobs/travel"
-              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-teal-300 hover:shadow-md transition-all text-center"
-            >
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-teal-200 transition-colors">
-                <Plane className="h-6 w-6 text-teal-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Travel/Locum</h3>
-              <p className="text-xs text-gray-500">Explore new places</p>
+            <Link href="/jobs/travel" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">✈️</span>
+              <h3 className="font-semibold text-gray-900 mt-2">Travel Jobs</h3>
             </Link>
-
-            {/* New Grad Jobs */}
-            <Link
-              href="/jobs/new-grad"
-              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-amber-300 hover:shadow-md transition-all text-center"
-            >
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-200 transition-colors">
-                <GraduationCap className="h-6 w-6 text-amber-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">New Grad</h3>
-              <p className="text-xs text-gray-500">Entry-level roles</p>
+            <Link href="/jobs/new-grad" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">🎓</span>
+              <h3 className="font-semibold text-gray-900 mt-2">New Grad Jobs</h3>
             </Link>
-
-            {/* Per Diem Jobs */}
-            <Link
-              href="/jobs/per-diem"
-              className="group bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:border-green-300 hover:shadow-md transition-all text-center"
-            >
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition-colors">
-                <Calendar className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">Per Diem/PRN</h3>
-              <p className="text-xs text-gray-500">Flexible schedules</p>
+            <Link href="/jobs/per-diem" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">⏰</span>
+              <h3 className="font-semibold text-gray-900 mt-2">Per Diem Jobs</h3>
+            </Link>
+            <Link href="/jobs/locations" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">📍</span>
+              <h3 className="font-semibold text-gray-900 mt-2">Jobs by Location</h3>
+            </Link>
+            <Link href="/salary-guide" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">💰</span>
+              <h3 className="font-semibold text-gray-900 mt-2">Salary Guide</h3>
+            </Link>
+            <Link href="/jobs" className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm text-center transition-all">
+              <span className="text-2xl">🔍</span>
+              <h3 className="font-semibold text-gray-900 mt-2">All Jobs</h3>
             </Link>
           </div>
         </div>

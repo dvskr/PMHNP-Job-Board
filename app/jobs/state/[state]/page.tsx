@@ -426,10 +426,40 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                   <p className="text-xs text-gray-500">
                     Based on {stats.totalJobs} PMHNP positions in {stateName} with salary data.
                   </p>
+                  <Link href="/salary-guide" className="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-block">
+                    View full 2026 Salary Guide →
+                  </Link>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Related Resources */}
+          <section className="mt-12 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Explore More PMHNP Opportunities</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">💰 2026 PMHNP Salary Guide</h3>
+                <p className="text-sm text-gray-600 mt-1">See how {stateName} compares to other states. Includes cost-of-living adjustments and negotiation tips.</p>
+              </Link>
+
+              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">🏠 Remote PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 mt-1">Work from anywhere with telehealth and remote psychiatric NP positions.</p>
+              </Link>
+
+              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">✈️ Travel PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 mt-1">Locum tenens and travel positions with premium pay and housing stipends.</p>
+              </Link>
+
+              <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">🎓 New Grad PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 mt-1">Entry-level positions for newly certified psychiatric nurse practitioners.</p>
+              </Link>
+            </div>
+          </section>
         </div>
       </div>
     </div>
