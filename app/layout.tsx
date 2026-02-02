@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
-import OrganizationStructuredData from '@/components/OrganizationStructuredData';
+
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import ExitIntentPopup from '@/components/ExitIntentPopup';
 
@@ -102,12 +102,60 @@ export default function RootLayout({
         {/* Performance: Preconnect to external domains */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        {/* Organization and WebSite Schema Markup */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://pmhnphiring.com/#organization",
+                  "name": "PMHNP Hiring",
+                  "alternateName": "PMHNP Jobs",
+                  "url": "https://pmhnphiring.com",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://pmhnphiring.com/logo.svg"
+                  },
+                  "description": "The #1 job board for psychiatric mental health nurse practitioners. Browse 8,500+ PMHNP jobs with salary data.",
+                  "foundingDate": "2024",
+                  "sameAs": [
+                    "https://x.com/pmhnphiring",
+                    "https://www.facebook.com/profile.php?id=61585484949012",
+                    "https://www.instagram.com/pmhnphiring",
+                    "https://www.linkedin.com/company/pmhnp-hiring",
+                    "https://www.threads.net/@pmhnphiring"
+                  ]
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://pmhnphiring.com/#website",
+                  "url": "https://pmhnphiring.com",
+                  "name": "PMHNP Hiring",
+                  "description": "Find psychiatric mental health nurse practitioner jobs",
+                  "publisher": {
+                    "@id": "https://pmhnphiring.com/#organization"
+                  },
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": {
+                      "@type": "EntryPoint",
+                      "urlTemplate": "https://pmhnphiring.com/jobs?q={search_term_string}"
+                    },
+                    "query-input": "required name=search_term_string"
+                  }
+                }
+              ]
+            })
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <GoogleAnalytics />
-        <OrganizationStructuredData baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'} />
         <Header />
         <main className="min-h-screen pb-20 md:pb-0">{children}</main>
         <Footer />
