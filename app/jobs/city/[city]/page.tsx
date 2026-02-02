@@ -434,6 +434,9 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   <p className="text-xs text-gray-500">
                     Based on PMHNP positions in {cityName} with salary data.
                   </p>
+                  <Link href="/salary-guide" className="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-block">
+                    View full 2026 Salary Guide →
+                  </Link>
                 </div>
               )}
 
@@ -473,6 +476,40 @@ export default async function CityJobsPage({ params }: CityPageProps) {
               )}
             </div>
           </div>
+
+          {/* Related Resources */}
+          <section className="mt-12 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Explore More PMHNP Opportunities</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">💰 2026 PMHNP Salary Guide</h3>
+                <p className="text-sm text-gray-600 mt-1">National average is $155,000+. See how your area compares.</p>
+              </Link>
+
+              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">🏠 Remote PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 mt-1">Work from anywhere with telehealth positions.</p>
+              </Link>
+
+              <Link href="/jobs/locations" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">📍 All Locations</h3>
+                <p className="text-sm text-gray-600 mt-1">Browse PMHNP jobs by state and city.</p>
+              </Link>
+
+              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-blue-600">✈️ Travel PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 mt-1">Locum tenens positions with premium pay and housing.</p>
+              </Link>
+
+              {stats.state && (
+                <Link href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`} className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                  <h3 className="font-semibold text-blue-600">🗺️ All {stats.state} Jobs</h3>
+                  <p className="text-sm text-gray-600 mt-1">See all PMHNP positions across {stats.state}.</p>
+                </Link>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>
