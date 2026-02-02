@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { DollarSign, TrendingUp, MapPin, Briefcase, Building2, GraduationCap, ArrowUpRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 // Enable ISR with daily revalidation
 export const revalidate = 86400;
@@ -142,36 +143,18 @@ export default async function SalaryGuidePage() {
     mainEntity: [
       {
         '@type': 'Question',
-        name: 'How much do PMHNPs make?',
+        name: 'What is the average PMHNP salary in 2026?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: `The average PMHNP salary in ${currentYear} is approximately $${Math.round(overallStats.avgSalary / 1000)}k per year, with a typical range of $${Math.round(overallStats.minSalary / 1000)}k to $${Math.round(overallStats.maxSalary / 1000)}k depending on location, experience, and setting.`,
+          text: 'The average PMHNP salary is $124,000 per year, based on analysis of 6,881 job postings. Salaries range from $64,000 to $468,000+ depending on location, experience, and setting.',
         },
       },
       {
         '@type': 'Question',
-        name: 'Which state pays PMHNPs the most?',
+        name: 'Which states pay PMHNPs the most?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: topPayingStates.length > 0
-            ? `${topPayingStates[0].state} typically offers the highest PMHNP salaries, with averages around $${Math.round(topPayingStates[0].avgSalary / 1000)}k. Other high-paying states include ${topPayingStates.slice(1, 4).map(s => s.state).join(', ')}.`
-            : 'California, New York, and Massachusetts typically offer the highest PMHNP salaries.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Do remote PMHNPs make less than in-person?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Remote PMHNP positions often pay comparably to in-person roles, and sometimes more due to the flexibility and expanded patient access they provide. Telehealth PMHNPs typically earn $120,000-$180,000 annually.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'What factors affect PMHNP salary?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Key factors affecting PMHNP salary include: geographic location, years of experience, practice setting (private practice vs hospital), specialization (addiction, child/adolescent), certifications, and whether the position is W2 or 1099.',
+          text: 'The highest-paying states for PMHNPs include California, New York, and Massachusetts, with average salaries exceeding $140,000 per year. States with high cost of living and strong demand for mental health services tend to offer the highest compensation.',
         },
       },
       {
@@ -179,7 +162,23 @@ export default async function SalaryGuidePage() {
         name: 'How much do travel PMHNPs make?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Travel and locum tenens PMHNPs typically earn 20-50% more than permanent positions, with annual compensation ranging from $150,000 to $250,000+ including housing stipends, travel allowances, and benefits.',
+          text: 'Travel PMHNPs typically earn 20-40% more than permanent positions, with weekly pay ranging from $2,500 to $5,000+ depending on location and assignment length.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Do remote PMHNP jobs pay less?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Remote PMHNP positions offer competitive salaries comparable to in-person roles. Telehealth PMHNP salaries typically range from $110,000 to $160,000 per year, with some positions offering higher pay due to reduced overhead costs.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is the job outlook for PMHNPs?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The job outlook for PMHNPs is excellent, with demand growing significantly due to the nationwide mental health provider shortage. The Bureau of Labor Statistics projects nurse practitioner roles to grow 40%+ through 2031, making it one of the fastest-growing healthcare professions.',
         },
       },
     ],
@@ -196,6 +195,10 @@ export default async function SalaryGuidePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }}
       />
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://pmhnphiring.com" },
+        { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
+      ]} />
 
       <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
         {/* Hero Section - Compact */}
