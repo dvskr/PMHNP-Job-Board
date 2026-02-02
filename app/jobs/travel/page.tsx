@@ -174,6 +174,9 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Travel PMHNP Jobs - Locum Tenens
             </h1>
+            <p className="text-sm text-blue-200 text-center mt-2 mb-4">
+              Last Updated: February 2026 | Travel & locum tenens PMHNP positions
+            </p>
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Discover {stats.totalJobs} travel and locum psychiatric nurse practitioner positions
             </p>

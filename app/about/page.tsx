@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
-import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail } from 'lucide-react';
+import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, Briefcase, MapPin, RefreshCw, Database, FileText, Shield, BarChart3 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About Us | PMHNP Jobs',
-  description: 'Learn about PMHNP Jobs - the dedicated job board for Psychiatric Mental Health Nurse Practitioners.',
+  title: 'About Us | PMHNP Hiring - The #1 Job Board for Psychiatric NPs',
+  description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. 8,500+ jobs from 1,249+ companies across 42 states.',
 };
 
 export default function AboutPage() {
@@ -14,10 +14,46 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">About PMHNP Jobs</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">About PMHNP Hiring</h1>
           <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
-            The dedicated job board for Psychiatric Mental Health Nurse Practitioners
+            The #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners — trusted by thousands of PMHNPs nationwide
           </p>
+        </div>
+      </section>
+
+      {/* By The Numbers Stats Row */}
+      <section className="bg-gradient-to-r from-blue-50 to-slate-50 border-y border-blue-200 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Briefcase className="w-5 h-5 text-emerald-600" />
+                <span className="text-2xl md:text-3xl font-bold text-emerald-600">8,500+</span>
+              </div>
+              <div className="text-sm text-gray-600">Active Jobs</div>
+            </div>
+            <div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Users className="w-5 h-5 text-blue-600" />
+                <span className="text-2xl md:text-3xl font-bold text-blue-600">1,249+</span>
+              </div>
+              <div className="text-sm text-gray-600">Companies</div>
+            </div>
+            <div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <MapPin className="w-5 h-5 text-purple-600" />
+                <span className="text-2xl md:text-3xl font-bold text-purple-600">42</span>
+              </div>
+              <div className="text-sm text-gray-600">States Covered</div>
+            </div>
+            <div>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <RefreshCw className="w-5 h-5 text-amber-600" />
+                <span className="text-2xl md:text-3xl font-bold text-amber-600">Daily</span>
+              </div>
+              <div className="text-sm text-gray-600">Updated</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -32,19 +68,15 @@ export default function AboutPage() {
             </div>
             <div className="space-y-4 text-gray-700 leading-relaxed">
               <p className="text-lg">
-                We believe that Psychiatric Mental Health Nurse Practitioners deserve a dedicated job resource
-                that understands their unique career needs and aspirations.
+                PMHNP Hiring exists to be the most comprehensive and transparent career resource for
+                Psychiatric Mental Health Nurse Practitioners. We aggregate, verify, and enrich job data
+                from hundreds of sources to provide PMHNPs with accurate salary information, real-time
+                job listings, and data-driven career insights.
               </p>
               <p>
-                PMHNP Jobs was created to solve a simple problem: it&apos;s too hard for PMHNPs to find quality job
-                opportunities, and too difficult for employers to connect with qualified candidates. Traditional
-                job boards are cluttered with irrelevant listings, making it time-consuming to find roles that
-                match your specialization.
-              </p>
-              <p>
-                Our platform aggregates opportunities from multiple sources, provides salary transparency, and
-                helps connect PMHNPs with the right opportunities—whether you&apos;re looking for remote telehealth
-                positions, hospital roles, or private practice opportunities.
+                Our platform analyzes thousands of job postings daily to deliver the salary transparency
+                and career data that PMHNPs deserve — helping practitioners make informed decisions about
+                where to work, what to negotiate, and how to advance their careers.
               </p>
             </div>
           </Card>
@@ -65,7 +97,7 @@ export default function AboutPage() {
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-gray-900">200+ Job Listings</p>
+                    <p className="font-semibold text-gray-900">8,500+ Job Listings</p>
                     <p className="text-sm text-gray-600">Aggregated from multiple sources, updated daily</p>
                   </div>
                 </li>
@@ -133,13 +165,108 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* Our Data & Methodology Section */}
+        <section className="mb-12">
+          <Card padding="lg" variant="elevated">
+            <div className="flex items-center gap-3 mb-6">
+              <Database className="w-8 h-8 text-primary-600" />
+              <h2 className="text-3xl font-bold text-gray-900">Our Data & Methodology</h2>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Accuracy and transparency are at the core of everything we do. Here&apos;s how we ensure
+              the data on PMHNP Hiring is reliable and up-to-date:
+            </p>
+
+            <div className="space-y-6">
+              {/* Job Data Collection */}
+              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Briefcase className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Job Data Collection</h3>
+                </div>
+                <p className="text-gray-600">
+                  We aggregate PMHNP job postings from multiple verified sources including direct employer
+                  postings, healthcare staffing agencies, and major job platforms. Every listing is filtered
+                  for relevance to ensure only genuine PMHNP positions appear on our platform.
+                </p>
+              </div>
+
+              {/* Salary Data Sources */}
+              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Salary Data Sources</h3>
+                </div>
+                <p className="text-gray-600 mb-3">
+                  Our salary guide combines data from multiple authoritative sources:
+                </p>
+                <ul className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    Bureau of Labor Statistics (BLS)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    ZipRecruiter
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    Indeed
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    PayScale
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    Glassdoor
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    CompHealth
+                  </li>
+                </ul>
+                <p className="text-gray-600 mt-3">
+                  We also analyze 8,500+ active job postings on our platform and cross-reference multiple
+                  sources to provide the most accurate salary picture possible.
+                </p>
+              </div>
+
+              {/* Data Updates */}
+              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <RefreshCw className="w-5 h-5 text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Data Updates</h3>
+                </div>
+                <p className="text-gray-600">
+                  Job listings are refreshed daily. Salary guide data is reviewed and updated monthly.
+                  State-by-state comparisons include cost-of-living adjustments using current economic data.
+                </p>
+              </div>
+
+              {/* Editorial Standards */}
+              <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="w-5 h-5 text-amber-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Editorial Standards</h3>
+                </div>
+                <p className="text-gray-600">
+                  All content on PMHNP Hiring is researched and fact-checked against authoritative sources.
+                  Our salary data is never inflated or manipulated. When our platform data differs from
+                  industry averages, we clearly label both data sets so PMHNPs can make informed comparisons.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </section>
+
         {/* Why We Built This Section */}
         <section className="mb-12">
           <Card padding="lg" variant="default">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Why We Built This</h2>
             <div className="space-y-4 text-gray-700 leading-relaxed">
               <p>
-                The idea for PMHNP Jobs came from a simple observation: Psychiatric Mental Health Nurse
+                The idea for PMHNP Hiring came from a simple observation: Psychiatric Mental Health Nurse
                 Practitioners were underserved by existing job boards. General nursing job sites were
                 cluttered with irrelevant positions, and it took hours to find PMHNP-specific opportunities
                 scattered across multiple platforms.
@@ -150,14 +277,41 @@ export default function AboutPage() {
                 struggled to reach the right candidates in an efficient, cost-effective way.
               </p>
               <p>
-                We built PMHNP Jobs to bridge this gap. Our goal is simple: create a dedicated space where
+                We built PMHNP Hiring to bridge this gap. Our goal is simple: create a dedicated space where
                 PMHNPs can quickly find relevant opportunities, and where employers can connect with qualified
                 candidates without breaking the bank.
               </p>
-              <p className="text-base italic text-gray-600 border-l-4 border-primary-500 pl-4">
-                &quot;We&apos;re committed to making the job search process easier, more transparent, and more efficient
-                for everyone in the PMHNP community.&quot;
+              <p className="font-medium text-gray-900 border-l-4 border-emerald-500 pl-4 bg-emerald-50 py-3 rounded-r-lg">
+                Today, PMHNP Hiring is the largest dedicated job board for psychiatric mental health nurse
+                practitioners, with over 8,500 active positions from 1,249+ companies across 42 states.
+                We&apos;re committed to providing the most comprehensive, accurate, and transparent PMHNP
+                career resource available.
               </p>
+            </div>
+          </Card>
+        </section>
+
+        {/* For Media & Citations Section */}
+        <section className="mb-12">
+          <Card padding="lg" variant="bordered" className="bg-slate-50 border-slate-200">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="w-7 h-7 text-slate-600" />
+              <h2 className="text-2xl font-bold text-gray-900">For Media & Citations</h2>
+            </div>
+            <div className="space-y-4 text-gray-700">
+              <p>
+                Journalists, researchers, and content creators are welcome to cite PMHNP Hiring data with
+                attribution. For data inquiries, custom reports, or media requests, please contact us at{' '}
+                <a href="mailto:press@pmhnphiring.com" className="text-blue-600 hover:underline font-medium">
+                  press@pmhnphiring.com
+                </a>.
+              </p>
+              <div className="bg-white rounded-lg p-4 border border-slate-300">
+                <p className="text-sm text-gray-600 mb-1">When citing our data, please use:</p>
+                <p className="font-mono text-sm bg-slate-100 px-3 py-2 rounded border border-slate-200">
+                  Source: PMHNP Hiring (pmhnphiring.com), [Month Year]
+                </p>
+              </div>
             </div>
           </Card>
         </section>
@@ -194,4 +348,3 @@ export default function AboutPage() {
     </div>
   );
 }
-

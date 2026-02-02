@@ -160,6 +160,9 @@ export default async function LocationsPage() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               PMHNP Jobs by Location
             </h1>
+            <p className="text-sm text-blue-200 text-center mt-2 mb-4">
+              Last Updated: February 2026 | PMHNP jobs by location
+            </p>
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Explore {stats.totalJobs.toLocaleString()} psychiatric nurse practitioner positions across the United States
             </p>
