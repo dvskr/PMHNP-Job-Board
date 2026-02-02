@@ -5,6 +5,7 @@ import { MapPin, Building2, TrendingUp, Bell, Navigation } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Job } from '@/lib/types';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -274,8 +275,16 @@ export default async function CityJobsPage({ params }: CityPageProps) {
   // Current city (no link)
   breadcrumbItems.push({ label: cityName, href: '' });
 
+  const citySlug = cityParam.toLowerCase();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Breadcrumb Schema */}
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://pmhnphiring.com" },
+        { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
+        { name: cityName, url: `https://pmhnphiring.com/jobs/city/${citySlug}` }
+      ]} />
       {/* Breadcrumbs */}
       <div className="container mx-auto px-4 pt-4">
         <Breadcrumbs items={breadcrumbItems} />

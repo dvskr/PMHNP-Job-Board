@@ -5,7 +5,6 @@ import { Wifi, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
-import TestimonialsSection from '@/components/TestimonialsSection';
 
 // Lazy load client components
 const HomepageJobAlertForm = dynamic(() => import('@/components/HomepageJobAlertForm'), {
@@ -71,7 +70,7 @@ export default async function Home() {
             Find Your Next PMHNP Role
           </h1>
           <p className="text-xl md:text-2xl text-blue-50 mb-8 max-w-2xl mx-auto">
-            The #1 job board for psychiatric mental health nurse practitioners.
+            The #1 job board for psychiatric mental health nurse practitioners.{' '}
             {jobCountDisplay} remote and in-person jobs updated daily.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -205,8 +204,6 @@ export default async function Home() {
       {/* Salary Guide Section */}
       <SalaryGuideSection />
 
-      {/* Testimonials Section */}
-      <TestimonialsSection />
 
       {/* Job Alerts Section */}
       <section id="subscribe" className="bg-blue-50 py-16 px-4">
