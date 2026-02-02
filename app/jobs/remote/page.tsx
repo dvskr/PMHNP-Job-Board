@@ -162,6 +162,9 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Remote PMHNP Jobs - Work From Home
             </h1>
+            <p className="text-sm text-blue-200 text-center mt-2 mb-4">
+              Last Updated: February 2026 | {stats.totalJobs} remote PMHNP jobs available
+            </p>
             <p className="text-lg md:text-xl text-blue-100 mb-6">
               Discover {stats.totalJobs} telehealth and remote psychiatric nurse practitioner positions
             </p>

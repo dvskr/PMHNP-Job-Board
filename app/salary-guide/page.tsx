@@ -4,6 +4,7 @@ import { DollarSign, TrendingUp, MapPin, Briefcase, Building2, GraduationCap, Ar
 import { prisma } from '@/lib/prisma';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CopyCitation from '@/components/CopyCitation';
 
 // Enable ISR with daily revalidation
 export const revalidate = 86400;
@@ -183,6 +184,39 @@ export default async function SalaryGuidePage() {
     ],
   };
 
+  // Article Schema
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "2026 PMHNP Salary Guide: Psychiatric NP Pay by State",
+    "description": "Comprehensive PMHNP salary data for 2026 including state-by-state pay, experience levels, specialty premiums, and market trends. Based on BLS, ZipRecruiter, Indeed, and 8,500+ job postings.",
+    "image": "https://pmhnphiring.com/og-salary-guide.png",
+    "datePublished": "2026-01-01T00:00:00Z",
+    "dateModified": "2026-02-02T00:00:00Z",
+    "author": {
+      "@type": "Organization",
+      "name": "PMHNP Hiring",
+      "url": "https://pmhnphiring.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pmhnphiring.com/logo.svg"
+      }
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PMHNP Hiring",
+      "url": "https://pmhnphiring.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pmhnphiring.com/logo.svg"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://pmhnphiring.com/salary-guide"
+    }
+  };
+
   // Sanitize JSON for safe injection into script tag (escape < to prevent XSS)
   const sanitizeJson = (obj: object): string => {
     return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
@@ -193,6 +227,10 @@ export default async function SalaryGuidePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: sanitizeJson(articleSchema) }}
       />
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
@@ -742,6 +780,16 @@ export default async function SalaryGuidePage() {
                 </p>
               </div>
             </section>
+
+            {/* Cite This Page */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8 mt-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">📋 Cite This Page</h3>
+              <p className="text-sm text-gray-600 mb-4">Use the following citation when referencing data from this salary guide:</p>
+
+              <CopyCitation citation={`PMHNP Hiring. "2026 PMHNP Salary Guide: Psychiatric NP Pay by State." PMHNP Hiring, February 2026, pmhnphiring.com/salary-guide.`} />
+
+              <p className="text-xs text-gray-500 mt-3">For media inquiries or custom data requests, contact press@pmhnphiring.com</p>
+            </div>
 
             {/* CTA Section */}
             <section>
