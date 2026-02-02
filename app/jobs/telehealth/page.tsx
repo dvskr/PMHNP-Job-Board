@@ -549,5 +549,6 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                 </div>
             </section>
         </div>
-    );
+    </div >
+);
 }

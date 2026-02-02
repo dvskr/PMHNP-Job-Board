@@ -524,6 +524,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
         </div>
       </section>
     </div>
-  );
+  </div >
+);
 }
 

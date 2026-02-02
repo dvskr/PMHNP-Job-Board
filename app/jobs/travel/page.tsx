@@ -536,5 +536,6 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
         </div>
       </section>
     </div>
-  );
+  </div >
+);
 }
