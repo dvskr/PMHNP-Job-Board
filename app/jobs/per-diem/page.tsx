@@ -576,6 +576,5 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                     </div>
                 </section>
             </div>
-        </div>
-    );
+            );
 }
