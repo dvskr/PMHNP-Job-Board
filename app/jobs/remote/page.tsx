@@ -493,6 +493,36 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
           </div>
         </div>
       </div>
+      <section className="mt-12 mb-8 container mx-auto px-4">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Explore More PMHNP Resources</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+            <h3 className="font-semibold text-blue-600">💰 2026 Salary Guide</h3>
+            <p className="text-sm text-gray-600 mt-1">Average PMHNP salary is $155,000+. See pay by state, experience, and setting.</p>
+          </Link>
+
+          <Link href="/jobs/locations" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+            <h3 className="font-semibold text-blue-600">📍 Jobs by Location</h3>
+            <p className="text-sm text-gray-600 mt-1">Browse PMHNP positions by state and city.</p>
+          </Link>
+
+          <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+            <h3 className="font-semibold text-blue-600">✈️ Travel Jobs</h3>
+            <p className="text-sm text-gray-600 mt-1">Locum tenens positions with premium pay.</p>
+          </Link>
+
+          <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+            <h3 className="font-semibold text-blue-600">🎓 New Grad Jobs</h3>
+            <p className="text-sm text-gray-600 mt-1">Entry-level PMHNP opportunities.</p>
+          </Link>
+
+          <Link href="/jobs/telehealth" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+            <h3 className="font-semibold text-blue-600">💻 Telehealth Jobs</h3>
+            <p className="text-sm text-gray-600 mt-1">Virtual psychiatric care positions.</p>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
