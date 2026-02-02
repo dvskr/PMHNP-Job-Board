@@ -4,6 +4,7 @@ import { Wifi, Home, Clock, Globe, TrendingUp, Building2, Lightbulb, Bell, Video
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
@@ -144,6 +145,12 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Breadcrumb Schema */}
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://pmhnphiring.com" },
+        { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
+        { name: "Remote", url: "https://pmhnphiring.com/jobs/remote" }
+      ]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
