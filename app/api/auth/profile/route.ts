@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Send welcome email only for new signups (not updates)
     if (!existingProfile) {
       try {
-        await sendSignupWelcomeEmail(email, firstName, role || 'job_seeker')
+        await sendSignupWelcomeEmail(email, firstName || '', role || 'job_seeker')
         logger.info('Welcome email sent to new user', { email, role })
       } catch (emailError) {
         // Don't fail signup if email fails

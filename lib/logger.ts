@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 
 /**
  * Structured Logger for Production
@@ -187,6 +186,7 @@ export const logger = new Logger();
 // Helper to create request-scoped logger
 export function createRequestLogger(request: Request): Logger {
     const url = new URL(request.url);
+    // Use global crypto for Edge/Node compatibility
     const requestId = crypto.randomUUID().slice(0, 8);
     return logger.withRequest(requestId, url.pathname, request.method);
 }
