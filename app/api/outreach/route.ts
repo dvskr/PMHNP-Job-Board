@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { sanitizeText, sanitizeEmail, sanitizeUrl } from '@/lib/sanitize';
 import {
   suggestTargetCompanies,
   getLeadsByStatus,
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: allLeads });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error fetching outreach data:', error);
+    logger.error('Error fetching outreach data:', error);
     return NextResponse.json(
       {
         success: false,
@@ -67,6 +69,13 @@ export async function POST(request: NextRequest) {
     if (action === 'create') {
       const { companyName, contactName, contactEmail, website, source, notes } = body;
 
+      const sanitizedCompanyName = sanitizeText(companyName || '', 100);
+      const sanitizedContactName = contactName ? sanitizeText(contactName, 100) : undefined;
+      const sanitizedContactEmail = contactEmail ? sanitizeEmail(contactEmail) : undefined;
+      const sanitizedWebsite = website ? sanitizeUrl(website) : undefined;
+      const sanitizedSource = source ? sanitizeText(source, 50) : undefined;
+      const sanitizedNotes = notes ? sanitizeText(notes, 5000) : undefined;
+
       if (!companyName) {
         return NextResponse.json(
           {
@@ -78,12 +87,12 @@ export async function POST(request: NextRequest) {
       }
 
       const lead = await createEmployerLead({
-        companyName,
-        contactName,
-        contactEmail,
-        website,
-        source,
-        notes,
+        companyName: sanitizedCompanyName,
+        contactName: sanitizedContactName,
+        contactEmail: sanitizedContactEmail,
+        website: sanitizedWebsite,
+        source: sanitizedSource,
+        notes: sanitizedNotes,
       });
 
       return NextResponse.json({ success: true, data: lead });
@@ -92,6 +101,7 @@ export async function POST(request: NextRequest) {
     // Update lead status
     if (action === 'update') {
       const { id, status, notes } = body;
+      const sanitizedNotes = notes ? sanitizeText(notes, 5000) : undefined;
 
       if (!id || !status) {
         return NextResponse.json(
@@ -103,7 +113,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      await updateLeadStatus(id, status, notes);
+      await updateLeadStatus(id, status, sanitizedNotes);
 
       return NextResponse.json({
         success: true,
@@ -152,7 +162,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error processing outreach request:', error);
+    logger.error('Error processing outreach request:', error);
     return NextResponse.json(
       {
         success: false,

@@ -49,29 +49,49 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'PMHNP Jobs',
-    title: 'PMHNP Jobs - Find Psychiatric Nurse Practitioner Positions',
+    siteName: 'PMHNP Hiring',
+    title: 'PMHNP Hiring - Find Psychiatric Nurse Practitioner Positions',
     description: 'The #1 job board for PMHNPs. Browse 1000+ remote and in-person psychiatric NP jobs with salary transparency.',
     images: [
       {
-        url: '/og-image.svg',
+        url: '/og-image.png?v=4',
         width: 1200,
         height: 630,
-        alt: 'PMHNP Jobs - Psychiatric Nurse Practitioner Job Board',
+        alt: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'PMHNP Jobs - Psychiatric Nurse Practitioner Job Board',
+    title: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
     description: 'Find your next PMHNP position. 1000+ remote and in-person jobs updated daily.',
-    images: ['/og-image.svg'],
+    images: ['/og-image.png?v=4'],
   },
 
   icons: {
-    icon: '/favicon.svg',
-    apple: '/icon-512.svg',
+    icon: [
+      { url: '/favicon.ico?v=4', sizes: '32x32' },
+      { url: '/favicon-16x16.png?v=4', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png?v=4', sizes: '32x32', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png?v=4', sizes: '180x180', type: 'image/png' }
+    ],
+    other: [
+      {
+        rel: 'manifest',
+        url: '/site.webmanifest?v=4',
+      },
+      {
+        rel: 'android-chrome-192x192',
+        url: '/android-chrome-192x192.png?v=4', // Explicitly managed in manifest but good to have link consistency if used
+      },
+      {
+        rel: 'android-chrome-512x512',
+        url: '/android-chrome-512x512.png?v=4',
+      }
+    ],
   },
 
   robots: {
@@ -79,6 +99,7 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: {
       index: true,
+      follow: true,
       follow: true,
       'max-video-preview': -1,
       'max-image-preview': 'large',
@@ -117,8 +138,9 @@ export default function RootLayout({
                   "url": "https://pmhnphiring.com",
                   "logo": {
                     "@type": "ImageObject",
-                    "url": "https://pmhnphiring.com/logo.svg"
+                    "url": "https://pmhnphiring.com/logo.png"
                   },
+                  "image": "https://pmhnphiring.com/logo.png",
                   "description": "The #1 job board for psychiatric mental health nurse practitioners. Browse 8,500+ PMHNP jobs with salary data.",
                   "foundingDate": "2024",
                   "sameAs": [

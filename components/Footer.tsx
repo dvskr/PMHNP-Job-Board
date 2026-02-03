@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Twitter, Facebook, Instagram, Linkedin, AtSign } from 'lucide-react';
 
 export default function Footer() {
@@ -149,7 +150,15 @@ export default function Footer() {
         {/* Bottom Section */}
         <div className="pt-6 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-white">PMHNP Jobs</span>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo.png"
+                alt="PMHNP Hiring"
+                width={190}
+                height={40}
+                className="h-10 w-auto brightness-0 invert"
+              />
+            </Link>
             <span className="text-xs text-gray-500 hidden sm:inline border-l border-gray-700 pl-2 ml-1">
               The #1 job board for psychiatric NPs
             </span>

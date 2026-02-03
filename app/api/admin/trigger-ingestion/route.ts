@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Admin API wrapper for triggering ingestion
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const source = body.source;
 
-    console.log(`[Admin] Triggering ingestion for: ${source || 'all sources'}`);
+    logger.info(`[Admin] Triggering ingestion for: ${source || 'all sources'}`);
 
     // Build the URL for the cron endpoint
     // Use localhost in development, require NEXT_PUBLIC_BASE_URL in production
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json();
 
-    console.log(`[Admin] Ingestion complete:`, result.ingestion?.summary);
+    logger.info(`[Admin] Ingestion complete:`, result.ingestion?.summary);
 
     return NextResponse.json({
       success: true,
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Admin] Error triggering ingestion:', error);
+    logger.error('[Admin] Error triggering ingestion:', error);
 
     return NextResponse.json(
       {
