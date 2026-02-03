@@ -100,7 +100,6 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      follow: true,
       'max-video-preview': -1,
       'max-image-preview': 'large',
       'max-snippet': -1,
@@ -138,9 +137,9 @@ export default function RootLayout({
                   "url": "https://pmhnphiring.com",
                   "logo": {
                     "@type": "ImageObject",
-                    "url": "https://pmhnphiring.com/logo.png"
+                    "url": "https://pmhnphiring.com/pmhnp_logo.png"
                   },
-                  "image": "https://pmhnphiring.com/logo.png",
+                  "image": "https://pmhnphiring.com/pmhnp_logo.png",
                   "description": "The #1 job board for psychiatric mental health nurse practitioners. Browse 8,500+ PMHNP jobs with salary data.",
                   "foundingDate": "2024",
                   "sameAs": [

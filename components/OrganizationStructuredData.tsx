@@ -10,9 +10,9 @@ export default function OrganizationStructuredData({ baseUrl }: OrganizationStru
     "url": baseUrl,
     "logo": {
       "@type": "ImageObject",
-      "url": `${baseUrl}/logo.png`
+      "url": `${baseUrl}/pmhnp_logo.png`
     },
-    "image": `${baseUrl}/logo.png`,
+    "image": `${baseUrl}/pmhnp_logo.png`,
     "description": "The #1 job board for Psychiatric Mental Health Nurse Practitioners. Find remote and in-person PMHNP jobs with salary transparency.",
     "contactPoint": {
       "@type": "ContactPoint",
