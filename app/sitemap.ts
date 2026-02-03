@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 import { getPostSlugs } from '@/lib/blog'
 
 // Type for job query result
@@ -242,7 +243,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...blogPages,
     ]
   } catch (error) {
-    console.error('Error generating sitemap, returning static pages only:', error)
+    logger.error('Error generating sitemap, returning static pages only:', error)
     // Return static pages and SEO landing pages if database is unavailable during build
     return [
       ...staticPages,

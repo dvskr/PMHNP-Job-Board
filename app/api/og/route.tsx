@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'edge';
 
@@ -220,7 +221,7 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('OG Image Error:', error);
+    logger.error('OG Image Error:', error);
 
     // Fallback
     return new ImageResponse(

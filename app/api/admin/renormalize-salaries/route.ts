@@ -176,8 +176,8 @@ export async function GET(request: NextRequest) {
     // Calculate final stats
     const finalNormalized = Object.values(sourceBreakdown).reduce((sum: number, s: { total: number; before: number; after: number }) => sum + s.after, 0);
 
-    console.log('[Renormalize] Complete!');
-    console.log(`[Renormalize] Updated: ${stats.updated}, New: ${stats.newlyNormalized}, Errors: ${stats.errors}`);
+    logger.info('[Renormalize] Complete!');
+    logger.info(`[Renormalize] Updated: ${stats.updated}, New: ${stats.newlyNormalized}, Errors: ${stats.errors}`);
 
     return NextResponse.json({
       success: true,

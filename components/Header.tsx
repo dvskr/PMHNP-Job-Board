@@ -35,17 +35,17 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center">
               <Image
-                src="/logo.svg"
-                alt="PMHNP Jobs"
-                width={200}
-                height={50}
+                src="/pmhnp_logo.png"
+                alt="PMHNP Hiring"
+                width={135}
+                height={58}
                 priority
-                className="h-12 w-auto"
+                className="h-[58px] w-auto"
               />
             </Link>
 
             {/* Divider */}
-            <div className="h-8 w-px bg-gray-300"></div>
+            <div className="h-12 w-px bg-gray-300"></div>
 
             {/* Desktop Navigation Buttons */}
             <Link href="/jobs">
@@ -70,12 +70,12 @@ export default function Header() {
           <div className="flex-shrink-0 lg:hidden">
             <Link href="/" className="flex items-center">
               <Image
-                src="/logo.svg"
-                alt="PMHNP Jobs"
-                width={200}
-                height={50}
+                src="/pmhnp_logo.png"
+                alt="PMHNP Hiring"
+                width={100}
+                height={45}
                 priority
-                className="h-12 w-auto"
+                className="h-[45px] w-auto"
               />
             </Link>
           </div>

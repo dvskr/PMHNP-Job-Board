@@ -10,6 +10,7 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   // Log error to console for debugging
   useEffect(() => {
+    // Note: logger is server-only, so we use console.error here (client side)
     console.error('Global application error:', error);
   }, [error]);
 

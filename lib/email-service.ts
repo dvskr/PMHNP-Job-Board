@@ -32,8 +32,9 @@ export async function sendWelcomeEmail(email: string, unsubscribeToken: string):
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
-            <td style="background-color: #2563eb; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: bold;">Welcome to PMHNP Jobs!</h1>
+            <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 24px; color: #111827; font-weight: bold;">Welcome to PMHNP Jobs!</h1>
             </td>
           </tr>
           <tr>
@@ -105,7 +106,7 @@ export async function sendSignupWelcomeEmail(
     await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
-      subject: isEmployer 
+      subject: isEmployer
         ? `Welcome to PMHNP Jobs - Start Hiring Today!`
         : `Welcome to PMHNP Jobs, ${firstName}!`,
       html: `<!DOCTYPE html>
@@ -122,8 +123,9 @@ export async function sendSignupWelcomeEmail(
           
           <!-- Header -->
           <tr>
-            <td style="background-color: #2563eb; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: bold;">
+            <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 24px; color: #111827; font-weight: bold;">
                 Welcome to PMHNP Jobs${firstName ? `, ${firstName}` : ''}!
               </h1>
             </td>
@@ -133,10 +135,10 @@ export async function sendSignupWelcomeEmail(
           <tr>
             <td style="padding: 40px;">
               <p style="margin: 0 0 20px 0; font-size: 16px; color: #374151; line-height: 1.6;">
-                ${isEmployer 
-                  ? `Thanks for creating your employer account! You're now ready to post jobs and connect with qualified PMHNPs.`
-                  : `Thanks for joining PMHNP Jobs - the #1 job board dedicated to Psychiatric Mental Health Nurse Practitioners.`
-                }
+                ${isEmployer
+          ? `Thanks for creating your employer account! You're now ready to post jobs and connect with qualified PMHNPs.`
+          : `Thanks for joining PMHNP Jobs - the #1 job board dedicated to Psychiatric Mental Health Nurse Practitioners.`
+        }
               </p>
               
               ${isEmployer ? `
@@ -265,8 +267,9 @@ export async function sendConfirmationEmail(
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
-            <td style="background-color: #059669; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: bold;">Your Job Post is Live!</h1>
+            <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 24px; color: #059669; font-weight: bold;">Your Job Post is Live!</h1>
             </td>
           </tr>
           <tr>
@@ -381,8 +384,9 @@ export async function sendJobAlertEmail(
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
-            <td style="background-color: #2563eb; padding: 24px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 22px; color: #ffffff; font-weight: bold;">
+            <td style="background-color: #ffffff; padding: 24px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 22px; color: #111827; font-weight: bold;">
                 ${jobCount} New Job${jobCount > 1 ? 's' : ''} Match Your Alert
               </h1>
             </td>
@@ -461,8 +465,9 @@ export async function sendRenewalConfirmationEmail(
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
-            <td style="background-color: #059669; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: bold;">Job Renewed Successfully!</h1>
+            <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 24px; color: #059669; font-weight: bold;">Job Renewed Successfully!</h1>
             </td>
           </tr>
           <tr>
@@ -561,8 +566,9 @@ export async function sendExpiryWarningEmail(
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
-            <td style="background-color: #f59e0b; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: bold;">Job Expiring Soon</h1>
+            <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 24px; color: #b45309; font-weight: bold;">Job Expiring Soon</h1>
             </td>
           </tr>
           <tr>
@@ -578,8 +584,8 @@ export async function sendExpiryWarningEmail(
               
               <p style="margin: 0 0 24px 0; font-size: 16px; color: #374151; line-height: 1.6;">
                 ${config.isPaidPostingEnabled
-                  ? 'Renew for just $99 to keep it active for another 30 days.'
-                  : 'Renew now to keep it active - FREE during our launch period!'}
+          ? 'Renew for just $99 to keep it active for another 30 days.'
+          : 'Renew now to keep it active - FREE during our launch period!'}
               </p>
               
               <!-- Stats -->
@@ -650,7 +656,7 @@ export async function sendDraftSavedEmail(
 ): Promise<EmailResult> {
   try {
     const resumeUrl = `${BASE_URL}/post-job?resume=${resumeToken}`;
-    
+
     await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
@@ -667,8 +673,9 @@ export async function sendDraftSavedEmail(
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
-            <td style="background-color: #2563eb; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: bold;">Continue Your Job Posting</h1>
+            <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <h1 style="margin: 0; font-size: 24px; color: #111827; font-weight: bold;">Continue Your Job Posting</h1>
             </td>
           </tr>
           <tr>

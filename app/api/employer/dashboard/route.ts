@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 
 type EmployerJobWithJob = {
@@ -19,7 +20,7 @@ type EmployerJobWithJob = {
 function maskEmail(email: string): string {
   const [username, domain] = email.split('@');
   if (!username || !domain) return email;
-  
+
   const visibleChars = Math.min(3, Math.floor(username.length / 2));
   const masked = username.substring(0, visibleChars) + '***';
   return `${masked}@${domain}`;
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       jobs,
     });
   } catch (error) {
-    console.error('Error fetching employer dashboard:', error);
+    logger.error('Error fetching employer dashboard:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch dashboard data' },
       { status: 500 }

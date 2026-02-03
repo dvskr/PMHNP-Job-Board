@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
+import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 
 // GET - Get current user's profile
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json(profile)
   } catch (error) {
-    console.error('Profile GET error:', error)
+    logger.error('Profile GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -33,7 +34,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { supabaseId, email, firstName, lastName, role, company, phone } = body
+    const { supabaseId, email, firstName: rawFirstName, lastName: rawLastName, role, company: rawCompany, phone: rawPhone } = body
+
+    const firstName = rawFirstName ? sanitizeText(rawFirstName, 50) : null
+    const lastName = rawLastName ? sanitizeText(rawLastName, 50) : null
+    const company = rawCompany ? sanitizeText(rawCompany, 100) : null
+    const phone = rawPhone ? sanitizeText(rawPhone, 20) : null
 
     if (!supabaseId || !email) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Send welcome email only for new signups (not updates)
     if (!existingProfile) {
       try {
-        await sendSignupWelcomeEmail(email, firstName, role || 'job_seeker')
+        await sendSignupWelcomeEmail(email, firstName || '', role || 'job_seeker')
         logger.info('Welcome email sent to new user', { email, role })
       } catch (emailError) {
         // Don't fail signup if email fails
@@ -77,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(profile)
   } catch (error) {
-    console.error('Profile POST error:', error)
+    logger.error('Profile POST error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -93,7 +99,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { firstName, lastName, phone, company, avatarUrl, resumeUrl } = body
+    const { firstName: rawFirstName, lastName: rawLastName, phone: rawPhone, company: rawCompany, avatarUrl: rawAvatarUrl, resumeUrl: rawResumeUrl } = body
+
+    const firstName = rawFirstName ? sanitizeText(rawFirstName, 50) : undefined
+    const lastName = rawLastName ? sanitizeText(rawLastName, 50) : undefined
+    const phone = rawPhone ? sanitizeText(rawPhone, 20) : undefined
+    const company = rawCompany ? sanitizeText(rawCompany, 100) : undefined
+    const avatarUrl = rawAvatarUrl ? sanitizeUrl(rawAvatarUrl) : undefined
+    const resumeUrl = rawResumeUrl ? sanitizeUrl(rawResumeUrl) : undefined
 
     const updatedProfile = await prisma.userProfile.update({
       where: { supabaseId: user.id },
@@ -110,7 +123,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedProfile)
   } catch (error) {
-    console.error('Profile PATCH error:', error)
+    logger.error('Profile PATCH error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
