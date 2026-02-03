@@ -33,7 +33,7 @@ export async function sendWelcomeEmail(email: string, unsubscribeToken: string):
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
             <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 24px; color: #111827; font-weight: bold;">Welcome to PMHNP Jobs!</h1>
             </td>
           </tr>
@@ -124,7 +124,7 @@ export async function sendSignupWelcomeEmail(
           <!-- Header -->
           <tr>
             <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 24px; color: #111827; font-weight: bold;">
                 Welcome to PMHNP Jobs${firstName ? `, ${firstName}` : ''}!
               </h1>
@@ -268,7 +268,7 @@ export async function sendConfirmationEmail(
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
             <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 24px; color: #059669; font-weight: bold;">Your Job Post is Live!</h1>
             </td>
           </tr>
@@ -385,7 +385,7 @@ export async function sendJobAlertEmail(
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
             <td style="background-color: #ffffff; padding: 24px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 22px; color: #111827; font-weight: bold;">
                 ${jobCount} New Job${jobCount > 1 ? 's' : ''} Match Your Alert
               </h1>
@@ -466,7 +466,7 @@ export async function sendRenewalConfirmationEmail(
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
             <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 24px; color: #059669; font-weight: bold;">Job Renewed Successfully!</h1>
             </td>
           </tr>
@@ -567,7 +567,7 @@ export async function sendExpiryWarningEmail(
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
             <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 24px; color: #b45309; font-weight: bold;">Job Expiring Soon</h1>
             </td>
           </tr>
@@ -674,7 +674,7 @@ export async function sendDraftSavedEmail(
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
           <tr>
             <td style="background-color: #ffffff; padding: 32px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-              <img src="${BASE_URL}/logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
+              <img src="${BASE_URL}/pmhnp_logo.png" height="40" alt="PMHNP Hiring" style="display: block; margin: 0 auto 24px auto;" />
               <h1 style="margin: 0; font-size: 24px; color: #111827; font-weight: bold;">Continue Your Job Posting</h1>
             </td>
           </tr>
