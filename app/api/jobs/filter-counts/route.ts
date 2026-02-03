@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
 import { buildWhereClause } from '@/lib/filters';
 
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(counts);
   } catch (error) {
-    console.error('Error calculating filter counts:', error);
+    logger.error('Error calculating filter counts:', error);
     return NextResponse.json(
       { error: 'Failed to calculate filter counts' },
       { status: 500 }

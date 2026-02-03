@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -20,7 +21,7 @@ export async function GET() {
       totalCompanies,
     });
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    logger.error('Error fetching stats:', error);
     // Return zeros instead of error to prevent UI breaking
     return NextResponse.json({
       totalJobs: 0,
