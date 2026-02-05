@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
+    // Load logo image
+    const logoUrl = new URL('../../../public/pmhnp_logo.png', import.meta.url);
+    const logoData = await fetch(logoUrl).then((res) => res.arrayBuffer());
+
     // Get parameters
     const title = searchParams.get('title') || 'PMHNP Position';
     const company = searchParams.get('company') || 'Healthcare Employer';
@@ -63,25 +67,18 @@ export async function GET(request: NextRequest) {
               left: '56px',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '20px',
             }}
           >
-            <div
+            {/* @ts-ignore */}
+            <img
+              src={logoData as any}
+              width="64"
+              height="64"
               style={{
-                width: '52px',
-                height: '52px',
-                backgroundColor: '#0d9488',
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '28px',
+                borderRadius: '12px',
               }}
-            >
-              P
-            </div>
+            />
             <div
               style={{
                 display: 'flex',
@@ -90,8 +87,8 @@ export async function GET(request: NextRequest) {
             >
               <span
                 style={{
-                  fontSize: '22px',
-                  fontWeight: 700,
+                  fontSize: '28px',
+                  fontWeight: 800,
                   color: '#0d9488',
                   letterSpacing: '1px',
                 }}
@@ -100,10 +97,10 @@ export async function GET(request: NextRequest) {
               </span>
               <span
                 style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
+                  fontSize: '14px',
+                  fontWeight: 700,
                   color: '#0d9488',
-                  letterSpacing: '3px',
+                  letterSpacing: '4px',
                 }}
               >
                 HIRING
