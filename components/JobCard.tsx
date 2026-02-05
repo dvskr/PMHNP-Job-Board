@@ -24,6 +24,21 @@ interface JobCardProps {
   viewMode?: 'grid' | 'list';
 }
 
+// Helper to safely strip HTML (works on server and client)
+function stripHtml(html: string | null | undefined): string {
+  if (!html) return '';
+  // Decode entities first
+  const decoded = html
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+
+  // Then strip tags
+  return decoded.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
   const { isViewed, markAsViewed, isHydrated } = useViewedJobs();
@@ -37,6 +52,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);
+
+  // Clean summary for display
+  const cleanSummary = stripHtml(job.descriptionSummary);
 
   // Mark job as viewed when card is clicked
   const handleCardClick = () => {
@@ -128,9 +146,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </div>
 
               {/* Description - hidden on mobile */}
-              {job.descriptionSummary && (
+              {cleanSummary && (
                 <p className="hidden md:block text-black text-sm line-clamp-1 mt-2">
-                  {job.descriptionSummary}
+                  {cleanSummary}
                 </p>
               )}
 
@@ -265,9 +283,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         )}
 
         {/* Description Summary */}
-        {job.descriptionSummary && (
+        {cleanSummary && (
           <p className="text-black text-sm mt-2 line-clamp-2">
-            {job.descriptionSummary}
+            {cleanSummary}
           </p>
         )}
 

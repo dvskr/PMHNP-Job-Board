@@ -73,9 +73,12 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  
+
   try {
     const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'PMHNP-Job-Board/1.0 (contact@pmhnphiring.com)',
+      },
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
@@ -96,9 +99,9 @@ async function fetchFromCareerJetWithRetry(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const url = `${API_ENDPOINT}?${params}`;
-      
+
       const response = await fetchWithTimeout(url, 15000);
-      
+
       if (!response.ok) {
         console.error(`[CareerJet] HTTP error ${response.status}`);
         if (attempt < maxRetries) {
@@ -109,24 +112,24 @@ async function fetchFromCareerJetWithRetry(
       }
 
       const data = await response.json() as CareerJetResponse;
-      
+
       if (data.type === 'ERROR') {
         console.error(`[CareerJet] API returned error`);
         return null;
       }
-      
+
       return data;
-      
+
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.log(`[CareerJet] Request failed (${errorMsg})`);
-      
+
       if (attempt < maxRetries) {
         await sleep(1000);
       }
     }
   }
-  
+
   return null;
 }
 
@@ -136,7 +139,7 @@ async function fetchFromCareerJetWithRetry(
  */
 export async function fetchCareerJetJobs(): Promise<Array<Record<string, unknown>>> {
   const affiliateId = process.env.CAREERJET_AFFILIATE_ID;
-  
+
   if (!affiliateId) {
     console.error('[CareerJet] Affiliate ID not set in environment variables');
     return [];
@@ -150,7 +153,7 @@ export async function fetchCareerJetJobs(): Promise<Array<Record<string, unknown
   for (const query of SEARCH_QUERIES) {
     try {
       console.log(`[CareerJet] Searching for: "${query}"`);
-      
+
       // Fetch up to 3 pages (50 jobs per page)
       for (let page = 1; page <= 3; page++) {
         const params = new URLSearchParams({
@@ -161,16 +164,18 @@ export async function fetchCareerJetJobs(): Promise<Array<Record<string, unknown
           page: page.toString(),
           pagesize: '50',
           sort: 'date',
+          user_ip: process.env.CAREERJET_USER_IP || '127.0.0.1',
+          user_agent: 'PMHNP-Job-Board/1.0 (contact@pmhnphiring.com)',
         });
 
         const data = await fetchFromCareerJetWithRetry(params);
 
-        
+
         if (!data) {
           console.warn(`[CareerJet] Request failed for "${query}" page ${page}`);
           break;
         }
-        
+
         const jobs = data.jobs || [];
         console.log(`[CareerJet] Page ${page}: ${jobs.length} jobs`);
 
@@ -227,7 +232,7 @@ export async function fetchCareerJetJobs(): Promise<Array<Record<string, unknown
   }
 
   console.log(`[CareerJet] Total unique jobs fetched: ${allJobs.length}`);
-  
+
   return allJobs;
 }
 
