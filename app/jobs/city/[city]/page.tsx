@@ -251,11 +251,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     getCityStats(cityName),
   ]);
 
-  // If no jobs found, show not found
-  if (stats.totalJobs === 0) {
-    notFound();
-  }
-
+  // Note: We no longer 404 on zero jobs - we show helpful content instead
   const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
 
   // Build breadcrumb items
@@ -368,11 +364,62 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                {jobs.map((job: Job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
+              {jobs.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-8">
+                  <div className="text-center mb-8">
+                    <MapPin className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      No PMHNP Jobs in {cityName} Right Now
+                    </h3>
+                    <p className="text-gray-600 max-w-md mx-auto">
+                      We don&apos;t have any active positions in {cityName} at the moment,
+                      but new jobs are added daily. Here are some alternatives:
+                    </p>
+                  </div>
+
+                  {/* Alternative Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    {stats.state && (
+                      <Link
+                        href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
+                        className="flex flex-col p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                      >
+                        <span className="font-semibold text-blue-900">📍 Jobs in {stats.state}</span>
+                        <span className="text-sm text-blue-700 mt-1">Browse all positions statewide</span>
+                      </Link>
+                    )}
+                    <Link
+                      href="/jobs/remote"
+                      className="flex flex-col p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors"
+                    >
+                      <span className="font-semibold text-purple-900">🏠 Remote PMHNP Jobs</span>
+                      <span className="text-sm text-purple-700 mt-1">Work from anywhere with telehealth</span>
+                    </Link>
+                    <Link
+                      href={`/job-alerts?location=${encodeURIComponent(cityName)}`}
+                      className="flex flex-col p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors"
+                    >
+                      <span className="font-semibold text-green-900">🔔 Set Up Job Alerts</span>
+                      <span className="text-sm text-green-700 mt-1">Get notified when {cityName} jobs are posted</span>
+                    </Link>
+                  </div>
+
+                  <div className="text-center">
+                    <Link
+                      href="/jobs"
+                      className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Browse All Jobs Nationwide
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                  {jobs.map((job: Job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}

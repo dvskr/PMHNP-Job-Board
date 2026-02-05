@@ -5,6 +5,9 @@ import { AlertTriangle, Shield } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Privacy Policy | PMHNP Jobs',
   description: 'Privacy Policy for PMHNP Jobs. Learn how we collect, use, and protect your information.',
+  alternates: {
+    canonical: '/privacy',
+  },
 };
 
 export default function PrivacyPage() {

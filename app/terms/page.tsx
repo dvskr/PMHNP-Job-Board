@@ -5,6 +5,9 @@ import { AlertTriangle } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Terms of Service | PMHNP Jobs',
   description: 'Terms of Service for PMHNP Jobs job board platform.',
+  alternates: {
+    canonical: '/terms',
+  },
 };
 
 export default function TermsPage() {

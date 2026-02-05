@@ -6,6 +6,9 @@ import { notFound } from 'next/navigation';
 export const metadata: Metadata = {
     title: 'PMHNP Career Blog | Expert Guides & Salary Data',
     description: 'Expert PMHNP career guides, salary data, interview tips, and job market insights. Updated weekly with data from 8,500+ job postings.',
+    alternates: {
+        canonical: '/blog',
+    },
 };
 
 export default async function BlogIndexPage({
