@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
             {/* @ts-ignore */}
             <img
               width="250"
-              src={logoData}
+              src={logoData as any}
               alt="PMHNP Hiring"
             />
           </div>
