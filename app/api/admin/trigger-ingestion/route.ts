@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { ingestJobs, cleanupExpiredJobs, type JobSource } from '@/lib/ingestion-service';
 
 /**
  * Admin API wrapper for triggering ingestion
@@ -12,38 +13,36 @@ export async function POST(request: NextRequest) {
 
     logger.info(`[Admin] Triggering ingestion for: ${source || 'all sources'}`);
 
-    // Build the URL for the cron endpoint
-    // Use localhost in development, require NEXT_PUBLIC_BASE_URL in production
-    let baseUrl: string;
-    if (process.env.NODE_ENV === 'production') {
-      baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
-    } else {
-      baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    }
-    const cronUrl = source
-      ? `${baseUrl}/api/cron/ingest?source=${source}`
-      : `${baseUrl}/api/cron/ingest`;
+    // Determine sources
+    const sources: JobSource[] = source
+      ? [source as JobSource]
+      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet'];
 
-    // Call the cron endpoint with server-side authentication
-    const response = await fetch(cronUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
-      },
-    });
+    // Direct call (Bypasses HTTP/Vercel Auth issues)
+    const ingestionResults = await ingestJobs(sources);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Ingestion failed: ${response.status} ${errorText}`);
-    }
+    // Calculate summary
+    const ingestionSummary = ingestionResults.reduce(
+      (acc, r) => ({
+        totalFetched: acc.totalFetched + r.fetched,
+        totalAdded: acc.totalAdded + r.added,
+        totalDuplicates: acc.totalDuplicates + r.duplicates,
+        totalErrors: acc.totalErrors + r.errors,
+      }),
+      { totalFetched: 0, totalAdded: 0, totalDuplicates: 0, totalErrors: 0 }
+    );
 
-    const result = await response.json();
+    // Cleanup (optional, but good to keep consistent)
+    await cleanupExpiredJobs();
 
-    logger.info(`[Admin] Ingestion complete:`, result.ingestion?.summary);
+    logger.info(`[Admin] Ingestion complete:`, ingestionSummary);
 
     return NextResponse.json({
       success: true,
-      ...result,
+      ingestion: {
+        results: ingestionResults,
+        summary: ingestionSummary,
+      },
     });
 
   } catch (error) {

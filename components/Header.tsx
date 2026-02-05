@@ -37,10 +37,10 @@ export default function Header() {
               <Image
                 src="/pmhnp_logo.png"
                 alt="PMHNP Hiring"
-                width={135}
-                height={58}
+                width={242}
+                height={104}
                 priority
-                className="h-[58px] w-auto"
+                className="h-[52px] w-auto"
               />
             </Link>
 
@@ -72,10 +72,10 @@ export default function Header() {
               <Image
                 src="/pmhnp_logo.png"
                 alt="PMHNP Hiring"
-                width={100}
-                height={45}
+                width={186}
+                height={80}
                 priority
-                className="h-[45px] w-auto"
+                className="h-[40px] w-auto"
               />
             </Link>
           </div>

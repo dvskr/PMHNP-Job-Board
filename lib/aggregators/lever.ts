@@ -33,28 +33,13 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
-  // Mental Health (Primary - high PMHNP volume)
-  'headway',
-  'talkspace', 
-  'lyrahealth',
-  'springhealth',
-  'modernhealth',
-  'alma',
-  'cerebral',
-  'brightside',
-  'gaborhealth',
-  
-  // Healthcare/Telehealth
-  'carbonhealth',
-  'onemedical',
-  'zocdoc',
-  'devoted',
-  'clover',
-  
-  // Healthcare Staffing
-  'nomadhealth',
-  'trustedhealth',
-  'incrediblehealth',
+  // === VERIFIED — Have PMHNP jobs ===
+  'talkiatry',           // Talkiatry — 59 PMHNP jobs (BIGGEST SOURCE)
+  'includedhealth',      // Included Health — 6 PMHNP jobs
+  'lyrahealth',          // Lyra Health — 1 PMHNP job
+
+  // === VERIFIED — Valid, monitoring for PMHNP ===
+  'carbonhealth',        // Carbon Health — 0 currently but valid endpoint
 ];
 
 const PMHNP_KEYWORDS = [
@@ -69,28 +54,10 @@ const PMHNP_KEYWORDS = [
 ];
 
 const COMPANY_NAMES: Record<string, string> = {
-  // Mental Health
-  'headway': 'Headway',
-  'talkspace': 'Talkspace',
+  'talkiatry': 'Talkiatry',
+  'includedhealth': 'Included Health',
   'lyrahealth': 'Lyra Health',
-  'springhealth': 'Spring Health',
-  'modernhealth': 'Modern Health',
-  'alma': 'Alma',
-  'cerebral': 'Cerebral',
-  'brightside': 'Brightside Health',
-  'gaborhealth': 'Gabor Health',
-  
-  // Healthcare/Telehealth
   'carbonhealth': 'Carbon Health',
-  'onemedical': 'One Medical',
-  'zocdoc': 'Zocdoc',
-  'devoted': 'Devoted Health',
-  'clover': 'Clover Health',
-  
-  // Healthcare Staffing
-  'nomadhealth': 'Nomad Health',
-  'trustedhealth': 'Trusted Health',
-  'incrediblehealth': 'Incredible Health',
 };
 
 function formatCompanyName(slug: string): string {
@@ -159,7 +126,7 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
 
 export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
   console.log(`[Lever] Checking ${LEVER_COMPANIES.length} companies for PMHNP jobs...`);
-  
+
   const allJobs: LeverJobRaw[] = [];
   const failedCompanies: string[] = [];
 
@@ -168,7 +135,7 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
       try {
         const jobs = await fetchCompanyPostings(companySlug);
         allJobs.push(...jobs);
-        
+
         // Rate limiting: 500ms delay between companies
         await sleep(500);
       } catch {
@@ -178,7 +145,7 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
     }
 
     console.log(`[Lever] Total PMHNP jobs fetched: ${allJobs.length}`);
-    
+
     if (failedCompanies.length > 0) {
       console.log(`[Lever] Failed companies (${failedCompanies.length}): ${failedCompanies.join(', ')}`);
     }

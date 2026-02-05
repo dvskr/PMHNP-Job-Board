@@ -1,17 +1,18 @@
-import { prisma } from '@/lib/prisma';
-import { fetchAdzunaJobs } from '@/lib/aggregators/adzuna';
-import { fetchUSAJobs } from '@/lib/aggregators/usajobs';
-import { fetchGreenhouseJobs } from '@/lib/aggregators/greenhouse';
-import { fetchLeverJobs } from '@/lib/aggregators/lever';
+import { prisma } from './prisma';
+import { fetchAdzunaJobs } from './aggregators/adzuna';
+import { fetchUSAJobs } from './aggregators/usajobs';
+import { fetchGreenhouseJobs } from './aggregators/greenhouse';
+import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchCareerJetJobs } from './aggregators/careerjet';
-import { normalizeJob } from '@/lib/job-normalizer';
-import { checkDuplicate } from '@/lib/deduplicator';
+import { fetchJSearchJobs } from './aggregators/jsearch';
+import { normalizeJob } from './job-normalizer';
+import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet' | 'jsearch';
 
 export interface IngestionResult {
   source: JobSource;
@@ -39,6 +40,8 @@ async function fetchFromSource(source: JobSource): Promise<Array<Record<string, 
       return await fetchJoobleJobs();
     case 'careerjet':
       return await fetchCareerJetJobs();
+    case 'jsearch':
+      return await fetchJSearchJobs();
     default:
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
@@ -57,31 +60,45 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
-    
+
     // Fetch raw jobs from source
     const rawJobs = await fetchFromSource(source);
     fetched = rawJobs.length;
-    
+
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
     if (fetched === 0) {
       return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime };
     }
 
+    // Optimized: Load all existing externalIds for this source once
+    const existingIds = new Set(
+      (await prisma.job.findMany({
+        where: { sourceProvider: source },
+        select: { externalId: true },
+      })).map(j => j.externalId).filter((id): id is string => !!id)
+    );
+
     // Process each job
     for (let i = 0; i < rawJobs.length; i++) {
       const rawJob = rawJobs[i];
-      
+
       try {
         // Normalize the job
         const normalizedJob = normalizeJob(rawJob, source);
-        
+
         if (!normalizedJob) {
           errors++;
           continue;
         }
 
-        // Check for duplicates using multi-strategy deduplication
+        // Strategy 1: Fast in-memory lookup for exact externalId match
+        if (normalizedJob.externalId && existingIds.has(normalizedJob.externalId)) {
+          duplicates++;
+          continue;
+        }
+
+        // Strategy 2: Fuzzy matching (only if not found by ID)
         const dupCheck = await checkDuplicate({
           title: normalizedJob.title,
           employer: normalizedJob.employer,
@@ -90,7 +107,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
           sourceProvider: normalizedJob.sourceProvider ?? undefined,
           applyLink: normalizedJob.applyLink,
         });
-        
+
         if (dupCheck.isDuplicate) {
           duplicates++;
           continue;
@@ -108,7 +125,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
           .replace(/\s+/g, '-')
           .replace(/-+/g, '-')
           .trim()}-${createdJob.id}`;
-        
+
         await prisma.job.update({
           where: { id: createdJob.id },
           data: { slug },
@@ -129,12 +146,12 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         }
 
         added++;
-        
+
         // Log progress every 10 jobs
         if ((i + 1) % 10 === 0) {
           console.log(`[${source.toUpperCase()}] Processed ${i + 1}/${fetched} jobs (${added} added, ${duplicates} duplicates, ${errors} errors)`);
         }
-        
+
       } catch (error) {
         console.error(`[${source.toUpperCase()}] Error processing job:`, error);
         errors++;
@@ -143,7 +160,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
 
     const duration = Date.now() - startTime;
     const duplicateRate = fetched > 0 ? ((duplicates / fetched) * 100).toFixed(1) : '0.0';
-    
+
     console.log(`[${source.toUpperCase()}] Complete:`, {
       fetched,
       added,
@@ -173,11 +190,11 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
  * Main ingestion function - processes multiple sources
  */
 export async function ingestJobs(
-  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble']
+  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet']
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();
-  
+
   console.log('\n' + '='.repeat(80));
   console.log(`JOB INGESTION STARTED: ${timestamp}`);
   console.log(`Sources: ${sources.join(', ')}`);
@@ -203,8 +220,8 @@ export async function ingestJobs(
   );
 
   const overallDuration = Date.now() - overallStartTime;
-  const overallDuplicateRate = totals.fetched > 0 
-    ? ((totals.duplicates / totals.fetched) * 100).toFixed(1) 
+  const overallDuplicateRate = totals.fetched > 0
+    ? ((totals.duplicates / totals.fetched) * 100).toFixed(1)
     : '0.0';
 
   // Final summary
@@ -239,7 +256,7 @@ export async function ingestJobs(
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
-    
+
     const result = await prisma.job.updateMany({
       where: {
         expiresAt: {
@@ -253,7 +270,7 @@ export async function cleanupExpiredJobs(): Promise<number> {
     });
 
     console.log(`[Cleanup] Cleaned up ${result.count} expired jobs`);
-    
+
     return result.count;
   } catch (error) {
     console.error('[Cleanup] Error cleaning up expired jobs:', error);

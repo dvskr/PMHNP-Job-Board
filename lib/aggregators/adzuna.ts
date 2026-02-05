@@ -10,6 +10,8 @@ interface AdzunaJob {
   description: string;
   salary_min?: number;
   salary_max?: number;
+  contract_time?: string; // e.g., "full_time", "part_time"
+  contract_type?: string; // e.g., "permanent", "contract"
   redirect_url: string;
   created: string;
 }
@@ -70,15 +72,15 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           break; // Move to next query
         }
 
-              const data: AdzunaResponse = await response.json();
-              const jobs = data.results || [];
+        const data: AdzunaResponse = await response.json();
+        const jobs = data.results || [];
 
-              console.log(`[Adzuna] "${query}" page ${page}: ${jobs.length} jobs (total available: ${data.count})`);
-              
-              // Debug: Log first job structure on first page of first query
-              if (query === SEARCH_QUERIES[0] && page === 1 && jobs.length > 0) {
-                console.log('[Adzuna] Sample job structure:', JSON.stringify(jobs[0], null, 2));
-              }
+        console.log(`[Adzuna] "${query}" page ${page}: ${jobs.length} jobs (total available: ${data.count})`);
+
+        // Debug: Log first job structure on first page of first query
+        if (query === SEARCH_QUERIES[0] && page === 1 && jobs.length > 0) {
+          console.log('[Adzuna] Sample job structure:', JSON.stringify(jobs[0], null, 2));
+        }
 
         if (jobs.length === 0) {
           break; // No more results for this query
@@ -89,25 +91,33 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           if (seenIds.has(job.id)) continue;
           seenIds.add(job.id);
 
-              // Skip jobs without a valid apply link
-              if (!job.redirect_url) {
-                console.log(`[Adzuna] Skipping job "${job.title}" - missing redirect_url`);
-                continue;
-              }
+          // Skip jobs without a valid apply link
+          if (!job.redirect_url) {
+            console.log(`[Adzuna] Skipping job "${job.title}" - missing redirect_url`);
+            continue;
+          }
 
-              allJobs.push({
-                title: job.title,
-                employer: job.company?.display_name || 'Company Not Listed',
-                location: job.location?.display_name || 'United States',
-                description: job.description || '',
-                minSalary: job.salary_min || null,
-                maxSalary: job.salary_max || null,
-                salaryPeriod: job.salary_min ? 'annual' : null,
-                applyLink: job.redirect_url,
-                externalId: `adzuna_${job.id}`,
-                sourceProvider: 'adzuna',
-                postedAt: job.created,
-              });
+          // Map Adzuna contract types
+          let jobType = null;
+          if (job.contract_time === 'full_time') jobType = 'Full-Time';
+          else if (job.contract_time === 'part_time') jobType = 'Part-Time';
+          else if (job.contract_type === 'contract') jobType = 'Contract';
+          else if (job.contract_type === 'permanent') jobType = 'Full-Time';
+
+          allJobs.push({
+            title: job.title,
+            employer: job.company?.display_name || 'Company Not Listed',
+            location: job.location?.display_name || 'United States',
+            description: job.description || '',
+            minSalary: job.salary_min || null,
+            maxSalary: job.salary_max || null,
+            salaryPeriod: job.salary_min ? 'annual' : null,
+            jobType, // Pass raw mapped type
+            applyLink: job.redirect_url,
+            externalId: `adzuna_${job.id}`,
+            sourceProvider: 'adzuna',
+            postedAt: job.created,
+          });
         }
 
         // Rate limiting - 500ms between requests

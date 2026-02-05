@@ -45,16 +45,25 @@ const GREENHOUSE_COMPANIES = [
   'mantrahealth',        // 1 PMHNP job
   'cerebral',            // 1 PMHNP job (new!)
   'twochairs',           // 3 PMHNP jobs (new!)
-  
+
   // VERIFIED WORKING - Monitoring (no PMHNP currently)
   'talkspace',           // On Greenhouse, checking regularly
   'ayahealthcare',       // On Greenhouse, checking regularly
   'amwell',              // On Greenhouse, checking regularly
   'octave',              // On Greenhouse, checking regularly
   'growtherapy',         // On Greenhouse, checking regularly
-  
+
   // REMOVED (404 errors - not on Greenhouse):
   // lifestancehealth, lifestance, brightsidehealth, elliementalhealth, thriveworks
+
+  // === NEW - VERIFIED WITH PMHNP JOBS ===
+  'blueskytelepsych',    // Blue Sky Telepsych — 922 PMHNP jobs!
+  'bicyclehealth',       // Bicycle Health — 27 PMHNP jobs
+
+  // === NEW - VERIFIED VALID, monitoring for PMHNP ===
+  'springhealth66',      // Spring Health — 91 total jobs
+  'omadahealth',         // Omada Health — 32 total jobs
+  'brave',               // Brave Health — 9 total jobs
 ];
 
 const PMHNP_KEYWORDS = [
@@ -93,7 +102,7 @@ const COMPANY_NAMES: Record<string, string> = {
   'providence': 'Providence Health',
   'commonspirit': 'CommonSpirit Health',
   'mantrahealth': 'Mantra Health',
-  
+
   // New additions
   'lifestancehealth': 'LifeStance Health',
   'lifestance': 'LifeStance Health',
@@ -102,6 +111,13 @@ const COMPANY_NAMES: Record<string, string> = {
   'thriveworks': 'Thriveworks',
   'octave': 'Octave',
   'growtherapy': 'Grow Therapy',
+
+  // New verified additions
+  'blueskytelepsych': 'Blue Sky Telepsych',
+  'bicyclehealth': 'Bicycle Health',
+  'springhealth66': 'Spring Health',
+  'omadahealth': 'Omada Health',
+  'brave': 'Brave Health',
 };
 
 function formatCompanyName(slug: string): string {
@@ -158,7 +174,7 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
 
 export async function fetchGreenhouseJobs(): Promise<GreenhouseJobRaw[]> {
   console.log(`[Greenhouse] Checking ${GREENHOUSE_COMPANIES.length} companies for PMHNP jobs...`);
-  
+
   const allJobs: GreenhouseJobRaw[] = [];
   const failedCompanies: string[] = [];
 
@@ -166,14 +182,14 @@ export async function fetchGreenhouseJobs(): Promise<GreenhouseJobRaw[]> {
     for (const companySlug of GREENHOUSE_COMPANIES) {
       try {
         const jobs = await fetchCompanyJobs(companySlug);
-        
+
         if (jobs.length === 0) {
           // Check if it was a real failure or just no PMHNP jobs
           // We'll track this for summary
         } else {
           allJobs.push(...jobs);
         }
-        
+
         // Rate limiting: 500ms delay between companies
         await sleep(500);
       } catch {
@@ -183,7 +199,7 @@ export async function fetchGreenhouseJobs(): Promise<GreenhouseJobRaw[]> {
     }
 
     console.log(`[Greenhouse] Total PMHNP jobs fetched: ${allJobs.length}`);
-    
+
     if (failedCompanies.length > 0) {
       console.log(`[Greenhouse] Failed companies (${failedCompanies.length}): ${failedCompanies.join(', ')}`);
     }

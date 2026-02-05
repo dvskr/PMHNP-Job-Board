@@ -26,7 +26,8 @@
     "fix:locations": "ts-node --project scripts/tsconfig.json scripts/fix-missing-locations.ts",
     "fix:salaries": "ts-node --project scripts/tsconfig.json scripts/fix-all-salaries.ts",
     "populate:display-salaries": "ts-node --project scripts/tsconfig.json scripts/populate-display-salaries.ts",
-    "clean:descriptions": "ts-node --project scripts/tsconfig.json scripts/clean-job-descriptions.ts"
+    "clean:descriptions": "ts-node --project scripts/tsconfig.json scripts/clean-job-descriptions.ts",
+    "ingest": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-ingestion.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -74,6 +75,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5",
     "vitest": "^2.1.8"
   }

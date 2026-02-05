@@ -66,6 +66,7 @@ model Job {
   @@index([isRemote])
   @@index([companyId])
   @@index([slug])
+  @@index([externalId, sourceProvider])
   @@map("jobs")
 }
 
