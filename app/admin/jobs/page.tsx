@@ -71,11 +71,11 @@ export default function AdminJobsPage() {
       setLoading(true);
       setError(null);
       const response = await fetch('/api/admin/stats');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
       }
-      
+
       const data = await response.json();
       setStats(data);
     } catch (err) {
@@ -88,12 +88,12 @@ export default function AdminJobsPage() {
   const fetchSourceAnalytics = async () => {
     try {
       const response = await fetch('/api/analytics/sources');
-      
+
       if (!response.ok) {
         console.error('Failed to fetch source analytics');
         return;
       }
-      
+
       const data = await response.json();
       setSourceAnalytics(data.sources || []);
     } catch (err) {
@@ -104,12 +104,12 @@ export default function AdminJobsPage() {
   const fetchClickAnalytics = async () => {
     try {
       const response = await fetch('/api/analytics/clicks?days=30');
-      
+
       if (!response.ok) {
         console.error('Failed to fetch click analytics');
         return;
       }
-      
+
       const data = await response.json();
       setClickAnalytics(data);
     } catch (err) {
@@ -134,7 +134,7 @@ export default function AdminJobsPage() {
     try {
       setActionLoading(true);
       setActionResult(null);
-      
+
       const response = await fetch('/api/admin/trigger-ingestion', {
         method: 'POST',
         headers: {
@@ -144,21 +144,21 @@ export default function AdminJobsPage() {
           source: selectedSource === 'all' ? undefined : selectedSource,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Ingestion failed');
       }
-      
+
       const result = await response.json();
       const totalAdded = result.ingestion?.summary?.totalAdded || 0;
       const totalFetched = result.ingestion?.summary?.totalFetched || 0;
       const totalDuplicates = result.ingestion?.summary?.totalDuplicates || 0;
-      
+
       setActionResult(
         `Success! Fetched ${totalFetched} jobs, added ${totalAdded} new, ${totalDuplicates} duplicates`
       );
-      
+
       // Refresh stats after ingestion
       setTimeout(fetchStats, 2000);
     } catch (err) {
@@ -236,17 +236,17 @@ export default function AdminJobsPage() {
           <h3 className="text-sm font-medium text-gray-500 mb-2">Total Active Jobs</h3>
           <p className="text-3xl font-bold text-gray-900">{stats.totalActive}</p>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Added Last 24h</h3>
           <p className="text-3xl font-bold text-green-600">{stats.addedLast24h}</p>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Active Sources</h3>
           <p className="text-3xl font-bold text-blue-600">{Object.keys(stats.bySource).length}</p>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Avg Daily New</h3>
           <p className="text-3xl font-bold text-purple-600">{avgDailyNew}</p>
@@ -269,7 +269,7 @@ export default function AdminJobsPage() {
               );
             })()}
           </div>
-          
+
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
             <h3 className="text-sm font-medium text-green-700 mb-3">⭐ Best for Quality</h3>
             {(() => {
@@ -283,7 +283,7 @@ export default function AdminJobsPage() {
               );
             })()}
           </div>
-          
+
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
             <h3 className="text-sm font-medium text-purple-700 mb-3">🎯 Best for Clicks</h3>
             {(() => {
@@ -471,26 +471,26 @@ export default function AdminJobsPage() {
                     const qualityScore = source.avgQualityScore * 100;
                     const ctr = source.clickThroughRate * 100;
                     const dupRate = source.duplicateRate * 100;
-                    
+
                     // Color coding logic
                     const getQualityColor = (score: number) => {
                       if (score >= 75) return 'text-green-700 bg-green-50';
                       if (score >= 50) return 'text-yellow-700 bg-yellow-50';
                       return 'text-red-700 bg-red-50';
                     };
-                    
+
                     const getCtrColor = (rate: number) => {
                       if (rate >= 5) return 'text-green-700 bg-green-50';
                       if (rate >= 2) return 'text-yellow-700 bg-yellow-50';
                       return 'text-gray-700 bg-gray-50';
                     };
-                    
+
                     const getDupColor = (rate: number) => {
                       if (rate >= 50) return 'text-red-700 bg-red-50';
                       if (rate >= 30) return 'text-yellow-700 bg-yellow-50';
                       return 'text-green-700 bg-green-50';
                     };
-                    
+
                     return (
                       <tr key={source.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
@@ -553,7 +553,7 @@ export default function AdminJobsPage() {
           <div className="bg-white rounded-lg shadow">
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Apply Click Analytics (Last 30 Days)</h2>
-              
+
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
                 <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-6 border border-indigo-200">
@@ -561,13 +561,13 @@ export default function AdminJobsPage() {
                   <p className="text-3xl font-bold text-indigo-900">{clickAnalytics.summary.totalClicks.toLocaleString()}</p>
                   <p className="text-xs text-indigo-600 mt-1">{clickAnalytics.summary.uniqueJobs} unique jobs</p>
                 </div>
-                
+
                 <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-6 border border-teal-200">
                   <h3 className="text-sm font-medium text-teal-700 mb-2">Avg Clicks per Job</h3>
                   <p className="text-3xl font-bold text-teal-900">{clickAnalytics.summary.avgClicksPerJob.toFixed(2)}</p>
                   <p className="text-xs text-teal-600 mt-1">Engagement rate</p>
                 </div>
-                
+
                 <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow p-6 border border-amber-200">
                   <h3 className="text-sm font-medium text-amber-700 mb-2">Best Converting Source</h3>
                   {(() => {
@@ -617,7 +617,7 @@ export default function AdminJobsPage() {
                             if (performance >= 0.3) return 'text-yellow-700 bg-yellow-50';
                             return 'text-red-700 bg-red-50';
                           };
-                          
+
                           return (
                             <tr key={sourceData.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
@@ -703,7 +703,7 @@ export default function AdminJobsPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Actions</h2>
-          
+
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <select
@@ -712,13 +712,15 @@ export default function AdminJobsPage() {
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Sources</option>
-                {Object.keys(stats.bySource).map((source: string) => (
-                  <option key={source} value={source}>
-                    {source.charAt(0).toUpperCase() + source.slice(1)}
-                  </option>
-                ))}
+                <option value="adzuna">Adzuna</option>
+                <option value="jooble">Jooble</option>
+                <option value="greenhouse">Greenhouse</option>
+                <option value="lever">Lever</option>
+                <option value="usajobs">USAJobs</option>
+                <option value="careerjet">CareerJet</option>
+                <option value="jsearch">JSearch</option>
               </select>
-              
+
               <button
                 onClick={handleTriggerIngestion}
                 disabled={actionLoading}
@@ -727,13 +729,13 @@ export default function AdminJobsPage() {
                 {actionLoading ? 'Running...' : 'Trigger Ingestion'}
               </button>
             </div>
-            
+
             {actionResult && (
               <div className={`p-4 rounded-lg ${actionResult.includes('Error') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}>
                 {actionResult}
               </div>
             )}
-            
+
             <p className="text-sm text-gray-500">
               ⚠️ Note: Full ingestion can take 40+ seconds. The page will refresh automatically when complete.
             </p>

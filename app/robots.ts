@@ -5,21 +5,49 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
+      // Main crawlers
       {
         userAgent: '*',
         allow: '/',
         disallow: [
           '/api/',
           '/_next/',
-          '/_next/static/',
           '/jobs/edit/',
-          '/employer/',
+          '/employer/dashboard/',
           '/email-preferences',
           '/success',
           '/post-job/checkout',
           '/post-job/preview',
           '/job-alerts/manage',
+          '/admin/',
+          '/dashboard/',
         ],
+      },
+      // Explicitly allow AI search crawlers
+      {
+        userAgent: 'OAI-SearchBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'GPTBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'PerplexityBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'ClaudeBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Google-Extended',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

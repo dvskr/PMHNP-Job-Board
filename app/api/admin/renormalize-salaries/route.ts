@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizeSalary } from '@/lib/salary-normalizer';
+import { formatDisplaySalary } from '@/lib/salary-display';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes timeout
@@ -129,6 +130,13 @@ export async function GET(request: NextRequest) {
           const hasNow = normalized.normalizedMinSalary !== null || normalized.normalizedMaxSalary !== null;
 
           if (hasNow) {
+            // Generate display salary string
+            const displaySalary = formatDisplaySalary(
+              normalized.normalizedMinSalary,
+              normalized.normalizedMaxSalary,
+              job.salaryPeriod
+            );
+
             // Update the job in database
             await prisma.job.update({
               where: { id: job.id },
@@ -137,6 +145,7 @@ export async function GET(request: NextRequest) {
                 normalizedMaxSalary: normalized.normalizedMaxSalary,
                 salaryConfidence: normalized.salaryConfidence,
                 salaryIsEstimated: normalized.salaryIsEstimated,
+                displaySalary,
               },
             });
 

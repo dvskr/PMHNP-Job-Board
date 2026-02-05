@@ -48,6 +48,9 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
     },
+    alternates: {
+      canonical: '/',
+    },
   };
 }
 

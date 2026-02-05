@@ -1,6 +1,6 @@
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
 import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
-import { Job } from '@/lib/types';
+import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
 import ShareButtons from '@/components/ShareButtons';
@@ -9,8 +9,14 @@ import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import RelatedJobs from '@/components/RelatedJobs';
+import AboutEmployer from '@/components/AboutEmployer';
+import SalaryInsights from '@/components/SalaryInsights';
+import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
+import InternalLinks from '@/components/InternalLinks';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { getPostBySlug } from '@/lib/blog';
+import Link from 'next/link';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
@@ -21,8 +27,12 @@ interface JobPageProps {
 async function getJob(id: string): Promise<Job | null> {
   try {
     // Query database directly instead of HTTP fetch to avoid Vercel deployment protection issues
-    const job = await prisma.job.findUnique({
-      where: { id },
+    // Only return published jobs - unpublished/expired jobs should return 404
+    const job = await prisma.job.findFirst({
+      where: {
+        id,
+        isPublished: true,
+      },
     });
 
     if (!job) {
@@ -124,6 +134,108 @@ async function getRelatedJobs({
   }
 
   return relatedJobs as Job[];
+}
+
+/**
+ * Fetch company information for employer section
+ */
+async function getCompanyInfo(companyId: string | null, employerName: string) {
+  // Try to get company from companyId first
+  if (companyId) {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+    });
+    if (company) return company as Company;
+  }
+
+  // Try to find by normalized name
+  const normalizedName = employerName.toLowerCase().trim();
+  const company = await prisma.company.findFirst({
+    where: {
+      OR: [
+        { normalizedName: normalizedName },
+        { name: { equals: employerName, mode: 'insensitive' } },
+      ],
+    },
+  });
+
+  return company as Company | null;
+}
+
+/**
+ * Get count of other jobs from the same employer
+ */
+async function getEmployerJobCount(employerName: string, currentJobId: string) {
+  const count = await prisma.job.count({
+    where: {
+      employer: { equals: employerName, mode: 'insensitive' },
+      isPublished: true,
+      id: { not: currentJobId },
+    },
+  });
+  return count;
+}
+
+/**
+ * Get average salary for a state
+ */
+async function getStateSalaryAverage(stateName: string | null, stateCode: string | null) {
+  if (!stateName && !stateCode) return 0;
+
+  const salaryData = await prisma.job.aggregate({
+    where: {
+      isPublished: true,
+      OR: [
+        ...(stateName ? [{ state: stateName }] : []),
+        ...(stateCode ? [{ stateCode: stateCode }] : []),
+      ],
+      normalizedMinSalary: { not: null, gte: 30000 },
+      normalizedMaxSalary: { not: null, gte: 30000 },
+    },
+    _avg: {
+      normalizedMinSalary: true,
+      normalizedMaxSalary: true,
+    },
+  });
+
+  const avgMin = salaryData._avg.normalizedMinSalary || 0;
+  const avgMax = salaryData._avg.normalizedMaxSalary || 0;
+
+  if (avgMin === 0 && avgMax === 0) return 0;
+
+  return Math.round((avgMin + avgMax) / 2 / 1000);
+}
+
+/**
+ * Get relevant blog posts for this job
+ */
+function getRelevantBlogPosts(job: Job) {
+  const slugs = getRelevantBlogSlugs({
+    isRemote: job.isRemote,
+    isTelehealth: job.mode?.toLowerCase().includes('telehealth') ||
+      job.title.toLowerCase().includes('telehealth') ||
+      job.description.toLowerCase().includes('telehealth'),
+    isNewGrad: job.title.toLowerCase().includes('new grad') ||
+      job.description.toLowerCase().includes('new grad'),
+    state: job.state,
+    jobType: job.jobType,
+  });
+
+  const posts = [];
+  for (const slug of slugs) {
+    try {
+      const post = getPostBySlug(slug);
+      posts.push({
+        slug: post.slug,
+        title: post.title,
+        description: post.description,
+        category: post.category,
+      });
+    } catch {
+      // Skip if blog post doesn't exist
+    }
+  }
+  return posts;
 }
 
 export async function generateMetadata({ params }: JobPageProps) {
@@ -243,19 +355,32 @@ export default async function JobPage({ params }: JobPageProps) {
     notFound();
   }
 
-  // Fetch related jobs in parallel with main job
-  const relatedJobs = await getRelatedJobs({
-    currentJobId: job.id,
-    employer: job.employer,
-    city: job.city,
-    state: job.state,
-    mode: job.mode,
-    limit: 4,
-  });
+  // Fetch all additional data in parallel for content enrichment
+  const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary] = await Promise.all([
+    getRelatedJobs({
+      currentJobId: job.id,
+      employer: job.employer,
+      city: job.city,
+      state: job.state,
+      mode: job.mode,
+      limit: 5, // Increased from 4 to 5 for more related content
+    }),
+    getCompanyInfo(job.companyId, job.employer),
+    getEmployerJobCount(job.employer, job.id),
+    getStateSalaryAverage(job.state, job.stateCode),
+  ]);
+
+  // Get relevant blog posts (sync operation, reads from filesystem)
+  const relevantBlogPosts = getRelevantBlogPosts(job);
 
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);
   const expiryStatus = getExpiryStatus(job.expiresAt);
+
+  // Determine if job is telehealth/remote for internal linking
+  const isTelehealth = job.mode?.toLowerCase().includes('telehealth') ||
+    job.title.toLowerCase().includes('telehealth') ||
+    job.description.toLowerCase().includes('telehealth');
 
   // Build breadcrumb items
   const breadcrumbItems = [
@@ -402,8 +527,53 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
             </AnimatedContainer>
 
+            {/* About Employer Section */}
+            <AnimatedContainer animation="fade-in-up" delay={250}>
+              <AboutEmployer
+                employerName={job.employer}
+                company={companyInfo}
+                otherJobsCount={employerJobCount}
+              />
+            </AnimatedContainer>
+
+            {/* Salary Insights Section */}
+            {stateAvgSalary > 0 && (
+              <AnimatedContainer animation="fade-in-up" delay={300}>
+                <SalaryInsights
+                  stateName={job.state}
+                  stateAvgSalary={stateAvgSalary}
+                  jobMinSalary={job.normalizedMinSalary}
+                  jobMaxSalary={job.normalizedMaxSalary}
+                />
+              </AnimatedContainer>
+            )}
+
+            {/* Related Blog Posts */}
+            {relevantBlogPosts.length > 0 && (
+              <AnimatedContainer animation="fade-in-up" delay={350}>
+                <RelatedBlogPosts
+                  posts={relevantBlogPosts}
+                  title="Career Resources for This Role"
+                  context="job"
+                />
+              </AnimatedContainer>
+            )}
+
+            {/* Internal Links for SEO */}
+            <AnimatedContainer animation="fade-in-up" delay={400}>
+              <InternalLinks
+                state={job.state}
+                stateCode={job.stateCode}
+                city={job.city}
+                isRemote={job.isRemote}
+                isTelehealth={isTelehealth}
+                jobType={job.jobType}
+                mode={job.mode}
+              />
+            </AnimatedContainer>
+
             {/* Footer Info */}
-            <div className="text-sm text-gray-500 px-1">
+            <div className="text-sm text-gray-500 px-1 mt-6">
               <p>{freshness}</p>
               {job.sourceType === 'external' && job.sourceProvider && (
                 <p className="mt-1">Posted via {job.sourceProvider}</p>

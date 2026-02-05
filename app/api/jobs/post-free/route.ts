@@ -6,6 +6,8 @@ import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
+import { normalizeSalary } from '@/lib/salary-normalizer';
+import { formatDisplaySalary } from '@/lib/salary-display';
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for job posting
@@ -95,6 +97,32 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Parse salary values
+    const parsedMinSalary = (() => {
+      const val = Number(sanitized.minSalary);
+      return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
+    })();
+    const parsedMaxSalary = (() => {
+      const val = Number(sanitized.maxSalary);
+      return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
+    })();
+    const parsedSalaryPeriod = sanitized.salaryPeriod || null;
+
+    // Normalize salary data for filtering and display
+    const normalizedSalary = normalizeSalary({
+      minSalary: parsedMinSalary,
+      maxSalary: parsedMaxSalary,
+      salaryPeriod: parsedSalaryPeriod,
+      title: sanitized.title,
+    });
+
+    // Generate display salary string
+    const displaySalary = formatDisplaySalary(
+      normalizedSalary.normalizedMinSalary,
+      normalizedSalary.normalizedMaxSalary,
+      parsedSalaryPeriod
+    );
+
     // Create job with Prisma
     const job = await prisma.job.create({
       data: {
@@ -106,15 +134,14 @@ export async function POST(request: NextRequest) {
         description: sanitized.description,
         descriptionSummary: sanitized.description.slice(0, 300),
         applyLink: sanitized.applyLink,
-        minSalary: (() => {
-          const val = Number(sanitized.minSalary);
-          return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
-        })(),
-        maxSalary: (() => {
-          const val = Number(sanitized.maxSalary);
-          return (Number.isFinite(val) && !Number.isNaN(val)) ? val : null;
-        })(),
-        salaryPeriod: sanitized.salaryPeriod || null,
+        minSalary: parsedMinSalary,
+        maxSalary: parsedMaxSalary,
+        salaryPeriod: parsedSalaryPeriod,
+        normalizedMinSalary: normalizedSalary.normalizedMinSalary,
+        normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
+        salaryIsEstimated: normalizedSalary.salaryIsEstimated,
+        salaryConfidence: normalizedSalary.salaryConfidence,
+        displaySalary,
         isFeatured: pricing === 'featured',
         isPublished: true,
         sourceType: 'employer',
