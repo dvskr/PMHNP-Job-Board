@@ -21,6 +21,11 @@ export async function GET(request: NextRequest) {
       salary = '';
     }
 
+    // Load logo image
+    const logoData = await fetch(new URL('../../../public/pmhnp_logo.png', import.meta.url)).then(
+      (res) => res.arrayBuffer()
+    );
+
     // Truncate title if too long (for 2 lines max)
     const displayTitle = title.length > 50 ? title.slice(0, 50) + '...' : title;
     const displayCompany = company.length > 45 ? company.slice(0, 45) + '...' : company;
@@ -59,56 +64,19 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               position: 'absolute',
-              top: '48px',
+              top: '40px',
               left: '56px',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
             }}
           >
-            <div
-              style={{
-                width: '52px',
-                height: '52px',
-                backgroundColor: '#0d9488',
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '28px',
-              }}
-            >
-              P
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 700,
-                  color: '#0d9488',
-                  letterSpacing: '1px',
-                }}
-              >
-                PMHNP
-              </span>
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: '#0d9488',
-                  letterSpacing: '3px',
-                }}
-              >
-                HIRING
-              </span>
-            </div>
+            {/* @ts-ignore */}
+            <img
+              width="250"
+              src={logoData as any}
+              alt="PMHNP Hiring"
+            />
           </div>
 
           {/* NEW Badge - Top Right */}
@@ -212,8 +180,8 @@ export async function GET(request: NextRequest) {
         </div>
       ),
       {
-        width: 2400,   // 2x resolution for sharp text
-        height: 1260,  // 2x resolution
+        width: 1200,   // Standard OG image size
+        height: 630,   // Standard OG image size
         headers: {
           'Content-Type': 'image/png',
           'Cache-Control': 'public, max-age=604800, s-maxage=604800, stale-while-revalidate=2592000',
@@ -246,7 +214,7 @@ export async function GET(request: NextRequest) {
           </span>
         </div>
       ),
-      { width: 2400, height: 1260 }
+      { width: 1200, height: 630 }
     );
   }
 }
