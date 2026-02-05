@@ -8,10 +8,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Load logo image
-    const logoUrl = new URL('../../../public/pmhnp_logo.png', import.meta.url);
-    const logoData = await fetch(logoUrl).then((res) => res.arrayBuffer());
-
     // Get parameters
     const title = searchParams.get('title') || 'PMHNP Position';
     const company = searchParams.get('company') || 'Healthcare Employer';
@@ -24,6 +20,11 @@ export async function GET(request: NextRequest) {
     if (salary.includes('$0k') || salary.includes('$0-') || salary === '$0') {
       salary = '';
     }
+
+    // Load logo image
+    const logoData = await fetch(new URL('../../../public/pmhnp_logo.png', import.meta.url)).then(
+      (res) => res.arrayBuffer()
+    );
 
     // Truncate title if too long (for 2 lines max)
     const displayTitle = title.length > 50 ? title.slice(0, 50) + '...' : title;
@@ -63,49 +64,19 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               position: 'absolute',
-              top: '48px',
+              top: '40px',
               left: '56px',
               display: 'flex',
               alignItems: 'center',
-              gap: '20px',
+              gap: '12px',
             }}
           >
             {/* @ts-ignore */}
             <img
-              src={logoData as any}
-              width="64"
-              height="64"
-              style={{
-                borderRadius: '12px',
-              }}
+              width="250"
+              src={logoData}
+              alt="PMHNP Hiring"
             />
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '28px',
-                  fontWeight: 800,
-                  color: '#0d9488',
-                  letterSpacing: '1px',
-                }}
-              >
-                PMHNP
-              </span>
-              <span
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: '#0d9488',
-                  letterSpacing: '4px',
-                }}
-              >
-                HIRING
-              </span>
-            </div>
           </div>
 
           {/* NEW Badge - Top Right */}
