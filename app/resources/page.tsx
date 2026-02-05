@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     'pmhnp interview tips',
     'pmhnp job search',
   ],
+  alternates: {
+    canonical: '/resources',
+  },
 };
 
 const resources = [

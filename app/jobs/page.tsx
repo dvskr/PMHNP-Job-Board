@@ -72,6 +72,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       title,
       description,
     },
+    alternates: {
+      canonical: '/jobs',
+    },
   };
 }
 

@@ -9,6 +9,9 @@ import { config } from '@/lib/config';
 export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
   description: 'Frequently asked questions about PMHNP Jobs for job seekers and employers.',
+  alternates: {
+    canonical: '/faq',
+  },
 };
 
 export default function FAQPage() {
