@@ -17,6 +17,18 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/cron/ingest?source=usajobs",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=lever",
+      "schedule": "0 5,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=careerjet",
+      "schedule": "0 6,18 * * *"
+    },
+    {
       "path": "/api/cron/send-alerts",
       "schedule": "0 8 * * *"
     },
@@ -27,6 +39,10 @@
     {
       "path": "/api/cron/cleanup-descriptions",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=jsearch",
+      "schedule": "0 7,19 * * *"
     }
   ],
   "headers": [

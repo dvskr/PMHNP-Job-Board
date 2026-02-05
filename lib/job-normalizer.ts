@@ -23,26 +23,9 @@ function stripHtml(html: string): string {
 
 function cleanDescription(rawDescription: string): string {
   if (!rawDescription) return '';
-  
+
   let cleaned = rawDescription;
-  
-  // Convert literal \n and \r\n strings to actual newlines
-  cleaned = cleaned.replace(/\\r\\n/g, '\n');
-  cleaned = cleaned.replace(/\\n/g, '\n');
-  cleaned = cleaned.replace(/\\r/g, '\n');
-  
-  // Convert HTML block elements to newlines BEFORE stripping tags
-  cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
-  cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
-  cleaned = cleaned.replace(/<\/div>/gi, '\n');
-  cleaned = cleaned.replace(/<\/li>/gi, '\n');
-  cleaned = cleaned.replace(/<li>/gi, '• ');
-  cleaned = cleaned.replace(/<\/h[1-6]>/gi, '\n\n');
-  cleaned = cleaned.replace(/<h[1-6][^>]*>/gi, '\n\n');
-  
-  // Remove all remaining HTML tags
-  cleaned = cleaned.replace(/<[^>]*>/g, '');
-  
+
   // Decode HTML entities
   cleaned = cleaned.replace(/&amp;/g, '&');
   cleaned = cleaned.replace(/&lt;/g, '<');
@@ -63,24 +46,41 @@ function cleanDescription(rawDescription: string): string {
   cleaned = cleaned.replace(/&apos;/g, "'");
   cleaned = cleaned.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
   cleaned = cleaned.replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
-  
+
+  // Convert literal \n and \r\n strings to actual newlines
+  cleaned = cleaned.replace(/\\r\\n/g, '\n');
+  cleaned = cleaned.replace(/\\n/g, '\n');
+  cleaned = cleaned.replace(/\\r/g, '\n');
+
+  // Convert HTML block elements to newlines BEFORE stripping tags
+  cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
+  cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+  cleaned = cleaned.replace(/<\/div>/gi, '\n');
+  cleaned = cleaned.replace(/<\/li>/gi, '\n');
+  cleaned = cleaned.replace(/<li>/gi, '• ');
+  cleaned = cleaned.replace(/<\/h[1-6]>/gi, '\n\n');
+  cleaned = cleaned.replace(/<h[1-6][^>]*>/gi, '\n\n');
+
+  // Remove all remaining HTML tags
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
+
   // Remove duplicate headers (e.g., "Job Description Job Description:")
   cleaned = cleaned.replace(/^(Job Description[:\s]*){2,}/i, 'Job Description:\n\n');
   cleaned = cleaned.replace(/\n(Job Description[:\s]*){2,}/gi, '\nJob Description:\n\n');
-  
+
   // Remove common repetitive prefixes
   cleaned = cleaned.replace(/^Job Description[:\s]*Job Description[:\s]*/i, '');
   cleaned = cleaned.replace(/^Job Description[:\s]*/i, '');
   cleaned = cleaned.replace(/^Description[:\s]*Description[:\s]*/i, '');
   cleaned = cleaned.replace(/^Description[:\s]*/i, '');
-  
+
   // Clean up whitespace
   cleaned = cleaned.replace(/[ \t]+/g, ' ');           // Multiple spaces to single
   cleaned = cleaned.replace(/\n[ \t]+/g, '\n');        // Remove leading spaces on lines
   cleaned = cleaned.replace(/[ \t]+\n/g, '\n');        // Remove trailing spaces on lines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');        // Max 2 newlines (1 blank line)
   cleaned = cleaned.trim();
-  
+
   return cleaned;
 }
 
@@ -98,13 +98,13 @@ function extractSalary(text: string): { min: number | null; max: number | null; 
 
   match = annualPattern.exec(text);
   if (match) {
-    const min = match[1].toLowerCase().includes('k') 
+    const min = match[1].toLowerCase().includes('k')
       ? parseFloat(match[1].replace(/k/i, '').replace(/,/g, '')) * 1000
       : parseFloat(match[1].replace(/,/g, ''));
-    const max = match[2] 
+    const max = match[2]
       ? (match[2].toLowerCase().includes('k')
-          ? parseFloat(match[2].replace(/k/i, '').replace(/,/g, '')) * 1000
-          : parseFloat(match[2].replace(/,/g, '')))
+        ? parseFloat(match[2].replace(/k/i, '').replace(/,/g, '')) * 1000
+        : parseFloat(match[2].replace(/,/g, '')))
       : null;
     return { min, max, period: 'year' };
   }
@@ -112,9 +112,9 @@ function extractSalary(text: string): { min: number | null; max: number | null; 
   return { min: null, max: null, period: null };
 }
 
-function detectJobType(text: string): string | null {
+export function detectJobType(text: string): string | null {
   const lowerText = text.toLowerCase();
-  
+
   if (lowerText.includes('per diem') || lowerText.includes('per-diem')) {
     return 'Per Diem';
   }
@@ -127,13 +127,13 @@ function detectJobType(text: string): string | null {
   if (lowerText.includes('full-time') || lowerText.includes('full time') || lowerText.includes('permanent')) {
     return 'Full-Time';
   }
-  
+
   return null;
 }
 
 function detectMode(text: string): string | null {
   const lowerText = text.toLowerCase();
-  
+
   if (lowerText.includes('hybrid')) {
     return 'Hybrid';
   }
@@ -143,7 +143,7 @@ function detectMode(text: string): string | null {
   if (lowerText.includes('on-site') || lowerText.includes('onsite') || lowerText.includes('in-person') || lowerText.includes('in person')) {
     return 'In-Person';
   }
-  
+
   return null;
 }
 
@@ -211,7 +211,7 @@ function validateAndNormalizeSalary(
   // Step 2: Reject clearly fake values based on period
   const isInvalid = (salary: number | null, period: string): boolean => {
     if (!salary) return false;
-    
+
     if (period === 'hourly') {
       return salary > 300 || salary < 20;
     } else if (period === 'annual') {
@@ -224,7 +224,7 @@ function validateAndNormalizeSalary(
     if (period === 'monthly') {
       return salary > 40000 || salary < 2000;
     }
-    
+
     return false;
   };
 
@@ -271,10 +271,10 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
 
     if (source === 'adzuna') {
       title = String(rawJob.title || '');
-      employer = (rawJob.company as Record<string, unknown>)?.display_name as string || 
-                 String(rawJob.employer || 'Unknown Company');
-      location = (rawJob.location as Record<string, unknown>)?.display_name as string || 
-                 String(rawJob.location || 'Unknown Location');
+      employer = (rawJob.company as Record<string, unknown>)?.display_name as string ||
+        String(rawJob.employer || 'Unknown Company');
+      location = (rawJob.location as Record<string, unknown>)?.display_name as string ||
+        String(rawJob.location || 'Unknown Location');
       description = String(rawJob.description || '');
       // Aggregator already normalizes to applyLink, but fallback to redirect_url for direct API calls
       applyLink = String(rawJob.applyLink || rawJob.redirect_url || '');
@@ -282,6 +282,16 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       // Adzuna provides salary_min/max as annual salaries - use them
       salaryMin = typeof rawJob.minSalary === 'number' ? rawJob.minSalary : null;
       salaryMax = typeof rawJob.maxSalary === 'number' ? rawJob.maxSalary : null;
+    } else if (source === 'jsearch') {
+      title = String(rawJob.title || '');
+      employer = String(rawJob.employer || 'Company Not Listed');
+      location = String(rawJob.location || 'United States');
+      description = String(rawJob.description || '');
+      applyLink = String(rawJob.applyLink || '');
+      externalId = String(rawJob.externalId || '');
+      salaryMin = typeof rawJob.minSalary === 'number' ? rawJob.minSalary : null;
+      salaryMax = typeof rawJob.maxSalary === 'number' ? rawJob.maxSalary : null;
+      // JSearch salaryPeriod is already normalized in aggregator, but normalizer does its own check later
     } else {
       // Generic mapping for other sources
       title = String(rawJob.title || '');
@@ -321,7 +331,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
     salaryMax = validatedSalary.maxSalary;
     const salaryPeriod = validatedSalary.salaryPeriod;
 
-    const jobType = detectJobType(fullText);
+    const jobType = rawJob.jobType ? String(rawJob.jobType) : detectJobType(fullText);
     const mode = detectMode(fullText);
 
     // Set expiration to 30 days from now

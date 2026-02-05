@@ -32,28 +32,28 @@ const SEARCH_KEYWORDS = [
  */
 function cleanSnippet(snippet: string): string {
   if (!snippet) return '';
-  
+
   let cleaned = snippet.trim();
-  
+
   // Remove ALL ellipsis markers (leading, trailing, and middle)
   // Replace ... with a space to avoid word concatenation
   cleaned = cleaned.replace(/\.{2,}/g, ' ');
-  
+
   // Remove common snippet artifacts
   cleaned = cleaned.replace(/^Description Summary:\s*/i, '');
   cleaned = cleaned.replace(/^About (this|the) (role|position|job):\s*/i, '');
-  
+
   // Clean up multiple spaces
   cleaned = cleaned.replace(/\s+/g, ' ');
-  
+
   // Remove leading/trailing whitespace
   cleaned = cleaned.trim();
-  
+
   // Add proper ending if it doesn't have punctuation
   if (cleaned && !cleaned.match(/[.!?]$/)) {
     cleaned += '.';
   }
-  
+
   return cleaned;
 }
 
@@ -70,7 +70,7 @@ function sleep(ms: number): Promise<void> {
  */
 export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>> {
   const apiKey = process.env.JOOBLE_API_KEY;
-  
+
   if (!apiKey) {
     console.error('[Jooble] API key not set in environment variables');
     return [];
@@ -101,16 +101,16 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
       for (const job of jobs) {
         if (!seenIds.has(job.id)) {
           seenIds.add(job.id);
-          
+
           // Parse salary string if provided (e.g., "$120,000 - $150,000", "$50/hour")
           let minSalary = null;
           let maxSalary = null;
           let salaryPeriod = null;
-          
+
           if (job.salary && job.salary.trim()) {
             // Try to extract salary range from string
             const salaryStr = job.salary.toLowerCase();
-            
+
             // Check for hourly rate
             const hourlyMatch = salaryStr.match(/\$?([\d,]+(?:\.\d+)?)\s*(?:-|to)?\s*\$?([\d,]+(?:\.\d+)?)?\s*(?:per\s*)?(?:hour|hr)/i);
             if (hourlyMatch) {
@@ -126,14 +126,25 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
                   : parseFloat(annualMatch[1].replace(/,/g, ''));
                 maxSalary = annualMatch[2]
                   ? (annualMatch[2].toLowerCase().includes('k')
-                      ? parseFloat(annualMatch[2].replace(/k/i, '').replace(/,/g, '')) * 1000
-                      : parseFloat(annualMatch[2].replace(/,/g, '')))
+                    ? parseFloat(annualMatch[2].replace(/k/i, '').replace(/,/g, '')) * 1000
+                    : parseFloat(annualMatch[2].replace(/,/g, '')))
                   : null;
                 salaryPeriod = 'annual';
               }
             }
           }
-          
+
+          // Map Jooble job type
+          let jobType = null;
+          if (job.type) {
+            const lowerType = job.type.toLowerCase();
+            if (lowerType.includes('full-time') || lowerType.includes('full time')) jobType = 'Full-Time';
+            else if (lowerType.includes('part-time') || lowerType.includes('part time')) jobType = 'Part-Time';
+            else if (lowerType.includes('contract')) jobType = 'Contract';
+            else if (lowerType.includes('temporary')) jobType = 'Contract';
+            else if (lowerType.includes('per diem')) jobType = 'Per Diem';
+          }
+
           allJobs.push({
             title: job.title,
             company: job.company || 'Company Not Listed',
@@ -142,6 +153,7 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
             minSalary: minSalary,
             maxSalary: maxSalary,
             salaryPeriod: salaryPeriod,
+            jobType, // Pass raw mapped type
             url: job.link,
             id: `jooble_${job.id}`,
           });
@@ -157,7 +169,7 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
   }
 
   console.log(`[Jooble] Total unique jobs fetched: ${allJobs.length}`);
-  
+
   return allJobs;
 }
 
