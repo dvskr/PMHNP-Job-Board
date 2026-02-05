@@ -212,8 +212,8 @@ export async function GET(request: NextRequest) {
         </div>
       ),
       {
-        width: 2400,   // 2x resolution for sharp text
-        height: 1260,  // 2x resolution
+        width: 1200,   // Standard OG image size
+        height: 630,   // Standard OG image size
         headers: {
           'Content-Type': 'image/png',
           'Cache-Control': 'public, max-age=604800, s-maxage=604800, stale-while-revalidate=2592000',
@@ -246,7 +246,7 @@ export async function GET(request: NextRequest) {
           </span>
         </div>
       ),
-      { width: 2400, height: 1260 }
+      { width: 1200, height: 630 }
     );
   }
 }
