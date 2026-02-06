@@ -19,7 +19,7 @@ const US_STATES = [
 export default function HomepageJobAlertForm() {
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
-  const [frequency, setFrequency] = useState('weekly');
+  const [frequency, setFrequency] = useState('daily');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showOptions, setShowOptions] = useState(false);
@@ -54,7 +54,7 @@ export default function HomepageJobAlertForm() {
         setMessage({ type: 'success', text: 'Job alert created! Check your email to confirm.' });
         setEmail('');
         setLocation('');
-        setFrequency('weekly');
+        setFrequency('daily');
         setShowOptions(false);
       } else {
         setMessage({ type: 'error', text: data.error || 'Something went wrong. Please try again.' });
@@ -175,23 +175,23 @@ export default function HomepageJobAlertForm() {
                     <input
                       type="radio"
                       name="homepage-frequency"
-                      value="weekly"
-                      checked={frequency === 'weekly'}
-                      onChange={(e) => setFrequency(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">Weekly</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="homepage-frequency"
                       value="daily"
                       checked={frequency === 'daily'}
                       onChange={(e) => setFrequency(e.target.value)}
                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
                     <span className="text-sm text-gray-700">Daily</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="homepage-frequency"
+                      value="weekly"
+                      checked={frequency === 'weekly'}
+                      onChange={(e) => setFrequency(e.target.value)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Weekly</span>
                   </label>
                 </div>
               </div>

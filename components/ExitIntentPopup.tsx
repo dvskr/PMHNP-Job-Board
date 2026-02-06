@@ -152,7 +152,7 @@ export default function ExitIntentPopup() {
       const res = await fetch('/api/job-alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, frequency: 'weekly' }),
+        body: JSON.stringify({ email, frequency: 'daily' }),
       });
 
       const data = await res.json();

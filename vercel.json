@@ -26,7 +26,7 @@
     },
     {
       "path": "/api/cron/send-alerts",
-      "schedule": "0 8 * * *"
+      "schedule": "0 13 * * *"
     },
     {
       "path": "/api/cron/expiry-warnings",
