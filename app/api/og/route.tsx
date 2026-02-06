@@ -1,220 +1,240 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
 
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-  try {
     const { searchParams } = new URL(request.url);
 
-    // Get parameters
-    const title = searchParams.get('title') || 'PMHNP Position';
-    const company = searchParams.get('company') || 'Healthcare Employer';
-    let salary = searchParams.get('salary') || '';
+    // Get dynamic parameters
+    const title = searchParams.get('title') || 'PMHNP Job Opportunity';
+    const company = searchParams.get('company') || '';
+    const salary = searchParams.get('salary') || '';
     const location = searchParams.get('location') || '';
     const jobType = searchParams.get('jobType') || '';
     const isNew = searchParams.get('isNew') === 'true';
 
-    // CRITICAL: Remove $0k salaries even if they somehow get passed
-    if (salary.includes('$0k') || salary.includes('$0-') || salary === '$0') {
-      salary = '';
-    }
-
-    // Load logo image
-    const logoData = await fetch(new URL('../../../public/pmhnp_logo.png', import.meta.url)).then(
-      (res) => res.arrayBuffer()
-    );
-
-    // Truncate title if too long (for 2 lines max)
-    const displayTitle = title.length > 50 ? title.slice(0, 50) + '...' : title;
-    const displayCompany = company.length > 45 ? company.slice(0, 45) + '...' : company;
-
-    // Build info line - skip empty/invalid values
-    const infoParts: string[] = [];
-    if (salary && !salary.includes('$0k') && /[1-9]/.test(salary)) {
-      infoParts.push(salary);
-    }
-    if (location) {
-      infoParts.push(location);
-    }
-    if (jobType) {
-      infoParts.push(jobType);
-    }
-    const infoLine = infoParts.length > 0 ? infoParts.join('  •  ') : '';
+    // Truncate title if too long
+    const displayTitle = title.length > 60 ? title.slice(0, 57) + '...' : title;
 
     return new ImageResponse(
-      (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '56px 80px',
-            textAlign: 'center',
-            position: 'relative',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          {/* Brand - Top Left */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '40px',
-              left: '56px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            {/* @ts-ignore */}
-            <img
-              width="250"
-              src={logoData as any}
-              alt="PMHNP Hiring"
-            />
-          </div>
-
-          {/* NEW Badge - Top Right */}
-          {isNew && (
+        (
             <div
-              style={{
-                position: 'absolute',
-                top: '48px',
-                right: '56px',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                color: '#f87171',
-                padding: '12px 24px',
-                borderRadius: '50px',
-                fontSize: '18px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+                style={{
+                    height: '100%',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#0D9488',
+                    padding: '40px',
+                }}
             >
-              🔥 NEW
+                {/* Main Card */}
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flex: 1,
+                        backgroundColor: 'white',
+                        borderRadius: '24px',
+                        padding: '50px',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+                    }}
+                >
+                    {/* Header with Logo and Badge */}
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '30px',
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '16px',
+                            }}
+                        >
+                            {/* Simple text logo instead of image to avoid fetch issues */}
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '60px',
+                                    height: '60px',
+                                    backgroundColor: '#0D9488',
+                                    borderRadius: '12px',
+                                    color: 'white',
+                                    fontSize: '28px',
+                                    fontWeight: 800,
+                                }}
+                            >
+                                P
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: '28px',
+                                    fontWeight: 700,
+                                    color: '#0D9488',
+                                }}
+                            >
+                                PMHNP Hiring
+                            </div>
+                        </div>
+                        {isNew && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    backgroundColor: '#059669',
+                                    color: 'white',
+                                    padding: '8px 20px',
+                                    borderRadius: '20px',
+                                    fontSize: '20px',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                NEW
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Job Title */}
+                    <div
+                        style={{
+                            fontSize: '52px',
+                            fontWeight: 800,
+                            color: '#111827',
+                            lineHeight: 1.2,
+                            marginBottom: '16px',
+                        }}
+                    >
+                        {displayTitle}
+                    </div>
+
+                    {/* Company */}
+                    {company && (
+                        <div
+                            style={{
+                                fontSize: '32px',
+                                fontWeight: 600,
+                                color: '#4B5563',
+                                marginBottom: '24px',
+                            }}
+                        >
+                            at {company}
+                        </div>
+                    )}
+
+                    {/* Spacer */}
+                    <div style={{ display: 'flex', flex: 1 }} />
+
+                    {/* Bottom Info Row */}
+                    <div
+                        style={{
+                            display: 'flex',
+                            gap: '40px',
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        {/* Salary - prominent */}
+                        {salary && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        fontSize: '18px',
+                                        color: '#6B7280',
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    SALARY
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: '36px',
+                                        fontWeight: 800,
+                                        color: '#059669',
+                                    }}
+                                >
+                                    {salary}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Location */}
+                        {location && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        fontSize: '18px',
+                                        color: '#6B7280',
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    LOCATION
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: '28px',
+                                        fontWeight: 600,
+                                        color: '#111827',
+                                    }}
+                                >
+                                    {location}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Job Type */}
+                        {jobType && (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        fontSize: '18px',
+                                        color: '#6B7280',
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    TYPE
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: '28px',
+                                        fontWeight: 600,
+                                        color: '#111827',
+                                    }}
+                                >
+                                    {jobType}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
-          )}
-
-          {/* Top Divider */}
-          <div
-            style={{
-              width: '140px',
-              height: '5px',
-              backgroundColor: '#0d9488',
-              borderRadius: '3px',
-              marginBottom: '44px',
-            }}
-          />
-
-          {/* Job Title */}
-          <h1
-            style={{
-              fontSize: '76px',
-              fontWeight: 900,
-              color: '#ffffff',
-              margin: '0 0 20px 0',
-              lineHeight: 1.05,
-              letterSpacing: '-2px',
-              textTransform: 'uppercase',
-              maxWidth: '1000px',
-            }}
-          >
-            {displayTitle}
-          </h1>
-
-          {/* Website - Prominent under title */}
-          <p
-            style={{
-              color: '#0d9488',
-              fontSize: '30px',
-              fontWeight: 700,
-              margin: '0 0 36px 0',
-              letterSpacing: '3px',
-            }}
-          >
-            PMHNPHIRING.COM
-          </p>
-
-          {/* Bottom Divider */}
-          <div
-            style={{
-              width: '140px',
-              height: '5px',
-              backgroundColor: '#0d9488',
-              borderRadius: '3px',
-              marginBottom: '36px',
-            }}
-          />
-
-          {/* Company Name */}
-          <p
-            style={{
-              fontSize: '26px',
-              color: '#94a3b8',
-              margin: '0 0 16px 0',
-              fontWeight: 500,
-            }}
-          >
-            {displayCompany}
-          </p>
-
-          {/* Info Line */}
-          {infoLine && (
-            <p
-              style={{
-                fontSize: '24px',
-                color: '#e2e8f0',
-                margin: 0,
-                fontWeight: 500,
-              }}
-            >
-              {infoLine}
-            </p>
-          )}
-        </div>
-      ),
-      {
-        width: 1200,   // Standard OG image size
-        height: 630,   // Standard OG image size
-        headers: {
-          'Content-Type': 'image/png',
-          'Cache-Control': 'public, max-age=604800, s-maxage=604800, stale-while-revalidate=2592000',
-        },
-      }
+        ),
+        {
+            width: 1200,
+            height: 630,
+        }
     );
-  } catch (error) {
-    logger.error('OG Image Error:', error);
-
-    // Fallback
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'system-ui, sans-serif',
-          }}
-        >
-          <span style={{ color: '#0d9488', fontSize: '64px', fontWeight: 800 }}>
-            PMHNP HIRING
-          </span>
-          <span style={{ color: '#94a3b8', fontSize: '32px', marginTop: '16px' }}>
-            pmhnphiring.com
-          </span>
-        </div>
-      ),
-      { width: 1200, height: 630 }
-    );
-  }
 }
