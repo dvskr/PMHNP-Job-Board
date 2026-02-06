@@ -49,6 +49,47 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: ['/api/', '/admin/', '/dashboard/'],
       },
+      // Social media bots for link previews
+      {
+        userAgent: 'Twitterbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'facebookexternalhit',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'LinkedInBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Pinterest',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Slackbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'WhatsApp',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Discordbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'TelegramBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   }

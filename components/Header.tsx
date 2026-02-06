@@ -37,8 +37,8 @@ export default function Header() {
               <Image
                 src="/pmhnp_logo.png"
                 alt="PMHNP Hiring"
-                width={242}
-                height={104}
+                width={121}
+                height={52}
                 priority
                 className="h-[52px] w-auto"
               />
@@ -72,8 +72,8 @@ export default function Header() {
               <Image
                 src="/pmhnp_logo.png"
                 alt="PMHNP Hiring"
-                width={186}
-                height={80}
+                width={93}
+                height={40}
                 priority
                 className="h-[40px] w-auto"
               />
