@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     description: 'The #1 job board for PMHNPs. Browse 1000+ remote and in-person psychiatric NP jobs with salary transparency.',
     images: [
       {
-        url: '/og-image.png?v=4',
+        url: '/api/og',
         width: 1200,
         height: 630,
         alt: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
     description: 'Find your next PMHNP position. 1000+ remote and in-person jobs updated daily.',
-    images: ['/og-image.png?v=4'],
+    images: ['/api/og'],
   },
 
   icons: {
