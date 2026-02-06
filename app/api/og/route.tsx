@@ -1,220 +1,77 @@
+
 import { ImageResponse } from 'next/og';
-import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
 
 export const runtime = 'edge';
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-
-    // Get parameters
-    const title = searchParams.get('title') || 'PMHNP Position';
-    const company = searchParams.get('company') || 'Healthcare Employer';
-    let salary = searchParams.get('salary') || '';
-    const location = searchParams.get('location') || '';
-    const jobType = searchParams.get('jobType') || '';
-    const isNew = searchParams.get('isNew') === 'true';
-
-    // CRITICAL: Remove $0k salaries even if they somehow get passed
-    if (salary.includes('$0k') || salary.includes('$0-') || salary === '$0') {
-      salary = '';
-    }
-
-    // Load logo image
-    const logoData = await fetch(new URL('../../../public/pmhnp_logo.png', import.meta.url)).then(
-      (res) => res.arrayBuffer()
-    );
-
-    // Truncate title if too long (for 2 lines max)
-    const displayTitle = title.length > 50 ? title.slice(0, 50) + '...' : title;
-    const displayCompany = company.length > 45 ? company.slice(0, 45) + '...' : company;
-
-    // Build info line - skip empty/invalid values
-    const infoParts: string[] = [];
-    if (salary && !salary.includes('$0k') && /[1-9]/.test(salary)) {
-      infoParts.push(salary);
-    }
-    if (location) {
-      infoParts.push(location);
-    }
-    if (jobType) {
-      infoParts.push(jobType);
-    }
-    const infoLine = infoParts.length > 0 ? infoParts.join('  •  ') : '';
+export async function GET() {
+    // Font loading (optional, using system fonts for simplicity first)
+    // const interSemiBold = fetch(
+    //   new URL('../../assets/fonts/Inter-SemiBold.ttf', import.meta.url)
+    // ).then((res) => res.arrayBuffer());
 
     return new ImageResponse(
-      (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '56px 80px',
-            textAlign: 'center',
-            position: 'relative',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          {/* Brand - Top Left */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '40px',
-              left: '56px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            {/* @ts-ignore */}
-            <img
-              width="250"
-              src={logoData as any}
-              alt="PMHNP Hiring"
-            />
-          </div>
-
-          {/* NEW Badge - Top Right */}
-          {isNew && (
+        (
             <div
-              style={{
-                position: 'absolute',
-                top: '48px',
-                right: '56px',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                color: '#f87171',
-                padding: '12px 24px',
-                borderRadius: '50px',
-                fontSize: '18px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+                style={{
+                    height: '100%',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#0D9488', // Primary color
+                    color: 'white',
+                }}
             >
-              🔥 NEW
+                <div
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'white',
+                        borderRadius: '24px',
+                        padding: '40px 60px',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+                    }}
+                >
+                    {/* Logo Placeholder - fetching external images in edge can be tricky without arrayBuffer, using text/icon for now or simplest img if public */}
+                    <img
+                        src="https://pmhnphiring.com/pmhnp_logo.png"
+                        height="100"
+                        width="100"
+                        alt="PMHNP Logo"
+                        style={{ marginBottom: 20, borderRadius: 12 }}
+                    />
+                    <div
+                        style={{
+                            fontSize: 60,
+                            fontWeight: 800,
+                            color: '#0D9488',
+                            marginBottom: 10,
+                            letterSpacing: '-0.02em',
+                            fontFamily: 'sans-serif',
+                        }}
+                    >
+                        PMHNP Hiring
+                    </div>
+                    <div
+                        style={{
+                            fontSize: 30,
+                            color: '#333',
+                            fontFamily: 'sans-serif',
+                            textAlign: 'center',
+                            maxWidth: 800,
+                        }}
+                    >
+                        The #1 Job Board for Psychiatric Nurse Practitioners
+                    </div>
+                </div>
             </div>
-          )}
-
-          {/* Top Divider */}
-          <div
-            style={{
-              width: '140px',
-              height: '5px',
-              backgroundColor: '#0d9488',
-              borderRadius: '3px',
-              marginBottom: '44px',
-            }}
-          />
-
-          {/* Job Title */}
-          <h1
-            style={{
-              fontSize: '76px',
-              fontWeight: 900,
-              color: '#ffffff',
-              margin: '0 0 20px 0',
-              lineHeight: 1.05,
-              letterSpacing: '-2px',
-              textTransform: 'uppercase',
-              maxWidth: '1000px',
-            }}
-          >
-            {displayTitle}
-          </h1>
-
-          {/* Website - Prominent under title */}
-          <p
-            style={{
-              color: '#0d9488',
-              fontSize: '30px',
-              fontWeight: 700,
-              margin: '0 0 36px 0',
-              letterSpacing: '3px',
-            }}
-          >
-            PMHNPHIRING.COM
-          </p>
-
-          {/* Bottom Divider */}
-          <div
-            style={{
-              width: '140px',
-              height: '5px',
-              backgroundColor: '#0d9488',
-              borderRadius: '3px',
-              marginBottom: '36px',
-            }}
-          />
-
-          {/* Company Name */}
-          <p
-            style={{
-              fontSize: '26px',
-              color: '#94a3b8',
-              margin: '0 0 16px 0',
-              fontWeight: 500,
-            }}
-          >
-            {displayCompany}
-          </p>
-
-          {/* Info Line */}
-          {infoLine && (
-            <p
-              style={{
-                fontSize: '24px',
-                color: '#e2e8f0',
-                margin: 0,
-                fontWeight: 500,
-              }}
-            >
-              {infoLine}
-            </p>
-          )}
-        </div>
-      ),
-      {
-        width: 1200,   // Standard OG image size
-        height: 630,   // Standard OG image size
-        headers: {
-          'Content-Type': 'image/png',
-          'Cache-Control': 'public, max-age=604800, s-maxage=604800, stale-while-revalidate=2592000',
-        },
-      }
+        ),
+        {
+            width: 1200,
+            height: 630,
+        }
     );
-  } catch (error) {
-    logger.error('OG Image Error:', error);
-
-    // Fallback
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'system-ui, sans-serif',
-          }}
-        >
-          <span style={{ color: '#0d9488', fontSize: '64px', fontWeight: 800 }}>
-            PMHNP HIRING
-          </span>
-          <span style={{ color: '#94a3b8', fontSize: '32px', marginTop: '16px' }}>
-            pmhnphiring.com
-          </span>
-        </div>
-      ),
-      { width: 1200, height: 630 }
-    );
-  }
 }
