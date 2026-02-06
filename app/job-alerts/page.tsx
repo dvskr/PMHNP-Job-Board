@@ -31,7 +31,7 @@ function JobAlertsContent() {
   const [location, setLocation] = useState(searchParams.get('location') || '');
   const [mode, setMode] = useState(searchParams.get('mode') || '');
   const [jobType, setJobType] = useState(searchParams.get('jobType') || '');
-  const [frequency, setFrequency] = useState('weekly');
+  const [frequency, setFrequency] = useState('daily');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | ''; text: string }>({ type: '', text: '' });
   const [emailError, setEmailError] = useState('');
@@ -89,7 +89,7 @@ function JobAlertsContent() {
         setLocation('');
         setMode('');
         setJobType('');
-        setFrequency('weekly');
+        setFrequency('daily');
       } else {
         setMessage({ type: 'error', text: data.error || 'Something went wrong. Please try again.' });
       }
@@ -183,8 +183,8 @@ function JobAlertsContent() {
                     }}
                     placeholder="you@example.com"
                     className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${emailError
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500'
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                      : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500'
                       }`}
                   />
                   {emailError && (
@@ -267,23 +267,23 @@ function JobAlertsContent() {
                       <input
                         type="radio"
                         name="frequency"
-                        value="weekly"
-                        checked={frequency === 'weekly'}
-                        onChange={(e) => setFrequency(e.target.value)}
-                        className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-slate-700">Weekly digest</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="frequency"
                         value="daily"
                         checked={frequency === 'daily'}
                         onChange={(e) => setFrequency(e.target.value)}
                         className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
                       />
                       <span className="text-sm text-slate-700">Daily digest</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="frequency"
+                        value="weekly"
+                        checked={frequency === 'weekly'}
+                        onChange={(e) => setFrequency(e.target.value)}
+                        className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-slate-700">Weekly digest</span>
                     </label>
                   </div>
                 </div>

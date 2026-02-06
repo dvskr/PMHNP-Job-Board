@@ -25,7 +25,7 @@ export default function SalaryGuideSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          frequency: 'weekly',
+          frequency: 'daily',
           name: 'Salary Guide Signup',
         }),
       });

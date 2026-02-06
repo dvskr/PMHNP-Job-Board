@@ -45,6 +45,31 @@ export async function GET(request: Request) {
             avatarUrl: avatarUrl,
           }
         })
+
+        // Auto-create daily job alert for job seekers
+        if ((metadata.role || 'job_seeker') === 'job_seeker') {
+          try {
+            await prisma.jobAlert.create({
+              data: {
+                email: data.user.email,
+                name: 'Job Highlights',
+                keyword: null,
+                location: null,
+                mode: null,
+                jobType: null,
+                minSalary: null,
+                maxSalary: null,
+                frequency: 'daily',
+                isActive: true,
+                token: crypto.randomUUID(),
+              }
+            })
+            // We don't have logger imported here, but we could add it if needed
+            // console.log(`Created auto job alert for Google user: ${data.user.email}`)
+          } catch (e) {
+            console.error('Failed to create auto job alert for Google user', e)
+          }
+        }
       }
 
       // If 'next' parameter is explicitly provided, use it
