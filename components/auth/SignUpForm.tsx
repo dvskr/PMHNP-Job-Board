@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Lock, User, Building2, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, User, Building2, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Bell } from 'lucide-react'
 
 type UserRole = 'job_seeker' | 'employer'
 
@@ -22,6 +22,9 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  // Job highlights email opt-in
+  const [wantJobHighlights, setWantJobHighlights] = useState(true)
+  const [highlightsFrequency, setHighlightsFrequency] = useState<'daily' | 'weekly'>('daily')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +76,8 @@ export default function SignUpForm() {
             lastName,
             role,
             company: role === 'employer' ? company : null,
+            wantJobHighlights: role === 'job_seeker' ? wantJobHighlights : false,
+            highlightsFrequency: role === 'job_seeker' ? highlightsFrequency : undefined,
           }),
         })
 
@@ -130,8 +135,8 @@ export default function SignUpForm() {
             type="button"
             onClick={() => setRole('job_seeker')}
             className={`p-4 border rounded-lg text-center transition-all ${role === 'job_seeker'
-                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                : 'border-gray-200 hover:border-gray-300'
+              ? 'border-blue-600 bg-blue-50 text-blue-700'
+              : 'border-gray-200 hover:border-gray-300'
               }`}
           >
             <User className="w-6 h-6 mx-auto mb-2" />
@@ -142,8 +147,8 @@ export default function SignUpForm() {
             type="button"
             onClick={() => setRole('employer')}
             className={`p-4 border rounded-lg text-center transition-all ${role === 'employer'
-                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                : 'border-gray-200 hover:border-gray-300'
+              ? 'border-blue-600 bg-blue-50 text-blue-700'
+              : 'border-gray-200 hover:border-gray-300'
               }`}
           >
             <Building2 className="w-6 h-6 mx-auto mb-2" />
@@ -286,6 +291,55 @@ export default function SignUpForm() {
           </button>
         </div>
       </div>
+
+      {/* Job Highlights Opt-in (Job Seekers only) */}
+      {role === 'job_seeker' && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={wantJobHighlights}
+              onChange={(e) => setWantJobHighlights(e.target.checked)}
+              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-blue-600" />
+                <span className="font-medium text-gray-900">Email me job highlights</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-0.5">Get the latest PMHNP opportunities delivered to your inbox</p>
+            </div>
+          </label>
+
+          {wantJobHighlights && (
+            <div className="mt-3 ml-7 flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="highlightsFrequency"
+                  value="daily"
+                  checked={highlightsFrequency === 'daily'}
+                  onChange={() => setHighlightsFrequency('daily')}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Daily</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="highlightsFrequency"
+                  value="weekly"
+                  checked={highlightsFrequency === 'weekly'}
+                  onChange={() => setHighlightsFrequency('weekly')}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Weekly</span>
+              </label>
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-2 ml-7">You can change this anytime</p>
+        </div>
+      )}
 
       <button
         type="submit"

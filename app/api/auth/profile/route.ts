@@ -34,7 +34,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { supabaseId, email, firstName: rawFirstName, lastName: rawLastName, role, company: rawCompany, phone: rawPhone } = body
+    const {
+      supabaseId,
+      email,
+      firstName: rawFirstName,
+      lastName: rawLastName,
+      role,
+      company: rawCompany,
+      phone: rawPhone,
+      wantJobHighlights,
+      highlightsFrequency
+    } = body
 
     const firstName = rawFirstName ? sanitizeText(rawFirstName, 50) : null
     const lastName = rawLastName ? sanitizeText(rawLastName, 50) : null
@@ -69,6 +79,38 @@ export async function POST(request: NextRequest) {
         phone,
       }
     })
+
+    // Create JobAlert if user opted in (only for new signups)
+    if (!existingProfile && wantJobHighlights && role === 'job_seeker') {
+      try {
+        // Check if alert already exists for this email
+        const existingAlert = await prisma.jobAlert.findFirst({
+          where: { email }
+        })
+
+        if (!existingAlert) {
+          await prisma.jobAlert.create({
+            data: {
+              email,
+              name: 'Job Highlights',
+              keyword: null,
+              location: null,
+              mode: null,
+              jobType: null,
+              minSalary: null,
+              maxSalary: null,
+              frequency: highlightsFrequency || 'daily',
+              isActive: true,
+              token: crypto.randomUUID(),
+            }
+          })
+          logger.info('JobAlert created for new user', { email, frequency: highlightsFrequency })
+        }
+      } catch (alertError) {
+        // Don't fail signup if alert creation fails
+        logger.error('Failed to create JobAlert', alertError)
+      }
+    }
 
     // Send welcome email only for new signups (not updates)
     if (!existingProfile) {

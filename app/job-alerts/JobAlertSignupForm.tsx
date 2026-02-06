@@ -23,8 +23,8 @@ interface JobAlertSignupFormProps {
   initialJobType?: string;
 }
 
-export default function JobAlertSignupForm({ 
-  initialLocation = '', 
+export default function JobAlertSignupForm({
+  initialLocation = '',
   initialMode = '',
   initialJobType = ''
 }: JobAlertSignupFormProps) {
@@ -32,13 +32,13 @@ export default function JobAlertSignupForm({
   const [location, setLocation] = useState(initialLocation);
   const [mode, setMode] = useState(initialMode);
   const [jobType, setJobType] = useState(initialJobType);
-  const [frequency, setFrequency] = useState('weekly');
+  const [frequency, setFrequency] = useState('daily');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       setStatus('error');
       setMessage('Please enter your email address');
@@ -190,8 +190,8 @@ export default function JobAlertSignupForm({
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
             disabled={status === 'loading'}
           >
-            <option value="weekly">Weekly Digest</option>
             <option value="daily">Daily Digest</option>
+            <option value="weekly">Weekly Digest</option>
           </select>
         </div>
       </div>
