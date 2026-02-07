@@ -318,8 +318,8 @@ export async function generateMetadata({ params }: JobPageProps) {
       images: [
         {
           url: ogImageUrl.toString(),
-          width: 2400,  // 2x resolution for sharper image
-          height: 1260, // 2x resolution
+          width: 1200,
+          height: 630,
           alt: `${job.title} at ${job.employer}`,
           type: 'image/png',
         },
