@@ -78,6 +78,8 @@ const PMHNP_KEYWORDS = [
   'aprn psych',
   'aprn psychiatric',
   'psychiatric aprn',
+  'nurse practitioner', // Broader, carefully used with other checks usually, but here relies on boolean OR
+  'psychiatry',
 ];
 
 const COMPANY_NAMES: Record<string, string> = {
