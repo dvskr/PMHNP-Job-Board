@@ -98,7 +98,10 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
 
       {/* Facebook */}
       <button
-        onClick={() => openShareWindow(facebookUrl)}
+        onClick={() => {
+          const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+          window.open(shareUrl, 'facebook-share', 'width=600,height=400,scrollbars=yes');
+        }}
         className="group relative p-2 rounded-lg text-gray-500 hover:text-[#1877F2] hover:bg-blue-50 transition-colors"
         aria-label="Share on Facebook"
       >
@@ -135,11 +138,10 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
       {/* Copy Link */}
       <button
         onClick={handleCopyLink}
-        className={`group relative p-2 rounded-lg transition-colors ${
-          copied
+        className={`group relative p-2 rounded-lg transition-colors ${copied
             ? 'text-emerald-600 bg-emerald-50'
             : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
         aria-label={copied ? 'Copied!' : 'Copy link'}
       >
         {copied ? <Check size={20} /> : <Link2 size={20} />}

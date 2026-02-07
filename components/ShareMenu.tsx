@@ -111,7 +111,11 @@ export default function ShareMenu({ url, title, description = '', onClose }: Sha
   };
 
   const openShareWindow = (href: string) => {
-    window.open(href, '_blank', 'width=600,height=400,noopener,noreferrer');
+    if (href.includes('facebook.com')) {
+      window.open(href, 'facebook-share', 'width=600,height=400,scrollbars=yes');
+    } else {
+      window.open(href, '_blank', 'width=600,height=400,noopener,noreferrer');
+    }
   };
 
   return (
@@ -135,9 +139,8 @@ export default function ShareMenu({ url, title, description = '', onClose }: Sha
       <hr className="my-2 border-gray-200" />
       <button
         onClick={handleCopyLink}
-        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-3 transition-colors ${
-          copied ? 'text-emerald-600' : 'text-gray-700 hover:text-gray-900'
-        }`}
+        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-3 transition-colors ${copied ? 'text-emerald-600' : 'text-gray-700 hover:text-gray-900'
+          }`}
         role="menuitem"
       >
         <span className="w-5 flex justify-center">
