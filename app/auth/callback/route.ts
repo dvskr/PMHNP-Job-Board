@@ -72,6 +72,27 @@ export async function GET(request: Request) {
         }
       }
 
+      // Auto-link legacy jobs (e.g. guest posts) to this user
+      if (data.user.email) {
+        try {
+          const updated = await prisma.employerJob.updateMany({
+            where: {
+              contactEmail: data.user.email, // Exact match
+              userId: null, // Only claim unowned jobs
+            },
+            data: {
+              userId: data.user.id,
+            },
+          })
+
+          if (updated.count > 0) {
+            // console.log(`Linked ${updated.count} legacy jobs to user ${data.user.email}`)
+          }
+        } catch (e) {
+          console.error('Failed to link legacy jobs', e)
+        }
+      }
+
       // If 'next' parameter is explicitly provided, use it
       // This is important for password reset flows and other auth redirects
       if (requestUrl.searchParams.has('next')) {

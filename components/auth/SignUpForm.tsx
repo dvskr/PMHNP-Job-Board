@@ -8,8 +8,17 @@ import { Mail, Lock, User, Building2, Loader2, AlertCircle, CheckCircle, Eye, Ey
 
 type UserRole = 'job_seeker' | 'employer'
 
+import GoogleSignInButton from './GoogleSignInButton'
+
+const FREE_EMAIL_DOMAINS = [
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+  'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
+  'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
+]
+
 export default function SignUpForm() {
   const router = useRouter()
+  // ... existing state ...
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -41,6 +50,16 @@ export default function SignUpForm() {
       setError('Password must be at least 8 characters')
       setLoading(false)
       return
+    }
+
+    // Employer Email Validation
+    if (role === 'employer') {
+      const emailDomain = email.toLowerCase().split('@')[1]
+      if (emailDomain && FREE_EMAIL_DOMAINS.includes(emailDomain)) {
+        setError('Please use your company email to sign up as an employer. Free email providers are not accepted.')
+        setLoading(false)
+        return
+      }
     }
 
     try {
@@ -117,252 +136,273 @@ export default function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
 
-      {/* Role Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          I am a...
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setRole('job_seeker')}
-            className={`p-4 border rounded-lg text-center transition-all ${role === 'job_seeker'
-              ? 'border-blue-600 bg-blue-50 text-blue-700'
-              : 'border-gray-200 hover:border-gray-300'
-              }`}
-          >
-            <User className="w-6 h-6 mx-auto mb-2" />
-            <span className="font-medium">Job Seeker</span>
-            <p className="text-xs text-gray-500 mt-1">Looking for PMHNP jobs</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole('employer')}
-            className={`p-4 border rounded-lg text-center transition-all ${role === 'employer'
-              ? 'border-blue-600 bg-blue-50 text-blue-700'
-              : 'border-gray-200 hover:border-gray-300'
-              }`}
-          >
-            <Building2 className="w-6 h-6 mx-auto mb-2" />
-            <span className="font-medium">Employer</span>
-            <p className="text-xs text-gray-500 mt-1">Hiring PMHNPs</p>
-          </button>
+        {/* Role Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            I am a...
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setRole('job_seeker')}
+              className={`p-4 border rounded-lg text-center transition-all ${role === 'job_seeker'
+                ? 'border-blue-600 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300'
+                }`}
+            >
+              <User className="w-6 h-6 mx-auto mb-2" />
+              <span className="font-medium">Job Seeker</span>
+              <p className="text-xs text-gray-500 mt-1">Looking for PMHNP jobs</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('employer')}
+              className={`p-4 border rounded-lg text-center transition-all ${role === 'employer'
+                ? 'border-blue-600 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300'
+                }`}
+            >
+              <Building2 className="w-6 h-6 mx-auto mb-2" />
+              <span className="font-medium">Employer</span>
+              <p className="text-xs text-gray-500 mt-1">Hiring PMHNPs</p>
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Name Fields */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-            First name
-          </label>
-          <input
-            id="firstName"
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-            Last name
-          </label>
-          <input
-            id="lastName"
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
+        {/* Google Sign In - Only for Job Seekers */}
+        {role !== 'employer' && (
+          <>
+            <GoogleSignInButton mode="signup" />
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or sign up with email</span>
+              </div>
+            </div>
+          </>
+        )}
 
-      {/* Company Field (for employers) */}
-      {role === 'employer' && (
-        <div>
-          <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-            Company name
-          </label>
-          <div className="relative">
-            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        {/* Name Fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+              First name
+            </label>
             <input
-              id="company"
+              id="firstName"
               type="text"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Your company"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+              Last name
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
-      )}
 
-      {/* Email */}
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-          Email address
-        </label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="you@example.com"
-          />
-        </div>
-      </div>
-
-      {/* Password */}
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-          Password
-        </label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="••••••••"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-        <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
-      </div>
-
-      {/* Confirm Password */}
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-          Confirm password
-        </label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            id="confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="••••••••"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Job Highlights Opt-in (Job Seekers only) */}
-      {role === 'job_seeker' && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={wantJobHighlights}
-              onChange={(e) => setWantJobHighlights(e.target.checked)}
-              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-blue-600" />
-                <span className="font-medium text-gray-900">Email me job highlights</span>
-              </div>
-              <p className="text-xs text-gray-600 mt-0.5">Get the latest PMHNP opportunities delivered to your inbox</p>
+        {/* Company Field (for employers) */}
+        {role === 'employer' && (
+          <div>
+            <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
+              Company name
+            </label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                id="company"
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                required
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Your company"
+              />
             </div>
-          </label>
-
-          {wantJobHighlights && (
-            <div className="mt-3 ml-7 flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="highlightsFrequency"
-                  value="daily"
-                  checked={highlightsFrequency === 'daily'}
-                  onChange={() => setHighlightsFrequency('daily')}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Daily</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="highlightsFrequency"
-                  value="weekly"
-                  checked={highlightsFrequency === 'weekly'}
-                  onChange={() => setHighlightsFrequency('weekly')}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Weekly</span>
-              </label>
-            </div>
-          )}
-          <p className="text-xs text-gray-500 mt-2 ml-7">You can change this anytime</p>
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Creating account...
-          </>
-        ) : (
-          'Create account'
+          </div>
         )}
-      </button>
 
-      <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-          Sign in
-        </Link>
-      </p>
-    </form>
+        {/* Email */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email address
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="you@example.com"
+            />
+          </div>
+          {role === 'employer' && (
+            <p className="text-xs text-gray-500 mt-1">Please use your professional or company email address.</p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            Confirm password
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Job Highlights Opt-in (Job Seekers only) */}
+        {role === 'job_seeker' && (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={wantJobHighlights}
+                onChange={(e) => setWantJobHighlights(e.target.checked)}
+                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-gray-900">Email me job highlights</span>
+                </div>
+                <p className="text-xs text-gray-600 mt-0.5">Get the latest PMHNP opportunities delivered to your inbox</p>
+              </div>
+            </label>
+
+            {wantJobHighlights && (
+              <div className="mt-3 ml-7 flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="highlightsFrequency"
+                    value="daily"
+                    checked={highlightsFrequency === 'daily'}
+                    onChange={() => setHighlightsFrequency('daily')}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Daily</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="highlightsFrequency"
+                    value="weekly"
+                    checked={highlightsFrequency === 'weekly'}
+                    onChange={() => setHighlightsFrequency('weekly')}
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Weekly</span>
+                </label>
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-2 ml-7">You can change this anytime</p>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Creating account...
+            </>
+          ) : (
+            'Create account'
+          )}
+        </button>
+
+        <p className="text-center text-sm text-gray-600">
+          Already have an account?{' '}
+          <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+            Sign in
+          </Link>
+        </p>
+      </form>
+    </div>
   )
 }
+
 

@@ -113,6 +113,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // DUPLICATE CHECK
+    // Check for existing active jobs for this employer
+    const existingEmployerJobs = await prisma.employerJob.findMany({
+      where: {
+        contactEmail: trimmedContactEmail,
+      },
+      include: {
+        job: true,
+      },
+    });
+
+    const normalizedTitle = trimmedTitle.toLowerCase();
+    const normalizedLocation = trimmedLocation.toLowerCase();
+    const now = new Date();
+
+    const duplicateJob = existingEmployerJobs.find((ej) => {
+      const job = ej.job;
+      // Only check active, published jobs
+      if (!job.isPublished || !job.expiresAt || new Date(job.expiresAt) < now) {
+        return false;
+      }
+
+      const existingTitle = job.title.trim().toLowerCase();
+      const existingLocation = job.location.trim().toLowerCase();
+
+      return existingTitle === normalizedTitle && existingLocation === normalizedLocation;
+    });
+
+    if (duplicateJob) {
+      return NextResponse.json(
+        {
+          error: 'You already have an active posting for this role',
+          editLink: `/jobs/edit/${duplicateJob.editToken}`
+        },
+        { status: 409 }
+      );
+    }
+
     // Determine salary period (default to year for annual salaries)
     const salaryPeriod = (salaryMin || salaryMax) && !salaryCompetitive ? 'year' : null;
 
