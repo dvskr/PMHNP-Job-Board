@@ -19,14 +19,9 @@ export default async function SignUpPage() {
     <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex justify-center">
-          <span className="text-3xl font-bold text-blue-600">PMHNP Jobs</span>
+          <span className="text-2xl font-bold text-teal-600">PMHNP Hiring</span>
         </Link>
-        <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Start your PMHNP job search today
-        </p>
+
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

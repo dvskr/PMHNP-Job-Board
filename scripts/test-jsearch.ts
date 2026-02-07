@@ -18,6 +18,8 @@ async function test() {
     const jobs = await fetchJSearchJobs();
 
     console.log(`\n✅ Fetched ${jobs.length} PMHNP jobs`);
+    console.log('\nFetched Job Titles:');
+    jobs.slice(0, 10).forEach((job, i) => console.log(`${i + 1}. ${job.title} @ ${job.employer}`));
 
     if (jobs.length > 0) {
         console.log('\nSample job:');
