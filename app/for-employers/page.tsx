@@ -41,7 +41,7 @@ export default function ForEmployersPage() {
           <p className="text-gray-600 text-xl mb-8 max-w-3xl mx-auto">
             Reach thousands of psychiatric nurse practitioners actively looking for opportunities
           </p>
-          <Link href="/post-job">
+          <Link href="/employer/signup">
             <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
               Post a Job
             </button>
@@ -208,7 +208,7 @@ export default function ForEmployersPage() {
                   </li>
                 </ul>
 
-                <Link href="/post-job">
+                <Link href="/employer/signup">
                   <Button variant="outline" size="lg" className="w-full">
                     Get Started
                   </Button>
@@ -263,7 +263,7 @@ export default function ForEmployersPage() {
                   </li>
                 </ul>
 
-                <Link href="/post-job">
+                <Link href="/employer/signup">
                   <Button variant="primary" size="lg" className="w-full">
                     Get Featured
                   </Button>
@@ -419,7 +419,7 @@ export default function ForEmployersPage() {
             Post your job today and start receiving applications from qualified psychiatric nurse practitioners.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
-            <Link href="/post-job" className="w-full sm:w-auto">
+            <Link href="/employer/signup" className="w-full sm:w-auto">
               <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full shadow-md hover:shadow-lg">
                 Post a Job
               </button>

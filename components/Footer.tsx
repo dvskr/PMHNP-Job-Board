@@ -53,6 +53,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/employer/login" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Employer Login
+                </Link>
+              </li>
+              <li>
                 <Link href="/post-job" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Pricing
                 </Link>

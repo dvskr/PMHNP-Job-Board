@@ -8,15 +8,15 @@ export async function GET(request: NextRequest) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
+
   try {
     // Find jobs expiring in 5 days
     const fiveDaysFromNow = new Date()
     fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5)
-    
+
     const fourDaysFromNow = new Date()
     fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 4)
-    
+
     const expiringJobs = await prisma.job.findMany({
       where: {
         isPublished: true,
@@ -30,12 +30,12 @@ export async function GET(request: NextRequest) {
         employerJobs: true,
       },
     })
-    
+
     let sentCount = 0
     const errors: string[] = []
-    
+
     for (const job of expiringJobs) {
-      const employerJob = job.employerJobs[0]
+      const employerJob = job.employerJobs
       if (employerJob?.contactEmail) {
         try {
           await sendExpiryWarningEmail(
@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       warningsSent: sentCount,
       errors,
       timestamp: new Date().toISOString(),

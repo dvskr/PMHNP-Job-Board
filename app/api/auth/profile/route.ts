@@ -55,6 +55,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Block free email providers for employers
+    if (role === 'employer') {
+      const FREE_EMAIL_DOMAINS = [
+        'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+        'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
+        'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
+      ]
+
+      const emailDomain = email.toLowerCase().split('@')[1]
+      if (emailDomain && FREE_EMAIL_DOMAINS.includes(emailDomain)) {
+        return NextResponse.json(
+          { error: 'Please use your company email to sign up as an employer. Free email providers are not accepted.' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Check if profile already exists
     const existingProfile = await prisma.userProfile.findUnique({
       where: { supabaseId }
