@@ -123,6 +123,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         {/* Organization and WebSite Schema Markup */}
+        <meta property="fb:app_id" content="940556045303701" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
