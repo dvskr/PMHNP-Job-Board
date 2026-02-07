@@ -110,6 +110,14 @@ const SEARCH_KEYWORDS = [
   'Mental Health Nurse Practitioner',
   'Psychiatric NP',
   'Behavioral Health Nurse Practitioner',
+  // New additions
+  'Nurse Practitioner Psychiatry',
+  'Psychiatric ARNP',
+  'Psychiatry Nurse Practitioner',
+  'Psychiatric Mental Health NP-BC',
+  'Telehealth Psychiatric Nurse Practitioner',
+  'Correctional Psychiatric Nurse Practitioner', // Common in federal prisons
+  'Outpatient PMHNP',
 ];
 
 export async function fetchUSAJobs(): Promise<USAJobRaw[]> {

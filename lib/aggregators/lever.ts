@@ -51,6 +51,9 @@ const PMHNP_KEYWORDS = [
   'behavioral health nurse',
   'psychiatric mental health',
   'psychiatric aprn',
+  'nurse practitioner psychiatry',
+  'aprn psych',
+  'psychiatry',
 ];
 
 const COMPANY_NAMES: Record<string, string> = {

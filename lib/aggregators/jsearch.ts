@@ -56,6 +56,7 @@ interface JSearchResponse {
 }
 
 // PMHNP-specific search queries — cast a wide net
+// PMHNP-specific search queries — cast a wide net
 const SEARCH_QUERIES = [
     'PMHNP',
     'psychiatric nurse practitioner',
@@ -67,10 +68,23 @@ const SEARCH_QUERIES = [
     'PMHNP-BC',
     'psychiatric prescriber',
     'telepsychiatry nurse practitioner',
+    // New additions for better coverage --
+    'Nurse Practitioner Psychiatry',
+    'Psychiatric ARNP',
+    'Psychiatry Nurse Practitioner',
+    'Psychiatric Mental Health NP-BC',
+    'New Grad PMHNP',
+    'Remote PMHNP',
+    'Telehealth Psychiatric Nurse Practitioner',
+    'Locum Tenens PMHNP',
+    'Travel Psychiatric Nurse Practitioner',
+    'Correctional Psychiatric Nurse Practitioner',
+    'Inpatient Psychiatric Nurse Practitioner',
+    'Outpatient PMHNP',
 ];
 
 // How many pages to fetch per query (each page = ~10 jobs)
-const PAGES_PER_QUERY = 5;
+const PAGES_PER_QUERY = 20;
 
 // Rate limiting delay between API calls (ms)
 const DELAY_BETWEEN_REQUESTS = 300;

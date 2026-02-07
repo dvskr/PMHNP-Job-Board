@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/ingest?source=adzuna",
-      "schedule": "0 6,14,22 * * *"
+      "schedule": "0 0,6,12,18 * * *"
     },
     {
       "path": "/api/cron/ingest?source=jooble",
-      "schedule": "0 1,12,20 * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/freshness-decay",
@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/ingest?source=lever",
-      "schedule": "0 10,18 * * *"
+      "schedule": "0 2,10,18 * * *"
     },
     {
       "path": "/api/cron/send-alerts",
@@ -38,7 +38,7 @@
     },
     {
       "path": "/api/cron/ingest?source=jsearch",
-      "schedule": "0 6,14,22 * * *"
+      "schedule": "0 0,6,12,18 * * *"
     }
   ],
   "headers": [
