@@ -4,237 +4,232 @@ import { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
 
-    // Get dynamic parameters
-    const title = searchParams.get('title') || 'PMHNP Job Opportunity';
-    const company = searchParams.get('company') || '';
-    const salary = searchParams.get('salary') || '';
-    const location = searchParams.get('location') || '';
-    const jobType = searchParams.get('jobType') || '';
-    const isNew = searchParams.get('isNew') === 'true';
+  // Get dynamic parameters
+  const title = searchParams.get('title') || 'PMHNP Job Opportunity';
+  const company = searchParams.get('company') || 'PMHNP Hiring';
+  const salary = searchParams.get('salary') || 'Competitive Pay';
+  const location = searchParams.get('location') || 'Remote / On-site';
+  const jobType = searchParams.get('jobType') || 'Full-time';
+  const isNew = searchParams.get('isNew') === 'true';
+  const domain = 'PMHNPHIRING.COM';
 
-    // Truncate title if too long
-    const displayTitle = title.length > 60 ? title.slice(0, 57) + '...' : title;
+  // Truncate title
+  const displayTitle = title.length > 55 ? title.slice(0, 52) + '...' : title;
 
-    return new ImageResponse(
-        (
-            <div
-                style={{
-                    height: '100%',
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    backgroundColor: '#0D9488',
-                    padding: '40px',
-                }}
-            >
-                {/* Main Card */}
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        flex: 1,
-                        backgroundColor: 'white',
-                        borderRadius: '24px',
-                        padding: '50px',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-                    }}
-                >
-                    {/* Header with Logo and Badge */}
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '30px',
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '16px',
-                            }}
-                        >
-                            {/* Simple text logo instead of image to avoid fetch issues */}
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '60px',
-                                    height: '60px',
-                                    backgroundColor: '#0D9488',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    fontSize: '28px',
-                                    fontWeight: 800,
-                                }}
-                            >
-                                P
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: '28px',
-                                    fontWeight: 700,
-                                    color: '#0D9488',
-                                }}
-                            >
-                                PMHNP Hiring
-                            </div>
-                        </div>
-                        {isNew && (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    backgroundColor: '#059669',
-                                    color: 'white',
-                                    padding: '8px 20px',
-                                    borderRadius: '20px',
-                                    fontSize: '20px',
-                                    fontWeight: 600,
-                                }}
-                            >
-                                NEW
-                            </div>
-                        )}
-                    </div>
+  // Fetch Logo
+  let logoSrc = '';
+  try {
+    const host = request.headers.get('host') || 'pmhnphiring.com';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const logoRes = await fetch(`${protocol}://${host}/pmhnp_logo.png`);
+    if (logoRes.ok) {
+      const logoBuf = await logoRes.arrayBuffer();
+      logoSrc = `data:image/png;base64,${Buffer.from(logoBuf).toString('base64')}`;
+    }
+  } catch (e) {
+    console.error('Failed to fetch logo:', e);
+    // Fallback to emptyString or proceed without logo
+  }
 
-                    {/* Job Title */}
-                    <div
-                        style={{
-                            fontSize: '52px',
-                            fontWeight: 800,
-                            color: '#111827',
-                            lineHeight: 1.2,
-                            marginBottom: '16px',
-                        }}
-                    >
-                        {displayTitle}
-                    </div>
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#0A1120',
+          color: 'white',
+          fontFamily: '"Inter", "SF Pro Display", "system-ui", "Segoe UI", "Roboto", sans-serif',
+          padding: '48px 56px',
+          boxSizing: 'border-box',
+          position: 'relative',
+        }}
+      >
+        {/* 1. Background Gradient (Absolute, First in DOM = Bottom) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            background: 'radial-gradient(circle at top right, #1e293b 0%, #020617 60%)',
+            display: 'flex',
+          }}
+        />
 
-                    {/* Company */}
-                    {company && (
-                        <div
-                            style={{
-                                fontSize: '32px',
-                                fontWeight: 600,
-                                color: '#4B5563',
-                                marginBottom: '24px',
-                            }}
-                        >
-                            at {company}
-                        </div>
-                    )}
+        {/* 2. Abstract Texture (Absolute) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.15) 2px, transparent 2px)',
+            backgroundSize: '40px 40px',
+            display: 'flex',
+            opacity: 0.4,
+          }}
+        />
 
-                    {/* Spacer */}
-                    <div style={{ display: 'flex', flex: 1 }} />
+        {/* 3. Glow Border (Absolute) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            bottom: '16px',
+            left: '16px',
+            borderRadius: '24px',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            boxShadow: '0 0 40px rgba(16, 185, 129, 0.1)',
+            display: 'flex',
+          }}
+        />
 
-                    {/* Bottom Info Row */}
-                    <div
-                        style={{
-                            display: 'flex',
-                            gap: '40px',
-                            flexWrap: 'wrap',
-                        }}
-                    >
-                        {/* Salary - prominent */}
-                        {salary && (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontSize: '18px',
-                                        color: '#6B7280',
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    SALARY
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: '36px',
-                                        fontWeight: 800,
-                                        color: '#059669',
-                                    }}
-                                >
-                                    {salary}
-                                </div>
-                            </div>
-                        )}
+        {/* 4. Main Content Wrapper (Relative, Last in DOM = Top) */}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', position: 'relative' }}>
 
-                        {/* Location */}
-                        {location && (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontSize: '18px',
-                                        color: '#6B7280',
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    LOCATION
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: '28px',
-                                        fontWeight: 600,
-                                        color: '#111827',
-                                    }}
-                                >
-                                    {location}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Job Type */}
-                        {jobType && (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontSize: '18px',
-                                        color: '#6B7280',
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    TYPE
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: '28px',
-                                        fontWeight: 600,
-                                        color: '#111827',
-                                    }}
-                                >
-                                    {jobType}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', height: '128px', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {logoSrc ? (
+                <img src={logoSrc} height="100" style={{ objectFit: 'contain' }} alt="PMHNP Hiring" />
+              ) : (
+                <div style={{ display: 'flex', fontSize: 32, fontWeight: 800, color: '#2DD4BF', textShadow: '0 0 20px rgba(45, 212, 191, 0.5)' }}>PMHNP Hiring</div>
+              )}
             </div>
-        ),
-        {
-            width: 1200,
-            height: 630,
-        }
-    );
+
+            {isNew && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: '#C2410C',
+                  color: 'white',
+                  padding: '8px 24px',
+                  borderRadius: '6px',
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  marginTop: '8px',
+                  border: '2px solid #F97316',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                  transform: 'rotate(-2deg)',
+                }}
+              >
+                Featured
+              </div>
+            )}
+          </div>
+
+          {/* Content Body */}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, gap: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '60px',
+                fontWeight: 800,
+                color: 'white',
+                lineHeight: 1.1,
+                textTransform: 'uppercase',
+                letterSpacing: '-0.025em',
+                textShadow: '0 4px 6px rgba(0,0,0,0.5)',
+              }}
+            >
+              {displayTitle}
+            </div>
+
+            <div style={{ display: 'flex', marginTop: '16px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: '30px',
+                  fontWeight: 700,
+                  color: '#2DD4BF',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.025em',
+                  borderBottom: '4px solid #2DD4BF',
+                  paddingBottom: '4px',
+                  boxShadow: '0 4px 0 -2px rgba(45, 212, 191, 0.3)'
+                }}
+              >
+                {domain}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer / Stats Grid */}
+          <div
+            style={{
+              display: 'flex',
+              paddingTop: '32px',
+              borderTop: '2px solid rgba(51, 65, 85, 0.5)',
+              gap: '16px',
+              width: '100%',
+            }}
+          >
+            {[
+              {
+                label: 'TYPE',
+                value: jobType,
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+                ),
+              },
+              {
+                label: 'EMPLOYER',
+                value: company,
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></svg>
+                ),
+              },
+              // Only show salary if it's not empty, 0, or "Hidden"
+              ...(salary && salary !== '0' && salary !== 'Hidden' && salary !== 'Competitive Pay' ? [{
+                label: 'SALARY',
+                value: salary,
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                ),
+              }] : []),
+              // Only show location if it's not empty or "Remote / On-site" placeholder
+              ...(location && location !== 'Remote / On-site' ? [{
+                label: 'LOCATION',
+                value: location,
+                icon: (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                ),
+              }] : []),
+            ].map((stat, i, arr) => (
+              <div key={stat.label} style={{ display: 'flex', flex: 1, alignItems: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '18px', fontWeight: 700, textTransform: 'uppercase' }}>
+                    {stat.icon}
+                    <span>{stat.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', fontSize: '30px', fontWeight: 900, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {stat.value}
+                  </div>
+                </div>
+                {/* Divider (except for last item) */}
+                {i < arr.length - 1 && (
+                  <div style={{ display: 'flex', width: '2px', height: '100%', backgroundColor: 'rgba(51, 65, 85, 0.5)', marginLeft: '16px' }} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      width: 1200,
+      height: 630,
+    }
+  );
 }
