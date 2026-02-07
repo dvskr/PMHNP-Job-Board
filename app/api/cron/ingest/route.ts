@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     // Determine which sources to run
     const sources: JobSource[] = sourceParam
       ? [sourceParam as JobSource]
-      : ['adzuna', 'jooble', 'greenhouse', 'lever', 'usajobs', 'careerjet', 'jsearch']; // All active sources
+      : ['adzuna', 'jooble', 'greenhouse', 'lever', 'usajobs', 'jsearch']; // All active sources
 
     console.log(`[CRON] Sources to process: ${sources.join(', ')}`);
 

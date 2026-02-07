@@ -4,7 +4,6 @@ import { fetchUSAJobs } from './aggregators/usajobs';
 import { fetchGreenhouseJobs } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
-import { fetchCareerJetJobs } from './aggregators/careerjet';
 import { fetchJSearchJobs } from './aggregators/jsearch';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
@@ -12,7 +11,7 @@ import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'careerjet' | 'jsearch';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch';
 
 export interface IngestionResult {
   source: JobSource;
@@ -38,8 +37,6 @@ async function fetchFromSource(source: JobSource): Promise<Array<Record<string, 
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
     case 'jooble':
       return await fetchJoobleJobs();
-    case 'careerjet':
-      return await fetchCareerJetJobs();
     case 'jsearch':
       return await fetchJSearchJobs();
     default:
@@ -55,7 +52,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
   const startTime = Date.now();
   let fetched = 0;
   let added = 0;
-  let duplicates = 0;
+  let duplicates = 0; // "Renewed" jobs are counted as duplicates for now to maintain stats semantics
   let errors = 0;
 
   try {
@@ -72,12 +69,35 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
     }
 
     // Optimized: Load all existing externalIds for this source once
-    const existingIds = new Set(
-      (await prisma.job.findMany({
-        where: { sourceProvider: source },
-        select: { externalId: true },
-      })).map(j => j.externalId).filter((id): id is string => !!id)
-    );
+    // Map ExternalID -> InternalID for fast lookup and renewal
+    const existingJobsMap = new Map<string, string>();
+    const existingJobs = await prisma.job.findMany({
+      where: { sourceProvider: source },
+      select: { id: true, externalId: true },
+    });
+
+    existingJobs.forEach(job => {
+      if (job.externalId) {
+        existingJobsMap.set(job.externalId, job.id);
+      }
+    });
+
+    // Helper to renew a job (Auto-Renewal)
+    const renewJob = async (id: string, title: string) => {
+      try {
+        await prisma.job.update({
+          where: { id },
+          data: {
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Extend 30 days
+            isPublished: true, // Revive if expired
+            updatedAt: new Date(), // Mark as active/fresh
+          }
+        });
+        // console.log(`[${source.toUpperCase()}] Auto-Renewed job: ${title}`);
+      } catch (e) {
+        console.error(`[${source.toUpperCase()}] Failed to renew job ${id}:`, e);
+      }
+    };
 
     // Process each job
     for (let i = 0; i < rawJobs.length; i++) {
@@ -93,8 +113,12 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         }
 
         // Strategy 1: Fast in-memory lookup for exact externalId match
-        if (normalizedJob.externalId && existingIds.has(normalizedJob.externalId)) {
-          duplicates++;
+        if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {
+          // AUTO-RENEWAL: Job exists, so we extend its life instead of ignoring it
+          const existingId = existingJobsMap.get(normalizedJob.externalId)!;
+          await renewJob(existingId, normalizedJob.title);
+
+          duplicates++; // Count as duplicate (it IS a duplicate, just renewed)
           continue;
         }
 
@@ -109,6 +133,11 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         });
 
         if (dupCheck.isDuplicate) {
+          // AUTO-RENEWAL: Fuzzy match found, renew the matched job
+          if (dupCheck.matchedJobId) {
+            await renewJob(dupCheck.matchedJobId, normalizedJob.title);
+          }
+
           duplicates++;
           continue;
         }
@@ -149,7 +178,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
 
         // Log progress every 10 jobs
         if ((i + 1) % 10 === 0) {
-          console.log(`[${source.toUpperCase()}] Processed ${i + 1}/${fetched} jobs (${added} added, ${duplicates} duplicates, ${errors} errors)`);
+          console.log(`[${source.toUpperCase()}] Processed ${i + 1}/${fetched} jobs (${added} added, ${duplicates} renewed/dup, ${errors} errors)`);
         }
 
       } catch (error) {
@@ -190,7 +219,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
  * Main ingestion function - processes multiple sources
  */
 export async function ingestJobs(
-  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet']
+  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch']
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();

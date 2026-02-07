@@ -717,7 +717,6 @@ export default function AdminJobsPage() {
                 <option value="greenhouse">Greenhouse</option>
                 <option value="lever">Lever</option>
                 <option value="usajobs">USAJobs</option>
-                <option value="careerjet">CareerJet</option>
                 <option value="jsearch">JSearch</option>
               </select>
 

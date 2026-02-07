@@ -30,6 +30,19 @@ const SEARCH_QUERIES = [
   'Mental Health Nurse Practitioner',
   'Psychiatric APRN',
   'Behavioral Health Nurse Practitioner',
+  // New additions for better coverage --
+  'Nurse Practitioner Psychiatry',
+  'Psychiatric ARNP',
+  'Psychiatry Nurse Practitioner',
+  'Psychiatric Mental Health NP-BC',
+  'New Grad PMHNP',
+  'Remote PMHNP',
+  'Telehealth Psychiatric Nurse Practitioner',
+  'Locum Tenens PMHNP',
+  'Travel Psychiatric Nurse Practitioner',
+  'Correctional Psychiatric Nurse Practitioner',
+  'Inpatient Psychiatric Nurse Practitioner',
+  'Outpatient PMHNP',
 ];
 
 // Helper function for delays
@@ -52,8 +65,8 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
   console.log(`[Adzuna] Starting fetch with ${SEARCH_QUERIES.length} search queries...`);
 
   for (const query of SEARCH_QUERIES) {
-    // Fetch up to 5 pages per query (50 results per page = 250 max per query)
-    for (let page = 1; page <= 5; page++) {
+    // Fetch up to 10 pages per query (50 results per page = 500 max per query)
+    for (let page = 1; page <= 10; page++) {
       try {
         const params = new URLSearchParams({
           app_id: appId,
