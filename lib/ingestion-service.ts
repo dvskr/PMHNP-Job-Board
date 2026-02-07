@@ -1,35 +1,26 @@
-// ...
+import { prisma } from './prisma';
+import { fetchAdzunaJobs } from './aggregators/adzuna';
 import { fetchUSAJobs } from './aggregators/usajobs';
 import { fetchGreenhouseJobs } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
-import { fetchJoobleJobs } from './aggregators/jooble'; // Re-added
+import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchJSearchJobs } from './aggregators/jsearch';
-// ...
+import { normalizeJob } from './job-normalizer';
+import { checkDuplicate } from './deduplicator';
+import { parseJobLocation } from './location-parser';
+import { linkJobToCompany } from './company-normalizer';
+import { recordIngestionStats } from './source-analytics';
+
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch';
 
-// ...
-
-async function fetchFromSource(source: JobSource): Promise<Array<Record<string, unknown>>> {
-  switch (source) {
-    case 'adzuna':
-      return await fetchAdzunaJobs();
-    case 'usajobs':
-      return await fetchUSAJobs() as unknown as Array<Record<string, unknown>>;
-    case 'greenhouse':
-      return await fetchGreenhouseJobs() as unknown as Array<Record<string, unknown>>;
-    case 'lever':
-      return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
-    case 'jooble':
-      return await fetchJoobleJobs();
-    case 'jsearch':
-      return await fetchJSearchJobs();
-    default:
-      console.warn(`[Ingestion] Unknown source: ${source}`);
-      return [];
-  }
+export interface IngestionResult {
+  source: JobSource;
+  fetched: number;
+  added: number;
+  duplicates: number;
+  errors: number;
+  duration: number;
 }
-
-// ...
 
 /**
  * Fetch raw jobs from a specific source
@@ -44,6 +35,8 @@ async function fetchFromSource(source: JobSource): Promise<Array<Record<string, 
       return await fetchGreenhouseJobs() as unknown as Array<Record<string, unknown>>;
     case 'lever':
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
+    case 'jooble':
+      return await fetchJoobleJobs();
     case 'jsearch':
       return await fetchJSearchJobs();
     default:
@@ -226,7 +219,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
  * Main ingestion function - processes multiple sources
  */
 export async function ingestJobs(
-  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet']
+  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch']
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();

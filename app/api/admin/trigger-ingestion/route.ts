@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Determine sources
     const sources: JobSource[] = source
       ? [source as JobSource]
-      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet'];
+      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch'];
 
     // Direct call (Bypasses HTTP/Vercel Auth issues)
     const ingestionResults = await ingestJobs(sources);
