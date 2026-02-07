@@ -131,6 +131,8 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
     // For SMS and mailto, just open directly
     if (href.startsWith('sms:') || href.startsWith('mailto:')) {
       window.location.href = href;
+    } else if (href.includes('facebook.com')) {
+      window.open(href, 'facebook-share', 'width=600,height=400,scrollbars=yes');
     } else {
       window.open(href, '_blank', 'width=600,height=400,noopener,noreferrer');
     }
@@ -203,14 +205,14 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px' }}
               className={`transition-colors ${copied ? 'text-emerald-600' : 'hover:bg-gray-100 text-gray-700'}`}
             >
-              <div style={{ 
-                width: '48px', 
-                height: '48px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                borderRadius: '50%', 
-                backgroundColor: copied ? '#d1fae5' : '#f3f4f6' 
+              <div style={{
+                width: '48px',
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                backgroundColor: copied ? '#d1fae5' : '#f3f4f6'
               }}>
                 {copied ? <Check size={24} /> : <Link2 size={24} />}
               </div>
