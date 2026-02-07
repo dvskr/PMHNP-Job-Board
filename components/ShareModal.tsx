@@ -132,7 +132,7 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
     if (href.startsWith('sms:') || href.startsWith('mailto:')) {
       window.location.href = href;
     } else if (href.includes('facebook.com')) {
-      window.open(href, 'facebook-share', 'width=600,height=400,scrollbars=yes');
+      window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), 'facebook-share', 'width=600,height=400,scrollbars=yes,resizable=yes');
     } else {
       window.open(href, '_blank', 'width=600,height=400,noopener,noreferrer');
     }
