@@ -29,7 +29,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
-      
+
       if (user) {
         try {
           const res = await fetch('/api/auth/profile')
@@ -47,7 +47,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
           console.error('Failed to fetch profile:', err)
         }
       }
-      
+
       setLoading(false)
     }
 
@@ -56,7 +56,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setUser(session?.user ?? null)
-        
+
         if (session?.user) {
           try {
             const res = await fetch('/api/auth/profile')
@@ -91,6 +91,19 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
   }
 
   if (user && profile) {
+    if (profile.role === 'employer') {
+      return (
+        <div className="flex items-center gap-4">
+          <Link
+            href="/employer/dashboard"
+            className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+          >
+            Dashboard
+          </Link>
+          <UserMenu user={profile} />
+        </div>
+      )
+    }
     return <UserMenu user={profile} />
   }
 

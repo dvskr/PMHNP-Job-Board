@@ -8,54 +8,46 @@ datasource db {
 }
 
 model Job {
-  id                 String  @id @default(uuid())
-  title              String
-  slug               String? @unique // SEO-friendly URL slug
-  employer           String
-  location           String
-  jobType            String? @map("job_type")
-  mode               String?
-  description        String
-  descriptionSummary String? @map("description_summary")
-  salaryRange        String? @map("salary_range")
-  minSalary          Int?    @map("min_salary")
-  maxSalary          Int?    @map("max_salary")
-  salaryPeriod       String? @map("salary_period")
-
-  // Parsed location data
-  city      String?
-  state     String?
-  stateCode String? @map("state_code")
-  country   String? @default("US")
-  isRemote  Boolean @default(false) @map("is_remote")
-  isHybrid  Boolean @default(false) @map("is_hybrid")
-
-  // Normalized salary fields (always annual)
-  normalizedMinSalary Int?    @map("normalized_min_salary")
-  normalizedMaxSalary Int?    @map("normalized_max_salary")
-  salaryIsEstimated   Boolean @default(false) @map("salary_is_estimated")
-  salaryConfidence    Float?  @map("salary_confidence")
-  displaySalary       String? @map("display_salary") // User-friendly format: "$145-$200/hr" or "$150k-$180k/yr"
-
-  applyLink          String    @map("apply_link")
-  isFeatured         Boolean   @default(false) @map("is_featured")
-  isPublished        Boolean   @default(true) @map("is_published")
-  isVerifiedEmployer Boolean   @default(false) @map("is_verified_employer")
-  sourceType         String?   @map("source_type")
-  sourceProvider     String?   @map("source_provider")
-  externalId         String?   @map("external_id")
-  viewCount          Int       @default(0) @map("view_count")
-  applyClickCount    Int       @default(0) @map("apply_click_count")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-  expiresAt          DateTime? @map("expires_at")
-
-  // Company relation
-  companyId String?  @map("company_id")
-  company   Company? @relation(fields: [companyId], references: [id])
-
-  employerJobs EmployerJob[]
-  applyClicks  ApplyClick[]
+  id                  String       @id @default(uuid())
+  title               String
+  slug                String?      @unique
+  employer            String
+  location            String
+  jobType             String?      @map("job_type")
+  mode                String?
+  description         String
+  descriptionSummary  String?      @map("description_summary")
+  salaryRange         String?      @map("salary_range")
+  minSalary           Int?         @map("min_salary")
+  maxSalary           Int?         @map("max_salary")
+  salaryPeriod        String?      @map("salary_period")
+  city                String?
+  state               String?
+  stateCode           String?      @map("state_code")
+  country             String?      @default("US")
+  isRemote            Boolean      @default(false) @map("is_remote")
+  isHybrid            Boolean      @default(false) @map("is_hybrid")
+  normalizedMinSalary Int?         @map("normalized_min_salary")
+  normalizedMaxSalary Int?         @map("normalized_max_salary")
+  salaryIsEstimated   Boolean      @default(false) @map("salary_is_estimated")
+  salaryConfidence    Float?       @map("salary_confidence")
+  displaySalary       String?      @map("display_salary")
+  applyLink           String       @map("apply_link")
+  isFeatured          Boolean      @default(false) @map("is_featured")
+  isPublished         Boolean      @default(true) @map("is_published")
+  isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
+  sourceType          String?      @map("source_type")
+  sourceProvider      String?      @map("source_provider")
+  externalId          String?      @map("external_id")
+  viewCount           Int          @default(0) @map("view_count")
+  applyClickCount     Int          @default(0) @map("apply_click_count")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  expiresAt           DateTime?    @map("expires_at")
+  companyId           String?      @map("company_id")
+  applyClicks         ApplyClick[]
+  employerJobs        EmployerJob?
+  company             Company?     @relation(fields: [companyId], references: [id])
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -71,16 +63,15 @@ model Job {
 }
 
 model EmailLead {
-  id               String   @id @default(cuid())
-  email            String   @unique
-  preferences      Json     @default("{}")
+  id               String     @id @default(cuid())
+  email            String     @unique
+  preferences      Json       @default("{}")
   source           String?
-  isSubscribed     Boolean  @default(true) @map("is_subscribed")
-  unsubscribeToken String   @unique @default(cuid()) @map("unsubscribe_token")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  jobAlerts JobAlert[]
+  isSubscribed     Boolean    @default(true) @map("is_subscribed")
+  unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  jobAlerts        JobAlert[]
 
   @@index([email])
   @@index([unsubscribeToken])
@@ -88,31 +79,22 @@ model EmailLead {
 }
 
 model JobAlert {
-  id    String  @id @default(cuid())
-  email String
-  name  String? // Optional: "Remote CA jobs"
-
-  // Search criteria
-  keyword   String?
-  location  String?
-  mode      String? // Remote, Hybrid, In-Person
-  jobType   String? @map("job_type") // Full-Time, Part-Time, Contract, Per Diem
-  minSalary Int?    @map("min_salary")
-  maxSalary Int?    @map("max_salary")
-
-  // Settings
-  frequency String  @default("weekly") // daily, weekly
-  isActive  Boolean @default(true) @map("is_active")
-
-  // Tracking
+  id         String    @id @default(cuid())
+  email      String
+  name       String?
+  keyword    String?
+  location   String?
+  mode       String?
+  jobType    String?   @map("job_type")
+  minSalary  Int?      @map("min_salary")
+  maxSalary  Int?      @map("max_salary")
+  frequency  String    @default("weekly")
+  isActive   Boolean   @default(true) @map("is_active")
   lastSentAt DateTime? @map("last_sent_at")
-  token      String    @unique @default(cuid()) // For manage/delete
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relation (optional - can exist without EmailLead)
-  emailLead EmailLead? @relation(fields: [email], references: [email])
+  token      String    @unique @default(cuid())
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  emailLead  EmailLead @relation(fields: [email], references: [email])
 
   @@index([email])
   @@index([token])
@@ -130,14 +112,17 @@ model EmployerJob {
   jobId               String    @unique @map("job_id")
   editToken           String    @unique @map("edit_token")
   dashboardToken      String    @unique @default(cuid()) @map("dashboard_token")
-  // Valid values: 'pending', 'paid', 'failed', 'refunded', 'free', 'free_renewed', 'free_upgraded'
   paymentStatus       String    @map("payment_status")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
   expiryWarningSentAt DateTime? @map("expiry_warning_sent_at")
 
+  userId String? @map("user_id")
+  user   UserProfile? @relation(fields: [userId], references: [supabaseId])
+
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@index([editToken])
   @@index([contactEmail])
   @@index([dashboardToken])
@@ -170,9 +155,9 @@ model JobDraft {
 
 model Company {
   id             String   @id @default(uuid())
-  name           String   @unique // Canonical name
-  normalizedName String   @unique @map("normalized_name") // For matching
-  aliases        String[] @default([]) // Alternative names
+  name           String   @unique
+  normalizedName String   @unique @map("normalized_name")
+  aliases        String[] @default([])
   logoUrl        String?  @map("logo_url")
   website        String?
   description    String?
@@ -180,8 +165,7 @@ model Company {
   isVerified     Boolean  @default(false) @map("is_verified")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
-
-  jobs Job[]
+  jobs           Job[]
 
   @@index([normalizedName])
   @@index([isVerified])
@@ -190,8 +174,8 @@ model Company {
 
 model SourceStats {
   id               String   @id @default(uuid())
-  source           String // adzuna, jooble, etc.
-  date             DateTime @db.Date // Stats for this day
+  source           String
+  date             DateTime @db.Date
   jobsFetched      Int      @default(0) @map("jobs_fetched")
   jobsAdded        Int      @default(0) @map("jobs_added")
   jobsDuplicate    Int      @default(0) @map("jobs_duplicate")
@@ -211,12 +195,12 @@ model SourceStats {
 model ApplyClick {
   id        String   @id @default(uuid())
   jobId     String   @map("job_id")
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  source    String? // Job's sourceProvider
+  source    String?
   timestamp DateTime @default(now())
-  sessionId String?  @map("session_id") // For deduping
-  referrer  String? // Where user came from
+  sessionId String?  @map("session_id")
+  referrer  String?
   userAgent String?  @map("user_agent")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([source])
@@ -233,8 +217,8 @@ model EmployerLead {
   website         String?
   linkedInUrl     String?   @map("linkedin_url")
   notes           String?
-  status          String    @default("prospect") // prospect, contacted, responded, converted, declined
-  source          String? // where we found them
+  status          String    @default("prospect")
+  source          String?
   lastContactedAt DateTime? @map("last_contacted_at")
   nextFollowUpAt  DateTime? @map("next_follow_up_at")
   jobsPosted      Int       @default(0) @map("jobs_posted")
@@ -250,7 +234,7 @@ model UserProfile {
   id         String   @id @default(cuid())
   supabaseId String   @unique @map("supabase_id")
   email      String   @unique
-  role       String   @default("job_seeker") // job_seeker, employer, admin
+  role       String   @default("job_seeker")
   firstName  String?  @map("first_name")
   lastName   String?  @map("last_name")
   phone      String?
@@ -259,6 +243,8 @@ model UserProfile {
   avatarUrl  String?  @map("avatar_url")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+
+  employerJobs EmployerJob[]
 
   @@index([supabaseId])
   @@index([email])

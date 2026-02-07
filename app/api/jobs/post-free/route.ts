@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { config } from '@/lib/config';
@@ -89,6 +90,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Require authenticated user
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      }
+
+      // Verify profile and get userId
+      const profile = await prisma.userProfile.findUnique({
+        where: { supabaseId: user.id }
+      });
+
+      if (!profile) {
+        // This technically shouldn't happen if they are logged in, but just in case
+        return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
+      }
+
+      userId = user.id;
+
+    } catch (error) {
+      logger.warn('Failed to fetch user session in post-free', { error });
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    }
+
+    // DUPLICATE CHECK
+    // Check for existing active jobs for this employer to prevent accidental double-posting
+    const existingEmployerJobs = await prisma.employerJob.findMany({
+      where: {
+        contactEmail: sanitized.contactEmail,
+      },
+      include: {
+        job: true,
+      },
+    });
+
+    const normalizedTitle = sanitized.title.trim().toLowerCase();
+    const normalizedLocation = sanitized.location.trim().toLowerCase();
+    const now = new Date();
+
+    const duplicateJob = existingEmployerJobs.find((ej) => {
+      const job = ej.job;
+      // Only check active, published jobs
+      if (!job.isPublished || !job.expiresAt || new Date(job.expiresAt) < now) {
+        return false;
+      }
+
+      const existingTitle = job.title.trim().toLowerCase();
+      const existingLocation = job.location.trim().toLowerCase();
+
+      return existingTitle === normalizedTitle && existingLocation === normalizedLocation;
+    });
+
+    if (duplicateJob) {
+      return NextResponse.json(
+        {
+          error: 'You already have an active posting for this role',
+          editLink: `/jobs/edit/${duplicateJob.editToken}`
+        },
+        { status: 409 }
+      );
+    }
+
     // Generate unique tokens
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
@@ -172,6 +238,7 @@ export async function POST(request: NextRequest) {
         editToken,
         dashboardToken,
         paymentStatus: 'free',
+        userId: userId, // Link to user if authenticated
       },
     });
 
