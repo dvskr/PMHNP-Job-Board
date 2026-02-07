@@ -147,9 +147,6 @@ export default function SignUpForm() {
 
         {/* Role Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            I am a...
-          </label>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"

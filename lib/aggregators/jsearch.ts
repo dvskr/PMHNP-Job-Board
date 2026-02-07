@@ -84,7 +84,7 @@ const SEARCH_QUERIES = [
 ];
 
 // How many pages to fetch per query (each page = ~10 jobs)
-const PAGES_PER_QUERY = 20;
+const PAGES_PER_QUERY = 3;
 
 // Rate limiting delay between API calls (ms)
 const DELAY_BETWEEN_REQUESTS = 300;
