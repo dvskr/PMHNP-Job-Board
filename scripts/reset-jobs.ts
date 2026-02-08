@@ -1,36 +1,17 @@
-import { config } from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
 
-config();
+import 'dotenv/config';
+import { prisma } from '../lib/prisma';
 
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 5,
-});
-
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
-
-async function main() {
-  console.log('🗑️  Deleting all jobs and companies...\n');
-  
-  // Delete all jobs first (they have foreign key to companies)
-  const deletedJobs = await prisma.job.deleteMany({});
-  console.log(`✅ Deleted ${deletedJobs.count} jobs`);
-  
-  // Delete all companies
-  const deletedCompanies = await prisma.company.deleteMany({});
-  console.log(`✅ Deleted ${deletedCompanies.count} companies`);
-  
-  console.log('\n🎉 Database cleaned! Ready for fresh ingestion.\n');
-  
-  await prisma.$disconnect();
+async function resetJobs() {
+  console.log('🗑️  Deleting ALL jobs from database...');
+  try {
+    const deleted = await prisma.job.deleteMany({});
+    console.log(`✅ Deleted ${deleted.count} jobs.`);
+  } catch (error) {
+    console.error('❌ Error deleting jobs:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-main().catch((error) => {
-  console.error('❌ Error:', error);
-  process.exit(1);
-});
-
+resetJobs();

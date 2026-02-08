@@ -5,13 +5,15 @@ import { fetchGreenhouseJobs } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchJSearchJobs } from './aggregators/jsearch';
+import { fetchAshbyJobs } from './aggregators/ashby';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
+import { isRelevantJob } from './utils/job-filter';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby';
 
 export interface IngestionResult {
   source: JobSource;
@@ -39,6 +41,8 @@ async function fetchFromSource(source: JobSource): Promise<Array<Record<string, 
       return await fetchJoobleJobs();
     case 'jsearch':
       return await fetchJSearchJobs();
+    case 'ashby':
+      return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
     default:
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
@@ -83,14 +87,15 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
     });
 
     // Helper to renew a job (Auto-Renewal)
-    const renewJob = async (id: string, title: string) => {
+    const renewJob = async (id: string, title: string, originalDate?: Date | null) => {
       try {
         await prisma.job.update({
           where: { id },
           data: {
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Extend 30 days
+            expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // Extend 60 days
             isPublished: true, // Revive if expired
             updatedAt: new Date(), // Mark as active/fresh
+            ...(originalDate ? { originalPostedAt: originalDate } : {}),
           }
         });
         // console.log(`[${source.toUpperCase()}] Auto-Renewed job: ${title}`);
@@ -108,7 +113,15 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         const normalizedJob = normalizeJob(rawJob, source);
 
         if (!normalizedJob) {
-          errors++;
+          // If normalizer returns null, it was either an error OR a filtered/stale job
+          // Normalizer already logs skips (stale/missing fields)
+          continue;
+        }
+
+        // Apply Strict Relevance Filter to Aggregator Sources
+        // We skip this for employer postings (sourceProvider: null) to avoid false negatives on paid roles
+        if (source !== null && !isRelevantJob(normalizedJob.title, normalizedJob.description)) {
+          // console.log(`[${source.toUpperCase()}] Skipping irrelevant job: ${normalizedJob.title}`);
           continue;
         }
 
@@ -116,7 +129,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {
           // AUTO-RENEWAL: Job exists, so we extend its life instead of ignoring it
           const existingId = existingJobsMap.get(normalizedJob.externalId)!;
-          await renewJob(existingId, normalizedJob.title);
+          await renewJob(existingId, normalizedJob.title, normalizedJob.originalPostedAt);
 
           duplicates++; // Count as duplicate (it IS a duplicate, just renewed)
           continue;
@@ -135,7 +148,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         if (dupCheck.isDuplicate) {
           // AUTO-RENEWAL: Fuzzy match found, renew the matched job
           if (dupCheck.matchedJobId) {
-            await renewJob(dupCheck.matchedJobId, normalizedJob.title);
+            await renewJob(dupCheck.matchedJobId, normalizedJob.title, normalizedJob.originalPostedAt);
           }
 
           duplicates++;
@@ -143,9 +156,10 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
         }
 
         // Insert the job
-        const createdJob = await prisma.job.create({
-          data: normalizedJob,
+        const savedJob = await prisma.job.create({
+          data: normalizedJob as any,
         });
+        added++;
 
         // Generate and update slug
         const slug = `${normalizedJob.title
@@ -153,28 +167,26 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
           .replace(/[^a-z0-9\s-]/g, '')
           .replace(/\s+/g, '-')
           .replace(/-+/g, '-')
-          .trim()}-${createdJob.id}`;
+          .trim()}-${savedJob.id}`;
 
         await prisma.job.update({
-          where: { id: createdJob.id },
+          where: { id: savedJob.id },
           data: { slug },
         });
 
         // Parse location
         try {
-          await parseJobLocation(createdJob.id);
+          await parseJobLocation(savedJob.id);
         } catch (locationError) {
-          console.error(`Failed to parse location for job ${createdJob.id}:`, locationError);
+          console.error(`Failed to parse location for job ${savedJob.id}:`, locationError);
         }
 
         // Link to company
         try {
-          await linkJobToCompany(createdJob.id);
+          await linkJobToCompany(savedJob.id);
         } catch (companyError) {
-          console.error(`Failed to link company for job ${createdJob.id}:`, companyError);
+          console.error(`Failed to link company for job ${savedJob.id}:`, companyError);
         }
-
-        added++;
 
         // Log progress every 10 jobs
         if ((i + 1) % 10 === 0) {
@@ -219,7 +231,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
  * Main ingestion function - processes multiple sources
  */
 export async function ingestJobs(
-  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch']
+  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby']
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();

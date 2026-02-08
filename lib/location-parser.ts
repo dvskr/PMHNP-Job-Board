@@ -3,7 +3,7 @@
  * Parses and standardizes job locations
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma';
 
 export interface ParsedLocation {
   city: string | null;
@@ -100,11 +100,11 @@ export function parseLocation(location: string): ParsedLocation {
   // Try to parse "City, ST" pattern (e.g., "San Francisco, CA")
   const cityStateCodePattern = /^([^,]+),\s*([A-Z]{2})$/i;
   const cityStateCodeMatch = normalized.match(cityStateCodePattern);
-  
+
   if (cityStateCodeMatch) {
     const potentialCity = cityStateCodeMatch[1].trim();
     const potentialCode = cityStateCodeMatch[2].toUpperCase();
-    
+
     // Verify state code is valid
     if (CODE_TO_STATE[potentialCode]) {
       result.city = potentialCity;
@@ -118,11 +118,11 @@ export function parseLocation(location: string): ParsedLocation {
   // Try to parse "City, State" pattern (e.g., "San Francisco, California")
   const cityStateNamePattern = /^([^,]+),\s*([A-Za-z\s]+)$/;
   const cityStateNameMatch = normalized.match(cityStateNamePattern);
-  
+
   if (cityStateNameMatch) {
     const potentialCity = cityStateNameMatch[1].trim();
     const potentialState = cityStateNameMatch[2].trim();
-    
+
     // Check if it's a valid state name
     if (STATE_CODES[potentialState]) {
       result.city = potentialCity;
@@ -131,7 +131,7 @@ export function parseLocation(location: string): ParsedLocation {
       result.confidence = 1.0;
       return result;
     }
-    
+
     // Try case-insensitive state name lookup
     const stateLower = potentialState.toLowerCase();
     for (const [stateName, code] of Object.entries(STATE_CODES)) {
@@ -148,21 +148,21 @@ export function parseLocation(location: string): ParsedLocation {
   // Try to extract just state code (look for 2-letter uppercase)
   const stateCodeOnlyPattern = /\b([A-Z]{2})\b/;
   const stateCodeMatch = normalized.match(stateCodeOnlyPattern);
-  
+
   if (stateCodeMatch) {
     const code = stateCodeMatch[1];
     if (CODE_TO_STATE[code]) {
       result.stateCode = code;
       result.state = CODE_TO_STATE[code];
       result.confidence = 0.8;
-      
+
       // Try to extract city (everything before the state code)
       const beforeState = normalized.split(code)[0].trim().replace(/,\s*$/, '');
       if (beforeState && beforeState.length > 2) {
         result.city = beforeState;
         result.confidence = 1.0;
       }
-      
+
       return result;
     }
   }
@@ -174,7 +174,7 @@ export function parseLocation(location: string): ParsedLocation {
       result.state = stateName;
       result.stateCode = code;
       result.confidence = 0.8;
-      
+
       // Try to extract city (part before state name)
       const parts = normalized.split(new RegExp(stateName, 'i'));
       if (parts.length > 1 && parts[0].trim()) {
@@ -184,7 +184,7 @@ export function parseLocation(location: string): ParsedLocation {
           result.confidence = 1.0;
         }
       }
-      
+
       return result;
     }
   }
@@ -210,9 +210,9 @@ export function parseLocation(location: string): ParsedLocation {
 /**
  * Parse all locations for jobs where state is null
  */
-export async function parseAllLocations(): Promise<{ 
-  processed: number; 
-  parsed: number; 
+export async function parseAllLocations(): Promise<{
+  processed: number;
+  parsed: number;
   remote: number;
 }> {
   const stats = {
@@ -239,7 +239,7 @@ export async function parseAllLocations(): Promise<{
     const batchSize = 100;
     for (let i = 0; i < jobs.length; i += batchSize) {
       const batch = jobs.slice(i, i + batchSize);
-      
+
       await Promise.all(
         batch.map(async (job: { id: string; location: string }) => {
           try {
@@ -279,7 +279,7 @@ export async function parseAllLocations(): Promise<{
     }
 
     console.log(`[Location Parser] Complete: Processed ${stats.processed}, Parsed ${stats.parsed}, Remote ${stats.remote}`);
-    
+
     return stats;
   } catch (error) {
     console.error('[Location Parser] Fatal error:', error);

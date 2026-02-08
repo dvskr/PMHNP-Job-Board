@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
           isFeatured: true,
           isVerifiedEmployer: true,      // For JobCard badge
           mode: true,                    // For JobCard work mode display
+          originalPostedAt: true,        // Crucial for correct date display
         },
       }),
       prisma.job.count({ where }),

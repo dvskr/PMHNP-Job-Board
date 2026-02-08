@@ -1,68 +1,42 @@
+
 import 'dotenv/config';
-import { config } from 'dotenv';
-import { resolve } from 'path';
-
-// Load .env.local if it exists
-config({ path: resolve(process.cwd(), '.env.local') });
-
 import { fetchJSearchJobs } from '../lib/aggregators/jsearch';
 
-async function test() {
-    console.log('Testing JSearch aggregator...\n');
+async function main() {
+    console.log('🧪 Testing JSearch Aggregator...');
 
     if (!process.env.RAPIDAPI_KEY) {
-        console.error('ERROR: RAPIDAPI_KEY not set in .env.local');
+        console.error('❌ RAPIDAPI_KEY is missing in .env');
         process.exit(1);
     }
 
-    const jobs = await fetchJSearchJobs();
+    try {
+        // Test with limited scope: 1 query, 1 page
+        const jobs = await fetchJSearchJobs({
+            pagesPerQuery: 1,
+            specificQueries: ['PMHNP']
+        });
 
-    console.log(`\n✅ Fetched ${jobs.length} PMHNP jobs`);
-    console.log('\nFetched Job Titles:');
-    jobs.slice(0, 10).forEach((job, i) => console.log(`${i + 1}. ${job.title} @ ${job.employer}`));
+        console.log(`\n✅ Fetched ${jobs.length} jobs.`);
 
-    if (jobs.length > 0) {
-        console.log('\nSample job:');
-        console.log(JSON.stringify(jobs[0], null, 2));
+        if (jobs.length > 0) {
+            console.log('\n📄 Sample Job 1:');
+            console.log(JSON.stringify(jobs[0], null, 2));
 
-        // Show source breakdown
-        // Show source breakdown
-        const sourceCounts = jobs.reduce((acc: Record<string, number>, job) => {
-            const source = (job.sourceSite as string) || 'Unknown';
-            acc[source] = (acc[source] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
+            const remoteJobs = jobs.filter(j => j.isRemote);
+            console.log(`\n🏠 Remote Jobs Info: ${remoteJobs.length}/${jobs.length}`);
 
-        console.log('\n📊 Jobs by Original Source (job board):');
-        Object.entries(sourceCounts)
-            .sort((a, b) => b[1] - a[1])
-            .forEach(([source, count]) => {
-                console.log(`  ${source}: ${count}`);
+            const expiredRaw = jobs.filter(j => {
+                const expiration = j.expiresDate as string | null;
+                if (!expiration) return false;
+                return new Date(expiration).getTime() < Date.now();
             });
+            console.log(`\n⏰ Expired Jobs Included (should be 0 after fix): ${expiredRaw.length}`);
+        }
 
-        // Show employer breakdown
-        const employerCounts = jobs.reduce((acc: Record<string, number>, job) => {
-            const employer = (job.employer as string) || 'Unknown';
-            acc[employer] = (acc[employer] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-
-        console.log('\n🏢 Top Employers:');
-        Object.entries(employerCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 15)
-            .forEach(([employer, count]) => {
-                console.log(`  ${employer}: ${count}`);
-            });
-
-        // Show salary data availability
-        const withSalary = jobs.filter(j => j.minSalary || j.maxSalary).length;
-        console.log(`\n💰 Jobs with salary data: ${withSalary}/${jobs.length} (${((withSalary / jobs.length) * 100).toFixed(1)}%)`);
-
-        // Show remote breakdown
-        const remoteJobs = jobs.filter(j => j.isRemote).length;
-        console.log(`🏠 Remote jobs: ${remoteJobs}/${jobs.length} (${((remoteJobs / jobs.length) * 100).toFixed(1)}%)`);
+    } catch (error) {
+        console.error('❌ Error:', error);
     }
 }
 
-test().catch(console.error);
+main();

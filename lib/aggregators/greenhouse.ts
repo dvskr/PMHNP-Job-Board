@@ -29,12 +29,13 @@ interface GreenhouseResponse {
 }
 
 export interface GreenhouseJobRaw {
-  id: string;
+  externalId: string;
   title: string;
   company: string;
   location: string;
   description: string;
-  redirect_url: string;
+  applyLink: string;
+  postedDate?: string;
 }
 
 const GREENHOUSE_COMPANIES = [
@@ -59,6 +60,11 @@ const GREENHOUSE_COMPANIES = [
   // === NEW - VERIFIED WITH PMHNP JOBS ===
   'blueskytelepsych',    // Blue Sky Telepsych — 922 PMHNP jobs!
   'bicyclehealth',       // Bicycle Health — 27 PMHNP jobs
+  'signifyhealth',       // Signify Health
+  'valerahealth',        // Valera Health
+  'charliehealth',       // Charlie Health
+  'blackbirdhealth',     // Blackbird Health
+  'ophelia',             // Ophelia
 
   // === NEW - VERIFIED VALID, monitoring for PMHNP ===
   'springhealth66',      // Spring Health — 91 total jobs
@@ -154,19 +160,16 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
     const jobs = data.jobs || [];
     const totalJobs = jobs.length;
 
-    // Filter for PMHNP-related jobs
-    const filteredJobs = jobs.filter((job: GreenhouseJob) => isPMHNPJob(job.title, job.content || ''));
-    const relevantCount = filteredJobs.length;
+    console.log(`[Greenhouse] ${companySlug}: ${totalJobs} jobs fetched`);
 
-    console.log(`[Greenhouse] ${companySlug}: ${totalJobs} total, ${relevantCount} PMHNP-relevant`);
-
-    return filteredJobs.map((job: GreenhouseJob) => ({
-      id: `greenhouse-${companySlug}-${job.id}`,
+    return jobs.map((job: GreenhouseJob) => ({
+      externalId: `greenhouse-${companySlug}-${job.id}`,
       title: job.title,
       company: companyName,
       location: job.location?.name || job.offices?.[0]?.name || 'Remote',
       description: job.content || '',
-      redirect_url: job.absolute_url,
+      applyLink: job.absolute_url,
+      postedDate: job.updated_at,
     }));
   } catch (error) {
     console.error(`[Greenhouse] ${companySlug}: Error -`, error);

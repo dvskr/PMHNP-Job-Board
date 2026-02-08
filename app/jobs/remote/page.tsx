@@ -8,7 +8,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 0; // Disable cache to show fresh dates
 
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {
@@ -33,6 +33,7 @@ async function getRemoteJobs(skip: number = 0, take: number = 20) {
     },
     orderBy: [
       { isFeatured: 'desc' },
+      { originalPostedAt: 'desc' },
       { createdAt: 'desc' },
     ],
     skip,
@@ -118,7 +119,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
     },
     alternates: {
-      canonical: '/jobs/remote',
+      canonical: 'https://pmhnphiring.com/jobs/remote',
     },
   };
 }

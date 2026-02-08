@@ -4,7 +4,7 @@ export const metadata: Metadata = {
     title: 'Job Alerts | PMHNP Jobs',
     description: 'Set up personalized job alerts and get notified when new PMHNP positions match your criteria.',
     alternates: {
-        canonical: '/job-alerts',
+        canonical: 'https://pmhnphiring.com/job-alerts',
     },
 };
 
