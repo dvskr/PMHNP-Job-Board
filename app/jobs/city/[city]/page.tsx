@@ -227,7 +227,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
         type: 'website',
       },
       alternates: {
-        canonical: `/jobs/city/${cityParam}`,
+        canonical: `https://pmhnphiring.com/jobs/city/${cityParam}`,
       },
     };
   } catch (error) {

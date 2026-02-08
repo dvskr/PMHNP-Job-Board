@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
   description: 'Frequently asked questions about PMHNP Jobs for job seekers and employers.',
   alternates: {
-    canonical: '/faq',
+    canonical: 'https://pmhnphiring.com/faq',
   },
 };
 

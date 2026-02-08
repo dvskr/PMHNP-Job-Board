@@ -132,7 +132,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   alternates: {
-    canonical: '/jobs/locations',
+    canonical: 'https://pmhnphiring.com/jobs/locations',
   },
 };
 

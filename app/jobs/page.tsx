@@ -73,7 +73,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
       description,
     },
     alternates: {
-      canonical: '/jobs',
+      canonical: 'https://pmhnphiring.com/jobs',
     },
   };
 }
@@ -110,6 +110,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
         where,
         orderBy: [
           { isFeatured: 'desc' },
+          { originalPostedAt: 'desc' },
           { createdAt: 'desc' },
         ],
         skip,
@@ -133,6 +134,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           createdAt: true,
           isFeatured: true,
           isVerifiedEmployer: true,
+          originalPostedAt: true,
           mode: true,
         },
       }),

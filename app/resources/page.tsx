@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     'pmhnp job search',
   ],
   alternates: {
-    canonical: '/resources',
+    canonical: 'https://pmhnphiring.com/resources',
   },
 };
 

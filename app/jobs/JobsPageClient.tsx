@@ -26,6 +26,17 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const searchParams = useSearchParams();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
+
+  useEffect(() => {
+    if (jobs.length > 0) {
+      console.log('Client Job 0:', {
+        title: jobs[0].title,
+        originalPostedAt: jobs[0].originalPostedAt,
+        type: typeof jobs[0].originalPostedAt
+      });
+    }
+  }, [jobs]);
+
   const [total, setTotal] = useState(initialTotal);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -37,7 +48,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { viewMode, setViewMode } = useViewMode('grid');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  
+
   // Persist filter preferences across sessions
   useFilterPersistence();
 

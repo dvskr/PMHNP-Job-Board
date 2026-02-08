@@ -151,7 +151,7 @@ export async function generateMetadata(): Promise<Metadata> {
             type: 'website',
         },
         alternates: {
-            canonical: '/jobs/new-grad',
+            canonical: 'https://pmhnphiring.com/jobs/new-grad',
         },
     };
 }

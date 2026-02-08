@@ -18,6 +18,13 @@ export function formatDate(date: string | Date): string {
   return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 
+function getEffectiveDate(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): Date {
+  if (job instanceof Date || typeof job === 'string') return new Date(job as any);
+  // Debug log (temporary)
+  // if ((job as any).title?.includes('Nurse')) console.log('Date Debug:', { title: (job as any).title, orig: (job as any).originalPostedAt, created: (job as any).createdAt });
+  return (job as any).originalPostedAt ? new Date((job as any).originalPostedAt) : new Date((job as any).createdAt);
+}
+
 export function formatSalary(
   min?: number | null,
   max?: number | null,
@@ -69,14 +76,14 @@ export function slugify(title: string, id: string): string {
   return `${slug}-${id}`;
 }
 
-export function isNewJob(createdAt: Date): boolean {
-  const dateObj = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+export function isNewJob(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): boolean {
+  const dateObj = getEffectiveDate(job);
   const hoursSincePosted = differenceInHours(new Date(), dateObj);
-  return hoursSincePosted < 48;
+  return hoursSincePosted < 72; // Increased to 72h for better "New" badge coverage with historical dates
 }
 
-export function getJobFreshness(createdAt: Date): string {
-  const dateObj = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+export function getJobFreshness(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): string {
+  const dateObj = getEffectiveDate(job);
   const now = new Date();
 
   const hours = differenceInHours(now, dateObj);

@@ -22,19 +22,21 @@ interface LeverPosting {
 }
 
 export interface LeverJobRaw {
-  id: string;
+  externalId: string;
   title: string;
   company: string;
   location: string;
   description: string;
-  redirect_url: string;
+  applyLink: string;
   job_type: string | null;
   department: string | null;
+  postedDate?: string;
 }
 
 const LEVER_COMPANIES = [
   // === VERIFIED — Have PMHNP jobs ===
-  'talkiatry',           // Talkiatry — 59 PMHNP jobs (BIGGEST SOURCE)
+  'lifestance',          // LifeStance Health — 100+ PMHNP jobs (BIGGEST SOURCE)
+  'talkiatry',           // Talkiatry — 59 PMHNP jobs
   'includedhealth',      // Included Health — 6 PMHNP jobs
   'lyrahealth',          // Lyra Health — 1 PMHNP job
 
@@ -94,15 +96,9 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
     const postings: LeverPosting[] = await response.json();
     const totalJobs = postings.length;
 
-    // Filter for PMHNP-related jobs
-    const filteredPostings = postings.filter((posting: LeverPosting) =>
-      isPMHNPJob(posting.text, posting.descriptionPlain || posting.description || '')
-    );
-    const relevantCount = filteredPostings.length;
+    console.log(`[Lever] ${companySlug}: ${totalJobs} jobs fetched`);
 
-    console.log(`[Lever] ${companySlug}: ${totalJobs} total, ${relevantCount} PMHNP-relevant`);
-
-    return filteredPostings.map((posting: LeverPosting) => {
+    return postings.map((posting: LeverPosting) => {
       // Combine description parts
       const descriptionParts = [
         posting.descriptionPlain || posting.description,
@@ -111,14 +107,15 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
       ].filter(Boolean);
 
       return {
-        id: `lever-${companySlug}-${posting.id}`,
+        externalId: `lever-${companySlug}-${posting.id}`,
         title: posting.text,
         company: companyName,
         location: posting.categories?.location || 'Remote',
         description: descriptionParts.join('\n\n'),
-        redirect_url: posting.hostedUrl || posting.applyUrl,
+        applyLink: posting.hostedUrl || posting.applyUrl,
         job_type: posting.categories?.commitment || null,
         department: posting.categories?.department || null,
+        postedDate: new Date(posting.createdAt).toISOString(),
       };
     });
   } catch (error) {

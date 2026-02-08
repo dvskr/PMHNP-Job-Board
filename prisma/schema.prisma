@@ -45,6 +45,7 @@ model Job {
   updatedAt           DateTime     @updatedAt @map("updated_at")
   expiresAt           DateTime?    @map("expires_at")
   companyId           String?      @map("company_id")
+  originalPostedAt    DateTime?    @map("original_posted_at")
   applyClicks         ApplyClick[]
   employerJobs        EmployerJob?
   company             Company?     @relation(fields: [companyId], references: [id])
@@ -103,24 +104,22 @@ model JobAlert {
 }
 
 model EmployerJob {
-  id                  String    @id @default(uuid())
-  employerName        String    @map("employer_name")
-  contactEmail        String    @map("contact_email")
-  companyLogoUrl      String?   @map("company_logo_url")
-  companyDescription  String?   @map("company_description")
-  companyWebsite      String?   @map("company_website")
-  jobId               String    @unique @map("job_id")
-  editToken           String    @unique @map("edit_token")
-  dashboardToken      String    @unique @default(cuid()) @map("dashboard_token")
-  paymentStatus       String    @map("payment_status")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  expiryWarningSentAt DateTime? @map("expiry_warning_sent_at")
-
-  userId String? @map("user_id")
-  user   UserProfile? @relation(fields: [userId], references: [supabaseId])
-
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id                  String       @id @default(uuid())
+  employerName        String       @map("employer_name")
+  contactEmail        String       @map("contact_email")
+  companyLogoUrl      String?      @map("company_logo_url")
+  companyDescription  String?      @map("company_description")
+  companyWebsite      String?      @map("company_website")
+  jobId               String       @unique @map("job_id")
+  editToken           String       @unique @map("edit_token")
+  dashboardToken      String       @unique @default(cuid()) @map("dashboard_token")
+  paymentStatus       String       @map("payment_status")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  expiryWarningSentAt DateTime?    @map("expiry_warning_sent_at")
+  userId              String?      @map("user_id")
+  job                 Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user                UserProfile? @relation(fields: [userId], references: [supabaseId])
 
   @@index([userId])
   @@index([editToken])
@@ -231,19 +230,18 @@ model EmployerLead {
 }
 
 model UserProfile {
-  id         String   @id @default(cuid())
-  supabaseId String   @unique @map("supabase_id")
-  email      String   @unique
-  role       String   @default("job_seeker")
-  firstName  String?  @map("first_name")
-  lastName   String?  @map("last_name")
-  phone      String?
-  company    String?
-  resumeUrl  String?  @map("resume_url")
-  avatarUrl  String?  @map("avatar_url")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
+  id           String        @id @default(cuid())
+  supabaseId   String        @unique @map("supabase_id")
+  email        String        @unique
+  role         String        @default("job_seeker")
+  firstName    String?       @map("first_name")
+  lastName     String?       @map("last_name")
+  phone        String?
+  company      String?
+  resumeUrl    String?       @map("resume_url")
+  avatarUrl    String?       @map("avatar_url")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
   employerJobs EmployerJob[]
 
   @@index([supabaseId])

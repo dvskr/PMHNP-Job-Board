@@ -171,7 +171,7 @@ export async function generateMetadata(): Promise<Metadata> {
             type: 'website',
         },
         alternates: {
-            canonical: '/jobs/per-diem',
+            canonical: 'https://pmhnphiring.com/jobs/per-diem',
         },
     };
 }

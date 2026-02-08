@@ -62,18 +62,22 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
   const allJobs: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
 
+  // VALIDATION STATS
+  let totalRawJobs = 0;
+  let droppedByFilter = 0;
+
   console.log(`[Adzuna] Starting fetch with ${SEARCH_QUERIES.length} search queries...`);
 
   for (const query of SEARCH_QUERIES) {
-    // Fetch up to 10 pages per query (50 results per page = 500 max per query)
-    for (let page = 1; page <= 10; page++) {
+    // Fetch up to 20 pages per query (50 results per page = 1000 max per query)
+    for (let page = 1; page <= 20; page++) {
       try {
         const params = new URLSearchParams({
           app_id: appId,
           app_key: appKey,
           what: query,
           results_per_page: '50',
-          max_days_old: '30',
+          max_days_old: '60', // Expanded for Gap Closing
           sort_by: 'date',
         });
 
@@ -104,9 +108,11 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           if (seenIds.has(job.id)) continue;
           seenIds.add(job.id);
 
+          totalRawJobs++;
+
           // Skip jobs without a valid apply link
           if (!job.redirect_url) {
-            console.log(`[Adzuna] Skipping job "${job.title}" - missing redirect_url`);
+            droppedByFilter++;
             continue;
           }
 
@@ -151,6 +157,10 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
     await sleep(300);
   }
 
-  console.log(`[Adzuna] ✅ Total unique jobs fetched: ${allJobs.length}`);
+  console.log(`[Adzuna] VALIDATION STATS:`);
+  console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
+  console.log(`    Dropped by Cleanups/Filtering: ${droppedByFilter}`);
+  console.log(`    Final Accepted: ${allJobs.length}`);
+
   return allJobs;
 }

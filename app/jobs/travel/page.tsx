@@ -36,6 +36,7 @@ async function getTravelJobs(skip: number = 0, take: number = 20) {
     },
     orderBy: [
       { isFeatured: 'desc' },
+      { originalPostedAt: 'desc' },
       { createdAt: 'desc' },
     ],
     skip,
@@ -130,7 +131,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
     },
     alternates: {
-      canonical: '/jobs/travel',
+      canonical: 'https://pmhnphiring.com/jobs/travel',
     },
   };
 }

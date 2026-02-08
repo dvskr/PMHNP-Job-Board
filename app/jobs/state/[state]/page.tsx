@@ -350,7 +350,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
         type: 'website',
       },
       alternates: {
-        canonical: `/jobs/state/${stateParam}`,
+        canonical: `https://pmhnphiring.com/jobs/state/${stateParam}`,
       },
     };
   } catch (error) {

@@ -26,10 +26,10 @@ export function calculateFreshnessScore(createdAt: Date): number {
       return 15; // Recent (< 7 days)
     } else if (ageInDays < 14) {
       return 10; // Normal (< 14 days)
-    } else if (ageInDays < 30) {
-      return 5;  // Aging (< 30 days)
+    } else if (ageInDays < 45) {
+      return 5;  // Aging (< 45 days)
     } else {
-      return 0;  // Stale (> 30 days)
+      return 0;  // Stale (> 45 days)
     }
   } catch (error) {
     console.error('Error calculating freshness score:', error);
@@ -254,7 +254,7 @@ export async function getFreshnessStats(): Promise<{
       where: {
         isPublished: true,
         createdAt: {
-          gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // < 30 days
+          gte: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000), // < 45 days
           lt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
         },
       },
@@ -264,7 +264,7 @@ export async function getFreshnessStats(): Promise<{
       where: {
         isPublished: true,
         createdAt: {
-          lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // > 30 days
+          lt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000), // > 45 days
         },
       },
     });

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: 'For Job Seekers | PMHNP Jobs',
   description: 'Find your next PMHNP opportunity. 200+ remote and in-person psychiatric nurse practitioner jobs with salary transparency.',
   alternates: {
-    canonical: '/for-job-seekers',
+    canonical: 'https://pmhnphiring.com/for-job-seekers',
   },
 };
 

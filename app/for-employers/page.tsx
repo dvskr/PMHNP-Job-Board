@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: 'For Employers | PMHNP Jobs',
   description: 'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post jobs for free. Reach thousands of PMHNPs.',
   alternates: {
-    canonical: '/for-employers',
+    canonical: 'https://pmhnphiring.com/for-employers',
   },
 };
 

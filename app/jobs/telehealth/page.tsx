@@ -40,6 +40,7 @@ async function getTelehealthJobs(skip: number = 0, take: number = 10) {
         },
         orderBy: [
             { isFeatured: 'desc' },
+            { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ],
         skip,
@@ -147,7 +148,7 @@ export async function generateMetadata(): Promise<Metadata> {
             type: 'website',
         },
         alternates: {
-            canonical: '/jobs/telehealth',
+            canonical: 'https://pmhnphiring.com/jobs/telehealth',
         },
     };
 }
