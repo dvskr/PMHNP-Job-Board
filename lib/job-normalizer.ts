@@ -247,7 +247,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       if (rawJob.postedDate) {
         originalPostedAt = new Date(String(rawJob.postedDate));
       }
-    } else if (source === 'greenhouse' || source === 'lever' || source === 'ashby' || source === 'careerjet') {
+    } else if (source === 'greenhouse' || source === 'lever' || source === 'ashby') {
       title = String(rawJob.title || '');
       employer = String(rawJob.company || rawJob.employer || 'Company Not Listed');
       location = String(rawJob.location || 'United States');
@@ -279,11 +279,11 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       return null;
     }
 
-    // Global Freshness Filter (60 Days - Temporary Expansion)
+    // Global Freshness Filter (90 Days - Expanded for Scale)
     if (originalPostedAt && !isNaN(originalPostedAt.getTime())) {
-      const sixtyDaysAgo = new Date();
-      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-      if (originalPostedAt < sixtyDaysAgo) {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      if (originalPostedAt < ninetyDaysAgo) {
         console.log(`[Normalizer] Skipping stale job from ${source}: ${title} (Posted: ${originalPostedAt.toISOString().split('T')[0]})`);
         return null;
       }

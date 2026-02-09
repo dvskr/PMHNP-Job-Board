@@ -27,7 +27,7 @@ export interface IngestionResult {
 /**
  * Fetch raw jobs from a specific source
  */
-async function fetchFromSource(source: JobSource): Promise<Array<Record<string, unknown>>> {
+async function fetchFromSource(source: JobSource, options?: { chunk?: number }): Promise<Array<Record<string, unknown>>> {
   switch (source) {
     case 'adzuna':
       return await fetchAdzunaJobs();
@@ -40,7 +40,7 @@ async function fetchFromSource(source: JobSource): Promise<Array<Record<string, 
     case 'jooble':
       return await fetchJoobleJobs();
     case 'jsearch':
-      return await fetchJSearchJobs();
+      return await fetchJSearchJobs({ chunk: options?.chunk });
     case 'ashby':
       return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
     default:
@@ -52,7 +52,7 @@ async function fetchFromSource(source: JobSource): Promise<Array<Record<string, 
 /**
  * Ingest jobs from a single source
  */
-async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
+async function ingestFromSource(source: JobSource, options?: { chunk?: number }): Promise<IngestionResult> {
   const startTime = Date.now();
   let fetched = 0;
   let added = 0;
@@ -63,7 +63,7 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
 
     // Fetch raw jobs from source
-    const rawJobs = await fetchFromSource(source);
+    const rawJobs = await fetchFromSource(source, options);
     fetched = rawJobs.length;
 
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
@@ -231,7 +231,8 @@ async function ingestFromSource(source: JobSource): Promise<IngestionResult> {
  * Main ingestion function - processes multiple sources
  */
 export async function ingestJobs(
-  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby']
+  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby'],
+  options?: { chunk?: number }
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();
@@ -245,7 +246,7 @@ export async function ingestJobs(
 
   // Process each source sequentially
   for (const source of sources) {
-    const result = await ingestFromSource(source);
+    const result = await ingestFromSource(source, source === 'jsearch' ? options : undefined);
     results.push(result);
   }
 

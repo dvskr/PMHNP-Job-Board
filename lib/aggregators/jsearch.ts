@@ -56,98 +56,13 @@ interface JSearchResponse {
 }
 
 import { isRelevantJob } from '../utils/job-filter';
-
-// PMHNP-specific search queries — cast a wide net
-const SEARCH_QUERIES = [
-    'PMHNP',
-    'psychiatric nurse practitioner',
-    'psychiatric mental health nurse practitioner',
-    'behavioral health nurse practitioner',
-    'psychiatric APRN',
-    'psych NP',
-    'mental health NP',
-    'PMHNP-BC',
-    'psychiatric prescriber',
-    'telepsychiatry nurse practitioner',
-    'Nurse Practitioner Psychiatry',
-    'Psychiatric ARNP',
-    'Psychiatry Nurse Practitioner',
-    'Psychiatric Mental Health NP-BC',
-    'New Grad PMHNP',
-    'Remote PMHNP',
-    'Telehealth Psychiatric Nurse Practitioner',
-    'Locum Tenens PMHNP',
-    'Travel Psychiatric Nurse Practitioner',
-];
-
-const LOCATIONS = [
-    "Alabama", "Alaska", "Arizona", "Arkansas", "California",
-    "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
-    "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
-    "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
-    "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
-    "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
-    "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
-    "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
-    "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
-    "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
-    "Remote"
-];
-
-const CITIES = [
-    "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX", "Phoenix, AZ",
-    "Philadelphia, PA", "San Antonio, TX", "San Diego, CA", "Dallas, TX", "Jacksonville, FL",
-    "Austin, TX", "Fort Worth, TX", "San Jose, CA", "Charlotte, NC", "Columbus, OH",
-    "Indianapolis, IN", "San Francisco, CA", "Seattle, WA", "Denver, CO", "Nashville, TN",
-    "Washington, DC", "Oklahoma City, OK", "El Paso, TX", "Boston, MA", "Portland, OR",
-    "Las Vegas, NV", "Detroit, MI", "Memphis, TN", "Baltimore, MD", "Milwaukee, WI",
-    "Albuquerque, NM", "Fresno, CA", "Tucson, AZ", "Sacramento, CA", "Mesa, AZ",
-    "Kansas City, MO", "Atlanta, GA", "Colorado Springs, CO", "Omaha, NE", "Raleigh, NC",
-    "Virginia Beach, VA", "Long Beach, CA", "Miami, FL", "Oakland, CA", "Minneapolis, MN",
-    "Tulsa, OK", "Bakersfield, CA", "Tampa, FL", "Wichita, KS", "Arlington, TX",
-    "New Orleans, LA", "Cleveland, OH", "Anaheim, CA", "Honolulu, HI", "Riverside, CA",
-    "Santa Ana, CA", "Corpus Christi, TX", "Lexington, KY", "Henderson, NV", "Stockton, CA",
-    "Saint Paul, MN", "Cincinnati, OH", "Irvine, CA", "Orlando, FL", "Pittsburgh, PA",
-    "St. Louis, MO", "Greensboro, NC", "Jersey City, NJ", "Anchorage, AK", "Lincoln, NE",
-    "Plano, TX", "Durham, NC", "Buffalo, NY", "Chandler, AZ", "Chula Vista, CA",
-    "Toledo, OH", "Madison, WI", "Gilbert, AZ", "Reno, NV", "Fort Wayne, IN",
-    "North Las Vegas, NV", "St. Petersburg, FL", "Lubbock, TX", "Irving, TX", "Laredo, TX",
-    "Winston-Salem, NC", "Chesapeake, VA", "Glendale, AZ", "Garland, TX", "Scottsdale, AZ",
-    "Norfolk, VA", "Boise, ID", "Fremont, CA", "Spokane, WA", "Santa Clarita, CA",
-    "Baton Rouge, LA", "Richmond, VA", "Hialeah, FL", "San Bernardino, CA", "Tacoma, WA",
-    // Top 101-200
-    "Modesto, CA", "Shreveport, LA", "Fayetteville, NC", "Port St. Lucie, FL", "Worcester, MA",
-    "Birmingham, AL", "Spring Valley, NV", "Frisco, TX", "Grand Rapids, MI", "Rochester, NY",
-    "Yonkers, NY", "Newark, NJ", "Augusta, GA", "Akron, OH", "McKinney, TX", "Dayton, OH",
-    "Columbus, GA", "Overland Park, KS", "Grand Prairie, TX", "Sunrise Manor, NV", "Tallahassee, FL",
-    "Naperville, IL", "Salt Lake City, UT", "Knoxville, TN", "Fontana, CA", "Aurora, IL",
-    "Oceanside, CA", "Cape Coral, FL", "Chattanooga, TN", "Huntsville, AL", "Springfield, MA",
-    "Vancouver, WA", "Tempe, AZ", "Moreno Valley, CA", "Sioux Falls, SD", "Peoria, AZ",
-    "Santa Rosa, CA", "Fort Lauderdale, FL", "Erie, PA", "Elk Grove, CA", "Salinas, CA",
-    "Rancho Cucamonga, CA", "Killeen, TX", "Palmdale, CA", "Pembroke Pines, FL", "Springfield, MO",
-    "Hollywood, FL", "Eugene, OR", "Metairie, LA", "Salem, OR", "Vallejo, CA", "Corona, CA",
-    "Pasadena, TX", "Joliet, IL", "Lancaster, CA", "Clarksville, TN", "Alexandria, VA",
-    "Springfield, IL", "Syracuse, NY", "Hayward, CA", "Kansas City, KS", "Garden Grove, CA",
-    "Midland, TX", "Evansville, IN", "Escondido, CA", "Pasadena, CA", "Waco, TX",
-    "Carrollton, TX", "Charleston, SC", "Sugar Land, TX", "McAllen, TX", "Cedar Rapids, IA",
-    "Miramar, FL", "Gainesville, FL", "Denton, TX", "Bridgeport, CT", "Centennial, CO",
-    "Broken Arrow, OK", "Thornton, CO", "Provo, UT", "New Haven, CT", "Sterling Heights, MI",
-    "Columbia, MO", "Lakeland, FL", "Olathe, KS", "Thousand Oaks, CA", "Stamford, CT",
-    "Spring Hill, FL", "Concord, CA", "Cedar Park, TX", "Murfreesboro, TN", "Elizabeth, NJ",
-    // Top 201-300 Candidates (Sampled for coverage)
-    "Peoria, IL", "Round Rock, TX", "Kent, WA", "Visalia, CA", "Orange, CA", "Lafayette, LA",
-    "Santa Clara, CA", "West Palm Beach, FL", "Hartford, CT", "Fargo, ND", "Billings, MT",
-    "Green Bay, WI", "College Station, TX", "Las Cruces, NM", "Beaumont, TX", "Odessa, TX",
-    "Abilene, TX", "Pearland, TX", "Richardson, TX", "Berkeley, CA", "Allentown, PA",
-    "Norman, OK", "Wilmington, NC", "Arvada, CO", "Independence, MO", "Ann Arbor, MI",
-    "Rochester, MN", "Cambridge, MA", "Lowell, MA", "High Point, NC", "Clearwater, FL",
-    "Palm Bay, FL", "West Jordan, UT", "Pueblo, CO", "Gresham, OR", "El Monte, CA",
-    "Carlsbad, CA", "Temecula, CA", "Costa Mesa, CA", "Downey, CA", "Elgin, IL",
-    "South Bend, IN", "Lansing, MI", "Davenport, IA", "Manchester, NH", "Lowell, MA",
-    "Centennial, CO", "Everett, WA", "Renton, WA", "Sparks, NV", "Greeley, CO",
-    "Tyler, TX", "Wichita Falls, TX", "Lewisville, TX", "League City, TX", "San Mateo, CA",
-    "Jurupa Valley, CA", "Daly City, CA", "Fairfield, CA", "Burbank, CA", "Rialto, CA"
-];
+import {
+    SEARCH_QUERIES,
+    STATES as LOCATIONS,
+    TOP_500_CITIES as CITIES,
+    NOTABLE_COUNTIES as COUNTIES,
+    TOP_EMPLOYERS
+} from './constants';
 
 const LOCATION_KEYWORDS = [
     'PMHNP',
@@ -158,86 +73,6 @@ const LOCATION_KEYWORDS = [
     'Psychiatric APN'
 ];
 
-const TOP_EMPLOYERS = [
-    'LifeStance Health',
-    'Thriveworks',
-    'Talkiatry',
-    'Mindpath Health',
-    'Geode Health',
-    'Foresight Mental Health',
-    'Refresh Mental Health',
-    'Ellie Mental Health',
-    'HCA Healthcare',
-    'Acadia Healthcare',
-    'Universal Health Services',
-    'Veterans Affairs',
-    'CVS Health',
-    'UnitedHealth Group',
-    'Kaiser Permanente',
-    'Landmark Health',
-    'GuideWell',
-    'Centene',
-    'Eleanor Health',
-    'Bicycle Health',
-    'Iris Telehealth',
-    'SonderMind',
-    'Oak Street Health',
-    'VillageMD',
-    'One Medical',
-    'ChenMed',
-    'Brightside Health',
-    'CommonSpirit Health',
-    'Advocate Health',
-    'Providence Health',
-    'UPMC',
-    'Ascension',
-    'Trinity Health',
-    'Mass General Brigham',
-    'Tenet Healthcare',
-    'AdventHealth',
-    'Mayo Clinic',
-    'Northwell Health',
-    'Sutter Health',
-    'Intermountain Healthcare',
-    'Corewell Health',
-    'Baylor Scott & White',
-    'Cleveland Clinic',
-    'Memorial Hermann',
-    'Novant Health',
-    'Mercy Health',
-    'Banner Health',
-    'WellStar Health',
-    'Inova Health',
-    'Bon Secours',
-    'Christus Health',
-    'Highmark Health',
-    'Sentara Healthcare',
-    'Main Line Health',
-    'Sharp HealthCare',
-    'OhioHealth',
-    'Scripps Health',
-    'Spectrum Health',
-    'Beaumont Health',
-    'Fairview Health',
-    'Atrium Health',
-    'Piedmont Healthcare',
-    'Ochsner Health',
-    'Legacy Health',
-    'MultiCare Health',
-    'Henry Ford Health',
-    'BJC HealthCare',
-    'SSM Health',
-    'Gundersen Health',
-    'Marshfield Clinic',
-    'Aspirus Health',
-    'Sanford Health',
-    'Essentia Health',
-    'LifePoint Health',
-    'Community Health Systems',
-    'Prime Healthcare'
-];
-
-// How many pages to fetch per query (each page = ~10 jobs)
 // How many pages to fetch per query (each page = ~10 jobs)
 const PAGES_PER_QUERY = 5;
 
@@ -295,8 +130,7 @@ async function fetchJSearchPage(
         query: query,
         page: page.toString(),
         num_pages: '1',
-        // Gap Closing: Removed 'month' restriction to allow 60-day lookback
-        // date_posted: 'month',
+        date_posted: '3days', // Production: 3-day lookback (cron runs daily)
         country: 'us',
         language: 'en',
     });
@@ -346,7 +180,7 @@ function sleep(ms: number): Promise<void> {
  * Main export: Fetch all PMHNP jobs from JSearch
  */
 export async function fetchJSearchJobs(
-    options: { pagesPerQuery?: number; specificQueries?: string[] } = {}
+    options: { pagesPerQuery?: number; specificQueries?: string[]; chunk?: number } = {}
 ): Promise<Array<Record<string, unknown>>> {
     const apiKey = process.env.RAPIDAPI_KEY;
 
@@ -363,32 +197,101 @@ export async function fetchJSearchJobs(
     if (options.specificQueries) {
         queue = options.specificQueries;
     } else {
-        // 1. National Level Search (Broad)
-        queue.push(...LOCATION_KEYWORDS);
-
-        // 2. Targeted Employer Search (High Yield)
+        // Build full queue first, then slice by chunk
+        const nationalQueries = [...LOCATION_KEYWORDS];
         const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
-        queue.push(...employerQueries);
 
-        // 3. State Multiplier (Deep)
+        const stateQueries: string[] = [];
         LOCATION_KEYWORDS.forEach(kw => {
             LOCATIONS.forEach(loc => {
-                queue.push(`${kw} ${loc}`);
+                stateQueries.push(`${kw} ${loc}`);
             });
         });
 
-        // 4. City Multiplier (Granular - Top 100 US Cities)
+        const cityQueries: string[] = [];
         LOCATION_KEYWORDS.forEach(kw => {
             CITIES.forEach(city => {
-                queue.push(`${kw} ${city}`);
+                cityQueries.push(`${kw} ${city}`);
             });
         });
 
-        console.log('[JSearch] Strategy Breakdown:');
-        console.log(`    - National: ${LOCATION_KEYWORDS.length}`);
-        console.log(`    - Employers: ${employerQueries.length}`);
-        console.log(`    - States: ${LOCATION_KEYWORDS.length * LOCATIONS.length}`);
-        console.log(`    - Cities: ${LOCATION_KEYWORDS.length * CITIES.length}`);
+        const countyQueries: string[] = [];
+        LOCATION_KEYWORDS.forEach(kw => {
+            COUNTIES.forEach(county => {
+                const countyName = county.split(',')[0].trim();
+                const stateAbbrev = county.split(',')[1].trim();
+                countyQueries.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+            });
+        });
+
+        // Chunk-based splitting for production cron (Vercel 300s timeout)
+        if (options.chunk !== undefined && options.chunk >= 0 && options.chunk <= 5) {
+            const chunkId = options.chunk;
+            const citiesPerChunk = Math.ceil(CITIES.length / 3); // ~167 cities per chunk
+            const countiesPerChunk = Math.ceil(COUNTIES.length / 2); // ~125 counties per chunk
+
+            switch (chunkId) {
+                case 0: // National + States + Employers
+                    queue = [...nationalQueries, ...employerQueries, ...stateQueries];
+                    break;
+                case 1: // Cities 1-167
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        CITIES.slice(0, citiesPerChunk).forEach(city => {
+                            queue.push(`${kw} ${city}`);
+                        });
+                    });
+                    break;
+                case 2: // Cities 168-334
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => {
+                            queue.push(`${kw} ${city}`);
+                        });
+                    });
+                    break;
+                case 3: // Cities 335-500
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        CITIES.slice(citiesPerChunk * 2).forEach(city => {
+                            queue.push(`${kw} ${city}`);
+                        });
+                    });
+                    break;
+                case 4: // Counties 1-125
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        COUNTIES.slice(0, countiesPerChunk).forEach(county => {
+                            const countyName = county.split(',')[0].trim();
+                            const stateAbbrev = county.split(',')[1].trim();
+                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                        });
+                    });
+                    break;
+                case 5: // Counties 126-250
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        COUNTIES.slice(countiesPerChunk).forEach(county => {
+                            const countyName = county.split(',')[0].trim();
+                            const stateAbbrev = county.split(',')[1].trim();
+                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                        });
+                    });
+                    break;
+            }
+            console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries`);
+        } else {
+            // Full queue (for local/manual runs)
+            queue = [
+                ...nationalQueries,
+                ...employerQueries,
+                ...stateQueries,
+                ...cityQueries,
+                ...countyQueries,
+            ];
+
+            console.log('[JSearch] Strategy Breakdown:');
+            console.log(`    - National: ${nationalQueries.length}`);
+            console.log(`    - Employers: ${employerQueries.length}`);
+            console.log(`    - States: ${stateQueries.length}`);
+            console.log(`    - Cities: ${cityQueries.length}`);
+            console.log(`    - Counties: ${countyQueries.length}`);
+        }
     }
 
     console.log(`[JSearch] Total Execution Queue: ${queue.length} queries (Depth: ${pagesPerQuery} pages/query)`);

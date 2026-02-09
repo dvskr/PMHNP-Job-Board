@@ -21,29 +21,7 @@ interface AdzunaResponse {
   count: number;
 }
 
-// Multiple search queries for maximum coverage
-const SEARCH_QUERIES = [
-  'PMHNP',
-  'Psychiatric Nurse Practitioner',
-  'Psychiatric Mental Health Nurse Practitioner',
-  'Psych NP',
-  'Mental Health Nurse Practitioner',
-  'Psychiatric APRN',
-  'Behavioral Health Nurse Practitioner',
-  // New additions for better coverage --
-  'Nurse Practitioner Psychiatry',
-  'Psychiatric ARNP',
-  'Psychiatry Nurse Practitioner',
-  'Psychiatric Mental Health NP-BC',
-  'New Grad PMHNP',
-  'Remote PMHNP',
-  'Telehealth Psychiatric Nurse Practitioner',
-  'Locum Tenens PMHNP',
-  'Travel Psychiatric Nurse Practitioner',
-  'Correctional Psychiatric Nurse Practitioner',
-  'Inpatient Psychiatric Nurse Practitioner',
-  'Outpatient PMHNP',
-];
+import { SEARCH_QUERIES } from './constants';
 
 // Helper function for delays
 function sleep(ms: number): Promise<void> {
@@ -77,7 +55,7 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           app_key: appKey,
           what: query,
           results_per_page: '50',
-          max_days_old: '60', // Expanded for Gap Closing
+          max_days_old: '7', // Production: 7-day lookback (cron runs 2x/day)
           sort_by: 'date',
         });
 

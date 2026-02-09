@@ -318,7 +318,7 @@ async function main() {
     let redirectCount = 0;
     let directCount = 0;
 
-    const knownRedirectors = ['adzuna.com', 'jooble.org', 'careerjet.com', 'indeed.com', 'ziprecruiter.com', 'linkedin.com', 'glassdoor.com', 'talent.com', 'neuvoo.com'];
+    const knownRedirectors = ['adzuna.com', 'jooble.org', 'indeed.com', 'ziprecruiter.com', 'linkedin.com', 'glassdoor.com', 'talent.com', 'neuvoo.com'];
 
     for (const job of allJobs) {
         if (!job.applyLink) continue;

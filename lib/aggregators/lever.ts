@@ -98,7 +98,7 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
 
     console.log(`[Lever] ${companySlug}: ${totalJobs} jobs fetched`);
 
-    return postings.map((posting: LeverPosting) => {
+    const allJobs = postings.map((posting: LeverPosting) => {
       // Combine description parts
       const descriptionParts = [
         posting.descriptionPlain || posting.description,
@@ -118,6 +118,12 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
         postedDate: new Date(posting.createdAt).toISOString(),
       };
     });
+
+    // Pre-filter for PMHNP relevance
+    const relevantJobs = allJobs.filter(job => isPMHNPJob(job.title, job.description));
+    console.log(`[Lever] ${companySlug}: ${relevantJobs.length}/${totalJobs} jobs relevant`);
+
+    return relevantJobs;
   } catch (error) {
     console.error(`[Lever] ${companySlug}: Error -`, error);
     return [];

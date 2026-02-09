@@ -162,7 +162,7 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
 
     console.log(`[Greenhouse] ${companySlug}: ${totalJobs} jobs fetched`);
 
-    return jobs.map((job: GreenhouseJob) => ({
+    const allJobs = jobs.map((job: GreenhouseJob) => ({
       externalId: `greenhouse-${companySlug}-${job.id}`,
       title: job.title,
       company: companyName,
@@ -171,6 +171,12 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
       applyLink: job.absolute_url,
       postedDate: job.updated_at,
     }));
+
+    // Pre-filter for PMHNP relevance
+    const relevantJobs = allJobs.filter(job => isPMHNPJob(job.title, job.description));
+    console.log(`[Greenhouse] ${companySlug}: ${relevantJobs.length}/${totalJobs} jobs relevant`);
+
+    return relevantJobs;
   } catch (error) {
     console.error(`[Greenhouse] ${companySlug}: Error -`, error);
     return [];

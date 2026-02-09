@@ -242,7 +242,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  log(`generateMetadata called for slug: ${slug}`);
+  console.log(`generateMetadata called for slug: ${slug}`);
 
   // Extract UUID from end of slug (format: title-words-UUID)
   // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)

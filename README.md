@@ -75,7 +75,7 @@
 #### Smart Job Aggregation System
 | Feature | Description |
 |---------|-------------|
-| **6+ Data Sources** | Adzuna, Jooble, Greenhouse, Lever, CareerJet, USAJobs |
+| **5+ Data Sources** | Adzuna, Jooble, Greenhouse, Lever, USAJobs |
 | **Auto-Deduplication** | Fuzzy matching on title, company, and apply URL |
 | **Salary Normalization** | Converts all salary formats to standardized annual/hourly |
 | **Location Parsing** | Extracts city, state, country, remote/hybrid status |
@@ -123,7 +123,6 @@
 - **Jooble API** - International job search
 - **Greenhouse API** - ATS integration
 - **Lever API** - ATS integration
-- **CareerJet API** - Job board aggregator
 - **USAJobs API** - Federal jobs
 
 ### DevOps
@@ -354,7 +353,6 @@ pmhnp-job-board/
 │   │   ├── jooble.ts         # Jooble API client
 │   │   ├── greenhouse.ts     # Greenhouse ATS client
 │   │   ├── lever.ts          # Lever ATS client
-│   │   ├── careerjet.ts      # CareerJet API client
 │   │   └── usajobs.ts        # USAJobs API client
 │   ├── auth/                 # Auth utilities
 │   │   └── protect.ts        # Route protection
@@ -445,7 +443,6 @@ The heart of the platform is a sophisticated job ingestion system that:
 - **Jooble** - International job search engine
 - **Greenhouse** - ATS for tech companies
 - **Lever** - Modern ATS platform
-- **CareerJet** - Job board aggregator
 - **USAJobs** - Federal government jobs
 
 **Ingestion Process:**
