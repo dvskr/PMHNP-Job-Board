@@ -7,7 +7,7 @@ const DECAY_SCHEDULE = [
   { daysOld: 21, qualityPenalty: 15 },  // -15 after 3 weeks
   { daysOld: 30, qualityPenalty: 20 },  // -20 after 4 weeks
   { daysOld: 45, qualityPenalty: 30 },  // -30 after 6 weeks
-  { daysOld: 60, unpublish: true },     // Unpublish after 2 months
+  { daysOld: 90, unpublish: true },     // Unpublish after 3 months
 ] as const;
 
 /**
@@ -76,12 +76,12 @@ export function shouldUnpublish(createdAt: Date, sourceType: string): boolean {
       return false;
     }
 
-    // External jobs: unpublish after 60 days
+    // External jobs: unpublish after 90 days (keeping volume during growth phase)
     const now = new Date();
     const ageInMs = now.getTime() - createdAt.getTime();
     const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
-    return ageInDays >= 60;
+    return ageInDays >= 90;
   } catch (error) {
     console.error('Error determining unpublish status:', error);
     return false;

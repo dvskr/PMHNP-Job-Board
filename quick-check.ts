@@ -14,7 +14,7 @@ async function run() {
                 url,
             },
         },
-    });
+    } as any);
 
     try {
         const total = await prisma.job.count();
