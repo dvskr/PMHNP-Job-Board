@@ -124,7 +124,7 @@ export const metadata: Metadata = {
     url: `${BASE_URL}/salary-guide`,
   },
   alternates: {
-    canonical: '/salary-guide',
+    canonical: 'https://pmhnphiring.com/salary-guide',
   },
 };
 

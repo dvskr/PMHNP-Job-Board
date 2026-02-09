@@ -7,7 +7,7 @@ const DECAY_SCHEDULE = [
   { daysOld: 21, qualityPenalty: 15 },  // -15 after 3 weeks
   { daysOld: 30, qualityPenalty: 20 },  // -20 after 4 weeks
   { daysOld: 45, qualityPenalty: 30 },  // -30 after 6 weeks
-  { daysOld: 60, unpublish: true },     // Unpublish after 2 months
+  { daysOld: 90, unpublish: true },     // Unpublish after 3 months
 ] as const;
 
 /**
@@ -26,10 +26,10 @@ export function calculateFreshnessScore(createdAt: Date): number {
       return 15; // Recent (< 7 days)
     } else if (ageInDays < 14) {
       return 10; // Normal (< 14 days)
-    } else if (ageInDays < 30) {
-      return 5;  // Aging (< 30 days)
+    } else if (ageInDays < 45) {
+      return 5;  // Aging (< 45 days)
     } else {
-      return 0;  // Stale (> 30 days)
+      return 0;  // Stale (> 45 days)
     }
   } catch (error) {
     console.error('Error calculating freshness score:', error);
@@ -76,12 +76,12 @@ export function shouldUnpublish(createdAt: Date, sourceType: string): boolean {
       return false;
     }
 
-    // External jobs: unpublish after 60 days
+    // External jobs: unpublish after 90 days (keeping volume during growth phase)
     const now = new Date();
     const ageInMs = now.getTime() - createdAt.getTime();
     const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
-    return ageInDays >= 60;
+    return ageInDays >= 90;
   } catch (error) {
     console.error('Error determining unpublish status:', error);
     return false;
@@ -254,7 +254,7 @@ export async function getFreshnessStats(): Promise<{
       where: {
         isPublished: true,
         createdAt: {
-          gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // < 30 days
+          gte: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000), // < 45 days
           lt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
         },
       },
@@ -264,7 +264,7 @@ export async function getFreshnessStats(): Promise<{
       where: {
         isPublished: true,
         createdAt: {
-          lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), // > 30 days
+          lt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000), // > 45 days
         },
       },
     });

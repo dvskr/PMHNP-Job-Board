@@ -84,20 +84,23 @@ export async function GET(request: NextRequest) {
     console.log('[CRON] JOB INGESTION CRON STARTED');
     console.log('='.repeat(80));
 
-    // Get source parameter from URL (optional)
+    // Get source and chunk parameters from URL
     const searchParams = request.nextUrl.searchParams;
     const sourceParam = searchParams.get('source');
+    const chunkParam = searchParams.get('chunk');
 
     // Determine which sources to run
     const sources: JobSource[] = sourceParam
       ? [sourceParam as JobSource]
       : ['adzuna', 'jooble', 'greenhouse', 'lever', 'usajobs', 'jsearch']; // All active sources
 
-    console.log(`[CRON] Sources to process: ${sources.join(', ')}`);
+    const chunkOption = chunkParam !== null ? { chunk: parseInt(chunkParam, 10) } : undefined;
+
+    console.log(`[CRON] Sources to process: ${sources.join(', ')}${chunkOption ? ` (chunk ${chunkOption.chunk})` : ''}`);
 
     // Step 1: Ingest jobs from all sources
     console.log('\n[CRON] Step 1: Starting job ingestion...');
-    const ingestionResults = await ingestJobs(sources);
+    const ingestionResults = await ingestJobs(sources, chunkOption);
 
     // Send notifications for each source
     for (const result of ingestionResults) {

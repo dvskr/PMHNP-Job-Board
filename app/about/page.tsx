@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'About Us | PMHNP Hiring - The #1 Job Board for Psychiatric NPs',
   description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. 8,500+ jobs from 1,249+ companies across 42 states.',
   alternates: {
-    canonical: '/about',
+    canonical: 'https://pmhnphiring.com/about',
   },
 };
 

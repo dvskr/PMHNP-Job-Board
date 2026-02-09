@@ -55,81 +55,29 @@ interface JSearchResponse {
     data: JSearchJob[];
 }
 
-// PMHNP-specific search queries — cast a wide net
-// PMHNP-specific search queries — cast a wide net
-const SEARCH_QUERIES = [
+import { isRelevantJob } from '../utils/job-filter';
+import {
+    SEARCH_QUERIES,
+    STATES as LOCATIONS,
+    TOP_500_CITIES as CITIES,
+    NOTABLE_COUNTIES as COUNTIES,
+    TOP_EMPLOYERS
+} from './constants';
+
+const LOCATION_KEYWORDS = [
     'PMHNP',
-    'psychiatric nurse practitioner',
-    'psychiatric mental health nurse practitioner',
-    'behavioral health nurse practitioner',
-    'psychiatric APRN',
-    'psych NP',
-    'mental health NP',
-    'PMHNP-BC',
-    'psychiatric prescriber',
-    'telepsychiatry nurse practitioner',
-    // New additions for better coverage --
-    'Nurse Practitioner Psychiatry',
-    'Psychiatric ARNP',
-    'Psychiatry Nurse Practitioner',
-    'Psychiatric Mental Health NP-BC',
-    'New Grad PMHNP',
-    'Remote PMHNP',
-    'Telehealth Psychiatric Nurse Practitioner',
-    'Locum Tenens PMHNP',
-    'Travel Psychiatric Nurse Practitioner',
-    'Correctional Psychiatric Nurse Practitioner',
-    'Inpatient Psychiatric Nurse Practitioner',
-    'Outpatient PMHNP',
+    'Psychiatric Nurse Practitioner',
+    'Psychiatric Mental Health Nurse Practitioner',
+    'Psych Nurse',
+    'Mental Health APN',
+    'Psychiatric APN'
 ];
 
 // How many pages to fetch per query (each page = ~10 jobs)
-const PAGES_PER_QUERY = 3;
+const PAGES_PER_QUERY = 5;
 
 // Rate limiting delay between API calls (ms)
-const DELAY_BETWEEN_REQUESTS = 300;
-
-/**
- * Helper: sleep for rate limiting
- */
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Helper: create a hash from a string for dedup IDs
- */
-function hashString(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-}
-
-/**
- * Helper: check if a job is relevant to PMHNP
- */
-function isRelevantJob(title: string, description: string): boolean {
-    const searchText = `${title} ${description}`.toLowerCase();
-    const keywords = [
-        'pmhnp',
-        'psychiatric nurse',
-        'psych np',
-        'mental health nurse practitioner',
-        'psychiatric mental health',
-        'psych mental health',
-        'psychiatric aprn',
-        'pmhnp-bc',
-        'psychiatric prescriber',
-        'behavioral health nurse practitioner',
-        'behavioral health np',
-        'psych nurse practitioner',
-    ];
-    return keywords.some(kw => searchText.includes(kw));
-}
+const DELAY_BETWEEN_REQUESTS = 334; // ~3 requests per second
 
 /**
  * Build location string from JSearch job data
@@ -168,7 +116,8 @@ function normalizeSalaryPeriod(period: string | null): string | null {
  */
 async function fetchJSearchPage(
     query: string,
-    page: number = 1
+    page: number = 1,
+    retries: number = 2
 ): Promise<JSearchJob[]> {
     const apiKey = process.env.RAPIDAPI_KEY;
 
@@ -181,8 +130,8 @@ async function fetchJSearchPage(
         query: query,
         page: page.toString(),
         num_pages: '1',
-        date_posted: 'month',     // Only jobs from the past month
-        country: 'us',            // US jobs only
+        date_posted: '3days', // Production: 3-day lookback (cron runs daily)
+        country: 'us',
         language: 'en',
     });
 
@@ -198,33 +147,41 @@ async function fetchJSearchPage(
         });
 
         if (!response.ok) {
-            if (response.status === 429) {
-                console.warn(`[JSearch] Rate limited on "${query}" page ${page}, waiting 2s...`);
-                await sleep(2000);
-                return [];
+            if (response.status === 429 && retries > 0) {
+                const wait = 2000 + Math.random() * 2000;
+                console.warn(`[JSearch] Rate limited on "${query}", retrying in ${Math.round(wait)}ms... (${retries} retries left)`);
+                await sleep(wait);
+                return fetchJSearchPage(query, page, retries - 1);
             }
             console.error(`[JSearch] HTTP ${response.status} for "${query}" page ${page}`);
             return [];
         }
 
         const data: JSearchResponse = await response.json();
-
-        if (data.status !== 'OK') {
-            console.error(`[JSearch] API returned status: ${data.status}`);
-            return [];
-        }
-
         return data.data || [];
     } catch (error) {
+        if (retries > 0) {
+            await sleep(1000);
+            return fetchJSearchPage(query, page, retries - 1);
+        }
         console.error(`[JSearch] Error fetching "${query}" page ${page}:`, error);
         return [];
     }
 }
 
 /**
+ * Helper: sleep for rate limiting
+ */
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Main export: Fetch all PMHNP jobs from JSearch
  */
-export async function fetchJSearchJobs(): Promise<Array<Record<string, unknown>>> {
+export async function fetchJSearchJobs(
+    options: { pagesPerQuery?: number; specificQueries?: string[]; chunk?: number } = {}
+): Promise<Array<Record<string, unknown>>> {
     const apiKey = process.env.RAPIDAPI_KEY;
 
     if (!apiKey) {
@@ -232,42 +189,184 @@ export async function fetchJSearchJobs(): Promise<Array<Record<string, unknown>>
         return [];
     }
 
+    const pagesPerQuery = options.pagesPerQuery || PAGES_PER_QUERY;
+
+    // Build Execution Queue
+    let queue: string[] = [];
+
+    if (options.specificQueries) {
+        queue = options.specificQueries;
+    } else {
+        // Build full queue first, then slice by chunk
+        const nationalQueries = [...LOCATION_KEYWORDS];
+        const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
+
+        const stateQueries: string[] = [];
+        LOCATION_KEYWORDS.forEach(kw => {
+            LOCATIONS.forEach(loc => {
+                stateQueries.push(`${kw} ${loc}`);
+            });
+        });
+
+        const cityQueries: string[] = [];
+        LOCATION_KEYWORDS.forEach(kw => {
+            CITIES.forEach(city => {
+                cityQueries.push(`${kw} ${city}`);
+            });
+        });
+
+        const countyQueries: string[] = [];
+        LOCATION_KEYWORDS.forEach(kw => {
+            COUNTIES.forEach(county => {
+                const countyName = county.split(',')[0].trim();
+                const stateAbbrev = county.split(',')[1].trim();
+                countyQueries.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+            });
+        });
+
+        // Chunk-based splitting for production cron (Vercel 300s timeout)
+        if (options.chunk !== undefined && options.chunk >= 0 && options.chunk <= 5) {
+            const chunkId = options.chunk;
+            const citiesPerChunk = Math.ceil(CITIES.length / 3); // ~167 cities per chunk
+            const countiesPerChunk = Math.ceil(COUNTIES.length / 2); // ~125 counties per chunk
+
+            switch (chunkId) {
+                case 0: // National + States + Employers
+                    queue = [...nationalQueries, ...employerQueries, ...stateQueries];
+                    break;
+                case 1: // Cities 1-167
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        CITIES.slice(0, citiesPerChunk).forEach(city => {
+                            queue.push(`${kw} ${city}`);
+                        });
+                    });
+                    break;
+                case 2: // Cities 168-334
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => {
+                            queue.push(`${kw} ${city}`);
+                        });
+                    });
+                    break;
+                case 3: // Cities 335-500
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        CITIES.slice(citiesPerChunk * 2).forEach(city => {
+                            queue.push(`${kw} ${city}`);
+                        });
+                    });
+                    break;
+                case 4: // Counties 1-125
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        COUNTIES.slice(0, countiesPerChunk).forEach(county => {
+                            const countyName = county.split(',')[0].trim();
+                            const stateAbbrev = county.split(',')[1].trim();
+                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                        });
+                    });
+                    break;
+                case 5: // Counties 126-250
+                    LOCATION_KEYWORDS.forEach(kw => {
+                        COUNTIES.slice(countiesPerChunk).forEach(county => {
+                            const countyName = county.split(',')[0].trim();
+                            const stateAbbrev = county.split(',')[1].trim();
+                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                        });
+                    });
+                    break;
+            }
+            console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries`);
+        } else {
+            // Full queue (for local/manual runs)
+            queue = [
+                ...nationalQueries,
+                ...employerQueries,
+                ...stateQueries,
+                ...cityQueries,
+                ...countyQueries,
+            ];
+
+            console.log('[JSearch] Strategy Breakdown:');
+            console.log(`    - National: ${nationalQueries.length}`);
+            console.log(`    - Employers: ${employerQueries.length}`);
+            console.log(`    - States: ${stateQueries.length}`);
+            console.log(`    - Cities: ${cityQueries.length}`);
+            console.log(`    - Counties: ${countyQueries.length}`);
+        }
+    }
+
+    console.log(`[JSearch] Total Execution Queue: ${queue.length} queries (Depth: ${pagesPerQuery} pages/query)`);
+
+    // Process in batches of 10 concurrent requests
+    const BATCH_SIZE = 10;
+
+    // VALIDATION STATS
+    let totalRawJobs = 0;
+    let totalProcessed = 0;
+    let droppedByGeo = 0;
+    let droppedByFilter = 0;
+    let droppedByDup = 0;
+    let totalApiCalls = 0;
+    let newJobsFound = 0;
+
     const allJobs: Array<Record<string, unknown>> = [];
     const seenJobIds = new Set<string>();
-    let totalApiCalls = 0;
 
-    console.log('[JSearch] Starting job fetch...');
-    console.log(`[JSearch] Queries: ${SEARCH_QUERIES.length}, Pages per query: ${PAGES_PER_QUERY}`);
+    for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+        const batch = queue.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(queue.length / BATCH_SIZE);
 
-    for (const query of SEARCH_QUERIES) {
-        console.log(`[JSearch] Searching: "${query}"`);
+        console.log(`[JSearch] Processing Batch ${batchNum}/${totalBatches} (${batch.length} queries)...`);
 
-        for (let page = 1; page <= PAGES_PER_QUERY; page++) {
-            const jobs = await fetchJSearchPage(query, page);
-            totalApiCalls++;
+        const batchResults = await Promise.all(
+            batch.map(async (query) => {
+                try {
+                    let pageResults: JSearchJob[] = [];
+                    // Fetch pages 1..N
+                    for (let p = 1; p <= pagesPerQuery; p++) {
+                        const jobs = await fetchJSearchPage(query, p);
+                        pageResults.push(...jobs);
+                        // Stop if page is empty or small
+                        if (jobs.length < 5) break;
+                        if (p < pagesPerQuery) await sleep(500);
+                    }
+                    return { query, jobs: pageResults };
+                } catch (e) {
+                    return { query, jobs: [] as JSearchJob[] };
+                }
+            })
+        );
 
-            if (jobs.length === 0) {
-                console.log(`[JSearch] "${query}" page ${page}: 0 results, stopping pagination`);
-                break;
-            }
+        // Estimate API calls
+        totalApiCalls += (batch.length * pagesPerQuery);
 
-            let addedThisPage = 0;
+        // Process results from this batch
+        for (const { query, jobs } of batchResults) {
+            totalRawJobs += jobs.length;
 
             for (const job of jobs) {
-                // Skip if we've already seen this job_id (cross-query dedup)
+                totalProcessed++;
+
                 if (seenJobIds.has(job.job_id)) {
+                    droppedByDup++;
                     continue;
                 }
 
-                // Skip if not relevant to PMHNP
+                // Strict Expiry Check
+                if (job.job_offer_expiration_timestamp) {
+                    const expiryMs = job.job_offer_expiration_timestamp * 1000;
+                    if (expiryMs < Date.now()) continue;
+                }
+
+                // Global Relevance Gate
                 if (!isRelevantJob(job.job_title, job.job_description || '')) {
+                    droppedByFilter++;
                     continue;
                 }
 
                 seenJobIds.add(job.job_id);
-                addedThisPage++;
+                newJobsFound++;
 
-                // Transform to our standard format
                 allJobs.push({
                     title: job.job_title,
                     employer: job.employer_name || 'Company Not Listed',
@@ -277,14 +376,10 @@ export async function fetchJSearchJobs(): Promise<Array<Record<string, unknown>>
                     externalId: `jsearch_${job.job_id}`,
                     sourceProvider: 'jsearch',
                     sourceSite: job.job_publisher || 'Google Jobs',
-
-                    // Salary data (JSearch often has this!)
                     minSalary: job.job_min_salary,
                     maxSalary: job.job_max_salary,
                     salaryCurrency: job.job_salary_currency || 'USD',
                     salaryPeriod: normalizeSalaryPeriod(job.job_salary_period),
-
-                    // Extra metadata
                     employerLogo: job.employer_logo,
                     employerWebsite: job.employer_website,
                     isRemote: job.job_is_remote,
@@ -295,21 +390,20 @@ export async function fetchJSearchJobs(): Promise<Array<Record<string, unknown>>
                     applyOptions: job.apply_options,
                 });
             }
-
-            console.log(`[JSearch] "${query}" page ${page}: ${jobs.length} results, ${addedThisPage} new PMHNP jobs`);
-
-            // Rate limiting between pages
-            if (page < PAGES_PER_QUERY) {
-                await sleep(DELAY_BETWEEN_REQUESTS);
-            }
         }
 
-        // Delay between different queries
-        await sleep(DELAY_BETWEEN_REQUESTS);
+        // Pause 3 seconds between batches (Rate limiting: ~3.3 req/sec overall)
+        if (i + BATCH_SIZE < queue.length) {
+            await sleep(3000);
+        }
     }
 
     console.log(`[JSearch] Complete: ${allJobs.length} unique PMHNP jobs from ${totalApiCalls} API calls`);
-    console.log(`[JSearch] Job IDs seen (including non-PMHNP): ${seenJobIds.size}`);
+    console.log(`[JSearch] VALIDATION STATS:`);
+    console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
+    console.log(`    Duplicate IDs (seen before): ${droppedByDup}`);
+    console.log(`    Dropped by Relevance Filter: ${droppedByFilter} (This validates filter strictness)`);
+    console.log(`    Final Accepted: ${allJobs.length}`);
 
     return allJobs;
 }

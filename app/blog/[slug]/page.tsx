@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
                 images: [ogImage],
             },
             alternates: {
-                canonical: `/blog/${slug}`,
+                canonical: `https://pmhnphiring.com/blog/${slug}`,
             },
         };
     } catch {

@@ -242,19 +242,21 @@ export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
+  console.log(`generateMetadata called for slug: ${slug}`);
+
   // Extract UUID from end of slug (format: title-words-UUID)
   // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)
   const uuidMatch = slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
   const id = uuidMatch ? uuidMatch[1] : null;
 
   if (!id) {
-    return { title: 'Job Not Found' };
+    notFound();
   }
 
   const job = await getJob(id);
 
   if (!job) {
-    return { title: 'Job Not Found' };
+    notFound();
   }
 
   const description = job.descriptionSummary || job.description.slice(0, 160);
@@ -306,14 +308,17 @@ export async function generateMetadata({ params }: JobPageProps) {
   if (job.jobType) ogImageUrl.searchParams.set('jobType', job.jobType);
   if (isNew) ogImageUrl.searchParams.set('isNew', 'true');
 
+  // Ensure valid canonical URL (https, no www, no trailing slash)
+  const canonicalUrl = `https://pmhnphiring.com/jobs/${slug}`;
+
   return {
     title: `${job.title} at ${job.employer} | PMHNP Jobs`,
     description,
     openGraph: {
       title: `${job.title} at ${job.employer}`,
       description,
-      type: 'website',
-      url: `${BASE_URL}/jobs/${slug}`,
+      type: 'article',
+      url: canonicalUrl,
       siteName: 'PMHNP Hiring',
       images: [
         {
@@ -332,7 +337,7 @@ export async function generateMetadata({ params }: JobPageProps) {
       images: [ogImageUrl.toString()],
     },
     alternates: {
-      canonical: `/jobs/${slug}`,
+      canonical: canonicalUrl,
     },
   };
 }
@@ -536,17 +541,7 @@ export default async function JobPage({ params }: JobPageProps) {
               />
             </AnimatedContainer>
 
-            {/* Salary Insights Section */}
-            {stateAvgSalary > 0 && (
-              <AnimatedContainer animation="fade-in-up" delay={300}>
-                <SalaryInsights
-                  stateName={job.state}
-                  stateAvgSalary={stateAvgSalary}
-                  jobMinSalary={job.normalizedMinSalary}
-                  jobMaxSalary={job.normalizedMaxSalary}
-                />
-              </AnimatedContainer>
-            )}
+
 
             {/* Related Blog Posts */}
             {relevantBlogPosts.length > 0 && (

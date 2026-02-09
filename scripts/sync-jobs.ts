@@ -2,12 +2,14 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 
-// Connection Strings
-const PROD_URL = "postgresql://postgres.sggccmqjzuimwlahocmy:oWTJ14PgJiEenXTf@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"; // Explicitly NO SSL verify for scripts usually
-// Removing pgbouncer=true for direct connection if pooler fails, but let's try with it first.
-// Often scripts need query mode 'transaction' or simple strings.
+// Connection Strings (Loaded from .env)
+const PROD_URL = process.env.PROD_DATABASE_URL;
+const DEV_URL = process.env.DATABASE_URL;
 
-const DEV_URL = "postgresql://postgres:6174jirayasensei@db.zdmpmncrcpgpmwdqvekg.supabase.co:6543/postgres"; // Removing pgbouncer for standard connection usually safer for scripts
+if (!PROD_URL || !DEV_URL) {
+    console.error('❌ Missing PROD_DATABASE_URL or DATABASE_URL in .env');
+    process.exit(1);
+}
 
 async function syncJobs() {
     console.log('🔄 Starting Job Sync...');
@@ -41,8 +43,41 @@ async function syncJobs() {
             return;
         }
 
+
+        // --- STEP 1: Sync Companies ---
+        console.log('🏢 Fetching companies from PROD...');
+        const companyRes = await prodClient.query('SELECT * FROM companies');
+        const companies = companyRes.rows;
+        console.log(`✅ Fetched ${companies.length} companies from PROD.`);
+
         console.log('📡 Connecting to DEV...');
         const devClient = await devPool.connect();
+
+        if (companies.length > 0) {
+            console.log('💾 Inserting companies into DEV...');
+            let companySuccess = 0;
+            let companyError = 0;
+
+            for (const company of companies) {
+                try {
+                    const col = Object.keys(company).map(k => `"${k}"`).join(', ');
+                    const val = Object.values(company);
+                    const pl = val.map((_, i) => `$${i + 1}`).join(', ');
+
+                    const q = `
+                  INSERT INTO companies (${col}) 
+                  VALUES (${pl})
+                  ON CONFLICT (id) DO NOTHING;
+                `;
+                    await devClient.query(q, val);
+                    companySuccess++;
+                } catch (err: any) {
+                    // Ignore errors for now, probably duplicates
+                    companyError++;
+                }
+            }
+            console.log(`   - Companies Imported: ${companySuccess}`);
+        }
 
         // Optional: Clear Dev Jobs first?
         // console.log('🧹 Clearing DEV jobs table...');

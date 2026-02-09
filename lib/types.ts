@@ -7,6 +7,7 @@
 export interface Job {
   id: string;
   title: string;
+  slug?: string | null;
   employer: string;
   location: string;
   jobType: string | null;
@@ -35,6 +36,7 @@ export interface Job {
   sourceType: string | null;
   sourceProvider: string | null;
   externalId: string | null;
+  originalPostedAt: Date | null;
   viewCount: number;
   applyClickCount: number;
   createdAt: Date;

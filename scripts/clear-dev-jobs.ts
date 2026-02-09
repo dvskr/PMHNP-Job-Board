@@ -16,6 +16,10 @@ async function clearDevJobs() {
     try {
         const deleted = await prisma.job.deleteMany({});
         console.log(`\n✅ Successfully deleted ${deleted.count} jobs from the database.`);
+
+        // Also delete companies to avoid conflicts when re-syncing
+        const deletedCompanies = await prisma.company.deleteMany({});
+        console.log(`✅ Successfully deleted ${deletedCompanies.count} companies from the database.`);
     } catch (error) {
         console.error('Error deleting jobs:', error);
     } finally {

@@ -1,0 +1,12 @@
+2026-02-08T19:57:07.543Z - JobPage called for slug: missing-job-12345678-1234-1234-1234-1234567890ab
+2026-02-08T19:57:07.549Z - generateMetadata called for slug: missing-job-12345678-1234-1234-1234-1234567890ab
+2026-02-08T19:57:07.654Z - generateMetadata: Job not found for ID, calling notFound()
+2026-02-08T19:57:07.675Z - JobPage: Job not found for ID, calling notFound()
+2026-02-08T19:57:26.238Z - JobPage called for slug: missing-job-12345678-1234-1234-1234-1234567890ab
+2026-02-08T19:57:26.254Z - generateMetadata called for slug: missing-job-12345678-1234-1234-1234-1234567890ab
+2026-02-08T19:57:26.314Z - generateMetadata: Job not found for ID, calling notFound()
+2026-02-08T19:57:26.326Z - JobPage: Job not found for ID, calling notFound()
+2026-02-08T19:58:23.422Z - JobPage called for slug: missing-job-12345678-1234-1234-1234-1234567890ab
+2026-02-08T19:58:23.431Z - generateMetadata called for slug: missing-job-12345678-1234-1234-1234-1234567890ab
+2026-02-08T19:58:23.566Z - JobPage: Job not found for ID, calling notFound()
+2026-02-08T19:58:23.572Z - generateMetadata: Job not found for ID, calling notFound()

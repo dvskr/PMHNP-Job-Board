@@ -24,7 +24,7 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   // Work Mode (OR within category)
   if (filters.workMode.length > 0) {
     const workModeConditions: Prisma.JobWhereInput[] = [];
-    
+
     if (filters.workMode.includes('remote')) {
       workModeConditions.push({ isRemote: true });
     }
@@ -34,7 +34,7 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     if (filters.workMode.includes('onsite')) {
       workModeConditions.push({ isRemote: false, isHybrid: false });
     }
-    
+
     if (workModeConditions.length > 0) {
       andConditions.push({ OR: workModeConditions });
     }
@@ -61,7 +61,7 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   if (filters.postedWithin && filters.postedWithin !== 'all') {
     const now = new Date();
     let cutoff: Date;
-    
+
     switch (filters.postedWithin) {
       case '24h':
         cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -75,9 +75,19 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
       default:
         cutoff = new Date(0);
     }
-    
-    // Note: Using createdAt field (Job model doesn't have postedAt)
-    andConditions.push({ createdAt: { gte: cutoff } });
+
+    // Use originalPostedAt if available, otherwise fallback to createdAt
+    andConditions.push({
+      OR: [
+        { originalPostedAt: { gte: cutoff } },
+        {
+          AND: [
+            { originalPostedAt: null },
+            { createdAt: { gte: cutoff } }
+          ]
+        }
+      ]
+    });
   }
 
   // Location
@@ -112,14 +122,14 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
 // Convert FilterState to URL search params
 export function filtersToParams(filters: FilterState): URLSearchParams {
   const params = new URLSearchParams();
-  
+
   if (filters.search) params.set('q', filters.search);
   filters.workMode.forEach((wm: string) => params.append('workMode', wm));
   filters.jobType.forEach((jt: string) => params.append('jobType', jt));
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);
-  
+
   return params;
 }
 

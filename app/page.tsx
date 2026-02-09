@@ -49,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
     },
     alternates: {
-      canonical: '/',
+      canonical: 'https://pmhnphiring.com',
     },
   };
 }

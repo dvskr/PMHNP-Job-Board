@@ -81,90 +81,93 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
 
   for (const keyword of SEARCH_KEYWORDS) {
     try {
-      const response = await fetch(`https://jooble.org/api/${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          keywords: keyword,
-          location: 'United States',
-          page: 1,
-        }),
-      });
+      // Fetch up to 5 pages per keyword (20 results per page by default)
+      for (let page = 1; page <= 5; page++) {
+        const response = await fetch(`https://jooble.org/api/${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            keywords: keyword,
+            location: 'United States',
+            page: page,
+          }),
+        });
 
-      const data = await response.json() as JoobleResponse;
-      const { totalCount, jobs } = data;
+        const data = await response.json() as JoobleResponse;
+        const { totalCount, jobs } = data;
 
-      console.log(`[Jooble] Found ${totalCount} for '${keyword}', returned ${jobs.length}`);
+        console.log(`[Jooble] "${keyword}" page ${page}: Found ${totalCount} total, returned ${jobs.length}`);
 
-      for (const job of jobs) {
-        if (!seenIds.has(job.id)) {
-          seenIds.add(job.id);
+        if (!jobs || jobs.length === 0) break;
 
-          // Parse salary string if provided (e.g., "$120,000 - $150,000", "$50/hour")
-          let minSalary = null;
-          let maxSalary = null;
-          let salaryPeriod = null;
+        for (const job of jobs) {
+          if (!seenIds.has(job.id)) {
+            seenIds.add(job.id);
 
-          if (job.salary && job.salary.trim()) {
-            // Try to extract salary range from string
-            const salaryStr = job.salary.toLowerCase();
+            // Parse salary string logic... (omitted for brevity in replacement, but kept in final)
+            // [KEEP EXISTING SALARY PARSING LOGIC]
+            let minSalary = null;
+            let maxSalary = null;
+            let salaryPeriod = null;
 
-            // Check for hourly rate
-            const hourlyMatch = salaryStr.match(/\$?([\d,]+(?:\.\d+)?)\s*(?:-|to)?\s*\$?([\d,]+(?:\.\d+)?)?\s*(?:per\s*)?(?:hour|hr)/i);
-            if (hourlyMatch) {
-              minSalary = parseFloat(hourlyMatch[1].replace(/,/g, ''));
-              maxSalary = hourlyMatch[2] ? parseFloat(hourlyMatch[2].replace(/,/g, '')) : null;
-              salaryPeriod = 'hourly';
-            } else {
-              // Check for annual salary
-              const annualMatch = salaryStr.match(/\$?([\d,]+(?:k)?)\s*(?:-|to)?\s*\$?([\d,]+(?:k)?)?/i);
-              if (annualMatch) {
-                minSalary = annualMatch[1].toLowerCase().includes('k')
-                  ? parseFloat(annualMatch[1].replace(/k/i, '').replace(/,/g, '')) * 1000
-                  : parseFloat(annualMatch[1].replace(/,/g, ''));
-                maxSalary = annualMatch[2]
-                  ? (annualMatch[2].toLowerCase().includes('k')
-                    ? parseFloat(annualMatch[2].replace(/k/i, '').replace(/,/g, '')) * 1000
-                    : parseFloat(annualMatch[2].replace(/,/g, '')))
-                  : null;
-                salaryPeriod = 'annual';
+            if (job.salary && job.salary.trim()) {
+              const salaryStr = job.salary.toLowerCase();
+              const hourlyMatch = salaryStr.match(/\$?([\d,]+(?:\.\d+)?)\s*(?:-|to)?\s*\$?([\d,]+(?:\.\d+)?)?\s*(?:per\s*)?(?:hour|hr)/i);
+              if (hourlyMatch) {
+                minSalary = parseFloat(hourlyMatch[1].replace(/,/g, ''));
+                maxSalary = hourlyMatch[2] ? parseFloat(hourlyMatch[2].replace(/,/g, '')) : null;
+                salaryPeriod = 'hourly';
+              } else {
+                const annualMatch = salaryStr.match(/\$?([\d,]+(?:k)?)\s*(?:-|to)?\s*\$?([\d,]+(?:k)?)?/i);
+                if (annualMatch) {
+                  minSalary = annualMatch[1].toLowerCase().includes('k')
+                    ? parseFloat(annualMatch[1].replace(/k/i, '').replace(/,/g, '')) * 1000
+                    : parseFloat(annualMatch[1].replace(/,/g, ''));
+                  maxSalary = annualMatch[2]
+                    ? (annualMatch[2].toLowerCase().includes('k')
+                      ? parseFloat(annualMatch[2].replace(/k/i, '').replace(/,/g, '')) * 1000
+                      : parseFloat(annualMatch[2].replace(/,/g, '')))
+                    : null;
+                  salaryPeriod = 'annual';
+                }
               }
             }
-          }
 
-          // Map Jooble job type
-          let jobType = null;
-          if (job.type) {
-            const lowerType = job.type.toLowerCase();
-            if (lowerType.includes('full-time') || lowerType.includes('full time')) jobType = 'Full-Time';
-            else if (lowerType.includes('part-time') || lowerType.includes('part time')) jobType = 'Part-Time';
-            else if (lowerType.includes('contract')) jobType = 'Contract';
-            else if (lowerType.includes('temporary')) jobType = 'Contract';
-            else if (lowerType.includes('per diem')) jobType = 'Per Diem';
-          }
+            let jobType = null;
+            if (job.type) {
+              const lowerType = job.type.toLowerCase();
+              if (lowerType.includes('full-time') || lowerType.includes('full time')) jobType = 'Full-Time';
+              else if (lowerType.includes('part-time') || lowerType.includes('part time')) jobType = 'Part-Time';
+              else if (lowerType.includes('contract')) jobType = 'Contract';
+              else if (lowerType.includes('temporary')) jobType = 'Contract';
+              else if (lowerType.includes('per diem')) jobType = 'Per Diem';
+            }
 
-          allJobs.push({
-            title: job.title,
-            company: job.company || 'Company Not Listed',
-            location: job.location || 'United States',
-            description: cleanSnippet(job.snippet),
-            minSalary: minSalary,
-            maxSalary: maxSalary,
-            salaryPeriod: salaryPeriod,
-            jobType, // Pass raw mapped type
-            url: job.link,
-            id: `jooble_${job.id}`,
-          });
+            allJobs.push({
+              title: job.title,
+              company: job.company || 'Company Not Listed',
+              location: job.location || 'United States',
+              description: cleanSnippet(job.snippet),
+              minSalary: minSalary,
+              maxSalary: maxSalary,
+              salaryPeriod: salaryPeriod,
+              jobType,
+              applyLink: job.link,
+              externalId: `jooble_${job.id}`,
+              postedDate: job.updated,
+            });
+          }
         }
-      }
 
-      // Rate limiting: wait 1000ms between requests
-      await sleep(1000);
+        if (jobs.length < 20) break;
+
+        // Rate limiting: wait 1000ms between pages
+        await sleep(1000);
+      }
     } catch (error) {
       console.error(`[Jooble] Error fetching jobs for keyword '${keyword}':`, error);
-      // Continue to next keyword
     }
   }
 
