@@ -1,10 +1,16 @@
 /**
  * Check employer jobs status in prod
  */
+import 'dotenv/config';
 import { Pool } from 'pg';
 
+if (!process.env.PROD_DATABASE_URL) {
+    console.error('❌ PROD_DATABASE_URL must be set in .env');
+    process.exit(1);
+}
+
 const pool = new Pool({
-    connectionString: 'postgresql://postgres.sggccmqjzuimwlahocmy:oWTJ14PgJiEenXTf@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true',
+    connectionString: process.env.PROD_DATABASE_URL,
 });
 
 async function check() {

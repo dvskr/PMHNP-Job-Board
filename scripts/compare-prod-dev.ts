@@ -1,14 +1,20 @@
 /**
  * Compare prod vs dev databases using raw pg for BOTH.
  */
+import 'dotenv/config';
 import { Pool } from 'pg';
 
+if (!process.env.DATABASE_URL || !process.env.PROD_DATABASE_URL) {
+    console.error('❌ DATABASE_URL and PROD_DATABASE_URL must be set in .env');
+    process.exit(1);
+}
+
 const devPool = new Pool({
-    connectionString: 'postgresql://postgres:6174jirayasensei@db.zdmpmncrcpgpmwdqvekg.supabase.co:6543/postgres?pgbouncer=true',
+    connectionString: process.env.DATABASE_URL,
 });
 
 const prodPool = new Pool({
-    connectionString: 'postgresql://postgres.sggccmqjzuimwlahocmy:oWTJ14PgJiEenXTf@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true',
+    connectionString: process.env.PROD_DATABASE_URL,
 });
 
 async function compare() {
