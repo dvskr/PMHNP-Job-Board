@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Wifi, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
 import PopularCategories from '@/components/PopularCategories';
+import HomepageHero from '@/components/HomepageHero';
 
 // Lazy load client components
 const HomepageJobAlertForm = dynamic(() => import('@/components/HomepageJobAlertForm'), {
@@ -67,31 +67,7 @@ export default async function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Find Your Next PMHNP Role
-          </h1>
-          <p className="text-xl md:text-2xl text-blue-50 mb-8 max-w-2xl mx-auto">
-            The #1 job board for psychiatric mental health nurse practitioners.{' '}
-            {jobCountDisplay} remote and in-person jobs updated daily.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/jobs"
-              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
-            >
-              Browse {jobCountDisplay} Jobs
-            </Link>
-            <Link
-              href="/post-job"
-              className="inline-block bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-500 hover:bg-blue-600 transition-colors w-full sm:w-auto text-center"
-            >
-              Post a Job for Free
-            </Link>
-          </div>
-        </div>
-      </section>
+      <HomepageHero jobCountDisplay={jobCountDisplay} />
 
       {/* Stats Section */}
       <StatsSection />
