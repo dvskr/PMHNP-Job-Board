@@ -102,6 +102,24 @@ const NEGATIVE_KEYWORDS = [
     'technician',
     'child adolescent', // ambiguous title, often therapist
     'outpatient position', // ambiguous
+    // Gap closing round 2: titles leaking from adzuna, jooble, lever, etc.
+    'chiropractor',
+    'hospitalist',
+    'physician assistant',
+    'pa-c',
+    ' pa ',
+    'locum tenens psychiatrist',
+    'clinical nurse specialist',
+    'medical front office',
+    'talent community',
+    ' icu ',
+    'anesthesia',
+    'pain management',
+    'advanced practice clinician',
+    'family medicine',
+    'nocturnist',
+    'pediatric icu',
+    'collaborating psychiatrist',
 ];
 
 export function isRelevantJob(title: string = '', description: string = ''): boolean {
@@ -112,6 +130,7 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
     let hasPositive = POSITIVE_KEYWORDS.some(kw => combinedText.includes(kw));
 
     // Supplement with combination logic for flexible titles (common in federal roles)
+    // STRICT: Title MUST mention NP/APRN, and mental health context must be present
     if (!hasPositive) {
         const hasMentalHealthContext = combinedText.includes('mental health') ||
             combinedText.includes('psychiatric') ||
@@ -120,21 +139,16 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
 
         const titleHasNP = titleLower.includes('nurse practitioner') ||
             titleLower.includes(' np') ||
-            titleLower.includes('aprn');
+            titleLower.includes('aprn') ||
+            titleLower.includes('arnp');
 
-        const descHasNPOrRoleContext = combinedText.includes('nurse practitioner') ||
-            combinedText.includes('np') ||
-            combinedText.includes('aprn') ||
-            combinedText.includes('nurse practitioner-bc') ||
-            combinedText.includes('np-bc');
-
-        if (hasMentalHealthContext && (titleHasNP || descHasNPOrRoleContext)) {
-            // Only count as positive if the TITLE mentions NP context or if there is a VERY strong desc match.
-            if (hasMentalHealthContext && titleHasNP) {
-                hasPositive = true;
-            } else if (hasMentalHealthContext && combinedText.includes('pmhnp')) {
-                hasPositive = true;
-            }
+        // Only allow combination match if TITLE has NP context
+        // Description-only 'np' matches are too loose (e.g. "Hospitalist NP/PA" descriptions mentioning psychiatry)
+        if (hasMentalHealthContext && titleHasNP) {
+            hasPositive = true;
+        } else if (combinedText.includes('pmhnp')) {
+            // Always allow if pmhnp appears anywhere
+            hasPositive = true;
         }
     }
 
