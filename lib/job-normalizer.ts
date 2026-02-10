@@ -131,14 +131,18 @@ export function validateAndNormalizeSalary(
     return { minSalary: null, maxSalary: null, salaryPeriod: null };
   }
 
-  // Step 2: Override period if salary is clearly professional-level (annual)
+  // Step 2: Detect salary period from magnitude
   // NPs don't make $40k/week, so if salary > 40000, it's annual.
   if ((min && min > 40000) || (max && max > 40000)) {
     period = 'annual';
   } else if (!period) {
-    // Default: if salary < 500 assume hourly, else assume annual
-    if ((min && min < 500) || (max && max < 500)) {
-      period = 'hourly';
+    const ref = min || max || 0;
+    if (ref < 500) {
+      period = 'hourly';    // $50-200/hr typical PMHNP
+    } else if (ref < 2000) {
+      period = 'weekly';    // $1,000-1,800/week typical
+    } else if (ref <= 40000) {
+      period = 'monthly';   // $7,000-15,000/month typical PMHNP
     } else {
       period = 'annual';
     }
