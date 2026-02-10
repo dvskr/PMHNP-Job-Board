@@ -133,6 +133,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9,
   }
 
+  // Telehealth jobs page
+  const telehealthJobsPage = {
+    url: `${baseUrl}/jobs/telehealth`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  // New Grad jobs page
+  const newGradJobsPage = {
+    url: `${baseUrl}/jobs/new-grad`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  // Per Diem jobs page
+  const perDiemJobsPage = {
+    url: `${baseUrl}/jobs/per-diem`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
   // Salary guide page
   const salaryGuidePage = {
     url: `${baseUrl}/salary-guide`,
@@ -234,6 +258,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...staticPages,
       remoteJobsPage,
       travelJobsPage,
+      telehealthJobsPage,
+      newGradJobsPage,
+      perDiemJobsPage,
       salaryGuidePage,
       resourcesPage,
       locationsPage,
@@ -249,6 +276,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...staticPages,
       remoteJobsPage,
       travelJobsPage,
+      telehealthJobsPage,
+      newGradJobsPage,
+      perDiemJobsPage,
       salaryGuidePage,
       resourcesPage,
       locationsPage,
