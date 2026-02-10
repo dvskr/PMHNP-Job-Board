@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
 import EmployerMarqueeSection from '@/components/EmployerMarqueeSection';
+import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import PopularCategories from '@/components/PopularCategories';
 import HomepageHero from '@/components/HomepageHero';
 
@@ -75,6 +76,9 @@ export default async function Home() {
 
       {/* Employer Marquee */}
       <EmployerMarqueeSection />
+
+      {/* Featured Jobs */}
+      <FeaturedJobsSection />
 
       {/* Popular Categories */}
       <PopularCategories />

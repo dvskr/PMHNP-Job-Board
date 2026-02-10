@@ -107,7 +107,7 @@ export default function StatsCounter({
     return (
         <section
             ref={sectionRef}
-            style={{ backgroundColor: 'var(--bg-secondary)' }}
+            style={{ backgroundColor: 'var(--bg-secondary)', marginTop: '32px' }}
         >
             <div className="max-w-5xl mx-auto px-4 py-10 md:py-14">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0">
