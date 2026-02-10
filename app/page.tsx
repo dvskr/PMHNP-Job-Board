@@ -3,6 +3,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
+import EmployerMarqueeSection from '@/components/EmployerMarqueeSection';
 import PopularCategories from '@/components/PopularCategories';
 import HomepageHero from '@/components/HomepageHero';
 
@@ -71,6 +72,9 @@ export default async function Home() {
 
       {/* Stats Section */}
       <StatsSection />
+
+      {/* Employer Marquee */}
+      <EmployerMarqueeSection />
 
       {/* Popular Categories */}
       <PopularCategories />
