@@ -82,9 +82,9 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 aria-hidden="true"
             />
 
-            <div className="relative z-10 max-w-4xl mx-auto px-4 pt-0 pb-3 text-center">
+            <div className="relative z-10 max-w-4xl mx-auto px-4 pt-0 pb-10 text-center">
                 {/* Live indicator pill */}
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
                     style={{
                         backgroundColor: 'var(--bg-tertiary)',
                         border: '1px solid var(--border-color)',
@@ -109,7 +109,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 </div>
 
                 {/* Two-line headline */}
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal mb-2 leading-tight">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal mb-4 leading-tight">
                     <span style={{ color: 'var(--text-primary)' }}>
                         The Job Board
                     </span>
@@ -131,7 +131,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
 
                 {/* Subtitle */}
                 <p
-                    className="text-lg md:text-xl max-w-2xl mx-auto mb-5 leading-relaxed tracking-tight"
+                    className="text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed tracking-tight"
                     style={{ color: 'var(--text-secondary)' }}
                 >
                     The #1 specialized job board for Psychiatric Mental Health Nurse
@@ -139,7 +139,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 </p>
 
                 {/* Search bar */}
-                <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mb-4">
+                <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mb-6">
                     {/* Outer glow wrapper */}
                     <div
                         className="p-[1px] rounded-[20px] transition-all duration-300 hover:scale-[1.01]"
