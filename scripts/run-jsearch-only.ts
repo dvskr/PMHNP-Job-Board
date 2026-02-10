@@ -13,6 +13,7 @@ import { fetchJSearchJobs } from '../lib/aggregators/jsearch';
 import { normalizeJob } from '../lib/job-normalizer';
 import { checkDuplicate } from '../lib/deduplicator';
 import { prisma } from '../lib/prisma';
+import { isRelevantJob } from '../lib/utils/job-filter';
 
 async function main() {
     const startTime = Date.now();
@@ -26,6 +27,7 @@ async function main() {
     let added = 0;
     let duplicates = 0;
     let skipped = 0;
+    let filtered = 0;
     let errors = 0;
 
     try {
@@ -41,6 +43,12 @@ async function main() {
 
                 if (!normalized) {
                     skipped++;
+                    continue;
+                }
+
+                // PMHNP relevance filter
+                if (!isRelevantJob((normalized as any).title, (normalized as any).description || '')) {
+                    filtered++;
                     continue;
                 }
 
@@ -93,6 +101,7 @@ async function main() {
     console.log('===========================================');
     console.log(`  Added:      ${added}`);
     console.log(`  Duplicates: ${duplicates}`);
+    console.log(`  Filtered:   ${filtered}`);
     console.log(`  Skipped:    ${skipped}`);
     console.log(`  Errors:     ${errors}`);
     console.log(`  Finished:   ${new Date().toISOString()}`);
