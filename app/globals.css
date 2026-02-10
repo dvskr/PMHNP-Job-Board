@@ -1,10 +1,19 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
 
-  /* Colors */
+:root {
+  /* Font references */
+  --font-geist-sans: 'Geist', system-ui, sans-serif;
+  --font-geist-mono: 'Geist Mono', monospace;
+
+  /* Brand colors */
+  --accent-orange: #E86C2C;
+  --accent-teal: #2DD4BF;
+  --brand-navy: #060E18;
+
+  /* Primary action color */
   --color-primary: #0D9488;
   --color-primary-dark: #0F766E;
   --color-primary-light: #14B8A6;
@@ -23,37 +32,97 @@
   --border-color: #E5E7EB;
   --border-color-dark: #D1D5DB;
 
+  /* Shadows */
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px 0 var(--shadow-color);
+  --shadow-md: 0 4px 6px -1px var(--shadow-color);
+
+  /* Header / Nav */
+  --header-bg: #FFFFFF;
+  --mobile-menu-bg: #FFFFFF;
+  --nav-btn-bg: #F3F4F6;
+  --nav-btn-text: #111827;
+  --nav-btn-hover-bg: #E5E7EB;
+
+  /* Inputs */
+  --input-text: #111827;
+  --input-placeholder: #6B7280;
+
+  /* Selection */
+  --selection-bg: #CCFBF1;
+  --selection-text: #134E4A;
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
   --transition-slow: 300ms ease;
+
+  /* Shimmer */
+  --shimmer-from: #f0f0f0;
+  --shimmer-via: #e0e0e0;
+}
+
+/* ===== DARK THEME ===== */
+html.dark {
+  --color-primary: #2DD4BF;
+  --color-primary-dark: #14B8A6;
+  --color-primary-light: #5EEAD4;
+
+  --bg-primary: #060E18;
+  --bg-secondary: #0F1923;
+  --bg-tertiary: #162231;
+
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+
+  --border-color: #1E293B;
+  --border-color-dark: #334155;
+
+  --shadow-color: rgba(0, 0, 0, 0.4);
+
+  --header-bg: #0B1320;
+  --mobile-menu-bg: #0F1923;
+  --nav-btn-bg: #162231;
+  --nav-btn-text: #F1F5F9;
+  --nav-btn-hover-bg: #1E293B;
+
+  --input-text: #F1F5F9;
+  --input-placeholder: #64748B;
+
+  --selection-bg: #134E4A;
+  --selection-text: #CCFBF1;
+
+  --shimmer-from: #162231;
+  --shimmer-via: #1E293B;
+
+  color-scheme: dark;
+}
+
+html.dark body {
+  background: #060E18 !important;
+  color: #F1F5F9 !important;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark mode disabled as per user request for white background */
-
-/* Base styles */
+/* ===== BASE STYLES ===== */
 body {
-  @apply bg-white text-gray-900;
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-
-  /* Better font rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1;
   font-kerning: normal;
-
-  /* Prevent layout shift and improve rendering */
   font-optical-sizing: auto;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Apply antialiasing to all text elements */
@@ -64,7 +133,8 @@ body {
 
 /* Focus styles for accessibility */
 *:focus-visible {
-  @apply outline-none ring-2 ring-teal-500 ring-offset-2;
+  @apply outline-none ring-2 ring-offset-2;
+  --tw-ring-color: var(--color-primary);
 }
 
 /* Better text rendering for all text elements */
@@ -129,12 +199,11 @@ textarea {
   -webkit-perspective: 1000px;
 }
 
-/* Smooth scrolling - with data attribute to allow disabling during route transitions */
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Disable smooth scrolling during route transitions to prevent warning */
 html[data-scroll-behavior="smooth"] {
   scroll-behavior: smooth;
 }
@@ -145,14 +214,16 @@ html:not([data-scroll-behavior]) {
 
 /* Selection color */
 ::selection {
-  @apply bg-teal-100 text-teal-900;
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
-/* Share menu animations */
+/* ===== ANIMATIONS ===== */
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -163,6 +234,7 @@ html:not([data-scroll-behavior]) {
     transform: translateY(-8px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -193,12 +265,12 @@ html:not([data-scroll-behavior]) {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--shimmer-from) 25%, var(--shimmer-via) 50%, var(--shimmer-from) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
-/* Safe area padding for iPhone notch/home indicator */
+/* ===== SAFE AREA ===== */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -215,8 +287,7 @@ html:not([data-scroll-behavior]) {
   padding-top: calc(0.5rem + env(safe-area-inset-top));
 }
 
-/* Hide any third-party banners or overlays that might be injected */
-/* Use more specific selectors to avoid unintended matches */
+/* Hide third-party banners */
 [data-ph-banner],
 [data-product-hunt],
 #product-hunt-banner,
@@ -230,27 +301,80 @@ html:not([data-scroll-behavior]) {
   overflow: hidden !important;
 }
 
-/* Global input text color fix - ensure all inputs have dark, readable text */
+/* ===== INPUT COLORS (theme-aware) ===== */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
-  color: #111827 !important;
-  /* gray-900 - dark text for readability */
+  color: var(--input-text);
 }
 
 input::placeholder,
 textarea::placeholder,
 select::placeholder {
-  color: #6b7280 !important;
-  /* gray-500 - visible but clearly placeholder */
+  color: var(--input-placeholder);
   opacity: 1;
-  /* Firefox fix */
 }
 
-/* Ensure input text is never light colored */
 input:focus:not([type="checkbox"]):not([type="radio"]),
 textarea:focus,
 select:focus {
-  color: #111827 !important;
-  /* gray-900 */
+  color: var(--input-text);
+}
+
+/* Hero search inputs — forced white text */
+.hero-input {
+  color: #F1F5F9 !important;
+  caret-color: #F1F5F9 !important;
+  box-shadow: none !important;
+}
+
+/* ===== HERO ANIMATIONS ===== */
+@keyframes heroPing {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+
+  75%,
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Gradient text animation */
+@keyframes heroGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hero-gradient-text {
+  background: linear-gradient(90deg,
+      var(--accent-orange),
+      var(--accent-teal),
+      var(--accent-orange));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

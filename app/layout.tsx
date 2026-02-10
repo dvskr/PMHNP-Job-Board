@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 
@@ -118,6 +119,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Theme init script — runs before React hydrates to prevent FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)||(!t&&!window.matchMedia);var h=document.documentElement;var s=h.style;if(d){h.classList.add('dark');s.setProperty('--bg-primary','#060E18');s.setProperty('--bg-secondary','#0F1923');s.setProperty('--bg-tertiary','#162231');s.setProperty('--text-primary','#F1F5F9');s.setProperty('--text-secondary','#94A3B8');s.setProperty('--text-tertiary','#64748B');s.setProperty('--border-color','#1E293B');s.setProperty('--border-color-dark','#334155');s.setProperty('--shadow-color','rgba(0,0,0,0.4)');s.setProperty('--header-bg','#0B1320');s.setProperty('--mobile-menu-bg','#0F1923');s.setProperty('--nav-btn-bg','#162231');s.setProperty('--nav-btn-text','#F1F5F9');s.setProperty('--nav-btn-hover-bg','#1E293B');s.setProperty('--input-text','#F1F5F9');s.setProperty('--input-placeholder','#64748B');s.setProperty('--selection-bg','#134E4A');s.setProperty('--selection-text','#CCFBF1');s.setProperty('--shimmer-from','#162231');s.setProperty('--shimmer-via','#1E293B');s.setProperty('--color-primary','#2DD4BF');s.setProperty('--color-primary-dark','#14B8A6');s.setProperty('--color-primary-light','#5EEAD4')}else{h.classList.remove('dark')}}catch(e){document.documentElement.classList.add('dark')}})();`,
+          }}
+        />
         {/* Performance: Preconnect to external domains */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
@@ -175,12 +182,15 @@ export default function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
-        <GoogleAnalytics />
-        <Header />
-        <main className="min-h-screen pb-20 md:pb-0">{children}</main>
-        <Footer />
-        <BottomNav />
+        <ThemeProvider>
+          <GoogleAnalytics />
+          <Header />
+          <main className="min-h-screen pt-16 pb-20 md:pb-0">{children}</main>
+          <Footer />
+          <BottomNav />
+        </ThemeProvider>
       </body>
     </html>
   );

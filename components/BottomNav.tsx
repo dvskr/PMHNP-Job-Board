@@ -5,24 +5,24 @@ import Link from 'next/link';
 import { Home, Briefcase, Bookmark, Bell } from 'lucide-react';
 
 const navItems = [
-  { 
-    label: 'Home', 
-    href: '/', 
+  {
+    label: 'Home',
+    href: '/',
     icon: Home,
   },
-  { 
-    label: 'Jobs', 
-    href: '/jobs', 
+  {
+    label: 'Jobs',
+    href: '/jobs',
     icon: Briefcase,
   },
-  { 
-    label: 'Saved', 
-    href: '/saved', 
+  {
+    label: 'Saved',
+    href: '/saved',
     icon: Bookmark,
   },
-  { 
-    label: 'Alerts', 
-    href: '/job-alerts/manage', 
+  {
+    label: 'Alerts',
+    href: '/job-alerts/manage',
     icon: Bell,
   },
 ];
@@ -41,7 +41,13 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-bottom">
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 shadow-lg safe-bottom"
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          borderTop: '1px solid var(--border-color)',
+        }}
+      >
         <div className="flex items-center justify-around px-2 py-2 pb-safe">
           {navItems.map((item: typeof navItems[number]) => {
             const Icon = item.icon;
@@ -51,24 +57,23 @@ export default function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 py-2 px-1 rounded-lg transition-all touch-manipulation ${
-                  active ? 'bg-primary-50' : 'hover:bg-gray-50'
-                }`}
+                className={`flex flex-col items-center justify-center flex-1 py-2 px-1 rounded-lg transition-all touch-manipulation`}
+                style={{
+                  backgroundColor: active ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : 'transparent',
+                }}
               >
-                <Icon 
-                  className={`w-6 h-6 mb-1 transition-colors ${
-                    active 
-                      ? 'text-primary-600' 
-                      : 'text-gray-500'
-                  }`}
+                <Icon
+                  className="w-6 h-6 mb-1 transition-colors"
+                  style={{
+                    color: active ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                  }}
                   strokeWidth={active ? 2.5 : 2}
                 />
-                <span 
-                  className={`text-xs font-medium transition-colors ${
-                    active 
-                      ? 'text-primary-600' 
-                      : 'text-gray-600'
-                  }`}
+                <span
+                  className="text-xs font-medium transition-colors"
+                  style={{
+                    color: active ? 'var(--color-primary)' : 'var(--text-secondary)',
+                  }}
                 >
                   {item.label}
                 </span>
@@ -80,4 +85,3 @@ export default function BottomNav() {
     </>
   );
 }
-

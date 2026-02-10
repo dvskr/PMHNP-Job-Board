@@ -2,17 +2,38 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Bookmark, Briefcase } from 'lucide-react';
+import { Menu, X, Bookmark, Briefcase, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import HeaderAuth from '@/components/auth/HeaderAuth';
+import { useTheme } from '@/components/ThemeProvider';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const isHomepage = pathname === '/';
+
+  // Passive scroll listener for transparent-to-solid effect on homepage
+  useEffect(() => {
+    if (!isHomepage) {
+      setScrolled(true);
+      return;
+    }
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    // Check initial scroll position
+    handleScroll();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isHomepage]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -26,8 +47,21 @@ export default function Header() {
     };
   }, [isMenuOpen]);
 
+  // Determine if the navbar should show solid background
+  const showSolid = !isHomepage || scrolled;
+
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
+    <header
+      className="fixed top-0 left-0 right-0 z-50"
+      style={{
+        backgroundColor: showSolid ? 'var(--header-bg)' : 'transparent',
+        borderBottom: showSolid ? '1px solid var(--border-color)' : '1px solid transparent',
+        boxShadow: showSolid ? 'var(--shadow-md)' : 'none',
+        backdropFilter: showSolid ? 'blur(12px)' : 'none',
+        WebkitBackdropFilter: showSolid ? 'blur(12px)' : 'none',
+        transition: 'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 relative">
           {/* Centered Logo and Navigation with Even Spacing */}
@@ -45,16 +79,32 @@ export default function Header() {
             </Link>
 
             {/* Divider */}
-            <div className="h-12 w-px bg-gray-300"></div>
+            <div className="h-12 w-px" style={{ backgroundColor: 'var(--border-color)' }}></div>
 
             {/* Desktop Navigation Buttons */}
             <Link href="/jobs">
-              <button className="bg-gray-100 text-black px-5 py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors shadow-sm">
+              <button
+                className="px-5 py-2 rounded-lg font-bold transition-colors shadow-sm"
+                style={{
+                  backgroundColor: 'var(--nav-btn-bg)',
+                  color: 'var(--nav-btn-text)',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--nav-btn-hover-bg)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--nav-btn-bg)')}
+              >
                 Jobs
               </button>
             </Link>
             <Link href="/saved">
-              <button className="bg-gray-100 text-black px-5 py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors shadow-sm flex items-center gap-2">
+              <button
+                className="px-5 py-2 rounded-lg font-bold transition-colors shadow-sm flex items-center gap-2"
+                style={{
+                  backgroundColor: 'var(--nav-btn-bg)',
+                  color: 'var(--nav-btn-text)',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--nav-btn-hover-bg)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--nav-btn-bg)')}
+              >
                 <Bookmark size={16} />
                 Saved
               </button>
@@ -83,21 +133,52 @@ export default function Header() {
           {/* Spacer for desktop to push auth to right */}
           <div className="hidden lg:block flex-1"></div>
 
-          {/* Auth Section - Desktop */}
-          <div className="hidden lg:flex items-center">
+          {/* Theme Toggle + Auth Section - Desktop */}
+          <div className="hidden lg:flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition-colors"
+              style={{
+                color: 'var(--text-secondary)',
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--nav-btn-bg)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <HeaderAuth />
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <button
-            onClick={toggleMenu}
-            className="lg:hidden text-gray-600 hover:text-primary-600 transition-colors duration-200 p-2 -mr-2 touch-manipulation"
-            style={{ minWidth: '44px', minHeight: '44px' }}
-            aria-label="Toggle menu"
-            aria-expanded={isMenuOpen ? "true" : "false"}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          {/* Mobile: Theme Toggle + Hamburger */}
+          <div className="flex items-center gap-1 lg:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition-colors touch-manipulation"
+              style={{
+                color: 'var(--text-secondary)',
+                minWidth: '44px',
+                minHeight: '44px',
+              }}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden transition-colors duration-200 p-2 -mr-2 touch-manipulation"
+              style={{
+                color: 'var(--text-secondary)',
+                minWidth: '44px',
+                minHeight: '44px',
+              }}
+              aria-label="Toggle menu"
+              aria-expanded={isMenuOpen ? "true" : "false"}
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -112,14 +193,24 @@ export default function Header() {
           />
 
           {/* Full-screen Menu */}
-          <div className="fixed inset-y-0 right-0 w-full sm:w-80 bg-white z-50 lg:hidden shadow-2xl animate-slide-in-right">
+          <div
+            className="fixed inset-y-0 right-0 w-full sm:w-80 z-50 lg:hidden shadow-2xl animate-slide-in-right"
+            style={{ backgroundColor: 'var(--mobile-menu-bg)' }}
+          >
             {/* Menu Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <span className="text-lg font-bold text-gray-900">Menu</span>
+            <div
+              className="flex items-center justify-between p-4"
+              style={{ borderBottom: '1px solid var(--border-color)' }}
+            >
+              <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Menu</span>
               <button
                 onClick={() => setIsMenuOpen(false)}
-                className="text-gray-600 hover:text-primary-600 transition-colors duration-200 p-2 -mr-2 touch-manipulation"
-                style={{ minWidth: '44px', minHeight: '44px' }}
+                className="transition-colors duration-200 p-2 -mr-2 touch-manipulation"
+                style={{
+                  color: 'var(--text-secondary)',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                }}
                 aria-label="Close menu"
               >
                 <X size={24} />
@@ -129,12 +220,12 @@ export default function Header() {
             {/* Menu Content */}
             <nav className="flex flex-col p-4 overflow-y-auto h-[calc(100vh-73px)]">
               {/* Auth Section - Mobile */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
+              <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
               </div>
 
               {/* Primary CTA - Post a Job */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
+              <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="primary" size="lg" className="w-full">
                     <Briefcase size={20} />
@@ -146,14 +237,16 @@ export default function Header() {
               {/* Navigation Links */}
               <Link
                 href="/jobs"
-                className="text-black hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3"
+                className="hover:text-primary-600 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3"
+                style={{ color: 'var(--text-primary)' }}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Browse Jobs
               </Link>
               <Link
                 href="/saved"
-                className="text-black hover:text-primary-600 hover:bg-gray-50 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
+                className="hover:text-primary-600 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
+                style={{ color: 'var(--text-primary)' }}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Bookmark size={18} />
@@ -161,17 +254,19 @@ export default function Header() {
               </Link>
 
               {/* Footer Links */}
-              <div className="mt-auto pt-6 space-y-2 border-t border-gray-200">
+              <div className="mt-auto pt-6 space-y-2" style={{ borderTop: '1px solid var(--border-color)' }}>
                 <Link
                   href="/faq"
-                  className="text-sm text-gray-800 hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
+                  className="text-sm hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
+                  style={{ color: 'var(--text-primary)' }}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   FAQ
                 </Link>
                 <Link
                   href="/contact"
-                  className="text-sm text-gray-800 hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
+                  className="text-sm hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
+                  style={{ color: 'var(--text-primary)' }}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Contact Us
@@ -184,4 +279,3 @@ export default function Header() {
     </header>
   );
 }
-
