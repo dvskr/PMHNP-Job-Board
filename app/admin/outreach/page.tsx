@@ -27,7 +27,7 @@ const STATUS_OPTIONS = ['prospect', 'contacted', 'responded', 'converted', 'decl
 
 const STATUS_COLORS: Record<string, string> = {
   prospect: 'bg-gray-100 text-gray-700',
-  contacted: 'bg-blue-100 text-blue-700',
+  contacted: 'bg-teal-100 text-teal-700',
   responded: 'bg-purple-100 text-purple-700',
   converted: 'bg-green-100 text-green-700',
   declined: 'bg-red-100 text-red-700',
@@ -216,10 +216,10 @@ export default function OutreachPage() {
             <div className="text-sm text-gray-600">Prospects</div>
           </div>
         </Card>
-        <Card padding="md" variant="bordered" className="bg-blue-50">
+        <Card padding="md" variant="bordered" className="bg-teal-50">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-700">{stats.contacted}</div>
-            <div className="text-sm text-blue-600">Contacted</div>
+            <div className="text-2xl font-bold text-teal-700">{stats.contacted}</div>
+            <div className="text-sm text-teal-600">Contacted</div>
           </div>
         </Card>
         <Card padding="md" variant="bordered" className="bg-purple-50">

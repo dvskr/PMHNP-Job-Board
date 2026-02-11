@@ -83,7 +83,7 @@ export default function StateFAQ({
 
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 mt-8">
                 <div className="flex items-center gap-2 mb-6">
-                    <HelpCircle className="w-6 h-6 text-blue-600" />
+                    <HelpCircle className="w-6 h-6 text-teal-600" />
                     <h2 className="text-2xl font-bold text-gray-900">
                         Frequently Asked Questions About PMHNP Jobs in {stateName}
                     </h2>

@@ -73,11 +73,21 @@ const LOCATION_KEYWORDS = [
     'Psychiatric APN'
 ];
 
+// Reduced keyword set for cron — these 2 cover 99% of results; the others are redundant subsets
+const CRON_KEYWORDS = [
+    'PMHNP',
+    'Psychiatric Nurse Practitioner',
+];
+
 // How many pages to fetch per query (each page = ~10 jobs)
 const PAGES_PER_QUERY = 5;
+const CRON_PAGES_PER_QUERY = 2; // Niche specialty — page 3+ rarely has new results
 
 // Rate limiting delay between API calls (ms)
 const DELAY_BETWEEN_REQUESTS = 334; // ~3 requests per second
+
+// Hard time budget for cron runs (Vercel timeout is 300s)
+const CRON_TIME_BUDGET_MS = 250_000; // 250s — leave 50s buffer
 
 /**
  * Build location string from JSearch job data
@@ -189,109 +199,146 @@ export async function fetchJSearchJobs(
         return [];
     }
 
-    const pagesPerQuery = options.pagesPerQuery || PAGES_PER_QUERY;
+    const isCronChunk = options.chunk !== undefined && options.chunk >= 0;
+    const pagesPerQuery = options.pagesPerQuery || (isCronChunk ? CRON_PAGES_PER_QUERY : PAGES_PER_QUERY);
+    const keywords = isCronChunk ? CRON_KEYWORDS : LOCATION_KEYWORDS;
+    const startTime = Date.now();
 
     // Build Execution Queue
     let queue: string[] = [];
 
     if (options.specificQueries) {
         queue = options.specificQueries;
+    } else if (isCronChunk) {
+        // ── Cron mode: 12 micro-chunks designed to fit within 300s ──
+        const chunkId = options.chunk!;
+        const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
+
+        // Pre-build location query arrays using cron keywords (2 instead of 6)
+        const stateQueries: string[] = [];
+        keywords.forEach(kw => {
+            LOCATIONS.forEach(loc => stateQueries.push(`${kw} ${loc}`));
+        });
+
+        // Split cities into 5 equal chunks
+        const citiesPerChunk = Math.ceil(CITIES.length / 5);
+        // Split counties into 5 equal chunks
+        const countiesPerChunk = Math.ceil(COUNTIES.length / 5);
+
+        switch (chunkId) {
+            case 0: // National keywords + Employers
+                queue = [...keywords, ...employerQueries];
+                break;
+            case 1: // States (2 keywords × 51 states = 102 queries)
+                queue = stateQueries;
+                break;
+            case 2: // Cities slice 1
+                keywords.forEach(kw => {
+                    CITIES.slice(0, citiesPerChunk).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 3: // Cities slice 2
+                keywords.forEach(kw => {
+                    CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 4: // Cities slice 3
+                keywords.forEach(kw => {
+                    CITIES.slice(citiesPerChunk * 2, citiesPerChunk * 3).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 5: // Cities slice 4
+                keywords.forEach(kw => {
+                    CITIES.slice(citiesPerChunk * 3, citiesPerChunk * 4).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 6: // Cities slice 5
+                keywords.forEach(kw => {
+                    CITIES.slice(citiesPerChunk * 4).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 7: // Counties slice 1
+                keywords.forEach(kw => {
+                    COUNTIES.slice(0, countiesPerChunk).forEach(county => {
+                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
+                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                    });
+                });
+                break;
+            case 8: // Counties slice 2
+                keywords.forEach(kw => {
+                    COUNTIES.slice(countiesPerChunk, countiesPerChunk * 2).forEach(county => {
+                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
+                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                    });
+                });
+                break;
+            case 9: // Counties slice 3
+                keywords.forEach(kw => {
+                    COUNTIES.slice(countiesPerChunk * 2, countiesPerChunk * 3).forEach(county => {
+                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
+                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                    });
+                });
+                break;
+            case 10: // Counties slice 4
+                keywords.forEach(kw => {
+                    COUNTIES.slice(countiesPerChunk * 3, countiesPerChunk * 4).forEach(county => {
+                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
+                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                    });
+                });
+                break;
+            case 11: // Counties slice 5
+                keywords.forEach(kw => {
+                    COUNTIES.slice(countiesPerChunk * 4).forEach(county => {
+                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
+                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
+                    });
+                });
+                break;
+            default:
+                console.warn(`[JSearch] Unknown chunk ID: ${chunkId}`);
+                return [];
+        }
+        console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries (${pagesPerQuery} pages/query, budget: ${CRON_TIME_BUDGET_MS / 1000}s)`);
     } else {
-        // Build full queue first, then slice by chunk
+        // ── Full queue (for local/manual runs — no time budget) ──
         const nationalQueries = [...LOCATION_KEYWORDS];
         const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
 
         const stateQueries: string[] = [];
         LOCATION_KEYWORDS.forEach(kw => {
-            LOCATIONS.forEach(loc => {
-                stateQueries.push(`${kw} ${loc}`);
-            });
+            LOCATIONS.forEach(loc => stateQueries.push(`${kw} ${loc}`));
         });
 
         const cityQueries: string[] = [];
         LOCATION_KEYWORDS.forEach(kw => {
-            CITIES.forEach(city => {
-                cityQueries.push(`${kw} ${city}`);
-            });
+            CITIES.forEach(city => cityQueries.push(`${kw} ${city}`));
         });
 
         const countyQueries: string[] = [];
         LOCATION_KEYWORDS.forEach(kw => {
             COUNTIES.forEach(county => {
-                const countyName = county.split(',')[0].trim();
-                const stateAbbrev = county.split(',')[1].trim();
+                const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
                 countyQueries.push(`${kw} ${countyName} County, ${stateAbbrev}`);
             });
         });
 
-        // Chunk-based splitting for production cron (Vercel 300s timeout)
-        if (options.chunk !== undefined && options.chunk >= 0 && options.chunk <= 5) {
-            const chunkId = options.chunk;
-            const citiesPerChunk = Math.ceil(CITIES.length / 3); // ~167 cities per chunk
-            const countiesPerChunk = Math.ceil(COUNTIES.length / 2); // ~125 counties per chunk
+        queue = [
+            ...nationalQueries,
+            ...employerQueries,
+            ...stateQueries,
+            ...cityQueries,
+            ...countyQueries,
+        ];
 
-            switch (chunkId) {
-                case 0: // National + States + Employers
-                    queue = [...nationalQueries, ...employerQueries, ...stateQueries];
-                    break;
-                case 1: // Cities 1-167
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        CITIES.slice(0, citiesPerChunk).forEach(city => {
-                            queue.push(`${kw} ${city}`);
-                        });
-                    });
-                    break;
-                case 2: // Cities 168-334
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => {
-                            queue.push(`${kw} ${city}`);
-                        });
-                    });
-                    break;
-                case 3: // Cities 335-500
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        CITIES.slice(citiesPerChunk * 2).forEach(city => {
-                            queue.push(`${kw} ${city}`);
-                        });
-                    });
-                    break;
-                case 4: // Counties 1-125
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        COUNTIES.slice(0, countiesPerChunk).forEach(county => {
-                            const countyName = county.split(',')[0].trim();
-                            const stateAbbrev = county.split(',')[1].trim();
-                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                        });
-                    });
-                    break;
-                case 5: // Counties 126-250
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        COUNTIES.slice(countiesPerChunk).forEach(county => {
-                            const countyName = county.split(',')[0].trim();
-                            const stateAbbrev = county.split(',')[1].trim();
-                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                        });
-                    });
-                    break;
-            }
-            console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries`);
-        } else {
-            // Full queue (for local/manual runs)
-            queue = [
-                ...nationalQueries,
-                ...employerQueries,
-                ...stateQueries,
-                ...cityQueries,
-                ...countyQueries,
-            ];
-
-            console.log('[JSearch] Strategy Breakdown:');
-            console.log(`    - National: ${nationalQueries.length}`);
-            console.log(`    - Employers: ${employerQueries.length}`);
-            console.log(`    - States: ${stateQueries.length}`);
-            console.log(`    - Cities: ${cityQueries.length}`);
-            console.log(`    - Counties: ${countyQueries.length}`);
-        }
+        console.log('[JSearch] Strategy Breakdown:');
+        console.log(`    - National: ${nationalQueries.length}`);
+        console.log(`    - Employers: ${employerQueries.length}`);
+        console.log(`    - States: ${stateQueries.length}`);
+        console.log(`    - Cities: ${cityQueries.length}`);
+        console.log(`    - Counties: ${countyQueries.length}`);
     }
 
     console.log(`[JSearch] Total Execution Queue: ${queue.length} queries (Depth: ${pagesPerQuery} pages/query)`);
@@ -312,11 +359,20 @@ export async function fetchJSearchJobs(
     const seenJobIds = new Set<string>();
 
     for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+        // ── Time budget check (cron only) ──
+        if (isCronChunk) {
+            const elapsed = Date.now() - startTime;
+            if (elapsed >= CRON_TIME_BUDGET_MS) {
+                console.warn(`[JSearch] Time budget exhausted (${(elapsed / 1000).toFixed(1)}s). Returning ${allJobs.length} jobs collected so far.`);
+                break;
+            }
+        }
+
         const batch = queue.slice(i, i + BATCH_SIZE);
         const batchNum = Math.floor(i / BATCH_SIZE) + 1;
         const totalBatches = Math.ceil(queue.length / BATCH_SIZE);
 
-        console.log(`[JSearch] Processing Batch ${batchNum}/${totalBatches} (${batch.length} queries)...`);
+        console.log(`[JSearch] Batch ${batchNum}/${totalBatches} (${batch.length} queries)${isCronChunk ? ` [${((Date.now() - startTime) / 1000).toFixed(0)}s elapsed]` : ''}`);
 
         const batchResults = await Promise.all(
             batch.map(async (query) => {

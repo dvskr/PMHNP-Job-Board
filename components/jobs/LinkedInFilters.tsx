@@ -16,19 +16,33 @@ interface CheckboxFilterProps {
 
 function CheckboxFilter({ label, count, checked, onChange, disabled }: CheckboxFilterProps) {
   return (
-    <label className={`flex items-center justify-between py-2 px-1 rounded cursor-pointer hover:bg-gray-50 ${disabled ? 'opacity-50' : ''}`}>
-      <div className="flex items-center gap-3">
+    <label
+      className={`li-filter-row ${disabled ? 'li-filter-disabled' : ''}`}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 6px', borderRadius: '8px', cursor: 'pointer',
+        transition: 'background 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <input
           type="checkbox"
           checked={checked}
           onChange={onChange}
           disabled={disabled}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="li-checkbox"
+          style={{
+            width: '16px', height: '16px', borderRadius: '4px',
+            accentColor: 'var(--color-primary)',
+          }}
         />
-        <span className="text-sm text-black font-medium">{label}</span>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{label}</span>
       </div>
-      <span className={`text-xs px-2 py-0.5 rounded-full ${count === 0 ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-800'
-        }`}>
+      <span style={{
+        fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
+        backgroundColor: count === 0 ? 'var(--bg-tertiary)' : 'var(--bg-tertiary)',
+        color: count === 0 ? 'var(--text-tertiary)' : 'var(--color-primary)',
+      }}>
         {(count || 0).toLocaleString()}
       </span>
     </label>
@@ -45,19 +59,25 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border-b border-gray-200 py-4">
+    <div style={{ borderBottom: '1px solid var(--border-color)', padding: '14px 0' }}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between w-full text-left"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', textAlign: 'left', background: 'none', border: 'none',
+          cursor: 'pointer', padding: 0,
+        }}
       >
-        <h3 className="text-sm font-bold text-black">{title}</h3>
+        <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+          {title}
+        </h3>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-gray-700" />
+          <ChevronUp style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
         ) : (
-          <ChevronDown className="w-4 h-4 text-gray-700" />
+          <ChevronDown style={{ width: '16px', height: '16px', color: 'var(--text-muted, var(--text-tertiary))' }} />
         )}
       </button>
-      {expanded && <div className="mt-3">{children}</div>}
+      {expanded && <div style={{ marginTop: '8px' }}>{children}</div>}
     </div>
   );
 }
@@ -68,128 +88,133 @@ export default function LinkedInFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [filters, setFilters] = useState<FilterState>(() =>
-    parseFiltersFromParams(new URLSearchParams(searchParams.toString()))
-  );
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [counts, setCounts] = useState<FilterCounts | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState(filters.search);
-  const [locationInput, setLocationInput] = useState(filters.location || '');
+  const [searchInput, setSearchInput] = useState('');
+  const [locationInput, setLocationInput] = useState('');
 
-  // Sync filters with URL changes (browser back/forward)
+  // Sync filters from URL params
   useEffect(() => {
-    const newFilters = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
-
-    // Only update if filters actually changed to prevent infinite loop
-    const filtersChanged = JSON.stringify(newFilters) !== JSON.stringify(filters);
-    if (filtersChanged) {
-      setFilters(newFilters);
-      setSearchInput(newFilters.search);
-      setLocationInput(newFilters.location || '');
-    }
-  }, [searchParams, filters]);
+    const parsed = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
+    setFilters(parsed);
+    setSearchInput(parsed.search || '');
+    setLocationInput(parsed.location || '');
+  }, [searchParams]);
 
   // Fetch filter counts
-  const fetchCounts = useCallback(async (currentFilters: FilterState) => {
+  const fetchCounts = useCallback(async () => {
     try {
+      setIsLoading(true);
+      const parsed = parseFiltersFromParams(new URLSearchParams(searchParams.toString()));
       const response = await fetch('/api/jobs/filter-counts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentFilters),
+        body: JSON.stringify(parsed),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCounts(data);
       }
-
-      const data: FilterCounts = await response.json();
-      setCounts(data);
     } catch (error) {
       console.error('Failed to fetch filter counts:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
-  // Update URL and fetch counts when filters change
   useEffect(() => {
-    const params = filtersToParams(filters);
+    fetchCounts();
+  }, [fetchCounts]);
 
-    // Only push if URL actually changed to prevent infinite loop
-    const currentUrl = window.location.pathname + (window.location.search ? window.location.search : '');
-    const targetUrl = params.toString() ? `/jobs?${params.toString()}` : '/jobs';
-
-    if (currentUrl !== targetUrl) {
-      router.push(targetUrl, { scroll: false });
-    }
-
-    fetchCounts(filters);
-    // Don't call onFilterChange here - let parent handle URL changes via searchParams
-  }, [filters, router, fetchCounts]);
-
-  // Toggle array-based filter (workMode, jobType)
-  const toggleArrayFilter = (key: 'workMode' | 'jobType', value: string) => {
-    setFilters((prev: FilterState) => ({
-      ...prev,
-      [key]: prev[key].includes(value)
-        ? prev[key].filter((v: string) => v !== value)
-        : [...prev[key], value],
-    }));
+  // Toggle array-based filter (workMode, jobType, specialty)
+  const toggleArrayFilter = (key: 'workMode' | 'jobType' | 'specialty', value: string) => {
+    const newFilters = { ...filters };
+    const arr = [...newFilters[key]];
+    const idx = arr.indexOf(value);
+    if (idx >= 0) arr.splice(idx, 1);
+    else arr.push(value);
+    newFilters[key] = arr;
+    router.push(`/jobs?${filtersToParams(newFilters).toString()}`, { scroll: false });
   };
 
   // Set single-value filter
   const setSingleFilter = (key: keyof FilterState, value: string | number | null) => {
-    setFilters((prev: FilterState) => ({ ...prev, [key]: value }));
+    const newFilters = { ...filters, [key]: value };
+    router.push(`/jobs?${filtersToParams(newFilters).toString()}`, { scroll: false });
   };
 
   // Clear all filters
   const clearAllFilters = () => {
-    setFilters(DEFAULT_FILTERS);
     setSearchInput('');
     setLocationInput('');
+    router.push('/jobs', { scroll: false });
   };
 
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSingleFilter('search', searchInput);
+    const newFilters = { ...filters, search: searchInput || undefined };
+    router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
   };
 
   // Handle location submit
   const handleLocationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSingleFilter('location', locationInput || null);
+    const newFilters = { ...filters, location: locationInput || undefined };
+    router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
   };
 
-  // Count active filters (including search)
+  // Count active filters
   const activeFilterCount =
-    (filters.search ? 1 : 0) +
     filters.workMode.length +
     filters.jobType.length +
+    (filters.search ? 1 : 0) +
+    (filters.location ? 1 : 0) +
     (filters.salaryMin ? 1 : 0) +
-    (filters.postedWithin ? 1 : 0) +
-    (filters.location ? 1 : 0);
+    (filters.postedWithin ? 1 : 0);
 
   // Get active filter pills
   const getActiveFilters = () => {
-    const pills: Array<{ key: string; label: string; onRemove: () => void }> = [];
+    const pills: { key: string; label: string; onRemove: () => void }[] = [];
 
-    filters.workMode.forEach((wm: string) => {
+    if (filters.search) {
       pills.push({
-        key: `workMode-${wm}`,
-        label: wm === 'onsite' ? 'On-site' : wm.charAt(0).toUpperCase() + wm.slice(1),
-        onRemove: () => toggleArrayFilter('workMode', wm),
+        key: 'search',
+        label: `"${filters.search}"`,
+        onRemove: () => setSingleFilter('search', null),
+      });
+    }
+    if (filters.location) {
+      pills.push({
+        key: 'location',
+        label: filters.location,
+        onRemove: () => setSingleFilter('location', null),
+      });
+    }
+    filters.workMode.forEach(mode => {
+      pills.push({
+        key: `workMode-${mode}`,
+        label: mode.charAt(0).toUpperCase() + mode.slice(1),
+        onRemove: () => toggleArrayFilter('workMode', mode),
       });
     });
-
-    filters.jobType.forEach((jt: string) => {
+    filters.jobType.forEach(type => {
       pills.push({
-        key: `jobType-${jt}`,
-        label: jt,
-        onRemove: () => toggleArrayFilter('jobType', jt),
+        key: `jobType-${type}`,
+        label: type,
+        onRemove: () => toggleArrayFilter('jobType', type),
       });
     });
-
+    if (filters.specialty) {
+      filters.specialty.forEach(spec => {
+        pills.push({
+          key: `specialty-${spec}`,
+          label: spec,
+          onRemove: () => toggleArrayFilter('specialty', spec),
+        });
+      });
+    }
     if (filters.salaryMin) {
       pills.push({
         key: 'salary',
@@ -197,209 +222,299 @@ export default function LinkedInFilters() {
         onRemove: () => setSingleFilter('salaryMin', null),
       });
     }
-
     if (filters.postedWithin) {
-      const labels: Record<string, string> = {
-        '24h': 'Past 24 hours',
-        '7d': 'Past week',
-        '30d': 'Past month',
-      };
+      const labels: Record<string, string> = { '24h': 'Past 24h', '7d': 'Past week', '30d': 'Past month' };
       pills.push({
         key: 'postedWithin',
         label: labels[filters.postedWithin] || filters.postedWithin,
         onRemove: () => setSingleFilter('postedWithin', null),
       });
     }
-
-    if (filters.location) {
-      pills.push({
-        key: 'location',
-        label: filters.location,
-        onRemove: () => {
-          setSingleFilter('location', null);
-          setLocationInput('');
-        },
-      });
-    }
-
     return pills;
   };
 
   return (
-    <div className="bg-white rounded-lg border-2 border-blue-500 shadow-lg lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
-      {/* Header - Fixed at top */}
-      <div className="p-4 border-b border-gray-200 flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-black">Filters</h2>
+    <>
+      <div
+        className="lg:sticky lg:top-24"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderRadius: '16px',
+          border: '1px solid var(--border-color)',
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+          maxHeight: 'calc(100vh - 7rem)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '18px 20px 14px',
+          borderBottom: '1px solid var(--border-color)',
+          flexShrink: 0,
+          backgroundColor: 'var(--bg-tertiary)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: activeFilterCount > 0 ? '12px' : '0' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+              Filters
+            </h2>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearAllFilters}
+                style={{
+                  fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Clear all ({activeFilterCount})
+              </button>
+            )}
+          </div>
+
+          {/* Active Filter Pills */}
           {activeFilterCount > 0 && (
-            <button
-              onClick={clearAllFilters}
-              className="text-sm text-blue-700 hover:text-blue-900 font-medium"
-            >
-              Clear all ({activeFilterCount})
-            </button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {getActiveFilters().map((pill) => (
+                <span
+                  key={pill.key}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    padding: '3px 10px', borderRadius: '20px',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    color: 'var(--color-primary)', fontSize: '11px', fontWeight: 600,
+                  }}
+                >
+                  {pill.label}
+                  <button
+                    onClick={pill.onRemove}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '2px', borderRadius: '50%', display: 'flex',
+                      color: 'inherit',
+                    }}
+                    aria-label={`Remove ${pill.label} filter`}
+                  >
+                    <X style={{ width: '12px', height: '12px' }} />
+                  </button>
+                </span>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Active Filter Pills */}
-        {activeFilterCount > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {getActiveFilters().map((pill: { key: string; label: string; onRemove: () => void }) => (
-              <span
-                key={pill.key}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800 text-xs font-medium rounded-full"
-              >
-                {pill.label}
-                <button
-                  onClick={pill.onRemove}
-                  className="hover:bg-blue-100 rounded-full p-0.5"
-                  aria-label={`Remove ${pill.label} filter`}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
+        {/* Results Count */}
+        <div style={{
+          padding: '10px 20px',
+          borderBottom: '1px solid var(--border-color)',
+          flexShrink: 0,
+          backgroundColor: 'var(--bg-secondary)',
+        }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
+            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+              {isLoading || !counts ? '...' : counts.total.toLocaleString()}
+            </span>
+            {' '}jobs found
+          </p>
+        </div>
+
+        {/* Scrollable Filter Content */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div style={{ padding: '12px 20px' }}>
+            {/* Search */}
+            <form onSubmit={handleSearchSubmit} style={{ marginBottom: '12px' }}>
+              <div style={{ position: 'relative' }}>
+                <Search style={{
+                  position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                  width: '15px', height: '15px', color: 'var(--text-tertiary)',
+                }} />
+                <input
+                  type="text"
+                  placeholder="Job title, company..."
+                  value={searchInput}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
+                  className="li-filter-input"
+                  style={{
+                    width: '100%', paddingLeft: '36px', paddingRight: '14px',
+                    paddingTop: '9px', paddingBottom: '9px',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '10px', fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    outline: 'none', transition: 'border-color 0.2s',
+                  }}
+                />
+              </div>
+            </form>
+
+            {/* Location */}
+            <form onSubmit={handleLocationSubmit} style={{ marginBottom: '8px' }}>
+              <div style={{ position: 'relative' }}>
+                <MapPin style={{
+                  position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
+                  width: '15px', height: '15px', color: 'var(--text-tertiary)',
+                }} />
+                <input
+                  type="text"
+                  placeholder="City, state, or 'Remote'"
+                  value={locationInput}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationInput(e.target.value)}
+                  className="li-filter-input"
+                  style={{
+                    width: '100%', paddingLeft: '36px', paddingRight: '14px',
+                    paddingTop: '9px', paddingBottom: '9px',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '10px', fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    outline: 'none', transition: 'border-color 0.2s',
+                  }}
+                />
+              </div>
+            </form>
+
+            {/* Date Posted */}
+            <FilterSection title="Date Posted">
+              <CheckboxFilter
+                label="Past 24 hours"
+                count={counts?.postedWithin['24h'] || 0}
+                checked={filters.postedWithin === '24h'}
+                onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
+              />
+              <CheckboxFilter
+                label="Past week"
+                count={counts?.postedWithin['7d'] || 0}
+                checked={filters.postedWithin === '7d'}
+                onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '7d' ? null : '7d')}
+              />
+              <CheckboxFilter
+                label="Past month"
+                count={counts?.postedWithin['30d'] || 0}
+                checked={filters.postedWithin === '30d'}
+                onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '30d' ? null : '30d')}
+              />
+            </FilterSection>
+
+            {/* Job Type */}
+            <FilterSection title="Job Type">
+              <CheckboxFilter
+                label="Full-Time"
+                count={counts?.jobType['Full-Time'] || 0}
+                checked={filters.jobType.includes('Full-Time')}
+                onChange={() => toggleArrayFilter('jobType', 'Full-Time')}
+              />
+              <CheckboxFilter
+                label="Part-Time"
+                count={counts?.jobType['Part-Time'] || 0}
+                checked={filters.jobType.includes('Part-Time')}
+                onChange={() => toggleArrayFilter('jobType', 'Part-Time')}
+              />
+              <CheckboxFilter
+                label="Contract"
+                count={counts?.jobType['Contract'] || 0}
+                checked={filters.jobType.includes('Contract')}
+                onChange={() => toggleArrayFilter('jobType', 'Contract')}
+              />
+              <CheckboxFilter
+                label="Per Diem"
+                count={counts?.jobType['Per Diem'] || 0}
+                checked={filters.jobType.includes('Per Diem')}
+                onChange={() => toggleArrayFilter('jobType', 'Per Diem')}
+              />
+              <CheckboxFilter
+                label="Other"
+                count={counts?.jobType['Other'] || 0}
+                checked={filters.jobType.includes('Other')}
+                onChange={() => toggleArrayFilter('jobType', 'Other')}
+              />
+            </FilterSection>
+
+            {/* Work Mode */}
+            <FilterSection title="Work Mode">
+              <CheckboxFilter
+                label="Remote"
+                count={counts?.workMode.remote || 0}
+                checked={filters.workMode.includes('remote')}
+                onChange={() => toggleArrayFilter('workMode', 'remote')}
+              />
+              <CheckboxFilter
+                label="Hybrid"
+                count={counts?.workMode.hybrid || 0}
+                checked={filters.workMode.includes('hybrid')}
+                onChange={() => toggleArrayFilter('workMode', 'hybrid')}
+              />
+              <CheckboxFilter
+                label="On-site"
+                count={counts?.workMode.onsite || 0}
+                checked={filters.workMode.includes('onsite')}
+                onChange={() => toggleArrayFilter('workMode', 'onsite')}
+              />
+            </FilterSection>
+
+            {/* Specialty */}
+            <FilterSection title="Specialty">
+              <CheckboxFilter
+                label="Telehealth"
+                count={counts?.specialty?.Telehealth || 0}
+                checked={filters.specialty?.includes('Telehealth') || false}
+                onChange={() => toggleArrayFilter('specialty', 'Telehealth')}
+              />
+              <CheckboxFilter
+                label="Travel / Locum"
+                count={counts?.specialty?.Travel || 0}
+                checked={filters.specialty?.includes('Travel') || false}
+                onChange={() => toggleArrayFilter('specialty', 'Travel')}
+              />
+              <CheckboxFilter
+                label="New Grad"
+                count={counts?.specialty?.['New Grad'] || 0}
+                checked={filters.specialty?.includes('New Grad') || false}
+                onChange={() => toggleArrayFilter('specialty', 'New Grad')}
+              />
+            </FilterSection>
+
+            {/* Salary */}
+            <FilterSection title="Salary" defaultExpanded={false}>
+              <CheckboxFilter
+                label="$100,000+"
+                count={counts?.salary.over100k || 0}
+                checked={filters.salaryMin === 100000}
+                onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 100000 ? null : 100000)}
+              />
+              <CheckboxFilter
+                label="$150,000+"
+                count={counts?.salary.over150k || 0}
+                checked={filters.salaryMin === 150000}
+                onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 150000 ? null : 150000)}
+              />
+              <CheckboxFilter
+                label="$200,000+"
+                count={counts?.salary.over200k || 0}
+                checked={filters.salaryMin === 200000}
+                onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 200000 ? null : 200000)}
+              />
+            </FilterSection>
           </div>
-        )}
-      </div>
-
-      {/* Results Count - Fixed */}
-      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
-        <p className="text-sm text-gray-800 font-medium">
-          <span className="font-bold text-black">
-            {isLoading || !counts ? '...' : counts.total.toLocaleString()}
-          </span>
-          {' '}jobs found
-        </p>
-      </div>
-
-      {/* Scrollable Filter Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4">
-          {/* Search */}
-          <form onSubmit={handleSearchSubmit} className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Job title, company..."
-                value={searchInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </form>
-
-          {/* Location */}
-          <form onSubmit={handleLocationSubmit} className="mb-4">
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="City, state, or 'Remote'"
-                value={locationInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </form>
-
-          {/* Date Posted */}
-          <FilterSection title="Date Posted">
-            <CheckboxFilter
-              label="Past 24 hours"
-              count={counts?.postedWithin['24h'] || 0}
-              checked={filters.postedWithin === '24h'}
-              onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
-            />
-            <CheckboxFilter
-              label="Past week"
-              count={counts?.postedWithin['7d'] || 0}
-              checked={filters.postedWithin === '7d'}
-              onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '7d' ? null : '7d')}
-            />
-            <CheckboxFilter
-              label="Past month"
-              count={counts?.postedWithin['30d'] || 0}
-              checked={filters.postedWithin === '30d'}
-              onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '30d' ? null : '30d')}
-            />
-          </FilterSection>
-
-          {/* Job Type */}
-          <FilterSection title="Job Type">
-            <CheckboxFilter
-              label="Full-Time"
-              count={counts?.jobType['Full-Time'] || 0}
-              checked={filters.jobType.includes('Full-Time')}
-              onChange={() => toggleArrayFilter('jobType', 'Full-Time')}
-            />
-            <CheckboxFilter
-              label="Part-Time"
-              count={counts?.jobType['Part-Time'] || 0}
-              checked={filters.jobType.includes('Part-Time')}
-              onChange={() => toggleArrayFilter('jobType', 'Part-Time')}
-            />
-            <CheckboxFilter
-              label="Contract"
-              count={counts?.jobType['Contract'] || 0}
-              checked={filters.jobType.includes('Contract')}
-              onChange={() => toggleArrayFilter('jobType', 'Contract')}
-            />
-            <CheckboxFilter
-              label="Per Diem"
-              count={counts?.jobType['Per Diem'] || 0}
-              checked={filters.jobType.includes('Per Diem')}
-              onChange={() => toggleArrayFilter('jobType', 'Per Diem')}
-            />
-          </FilterSection>
-
-          {/* Work Mode */}
-          <FilterSection title="Work Mode">
-            <CheckboxFilter
-              label="Remote"
-              count={counts?.workMode.remote || 0}
-              checked={filters.workMode.includes('remote')}
-              onChange={() => toggleArrayFilter('workMode', 'remote')}
-            />
-            <CheckboxFilter
-              label="Hybrid"
-              count={counts?.workMode.hybrid || 0}
-              checked={filters.workMode.includes('hybrid')}
-              onChange={() => toggleArrayFilter('workMode', 'hybrid')}
-            />
-            <CheckboxFilter
-              label="On-site"
-              count={counts?.workMode.onsite || 0}
-              checked={filters.workMode.includes('onsite')}
-              onChange={() => toggleArrayFilter('workMode', 'onsite')}
-            />
-          </FilterSection>
-
-          {/* Salary */}
-          <FilterSection title="Salary" defaultExpanded={false}>
-            <CheckboxFilter
-              label="$100,000+"
-              count={counts?.salary.over100k || 0}
-              checked={filters.salaryMin === 100000}
-              onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 100000 ? null : 100000)}
-            />
-            <CheckboxFilter
-              label="$150,000+"
-              count={counts?.salary.over150k || 0}
-              checked={filters.salaryMin === 150000}
-              onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 150000 ? null : 150000)}
-            />
-            <CheckboxFilter
-              label="$200,000+"
-              count={counts?.salary.over200k || 0}
-              checked={filters.salaryMin === 200000}
-              onChange={() => setSingleFilter('salaryMin', filters.salaryMin === 200000 ? null : 200000)}
-            />
-          </FilterSection>
         </div>
       </div>
-    </div>
+
+      <style>{`
+        .li-filter-row:hover {
+          background: var(--bg-tertiary) !important;
+        }
+        .li-filter-disabled {
+          opacity: 0.5;
+        }
+        .li-filter-input::placeholder {
+          color: var(--text-tertiary) !important;
+        }
+        .li-filter-input:focus {
+          border-color: var(--color-primary) !important;
+          box-shadow: 0 0 0 2px rgba(45,212,191,0.15);
+        }
+        .li-checkbox:checked {
+          accent-color: var(--color-primary);
+        }
+      `}</style>
+    </>
   );
 }
-

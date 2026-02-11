@@ -6,7 +6,6 @@ import { User, Building2 } from 'lucide-react';
 import LoginForm from './LoginForm';
 import EmployerLoginForm from '@/components/employer/EmployerLoginForm';
 import GoogleSignInButton from './GoogleSignInButton';
-import Link from 'next/link';
 
 type UserRole = 'job_seeker' | 'employer';
 
@@ -22,48 +21,53 @@ export default function LoginContent() {
     }, [searchParams]);
 
     return (
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-100">
-            {/* Role Selection */}
-            <div className="mb-8">
-                {/* Role Toggle */}
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setRole('job_seeker')}
-                        className={`p-4 border rounded-lg text-center transition-all ${role === 'job_seeker'
-                            ? 'border-blue-600 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                    >
-                        <User className="w-6 h-6 mx-auto mb-2" />
-                        <span className="font-medium">Job Seeker</span>
-                        <p className="text-xs text-gray-500 mt-1">Looking for jobs</p>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setRole('employer')}
-                        className={`p-4 border rounded-lg text-center transition-all ${role === 'employer'
-                            ? 'border-blue-600 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                    >
-                        <Building2 className="w-6 h-6 mx-auto mb-2" />
-                        <span className="font-medium">Employer</span>
-                        <p className="text-xs text-gray-500 mt-1">Hiring talent</p>
-                    </button>
-                </div>
+        <div className="space-y-6">
+            {/* Role Selection - Pill Toggle */}
+            <div className="flex rounded-lg p-1" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                <button
+                    type="button"
+                    onClick={() => setRole('job_seeker')}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
+                    style={{
+                        background: role === 'job_seeker' ? 'var(--bg-secondary)' : 'transparent',
+                        color: role === 'job_seeker' ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                        boxShadow: role === 'job_seeker' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                    }}
+                >
+                    <User className="w-4 h-4" />
+                    Job Seeker
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setRole('employer')}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
+                    style={{
+                        background: role === 'employer' ? 'var(--bg-secondary)' : 'transparent',
+                        color: role === 'employer' ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                        boxShadow: role === 'employer' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                    }}
+                >
+                    <Building2 className="w-4 h-4" />
+                    Employer
+                </button>
             </div>
 
             {role === 'job_seeker' ? (
                 <>
                     <GoogleSignInButton mode="login" />
 
-                    <div className="relative my-6">
+                    {/* Divider */}
+                    <div className="relative">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300"></div>
+                            <div className="w-full border-t" style={{ borderColor: 'var(--border-color)' }} />
                         </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">or continue with email</span>
+                        <div className="relative flex justify-center">
+                            <span
+                                className="px-3 text-xs uppercase tracking-wider font-medium"
+                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}
+                            >
+                                or
+                            </span>
                         </div>
                     </div>
 

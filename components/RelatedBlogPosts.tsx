@@ -22,10 +22,18 @@ export default function RelatedBlogPosts({
     if (posts.length === 0) return null;
 
     return (
-        <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-5 md:p-6 mb-4 lg:mb-6 border border-blue-200">
-            <div className="flex items-center gap-2 mb-4">
-                <BookOpen className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <section
+            style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '20px 24px',
+                marginBottom: '16px',
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <BookOpen style={{ width: '20px', height: '20px', color: 'var(--color-primary)' }} />
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{title}</h2>
             </div>
 
             <div className={`grid gap-3 ${posts.length > 2 ? 'md:grid-cols-2' : ''}`}>
@@ -33,10 +41,19 @@ export default function RelatedBlogPosts({
                     <Link
                         key={post.slug}
                         href={`/blog/${post.slug}`}
-                        className="block p-4 bg-white rounded-lg border border-blue-100 hover:border-blue-300 hover:shadow-sm transition-all group"
+                        className="rbp-card"
+                        style={{
+                            display: 'block',
+                            padding: '16px',
+                            backgroundColor: 'var(--bg-tertiary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '10px',
+                            textDecoration: 'none',
+                            transition: 'all 0.2s',
+                        }}
                     >
-                        <div className="flex items-start gap-3">
-                            <span className="text-lg">
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <span style={{ fontSize: '18px' }}>
                                 {post.category === 'salary' && '💰'}
                                 {post.category === 'career' && '📈'}
                                 {post.category === 'telehealth' && '💻'}
@@ -45,10 +62,19 @@ export default function RelatedBlogPosts({
                                 {post.category === 'interview' && '🎤'}
                             </span>
                             <div>
-                                <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                <h3 style={{
+                                    fontSize: '14px', fontWeight: 600,
+                                    color: 'var(--text-primary)', margin: '0 0 4px',
+                                    lineHeight: 1.4,
+                                }}>
                                     {post.title}
                                 </h3>
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                <p style={{
+                                    fontSize: '13px', color: 'var(--text-secondary)',
+                                    margin: 0, lineHeight: 1.5,
+                                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                }}>
                                     {post.description}
                                 </p>
                             </div>
@@ -58,15 +84,27 @@ export default function RelatedBlogPosts({
             </div>
 
             {context === 'job' && (
-                <div className="mt-4 pt-3 border-t border-blue-200">
+                <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
                     <Link
                         href="/blog"
-                        className="text-sm text-blue-700 hover:text-blue-800 font-medium"
+                        style={{
+                            fontSize: '13px', fontWeight: 600,
+                            color: 'var(--color-primary)',
+                            textDecoration: 'none',
+                        }}
                     >
                         Browse all career guides →
                     </Link>
                 </div>
             )}
+
+            <style>{`
+                .rbp-card:hover {
+                    border-color: var(--color-primary) !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px var(--shadow-color, rgba(0,0,0,0.08));
+                }
+            `}</style>
         </section>
     );
 }

@@ -117,7 +117,7 @@ export default function EmployerSignUpForm() {
                 </p>
                 <Link
                     href="/employer/login"
-                    className="inline-block mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                    className="inline-block mt-4 text-teal-600 hover:text-teal-700 font-medium"
                 >
                     Go to Employer Login
                 </Link>
@@ -146,7 +146,7 @@ export default function EmployerSignUpForm() {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
                 </div>
                 <div>
@@ -159,7 +159,7 @@ export default function EmployerSignUpForm() {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
                 </div>
             </div>
@@ -177,7 +177,7 @@ export default function EmployerSignUpForm() {
                         value={company}
                         onChange={(e) => setCompany(e.target.value)}
                         required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         placeholder="Your company"
                     />
                 </div>
@@ -196,7 +196,7 @@ export default function EmployerSignUpForm() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         placeholder="hiring@company.com"
                     />
                 </div>
@@ -217,7 +217,7 @@ export default function EmployerSignUpForm() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={8}
-                        className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         placeholder="••••••••"
                     />
                     <button
@@ -249,7 +249,7 @@ export default function EmployerSignUpForm() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
-                        className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                         placeholder="••••••••"
                     />
                     <button
@@ -270,7 +270,7 @@ export default function EmployerSignUpForm() {
             <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-teal-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
                 {loading ? (
                     <>
@@ -285,16 +285,11 @@ export default function EmployerSignUpForm() {
             <div className="text-center space-y-2">
                 <p className="text-sm text-gray-600">
                     Already have an account?{' '}
-                    <Link href="/employer/login" className="text-blue-600 hover:text-blue-700 font-medium">
+                    <Link href="/employer/login" className="text-teal-600 hover:text-teal-700 font-medium">
                         Log In
                     </Link>
                 </p>
-                <p className="text-sm text-gray-600">
-                    Job seeker?{' '}
-                    <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
-                        Sign up here
-                    </Link>
-                </p>
+
             </div>
         </form>
     )

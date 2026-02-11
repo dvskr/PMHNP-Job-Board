@@ -28,12 +28,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || generatedId;
 
     // Base input styles
-    const baseInputStyles = 'w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-500 transition-colors duration-200';
+    const baseInputStyles = 'w-full px-4 py-2.5 border rounded-lg transition-colors duration-200';
 
     // Focus and error styles
     const focusStyles = error
       ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100 focus:outline-none'
-      : 'border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none';
+      : 'focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none';
 
     // Adjust padding if icons are present
     const paddingStyles = leftIcon
@@ -58,7 +58,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block mb-1.5 text-sm font-medium text-gray-700"
+            className="block mb-1.5 text-sm font-medium"
+            style={{ color: 'var(--text-secondary)' }}
           >
             {label}
           </label>
@@ -68,7 +69,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <div className="relative">
           {/* Left Icon */}
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }}>
               {leftIcon}
             </div>
           )}
@@ -78,12 +79,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={inputClasses}
+            style={{ color: 'var(--text-primary)', background: 'var(--bg-primary)', borderColor: error ? undefined : 'var(--border-color)' }}
             {...props}
           />
 
           {/* Right Icon */}
           {rightIcon && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }}>
               {rightIcon}
             </div>
           )}
@@ -98,7 +100,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         {/* Hint Text */}
         {hint && !error && (
-          <p className="mt-1.5 text-sm text-gray-500">
+          <p className="mt-1.5 text-sm" style={{ color: 'var(--text-tertiary)' }}>
             {hint}
           </p>
         )}

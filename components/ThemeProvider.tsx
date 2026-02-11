@@ -42,10 +42,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             // Backgrounds
             s.setProperty('--bg-primary', '#060E18');
             s.setProperty('--bg-secondary', '#0F1923');
+            s.setProperty('--bg-secondary-rgb', '15, 25, 35');
             s.setProperty('--bg-tertiary', '#162231');
 
             // Text
             s.setProperty('--text-primary', '#F1F5F9');
+            s.setProperty('--text-primary-rgb', '241, 245, 249');
             s.setProperty('--text-secondary', '#94A3B8');
             s.setProperty('--text-tertiary', '#64748B');
 
@@ -79,6 +81,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             s.setProperty('--color-primary', '#2DD4BF');
             s.setProperty('--color-primary-dark', '#14B8A6');
             s.setProperty('--color-primary-light', '#5EEAD4');
+            s.setProperty('--salary-color', '#2DD4BF');
 
             // Body
             document.body.style.backgroundColor = '#060E18';
@@ -89,12 +92,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             // Backgrounds
             s.setProperty('--bg-primary', '#FFFFFF');
             s.setProperty('--bg-secondary', '#F9FAFB');
+            s.setProperty('--bg-secondary-rgb', '249, 250, 251');
             s.setProperty('--bg-tertiary', '#F3F4F6');
 
             // Text
             s.setProperty('--text-primary', '#111827');
-            s.setProperty('--text-secondary', '#4B5563');
-            s.setProperty('--text-tertiary', '#9CA3AF');
+            s.setProperty('--text-primary-rgb', '17, 24, 39');
+            s.setProperty('--text-secondary', '#374151');
+            s.setProperty('--text-tertiary', '#6B7280');
 
             // Borders
             s.setProperty('--border-color', '#E5E7EB');
@@ -126,6 +131,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             s.setProperty('--color-primary', '#0D9488');
             s.setProperty('--color-primary-dark', '#0F766E');
             s.setProperty('--color-primary-light', '#14B8A6');
+            s.setProperty('--salary-color', '#1d4ed8');
 
             // Body
             document.body.style.backgroundColor = '#FFFFFF';

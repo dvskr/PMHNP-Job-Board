@@ -14,14 +14,26 @@ export async function GET(request: NextRequest) {
     const filters = parseFiltersFromParams(searchParams);
     const where = buildWhereClause(filters);
 
+    // Parse sort option
+    const sort = searchParams.get('sort') || 'newest';
+    let orderBy: Record<string, unknown>[] = [
+      { isFeatured: 'desc' },
+      { originalPostedAt: 'desc' },
+      { createdAt: 'desc' },
+    ];
+    if (sort === 'salary') {
+      orderBy = [
+        { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
+        { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+      ];
+    }
+
     // Get jobs
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
         where,
-        orderBy: [
-          { isFeatured: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy,
         skip,
         take: limit,
         select: {

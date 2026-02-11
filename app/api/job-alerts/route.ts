@@ -102,12 +102,12 @@ async function sendAlertConfirmationEmail(
             <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
             
             <p style="margin-bottom: 20px;">
-              <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 15px;">Browse Jobs Now</a>
+              <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #14B8A6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 15px;">Browse Jobs Now</a>
             </p>
             
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
               <p>You're receiving this because you signed up at PMHNPHiring.com</p>
-              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #3b82f6;">Manage your alerts</a> · <a href="${BASE_URL}/job-alerts/unsubscribe?token=${token}" style="color: #3b82f6;">Unsubscribe</a></p>
+              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #14B8A6;">Manage your alerts</a> · <a href="${BASE_URL}/job-alerts/unsubscribe?token=${token}" style="color: #14B8A6;">Unsubscribe</a></p>
             </div>
           </body>
         </html>

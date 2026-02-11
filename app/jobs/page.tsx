@@ -98,21 +98,32 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const filters = parseFiltersFromParams(urlParams);
   const where = buildWhereClause(filters);
 
-  // Get page from params
+  // Get page and sort from params
   const page = parseInt((params.page as string) || '1');
+  const sort = (params.sort as string) || 'newest';
   const limit = 50;
   const skip = (page - 1) * limit;
+
+  // Build orderBy based on sort param
+  let orderBy: Record<string, unknown>[] = [
+    { isFeatured: 'desc' },
+    { originalPostedAt: 'desc' },
+    { createdAt: 'desc' },
+  ];
+  if (sort === 'salary') {
+    orderBy = [
+      { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
+      { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
+      { createdAt: 'desc' },
+    ];
+  }
 
   try {
     // Fetch jobs with same logic as API route
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
         where,
-        orderBy: [
-          { isFeatured: 'desc' },
-          { originalPostedAt: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy,
         skip,
         take: limit,
         select: {

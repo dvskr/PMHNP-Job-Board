@@ -40,7 +40,7 @@ function LoadingFallback() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Loading...</p>
       </div>
     </div>
@@ -279,17 +279,17 @@ function PostJobContent() {
   if (!user) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Post a Job</h2>
-          <p className="text-gray-600 mb-8 max-w-lg mx-auto">
+        <div className="rounded-lg shadow-sm border p-8 text-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+          <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Post a Job</h2>
+          <p className="mb-8 max-w-lg mx-auto" style={{ color: 'var(--text-secondary)' }}>
             You must be logged in as an employer to post jobs.
             Create an account to manage your listings, track applicants, and enable easy renewals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/signup?role=employer" className="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+            <a href="/signup?role=employer" className="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white hover:opacity-90 transition-opacity" style={{ background: 'var(--color-primary)' }}>
               Sign Up as Employer
             </a>
-            <a href="/login?next=/post-job" className="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <a href="/login?next=/post-job" className="inline-flex justify-center items-center px-6 py-3 border shadow-sm text-base font-medium rounded-md" style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}>
               Log In
             </a>
           </div>
@@ -302,20 +302,20 @@ function PostJobContent() {
   if (userRole === 'job_seeker') {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-lg shadow-sm border border-yellow-200 p-8 text-center">
+        <div className="rounded-lg shadow-sm border border-yellow-200 p-8 text-center" style={{ background: 'var(--bg-secondary)' }}>
           <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
             <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Wrong Account Type</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Wrong Account Type</h2>
+          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
             You are currently logged in with a Job Seeker account.
             You need an Employer account to post jobs.
           </p>
           <div className="flex justify-center">
             <form action="/auth/signout" method="post">
-              <button type="submit" className="text-blue-600 font-medium hover:text-blue-500 hover:underline">
+              <button type="submit" className="text-teal-600 font-medium hover:text-teal-500 hover:underline">
                 Sign out and switch to Employer account
               </button>
             </form>
@@ -331,8 +331,8 @@ function PostJobContent() {
 
         {/* Draft Loaded Message */}
         {draftLoaded && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800 font-medium">
+          <div className="mb-6 rounded-lg p-4" style={{ backgroundColor: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)' }}>
+            <p className="font-medium" style={{ color: 'var(--color-primary)' }}>
               ✓ Welcome back! Your draft has been loaded.
             </p>
           </div>
@@ -350,8 +350,8 @@ function PostJobContent() {
 
         {/* Free Mode Banner */}
         {!config.isPaidPostingEnabled && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800 font-medium">
+          <div className="mb-6 rounded-lg p-4" style={{ backgroundColor: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)' }}>
+            <p className="font-medium" style={{ color: 'var(--color-primary)' }}>
               🎉 Launch Special: Job postings are FREE for a limited time!
             </p>
           </div>
@@ -359,7 +359,7 @@ function PostJobContent() {
 
         <form id="job-post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-8">
           {/* Job Details Section */}
-          <div className="bg-white rounded-lg shadow-md p-5 md:p-6">
+          <div className="rounded-lg shadow-md p-5 md:p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <h2 className="text-lg sm:text-xl font-semibold mb-5 lg:mb-6">Job Details</h2>
 
             <div className="space-y-5 lg:space-y-6">
@@ -445,7 +445,7 @@ function PostJobContent() {
                       setEmailWarning(null);
                     }
                   }}
-                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.contactEmail || emailWarning ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${errors.contactEmail || emailWarning ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                     }`}
                   style={{ minHeight: '44px' }}
                 />
@@ -638,12 +638,12 @@ function PostJobContent() {
           </div>
 
           {/* Pricing Section */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="rounded-lg shadow-md p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <h2 className="text-xl font-semibold mb-6">Choose Your Plan</h2>
 
             {!config.isPaidPostingEnabled && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)' }}>
+                <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
                   🎉 Limited time: Post jobs for FREE during our launch period!
                 </p>
               </div>
@@ -653,21 +653,25 @@ function PostJobContent() {
               {/* Standard Plan */}
               <label
                 className={`relative flex flex-col p-6 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'standard'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-teal-500'
+                    : ''
                   }`}
+                style={{
+                  backgroundColor: selectedPricingTier === 'standard' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
+                  borderColor: selectedPricingTier === 'standard' ? undefined : 'var(--border-color)',
+                }}
               >
                 <input
                   type="radio"
                   value="standard"
                   {...register('pricingTier')}
-                  className="absolute top-4 right-4 w-4 h-4 text-blue-500"
+                  className="absolute top-4 right-4 w-4 h-4 text-teal-500"
                 />
-                <span className="text-lg font-semibold mb-1">Standard Job</span>
-                <span className="text-3xl font-bold text-gray-900 mb-2">
+                <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Standard Job</span>
+                <span className="text-3xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
                   FREE
                 </span>
-                <ul className="text-sm text-gray-600 space-y-1">
+                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>• 30-day listing</li>
                   <li>• Shown in job feed</li>
                   <li>• Email alerts to subscribers</li>
@@ -677,24 +681,28 @@ function PostJobContent() {
               {/* Featured Plan */}
               <label
                 className={`relative flex flex-col p-6 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'featured'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-teal-500'
+                    : ''
                   }`}
+                style={{
+                  backgroundColor: selectedPricingTier === 'featured' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
+                  borderColor: selectedPricingTier === 'featured' ? undefined : 'var(--border-color)',
+                }}
               >
                 <input
                   type="radio"
                   value="featured"
                   {...register('pricingTier')}
-                  className="absolute top-4 right-4 w-4 h-4 text-blue-500"
+                  className="absolute top-4 right-4 w-4 h-4 text-teal-500"
                 />
-                <span className="absolute -top-3 left-4 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                <span className="absolute -top-3 left-4 bg-teal-500 text-white text-xs px-2 py-1 rounded">
                   {!config.isPaidPostingEnabled ? '⭐ RECOMMENDED' : 'BEST VALUE'}
                 </span>
-                <span className="text-lg font-semibold mb-1">Featured Job</span>
-                <span className="text-3xl font-bold text-gray-900 mb-2">
+                <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Featured Job</span>
+                <span className="text-3xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
                   FREE
                 </span>
-                <ul className="text-sm text-gray-600 space-y-1">
+                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>• 60-day listing</li>
                   <li>• Featured badge</li>
                   <li>• Pinned to top of results</li>
@@ -715,8 +723,8 @@ function PostJobContent() {
               type="button"
               onClick={handleSaveDraft}
               disabled={savingDraft}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ minHeight: '48px' }}
+              className="px-6 py-3 border-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ minHeight: '48px', borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-primary)' }}
             >
               {savingDraft ? 'Saving...' : 'Save Draft'}
             </button>
@@ -725,7 +733,7 @@ function PostJobContent() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ minHeight: '48px' }}
             >
               {isSubmitting
@@ -741,13 +749,13 @@ function PostJobContent() {
         </form>
 
         {/* Sticky Submit Buttons - Mobile Only */}
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 shadow-lg safe-bottom">
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-lg safe-bottom" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
           <div className="px-4 py-3 pb-safe flex flex-col gap-2">
             <button
               type="submit"
               form="job-post-form"
               disabled={isSubmitting}
-              className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+              className="w-full bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
               style={{ minHeight: '48px' }}
             >
               {isSubmitting
@@ -760,7 +768,8 @@ function PostJobContent() {
               type="button"
               onClick={handleSaveDraft}
               disabled={savingDraft}
-              className="w-full border-2 border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="w-full border-2 px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               {savingDraft ? 'Saving...' : 'Save Draft for Later'}
             </button>

@@ -220,7 +220,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
             <p className="text-gray-600">Loading job details...</p>
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 <button
                   onClick={() => setShowRenewModal(true)}
                   disabled={renewingTier !== null}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RefreshCw size={18} className={renewingTier ? 'animate-spin' : ''} />
                   {renewingTier ? 'Processing...' : 'Renew This Job'}
@@ -324,7 +324,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="text"
                 id="title"
                 {...register('title')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                   errors.title ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -343,7 +343,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="location"
                 placeholder="e.g. Remote, New York NY"
                 {...register('location')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                   errors.location ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -364,7 +364,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       type="radio"
                       value={mode}
                       {...register('mode')}
-                      className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
                     />
                     <span className="ml-2 text-sm text-gray-600">{mode}</span>
                   </label>
@@ -387,7 +387,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       type="radio"
                       value={type}
                       {...register('jobType')}
-                      className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
                     />
                     <span className="ml-2 text-sm text-gray-600">{type}</span>
                   </label>
@@ -409,7 +409,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                     type="number"
                     placeholder="Min $"
                     {...register('salaryMin', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div className="flex-1">
@@ -417,7 +417,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                     type="number"
                     placeholder="Max $"
                     {...register('salaryMax', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -432,7 +432,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="description"
                 rows={8}
                 {...register('description')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -450,7 +450,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="url"
                 id="applyUrl"
                 {...register('applyUrl')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                   errors.applyUrl ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -468,7 +468,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="email"
                 id="contactEmail"
                 {...register('contactEmail')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                   errors.contactEmail ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -486,7 +486,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="url"
                 id="companyWebsite"
                 {...register('companyWebsite')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                   errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -509,7 +509,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-3 bg-teal-500 text-white rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Updating...' : 'Update Job'}
           </button>
@@ -562,11 +562,11 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               {/* Standard Option */}
               <button
                 onClick={() => handleRenewCheckout('standard')}
-                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-teal-500 hover:bg-teal-50 transition-all group"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-gray-900 group-hover:text-blue-700">Standard Renewal</span>
-                  <span className="text-2xl font-bold text-gray-900 group-hover:text-blue-700">$99</span>
+                  <span className="font-semibold text-gray-900 group-hover:text-teal-700">Standard Renewal</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">$99</span>
                 </div>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>✓ 30 days of visibility</li>
@@ -578,16 +578,16 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               {/* Featured Option */}
               <button
                 onClick={() => handleRenewCheckout('featured')}
-                className="w-full text-left border-2 border-blue-500 bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-all group relative"
+                className="w-full text-left border-2 border-teal-500 bg-teal-50 rounded-lg p-4 hover:bg-teal-100 transition-all group relative"
               >
                 <div className="absolute top-2 right-2">
-                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">BEST VALUE</span>
+                  <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">BEST VALUE</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-blue-900">Featured Renewal</span>
-                  <span className="text-2xl font-bold text-blue-900">$199</span>
+                  <span className="font-semibold text-teal-900">Featured Renewal</span>
+                  <span className="text-2xl font-bold text-teal-900">$199</span>
                 </div>
-                <ul className="text-sm text-blue-800 space-y-1">
+                <ul className="text-sm text-teal-800 space-y-1">
                   <li>✓ 60 days of visibility</li>
                   <li>✓ <strong>Featured placement</strong> (top of list)</li>
                   <li>✓ <strong>2x more visibility</strong></li>

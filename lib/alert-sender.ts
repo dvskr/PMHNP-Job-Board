@@ -93,13 +93,13 @@ function generateJobListHtml(jobs: Job[]): string {
 
       return `
         <tr>
-          <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
-            <a href="${jobUrl}" style="color: #2563eb; text-decoration: none; font-size: 16px; font-weight: 600;">${job.title}</a>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: #6b7280;">${job.employer} · ${job.location}</p>
+          <td style="padding: 16px 20px; border-bottom: 1px solid #334155;">
+            <a href="${jobUrl}" style="color: #2dd4bf; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: -0.2px;">${job.title}</a>
+            <p style="margin: 6px 0 0 0; font-size: 14px; color: #94a3b8;">${job.employer} · ${job.location}</p>
             <p style="margin: 8px 0 0 0; font-size: 12px;">
-              ${job.mode ? `<span style="background-color: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; margin-right: 4px;">${job.mode}</span>` : ''}
-              ${job.jobType ? `<span style="background-color: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; margin-right: 4px;">${job.jobType}</span>` : ''}
-              ${salaryText ? `<span style="background-color: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px;">${salaryText}</span>` : ''}
+              ${job.mode ? `<span style="background-color: #1e293b; color: #94a3b8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; border: 1px solid #334155;">${job.mode}</span>` : ''}
+              ${job.jobType ? `<span style="background-color: #1e293b; color: #94a3b8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; border: 1px solid #334155;">${job.jobType}</span>` : ''}
+              ${salaryText ? `<span style="background-color: #064e3b; color: #34d399; padding: 3px 10px; border-radius: 6px; font-weight: 600;">${salaryText}</span>` : ''}
             </p>
           </td>
         </tr>
@@ -114,7 +114,8 @@ async function sendAlertEmail(
   criteriaSummary: string
 ): Promise<void> {
   const jobCount = jobs.length;
-  const subject = `${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
+  const subject = `🔔 ${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
+  const currentYear = new Date().getFullYear();
 
   await resend.emails.send({
     from: EMAIL_FROM,
@@ -125,32 +126,39 @@ async function sendAlertEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: Arial, Helvetica, sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
+<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0f172a;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+      <td align="center" style="padding: 32px 16px;">
+        <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+          ${jobCount} new PMHNP positions matching your criteria — PMHNP Hiring
+        </div>
+
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid #334155;">
+          <!-- Gradient Header -->
           <tr>
-            <td style="background-color: #2563eb; padding: 24px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 22px; color: #ffffff; font-weight: bold;">
-                ${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found
+            <td style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%); padding: 32px 40px; text-align: center;">
+              <img src="${BASE_URL}/pmhnp_logo.png" height="36" alt="PMHNP Hiring" style="display: block; margin: 0 auto 20px auto; filter: brightness(10);" />
+              <h1 style="margin: 0; font-size: 26px; color: #ffffff; font-weight: 700; letter-spacing: -0.3px; line-height: 1.3;">
+                ${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found 🔔
               </h1>
-              <p style="margin: 8px 0 0 0; font-size: 14px; color: #bfdbfe;">
-                ${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'}
+              <p style="margin: 10px 0 0 0; font-size: 15px; color: #a7f3d0; font-weight: 400;">
+                ${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'} Alert
               </p>
             </td>
           </tr>
           <tr>
             <td style="padding: 24px 40px 8px 40px;">
-              <p style="margin: 0; font-size: 16px; color: #374151;">
-                New positions matching your alert:
+              <p style="margin: 0; font-size: 16px; color: #e2e8f0; line-height: 1.6;">
+                New positions matching your criteria:
               </p>
             </td>
           </tr>
           <tr>
-            <td style="padding: 0 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <td style="padding: 12px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; overflow: hidden;">
                 ${generateJobListHtml(jobs)}
               </table>
             </td>
@@ -160,7 +168,7 @@ async function sendAlertEmail(
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
                   <td>
-                    <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                    <a href="${BASE_URL}/jobs" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #059669); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 15px; letter-spacing: 0.3px;">
                       View All Jobs
                     </a>
                   </td>
@@ -168,14 +176,22 @@ async function sendAlertEmail(
               </table>
             </td>
           </tr>
+        </table>
+
+        <!-- Footer -->
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
           <tr>
-            <td style="background-color: #f4f4f5; padding: 20px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">
-                You created this alert at PMHNPHiring.com
+            <td style="padding: 24px 16px 8px 16px; text-align: center;">
+              <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
+                10,000+ Jobs · 3,000+ Companies · 51 States
               </p>
-              <p style="margin: 0; font-size: 12px; color: #6b7280;">
-                <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #6b7280;">Manage alert</a> | 
-                <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #6b7280;">Delete alert</a>
+              <p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
+                <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #64748b; text-decoration: none;">Manage alert</a>
+                &nbsp;·&nbsp;
+                <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #64748b; text-decoration: none;">Delete alert</a>
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
+                © ${currentYear} PMHNP Hiring · <a href="${BASE_URL}" style="color: #475569; text-decoration: none;">pmhnphiring.com</a>
               </p>
             </td>
           </tr>

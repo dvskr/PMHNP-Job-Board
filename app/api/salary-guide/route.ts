@@ -138,12 +138,12 @@ export async function POST(request: NextRequest) {
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
                   <td style="padding-right: 12px;">
-                    <a href="${SITE_URL}/jobs" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                    <a href="${SITE_URL}/jobs" style="display: inline-block; background-color: #0D9488; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
                       Browse Jobs
                     </a>
                   </td>
                   <td>
-                    <a href="${SITE_URL}/job-alerts" style="display: inline-block; background-color: #ffffff; color: #2563eb; text-decoration: none; padding: 10px 22px; border-radius: 6px; font-weight: 600; font-size: 14px; border: 2px solid #2563eb;">
+                    <a href="${SITE_URL}/job-alerts" style="display: inline-block; background-color: #ffffff; color: #0D9488; text-decoration: none; padding: 10px 22px; border-radius: 6px; font-weight: 600; font-size: 14px; border: 2px solid #0D9488;">
                       Set Up Alerts
                     </a>
                   </td>

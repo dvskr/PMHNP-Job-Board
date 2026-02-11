@@ -168,11 +168,54 @@ export async function POST(request: NextRequest) {
     ]);
 
     const jobTypeMap: Record<string, number> = {};
+    let knownTypeTotal = 0;
     for (const jt of jobTypeCounts) {
       if (jt.jobType) {
         jobTypeMap[jt.jobType] = jt._count._all;
+        knownTypeTotal += jt._count._all;
       }
     }
+    // Count jobs with NULL jobType as "Other"
+    const nullTypeCount = jobTypeCounts.find((jt: { jobType: string | null }) => jt.jobType === null);
+    const otherCount = nullTypeCount ? nullTypeCount._count._all : 0;
+
+    // Specialty counts (keyword-based)
+    const baseWhere = buildWhereClause(filters);
+    const [telehealthCount, travelCount, newGradCount] = await Promise.all([
+      prisma.job.count({
+        where: {
+          ...baseWhere,
+          OR: [
+            { title: { contains: 'telehealth', mode: 'insensitive' } },
+            { title: { contains: 'telemedicine', mode: 'insensitive' } },
+            { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+            { description: { contains: 'telehealth', mode: 'insensitive' } },
+            { description: { contains: 'telemedicine', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      prisma.job.count({
+        where: {
+          ...baseWhere,
+          OR: [
+            { title: { contains: 'travel', mode: 'insensitive' } },
+            { title: { contains: 'locum', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      prisma.job.count({
+        where: {
+          ...baseWhere,
+          OR: [
+            { title: { contains: 'new grad', mode: 'insensitive' } },
+            { title: { contains: 'new graduate', mode: 'insensitive' } },
+            { title: { contains: 'entry level', mode: 'insensitive' } },
+            { title: { contains: 'fellowship', mode: 'insensitive' } },
+            { title: { contains: 'residency', mode: 'insensitive' } },
+          ],
+        },
+      }),
+    ]);
 
     const counts: FilterCounts = {
       workMode: {
@@ -185,6 +228,7 @@ export async function POST(request: NextRequest) {
         'Part-Time': jobTypeMap['Part-Time'] || 0,
         'Contract': jobTypeMap['Contract'] || 0,
         'Per Diem': jobTypeMap['Per Diem'] || 0,
+        'Other': otherCount,
       },
       salary: {
         any: anySalary,
@@ -196,6 +240,11 @@ export async function POST(request: NextRequest) {
         '24h': day,
         '7d': week,
         '30d': month,
+      },
+      specialty: {
+        Telehealth: telehealthCount,
+        Travel: travelCount,
+        'New Grad': newGradCount,
       },
       total,
     };

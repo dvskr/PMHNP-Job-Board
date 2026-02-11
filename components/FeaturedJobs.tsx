@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Clock, Sparkles } from 'lucide-react';
+import { MapPin, ArrowRight, Clock, Sparkles, Briefcase } from 'lucide-react';
+import { motion } from 'framer-motion';
+import Badge from '@/components/ui/Badge';
 
 interface FeaturedJob {
     id: string;
@@ -33,231 +34,279 @@ function isNew(s: string): boolean {
     return Date.now() - new Date(s).getTime() < 48 * 3600000;
 }
 
-function avatarGradient(name: string): string {
-    const gs = [
-        'linear-gradient(135deg, #06b6d4, #3b82f6)',
-        'linear-gradient(135deg, #8b5cf6, #ec4899)',
-        'linear-gradient(135deg, #f59e0b, #ef4444)',
-        'linear-gradient(135deg, #10b981, #14b8a6)',
-        'linear-gradient(135deg, #6366f1, #8b5cf6)',
-        'linear-gradient(135deg, #ec4899, #f43f5e)',
-        'linear-gradient(135deg, #14b8a6, #06b6d4)',
-        'linear-gradient(135deg, #3b82f6, #6366f1)',
-    ];
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-    return gs[Math.abs(h) % gs.length];
-}
-
-function initials(name: string): string {
-    return name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-}
-
-const TC: Record<string, { bg: string; fg: string }> = {
-    'Full-Time': { bg: 'rgba(34,197,94,0.1)', fg: '#22c55e' },
-    'Part-Time': { bg: 'rgba(59,130,246,0.1)', fg: '#3b82f6' },
-    'Contract': { bg: 'rgba(234,179,8,0.1)', fg: '#eab308' },
-    'PRN': { bg: 'rgba(168,85,247,0.1)', fg: '#a855f7' },
-    'Per Diem': { bg: 'rgba(168,85,247,0.1)', fg: '#a855f7' },
+/* ── Framer Motion variants ── */
+const sectionFade = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.5 } },
+};
+const headerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
+};
+const listContainer = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+};
+const rowSlide = {
+    hidden: { opacity: 0, x: -24 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
+};
+const ctaPop = {
+    hidden: { opacity: 0, scale: 0.9, y: 16 },
+    visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24, delay: 0.4 } },
 };
 
-export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
-    useEffect(() => {
-        const id = 'fj-styles';
-        if (document.getElementById(id)) return;
-        const s = document.createElement('style');
-        s.id = id;
-        s.textContent = `
-      .fj-row {
+const css = `
+    .fj-row {
         position: relative;
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 20px 24px;
+        padding: 22px 28px;
         text-decoration: none;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .fj-row::before {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .fj-row::before {
         content: '';
         position: absolute;
         inset: 0;
         border-radius: 12px;
         opacity: 0;
-        background: linear-gradient(90deg,
-          rgba(45, 212, 191, 0.03),
-          rgba(45, 212, 191, 0.07),
-          rgba(45, 212, 191, 0.03)
-        );
-        transition: opacity 0.25s;
+        background: var(--bg-tertiary);
+        transition: opacity 0.3s;
         pointer-events: none;
-      }
-      .fj-row:hover::before { opacity: 1; }
-      .fj-row:hover { transform: translateX(4px); }
-      .fj-row .fj-arrow {
+        z-index: -1;
+    }
+    .fj-row:hover::before { opacity: 1; }
+    .fj-row:hover { transform: translateX(3px); }
+    .fj-row .fj-arrow {
         opacity: 0;
         transform: translateX(-8px);
-        transition: all 0.25s;
-      }
-      .fj-row:hover .fj-arrow {
+        transition: all 0.3s;
+    }
+    .fj-row:hover .fj-arrow {
         opacity: 1;
         transform: translateX(0);
-      }
-      .fj-row:hover .fj-title {
-        color: #2dd4bf !important;
-      }
-    `;
-        document.head.appendChild(s);
-    }, []);
+    }
+    .fj-row:hover .fj-title {
+        color: var(--color-primary) !important;
+    }
+    .fj-row:hover .fj-icon {
+        background: var(--bg-tertiary) !important;
+        border-color: var(--color-primary) !important;
+    }
+    .fj-cta-btn:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 30px rgba(13,148,136,0.35), 0 0 60px rgba(13,148,136,0.1) !important;
+    }
+    @media (max-width: 640px) {
+        .fj-row {
+            padding: 16px 16px !important;
+            gap: 12px !important;
+        }
+        .fj-row .fj-arrow {
+            display: none !important;
+        }
+        .fj-row .fj-title {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+        }
+    }
+`;
 
+export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
     if (jobs.length === 0) return null;
 
     return (
-        <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '64px 0 80px' }}>
-            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 16px' }}>
+        <motion.section
+            style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '72px 0 88px',
+                position: 'relative',
+                overflow: 'hidden',
+            }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+            variants={sectionFade}
+        >
+            <style>{css}</style>
+
+            {/* Subtle background decoration */}
+            <div className="pointer-events-none absolute" style={{
+                width: '400px', height: '400px', borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(13,148,136,0.04), transparent 70%)',
+                top: '-100px', right: '-100px', filter: 'blur(60px)',
+            }} />
+
+            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
                 {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+                <motion.div
+                    style={{ textAlign: 'center', marginBottom: '48px' }}
+                    variants={headerVariants}
+                >
                     <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        padding: '4px 12px', borderRadius: '999px', fontSize: '11px',
-                        fontWeight: 600, letterSpacing: '0.15em',
-                        backgroundColor: 'rgba(45,212,191,0.08)', color: '#2dd4bf',
-                        marginBottom: '12px',
+                        padding: '6px 16px', borderRadius: '999px', fontSize: '11px',
+                        fontWeight: 700, letterSpacing: '0.14em',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--color-primary)',
+                        marginBottom: '16px',
                     }}>
                         <Sparkles size={12} />
                         UPDATED DAILY
                     </span>
-                    <h2 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', margin: '12px 0 6px' }}>
+                    <h2 style={{
+                        fontSize: '32px', fontWeight: 800, letterSpacing: '-0.02em',
+                        color: 'var(--text-primary)', margin: '16px 0 8px',
+                    }}>
                         Latest PMHNP Opportunities
                     </h2>
-                    <p style={{ fontSize: '15px', color: 'var(--text-muted)', margin: 0 }}>
+                    <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: 0 }}>
                         Fresh positions added daily from top employers
                     </p>
-                </div>
+                </motion.div>
 
-                {/* List container */}
-                <div style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                }}>
-                    {jobs.map((job, idx) => {
-                        const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
-                        const tc = TC[job.jobType ?? ''];
-                        const fresh = isNew(job.createdAt);
+                {/* List container with gradient border */}
+                <div
+                    className="rounded-[20px] p-[1px]"
+                    style={{
+                        background: 'linear-gradient(180deg, var(--border-color-dark), var(--border-color), var(--border-color-dark))',
+                    }}
+                >
+                    <motion.div
+                        style={{
+                            backgroundColor: 'var(--bg-primary)',
+                            borderRadius: '19px',
+                            overflow: 'hidden',
+                        }}
+                        variants={listContainer}
+                    >
+                        {jobs.map((job, idx) => {
+                            const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
+                            const fresh = isNew(job.createdAt);
 
-                        return (
-                            <Link
-                                key={job.id}
-                                href={href}
-                                className="fj-row"
-                                style={{
-                                    borderBottom: idx < jobs.length - 1 ? '1px solid var(--border-color)' : 'none',
-                                }}
-                            >
-                                {/* Avatar */}
-                                <div style={{
-                                    width: '44px', height: '44px', borderRadius: '12px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '13px', fontWeight: 700, color: '#fff', flexShrink: 0,
-                                    background: avatarGradient(job.employer),
-                                }}>
-                                    {initials(job.employer)}
-                                </div>
+                            return (
+                                <motion.div key={job.id} variants={rowSlide}>
+                                    <Link
+                                        href={href}
+                                        className="fj-row"
+                                        style={{
+                                            borderBottom: idx < jobs.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                        }}
+                                    >
+                                        {/* Icon */}
+                                        <div
+                                            className="fj-icon"
+                                            style={{
+                                                width: '44px', height: '44px', borderRadius: '14px',
+                                                backgroundColor: 'var(--bg-tertiary)',
+                                                border: '1px solid var(--border-color)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                flexShrink: 0,
+                                                transition: 'all 0.3s',
+                                            }}
+                                        >
+                                            <Briefcase size={18} style={{ color: 'var(--color-primary)', opacity: 0.8 }} />
+                                        </div>
 
-                                {/* Main content */}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    {/* Company + badges */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                        <span style={{
-                                            fontSize: '11px', fontWeight: 600,
-                                            textTransform: 'uppercase', letterSpacing: '0.12em',
-                                            color: 'var(--text-muted)',
+                                        {/* Main content */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            {/* Company + badges */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
+                                                <span style={{
+                                                    fontSize: '11px', fontWeight: 700,
+                                                    textTransform: 'uppercase', letterSpacing: '0.12em',
+                                                    color: 'var(--text-tertiary)',
+                                                }}>
+                                                    {job.employer}
+                                                </span>
+                                                {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
+                                                {fresh && (
+                                                    <span style={{
+                                                        fontSize: '10px', fontWeight: 700, padding: '2px 10px',
+                                                        borderRadius: '8px',
+                                                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                                                        color: '#fff',
+                                                    }}>
+                                                        NEW
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Title */}
+                                            <div className="fj-title" style={{
+                                                fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)',
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                marginBottom: '7px',
+                                                transition: 'color 0.3s',
+                                            }}>
+                                                {job.title}
+                                            </div>
+
+                                            {/* Meta row */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                    <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
+                                                    {job.location}
+                                                </span>
+                                                {job.displaySalary && (
+                                                    <span style={{
+                                                        fontSize: '13px', fontWeight: 700,
+                                                        color: 'var(--salary-color, #1d4ed8)',
+                                                    }}>
+                                                        {job.displaySalary}
+                                                    </span>
+                                                )}
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                                    <Clock size={11} />
+                                                    {relativeTime(job.createdAt)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Arrow */}
+                                        <div className="fj-arrow" style={{
+                                            flexShrink: 0,
+                                            width: '32px', height: '32px', borderRadius: '10px',
+                                            backgroundColor: 'var(--bg-tertiary)',
+                                            border: '1px solid var(--border-color)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         }}>
-                                            {job.employer}
-                                        </span>
-                                        {tc && (
-                                            <span style={{
-                                                fontSize: '10px', fontWeight: 600, padding: '2px 8px',
-                                                borderRadius: '999px', backgroundColor: tc.bg, color: tc.fg,
-                                            }}>
-                                                {job.jobType}
-                                            </span>
-                                        )}
-                                        {fresh && (
-                                            <span style={{
-                                                fontSize: '10px', fontWeight: 700, padding: '2px 8px',
-                                                borderRadius: '999px',
-                                                backgroundColor: 'rgba(45,212,191,0.1)', color: '#2dd4bf',
-                                            }}>
-                                                NEW
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Title */}
-                                    <div className="fj-title" style={{
-                                        fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)',
-                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                        marginBottom: '6px',
-                                    }}>
-                                        {job.title}
-                                    </div>
-
-                                    {/* Meta row */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                            <MapPin size={13} style={{ color: '#2dd4bf' }} />
-                                            {job.location}
-                                        </span>
-                                        {job.displaySalary && (
-                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#22c55e' }}>
-                                                {job.displaySalary}
-                                            </span>
-                                        )}
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                                            <Clock size={11} />
-                                            {relativeTime(job.createdAt)}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Arrow */}
-                                <div className="fj-arrow" style={{ flexShrink: 0 }}>
-                                    <ArrowRight size={18} style={{ color: '#2dd4bf' }} />
-                                </div>
-                            </Link>
-                        );
-                    })}
+                                            <ArrowRight size={16} style={{ color: 'var(--color-primary)' }} />
+                                        </div>
+                                    </Link>
+                                </motion.div>
+                            );
+                        })}
+                    </motion.div>
                 </div>
 
-                {/* CTA */}
-                <div style={{ textAlign: 'center', marginTop: '48px' }}>
+                {/* CTA — Solid gradient button */}
+                <motion.div
+                    style={{ textAlign: 'center', marginTop: '48px' }}
+                    variants={ctaPop}
+                >
                     <Link
                         href="/jobs"
+                        className="fj-cta-btn"
                         style={{
                             display: 'inline-flex', alignItems: 'center', gap: '8px',
-                            padding: '14px 32px', borderRadius: '999px',
-                            fontSize: '14px', fontWeight: 600, color: '#2dd4bf',
-                            border: '1px solid rgba(45,212,191,0.3)',
-                            backgroundColor: 'rgba(45,212,191,0.05)',
+                            padding: '14px 36px', borderRadius: '14px',
+                            fontSize: '14px', fontWeight: 700, color: '#fff',
+                            background: 'linear-gradient(135deg, #0d9488, #059669)',
                             textDecoration: 'none',
+                            boxShadow: '0 4px 20px rgba(13,148,136,0.3), 0 0 40px rgba(13,148,136,0.08)',
                             transition: 'all 0.3s',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(45,212,191,0.12)';
-                            e.currentTarget.style.transform = 'scale(1.03)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(45,212,191,0.05)';
-                            e.currentTarget.style.transform = 'scale(1)';
                         }}
                     >
                         Browse All Jobs
                         <ArrowRight size={16} />
                     </Link>
-                </div>
+                </motion.div>
             </div>
-        </section>
+        </motion.section>
     );
 }

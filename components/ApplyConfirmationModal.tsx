@@ -52,9 +52,9 @@ export default function ApplyConfirmationModal({
           {/* Content */}
           <div className="text-center">
             {/* Icon */}
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal-100">
               <svg
-                className="h-6 w-6 text-blue-600"
+                className="h-6 w-6 text-teal-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={2}

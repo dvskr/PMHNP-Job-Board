@@ -172,7 +172,7 @@ export default function AdminJobsPage() {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
           <p className="mt-4 text-gray-600">Loading statistics...</p>
         </div>
       </div>
@@ -223,7 +223,7 @@ export default function AdminJobsPage() {
           <button
             onClick={fetchStats}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
@@ -244,7 +244,7 @@ export default function AdminJobsPage() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-2">Active Sources</h3>
-          <p className="text-3xl font-bold text-blue-600">{Object.keys(stats.bySource).length}</p>
+          <p className="text-3xl font-bold text-teal-600">{Object.keys(stats.bySource).length}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -256,15 +256,15 @@ export default function AdminJobsPage() {
       {/* Top Sources Summary */}
       {sourceAnalytics && sourceAnalytics.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
-            <h3 className="text-sm font-medium text-blue-700 mb-3">🏆 Best for Volume</h3>
+          <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-6 border border-teal-200">
+            <h3 className="text-sm font-medium text-teal-700 mb-3">🏆 Best for Volume</h3>
             {(() => {
               const bestVolume = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.totalJobs - a.totalJobs)[0];
               if (!bestVolume) return <p className="text-sm text-gray-500">No data</p>;
               return (
                 <>
-                  <p className="text-2xl font-bold text-blue-900 capitalize">{bestVolume.source}</p>
-                  <p className="text-sm text-blue-600 mt-1">{bestVolume.totalJobs.toLocaleString()} active jobs</p>
+                  <p className="text-2xl font-bold text-teal-900 capitalize">{bestVolume.source}</p>
+                  <p className="text-sm text-teal-600 mt-1">{bestVolume.totalJobs.toLocaleString()} active jobs</p>
                 </>
               );
             })()}
@@ -374,7 +374,7 @@ export default function AdminJobsPage() {
                   <div className="w-32 text-sm text-gray-600">{date}</div>
                   <div className="flex-1 flex items-center">
                     <div
-                      className="bg-blue-500 h-8 rounded"
+                      className="bg-teal-500 h-8 rounded"
                       style={{
                         width: `${(count / Math.max(...Object.values(stats.jobsByDay))) * 100}%`,
                         minWidth: '2rem',
@@ -709,7 +709,7 @@ export default function AdminJobsPage() {
               <select
                 value={selectedSource}
                 onChange={(e) => setSelectedSource(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Sources</option>
                 <option value="adzuna">Adzuna</option>

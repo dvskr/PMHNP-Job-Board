@@ -42,7 +42,7 @@ export default function ForEmployersPage() {
             Reach thousands of psychiatric nurse practitioners actively looking for opportunities
           </p>
           <Link href="/employer/signup">
-            <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
+            <button className="bg-teal-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition-colors shadow-md hover:shadow-lg">
               Post a Job
             </button>
           </Link>
@@ -138,8 +138,8 @@ export default function ForEmployersPage() {
                 </ul>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-md border-2 border-blue-500">
-                <div className="text-blue-600 text-sm font-semibold mb-1">RECOMMENDED</div>
+              <div className="bg-white p-6 rounded-xl shadow-md border-2 border-teal-500">
+                <div className="text-teal-600 text-sm font-semibold mb-1">RECOMMENDED</div>
                 <h3 className="text-lg font-semibold text-gray-900">Featured Post</h3>
                 <p className="text-3xl font-bold text-gray-900 my-2">
                   <span className="line-through text-gray-400 text-lg">$199</span> FREE
@@ -155,7 +155,7 @@ export default function ForEmployersPage() {
 
             <Link
               href="/post-job"
-              className="inline-block mt-8 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
+              className="inline-block mt-8 bg-teal-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition-colors"
             >
               Post a Job - Free
             </Link>
@@ -420,12 +420,12 @@ export default function ForEmployersPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
             <Link href="/employer/signup" className="w-full sm:w-auto">
-              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full shadow-md hover:shadow-lg">
+              <button className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors w-full shadow-md hover:shadow-lg">
                 Post a Job
               </button>
             </Link>
             <a href="mailto:support@pmhnphiring.com" className="w-full sm:w-auto">
-              <button className="border-2 border-blue-600 text-blue-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors w-full shadow-sm hover:shadow-md">
+              <button className="border-2 border-teal-600 text-teal-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition-colors w-full shadow-sm hover:shadow-md">
                 Contact Us
               </button>
             </a>

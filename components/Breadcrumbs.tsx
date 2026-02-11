@@ -39,18 +39,26 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
           {items.map((item, index) => (
             <li key={index} className="flex items-center">
               {index > 0 && (
-                <ChevronRight className="w-4 h-4 mx-1 text-gray-400 flex-shrink-0" aria-hidden="true" />
+                <ChevronRight
+                  className="w-4 h-4 mx-1 flex-shrink-0"
+                  style={{ color: 'var(--text-tertiary)' }}
+                  aria-hidden="true"
+                />
               )}
               {item.href ? (
                 <Link
                   href={item.href}
-                  className="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
+                  className="bc-link flex items-center gap-1 transition-colors"
+                  style={{ color: 'var(--text-tertiary)' }}
                 >
                   {index === 0 && <Home className="w-3.5 h-3.5" aria-hidden="true" />}
                   <span>{item.label}</span>
                 </Link>
               ) : (
-                <span className="text-gray-900 font-medium truncate max-w-[200px] sm:max-w-none">
+                <span
+                  className="font-medium truncate max-w-[200px] sm:max-w-none"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   {item.label}
                 </span>
               )}
@@ -58,6 +66,12 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
           ))}
         </ol>
       </nav>
+
+      <style>{`
+        .bc-link:hover {
+          color: #2DD4BF !important;
+        }
+      `}</style>
     </>
   );
 }

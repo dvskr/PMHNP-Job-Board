@@ -96,7 +96,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
         <div className="flex items-center gap-4">
           <Link
             href="/employer/dashboard"
-            className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
           >
             Dashboard
           </Link>
@@ -108,18 +108,24 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 w-full lg:w-auto">
+    <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
       <Link
         href="/login"
         onClick={onNavigate}
-        className="text-gray-700 hover:text-gray-900 hover:bg-gray-50 font-medium text-base lg:text-sm text-center lg:text-left py-4 lg:py-2 px-4 lg:px-3 rounded-lg transition-colors touch-manipulation"
+        className="hdr-signin font-semibold text-base lg:text-[13px] text-center lg:text-left py-4 lg:py-2 px-4 lg:px-3 rounded-xl touch-manipulation"
+        style={{ color: 'rgba(var(--text-primary-rgb, 255,255,255), 0.55)' }}
       >
         Sign in
       </Link>
       <Link
         href="/signup"
         onClick={onNavigate}
-        className="bg-blue-600 text-white px-6 lg:px-5 py-4 lg:py-2 rounded-lg font-medium text-base lg:text-sm hover:bg-blue-700 transition-colors text-center touch-manipulation shadow-md hover:shadow-lg active:scale-95"
+        className="hdr-signup px-6 lg:px-5 py-4 lg:py-2 rounded-xl font-semibold text-base lg:text-[13px] text-center touch-manipulation"
+        style={{
+          color: 'var(--text-primary)',
+          backgroundColor: 'rgba(var(--text-primary-rgb, 255,255,255), 0.08)',
+          border: '1px solid rgba(var(--text-primary-rgb, 255,255,255), 0.12)',
+        }}
       >
         Sign up
       </Link>

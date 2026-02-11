@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth/protect'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Briefcase, Bookmark, Bell, Settings } from 'lucide-react'
 
@@ -8,6 +9,11 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const { user, profile } = await requireAuth()
+
+  // Redirect employers to their dedicated dashboard
+  if (profile?.role === 'employer') {
+    redirect('/employer/dashboard')
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -27,7 +33,7 @@ export default async function DashboardPage() {
           href="/jobs"
           className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
         >
-          <Briefcase className="w-8 h-8 text-blue-600 mb-3" />
+          <Briefcase className="w-8 h-8 text-teal-600 mb-3" />
           <h3 className="font-semibold text-gray-900">Browse Jobs</h3>
           <p className="text-sm text-gray-500 mt-1">Find your next opportunity</p>
         </Link>
@@ -86,7 +92,7 @@ export default async function DashboardPage() {
             <label className="text-sm text-gray-500">Resume</label>
             <p className="text-gray-900">
               {profile?.resumeUrl ? (
-                <a href={profile.resumeUrl} className="text-blue-600 hover:underline">
+                <a href={profile.resumeUrl} className="text-teal-600 hover:underline">
                   View resume
                 </a>
               ) : (
@@ -97,7 +103,7 @@ export default async function DashboardPage() {
         </div>
         <Link
           href="/settings"
-          className="inline-block mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm"
+          className="inline-block mt-4 text-teal-600 hover:text-teal-700 font-medium text-sm"
         >
           Edit profile →
         </Link>

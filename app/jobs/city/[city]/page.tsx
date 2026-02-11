@@ -274,7 +274,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
   const citySlug = cityParam.toLowerCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
       {/* Breadcrumb Schema */}
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
@@ -287,7 +287,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
       </div>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 md:py-16">
+      <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -299,7 +299,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               PMHNP Jobs in {location}
             </h1>
-            <p className="text-lg md:text-xl text-blue-100 mb-6">
+            <p className="text-lg md:text-xl text-teal-100 mb-6">
               Discover {stats.totalJobs} psychiatric mental health nurse practitioner {stats.totalJobs === 1 ? 'position' : 'positions'}
             </p>
 
@@ -307,17 +307,17 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-blue-100">Open Positions</div>
+                <div className="text-sm text-teal-100">Open Positions</div>
               </div>
               {stats.avgSalary > 0 && (
                 <div className="text-center">
                   <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                  <div className="text-sm text-blue-100">Avg. Salary</div>
+                  <div className="text-sm text-teal-100">Avg. Salary</div>
                 </div>
               )}
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                <div className="text-sm text-blue-100">Employers</div>
+                <div className="text-sm text-teal-100">Employers</div>
               </div>
             </div>
           </div>
@@ -357,7 +357,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 {stats.state && (
                   <Link
                     href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    className="text-teal-600 hover:text-teal-700 text-sm font-medium"
                   >
                     View All {stats.stateCode} Jobs →
                   </Link>
@@ -367,7 +367,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
               {jobs.length === 0 ? (
                 <div className="bg-white rounded-xl border border-gray-200 p-8">
                   <div className="text-center mb-8">
-                    <MapPin className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+                    <MapPin className="h-12 w-12 text-teal-500 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
                       No PMHNP Jobs in {cityName} Right Now
                     </h3>
@@ -382,10 +382,10 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                     {stats.state && (
                       <Link
                         href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
-                        className="flex flex-col p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                        className="flex flex-col p-4 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 transition-colors"
                       >
-                        <span className="font-semibold text-blue-900">📍 Jobs in {stats.state}</span>
-                        <span className="text-sm text-blue-700 mt-1">Browse all positions statewide</span>
+                        <span className="font-semibold text-teal-900">📍 Jobs in {stats.state}</span>
+                        <span className="text-sm text-teal-700 mt-1">Browse all positions statewide</span>
                       </Link>
                     )}
                     <Link
@@ -407,7 +407,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   <div className="text-center">
                     <Link
                       href="/jobs"
-                      className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      className="inline-block px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
                     >
                       Browse All Jobs Nationwide
                     </Link>
@@ -425,17 +425,17 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               {/* Job Alert CTA */}
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-6 shadow-lg">
+              <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white mb-6 shadow-lg">
                 <Bell className="h-8 w-8 mb-3" />
                 <h3 className="text-lg font-bold mb-2">
                   Get {cityName} Job Alerts
                 </h3>
-                <p className="text-sm text-blue-100 mb-4">
+                <p className="text-sm text-teal-100 mb-4">
                   Be the first to know about new PMHNP positions in {cityName}.
                 </p>
                 <Link
                   href={`/job-alerts?location=${encodeURIComponent(cityName)}`}
-                  className="block w-full text-center px-4 py-2 bg-white text-blue-700 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                  className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors"
                 >
                   Create Alert
                 </Link>
@@ -445,7 +445,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
               {stats.topEmployers.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5 text-blue-600" />
+                    <Building2 className="h-5 w-5 text-teal-600" />
                     <h3 className="font-bold text-gray-900">Top Employers</h3>
                   </div>
                   <ul className="space-y-3">
@@ -454,7 +454,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                         <span className="text-sm text-gray-700 truncate flex-1">
                           {employer.name}
                         </span>
-                        <span className="text-sm font-medium text-blue-600 ml-2">
+                        <span className="text-sm font-medium text-teal-600 ml-2">
                           {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
                         </span>
                       </li>
@@ -481,7 +481,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   <p className="text-xs text-gray-500">
                     Based on PMHNP positions in {cityName} with salary data.
                   </p>
-                  <Link href="/salary-guide" className="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-block">
+                  <Link href="/salary-guide" className="text-sm text-teal-600 hover:text-teal-700 mt-2 inline-block">
                     View full 2026 Salary Guide →
                   </Link>
                 </div>
@@ -491,7 +491,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
               {stats.nearbyCities.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <Navigation className="h-5 w-5 text-blue-600" />
+                    <Navigation className="h-5 w-5 text-teal-600" />
                     <h3 className="font-bold text-gray-900">Nearby Cities</h3>
                   </div>
                   <ul className="space-y-2">
@@ -501,7 +501,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                           href={`/jobs/city/${city.slug}`}
                           className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors group"
                         >
-                          <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+                          <span className="text-sm text-gray-700 group-hover:text-teal-600 transition-colors">
                             {city.name}
                           </span>
                           <span className="text-xs text-gray-500">
@@ -514,7 +514,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   {stats.state && (
                     <Link
                       href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
-                      className="block mt-4 text-sm text-center text-blue-600 hover:text-blue-700 font-medium"
+                      className="block mt-4 text-sm text-center text-teal-600 hover:text-teal-700 font-medium"
                     >
                       View all {stats.stateCode} cities →
                     </Link>
@@ -529,29 +529,29 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Explore More PMHNP Opportunities</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-blue-600">💰 2026 PMHNP Salary Guide</h3>
+              <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600">💰 2026 PMHNP Salary Guide</h3>
                 <p className="text-sm text-gray-600 mt-1">National average is $155,000+. See how your area compares.</p>
               </Link>
 
-              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-blue-600">🏠 Remote PMHNP Jobs</h3>
+              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600">🏠 Remote PMHNP Jobs</h3>
                 <p className="text-sm text-gray-600 mt-1">Work from anywhere with telehealth positions.</p>
               </Link>
 
-              <Link href="/jobs/locations" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-blue-600">📍 All Locations</h3>
+              <Link href="/jobs/locations" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600">📍 All Locations</h3>
                 <p className="text-sm text-gray-600 mt-1">Browse PMHNP jobs by state and city.</p>
               </Link>
 
-              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-blue-600">✈️ Travel PMHNP Jobs</h3>
+              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600">✈️ Travel PMHNP Jobs</h3>
                 <p className="text-sm text-gray-600 mt-1">Locum tenens positions with premium pay and housing.</p>
               </Link>
 
               {stats.state && (
-                <Link href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`} className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
-                  <h3 className="font-semibold text-blue-600">🗺️ All {stats.state} Jobs</h3>
+                <Link href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`} className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
+                  <h3 className="font-semibold text-teal-600">🗺️ All {stats.state} Jobs</h3>
                   <p className="text-sm text-gray-600 mt-1">See all PMHNP positions across {stats.state}.</p>
                 </Link>
               )}

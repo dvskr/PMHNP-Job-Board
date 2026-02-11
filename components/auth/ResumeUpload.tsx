@@ -148,17 +148,17 @@ export default function ResumeUpload({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="w-full border-2 border-dashed border-gray-300 hover:border-blue-500 rounded-lg p-8 flex flex-col items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-gray-50 hover:bg-blue-50"
+          className="w-full border-2 border-dashed border-gray-300 hover:border-teal-500 rounded-lg p-8 flex flex-col items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-gray-50 hover:bg-teal-50"
         >
           {uploading ? (
             <>
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+              <Loader2 className="w-12 h-12 text-teal-600 animate-spin" />
               <p className="text-sm font-medium text-gray-700">Uploading...</p>
             </>
           ) : (
             <>
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-                <Upload className="w-8 h-8 text-blue-600" />
+              <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center">
+                <Upload className="w-8 h-8 text-teal-600" />
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-gray-900">Upload Resume</p>

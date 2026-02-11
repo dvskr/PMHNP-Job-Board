@@ -79,7 +79,7 @@ export default function UserMenu({ user }: UserMenuProps) {
             className="w-8 h-8 rounded-full object-cover"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
+          <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-medium">
             {initials}
           </div>
         )}
@@ -94,7 +94,7 @@ export default function UserMenu({ user }: UserMenuProps) {
           <div className="px-4 py-3 border-b border-gray-100">
             <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
             <p className="text-xs text-gray-500 truncate">{user.email}</p>
-            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 capitalize">
+            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-teal-100 text-teal-700 capitalize">
               {user.role.replace('_', ' ')}
             </span>
           </div>
