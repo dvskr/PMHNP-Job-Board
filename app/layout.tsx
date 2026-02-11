@@ -186,12 +186,14 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider>
-          <GoogleAnalytics />
-          <Header />
-          <main className="min-h-screen pt-16 pb-20 md:pb-0">{children}</main>
-          <Footer />
-          <FloatingSocial />
-          <BottomNav />
+          <div style={{ overflowX: 'hidden', width: '100%', position: 'relative' }}>
+            <GoogleAnalytics />
+            <Header />
+            <main className="min-h-screen pt-16 pb-20 md:pb-0">{children}</main>
+            <Footer />
+            <FloatingSocial />
+            <BottomNav />
+          </div>
         </ThemeProvider>
       </body>
     </html>

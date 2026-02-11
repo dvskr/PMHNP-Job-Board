@@ -13,6 +13,11 @@
   display: none !important;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 :root {
   /* Font references */
   --font-geist-sans: 'Geist', system-ui, sans-serif;

@@ -112,6 +112,12 @@ const css = `
             overflow: visible !important;
             text-overflow: unset !important;
         }
+        .fj-section {
+            padding: 48px 0 56px !important;
+        }
+        .fj-heading {
+            font-size: 24px !important;
+        }
     }
 `;
 
@@ -120,6 +126,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
 
     return (
         <motion.section
+            className="fj-section"
             style={{
                 backgroundColor: 'var(--bg-secondary)',
                 padding: '72px 0 88px',
@@ -132,13 +139,6 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
             variants={sectionFade}
         >
             <style>{css}</style>
-
-            {/* Subtle background decoration */}
-            <div className="pointer-events-none absolute" style={{
-                width: '400px', height: '400px', borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(13,148,136,0.04), transparent 70%)',
-                top: '-100px', right: '-100px', filter: 'blur(60px)',
-            }} />
 
             <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
                 {/* Header */}
@@ -158,7 +158,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         <Sparkles size={12} />
                         UPDATED DAILY
                     </span>
-                    <h2 style={{
+                    <h2 className="fj-heading" style={{
                         fontSize: '32px', fontWeight: 800, letterSpacing: '-0.02em',
                         color: 'var(--text-primary)', margin: '16px 0 8px',
                     }}>
@@ -169,120 +169,114 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                     </p>
                 </motion.div>
 
-                {/* List container with gradient border */}
-                <div
-                    className="rounded-[20px] p-[1px]"
+                {/* List container */}
+                <motion.div
                     style={{
-                        background: 'linear-gradient(180deg, var(--border-color-dark), var(--border-color), var(--border-color-dark))',
+                        backgroundColor: 'var(--bg-primary)',
+                        borderRadius: '20px',
+                        border: '1px solid var(--border-color)',
+                        overflow: 'hidden',
                     }}
+                    variants={listContainer}
                 >
-                    <motion.div
-                        style={{
-                            backgroundColor: 'var(--bg-primary)',
-                            borderRadius: '19px',
-                            overflow: 'hidden',
-                        }}
-                        variants={listContainer}
-                    >
-                        {jobs.map((job, idx) => {
-                            const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
-                            const fresh = isNew(job.createdAt);
+                    {jobs.map((job, idx) => {
+                        const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
+                        const fresh = isNew(job.createdAt);
 
-                            return (
-                                <motion.div key={job.id} variants={rowSlide}>
-                                    <Link
-                                        href={href}
-                                        className="fj-row"
+                        return (
+                            <motion.div key={job.id} variants={rowSlide}>
+                                <Link
+                                    href={href}
+                                    className="fj-row"
+                                    style={{
+                                        borderBottom: idx < jobs.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                    }}
+                                >
+                                    {/* Icon */}
+                                    <div
+                                        className="fj-icon"
                                         style={{
-                                            borderBottom: idx < jobs.length - 1 ? '1px solid var(--border-color)' : 'none',
-                                        }}
-                                    >
-                                        {/* Icon */}
-                                        <div
-                                            className="fj-icon"
-                                            style={{
-                                                width: '44px', height: '44px', borderRadius: '14px',
-                                                backgroundColor: 'var(--bg-tertiary)',
-                                                border: '1px solid var(--border-color)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                flexShrink: 0,
-                                                transition: 'all 0.3s',
-                                            }}
-                                        >
-                                            <Briefcase size={18} style={{ color: 'var(--color-primary)', opacity: 0.8 }} />
-                                        </div>
-
-                                        {/* Main content */}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            {/* Company + badges */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
-                                                <span style={{
-                                                    fontSize: '11px', fontWeight: 700,
-                                                    textTransform: 'uppercase', letterSpacing: '0.12em',
-                                                    color: 'var(--text-tertiary)',
-                                                }}>
-                                                    {job.employer}
-                                                </span>
-                                                {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
-                                                {fresh && (
-                                                    <span style={{
-                                                        fontSize: '10px', fontWeight: 700, padding: '2px 10px',
-                                                        borderRadius: '8px',
-                                                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                                                        color: '#fff',
-                                                    }}>
-                                                        NEW
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Title */}
-                                            <div className="fj-title" style={{
-                                                fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)',
-                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                marginBottom: '7px',
-                                                transition: 'color 0.3s',
-                                            }}>
-                                                {job.title}
-                                            </div>
-
-                                            {/* Meta row */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                                    <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
-                                                    {job.location}
-                                                </span>
-                                                {job.displaySalary && (
-                                                    <span style={{
-                                                        fontSize: '13px', fontWeight: 700,
-                                                        color: 'var(--salary-color, #1d4ed8)',
-                                                    }}>
-                                                        {job.displaySalary}
-                                                    </span>
-                                                )}
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                                                    <Clock size={11} />
-                                                    {relativeTime(job.createdAt)}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Arrow */}
-                                        <div className="fj-arrow" style={{
-                                            flexShrink: 0,
-                                            width: '32px', height: '32px', borderRadius: '10px',
+                                            width: '44px', height: '44px', borderRadius: '14px',
                                             backgroundColor: 'var(--bg-tertiary)',
                                             border: '1px solid var(--border-color)',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        }}>
-                                            <ArrowRight size={16} style={{ color: 'var(--color-primary)' }} />
+                                            flexShrink: 0,
+                                            transition: 'all 0.3s',
+                                        }}
+                                    >
+                                        <Briefcase size={18} style={{ color: 'var(--color-primary)', opacity: 0.8 }} />
+                                    </div>
+
+                                    {/* Main content */}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        {/* Company + badges */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
+                                            <span style={{
+                                                fontSize: '11px', fontWeight: 700,
+                                                textTransform: 'uppercase', letterSpacing: '0.12em',
+                                                color: 'var(--text-tertiary)',
+                                            }}>
+                                                {job.employer}
+                                            </span>
+                                            {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
+                                            {fresh && (
+                                                <span style={{
+                                                    fontSize: '10px', fontWeight: 700, padding: '2px 10px',
+                                                    borderRadius: '8px',
+                                                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                                                    color: '#fff',
+                                                }}>
+                                                    NEW
+                                                </span>
+                                            )}
                                         </div>
-                                    </Link>
-                                </motion.div>
-                            );
-                        })}
-                    </motion.div>
-                </div>
+
+                                        {/* Title */}
+                                        <div className="fj-title" style={{
+                                            fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)',
+                                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                            marginBottom: '7px',
+                                            transition: 'color 0.3s',
+                                        }}>
+                                            {job.title}
+                                        </div>
+
+                                        {/* Meta row */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
+                                                {job.location}
+                                            </span>
+                                            {job.displaySalary && (
+                                                <span style={{
+                                                    fontSize: '13px', fontWeight: 700,
+                                                    color: 'var(--salary-color, #1d4ed8)',
+                                                }}>
+                                                    {job.displaySalary}
+                                                </span>
+                                            )}
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                                <Clock size={11} />
+                                                {relativeTime(job.createdAt)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Arrow */}
+                                    <div className="fj-arrow" style={{
+                                        flexShrink: 0,
+                                        width: '32px', height: '32px', borderRadius: '10px',
+                                        backgroundColor: 'var(--bg-tertiary)',
+                                        border: '1px solid var(--border-color)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <ArrowRight size={16} style={{ color: 'var(--color-primary)' }} />
+                                    </div>
+                                </Link>
+                            </motion.div>
+                        );
+                    })}
+                </motion.div>
 
                 {/* CTA — Solid gradient button */}
                 <motion.div
