@@ -189,7 +189,7 @@ export default async function SalaryGuidePage() {
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "2026 PMHNP Salary Guide: Psychiatric NP Pay by State",
-    "description": "Comprehensive PMHNP salary data for 2026 including state-by-state pay, experience levels, specialty premiums, and market trends. Based on BLS, ZipRecruiter, Indeed, and 8,500+ job postings.",
+    "description": "Comprehensive PMHNP salary data for 2026 including state-by-state pay, experience levels, specialty premiums, and market trends. Based on BLS, ZipRecruiter, Indeed, and 10,000+ job postings.",
     "image": "https://pmhnphiring.com/og-salary-guide.png",
     "datePublished": "2026-01-01T00:00:00Z",
     "dateModified": "2026-02-02T00:00:00Z",
@@ -286,10 +286,10 @@ export default async function SalaryGuidePage() {
           <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
             {/* Quick Answer Box */}
             <section className="mb-6">
-              <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-lg border border-blue-200 p-6">
+              <div className="bg-gradient-to-r from-teal-50 to-slate-50 rounded-lg border border-teal-200 p-6">
                 <div className="flex items-start gap-3 mb-4">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                  <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-teal-600" />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Quick Answer: PMHNP Salary in 2026</h2>
@@ -302,7 +302,7 @@ export default async function SalaryGuidePage() {
                   </div>
                 </div>
                 {/* Stats Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-blue-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-teal-200">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-emerald-600">$155,000+</div>
                     <div className="text-sm text-gray-600">National Average</div>
@@ -312,11 +312,11 @@ export default async function SalaryGuidePage() {
                     <div className="text-sm text-gray-600">Top 10% Earn</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">45%</div>
+                    <div className="text-2xl font-bold text-teal-600">45%</div>
                     <div className="text-sm text-gray-600">Job Growth by 2032</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">8,500+</div>
+                    <div className="text-2xl font-bold text-teal-600">10,000+</div>
                     <div className="text-sm text-gray-600">Jobs Analyzed</div>
                   </div>
                 </div>
@@ -410,7 +410,7 @@ export default async function SalaryGuidePage() {
                               ${Math.round(state.minSalary / 1000)}k - ${Math.round(state.maxSalary / 1000)}k
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
                                 {state.jobCount}
                               </span>
                             </td>
@@ -516,7 +516,7 @@ export default async function SalaryGuidePage() {
                         { specialty: 'Addiction/Substance Abuse (MAT)', premium: '+15-20%', notes: 'High demand, MAT certification' },
                         { specialty: 'Child & Adolescent', premium: '+10-15%', notes: 'Specialized training required' },
                         { specialty: 'Forensic Psychiatry', premium: '+15-25%', notes: 'Correctional facilities, courts' },
-                        { specialty: 'Emergency/Crisis', premium: '+10-20%', notes: 'High stress, irregular hours' },
+                        { specialty: 'Emergency/Crisis', premium: '+10-20%', notes: 'Dynamic environment, flexible scheduling' },
                         { specialty: 'Geriatric Psychiatry', premium: '+5-10%', notes: 'Growing aging population' },
                         { specialty: 'Private Practice (Owner)', premium: '+20-40%', notes: 'Higher risk, no benefits' },
                         { specialty: 'Rural/Underserved', premium: '+10-15%', notes: 'Often includes loan repayment' },
@@ -609,10 +609,10 @@ export default async function SalaryGuidePage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-800 mb-2">Why Demand is High</h3>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• <strong>123 million</strong> Americans live in mental health shortage areas</li>
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-teal-800 mb-2">Why Demand is High</h3>
+                  <ul className="text-sm text-teal-700 space-y-1">
+                    <li>• <strong>123 million</strong> Americans in areas seeking more mental health providers</li>
                     <li>• <strong>6,203</strong> additional providers needed to meet demand</li>
                     <li>• <strong>45%</strong> projected NP job growth through 2032</li>
                   </ul>
@@ -630,8 +630,8 @@ export default async function SalaryGuidePage() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
                   <div style={{ flex: '1 1 280px', minWidth: '250px' }}>
                     <div className="flex items-start gap-3 mb-4">
-                      <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <MapPin className="h-5 w-5 text-blue-600" />
+                      <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                        <MapPin className="h-5 w-5 text-teal-600" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Geographic Location</h3>
@@ -775,7 +775,7 @@ export default async function SalaryGuidePage() {
               <div className="bg-gray-100 rounded-lg p-4 text-center">
                 <p className="text-sm text-gray-600">
                   <strong>Data Sources & Methodology:</strong> Salary data compiled from Bureau of Labor Statistics (BLS),
-                  ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth, and analysis of 8,500+ active PMHNP job postings
+                  ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth, and analysis of 10,000+ active PMHNP job postings
                   on PMHNP Hiring. Industry data updated January 2026. Real-time job posting data updated daily.
                 </p>
               </div>

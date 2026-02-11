@@ -81,8 +81,8 @@ export default function WhyUs() {
             style={{ backgroundColor: 'var(--bg-primary)', padding: '80px 0' }}
         >
             <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 20px' }}>
-                {/* Header — left-aligned for editorial feel */}
-                <div style={{ marginBottom: '56px' }}>
+                {/* Header — centered */}
+                <div style={{ marginBottom: '56px', textAlign: 'center' }}>
                     <h2 style={{
                         fontSize: '28px', fontWeight: 700,
                         color: 'var(--text-primary)', margin: '0 0 8px',

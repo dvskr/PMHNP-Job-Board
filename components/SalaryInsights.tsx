@@ -33,26 +33,32 @@ export default function SalaryInsights({
     }
 
     return (
-        <section className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-5 md:p-6 mb-4 lg:mb-6 border border-green-200">
+        <section
+            className="rounded-2xl p-5 md:p-6 mb-4 lg:mb-6"
+            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+        >
             <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="w-5 h-5 text-green-600" />
-                <h2 className="text-lg font-bold text-gray-900">
+                <DollarSign className="w-5 h-5" style={{ color: '#2DD4BF' }} />
+                <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                     Salary Insights{stateName ? ` for ${stateName}` : ''}
                 </h2>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
                 {/* State Average */}
-                <div className="bg-white rounded-lg p-4 border border-green-100">
-                    <div className="text-sm text-gray-600 mb-1">
+                <div
+                    className="rounded-xl p-4"
+                    style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+                >
+                    <div className="text-sm mb-1" style={{ color: 'var(--text-tertiary)' }}>
                         {stateName ? `Average PMHNP Salary in ${stateName}` : 'National Average PMHNP Salary'}
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                         ${stateAvgSalary}k
-                        <span className="text-sm font-normal text-gray-500">/year</span>
+                        <span className="text-sm font-normal" style={{ color: 'var(--text-tertiary)' }}>/year</span>
                     </div>
                     {stateName && stateAvgSalary !== nationalAvgSalary && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
                             National average: ${nationalAvgSalary}k
                         </div>
                     )}
@@ -60,9 +66,12 @@ export default function SalaryInsights({
 
                 {/* This Position */}
                 {jobAvgSalary && (
-                    <div className="bg-white rounded-lg p-4 border border-green-100">
-                        <div className="text-sm text-gray-600 mb-1">This Position</div>
-                        <div className="text-2xl font-bold text-gray-900">
+                    <div
+                        className="rounded-xl p-4"
+                        style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+                    >
+                        <div className="text-sm mb-1" style={{ color: 'var(--text-tertiary)' }}>This Position</div>
+                        <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                             {jobMinSalary && jobMaxSalary && jobMinSalary !== jobMaxSalary ? (
                                 <>
                                     ${Math.round(jobMinSalary / 1000)}k - ${Math.round(jobMaxSalary / 1000)}k
@@ -70,13 +79,15 @@ export default function SalaryInsights({
                             ) : (
                                 <>${jobAvgSalary}k</>
                             )}
-                            <span className="text-sm font-normal text-gray-500">/year</span>
+                            <span className="text-sm font-normal" style={{ color: 'var(--text-tertiary)' }}>/year</span>
                         </div>
                         {comparisonToState !== null && (
-                            <div className={`flex items-center gap-1 text-sm mt-1 ${comparisonToState > 5 ? 'text-green-600' :
-                                    comparisonToState < -5 ? 'text-orange-600' :
-                                        'text-gray-600'
-                                }`}>
+                            <div className={`flex items-center gap-1 text-sm mt-1 ${comparisonToState > 5 ? 'text-green-500' :
+                                comparisonToState < -5 ? 'text-orange-500' :
+                                    ''
+                                }`}
+                                style={Math.abs(comparisonToState) <= 5 ? { color: 'var(--text-tertiary)' } : undefined}
+                            >
                                 {comparisonToState > 5 ? (
                                     <>
                                         <TrendingUp className="w-4 h-4" />
@@ -99,14 +110,15 @@ export default function SalaryInsights({
                 )}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-green-200">
-                <p className="text-sm text-gray-600 mb-2">
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <p className="text-sm mb-2" style={{ color: 'var(--text-tertiary)' }}>
                     PMHNP salaries vary based on experience, setting, and location.
                     Telehealth positions often offer competitive rates with added flexibility.
                 </p>
                 <Link
                     href="/salary-guide"
-                    className="text-sm text-green-700 hover:text-green-800 font-medium"
+                    className="text-sm font-medium hover:underline"
+                    style={{ color: '#2DD4BF' }}
                 >
                     View complete 2026 PMHNP Salary Guide →
                 </Link>

@@ -252,7 +252,7 @@ export default function SettingsPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
         </div>
       </div>
     )
@@ -269,7 +269,7 @@ export default function SettingsPage() {
       case 'employer':
         return 'bg-green-100 text-green-700'
       default:
-        return 'bg-blue-100 text-blue-700'
+        return 'bg-teal-100 text-teal-700'
     }
   }
 
@@ -327,7 +327,7 @@ export default function SettingsPage() {
                 type="text"
                 value={profile.firstName || ''}
                 onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="Your first name"
               />
             </div>
@@ -345,7 +345,7 @@ export default function SettingsPage() {
                 type="text"
                 value={profile.lastName || ''}
                 onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="Your last name"
               />
             </div>
@@ -381,7 +381,7 @@ export default function SettingsPage() {
                 type="tel"
                 value={profile.phone || ''}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 placeholder="555-1234"
               />
             </div>
@@ -400,7 +400,7 @@ export default function SettingsPage() {
                   type="text"
                   value={profile.company || ''}
                   onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="Your company name"
                 />
               </div>
@@ -412,7 +412,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full sm:w-auto mt-6 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full sm:w-auto mt-6 bg-teal-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {saving ? (
             <>

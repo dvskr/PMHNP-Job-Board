@@ -43,6 +43,7 @@ export default function BrowseByState({ states }: BrowseByStateProps) {
                         <Link
                             key={s.state}
                             href={`/jobs?location=${encodeURIComponent(s.state)}`}
+                            className="bbs-card"
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '12px',
                                 padding: '16px 18px',
@@ -51,16 +52,6 @@ export default function BrowseByState({ states }: BrowseByStateProps) {
                                 borderRadius: '12px',
                                 textDecoration: 'none',
                                 transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.borderColor = '#2dd4bf';
-                                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.borderColor = 'var(--border-color)';
-                                e.currentTarget.style.boxShadow = 'none';
                             }}
                         >
                             <MapPin size={16} style={{ color: '#2dd4bf', flexShrink: 0 }} />
@@ -98,6 +89,14 @@ export default function BrowseByState({ states }: BrowseByStateProps) {
                     </Link>
                 </div>
             </div>
+
+            <style>{`
+                .bbs-card:hover {
+                    transform: translateY(-2px);
+                    border-color: #2dd4bf !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+                }
+            `}</style>
         </section>
     );
 }

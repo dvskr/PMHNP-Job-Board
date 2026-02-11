@@ -60,15 +60,19 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
       <div className="flex items-center gap-3">
         <button
           onClick={handleApply}
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 lg:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg w-full lg:w-auto touch-manipulation"
-          style={{ minHeight: '52px' }}
+          className="apply-btn inline-flex items-center justify-center gap-2 text-white px-8 py-4 lg:py-3 rounded-xl font-bold transition-all text-lg w-full lg:w-auto touch-manipulation"
+          style={{
+            minHeight: '52px',
+            background: 'linear-gradient(135deg, #0d9488, #0f766e)',
+            boxShadow: '0 4px 14px rgba(13,148,136,0.35)',
+          }}
         >
           {applied ? 'Apply Again' : 'Apply Now'}
           <ExternalLink size={20} />
         </button>
 
         {applied && (
-          <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm font-medium">
+          <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-full text-sm font-medium">
             <svg
               className="h-4 w-4"
               fill="none"
@@ -88,7 +92,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
       </div>
 
       {applied && appliedDate && (
-        <p className="text-sm text-gray-500 mt-2 text-center lg:text-left">
+        <p className="text-sm mt-2 text-center lg:text-left" style={{ color: 'var(--text-tertiary)' }}>
           Applied on {formatAppliedDate(appliedDate)}
         </p>
       )}
@@ -96,7 +100,8 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
       {!applied && (
         <button
           onClick={() => markApplied(jobId)}
-          className="text-sm text-gray-500 hover:underline mt-2 text-center lg:text-left py-2 touch-manipulation"
+          className="text-sm hover:underline mt-2 text-center lg:text-left py-2 touch-manipulation"
+          style={{ color: 'var(--text-tertiary)' }}
         >
           Already applied? Mark as applied
         </button>
@@ -109,7 +114,16 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
         onNotApplied={handleNotApplied}
         jobTitle={jobTitle}
       />
+
+      <style>{`
+        .apply-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(13,148,136,0.45) !important;
+        }
+        .apply-btn:active {
+          transform: translateY(0);
+        }
+      `}</style>
     </div>
   );
 }
-

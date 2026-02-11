@@ -24,7 +24,7 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
         <SlidersHorizontal className="w-4 h-4" />
         <span className="font-medium">Filters</span>
         {activeCount > 0 && (
-          <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+          <span className="bg-teal-600 text-white text-xs px-2 py-0.5 rounded-full">
             {activeCount}
           </span>
         )}
@@ -64,7 +64,7 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
           <button
             onClick={() => setIsOpen(false)}
-            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+            className="w-full py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700"
           >
             Show Results
           </button>

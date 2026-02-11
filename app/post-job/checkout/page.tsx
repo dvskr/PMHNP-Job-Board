@@ -115,7 +115,7 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
         </div>
       </div>
     );
@@ -216,7 +216,7 @@ export default function CheckoutPage() {
       <button
         onClick={handlePayment}
         disabled={loading}
-        className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -232,7 +232,7 @@ export default function CheckoutPage() {
       <div className="text-center mt-4">
         <Link
           href="/post-job"
-          className="text-gray-600 hover:text-blue-500 transition-colors text-sm"
+          className="text-gray-600 hover:text-teal-500 transition-colors text-sm"
         >
           ← Back to edit job posting
         </Link>

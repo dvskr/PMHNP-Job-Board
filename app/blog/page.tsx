@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 export const metadata: Metadata = {
     title: 'PMHNP Career Blog | Expert Guides & Salary Data',
-    description: 'Expert PMHNP career guides, salary data, interview tips, and job market insights. Updated weekly with data from 8,500+ job postings.',
+    description: 'Expert PMHNP career guides, salary data, interview tips, and job market insights. Updated weekly with data from 10,000+ job postings.',
     alternates: {
         canonical: 'https://pmhnphiring.com/blog',
     },
@@ -68,10 +68,10 @@ export default async function BlogIndexPage({
             <section className="bg-[#1e3a8a] text-white py-16 px-4" style={{ backgroundColor: '#1e3a8a' }}>
                 <div className="max-w-6xl mx-auto text-center">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4">PMHNP Career Insights</h1>
-                    <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+                    <p className="text-xl text-teal-100 max-w-2xl mx-auto">
                         Data-driven guides to help you navigate your psychiatric nurse practitioner career.
                     </p>
-                    <div className="mt-8 text-sm text-blue-200 uppercase tracking-wider font-semibold">
+                    <div className="mt-8 text-sm text-teal-200 uppercase tracking-wider font-semibold">
                         Last Updated: {currentDate}
                     </div>
                 </div>
@@ -83,7 +83,7 @@ export default async function BlogIndexPage({
                     <Link
                         href="/blog"
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!categoryFilter
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-teal-600 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                             }`}
                     >
@@ -94,7 +94,7 @@ export default async function BlogIndexPage({
                             key={cat.id}
                             href={`/blog?category=${cat.id}`}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat.id
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-teal-600 text-white'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                         >
@@ -110,21 +110,21 @@ export default async function BlogIndexPage({
                             <Link key={post.slug} href={`/blog/${post.slug}`} className="group block h-full">
                                 <article className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-200 h-full flex flex-col">
                                     {/* Image placeholder usage would go here if we had them, defaulting to gradient for now if no image */}
-                                    <div className="h-48 bg-gradient-to-br from-blue-500 to-teal-400 p-6 flex items-end">
-                                        <span className="bg-white/90 text-blue-900 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider">
+                                    <div className="h-48 bg-gradient-to-br from-teal-500 to-teal-400 p-6 flex items-end">
+                                        <span className="bg-white/90 text-teal-900 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider">
                                             {post.category}
                                         </span>
                                     </div>
 
                                     <div className="p-6 flex-1 flex flex-col">
                                         <div className="text-sm text-gray-500 mb-2">{new Date(post.date).toLocaleDateString()}</div>
-                                        <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                        <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
                                             {post.title}
                                         </h2>
                                         <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-1">
                                             {post.description}
                                         </p>
-                                        <div className="text-blue-600 font-semibold text-sm flex items-center mt-auto">
+                                        <div className="text-teal-600 font-semibold text-sm flex items-center mt-auto">
                                             Read more <span className="ml-1 transition-transform group-hover:translate-x-1">→</span>
                                         </div>
                                     </div>
@@ -144,17 +144,17 @@ export default async function BlogIndexPage({
                 <div className="max-w-6xl mx-auto px-4">
                     <h3 className="text-lg font-bold text-gray-900 mb-6 text-center">Browse More Resources</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Link href="/salary-guide" className="block p-4 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors text-center group">
+                        <Link href="/salary-guide" className="block p-4 rounded-lg bg-gray-50 hover:bg-teal-50 transition-colors text-center group">
                             <span className="text-2xl block mb-2">💰</span>
-                            <span className="font-semibold text-gray-900 group-hover:text-blue-700">Salary Guide</span>
+                            <span className="font-semibold text-gray-900 group-hover:text-teal-700">Salary Guide</span>
                         </Link>
-                        <Link href="/jobs" className="block p-4 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors text-center group">
+                        <Link href="/jobs" className="block p-4 rounded-lg bg-gray-50 hover:bg-teal-50 transition-colors text-center group">
                             <span className="text-2xl block mb-2">🔍</span>
-                            <span className="font-semibold text-gray-900 group-hover:text-blue-700">Browse All Jobs</span>
+                            <span className="font-semibold text-gray-900 group-hover:text-teal-700">Browse All Jobs</span>
                         </Link>
-                        <Link href="/jobs/remote" className="block p-4 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors text-center group">
+                        <Link href="/jobs/remote" className="block p-4 rounded-lg bg-gray-50 hover:bg-teal-50 transition-colors text-center group">
                             <span className="text-2xl block mb-2">🏠</span>
-                            <span className="font-semibold text-gray-900 group-hover:text-blue-700">Remote Jobs</span>
+                            <span className="font-semibold text-gray-900 group-hover:text-teal-700">Remote Jobs</span>
                         </Link>
                     </div>
                 </div>

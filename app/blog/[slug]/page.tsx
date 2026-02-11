@@ -97,12 +97,12 @@ export default async function BlogPostPage({ params }: Props) {
             return <h3 id={id} className="text-xl font-bold mt-6 mb-3">{children}</h3>;
         },
         blockquote: ({ children }: any) => (
-            <blockquote className="border-l-4 border-blue-500 pl-4 py-2 my-6 bg-blue-50 text-gray-700 italic">
+            <blockquote className="border-l-4 border-teal-500 pl-4 py-2 my-6 bg-teal-50 text-gray-700 italic">
                 {children}
             </blockquote>
         ),
         a: ({ href, children }: any) => (
-            <Link href={href || '#'} className="text-blue-600 hover:underline">
+            <Link href={href || '#'} className="text-teal-600 hover:underline">
                 {children}
             </Link>
         ),
@@ -160,11 +160,11 @@ export default async function BlogPostPage({ params }: Props) {
             {/* Header */}
             <header className="bg-white border-b border-gray-200 py-12 px-4">
                 <div className="max-w-4xl mx-auto">
-                    <Link href="/blog" className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 mb-6 transition-colors">
+                    <Link href="/blog" className="inline-flex items-center text-sm text-gray-500 hover:text-teal-600 mb-6 transition-colors">
                         <ArrowLeft className="w-4 h-4 mr-1" /> Back to Blog
                     </Link>
                     <div className="flex flex-wrap gap-2 mb-6">
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold uppercase tracking-wide">
+                        <span className="bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded-full font-semibold uppercase tracking-wide">
                             {post.category}
                         </span>
                         {post.tags.map(tag => (
@@ -259,8 +259,8 @@ export default async function BlogPostPage({ params }: Props) {
                                     {relatedPosts.map(relPost => (
                                         <Link key={relPost.slug} href={`/blog/${relPost.slug}`} className="block group">
                                             <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-all">
-                                                <div className="text-xs text-blue-600 font-bold uppercase mb-2">{relPost.category}</div>
-                                                <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
+                                                <div className="text-xs text-teal-600 font-bold uppercase mb-2">{relPost.category}</div>
+                                                <h4 className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors mb-2">
                                                     {relPost.title}
                                                 </h4>
                                                 <p className="text-sm text-gray-500 line-clamp-2">{relPost.description}</p>
@@ -277,7 +277,7 @@ export default async function BlogPostPage({ params }: Props) {
                         {/* Author Box */}
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                             <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl">
+                                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-xl">
                                     {post.author.charAt(0)}
                                 </div>
                                 <div>
@@ -286,7 +286,7 @@ export default async function BlogPostPage({ params }: Props) {
                                 </div>
                             </div>
                             <p className="text-sm text-gray-600">
-                                Data-driven insights from analyzing 8,500+ PMHNP job postings across 1,249+ companies.
+                                Data-driven insights from analyzing 10,000+ PMHNP job postings across 3,000+ companies.
                             </p>
                         </div>
 
@@ -301,7 +301,7 @@ export default async function BlogPostPage({ params }: Props) {
                                             <a
                                                 key={idx}
                                                 href={`#${heading.id}`}
-                                                className={`block text-sm hover:text-blue-600 transition-colors ${heading.level === 3 ? 'pl-4 text-gray-500' : 'text-gray-700 font-medium'
+                                                className={`block text-sm hover:text-teal-600 transition-colors ${heading.level === 3 ? 'pl-4 text-gray-500' : 'text-gray-700 font-medium'
                                                     }`}
                                             >
                                                 {heading.text}
@@ -312,26 +312,26 @@ export default async function BlogPostPage({ params }: Props) {
                             )}
 
                             {/* Cross Links */}
-                            <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
-                                <h3 className="font-bold text-blue-900 mb-4">Popular Resources</h3>
+                            <div className="bg-teal-50 p-6 rounded-xl border border-teal-100">
+                                <h3 className="font-bold text-teal-900 mb-4">Popular Resources</h3>
                                 <ul className="space-y-3">
                                     <li>
-                                        <Link href="/salary-guide" className="flex items-center text-sm text-gray-700 hover:text-blue-600 transition-colors">
+                                        <Link href="/salary-guide" className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors">
                                             <span className="mr-2">💰</span> 2026 Salary Guide
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/jobs" className="flex items-center text-sm text-gray-700 hover:text-blue-600 transition-colors">
+                                        <Link href="/jobs" className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors">
                                             <span className="mr-2">🔍</span> Browse All Jobs
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/jobs/remote" className="flex items-center text-sm text-gray-700 hover:text-blue-600 transition-colors">
+                                        <Link href="/jobs/remote" className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors">
                                             <span className="mr-2">🏠</span> Remote Jobs
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/job-alerts" className="flex items-center text-sm text-gray-700 hover:text-blue-600 transition-colors">
+                                        <Link href="/job-alerts" className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors">
                                             <span className="mr-2">🔔</span> Get Job Alerts
                                         </Link>
                                     </li>

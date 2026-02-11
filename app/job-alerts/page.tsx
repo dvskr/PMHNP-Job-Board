@@ -109,20 +109,27 @@ function JobAlertsContent() {
     return parts.length > 0 ? parts.join(' · ') : 'All PMHNP jobs';
   };
 
+  const inputCls = "w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500";
+  const inputSty = {
+    background: 'var(--bg-tertiary)',
+    color: 'var(--text-primary)',
+    borderColor: 'var(--border-color-dark)',
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Hero Section - Compact */}
-      <div className="bg-gradient-to-b from-blue-600 to-blue-700 text-white">
+      <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10">
-              <Bell className="w-5 h-5" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
+              <Bell className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                 Never Miss Your Dream PMHNP Job
               </h1>
-              <p className="text-sm text-blue-200">
+              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
                 Get personalized job alerts delivered to your inbox.
               </p>
             </div>
@@ -134,23 +141,29 @@ function JobAlertsContent() {
         <div className="flex flex-wrap gap-6">
           {/* Main Form Card */}
           <div className="flex-1 min-w-[300px]">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-6">
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">
+            <div
+              className="rounded-xl shadow-sm border p-5 sm:p-6"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+            >
+              <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                 Create Your Job Alert
               </h2>
-              <p className="text-slate-600 text-sm mb-6">
+              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
                 Enter your details below and we&apos;ll notify you when matching jobs are posted.
               </p>
 
               {/* Success Message */}
               {message.type === 'success' && (
-                <div className="mb-6 rounded-lg bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div
+                  className="mb-6 rounded-lg p-4 flex items-start gap-3"
+                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}
+                >
+                  <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-emerald-900">{message.text}</p>
-                    <p className="text-xs text-emerald-700 mt-1">
+                    <p className="text-sm font-medium text-emerald-500">{message.text}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
                       You can{' '}
-                      <Link href="/job-alerts/manage" className="underline hover:no-underline">
+                      <Link href="/job-alerts/manage" className="underline hover:no-underline" style={{ color: 'var(--color-primary)' }}>
                         manage your alerts
                       </Link>{' '}
                       anytime.
@@ -161,16 +174,19 @@ function JobAlertsContent() {
 
               {/* Error Message */}
               {message.type === 'error' && (
-                <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{message.text}</p>
+                <div
+                  className="mb-6 rounded-lg p-4 flex items-start gap-3"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-500">{message.text}</p>
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Email Field */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <label htmlFor="email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                     Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -182,26 +198,28 @@ function JobAlertsContent() {
                       if (emailError) setEmailError('');
                     }}
                     placeholder="you@example.com"
-                    className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${emailError
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                      : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500'
-                      }`}
+                    className={inputCls}
+                    style={{
+                      ...inputSty,
+                      borderColor: emailError ? '#ef4444' : 'var(--border-color-dark)',
+                    }}
                   />
                   {emailError && (
-                    <p className="mt-1.5 text-xs text-red-600">{emailError}</p>
+                    <p className="mt-1.5 text-xs text-red-500">{emailError}</p>
                   )}
                 </div>
 
                 {/* Location Dropdown */}
                 <div>
-                  <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Location <span className="text-slate-400 font-normal">(optional)</span>
+                  <label htmlFor="location" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Location <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
                   </label>
                   <select
                     id="location"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-blue-500 focus:ring-blue-500"
+                    className={inputCls}
+                    style={inputSty}
                   >
                     <option value="">Any Location</option>
                     <optgroup label="Work Arrangement">
@@ -219,14 +237,15 @@ function JobAlertsContent() {
 
                 {/* Work Mode Dropdown */}
                 <div>
-                  <label htmlFor="mode" className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Work Mode <span className="text-slate-400 font-normal">(optional)</span>
+                  <label htmlFor="mode" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Work Mode <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
                   </label>
                   <select
                     id="mode"
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-blue-500 focus:ring-blue-500"
+                    className={inputCls}
+                    style={inputSty}
                   >
                     <option value="">Any Work Mode</option>
                     {WORK_MODES.map((workMode) => (
@@ -239,14 +258,15 @@ function JobAlertsContent() {
 
                 {/* Job Type Dropdown */}
                 <div>
-                  <label htmlFor="jobType" className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Job Type <span className="text-slate-400 font-normal">(optional)</span>
+                  <label htmlFor="jobType" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Job Type <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
                   </label>
                   <select
                     id="jobType"
                     value={jobType}
                     onChange={(e) => setJobType(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-blue-500 focus:ring-blue-500"
+                    className={inputCls}
+                    style={inputSty}
                   >
                     <option value="">Any Job Type</option>
                     {JOB_TYPES.map((type) => (
@@ -259,7 +279,7 @@ function JobAlertsContent() {
 
                 {/* Frequency Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                     How often would you like to receive alerts?
                   </label>
                   <div className="flex gap-4">
@@ -270,9 +290,10 @@ function JobAlertsContent() {
                         value="daily"
                         checked={frequency === 'daily'}
                         onChange={(e) => setFrequency(e.target.value)}
-                        className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                        style={{ borderColor: 'var(--border-color-dark)' }}
                       />
-                      <span className="text-sm text-slate-700">Daily digest</span>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Daily digest</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -281,26 +302,31 @@ function JobAlertsContent() {
                         value="weekly"
                         checked={frequency === 'weekly'}
                         onChange={(e) => setFrequency(e.target.value)}
-                        className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                        style={{ borderColor: 'var(--border-color-dark)' }}
                       />
-                      <span className="text-sm text-slate-700">Weekly digest</span>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Weekly digest</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Alert Preview */}
-                <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-1">
+                <div
+                  className="rounded-lg border px-4 py-3"
+                  style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}
+                >
+                  <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
                     You&apos;ll receive alerts for
                   </p>
-                  <p className="text-sm font-medium text-slate-800">{buildCriteriaSummary()}</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{buildCriteriaSummary()}</p>
                 </div>
 
                 {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full rounded-lg px-4 py-3 text-sm font-semibold text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ background: 'var(--color-primary)' }}
                 >
                   {isSubmitting ? (
                     <>
@@ -334,9 +360,9 @@ function JobAlertsContent() {
                   )}
                 </button>
 
-                <p className="text-xs text-center text-slate-500">
+                <p className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
                   You can unsubscribe anytime from the email or{' '}
-                  <Link href="/job-alerts/manage" className="text-blue-600 hover:underline">
+                  <Link href="/job-alerts/manage" className="hover:underline" style={{ color: 'var(--color-primary)' }}>
                     manage your alerts
                   </Link>
                   .
@@ -348,72 +374,83 @@ function JobAlertsContent() {
           {/* Benefits Sidebar */}
           <div className="flex-1 min-w-[250px] flex flex-col gap-4">
             {/* Benefits Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-              <h3 className="font-semibold text-slate-900 mb-4">Why Set Up Alerts?</h3>
+            <div
+              className="rounded-xl shadow-sm border p-5"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+            >
+              <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Why Set Up Alerts?</h3>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center mt-0.5">
-                    <Zap className="w-3 h-3 text-emerald-600" />
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(16,185,129,0.15)' }}>
+                    <Zap className="w-3 h-3 text-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Be First to Apply</p>
-                    <p className="text-xs text-slate-500">Get notified as soon as new jobs are posted</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Be First to Apply</p>
+                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Get notified as soon as new jobs are posted</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
-                    <Bell className="w-3 h-3 text-blue-600" />
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(20,184,166,0.15)' }}>
+                    <Bell className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Personalized Matches</p>
-                    <p className="text-xs text-slate-500">Only receive jobs that match your criteria</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Personalized Matches</p>
+                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Only receive jobs that match your criteria</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center mt-0.5">
-                    <Briefcase className="w-3 h-3 text-purple-600" />
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(168,85,247,0.15)' }}>
+                    <Briefcase className="w-3 h-3 text-purple-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Save Time</p>
-                    <p className="text-xs text-slate-500">No need to check the site daily</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Save Time</p>
+                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No need to check the site daily</p>
                   </div>
                 </li>
               </ul>
             </div>
 
             {/* Quick Links Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-semibold text-slate-900 mb-3">Popular Alert Filters</h3>
+            <div
+              className="rounded-xl shadow-sm border p-6"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+            >
+              <h3 className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Popular Alert Filters</h3>
               <div className="flex flex-wrap gap-2">
                 <Link
                   href="/job-alerts?mode=Remote"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
+                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                 >
                   <MapPin className="w-3 h-3" />
                   Remote
                 </Link>
                 <Link
                   href="/job-alerts?jobType=Full-Time"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
+                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                 >
                   <Briefcase className="w-3 h-3" />
                   Full-Time
                 </Link>
                 <Link
                   href="/job-alerts?location=California"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
+                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                 >
                   California
                 </Link>
                 <Link
                   href="/job-alerts?location=Texas"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
+                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                 >
                   Texas
                 </Link>
                 <Link
                   href="/job-alerts?location=New York"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
+                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
                 >
                   New York
                 </Link>
@@ -421,25 +458,28 @@ function JobAlertsContent() {
             </div>
 
             {/* Stats Card */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
-              <p className="text-sm font-medium text-blue-900 mb-3">Trusted by PMHNPs</p>
+            <div
+              className="rounded-xl border p-6"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color-dark)' }}
+            >
+              <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-primary)' }}>Trusted by PMHNPs</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-2xl font-bold text-blue-600">200+</p>
-                  <p className="text-xs text-blue-700">New jobs daily</p>
+                  <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>200+</p>
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>New jobs daily</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-600">8,500+</p>
-                  <p className="text-xs text-blue-700">Active listings</p>
+                  <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>10,000+</p>
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Active listings</p>
                 </div>
               </div>
             </div>
 
             {/* Already have alerts? */}
             <div className="text-center py-4">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
                 Already have alerts?{' '}
-                <Link href="/job-alerts/manage" className="text-blue-600 hover:text-blue-700 font-medium">
+                <Link href="/job-alerts/manage" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
                   Manage them here
                 </Link>
               </p>
@@ -451,7 +491,8 @@ function JobAlertsContent() {
         <div className="mt-6 text-center pb-4">
           <Link
             href="/jobs"
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium"
+            className="inline-flex items-center gap-2 font-medium"
+            style={{ color: 'var(--text-secondary)' }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -466,10 +507,10 @@ function JobAlertsContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
       <div className="flex items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="text-slate-600">Loading...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary)' }}></div>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
       </div>
     </div>
   );

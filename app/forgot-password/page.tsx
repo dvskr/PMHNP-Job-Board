@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -37,33 +37,48 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link href="/" className="flex justify-center">
-          <span className="text-3xl font-bold text-blue-600">PMHNP Jobs</span>
-        </Link>
-        <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          Reset your password
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Enter your email and we&apos;ll send you a reset link
-        </p>
-      </div>
+    <div
+      className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12"
+      style={{ background: 'var(--bg-primary)' }}
+    >
+      <div className="w-full max-w-md relative">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Reset your password
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            Enter your email and we&apos;ll send you a reset link
+          </p>
+        </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
+        {/* Card */}
+        <div
+          className="rounded-2xl p-6 sm:p-8"
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color-dark)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+          }}
+        >
           {success ? (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="text-center space-y-4 py-4">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+                style={{ background: 'rgba(16,185,129,0.1)' }}
+              >
+                <CheckCircle className="w-8 h-8 text-emerald-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900">Check your email</h3>
-              <p className="text-gray-600">
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Check your email
+              </h3>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 We&apos;ve sent a password reset link to <strong>{email}</strong>
               </p>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+                className="inline-flex items-center gap-1.5 mt-4 font-medium text-sm hover:underline"
+                style={{ color: 'var(--color-primary)' }}
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to login
@@ -72,34 +87,41 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600">{error}</p>
+                <div
+                  className="rounded-lg p-3 flex items-start gap-3"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-500">{error}</p>
                 </div>
               )}
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="reset-email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                   Email address
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="you@example.com"
-                  />
-                </div>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="block w-full px-4 py-3 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
+                  style={{
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    borderColor: 'var(--border-color-dark)',
+                  }}
+                  placeholder="you@example.com"
+                />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                style={{ background: 'var(--color-primary)' }}
               >
                 {loading ? (
                   <>
@@ -107,13 +129,17 @@ export default function ForgotPasswordPage() {
                     Sending...
                   </>
                 ) : (
-                  'Send reset link'
+                  <>
+                    Send reset link
+                    <ArrowRight className="w-4 h-4" />
+                  </>
                 )}
               </button>
 
               <Link
                 href="/login"
-                className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                className="flex items-center justify-center gap-2 text-sm font-medium hover:underline"
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to login
@@ -125,4 +151,3 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
-

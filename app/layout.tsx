@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
+import FloatingSocial from '@/components/FloatingSocial';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
@@ -117,12 +118,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
       <head>
         {/* Theme init script — runs before React hydrates to prevent FOUC */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)||(!t&&!window.matchMedia);var h=document.documentElement;var s=h.style;if(d){h.classList.add('dark');s.setProperty('--bg-primary','#060E18');s.setProperty('--bg-secondary','#0F1923');s.setProperty('--bg-tertiary','#162231');s.setProperty('--text-primary','#F1F5F9');s.setProperty('--text-secondary','#94A3B8');s.setProperty('--text-tertiary','#64748B');s.setProperty('--border-color','#1E293B');s.setProperty('--border-color-dark','#334155');s.setProperty('--shadow-color','rgba(0,0,0,0.4)');s.setProperty('--header-bg','#0B1320');s.setProperty('--mobile-menu-bg','#0F1923');s.setProperty('--nav-btn-bg','#162231');s.setProperty('--nav-btn-text','#F1F5F9');s.setProperty('--nav-btn-hover-bg','#1E293B');s.setProperty('--input-text','#F1F5F9');s.setProperty('--input-placeholder','#64748B');s.setProperty('--selection-bg','#134E4A');s.setProperty('--selection-text','#CCFBF1');s.setProperty('--shimmer-from','#162231');s.setProperty('--shimmer-via','#1E293B');s.setProperty('--color-primary','#2DD4BF');s.setProperty('--color-primary-dark','#14B8A6');s.setProperty('--color-primary-light','#5EEAD4')}else{h.classList.remove('dark')}}catch(e){document.documentElement.classList.add('dark')}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)||(!t&&!window.matchMedia);var h=document.documentElement;var s=h.style;if(d){h.classList.add('dark');s.setProperty('--bg-primary','#060E18');s.setProperty('--bg-secondary','#0F1923');s.setProperty('--bg-secondary-rgb','15,25,35');s.setProperty('--bg-tertiary','#162231');s.setProperty('--text-primary','#F1F5F9');s.setProperty('--text-primary-rgb','241,245,249');s.setProperty('--text-secondary','#94A3B8');s.setProperty('--text-tertiary','#64748B');s.setProperty('--border-color','#1E293B');s.setProperty('--border-color-dark','#334155');s.setProperty('--shadow-color','rgba(0,0,0,0.4)');s.setProperty('--header-bg','#0B1320');s.setProperty('--mobile-menu-bg','#0F1923');s.setProperty('--nav-btn-bg','#162231');s.setProperty('--nav-btn-text','#F1F5F9');s.setProperty('--nav-btn-hover-bg','#1E293B');s.setProperty('--input-text','#F1F5F9');s.setProperty('--input-placeholder','#64748B');s.setProperty('--selection-bg','#134E4A');s.setProperty('--selection-text','#CCFBF1');s.setProperty('--shimmer-from','#162231');s.setProperty('--shimmer-via','#1E293B');s.setProperty('--color-primary','#2DD4BF');s.setProperty('--color-primary-dark','#14B8A6');s.setProperty('--color-primary-light','#5EEAD4');s.setProperty('--salary-color','#2DD4BF')}else{h.classList.remove('dark');s.setProperty('--bg-primary','#FFFFFF');s.setProperty('--bg-secondary','#F9FAFB');s.setProperty('--bg-secondary-rgb','249,250,251');s.setProperty('--bg-tertiary','#F3F4F6');s.setProperty('--text-primary','#111827');s.setProperty('--text-primary-rgb','17,24,39');s.setProperty('--text-secondary','#374151');s.setProperty('--text-tertiary','#6B7280');s.setProperty('--border-color','#E5E7EB');s.setProperty('--border-color-dark','#D1D5DB');s.setProperty('--shadow-color','rgba(0,0,0,0.1)');s.setProperty('--header-bg','#FFFFFF');s.setProperty('--mobile-menu-bg','#FFFFFF');s.setProperty('--nav-btn-bg','#F3F4F6');s.setProperty('--nav-btn-text','#111827');s.setProperty('--nav-btn-hover-bg','#E5E7EB');s.setProperty('--input-text','#111827');s.setProperty('--input-placeholder','#6B7280');s.setProperty('--selection-bg','#CCFBF1');s.setProperty('--selection-text','#134E4A');s.setProperty('--shimmer-from','#f0f0f0');s.setProperty('--shimmer-via','#e0e0e0');s.setProperty('--color-primary','#0D9488');s.setProperty('--color-primary-dark','#0F766E');s.setProperty('--color-primary-light','#14B8A6');s.setProperty('--salary-color','#1d4ed8')}}catch(e){document.documentElement.classList.add('dark')}})();`,
           }}
         />
         {/* Performance: Preconnect to external domains */}
@@ -147,7 +148,7 @@ export default function RootLayout({
                     "url": "https://pmhnphiring.com/pmhnp_logo.png"
                   },
                   "image": "https://pmhnphiring.com/pmhnp_logo.png",
-                  "description": "The #1 job board for psychiatric mental health nurse practitioners. Browse 8,500+ PMHNP jobs with salary data.",
+                  "description": "The #1 job board for psychiatric mental health nurse practitioners. Browse 10,000+ PMHNP jobs with salary data.",
                   "foundingDate": "2024",
                   "sameAs": [
                     "https://x.com/pmhnphiring",
@@ -189,6 +190,7 @@ export default function RootLayout({
           <Header />
           <main className="min-h-screen pt-16 pb-20 md:pb-0">{children}</main>
           <Footer />
+          <FloatingSocial />
           <BottomNav />
         </ThemeProvider>
       </body>

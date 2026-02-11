@@ -3,6 +3,16 @@
 /* Enable class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Hide scrollbar globally (still scrollable) */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+}
+
 :root {
   /* Font references */
   --font-geist-sans: 'Geist', system-ui, sans-serif;
@@ -17,6 +27,7 @@
   --color-primary: #0D9488;
   --color-primary-dark: #0F766E;
   --color-primary-light: #14B8A6;
+  --salary-color: #0D9488;
 
   /* Backgrounds */
   --bg-primary: #FFFFFF;
@@ -25,8 +36,9 @@
 
   /* Text */
   --text-primary: #111827;
-  --text-secondary: #4B5563;
-  --text-tertiary: #9CA3AF;
+  --text-primary-rgb: 17, 24, 39;
+  --text-secondary: #374151;
+  --text-tertiary: #6B7280;
 
   /* Borders */
   --border-color: #E5E7EB;
@@ -67,12 +79,14 @@ html.dark {
   --color-primary: #2DD4BF;
   --color-primary-dark: #14B8A6;
   --color-primary-light: #5EEAD4;
+  --salary-color: #2DD4BF;
 
   --bg-primary: #060E18;
   --bg-secondary: #0F1923;
   --bg-tertiary: #162231;
 
   --text-primary: #F1F5F9;
+  --text-primary-rgb: 241, 245, 249;
   --text-secondary: #94A3B8;
   --text-tertiary: #64748B;
 
@@ -102,6 +116,143 @@ html.dark {
 html.dark body {
   background: #060E18 !important;
   color: #F1F5F9 !important;
+}
+
+/* ===== DARK MODE: Override hardcoded Tailwind color utilities ===== */
+/* This ensures all pages using Tailwind classes like bg-white, text-gray-900, etc.
+   automatically adapt to the dark theme without editing each file individually. */
+
+html.dark .bg-white {
+  background-color: var(--bg-secondary) !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: var(--bg-primary) !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html.dark .bg-blue-50 {
+  background-color: rgba(37, 99, 235, 0.08) !important;
+}
+
+html.dark .bg-green-50,
+html.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+html.dark .bg-yellow-50,
+html.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+html.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+html.dark .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .text-gray-800 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .text-gray-500 {
+  color: var(--text-tertiary) !important;
+}
+
+html.dark .text-gray-400 {
+  color: var(--text-tertiary) !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-700,
+html.dark .text-slate-800,
+html.dark .text-slate-900 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .border-gray-100 {
+  border-color: var(--border-color) !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+html.dark .border-gray-300 {
+  border-color: var(--border-color-dark) !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: var(--border-color) !important;
+}
+
+html.dark .border-blue-200 {
+  border-color: rgba(37, 99, 235, 0.25) !important;
+}
+
+html.dark .border-yellow-200 {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html.dark .divide-gray-200> :not([hidden])~ :not([hidden]) {
+  border-color: var(--border-color) !important;
+}
+
+/* Form elements in dark mode - fallback defaults (inline styles take priority) */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"])::placeholder,
+html.dark textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: var(--color-primary);
+}
+
+/* Placeholder text color overrides */
+html.dark .placeholder\:text-gray-400::placeholder,
+html.dark .placeholder\:text-gray-500::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+/* Ring/shadow color override for dark */
+html.dark .ring-gray-200,
+html.dark .ring-gray-300 {
+  --tw-ring-color: var(--border-color) !important;
+}
+
+/* Blue highlight sections - common CTA cards */
+html.dark .bg-gradient-to-r.from-blue-50,
+html.dark .bg-gradient-to-br.from-blue-50 {
+  background: var(--bg-tertiary) !important;
 }
 
 @theme inline {

@@ -1,165 +1,313 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { TrendingUp, CheckCircle, Download, Loader2, Sparkles, BarChart3, MapPin, DollarSign } from 'lucide-react';
 
 export default function SalaryGuideSection() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  const onIntersect = useCallback((entries: IntersectionObserverEntry[]) => {
+    if (entries[0].isIntersecting) setVisible(true);
+  }, []);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(onIntersect, { threshold: 0.15 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [onIntersect]);
+
+  useEffect(() => {
+    const id = 'sg-styles';
+    if (document.getElementById(id)) return;
+    const s = document.createElement('style');
+    s.id = id;
+    s.textContent = `
+      .sg-fade { opacity:0; transform:translateY(20px);
+        transition: opacity 0.6s cubic-bezier(.16,1,.3,1), transform 0.6s cubic-bezier(.16,1,.3,1); }
+      .sg-fade.sg-vis { opacity:1; transform:translateY(0); }
+      .sg-input:focus {
+        border-color: rgba(45,212,191,0.5) !important;
+        box-shadow: 0 0 0 3px rgba(45,212,191,0.08) !important;
+      }
+      .sg-submit { transition: transform .2s, box-shadow .2s, filter .2s; }
+      .sg-submit:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(45,212,191,0.25);
+        filter: brightness(1.05);
+      }
+      .sg-mockup {
+        transition: transform 0.6s cubic-bezier(.16,1,.3,1);
+      }
+      .sg-mockup:hover {
+        transform: perspective(800px) rotateY(-4deg) rotateX(2deg) scale(1.02) !important;
+      }
+    `;
+    document.head.appendChild(s);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('loading');
     setErrorMessage('');
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim() || !emailRegex.test(email)) {
-      setErrorMessage('Please enter a valid email address');
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrorMessage('Please enter a valid email');
       setStatus('error');
       return;
     }
-
     try {
-      const response = await fetch('/api/job-alerts', {
+      const res = await fetch('/api/job-alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          frequency: 'daily',
-          name: 'Salary Guide Signup',
-        }),
+        body: JSON.stringify({ email, frequency: 'daily', name: 'Salary Guide Signup' }),
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setStatus('success');
-        setEmail('');
-      } else {
-        setErrorMessage(data.error || 'Something went wrong. Please try again.');
-        setStatus('error');
-      }
-    } catch {
-      setErrorMessage('Network error. Please try again.');
-      setStatus('error');
-    }
+      const data = await res.json();
+      if (res.ok && data.success) { setStatus('success'); setEmail(''); }
+      else { setErrorMessage(data.error || 'Something went wrong.'); setStatus('error'); }
+    } catch { setErrorMessage('Network error.'); setStatus('error'); }
   };
 
-  return (
-    <section style={{ background: 'linear-gradient(135deg, #0d9488 0%, #115e59 100%)' }} className="py-12 px-4 text-white">
-      <div className="max-w-4xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          {/* Left: Content */}
-          <div>
-            <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center mb-4">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Free 2026 PMHNP Salary Guide
-            </h2>
-            <p className="text-teal-100 text-lg mb-6">
-              Know your worth. Get data-driven insights on psychiatric NP compensation across the US.
-            </p>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </span>
-                <span className="text-teal-50">Salary ranges by state</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </span>
-                <span className="text-teal-50">Remote vs in-person pay comparison</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </span>
-                <span className="text-teal-50">Negotiation tips from hiring managers</span>
-              </li>
-            </ul>
-          </div>
+  // Mock guide "pages" for the visual
+  const mockPages = [
+    { icon: BarChart3, title: 'Pay by State', value: '$115K – $185K' },
+    { icon: MapPin, title: 'Top Markets', value: 'CA, NY, TX, FL' },
+    { icon: TrendingUp, title: 'YoY Growth', value: '+12% avg' },
+  ];
 
-          {/* Right: Form */}
-          <div className="bg-white rounded-xl p-6 shadow-xl">
-            {status === 'success' ? (
-              <div className="text-center py-4">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+  return (
+    <section ref={sectionRef} style={{ backgroundColor: 'var(--bg-primary)', padding: '80px 0' }}>
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1.1fr',
+          gap: '56px', alignItems: 'center',
+        }}>
+          {/* Left — 3D Guide Mockup */}
+          <div
+            className={`sg-fade sg-mockup ${visible ? 'sg-vis' : ''}`}
+            style={{
+              transform: 'perspective(800px) rotateY(-6deg) rotateX(2deg)',
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {/* Guide "cover" */}
+            <div style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              boxShadow: '24px 24px 64px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03)',
+            }}>
+              {/* Header bar */}
+              <div style={{
+                padding: '24px 28px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                background: 'linear-gradient(135deg, rgba(45,212,191,0.06), transparent)',
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  marginBottom: '8px',
+                }}>
+                  <Sparkles size={14} style={{ color: '#2dd4bf' }} />
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, color: '#2dd4bf',
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                  }}>
+                    2026 Edition
+                  </span>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Check Your Email!</h3>
-                <p className="text-gray-600">
-                  Your Salary Guide is on its way. You&apos;ll also receive weekly job alerts.
+                <h3 style={{
+                  fontSize: '20px', fontWeight: 800,
+                  color: 'var(--text-primary)', margin: 0, lineHeight: 1.3,
+                }}>
+                  PMHNP Salary Guide
+                </h3>
+                <p style={{
+                  fontSize: '12px', color: 'var(--text-muted)',
+                  margin: '4px 0 0',
+                }}>
+                  Comprehensive compensation data across 50 states
                 </p>
               </div>
-            ) : (
-              <>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Get Your Free Copy
-                </h3>
-                <p className="text-gray-600 text-sm mb-5">
-                  Enter your email and we&apos;ll send you the guide + weekly job alerts.
-                </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Mock data rows */}
+              <div style={{ padding: '4px 0' }}>
+                {mockPages.map((p, i) => {
+                  const Icon = p.icon;
+                  return (
+                    <div
+                      key={p.title}
+                      className={`sg-fade ${visible ? 'sg-vis' : ''}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '14px',
+                        padding: '16px 28px',
+                        borderBottom: i < mockPages.length - 1 ? '1px solid var(--border-color)' : 'none',
+                        transitionDelay: `${(i + 2) * 100}ms`,
+                      }}
+                    >
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '10px',
+                        background: 'rgba(45,212,191,0.08)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <Icon size={16} style={{ color: '#2dd4bf' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: '12px', color: 'var(--text-muted)',
+                          fontWeight: 600, textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                        }}>
+                          {p.title}
+                        </div>
+                        <div style={{
+                          fontSize: '16px', fontWeight: 700,
+                          color: 'var(--text-primary)', marginTop: '2px',
+                        }}>
+                          {p.value}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom shimmer bar */}
+              <div style={{
+                height: '4px',
+                background: 'linear-gradient(90deg, #2dd4bf, #E86C2C, #2dd4bf)',
+                backgroundSize: '200% auto',
+              }} />
+            </div>
+          </div>
+
+          {/* Right — CTA + Form */}
+          <div className={`sg-fade ${visible ? 'sg-vis' : ''}`} style={{ transitionDelay: '150ms' }}>
+            <p style={{
+              fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: '#2dd4bf', margin: '0 0 12px',
+            }}>
+              Free Download
+            </p>
+
+            <h2 style={{
+              fontSize: '32px', fontWeight: 800,
+              color: 'var(--text-primary)',
+              margin: '0 0 14px', lineHeight: 1.2,
+            }}>
+              Know Your Worth
+            </h2>
+
+            <p style={{
+              fontSize: '16px', color: 'var(--text-secondary)',
+              margin: '0 0 8px', lineHeight: 1.7,
+            }}>
+              Get the data you need to negotiate with confidence.
+            </p>
+            <p style={{
+              fontSize: '14px', color: 'var(--text-muted)',
+              margin: '0 0 32px', lineHeight: 1.6,
+            }}>
+              State-by-state salary ranges, remote vs in-person comparisons,
+              and negotiation strategies from hiring managers.
+            </p>
+
+            {status === 'success' ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '16px 20px', borderRadius: '14px',
+                background: 'rgba(34,197,94,0.08)',
+                border: '1px solid rgba(34,197,94,0.2)',
+              }}>
+                <CheckCircle size={20} style={{ color: '#22c55e' }} />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#22c55e' }}>
+                    Check your email!
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    The guide is on its way.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Inline email + button */}
+                <div style={{
+                  display: 'flex', gap: '8px',
+                  borderRadius: '14px',
+                }}>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="sg-input"
+                    style={{
+                      flex: 1, padding: '14px 16px',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '14px', fontSize: '14px',
+                      color: 'var(--text-primary)',
+                      outline: 'none', minWidth: 0,
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}
                     disabled={status === 'loading'}
                   />
-
-                  {status === 'error' && (
-                    <p className="text-red-600 text-sm">{errorMessage}</p>
-                  )}
-
                   <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="sg-submit"
+                    style={{
+                      padding: '14px 24px',
+                      background: 'linear-gradient(135deg, #0D9488, #2DD4BF)',
+                      color: '#fff', fontSize: '14px', fontWeight: 700,
+                      border: 'none', borderRadius: '14px',
+                      cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+                      opacity: status === 'loading' ? 0.7 : 1,
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      whiteSpace: 'nowrap',
+                    }}
                   >
                     {status === 'loading' ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Sending...
-                      </>
+                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                     ) : (
-                      <>
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download Free Guide
-                      </>
+                      <><Download size={15} /> Get Guide</>
                     )}
                   </button>
+                </div>
 
-                  <p className="text-xs text-gray-400 text-center">
-                    No spam. Unsubscribe anytime.
-                  </p>
-                </form>
-              </>
+                {status === 'error' && (
+                  <p style={{ fontSize: '13px', color: '#ef4444', margin: 0 }}>{errorMessage}</p>
+                )}
+
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                  Free · No spam · Also includes weekly job alerts
+                </p>
+              </form>
             )}
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 750px) {
+          section > div > div {
+            grid-template-columns: 1fr !important;
+            gap: 36px !important;
+          }
+          .sg-mockup {
+            transform: perspective(800px) rotateY(0deg) rotateX(0deg) !important;
+            max-width: 380px;
+            margin: 0 auto;
+          }
+        }
+      `}</style>
     </section>
   );
 }
