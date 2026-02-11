@@ -114,6 +114,10 @@ export default function StayConnected() {
         0%, 100% { opacity:.5; }
         50% { opacity:1; }
       }
+      @media (max-width: 700px) {
+        .sc-grid { grid-template-columns: 1fr !important; }
+        .sc-panel { padding: 28px 20px !important; }
+      }
     `;
         document.head.appendChild(s);
     }, []);
@@ -144,7 +148,7 @@ export default function StayConnected() {
                 </div>
 
                 {/* ═══ Two-panel layout ═══ */}
-                <div style={{
+                <div className="sc-grid" style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gap: '20px',
@@ -152,7 +156,7 @@ export default function StayConnected() {
 
                     {/* ════ LEFT: Salary Guide ════ */}
                     <div
-                        className={`sc-el ${visible ? 'sc-vis' : ''}`}
+                        className={`sc-el sc-panel ${visible ? 'sc-vis' : ''}`}
                         style={{
                             padding: '40px 36px',
                             borderRadius: '16px',
@@ -277,7 +281,7 @@ export default function StayConnected() {
 
                     {/* ════ RIGHT: Job Alerts ════ */}
                     <div
-                        className={`sc-el ${visible ? 'sc-vis' : ''}`}
+                        className={`sc-el sc-panel ${visible ? 'sc-vis' : ''}`}
                         style={{
                             padding: '40px 36px',
                             borderRadius: '16px',

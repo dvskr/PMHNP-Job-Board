@@ -65,6 +65,8 @@ export default function Footer() {
   const pathname = usePathname();
   const isHomepage = pathname === '/';
 
+  const socialRowClass = isHomepage ? 'footer-social-homepage' : '';
+
   return (
     <footer style={{
       backgroundColor: 'var(--bg-secondary)',
@@ -110,37 +112,40 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Social media icons row (hidden on homepage) */}
-        {!isHomepage && (
-          <div style={{
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            gap: '20px', padding: '16px 0',
-            borderTop: '1px solid var(--border-color)',
-          }}>
-            {socialLinks.map((s) => {
-              const Icon = s.icon;
-              return (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.label}
-                  className="footer-social-icon"
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s, transform 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Icon size={18} strokeWidth={1.5} />
-                </a>
-              );
-            })}
-          </div>
-        )}
+        {/* Social media icons row — hidden on homepage desktop (floating icons visible) */}
+        <style>{`
+          @media (min-width: 768px) {
+            .footer-social-homepage { display: none !important; }
+          }
+        `}</style>
+        <div className={socialRowClass} style={{
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          gap: '20px', padding: '16px 0',
+          borderTop: '1px solid var(--border-color)',
+        }}>
+          {socialLinks.map((s) => {
+            const Icon = s.icon;
+            return (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={s.label}
+                className="footer-social-icon"
+                style={{
+                  color: 'var(--text-tertiary)',
+                  transition: 'color 0.2s, transform 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon size={18} strokeWidth={1.5} />
+              </a>
+            );
+          })}
+        </div>
 
         {/* Bottom bar */}
         <div className="footer-bottom-bar" style={{

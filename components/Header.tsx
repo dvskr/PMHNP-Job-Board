@@ -131,7 +131,7 @@ export default function Header() {
             boxShadow: showSolid
               ? '0 4px 24px rgba(0,0,0,0.2), 0 0 40px rgba(45,212,191,0.06)'
               : '0 2px 16px rgba(0,0,0,0.1), 0 0 30px rgba(45,212,191,0.04)',
-            padding: '0 28px',
+            padding: '0 clamp(12px, 3vw, 28px)',
           }}
         >
           <div style={{

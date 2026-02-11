@@ -8,7 +8,7 @@ const features = [
         color: '#E86C2C',
         title: '100% PMHNP Roles',
         desc: 'Every listing is verified for relevance. No physician assistant roles, no general NP positions, no irrelevant noise.',
-        stat: '8,700+',
+        stat: '10,000+',
         statLabel: 'verified listings',
     },
     {
@@ -16,7 +16,7 @@ const features = [
         color: '#2dd4bf',
         title: 'Updated Daily',
         desc: 'We aggregate from 500+ healthcare employers, ATS feeds, and job boards — refreshed every 24 hours.',
-        stat: '500+',
+        stat: '3,000+',
         statLabel: 'sources monitored',
     },
     {
@@ -70,6 +70,17 @@ export default function WhyUs() {
       }
       .wu-stat {
         font-variant-numeric: tabular-nums;
+      }
+      @media (max-width: 640px) {
+        .wu-item {
+          grid-template-columns: 1fr !important;
+          gap: 16px !important;
+          padding: 24px 0 !important;
+        }
+        .wu-item > div:first-child,
+        .wu-item > div:nth-child(2) {
+          display: none !important;
+        }
       }
     `;
         document.head.appendChild(s);
