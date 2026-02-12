@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { config } from '@/lib/config';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 const jobPostingSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -653,8 +654,8 @@ function PostJobContent() {
               {/* Standard Plan */}
               <label
                 className={`relative flex flex-col p-6 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'standard'
-                    ? 'border-teal-500'
-                    : ''
+                  ? 'border-teal-500'
+                  : ''
                   }`}
                 style={{
                   backgroundColor: selectedPricingTier === 'standard' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
@@ -681,8 +682,8 @@ function PostJobContent() {
               {/* Featured Plan */}
               <label
                 className={`relative flex flex-col p-6 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'featured'
-                    ? 'border-teal-500'
-                    : ''
+                  ? 'border-teal-500'
+                  : ''
                   }`}
                 style={{
                   backgroundColor: selectedPricingTier === 'featured' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
@@ -784,8 +785,14 @@ function PostJobContent() {
 
 export default function PostJobPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <PostJobContent />
-    </Suspense>
+    <>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Post a Job', url: 'https://pmhnphiring.com/post-job' },
+      ]} />
+      <Suspense fallback={<LoadingFallback />}>
+        <PostJobContent />
+      </Suspense>
+    </>
   );
 }

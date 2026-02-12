@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerDashboardClient from '@/components/employer/EmployerDashboardClient';
 
 export default async function EmployerDashboardPage() {
@@ -53,10 +54,16 @@ export default async function EmployerDashboardPage() {
     }
 
     return (
-        <EmployerDashboardClient
-            employerEmail={user.email}
-            employerName={employerName}
-            jobs={jobs}
-        />
+        <>
+            <BreadcrumbSchema items={[
+                { name: 'Home', url: 'https://pmhnphiring.com' },
+                { name: 'Employer Dashboard', url: 'https://pmhnphiring.com/employer/dashboard' },
+            ]} />
+            <EmployerDashboardClient
+                employerEmail={user.email}
+                employerName={employerName}
+                jobs={jobs}
+            />
+        </>
     );
 }

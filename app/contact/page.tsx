@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ContactFormData {
@@ -61,6 +62,10 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Contact', url: 'https://pmhnphiring.com/contact' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">

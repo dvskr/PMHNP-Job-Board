@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth/protect'
 import { redirect } from 'next/navigation'
+import BreadcrumbSchema from '@/components/BreadcrumbSchema'
 import DashboardContent from '@/components/dashboard/DashboardContent'
 
 export const metadata = {
@@ -14,5 +15,13 @@ export default async function DashboardPage() {
     redirect('/employer/dashboard')
   }
 
-  return <DashboardContent />
+  return (
+    <>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Dashboard', url: 'https://pmhnphiring.com/dashboard' },
+      ]} />
+      <DashboardContent />
+    </>
+  )
 }

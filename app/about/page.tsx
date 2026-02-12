@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, Briefcase, MapPin, RefreshCw, Database, FileText, Shield, BarChart3 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -14,6 +15,10 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'About', url: 'https://pmhnphiring.com/about' },
+      ]} />
       {/* Hero Section */}
       <section className="py-20 px-4" style={{ background: 'var(--bg-secondary)' }}>
         <div className="max-w-4xl mx-auto text-center">

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BookOpen, DollarSign, Briefcase, Users, FileText, TrendingUp } from 'lucide-react';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import ResourceDownloadGate from '@/components/ResourceDownloadGate';
 
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
@@ -81,6 +82,10 @@ const resources = [
 export default function ResourcesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Resources', url: 'https://pmhnphiring.com/resources' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">

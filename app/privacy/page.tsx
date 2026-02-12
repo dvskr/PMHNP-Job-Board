@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { AlertTriangle, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Privacy Policy', url: 'https://pmhnphiring.com/privacy' },
+      ]} />
       <article className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 md:p-12">
         {/* Legal Disclaimer */}
         <div className="mb-8 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">

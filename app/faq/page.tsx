@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import FAQAccordion from '@/components/FAQAccordion';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Mail, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
 
@@ -104,6 +105,10 @@ export default function FAQPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'FAQ', url: 'https://pmhnphiring.com/faq' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
