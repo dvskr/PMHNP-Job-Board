@@ -257,6 +257,7 @@ model UserProfile {
   preferredJobType  String?       @map("preferred_job_type")
   desiredSalaryMin  Int?          @map("desired_salary_min")
   desiredSalaryMax  Int?          @map("desired_salary_max")
+  desiredSalaryType String?       @map("desired_salary_type")
   availableDate     DateTime?     @map("available_date")
 
   // Visibility

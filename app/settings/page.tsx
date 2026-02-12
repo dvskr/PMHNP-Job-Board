@@ -60,6 +60,7 @@ interface Profile {
   preferredJobType: string | null
   desiredSalaryMin: number | null
   desiredSalaryMax: number | null
+  desiredSalaryType: string | null
   bio: string | null
   linkedinUrl: string | null
   availableDate: string | null
@@ -491,14 +492,14 @@ export default function SettingsPage() {
               <textarea
                 value={profile.bio || ''}
                 onChange={(e) => {
-                  if (e.target.value.length <= 500) updateProfile({ bio: e.target.value })
+                  if (e.target.value.length <= 1000) updateProfile({ bio: e.target.value })
                 }}
                 placeholder="Brief summary of your experience and goals..."
                 rows={4}
                 style={{ ...inputStyle, resize: 'vertical', minHeight: '100px' }}
               />
               <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                {(profile.bio || '').length}/500
+                {(profile.bio || '').length}/1000
               </div>
             </div>
 
@@ -579,6 +580,31 @@ export default function SettingsPage() {
             {/* Salary Range */}
             <div>
               <label style={labelStyle}>Desired Salary Range</label>
+              {/* Rate type toggle */}
+              <div style={{
+                display: 'inline-flex', borderRadius: '8px', overflow: 'hidden',
+                border: '1px solid var(--border-color)', marginBottom: '10px',
+              }}>
+                {(['yearly', 'hourly'] as const).map((type) => {
+                  const isActive = (profile.desiredSalaryType || 'yearly') === type
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => updateProfile({ desiredSalaryType: type })}
+                      style={{
+                        padding: '6px 16px', fontSize: '13px', fontWeight: 600,
+                        border: 'none', cursor: 'pointer',
+                        backgroundColor: isActive ? 'var(--color-primary)' : 'transparent',
+                        color: isActive ? '#fff' : 'var(--text-secondary)',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {type === 'yearly' ? 'Per Year' : 'Per Hour'}
+                    </button>
+                  )
+                })}
+              </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <DollarSign
@@ -589,7 +615,7 @@ export default function SettingsPage() {
                     type="number"
                     value={profile.desiredSalaryMin ?? ''}
                     onChange={(e) => updateProfile({ desiredSalaryMin: e.target.value ? parseInt(e.target.value, 10) : null })}
-                    placeholder="Min"
+                    placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 60' : 'Min'}
                     style={{ ...inputStyle, paddingLeft: '32px' }}
                   />
                 </div>
@@ -603,7 +629,7 @@ export default function SettingsPage() {
                     type="number"
                     value={profile.desiredSalaryMax ?? ''}
                     onChange={(e) => updateProfile({ desiredSalaryMax: e.target.value ? parseInt(e.target.value, 10) : null })}
-                    placeholder="Max"
+                    placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 90' : 'Max'}
                     style={{ ...inputStyle, paddingLeft: '32px' }}
                   />
                 </div>
@@ -689,7 +715,7 @@ export default function SettingsPage() {
       {/* ═════════════════════════════════════════════
           SECTION 4 — Personal Info
          ═════════════════════════════════════════════ */}
-      <div id="section-contact" style={cardStyle}>
+      <div id="section-contact" style={{ ...cardStyle, marginTop: '24px' }}>
         <h3 style={cardTitle}>
           <User size={20} style={{ color: '#818CF8' }} />
           Personal Info
