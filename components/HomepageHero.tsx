@@ -394,7 +394,7 @@ function HeroEmailCapture() {
 
     return (
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>📬 Daily jobs →</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>📬 Get PMHNP Resources →</span>
             <input
                 type="email"
                 value={email}

@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get alert details by token
+// GET - Get all alerts for an email (look up email from token)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -260,6 +260,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // First find the alert to get the email
     const jobAlert = await prisma.jobAlert.findUnique({
       where: { token },
     });
@@ -271,23 +272,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Now find ALL alerts for this email
+    const allAlerts = await prisma.jobAlert.findMany({
+      where: { email: jobAlert.email },
+      orderBy: { createdAt: 'desc' },
+    });
+
     return NextResponse.json({
       success: true,
-      alert: {
-        id: jobAlert.id,
-        email: jobAlert.email,
-        name: jobAlert.name,
-        keyword: jobAlert.keyword,
-        location: jobAlert.location,
-        mode: jobAlert.mode,
-        jobType: jobAlert.jobType,
-        minSalary: jobAlert.minSalary,
-        maxSalary: jobAlert.maxSalary,
-        frequency: jobAlert.frequency,
-        isActive: jobAlert.isActive,
-        lastSentAt: jobAlert.lastSentAt,
-        createdAt: jobAlert.createdAt,
-      },
+      alerts: allAlerts.map(a => ({
+        id: a.id,
+        token: a.token,
+        email: a.email,
+        name: a.name,
+        keyword: a.keyword,
+        location: a.location,
+        mode: a.mode,
+        jobType: a.jobType,
+        minSalary: a.minSalary,
+        maxSalary: a.maxSalary,
+        frequency: a.frequency,
+        isActive: a.isActive,
+        lastSentAt: a.lastSentAt,
+        createdAt: a.createdAt,
+      })),
     });
   } catch (error) {
     logger.error('Error fetching job alert', error);

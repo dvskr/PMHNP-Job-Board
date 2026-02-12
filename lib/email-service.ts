@@ -376,7 +376,7 @@ export async function sendJobAlertEmail(
     `<p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
       <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color: #64748b; text-decoration: none;">Manage alert</a>
       &nbsp;·&nbsp;
-      <a href="${BASE_URL}/api/job-alerts/unsubscribe?token=${alertToken}" style="color: #64748b; text-decoration: none;">Unsubscribe</a>
+      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color: #64748b; text-decoration: none;">Unsubscribe</a>
     </p>`
   );
 
