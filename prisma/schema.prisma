@@ -47,6 +47,7 @@ model Job {
   companyId           String?      @map("company_id")
   originalPostedAt    DateTime?    @map("original_posted_at")
   applyClicks         ApplyClick[]
+  jobApplications     JobApplication[]
   employerJobs        EmployerJob?
   company             Company?     @relation(fields: [companyId], references: [id])
 
@@ -69,6 +70,7 @@ model EmailLead {
   preferences      Json       @default("{}")
   source           String?
   isSubscribed     Boolean    @default(true) @map("is_subscribed")
+  newsletterOptIn  Boolean    @default(false) @map("newsletter_opt_in")
   unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
   createdAt        DateTime   @default(now()) @map("created_at")
   updatedAt        DateTime   @updatedAt @map("updated_at")
@@ -230,21 +232,71 @@ model EmployerLead {
 }
 
 model UserProfile {
-  id           String        @id @default(cuid())
-  supabaseId   String        @unique @map("supabase_id")
-  email        String        @unique
-  role         String        @default("job_seeker")
-  firstName    String?       @map("first_name")
-  lastName     String?       @map("last_name")
-  phone        String?
-  company      String?
-  resumeUrl    String?       @map("resume_url")
-  avatarUrl    String?       @map("avatar_url")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  employerJobs EmployerJob[]
+  id                String        @id @default(cuid())
+  supabaseId        String        @unique @map("supabase_id")
+  email             String        @unique
+  role              String        @default("job_seeker")
+  firstName         String?       @map("first_name")
+  lastName          String?       @map("last_name")
+  phone             String?
+  company           String?
+  resumeUrl         String?       @map("resume_url")
+  avatarUrl         String?       @map("avatar_url")
+
+  // PMHNP-specific professional fields
+  headline          String?       @map("headline")
+  yearsExperience   Int?          @map("years_experience")
+  certifications    String?       @map("certifications")
+  licenseStates     String?       @map("license_states")
+  specialties       String?       @map("specialties")
+  bio               String?       @map("bio")
+  linkedinUrl       String?       @map("linkedin_url")
+
+  // Job preferences
+  preferredWorkMode String?       @map("preferred_work_mode")
+  preferredJobType  String?       @map("preferred_job_type")
+  desiredSalaryMin  Int?          @map("desired_salary_min")
+  desiredSalaryMax  Int?          @map("desired_salary_max")
+  availableDate     DateTime?     @map("available_date")
+
+  // Visibility
+  openToOffers      Boolean       @default(true) @map("open_to_offers")
+  profileVisible    Boolean       @default(true) @map("profile_visible")
+
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  employerJobs      EmployerJob[]
+  jobApplications   JobApplication[]
 
   @@index([supabaseId])
   @@index([email])
+  @@index([profileVisible, openToOffers, role])
   @@map("user_profiles")
+}
+
+model JobApplication {
+  id        String      @id @default(cuid())
+  userId    String      @map("user_id")
+  jobId     String      @map("job_id")
+  sourceUrl String?     @map("source_url")
+  appliedAt DateTime    @default(now()) @map("applied_at")
+  user      UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
+  job       Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("job_applications")
+}
+
+model ProfileView {
+  id          String   @id @default(cuid())
+  viewerId    String   @map("viewer_id")
+  candidateId String   @map("candidate_id")
+  viewedAt    DateTime @default(now()) @map("viewed_at")
+
+  @@unique([viewerId, candidateId])
+  @@index([viewerId])
+  @@index([candidateId])
+  @@map("profile_views")
 }

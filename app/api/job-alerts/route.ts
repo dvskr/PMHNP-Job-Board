@@ -20,6 +20,7 @@ interface CreateAlertBody {
   minSalary?: number;
   maxSalary?: number;
   frequency?: string;
+  newsletterOptIn?: boolean;
 }
 
 // Helper to build criteria summary for email
@@ -172,35 +173,59 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if EmailLead exists, create if not
-    const existingLead = await prisma.emailLead.findUnique({
+    // Upsert EmailLead — create if new, optionally flip newsletterOptIn
+    const newsletterOptIn = body.newsletterOptIn !== false; // default true
+    await prisma.emailLead.upsert({
       where: { email: normalizedEmail },
+      update: newsletterOptIn ? { newsletterOptIn: true } : {},
+      create: {
+        email: normalizedEmail,
+        source: 'job_alert',
+        newsletterOptIn,
+      },
     });
 
-    if (!existingLead) {
-      // Create EmailLead for the new subscriber
-      await prisma.emailLead.create({
+    // Dedup: if this is a generic signup (no custom filters), reuse an existing active alert
+    const isGenericSignup = !keyword && !location && !mode && !jobType && !minSalary && !maxSalary;
+    let jobAlert;
+
+    if (isGenericSignup) {
+      const existing = await prisma.jobAlert.findFirst({
+        where: {
+          email: normalizedEmail,
+          isActive: true,
+          keyword: null,
+          location: null,
+          mode: null,
+          jobType: null,
+          minSalary: null,
+          maxSalary: null,
+        },
+      });
+      if (existing) {
+        // Update frequency if changed, otherwise just reuse
+        jobAlert = await prisma.jobAlert.update({
+          where: { id: existing.id },
+          data: { frequency, name: name || existing.name },
+        });
+      }
+    }
+
+    if (!jobAlert) {
+      jobAlert = await prisma.jobAlert.create({
         data: {
           email: normalizedEmail,
-          source: 'job_alert',
+          name,
+          keyword,
+          location,
+          mode,
+          jobType,
+          minSalary,
+          maxSalary,
+          frequency,
         },
       });
     }
-
-    // Create the job alert
-    const jobAlert = await prisma.jobAlert.create({
-      data: {
-        email: normalizedEmail,
-        name,
-        keyword,
-        location,
-        mode,
-        jobType,
-        minSalary,
-        maxSalary,
-        frequency,
-      },
-    });
 
     // Build criteria summary and send confirmation email
     const criteriaSummary = buildCriteriaSummary(body);

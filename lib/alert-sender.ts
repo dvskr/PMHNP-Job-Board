@@ -183,7 +183,7 @@ async function sendAlertEmail(
           <tr>
             <td style="padding: 24px 16px 8px 16px; text-align: center;">
               <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
-                10,000+ Jobs · 3,000+ Companies · 51 States
+                10,000+ Jobs · 3,000+ Companies · 50 States
               </p>
               <p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
                 <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #64748b; text-decoration: none;">Manage alert</a>

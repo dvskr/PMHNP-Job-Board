@@ -53,7 +53,7 @@ function emailShell(content: string, footerContent: string = ''): string {
           <tr>
             <td style="padding: 24px 16px 8px 16px; text-align: center;">
               <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
-                10,000+ Jobs · 3,000+ Companies · 51 States
+                10,000+ Jobs · 3,000+ Companies · 50 States
               </p>
               ${footerContent}
               <p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
@@ -116,7 +116,7 @@ function unsubscribeFooter(unsubscribeToken: string): string {
 export async function sendWelcomeEmail(email: string, unsubscribeToken: string): Promise<EmailResult> {
   try {
     const html = emailShell(`
-          ${headerBlock('Welcome to PMHNP Jobs! 🎉', 'Your job alerts are now active')}
+          ${headerBlock('Welcome to PMHNP Hiring! 🎉', 'Your job alerts are now active')}
           <tr>
             <td style="padding: 32px 40px;">
               <p style="margin: 0 0 16px 0; font-size: 16px; color: #e2e8f0; line-height: 1.7;">
@@ -148,7 +148,7 @@ export async function sendWelcomeEmail(email: string, unsubscribeToken: string):
     await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
-      subject: '✦ Welcome to PMHNP Jobs — Your Alerts Are Active',
+      subject: '✦ Welcome to PMHNP Hiring — Your Alerts Are Active',
       html,
     });
 
@@ -243,8 +243,8 @@ export async function sendSignupWelcomeEmail(
       from: EMAIL_FROM,
       to: email,
       subject: isEmployer
-        ? `✦ Welcome to PMHNP Jobs — Start Hiring Today`
-        : `✦ Welcome to PMHNP Jobs, ${firstName}!`,
+        ? `✦ Welcome to PMHNP Hiring — Start Hiring Today`
+        : `✦ Welcome to PMHNP Hiring, ${firstName}!`,
       html,
     });
 

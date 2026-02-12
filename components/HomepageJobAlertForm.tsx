@@ -23,6 +23,7 @@ export default function HomepageJobAlertForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +46,7 @@ export default function HomepageJobAlertForm() {
           email,
           location: location || undefined,
           frequency,
+          newsletterOptIn,
         }),
       });
 
@@ -205,6 +207,19 @@ export default function HomepageJobAlertForm() {
               {message.text}
             </div>
           )}
+
+          {/* Newsletter Opt-in */}
+          <label className="flex items-start gap-2 cursor-pointer justify-center">
+            <input
+              type="checkbox"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              className="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+            />
+            <span className="text-xs text-gray-600">
+              Also send me career tips & salary insights
+            </span>
+          </label>
 
           {/* Privacy Note */}
           <p className="text-xs text-gray-500 text-center">

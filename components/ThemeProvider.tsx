@@ -38,6 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
         if (theme === 'dark') {
             root.classList.add('dark');
+            root.classList.remove('light');
 
             // Backgrounds
             s.setProperty('--bg-primary', '#060E18');
@@ -83,11 +84,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             s.setProperty('--color-primary-light', '#5EEAD4');
             s.setProperty('--salary-color', '#2DD4BF');
 
-            // Body
+            // HTML + Body inline styles (overrides layout.tsx inline style)
+            root.style.backgroundColor = '#060E18';
+            root.style.color = '#F1F5F9';
             document.body.style.backgroundColor = '#060E18';
             document.body.style.color = '#F1F5F9';
         } else {
             root.classList.remove('dark');
+            root.classList.add('light');
 
             // Backgrounds
             s.setProperty('--bg-primary', '#FFFFFF');
@@ -133,7 +137,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             s.setProperty('--color-primary-light', '#14B8A6');
             s.setProperty('--salary-color', '#1d4ed8');
 
-            // Body
+            // HTML + Body inline styles (overrides layout.tsx inline style)
+            root.style.backgroundColor = '#FFFFFF';
+            root.style.color = '#111827';
             document.body.style.backgroundColor = '#FFFFFF';
             document.body.style.color = '#111827';
         }

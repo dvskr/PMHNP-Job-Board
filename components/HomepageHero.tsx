@@ -261,7 +261,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         <div
                             className="flex flex-col sm:flex-row items-stretch rounded-[14px] overflow-hidden"
                             style={{
-                                backgroundColor: 'var(--bg-secondary)',
+                                backgroundColor: 'var(--bg-primary)',
                             }}
                         >
                             {/* Keyword input */}
@@ -351,7 +351,71 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         </motion.div>
                     ))}
                 </motion.div>
+
+                {/* ── Email capture row ── */}
+                <motion.div
+                    variants={chipPop}
+                    className="flex justify-center pt-3"
+                >
+                    <HeroEmailCapture />
+                </motion.div>
             </motion.div>
         </section>
+    );
+}
+
+function HeroEmailCapture() {
+    const [email, setEmail] = useState('');
+    const [status, setStatus] = useState<'idle' | 'loading' | 'done'>('idle');
+
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        const trimmed = email.trim();
+        if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return;
+        setStatus('loading');
+        try {
+            await fetch('/api/job-alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: trimmed, frequency: 'daily', newsletterOptIn: true }),
+            });
+        } catch { /* silent */ }
+        setStatus('done');
+        setEmail('');
+    };
+
+    if (status === 'done') {
+        return (
+            <p className="text-sm font-medium" style={{ color: '#2DD4BF' }}>
+                ✓ You&apos;re subscribed! Check your email.
+            </p>
+        );
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <span className="text-sm" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>📬 Daily jobs →</span>
+            <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="px-3 py-1.5 rounded-lg text-sm outline-none"
+                style={{
+                    backgroundColor: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    width: '180px',
+                }}
+            />
+            <button
+                type="submit"
+                disabled={status === 'loading'}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)' }}
+            >
+                {status === 'loading' ? '...' : 'Go'}
+            </button>
+        </form>
     );
 }

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2 } from 'lucide-react';
 import { config } from '@/lib/config';
 
 interface Job {
@@ -31,6 +31,34 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [upgradingJobId, setUpgradingJobId] = useState<string | null>(null);
     const [showRenewModal, setShowRenewModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+    const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+    const [newsletterLoading, setNewsletterLoading] = useState(false);
+    const [newsletterChecked, setNewsletterChecked] = useState(false);
+
+    // Check newsletter status on mount
+    useEffect(() => {
+        fetch('/api/newsletter/status?' + new URLSearchParams({ email: employerEmail }))
+            .then(r => r.json())
+            .then(d => { setNewsletterOptIn(d.optIn ?? false); setNewsletterChecked(true); })
+            .catch(() => setNewsletterChecked(true));
+    }, [employerEmail]);
+
+    const handleNewsletterToggle = async () => {
+        setNewsletterLoading(true);
+        const newState = !newsletterOptIn;
+        setNewsletterOptIn(newState);
+        try {
+            await fetch('/api/newsletter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: employerEmail, optIn: newState, source: 'employer_newsletter' }),
+            });
+        } catch {
+            setNewsletterOptIn(!newState);
+        } finally {
+            setNewsletterLoading(false);
+        }
+    };
 
     const getStatusBadge = (job: Job) => {
         if (!job.isPublished) {
@@ -154,6 +182,51 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     </Link>
                 </div>
 
+                {/* Talent Pool CTA */}
+                <Link
+                    href="/employer/candidates"
+                    className="block rounded-lg shadow-sm p-6 mb-6 transition-all hover:shadow-md group"
+                    style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid rgba(45,212,191,0.2)',
+                        background: 'linear-gradient(135deg, rgba(45,212,191,0.05), rgba(20,184,166,0.02))',
+                        textDecoration: 'none',
+                    }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div
+                                style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '18px',
+                                }}
+                            >
+                                👥
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                                    Browse PMHNP Talent Pool
+                                </h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Search qualified candidates open to new opportunities
+                                </p>
+                            </div>
+                        </div>
+                        <span
+                            className="text-sm font-semibold group-hover:translate-x-1 transition-transform"
+                            style={{ color: '#2DD4BF' }}
+                        >
+                            Browse →
+                        </span>
+                    </div>
+                </Link>
+
                 {/* Empty State */}
                 {jobs.length === 0 && (
                     <div className="rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
@@ -262,6 +335,53 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* Newsletter Opt-in */}
+                {newsletterChecked && (
+                    <div
+                        className="mt-8 rounded-lg p-6 flex items-center justify-between gap-4 flex-wrap"
+                        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                    >
+                        <div className="flex items-center gap-4">
+                            <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                style={{ background: 'rgba(20,184,166,0.1)' }}
+                            >
+                                <Mail size={20} style={{ color: '#14B8A6' }} />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                                    Employer Newsletter
+                                </h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Get hiring tips, salary benchmarks & PMHNP market insights
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleNewsletterToggle}
+                            disabled={newsletterLoading}
+                            style={{
+                                position: 'relative',
+                                width: '44px', height: '24px',
+                                borderRadius: '12px',
+                                background: newsletterOptIn ? '#14B8A6' : 'var(--bg-tertiary)',
+                                border: '1px solid',
+                                borderColor: newsletterOptIn ? '#14B8A6' : 'var(--border-color)',
+                                cursor: 'pointer', transition: 'all 0.2s',
+                                flexShrink: 0,
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute', top: '2px', left: newsletterOptIn ? '22px' : '2px',
+                                width: '18px', height: '18px', borderRadius: '50%',
+                                background: '#fff',
+                                transition: 'all 0.2s',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                            }} />
+                        </button>
                     </div>
                 )}
 

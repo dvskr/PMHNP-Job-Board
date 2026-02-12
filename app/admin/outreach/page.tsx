@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Mail, Copy, Check } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 
 interface EmployerLead {
   id: string;
@@ -25,12 +23,46 @@ interface EmployerLead {
 
 const STATUS_OPTIONS = ['prospect', 'contacted', 'responded', 'converted', 'declined'];
 
-const STATUS_COLORS: Record<string, string> = {
-  prospect: 'bg-gray-100 text-gray-700',
-  contacted: 'bg-teal-100 text-teal-700',
-  responded: 'bg-purple-100 text-purple-700',
-  converted: 'bg-green-100 text-green-700',
-  declined: 'bg-red-100 text-red-700',
+const STATUS_BADGE_STYLES: Record<string, React.CSSProperties> = {
+  prospect: { backgroundColor: 'rgba(148, 163, 184, 0.15)', color: '#94A3B8' },
+  contacted: { backgroundColor: 'rgba(45, 212, 191, 0.15)', color: '#2DD4BF' },
+  responded: { backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#A855F7' },
+  converted: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#22C55E' },
+  declined: { backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' },
+};
+
+/* ─── Shared styles ─── */
+const card: React.CSSProperties = {
+  backgroundColor: 'var(--bg-secondary)',
+  border: '1px solid var(--border-color)',
+  borderRadius: '14px',
+  overflow: 'hidden',
+};
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
+const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
+const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 14px',
+  borderRadius: '10px',
+  backgroundColor: 'var(--bg-tertiary)',
+  border: '1px solid var(--border-color)',
+  color: 'var(--text-primary)',
+  fontSize: '14px',
+  outline: 'none',
+};
+const btnPrimary: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '8px',
+  padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+  backgroundColor: '#2DD4BF', color: '#0F172A', fontWeight: 700, fontSize: '13px',
+  transition: 'opacity 0.2s',
+};
+const btnOutline: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '8px',
+  padding: '10px 20px', borderRadius: '10px', cursor: 'pointer',
+  backgroundColor: 'transparent', border: '1px solid var(--border-color)',
+  color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px',
+  transition: 'opacity 0.2s',
 };
 
 export default function OutreachPage() {
@@ -42,7 +74,6 @@ export default function OutreachPage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState({
     companyName: '',
     contactName: '',
@@ -51,22 +82,15 @@ export default function OutreachPage() {
     source: 'manual',
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch all leads
       const leadsRes = await fetch('/api/outreach');
       const leadsData = await leadsRes.json();
-      
-      // Fetch suggestions
       const suggestionsRes = await fetch('/api/outreach?suggestions=true');
       const suggestionsData = await suggestionsRes.json();
-      
       if (leadsData.success) setLeads(leadsData.data);
       if (suggestionsData.success) setSuggestions(suggestionsData.data);
     } catch (error) {
@@ -77,51 +101,32 @@ export default function OutreachPage() {
   };
 
   const getStats = () => {
-  const prospects = leads.filter((l: EmployerLead) => l.status === 'prospect').length;
-  const contacted = leads.filter((l: EmployerLead) => l.status === 'contacted').length;
-  const converted = leads.filter((l: EmployerLead) => l.status === 'converted').length;
-  const responded = leads.filter((l: EmployerLead) => l.status === 'responded').length;
-    
+    const prospects = leads.filter((l: EmployerLead) => l.status === 'prospect').length;
+    const contacted = leads.filter((l: EmployerLead) => l.status === 'contacted').length;
+    const converted = leads.filter((l: EmployerLead) => l.status === 'converted').length;
+    const responded = leads.filter((l: EmployerLead) => l.status === 'responded').length;
     return { prospects, contacted, converted, responded, total: leads.length };
   };
 
   const handleAddLead = async (companyName?: string) => {
-    const dataToSubmit = companyName 
+    const dataToSubmit = companyName
       ? { companyName, source: 'suggestions' }
       : formData;
 
-    if (!dataToSubmit.companyName) {
-      alert('Company name is required');
-      return;
-    }
+    if (!dataToSubmit.companyName) { alert('Company name is required'); return; }
 
     try {
       const res = await fetch('/api/outreach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create',
-          ...dataToSubmit,
-        }),
+        body: JSON.stringify({ action: 'create', ...dataToSubmit }),
       });
-
       const data = await res.json();
-      
       if (data.success) {
         await fetchData();
         setShowAddForm(false);
-        setFormData({
-          companyName: '',
-          contactName: '',
-          contactEmail: '',
-          notes: '',
-          source: 'manual',
-        });
-        
-        // Remove from suggestions if added from there
-        if (companyName) {
-          setSuggestions((prev: string[]) => prev.filter((s: string) => s !== companyName));
-        }
+        setFormData({ companyName: '', contactName: '', contactEmail: '', notes: '', source: 'manual' });
+        if (companyName) setSuggestions((prev: string[]) => prev.filter((s: string) => s !== companyName));
       }
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -134,18 +139,10 @@ export default function OutreachPage() {
       const res = await fetch('/api/outreach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update',
-          id: leadId,
-          status: newStatus,
-        }),
+        body: JSON.stringify({ action: 'update', id: leadId, status: newStatus }),
       });
-
       const data = await res.json();
-      
-      if (data.success) {
-        await fetchData();
-      }
+      if (data.success) await fetchData();
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status');
@@ -166,9 +163,7 @@ export default function OutreachPage() {
           },
         }),
       });
-
       const data = await res.json();
-      
       if (data.success) {
         const text = `Subject: ${data.data.subject}\n\n${data.data.body}`;
         await navigator.clipboard.writeText(text);
@@ -185,183 +180,144 @@ export default function OutreachPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading outreach data...</p>
-        </div>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '80px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px', textAlign: 'center' }}>
+        <div
+          style={{
+            width: 48, height: 48, border: '3px solid var(--border-color)',
+            borderTop: '3px solid #2DD4BF', borderRadius: '50%',
+            margin: '0 auto', animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <p style={{ marginTop: '16px', ...sub }}>Loading outreach data…</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Employer Outreach</h1>
-        <p className="text-gray-600">Manage your employer leads and outreach campaigns</p>
+      <div style={{ marginBottom: '28px' }}>
+        <h1 style={{ ...heading, fontSize: '28px', marginBottom: '4px' }}>Employer Outreach</h1>
+        <p style={sub}>Manage your employer leads and outreach campaigns</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
-        <Card padding="md" variant="bordered">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-sm text-gray-600">Total Leads</div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4" style={{ marginBottom: '28px' }}>
+        {[
+          { label: 'Total Leads', value: stats.total, color: 'var(--text-primary)' },
+          { label: 'Prospects', value: stats.prospects, color: '#94A3B8' },
+          { label: 'Contacted', value: stats.contacted, color: '#2DD4BF' },
+          { label: 'Responded', value: stats.responded, color: '#A855F7' },
+          { label: 'Converted', value: stats.converted, color: '#22C55E' },
+        ].map((s) => (
+          <div key={s.label} style={{ ...card, padding: '16px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={muted}>{s.label}</div>
           </div>
-        </Card>
-        <Card padding="md" variant="bordered" className="bg-gray-50">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-700">{stats.prospects}</div>
-            <div className="text-sm text-gray-600">Prospects</div>
-          </div>
-        </Card>
-        <Card padding="md" variant="bordered" className="bg-teal-50">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-teal-700">{stats.contacted}</div>
-            <div className="text-sm text-teal-600">Contacted</div>
-          </div>
-        </Card>
-        <Card padding="md" variant="bordered" className="bg-purple-50">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-700">{stats.responded}</div>
-            <div className="text-sm text-purple-600">Responded</div>
-          </div>
-        </Card>
-        <Card padding="md" variant="bordered" className="bg-green-50">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-700">{stats.converted}</div>
-            <div className="text-sm text-green-600">Converted</div>
-          </div>
-        </Card>
+        ))}
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          <Plus size={18} />
-          Add New Lead
-        </Button>
-        <Button
-          variant="outline"
-          size="md"
-          onClick={() => setShowTemplates(!showTemplates)}
-        >
-          <Mail size={18} />
-          Email Templates
-        </Button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
+        <button style={btnPrimary} onClick={() => setShowAddForm(!showAddForm)}>
+          <Plus size={18} /> Add New Lead
+        </button>
+        <button style={btnOutline} onClick={() => setShowTemplates(!showTemplates)}>
+          <Mail size={18} /> Email Templates
+        </button>
       </div>
 
       {/* Add Lead Form */}
       {showAddForm && (
-        <Card padding="lg" variant="bordered" className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Add New Lead</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div style={{ ...card, padding: '24px', marginBottom: '24px' }}>
+          <h3 style={{ ...heading, fontSize: '16px', marginBottom: '16px' }}>Add New Lead</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Company Name *
-              </label>
+              <label style={{ display: 'block', ...muted, fontWeight: 600, marginBottom: '6px' }}>Company Name *</label>
               <input
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                style={inputStyle}
                 placeholder="e.g., Talkiatry"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Name
-              </label>
+              <label style={{ display: 'block', ...muted, fontWeight: 600, marginBottom: '6px' }}>Contact Name</label>
               <input
                 type="text"
                 value={formData.contactName}
                 onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                style={inputStyle}
                 placeholder="e.g., Sarah Johnson"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Email
-              </label>
+              <label style={{ display: 'block', ...muted, fontWeight: 600, marginBottom: '6px' }}>Contact Email</label>
               <input
                 type="email"
                 value={formData.contactEmail}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                style={inputStyle}
                 placeholder="e.g., hr@company.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Source
-              </label>
+              <label style={{ display: 'block', ...muted, fontWeight: 600, marginBottom: '6px' }}>Source</label>
               <input
                 type="text"
                 value={formData.source}
                 onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                style={inputStyle}
                 placeholder="e.g., LinkedIn"
               />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
-            </label>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', ...muted, fontWeight: 600, marginBottom: '6px' }}>Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              style={{ ...inputStyle, resize: 'vertical' }}
               rows={3}
               placeholder="Any additional notes..."
             />
           </div>
-          <div className="flex gap-2">
-            <Button variant="primary" size="md" onClick={() => handleAddLead()}>
-              Add Lead
-            </Button>
-            <Button variant="outline" size="md" onClick={() => setShowAddForm(false)}>
-              Cancel
-            </Button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button style={btnPrimary} onClick={() => handleAddLead()}>Add Lead</button>
+            <button style={btnOutline} onClick={() => setShowAddForm(false)}>Cancel</button>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Email Templates */}
       {showTemplates && (
-        <Card padding="lg" variant="bordered" className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Email Templates</h3>
-          <div className="space-y-4">
-            {(['initial', 'followUp', 'freeOffer'] as const).map((template: 'initial' | 'followUp' | 'freeOffer') => (
-              <div key={template} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900 capitalize">
+        <div style={{ ...card, padding: '24px', marginBottom: '24px' }}>
+          <h3 style={{ ...heading, fontSize: '16px', marginBottom: '16px' }}>Email Templates</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {(['initial', 'followUp', 'freeOffer'] as const).map((template) => (
+              <div
+                key={template}
+                style={{
+                  border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <h4 style={{ ...heading, fontSize: '14px', textTransform: 'capitalize' }}>
                     {template === 'followUp' ? 'Follow Up' : template === 'freeOffer' ? 'Free Offer' : 'Initial Outreach'}
                   </h4>
                   <button
                     onClick={() => handleCopyTemplate(template)}
-                    className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      fontSize: '13px', color: '#2DD4BF', background: 'none',
+                      border: 'none', cursor: 'pointer',
+                    }}
                   >
-                    {copiedTemplate === template ? (
-                      <>
-                        <Check size={16} />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={16} />
-                        Copy Template
-                      </>
-                    )}
+                    {copiedTemplate === template ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Template</>}
                   </button>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p style={sub}>
                   {template === 'initial' && 'First outreach to potential employers'}
                   {template === 'followUp' && 'Follow-up for non-responders'}
                   {template === 'freeOffer' && 'Special free posting offer'}
@@ -369,51 +325,59 @@ export default function OutreachPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Suggested Targets */}
       {suggestions.length > 0 && (
-        <Card padding="lg" variant="bordered" className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Companies to Reach Out To</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Top companies actively hiring PMHNPs (3+ job postings)
-          </p>
+        <div style={{ ...card, padding: '24px', marginBottom: '24px' }}>
+          <h3 style={{ ...heading, fontSize: '16px', marginBottom: '6px' }}>Companies to Reach Out To</h3>
+          <p style={{ ...sub, marginBottom: '16px' }}>Top companies actively hiring PMHNPs (3+ job postings)</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {suggestions.slice(0, 12).map((company: string) => (
               <div
                 key={company}
-                className="flex items-center justify-between border border-gray-200 rounded-lg p-3"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 16px',
+                }}
               >
-                <span className="font-medium text-gray-900 text-sm">{company}</span>
+                <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{company}</span>
                 <button
                   onClick={() => handleAddLead(company)}
-                  className="text-primary-600 hover:text-primary-700 text-sm"
+                  style={{
+                    fontSize: '13px', color: '#2DD4BF', background: 'none',
+                    border: 'none', cursor: 'pointer', fontWeight: 600,
+                  }}
                 >
                   Add
                 </button>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Lead Pipeline - Tabs */}
-      <Card padding="none" variant="bordered">
+      <div style={card}>
         {/* Tab Headers */}
-        <div className="border-b border-gray-200 overflow-x-auto">
-          <div className="flex min-w-max">
+        <div style={{ borderBottom: '1px solid var(--border-color)', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', minWidth: 'max-content' }}>
             {STATUS_OPTIONS.map((status: string) => {
               const count = leads.filter((l: EmployerLead) => l.status === status).length;
+              const active = activeStatus === status;
               return (
                 <button
                   key={status}
                   onClick={() => setActiveStatus(status)}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors capitalize ${
-                    activeStatus === status
-                      ? 'border-primary-600 text-primary-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                  style={{
+                    padding: '14px 24px', fontSize: '13px', fontWeight: active ? 700 : 500,
+                    borderBottom: active ? '2px solid #2DD4BF' : '2px solid transparent',
+                    color: active ? '#2DD4BF' : 'var(--text-tertiary)',
+                    background: 'none', border: 'none', borderBottomWidth: '2px',
+                    borderBottomStyle: 'solid', cursor: 'pointer',
+                    textTransform: 'capitalize', transition: 'color 0.2s',
+                  }}
                 >
                   {status} ({count})
                 </button>
@@ -423,66 +387,71 @@ export default function OutreachPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+        <div style={{ padding: '24px' }}>
           {filteredLeads.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No leads in this status</p>
+            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+              <p style={sub}>No leads in this status</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filteredLeads.map((lead: EmployerLead) => (
                 <div
                   key={lead.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  style={{
+                    border: '1px solid var(--border-color)', borderRadius: '12px',
+                    padding: '18px', transition: 'border-color 0.2s',
+                  }}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-lg">
-                        {lead.companyName}
-                      </h4>
-                      {lead.contactName && (
-                        <p className="text-sm text-gray-600">{lead.contactName}</p>
-                      )}
-                      {lead.contactEmail && (
-                        <p className="text-sm text-gray-500">{lead.contactEmail}</p>
-                      )}
+                      <h4 style={{ ...heading, fontSize: '16px' }}>{lead.companyName}</h4>
+                      {lead.contactName && <p style={sub}>{lead.contactName}</p>}
+                      {lead.contactEmail && <p style={muted}>{lead.contactEmail}</p>}
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        STATUS_COLORS[lead.status]
-                      }`}
+                      style={{
+                        padding: '4px 12px', borderRadius: '20px', fontSize: '11px',
+                        fontWeight: 600, textTransform: 'capitalize',
+                        ...(STATUS_BADGE_STYLES[lead.status] || {}),
+                      }}
                     >
                       {lead.status}
                     </span>
                   </div>
 
                   {lead.lastContactedAt && (
-                    <p className="text-xs text-gray-500 mb-2">
+                    <p style={{ ...muted, marginBottom: '8px' }}>
                       Last contacted: {new Date(lead.lastContactedAt).toLocaleDateString()}
                     </p>
                   )}
 
                   {lead.notes && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    <p style={{ ...sub, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {lead.notes}
                     </p>
                   )}
 
-                  <div className="flex flex-wrap gap-2">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
                     <select
                       value={lead.status}
                       onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      style={{
+                        padding: '6px 12px', borderRadius: '8px', fontSize: '13px',
+                        backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)', outline: 'none',
+                      }}
                     >
                       {STATUS_OPTIONS.map((status: string) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
+                        <option key={status} value={status}>{status}</option>
                       ))}
                     </select>
                     <button
                       onClick={() => handleCopyTemplate('initial', lead)}
-                      className="text-sm text-primary-600 hover:text-primary-700 px-2 py-1"
+                      style={{
+                        fontSize: '13px', color: '#2DD4BF', background: 'none',
+                        border: 'none', cursor: 'pointer', fontWeight: 600,
+                        padding: '6px 12px',
+                      }}
                     >
                       Copy Email
                     </button>
@@ -492,8 +461,7 @@ export default function OutreachPage() {
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
-

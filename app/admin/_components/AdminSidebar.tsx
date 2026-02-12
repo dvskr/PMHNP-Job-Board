@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, Target, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Target, Menu, X, ArrowLeft, Home } from 'lucide-react';
 
 const navItems = [
   {
@@ -35,14 +35,30 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
+      <div
+        className="lg:hidden fixed top-0 left-0 right-0 z-50"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-color)',
+          padding: '12px 16px',
+        }}
+      >
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-900">Admin Panel</h1>
+          <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Admin Panel
+          </h1>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            style={{
+              padding: '8px',
+              borderRadius: '8px',
+              color: 'var(--text-secondary)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
             aria-label="Toggle sidebar"
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
@@ -53,7 +69,8 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -61,25 +78,46 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
       {/* Sidebar */}
       <aside
-        className={`
-          fixed top-0 left-0 bottom-0 z-40 w-64 bg-white border-r border-gray-200
-          transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0
-        `}
+        className={`fixed top-0 left-0 bottom-0 z-40 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0`}
+        style={{
+          width: '256px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderRight: '1px solid var(--border-color)',
+        }}
       >
         {/* Sidebar Header */}
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <Link href="/admin" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
+        <div
+          style={{
+            height: '64px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 24px',
+            borderBottom: '1px solid var(--border-color)',
+          }}
+        >
+          <Link href="/admin" className="flex items-center gap-3" style={{ textDecoration: 'none' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span style={{ color: '#fff', fontWeight: 800, fontSize: '14px' }}>A</span>
             </div>
-            <span className="font-bold text-gray-900">Admin Panel</span>
+            <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)' }}>
+              Admin Panel
+            </span>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {navItems.map((item: typeof navItems[number]) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -89,44 +127,56 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
                 key={item.href}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
-                  ${
-                    active
-                      ? 'bg-primary-50 text-primary-700 font-medium shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  }
-                `}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: active ? 600 : 400,
+                  transition: 'all 0.2s',
+                  backgroundColor: active ? 'rgba(45, 212, 191, 0.1)' : 'transparent',
+                  color: active ? '#2DD4BF' : 'var(--text-secondary)',
+                  borderLeft: active ? '3px solid #2DD4BF' : '3px solid transparent',
+                }}
               >
-                <Icon size={20} className={active ? 'text-primary-600' : 'text-gray-500'} />
+                <Icon size={20} style={{ color: active ? '#2DD4BF' : 'var(--text-tertiary)' }} />
                 <span>{item.name}</span>
-                {active && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-600" />
-                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '16px',
+            borderTop: '1px solid var(--border-color)',
+          }}
+        >
           <Link
             href="/"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              color: 'var(--text-secondary)',
+              textDecoration: 'none',
+              borderRadius: '10px',
+              transition: 'all 0.2s',
+              backgroundColor: 'rgba(45, 212, 191, 0.05)',
+              border: '1px solid rgba(45, 212, 191, 0.15)',
+            }}
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
+            <Home size={18} style={{ color: '#2DD4BF' }} />
             Back to Site
           </Link>
         </div>
@@ -134,11 +184,10 @@ export default function AdminSidebar({ children }: { children: React.ReactNode }
 
       {/* Main Content */}
       <main className="lg:pl-64 pt-16 lg:pt-0">
-        <div className="min-h-screen">
+        <div style={{ minHeight: '100vh' }}>
           {children}
         </div>
       </main>
     </div>
   );
 }
-

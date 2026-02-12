@@ -236,14 +236,11 @@ export default function LinkedInFilters() {
   return (
     <>
       <div
-        className="lg:sticky lg:top-24"
         style={{
           backgroundColor: 'var(--bg-secondary)',
           borderRadius: '16px',
           border: '1px solid var(--border-color)',
           display: 'flex', flexDirection: 'column',
-          overflow: 'hidden',
-          maxHeight: 'calc(100vh - 7rem)',
         }}
       >
         {/* Header */}
@@ -318,7 +315,7 @@ export default function LinkedInFilters() {
         </div>
 
         {/* Scrollable Filter Content */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div>
           <div style={{ padding: '12px 20px' }}>
             {/* Search */}
             <form onSubmit={handleSearchSubmit} style={{ marginBottom: '12px' }}>
@@ -473,7 +470,7 @@ export default function LinkedInFilters() {
             </FilterSection>
 
             {/* Salary */}
-            <FilterSection title="Salary" defaultExpanded={false}>
+            <FilterSection title="Salary">
               <CheckboxFilter
                 label="$100,000+"
                 count={counts?.salary.over100k || 0}

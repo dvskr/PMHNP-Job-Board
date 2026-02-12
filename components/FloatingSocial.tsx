@@ -1,14 +1,14 @@
 'use client';
 
-import { Twitter, Facebook, Instagram, Linkedin, AtSign } from 'lucide-react';
+import { Twitter, Facebook, Instagram, Linkedin, Youtube } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 const socialLinks = [
     { icon: Twitter, href: 'https://x.com/pmhnphiring', label: 'X' },
     { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61586136316931', label: 'Facebook' },
-    { icon: Instagram, href: 'https://www.instagram.com/akarilabs.io/', label: 'Instagram' },
+    { icon: Instagram, href: 'https://www.instagram.com/pmhnphiring', label: 'Instagram' },
     { icon: Linkedin, href: 'https://www.linkedin.com/company/pmhnp-hiring', label: 'LinkedIn' },
-    { icon: AtSign, href: 'https://www.threads.com/@akarilabs.io', label: 'Threads' },
+    { icon: Youtube, href: 'https://www.youtube.com/@pmhnphiring', label: 'YouTube' },
 ];
 
 export default function FloatingSocial() {

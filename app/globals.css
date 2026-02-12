@@ -18,6 +18,30 @@ body {
   overflow-x: hidden;
 }
 
+/* Reset Tailwind v4 preflight that sets form inputs to background-color: field (white) */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+/* Chrome autofill forces white bg via internal UA stylesheet — box-shadow trick is the ONLY override */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #162231 inset !important;
+  box-shadow: 0 0 0 1000px #162231 inset !important;
+  -webkit-text-fill-color: #F1F5F9 !important;
+  border-color: var(--border-color-dark) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: #F1F5F9 !important;
+}
+
 :root {
   /* Font references */
   --font-geist-sans: 'Geist', system-ui, sans-serif;
@@ -28,46 +52,49 @@ body {
   --accent-teal: #2DD4BF;
   --brand-navy: #060E18;
 
+  /* DEFAULT TO DARK — prevents white flash since dark is the default theme */
   /* Primary action color */
-  --color-primary: #0D9488;
-  --color-primary-dark: #0F766E;
-  --color-primary-light: #14B8A6;
-  --salary-color: #0D9488;
+  --color-primary: #2DD4BF;
+  --color-primary-dark: #14B8A6;
+  --color-primary-light: #5EEAD4;
+  --salary-color: #2DD4BF;
 
   /* Backgrounds */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F9FAFB;
-  --bg-tertiary: #F3F4F6;
+  --bg-primary: #060E18;
+  --bg-secondary: #0F1923;
+  --bg-secondary-rgb: 15, 25, 35;
+  --bg-tertiary: #162231;
 
-  /* Text */
-  --text-primary: #111827;
-  --text-primary-rgb: 17, 24, 39;
-  --text-secondary: #374151;
-  --text-tertiary: #6B7280;
+  /* Text — all shades bright enough to read easily on dark bg */
+  --text-primary: #F1F5F9;
+  --text-primary-rgb: 241, 245, 249;
+  --text-secondary: #E2E8F0;
+  --text-tertiary: #CBD5E1;
+  --text-muted: #94A3B8;
 
   /* Borders */
-  --border-color: #E5E7EB;
-  --border-color-dark: #D1D5DB;
+  --border-color: #1E293B;
+  --border-color-dark: #334155;
 
   /* Shadows */
-  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-color: rgba(0, 0, 0, 0.4);
   --shadow-sm: 0 1px 2px 0 var(--shadow-color);
   --shadow-md: 0 4px 6px -1px var(--shadow-color);
 
   /* Header / Nav */
-  --header-bg: #FFFFFF;
-  --mobile-menu-bg: #FFFFFF;
-  --nav-btn-bg: #F3F4F6;
-  --nav-btn-text: #111827;
-  --nav-btn-hover-bg: #E5E7EB;
+  --header-bg: #0B1320;
+  --mobile-menu-bg: #0F1923;
+  --nav-btn-bg: #162231;
+  --nav-btn-text: #F1F5F9;
+  --nav-btn-hover-bg: #1E293B;
 
   /* Inputs */
-  --input-text: #111827;
-  --input-placeholder: #6B7280;
+  --input-text: #F1F5F9;
+  --input-placeholder: #94A3B8;
 
   /* Selection */
-  --selection-bg: #CCFBF1;
-  --selection-text: #134E4A;
+  --selection-bg: #134E4A;
+  --selection-text: #CCFBF1;
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -75,47 +102,71 @@ body {
   --transition-slow: 300ms ease;
 
   /* Shimmer */
-  --shimmer-from: #f0f0f0;
-  --shimmer-via: #e0e0e0;
-}
-
-/* ===== DARK THEME ===== */
-html.dark {
-  --color-primary: #2DD4BF;
-  --color-primary-dark: #14B8A6;
-  --color-primary-light: #5EEAD4;
-  --salary-color: #2DD4BF;
-
-  --bg-primary: #060E18;
-  --bg-secondary: #0F1923;
-  --bg-tertiary: #162231;
-
-  --text-primary: #F1F5F9;
-  --text-primary-rgb: 241, 245, 249;
-  --text-secondary: #94A3B8;
-  --text-tertiary: #64748B;
-
-  --border-color: #1E293B;
-  --border-color-dark: #334155;
-
-  --shadow-color: rgba(0, 0, 0, 0.4);
-
-  --header-bg: #0B1320;
-  --mobile-menu-bg: #0F1923;
-  --nav-btn-bg: #162231;
-  --nav-btn-text: #F1F5F9;
-  --nav-btn-hover-bg: #1E293B;
-
-  --input-text: #F1F5F9;
-  --input-placeholder: #64748B;
-
-  --selection-bg: #134E4A;
-  --selection-text: #CCFBF1;
-
   --shimmer-from: #162231;
   --shimmer-via: #1E293B;
 
   color-scheme: dark;
+}
+
+/* ===== LIGHT THEME ===== */
+html:not(.dark) {
+  --color-primary: #0D9488;
+  --color-primary-dark: #0F766E;
+  --color-primary-light: #14B8A6;
+  --salary-color: #0D9488;
+
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-secondary-rgb: 249, 250, 251;
+  --bg-tertiary: #F3F4F6;
+
+  --text-primary: #111827;
+  --text-primary-rgb: 17, 24, 39;
+  --text-secondary: #374151;
+  --text-tertiary: #4B5563;
+  --text-muted: #6B7280;
+
+  --border-color: #E5E7EB;
+  --border-color-dark: #D1D5DB;
+
+  --shadow-color: rgba(0, 0, 0, 0.1);
+
+  --header-bg: #FFFFFF;
+  --mobile-menu-bg: #FFFFFF;
+  --nav-btn-bg: #F3F4F6;
+  --nav-btn-text: #111827;
+  --nav-btn-hover-bg: #E5E7EB;
+
+  --input-text: #111827;
+  --input-placeholder: #6B7280;
+
+  --selection-bg: #CCFBF1;
+  --selection-text: #134E4A;
+
+  --shimmer-from: #f0f0f0;
+  --shimmer-via: #e0e0e0;
+
+  color-scheme: light;
+}
+
+/* ===== DARK THEME (explicit) ===== */
+html.dark {
+  color-scheme: dark;
+}
+
+/* ===== Autofill overrides ===== */
+/* Chrome forces white backgrounds on autofilled inputs; counteract with box-shadow trick */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-tertiary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  box-shadow: 0 0 0 1000px var(--bg-tertiary) inset !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
 }
 
 html.dark body {
@@ -222,18 +273,38 @@ html.dark .divide-gray-200> :not([hidden])~ :not([hidden]) {
   border-color: var(--border-color) !important;
 }
 
-/* Form elements in dark mode - fallback defaults (inline styles take priority) */
+/* Form elements in dark mode — force visible text */
 html.dark input:not([type="checkbox"]):not([type="radio"]),
 html.dark select,
 html.dark textarea {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  border-color: var(--border-color);
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 
 html.dark input:not([type="checkbox"]):not([type="radio"])::placeholder,
 html.dark textarea::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-tertiary) !important;
+  -webkit-text-fill-color: var(--text-tertiary) !important;
+}
+
+/* Autofill / autocomplete fix — browsers force a white bg on autofill */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-primary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Select option elements need explicit bg in dark mode (most browsers ignore CSS vars here) */
+html.dark select option {
+  background-color: #0F1923;
+  color: #F1F5F9;
 }
 
 html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -278,7 +349,7 @@ body {
   font-feature-settings: "kern" 1;
   font-kerning: normal;
   font-optical-sizing: auto;
-  transition: background-color 0.3s ease, color 0.3s ease;
+
 }
 
 /* Apply antialiasing to all text elements */
@@ -477,11 +548,26 @@ select:focus {
   color: var(--input-text);
 }
 
-/* Hero search inputs — forced white text */
+/* Hero search inputs — forced white text, no highlight */
 .hero-input {
   color: #F1F5F9 !important;
   caret-color: #F1F5F9 !important;
   box-shadow: none !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+.hero-input:-webkit-autofill,
+.hero-input:-webkit-autofill:hover,
+.hero-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #F1F5F9 !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  background-color: transparent !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.hero-input::placeholder {
+  color: rgba(148, 163, 184, 0.6) !important;
 }
 
 /* ===== HERO ANIMATIONS ===== */

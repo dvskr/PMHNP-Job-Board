@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Users, Globe, Zap, Shield, BarChart3 } from 'lucide-react';
+import { ArrowRight, Globe, Zap, Shield, BarChart3 } from 'lucide-react';
 
 const benefits = [
-    { icon: Users, text: '5,200+ active candidates' },
     { icon: Globe, text: '50 states covered' },
     { icon: Zap, text: 'Posted in minutes' },
     { icon: Shield, text: 'Verified PMHNP audience' },

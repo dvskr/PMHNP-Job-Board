@@ -38,16 +38,12 @@ export default function SavedJobsPage() {
     }
 
     try {
-      // Fetch all jobs and filter by saved IDs
-      const response = await fetch('/api/jobs');
+      const response = await fetch(`/api/jobs?ids=${ids.join(',')}`);
       if (!response.ok) {
         throw new Error('Failed to fetch jobs');
       }
-      const data: { jobs: Job[]; total: number } = await response.json();
-
-      // Filter to only saved jobs
-      const savedJobs = data.jobs.filter((job: Job) => ids.includes(job.id));
-      setJobs(savedJobs);
+      const data: { jobs: Job[] } = await response.json();
+      setJobs(data.jobs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -66,16 +62,12 @@ export default function SavedJobsPage() {
     setAppliedError(null);
 
     try {
-      // Fetch all jobs and filter by applied IDs
-      const response = await fetch('/api/jobs');
+      const response = await fetch(`/api/jobs?ids=${ids.join(',')}`);
       if (!response.ok) {
         throw new Error('Failed to fetch jobs');
       }
-      const data: { jobs: Job[]; total: number } = await response.json();
-
-      // Filter to only applied jobs
-      const appliedJobsList = data.jobs.filter((job: Job) => ids.includes(job.id));
-      setAppliedJobsData(appliedJobsList);
+      const data: { jobs: Job[] } = await response.json();
+      setAppliedJobsData(data.jobs);
     } catch (err) {
       setAppliedError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

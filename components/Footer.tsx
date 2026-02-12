@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Twitter, Facebook, Instagram, Linkedin, AtSign } from 'lucide-react';
+import { Twitter, Facebook, Instagram, Linkedin, Youtube } from 'lucide-react';
 
 const linkColumns = [
   {
@@ -21,7 +21,7 @@ const linkColumns = [
       { label: 'Post a Job', href: '/post-job' },
       { label: 'Employer Login', href: '/employer/login' },
       { label: 'Pricing', href: '/post-job' },
-      { label: 'Why PMHNP Jobs', href: '/for-employers' },
+      { label: 'Why PMHNP Hiring', href: '/for-employers' },
     ],
   },
   {
@@ -56,9 +56,9 @@ const linkColumns = [
 const socialLinks = [
   { icon: Twitter, href: 'https://x.com/pmhnphiring', label: 'X' },
   { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61586136316931', label: 'Facebook' },
-  { icon: Instagram, href: 'https://www.instagram.com/akarilabs.io/', label: 'Instagram' },
+  { icon: Instagram, href: 'https://www.instagram.com/pmhnphiring', label: 'Instagram' },
   { icon: Linkedin, href: 'https://www.linkedin.com/company/pmhnp-hiring', label: 'LinkedIn' },
-  { icon: AtSign, href: 'https://www.threads.com/@akarilabs.io', label: 'Threads' },
+  { icon: Youtube, href: 'https://www.youtube.com/@pmhnphiring', label: 'YouTube' },
 ];
 
 export default function Footer() {
@@ -176,7 +176,7 @@ export default function Footer() {
 
           {/* Right: copyright */}
           <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', margin: 0 }}>
-            © {new Date().getFullYear()} PMHNP Jobs
+            © {new Date().getFullYear()} PMHNP Hiring
           </p>
         </div>
       </div>

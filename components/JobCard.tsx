@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, CheckCircle, Eye } from 'lucide-react';
+import { MapPin, CheckCircle, Eye, Bookmark } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
+import useSavedJobs from '@/lib/hooks/useSavedJobs';
 import { useViewedJobs } from '@/lib/hooks/useViewedJobs';
 import Badge from '@/components/ui/Badge';
 import ShareModal from '@/components/ShareModal';
@@ -58,8 +59,10 @@ function buildSalaryDisplay(job: Job): string | null {
 
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
+  const { isSaved, saveJob, removeJob } = useSavedJobs();
   const { isViewed, markAsViewed, isHydrated } = useViewedJobs();
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const saved = isSaved(job.id);
   const applied = isApplied(job.id);
   const jobSlug = slugify(job.title, job.id);
   const jobUrl = `/jobs/${jobSlug}`;
@@ -83,6 +86,16 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     e.preventDefault();
     e.stopPropagation();
     setShowShareMenu(true);
+  };
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (saved) {
+      removeJob(job.id);
+    } else {
+      saveJob(job.id);
+    }
   };
 
   // Calculate job age for freshness indicator
@@ -197,6 +210,20 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                     {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
                   </div>
                 )}
+                <button
+                  onClick={handleSaveClick}
+                  className="jc-save-btn"
+                  style={{
+                    padding: '8px', borderRadius: '50%',
+                    color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  aria-label={saved ? 'Unsave job' : 'Save job'}
+                  title={saved ? 'Unsave job' : 'Save job'}
+                >
+                  <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+                </button>
                 <button
                   onClick={handleShareClick}
                   className="jc-share-btn"
@@ -322,19 +349,35 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </span>
             )}
           </div>
-          <button
-            onClick={handleShareClick}
-            className="jc-share-btn"
-            style={{
-              padding: '6px', borderRadius: '50%',
-              color: 'var(--text-tertiary)',
-              background: 'none', border: 'none', cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            aria-label="Share job"
-          >
-            <ShareIcon size={16} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <button
+              onClick={handleSaveClick}
+              className="jc-save-btn"
+              style={{
+                padding: '6px', borderRadius: '50%',
+                color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              aria-label={saved ? 'Unsave job' : 'Save job'}
+              title={saved ? 'Unsave job' : 'Save job'}
+            >
+              <Bookmark size={16} fill={saved ? 'currentColor' : 'none'} />
+            </button>
+            <button
+              onClick={handleShareClick}
+              className="jc-share-btn"
+              style={{
+                padding: '6px', borderRadius: '50%',
+                color: 'var(--text-tertiary)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              aria-label="Share job"
+            >
+              <ShareIcon size={16} />
+            </button>
+          </div>
           {showShareMenu && (
             <ShareModal
               url={fullJobUrl}
@@ -355,6 +398,10 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         }
         .jc-share-btn:hover {
           color: var(--text-primary) !important;
+          background: var(--bg-tertiary) !important;
+        }
+        .jc-save-btn:hover {
+          color: var(--color-primary) !important;
           background: var(--bg-tertiary) !important;
         }
       `}</style>

@@ -80,7 +80,7 @@ function ResetPasswordContent() {
 
   return (
     <div
-      className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12"
+      className="min-h-screen flex items-center justify-center px-4 py-12"
       style={{ background: 'var(--bg-primary)' }}
     >
       <div className="w-full max-w-md relative">
