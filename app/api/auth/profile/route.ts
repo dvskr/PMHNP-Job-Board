@@ -206,6 +206,9 @@ export async function PATCH(request: NextRequest) {
     const desiredSalaryMax = body.desiredSalaryMax !== undefined
       ? (body.desiredSalaryMax !== null ? parseInt(String(body.desiredSalaryMax), 10) || null : null)
       : undefined
+    const desiredSalaryType = body.desiredSalaryType !== undefined
+      ? (body.desiredSalaryType ? sanitizeText(body.desiredSalaryType, 20) : null)
+      : undefined
 
     // Boolean fields
     const openToOffers = typeof body.openToOffers === 'boolean' ? body.openToOffers : undefined
@@ -236,6 +239,7 @@ export async function PATCH(request: NextRequest) {
         ...(yearsExperience !== undefined && { yearsExperience }),
         ...(desiredSalaryMin !== undefined && { desiredSalaryMin }),
         ...(desiredSalaryMax !== undefined && { desiredSalaryMax }),
+        ...(desiredSalaryType !== undefined && { desiredSalaryType }),
         ...(openToOffers !== undefined && { openToOffers }),
         ...(profileVisible !== undefined && { profileVisible }),
         ...(availableDate !== undefined && { availableDate }),

@@ -41,14 +41,15 @@ interface FieldDef {
 
 const hasText = (v: unknown): boolean => typeof v === 'string' && v.trim().length > 0
 
-const hasJsonArray = (v: unknown): boolean => {
-    if (typeof v !== 'string') return false
+const hasListData = (v: unknown): boolean => {
+    if (typeof v !== 'string' || !v.trim()) return false
+    // Try JSON array first
     try {
         const parsed = JSON.parse(v)
-        return Array.isArray(parsed) && parsed.length > 0
-    } catch {
-        return false
-    }
+        if (Array.isArray(parsed) && parsed.length > 0) return true
+    } catch { /* not JSON */ }
+    // Comma-separated fallback
+    return v.split(',').some((s) => s.trim().length > 0)
 }
 
 const FIELDS: FieldDef[] = [
@@ -58,9 +59,9 @@ const FIELDS: FieldDef[] = [
     { key: 'headline', label: 'Add your headline', weight: 15, fieldId: 'section-headline', check: hasText },
     { key: 'bio', label: 'Write a short bio', weight: 10, fieldId: 'section-bio', check: hasText },
     { key: 'yearsExperience', label: 'Set your experience level', weight: 10, fieldId: 'section-experience', check: (v) => v !== null && v !== undefined },
-    { key: 'certifications', label: 'Add a certification', weight: 10, fieldId: 'section-certifications', check: hasJsonArray },
-    { key: 'licenseStates', label: 'Add a licensed state', weight: 10, fieldId: 'section-states', check: hasJsonArray },
-    { key: 'specialties', label: 'Add a specialty', weight: 5, fieldId: 'section-specialties', check: hasJsonArray },
+    { key: 'certifications', label: 'Add a certification', weight: 10, fieldId: 'section-certifications', check: hasListData },
+    { key: 'licenseStates', label: 'Add a licensed state', weight: 10, fieldId: 'section-states', check: hasListData },
+    { key: 'specialties', label: 'Add a specialty', weight: 5, fieldId: 'section-specialties', check: hasListData },
     { key: 'preferredWorkMode', label: 'Set your work mode', weight: 5, fieldId: 'section-workmode', check: hasText },
     { key: 'resumeUrl', label: 'Upload your resume', weight: 10, fieldId: 'section-resume', check: hasText },
 ]

@@ -3,7 +3,7 @@ import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
-import EmailJobButton from '@/components/EmailJobButton';
+
 import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
@@ -467,71 +467,71 @@ export default async function JobPage({ params }: JobPageProps) {
                   }}>{salary}</p>
                 )}
 
-                {/* Metadata Tags - Vertical Stack */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Metadata Tags - Inline Compact */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {/* Location */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '10px 14px', borderRadius: '10px',
+                    padding: '8px 14px', borderRadius: '10px',
                     backgroundColor: 'var(--bg-tertiary)',
                     border: '1px solid var(--border-color)',
                   }}>
                     <div style={{
-                      width: '32px', height: '32px', borderRadius: '8px',
+                      width: '30px', height: '30px', borderRadius: '8px',
                       backgroundColor: 'var(--color-primary)', display: 'flex',
                       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <MapPin size={16} style={{ color: '#fff' }} />
+                      <MapPin size={14} style={{ color: '#fff' }} />
                     </div>
                     <div>
-                      <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</p>
-                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{job.location}</p>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.location}</p>
                     </div>
                   </div>
 
-                  {/* Job Type & Work Mode Row */}
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {job.jobType && (
+                  {/* Job Type */}
+                  {job.jobType && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '8px 14px', borderRadius: '10px',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                    }}>
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '10px 14px', borderRadius: '10px', flex: '1 1 auto',
-                        backgroundColor: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
+                        width: '30px', height: '30px', borderRadius: '8px',
+                        backgroundColor: 'var(--color-primary)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                       }}>
-                        <div style={{
-                          width: '32px', height: '32px', borderRadius: '8px',
-                          backgroundColor: 'var(--color-primary)', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>
-                          <Briefcase size={16} style={{ color: '#fff' }} />
-                        </div>
-                        <div>
-                          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Job Type</p>
-                          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{job.jobType}</p>
-                        </div>
+                        <Briefcase size={14} style={{ color: '#fff' }} />
                       </div>
-                    )}
-                    {job.mode && (
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Job Type</p>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.jobType}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Work Mode */}
+                  {job.mode && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '8px 14px', borderRadius: '10px',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                    }}>
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '10px 14px', borderRadius: '10px', flex: '1 1 auto',
-                        backgroundColor: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
+                        width: '30px', height: '30px', borderRadius: '8px',
+                        backgroundColor: 'var(--color-primary)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                       }}>
-                        <div style={{
-                          width: '32px', height: '32px', borderRadius: '8px',
-                          backgroundColor: 'var(--color-primary)', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>
-                          <Monitor size={16} style={{ color: '#fff' }} />
-                        </div>
-                        <div>
-                          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Work Mode</p>
-                          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{job.mode}</p>
-                        </div>
+                        <Monitor size={14} style={{ color: '#fff' }} />
                       </div>
-                    )}
-                  </div>
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Work Mode</p>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.mode}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </AnimatedContainer>
@@ -657,7 +657,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 <div className="space-y-3 mb-5">
                   <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
                   <SaveJobButton jobId={job.id} />
-                  <EmailJobButton jobId={job.id} jobTitle={job.title} jobUrl={`/jobs/${slugify(job.title, job.id)}`} />
+
                 </div>
 
                 {/* Share Section - Desktop */}
