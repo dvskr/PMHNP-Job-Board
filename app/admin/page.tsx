@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Briefcase, Target, TrendingUp, ArrowRight } from 'lucide-react';
+import { Briefcase, Target, TrendingUp, ArrowRight, Users, Mail, Bell } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -12,6 +12,10 @@ export default function AdminDashboard() {
     totalLeads: 0,
     prospects: 0,
     converted: 0,
+    totalUsers: 0,
+    totalSubscribers: 0,
+    totalAlerts: 0,
+    newsletterOptIns: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +39,23 @@ export default function AdminDashboard() {
           publishedJobs: jobs.filter((j: { isPublished: boolean }) => j.isPublished).length,
           featuredJobs: jobs.filter((j: { isFeatured: boolean }) => j.isFeatured).length,
         }));
+      }
+
+      // Fetch user/subscriber stats
+      try {
+        const usersRes = await fetch('/api/admin/users');
+        const usersData = await usersRes.json();
+        if (usersData.success && usersData.summary) {
+          setStats(prev => ({
+            ...prev,
+            totalUsers: usersData.summary.totalUsers,
+            totalSubscribers: usersData.summary.activeSubscribers,
+            totalAlerts: usersData.summary.activeAlerts,
+            newsletterOptIns: usersData.summary.newsletterOptIns,
+          }));
+        }
+      } catch (e) {
+        console.error('Error fetching user stats:', e);
       }
 
       if (outreachData.success) {
@@ -171,10 +192,37 @@ export default function AdminDashboard() {
             <span>Lead to Customer</span>
           </div>
         </div>
+
+        {/* Users & Subscribers */}
+        <div style={card}>
+          <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
+            <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)' }}>
+              <Users size={22} style={{ color: '#3B82F6' }} />
+            </div>
+            <span style={muted}>Users</span>
+          </div>
+          <div style={{ fontSize: '32px', ...heading }}>{stats.totalUsers}</div>
+          <div style={sub}>Registered Users</div>
+          <div
+            style={{
+              display: 'flex', gap: '24px', marginTop: '14px', paddingTop: '14px',
+              borderTop: '1px solid var(--border-color)', fontSize: '13px',
+            }}
+          >
+            <div>
+              <div style={{ ...heading, fontSize: '15px' }}>{stats.totalSubscribers}</div>
+              <div style={muted}>Subscribers</div>
+            </div>
+            <div>
+              <div style={{ ...heading, fontSize: '15px', color: '#F59E0B' }}>{stats.totalAlerts}</div>
+              <div style={muted}>Active Alerts</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div style={card}>
           <div className="flex items-center gap-3" style={{ marginBottom: '14px' }}>
             <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(45, 212, 191, 0.12)' }}>
@@ -196,6 +244,32 @@ export default function AdminDashboard() {
               }}
             >
               Go to Jobs
+              <ArrowRight size={18} />
+            </button>
+          </Link>
+        </div>
+
+        <div style={card}>
+          <div className="flex items-center gap-3" style={{ marginBottom: '14px' }}>
+            <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.12)' }}>
+              <Users size={18} style={{ color: '#3B82F6' }} />
+            </div>
+            <h2 style={{ ...heading, fontSize: '18px' }}>Users & Subscribers</h2>
+          </div>
+          <p style={{ ...sub, marginBottom: '16px' }}>
+            View user profiles, email subscribers, newsletters, and job alerts.
+          </p>
+          <Link href="/admin/users" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 20px', borderRadius: '10px', cursor: 'pointer',
+                backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)', fontWeight: 600, fontSize: '14px',
+                transition: 'all 0.2s',
+              }}
+            >
+              Go to Users
               <ArrowRight size={18} />
             </button>
           </Link>
@@ -235,6 +309,10 @@ export default function AdminDashboard() {
           {[
             { label: 'Active Jobs', value: stats.publishedJobs },
             { label: 'Featured', value: stats.featuredJobs },
+            { label: 'Users', value: stats.totalUsers },
+            { label: 'Subscribers', value: stats.totalSubscribers },
+            { label: 'Alerts', value: stats.totalAlerts, accent: true },
+            { label: 'Newsletter', value: stats.newsletterOptIns },
             { label: 'New Prospects', value: stats.prospects },
             { label: 'Customers', value: stats.converted, accent: true },
           ].map((s) => (

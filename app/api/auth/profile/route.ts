@@ -130,21 +130,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create EmailLead if user opted into newsletter (only for new signups)
-    if (!existingProfile && newsletterOptIn) {
+    // Create EmailLead for all new signups (employers always, job seekers always)
+    if (!existingProfile) {
       try {
         await prisma.emailLead.upsert({
           where: { email },
-          update: { newsletterOptIn: true },
+          update: {
+            isSubscribed: true,
+            newsletterOptIn: newsletterOptIn || role === 'employer' ? true : undefined,
+          },
           create: {
             email,
             source: role === 'employer' ? 'employer_signup' : 'signup',
-            newsletterOptIn: true,
+            isSubscribed: true,
+            newsletterOptIn: newsletterOptIn || role === 'employer',
           },
         })
-        logger.info('EmailLead created/updated for newsletter opt-in', { email, role })
+        logger.info('EmailLead created/updated for new user', { email, role })
       } catch (leadError) {
-        logger.error('Failed to create EmailLead for newsletter', leadError)
+        logger.error('Failed to create EmailLead', leadError)
       }
     }
 
