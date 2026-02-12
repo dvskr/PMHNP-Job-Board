@@ -32,6 +32,7 @@ interface EmailLead {
     isSubscribed: boolean;
     newsletterOptIn: boolean;
     createdAt: string;
+    hasAccount: boolean;
     jobAlerts: JobAlert[];
 }
 
@@ -43,6 +44,8 @@ interface Summary {
     totalSubscribers: number;
     activeSubscribers: number;
     newsletterOptIns: number;
+    withAccount: number;
+    withoutAccount: number;
     totalAlerts: number;
     activeAlerts: number;
     dailyAlerts: number;
@@ -80,13 +83,14 @@ const td: React.CSSProperties = {
     whiteSpace: 'nowrap',
 };
 
-function badge(text: string, color: 'green' | 'purple' | 'blue' | 'gray' | 'red') {
+function badge(text: string, color: 'green' | 'purple' | 'blue' | 'gray' | 'red' | 'orange') {
     const colors = {
         green: { bg: 'rgba(34, 197, 94, 0.12)', text: '#22C55E' },
         purple: { bg: 'rgba(168, 85, 247, 0.12)', text: '#A855F7' },
         blue: { bg: 'rgba(59, 130, 246, 0.12)', text: '#3B82F6' },
         gray: { bg: 'rgba(148, 163, 184, 0.12)', text: '#94A3B8' },
         red: { bg: 'rgba(239, 68, 68, 0.12)', text: '#EF4444' },
+        orange: { bg: 'rgba(245, 158, 11, 0.12)', text: '#F59E0B' },
     };
     return (
         <span
@@ -105,12 +109,24 @@ function badge(text: string, color: 'green' | 'purple' | 'blue' | 'gray' | 'red'
     );
 }
 
+const selectStyle: React.CSSProperties = {
+    padding: '6px 12px',
+    fontSize: '13px',
+    borderRadius: '8px',
+    border: '1px solid var(--border-color)',
+    backgroundColor: 'var(--bg-secondary)',
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    outline: 'none',
+};
+
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [emailLeads, setEmailLeads] = useState<EmailLead[]>([]);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'users' | 'subscribers' | 'alerts'>('users');
+    const [accountFilter, setAccountFilter] = useState<'all' | 'with' | 'without'>('all');
 
     useEffect(() => {
         fetchData();
@@ -161,6 +177,13 @@ export default function AdminUsersPage() {
         transition: 'all 0.2s',
     });
 
+    // Filter subscribers based on account filter
+    const filteredLeads = emailLeads.filter(lead => {
+        if (accountFilter === 'with') return lead.hasAccount;
+        if (accountFilter === 'without') return !lead.hasAccount;
+        return true;
+    });
+
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 16px' }}>
             {/* Header */}
@@ -171,7 +194,7 @@ export default function AdminUsersPage() {
 
             {/* Summary Cards */}
             {summary && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" style={{ marginBottom: 24 }}>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4" style={{ marginBottom: 24 }}>
                     {[
                         { icon: <Users size={18} />, label: 'Total Users', value: summary.totalUsers, color: '#2DD4BF' },
                         { icon: <Briefcase size={18} />, label: 'Job Seekers', value: summary.jobSeekers, color: '#3B82F6' },
@@ -179,20 +202,22 @@ export default function AdminUsersPage() {
                         { icon: <Mail size={18} />, label: 'Subscribers', value: summary.activeSubscribers, color: '#22C55E' },
                         { icon: <Bell size={18} />, label: 'Active Alerts', value: summary.activeAlerts, color: '#F59E0B' },
                         { icon: <Shield size={18} />, label: 'Newsletter', value: summary.newsletterOptIns, color: '#EC4899' },
+                        { icon: <UserCheck size={18} />, label: 'With Account', value: summary.withAccount, color: '#22C55E' },
+                        { icon: <Users size={18} />, label: 'No Account', value: summary.withoutAccount, color: '#F59E0B' },
                     ].map((stat) => (
                         <div
                             key={stat.label}
                             style={{
                                 ...card,
-                                padding: '20px',
+                                padding: '16px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 textAlign: 'center',
                             }}
                         >
-                            <div style={{ color: stat.color, marginBottom: 8 }}>{stat.icon}</div>
-                            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>
+                            <div style={{ color: stat.color, marginBottom: 6 }}>{stat.icon}</div>
+                            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>
                                 {stat.value}
                             </div>
                             <div style={muted}>{stat.label}</div>
@@ -266,12 +291,35 @@ export default function AdminUsersPage() {
             {/* Subscribers Tab */}
             {activeTab === 'subscribers' && (
                 <div style={card}>
+                    {/* Filter bar */}
+                    <div style={{
+                        padding: '14px 20px',
+                        borderBottom: '1px solid var(--border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                    }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Filter:</span>
+                        <select
+                            value={accountFilter}
+                            onChange={(e) => setAccountFilter(e.target.value as 'all' | 'with' | 'without')}
+                            style={selectStyle}
+                        >
+                            <option value="all">All Subscribers ({emailLeads.length})</option>
+                            <option value="with">With Account ({emailLeads.filter(l => l.hasAccount).length})</option>
+                            <option value="without">No Account ({emailLeads.filter(l => !l.hasAccount).length})</option>
+                        </select>
+                        <span style={{ ...muted, marginLeft: 'auto' }}>
+                            Showing {filteredLeads.length} of {emailLeads.length}
+                        </span>
+                    </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                                     <th style={th}>Email</th>
                                     <th style={th}>Source</th>
+                                    <th style={th}>Account</th>
                                     <th style={th}>Subscribed</th>
                                     <th style={th}>Newsletter</th>
                                     <th style={th}>Alerts</th>
@@ -279,12 +327,17 @@ export default function AdminUsersPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {emailLeads.map((lead) => (
+                                {filteredLeads.map((lead) => (
                                     <tr key={lead.id}>
                                         <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)' }}>
                                             {lead.email}
                                         </td>
                                         <td style={td}>{lead.source || '—'}</td>
+                                        <td style={td}>
+                                            {lead.hasAccount
+                                                ? badge('Yes', 'green')
+                                                : badge('No', 'orange')}
+                                        </td>
                                         <td style={td}>
                                             {lead.isSubscribed ? badge('Active', 'green') : badge('Unsubscribed', 'red')}
                                         </td>
