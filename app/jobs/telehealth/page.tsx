@@ -146,6 +146,12 @@ export async function generateMetadata(): Promise<Metadata> {
             title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
             description: 'Browse telehealth and telepsychiatry psychiatric mental health nurse practitioner positions. Work from home, competitive pay.',
             type: 'website',
+            images: [{
+                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Telehealth PMHNP Jobs`)}&subtitle=${encodeURIComponent('Virtual psychiatric care positions')}`,
+                width: 1200,
+                height: 630,
+                alt: 'Telehealth PMHNP Jobs',
+            }],
         },
         alternates: {
             canonical: 'https://pmhnphiring.com/jobs/telehealth',

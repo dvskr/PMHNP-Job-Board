@@ -130,6 +130,12 @@ export const metadata: Metadata = {
     title: 'PMHNP Jobs by Location',
     description: 'Browse psychiatric mental health nurse practitioner jobs in all 50 states and remote positions.',
     type: 'website',
+    images: [{
+      url: `/api/og?type=page&title=${encodeURIComponent('PMHNP Jobs by Location')}&subtitle=${encodeURIComponent('Browse positions across all 50 states')}`,
+      width: 1200,
+      height: 630,
+      alt: 'PMHNP Jobs by Location',
+    }],
   },
   alternates: {
     canonical: 'https://pmhnphiring.com/jobs/locations',

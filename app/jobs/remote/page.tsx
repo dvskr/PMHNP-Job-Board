@@ -117,6 +117,12 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${stats.totalJobs} Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
       type: 'website',
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
+        width: 1200,
+        height: 630,
+        alt: 'Remote PMHNP Jobs',
+      }],
     },
     alternates: {
       canonical: 'https://pmhnphiring.com/jobs/remote',
