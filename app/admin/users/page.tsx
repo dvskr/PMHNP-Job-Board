@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Mail, Bell, Shield, Briefcase, UserCheck } from 'lucide-react';
+import { Users, Mail, Bell, Shield, Briefcase, UserCheck, Building2 } from 'lucide-react';
 
 interface UserProfile {
     id: string;
@@ -36,6 +36,22 @@ interface EmailLead {
     jobAlerts: JobAlert[];
 }
 
+interface EmployerLead {
+    id: string;
+    companyName: string;
+    contactName: string | null;
+    contactEmail: string | null;
+    contactTitle: string | null;
+    website: string | null;
+    status: string;
+    source: string | null;
+    jobsPosted: number;
+    lastContactedAt: string | null;
+    nextFollowUpAt: string | null;
+    createdAt: string;
+    hasAccount: boolean;
+}
+
 interface Summary {
     totalUsers: number;
     jobSeekers: number;
@@ -50,6 +66,11 @@ interface Summary {
     activeAlerts: number;
     dailyAlerts: number;
     weeklyAlerts: number;
+    totalEmployerLeads: number;
+    employerProspects: number;
+    employerContacted: number;
+    employerWithAccount: number;
+    employerWithoutAccount: number;
 }
 
 const card: React.CSSProperties = {
@@ -120,13 +141,18 @@ const selectStyle: React.CSSProperties = {
     outline: 'none',
 };
 
+type TabType = 'users' | 'subscribers' | 'employers' | 'alerts';
+type FilterType = 'all' | 'with' | 'without';
+
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [emailLeads, setEmailLeads] = useState<EmailLead[]>([]);
+    const [employerLeads, setEmployerLeads] = useState<EmployerLead[]>([]);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'users' | 'subscribers' | 'alerts'>('users');
-    const [accountFilter, setAccountFilter] = useState<'all' | 'with' | 'without'>('all');
+    const [activeTab, setActiveTab] = useState<TabType>('users');
+    const [accountFilter, setAccountFilter] = useState<FilterType>('all');
+    const [employerAccountFilter, setEmployerAccountFilter] = useState<FilterType>('all');
 
     useEffect(() => {
         fetchData();
@@ -139,6 +165,7 @@ export default function AdminUsersPage() {
             if (data.success) {
                 setUsers(data.users);
                 setEmailLeads(data.emailLeads);
+                setEmployerLeads(data.employerLeads || []);
                 setSummary(data.summary);
             }
         } catch (error) {
@@ -177,10 +204,17 @@ export default function AdminUsersPage() {
         transition: 'all 0.2s',
     });
 
-    // Filter subscribers based on account filter
+    // Filter subscribers
     const filteredLeads = emailLeads.filter(lead => {
         if (accountFilter === 'with') return lead.hasAccount;
         if (accountFilter === 'without') return !lead.hasAccount;
+        return true;
+    });
+
+    // Filter employer leads
+    const filteredEmployerLeads = employerLeads.filter(lead => {
+        if (employerAccountFilter === 'with') return lead.hasAccount;
+        if (employerAccountFilter === 'without') return !lead.hasAccount;
         return true;
     });
 
@@ -189,7 +223,7 @@ export default function AdminUsersPage() {
             {/* Header */}
             <div style={{ marginBottom: 24 }}>
                 <h1 style={{ ...heading, fontSize: 28, marginBottom: 4 }}>Users & Subscribers</h1>
-                <p style={sub}>Manage user profiles, email subscribers, and job alerts</p>
+                <p style={sub}>Manage user profiles, email subscribers, employer leads, and job alerts</p>
             </div>
 
             {/* Summary Cards */}
@@ -202,8 +236,8 @@ export default function AdminUsersPage() {
                         { icon: <Mail size={18} />, label: 'Subscribers', value: summary.activeSubscribers, color: '#22C55E' },
                         { icon: <Bell size={18} />, label: 'Active Alerts', value: summary.activeAlerts, color: '#F59E0B' },
                         { icon: <Shield size={18} />, label: 'Newsletter', value: summary.newsletterOptIns, color: '#EC4899' },
-                        { icon: <UserCheck size={18} />, label: 'With Account', value: summary.withAccount, color: '#22C55E' },
-                        { icon: <Users size={18} />, label: 'No Account', value: summary.withoutAccount, color: '#F59E0B' },
+                        { icon: <Building2 size={18} />, label: 'Employer Leads', value: summary.totalEmployerLeads, color: '#8B5CF6' },
+                        { icon: <Users size={18} />, label: 'No Account', value: summary.withoutAccount + summary.employerWithoutAccount, color: '#F59E0B' },
                     ].map((stat) => (
                         <div
                             key={stat.label}
@@ -227,12 +261,15 @@ export default function AdminUsersPage() {
             )}
 
             {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: 0 }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: 0, overflowX: 'auto' }}>
                 <button onClick={() => setActiveTab('users')} style={tabStyle(activeTab === 'users')}>
                     <span className="flex items-center gap-2"><Users size={16} /> Users ({users.length})</span>
                 </button>
                 <button onClick={() => setActiveTab('subscribers')} style={tabStyle(activeTab === 'subscribers')}>
                     <span className="flex items-center gap-2"><Mail size={16} /> Subscribers ({emailLeads.length})</span>
+                </button>
+                <button onClick={() => setActiveTab('employers')} style={tabStyle(activeTab === 'employers')}>
+                    <span className="flex items-center gap-2"><Building2 size={16} /> Employer Leads ({employerLeads.length})</span>
                 </button>
                 <button onClick={() => setActiveTab('alerts')} style={tabStyle(activeTab === 'alerts')}>
                     <span className="flex items-center gap-2"><Bell size={16} /> Alerts ({summary?.totalAlerts || 0})</span>
@@ -302,7 +339,7 @@ export default function AdminUsersPage() {
                         <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Filter:</span>
                         <select
                             value={accountFilter}
-                            onChange={(e) => setAccountFilter(e.target.value as 'all' | 'with' | 'without')}
+                            onChange={(e) => setAccountFilter(e.target.value as FilterType)}
                             style={selectStyle}
                         >
                             <option value="all">All Subscribers ({emailLeads.length})</option>
@@ -334,9 +371,7 @@ export default function AdminUsersPage() {
                                         </td>
                                         <td style={td}>{lead.source || '—'}</td>
                                         <td style={td}>
-                                            {lead.hasAccount
-                                                ? badge('Yes', 'green')
-                                                : badge('No', 'orange')}
+                                            {lead.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}
                                         </td>
                                         <td style={td}>
                                             {lead.isSubscribed ? badge('Active', 'green') : badge('Unsubscribed', 'red')}
@@ -356,6 +391,128 @@ export default function AdminUsersPage() {
                                         </td>
                                     </tr>
                                 ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Employer Leads Tab */}
+            {activeTab === 'employers' && (
+                <div style={card}>
+                    {/* Summary bar */}
+                    {summary && (
+                        <div
+                            className="grid grid-cols-2 sm:grid-cols-5 gap-4"
+                            style={{ padding: 20, borderBottom: '1px solid var(--border-color)' }}
+                        >
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    {summary.totalEmployerLeads}
+                                </div>
+                                <div style={muted}>Total Leads</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: '#F59E0B' }}>
+                                    {summary.employerProspects}
+                                </div>
+                                <div style={muted}>Prospects</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: '#3B82F6' }}>
+                                    {summary.employerContacted}
+                                </div>
+                                <div style={muted}>Contacted</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: '#22C55E' }}>
+                                    {summary.employerWithAccount}
+                                </div>
+                                <div style={muted}>With Account</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: '#EF4444' }}>
+                                    {summary.employerWithoutAccount}
+                                </div>
+                                <div style={muted}>No Account</div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Filter bar */}
+                    <div style={{
+                        padding: '14px 20px',
+                        borderBottom: '1px solid var(--border-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                    }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Filter:</span>
+                        <select
+                            value={employerAccountFilter}
+                            onChange={(e) => setEmployerAccountFilter(e.target.value as FilterType)}
+                            style={selectStyle}
+                        >
+                            <option value="all">All Employer Leads ({employerLeads.length})</option>
+                            <option value="with">With Account ({employerLeads.filter(l => l.hasAccount).length})</option>
+                            <option value="without">No Account ({employerLeads.filter(l => !l.hasAccount).length})</option>
+                        </select>
+                        <span style={{ ...muted, marginLeft: 'auto' }}>
+                            Showing {filteredEmployerLeads.length} of {employerLeads.length}
+                        </span>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <th style={th}>Company</th>
+                                    <th style={th}>Contact</th>
+                                    <th style={th}>Email</th>
+                                    <th style={th}>Account</th>
+                                    <th style={th}>Status</th>
+                                    <th style={th}>Source</th>
+                                    <th style={th}>Jobs</th>
+                                    <th style={th}>Since</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredEmployerLeads.map((lead) => (
+                                    <tr key={lead.id}>
+                                        <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)' }}>
+                                            {lead.website ? (
+                                                <a href={lead.website} target="_blank" rel="noopener noreferrer"
+                                                    style={{ color: '#2DD4BF', textDecoration: 'none' }}>
+                                                    {lead.companyName}
+                                                </a>
+                                            ) : lead.companyName}
+                                        </td>
+                                        <td style={td}>{lead.contactName || '—'}</td>
+                                        <td style={td}>{lead.contactEmail || '—'}</td>
+                                        <td style={td}>
+                                            {lead.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}
+                                        </td>
+                                        <td style={td}>
+                                            {lead.status === 'prospect' && badge('Prospect', 'orange')}
+                                            {lead.status === 'contacted' && badge('Contacted', 'blue')}
+                                            {lead.status === 'active' && badge('Active', 'green')}
+                                            {lead.status === 'declined' && badge('Declined', 'red')}
+                                            {!['prospect', 'contacted', 'active', 'declined'].includes(lead.status) && badge(lead.status, 'gray')}
+                                        </td>
+                                        <td style={td}>{lead.source || '—'}</td>
+                                        <td style={td}>{lead.jobsPosted}</td>
+                                        <td style={td}>
+                                            {new Date(lead.createdAt).toLocaleDateString('en-US', {
+                                                month: 'short', day: 'numeric', year: 'numeric',
+                                            })}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredEmployerLeads.length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} style={{ ...td, textAlign: 'center', padding: '40px 16px' }}>
+                                            No employer leads found
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
