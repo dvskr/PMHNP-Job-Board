@@ -12,6 +12,7 @@ import { parseJobLocation } from './location-parser';
 import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
+import { collectEmployerEmails } from './employer-email-collector';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby';
 
@@ -287,6 +288,14 @@ export async function ingestJobs(
   if (totals.added > 0) {
     const { cleanAllJobDescriptions } = await import('./description-cleaner');
     await cleanAllJobDescriptions();
+  }
+
+  // Auto-collect employer emails into leads
+  try {
+    const emailResult = await collectEmployerEmails();
+    console.log(`[Employer Emails] Auto-collected: ${emailResult.created} new, ${emailResult.updated} updated`);
+  } catch (emailError) {
+    console.error('[Employer Emails] Failed to collect:', emailError);
   }
 
   return results;

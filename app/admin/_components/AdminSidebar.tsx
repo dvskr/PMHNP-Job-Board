@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, Target, Menu, X, ArrowLeft, Home } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Target, Users, Menu, X, ArrowLeft, Home } from 'lucide-react';
 
 const navItems = [
   {
@@ -15,6 +15,11 @@ const navItems = [
     name: 'Jobs',
     href: '/admin/jobs',
     icon: Briefcase,
+  },
+  {
+    name: 'Users & Subscribers',
+    href: '/admin/users',
+    icon: Users,
   },
   {
     name: 'Employer Outreach',
