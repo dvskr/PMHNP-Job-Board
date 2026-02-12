@@ -22,6 +22,7 @@ interface AdzunaResponse {
 }
 
 import { SEARCH_QUERIES } from './constants';
+import { isRelevantJob } from '../utils/job-filter';
 
 // Helper function for delays
 function sleep(ms: number): Promise<void> {
@@ -37,6 +38,9 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
     return [];
   }
 
+  const ADZUNA_TIME_BUDGET_MS = 250_000; // 250s budget (Vercel cron limit: 300s)
+  const startTime = Date.now();
+
   const allJobs: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
 
@@ -47,6 +51,13 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
   console.log(`[Adzuna] Starting fetch with ${SEARCH_QUERIES.length} search queries...`);
 
   for (const query of SEARCH_QUERIES) {
+    // Time budget check
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= ADZUNA_TIME_BUDGET_MS) {
+      console.warn(`[Adzuna] Time budget exhausted (${(elapsed / 1000).toFixed(1)}s). Returning ${allJobs.length} jobs collected so far.`);
+      break;
+    }
+
     // Fetch up to 20 pages per query (50 results per page = 1000 max per query)
     for (let page = 1; page <= 20; page++) {
       try {
@@ -90,6 +101,12 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
 
           // Skip jobs without a valid apply link
           if (!job.redirect_url) {
+            droppedByFilter++;
+            continue;
+          }
+
+          // Strict relevance filter — drop non-PMHNP jobs early
+          if (!isRelevantJob(job.title, job.description || '')) {
             droppedByFilter++;
             continue;
           }

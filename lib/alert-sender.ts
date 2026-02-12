@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import { Job, JobAlert } from '@/lib/types';
 import { slugify } from '@/lib/utils';
+import { emailShell, headerBlock, primaryButton } from '@/lib/email-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 // Always use production URL for email links
@@ -115,40 +116,12 @@ async function sendAlertEmail(
 ): Promise<void> {
   const jobCount = jobs.length;
   const subject = `🔔 ${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
-  const currentYear = new Date().getFullYear();
 
-  await resend.emails.send({
-    from: EMAIL_FROM,
-    to: alert.email,
-    subject,
-    html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-</head>
-<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0f172a;">
-    <tr>
-      <td align="center" style="padding: 32px 16px;">
-        <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
-          ${jobCount} new PMHNP positions matching your criteria — PMHNP Hiring
-        </div>
-
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid #334155;">
-          <!-- Gradient Header -->
-          <tr>
-            <td style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #14b8a6 100%); padding: 32px 40px; text-align: center;">
-              <img src="${BASE_URL}/pmhnp_logo.png" height="36" alt="PMHNP Hiring" style="display: block; margin: 0 auto 20px auto; filter: brightness(10);" />
-              <h1 style="margin: 0; font-size: 26px; color: #ffffff; font-weight: 700; letter-spacing: -0.3px; line-height: 1.3;">
-                ${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found 🔔
-              </h1>
-              <p style="margin: 10px 0 0 0; font-size: 15px; color: #a7f3d0; font-weight: 400;">
-                ${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'} Alert
-              </p>
-            </td>
-          </tr>
+  const html = emailShell(`
+          ${headerBlock(
+    `${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found 🔔`,
+    `${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'} Alert`
+  )}
           <tr>
             <td style="padding: 24px 40px 8px 40px;">
               <p style="margin: 0; font-size: 16px; color: #e2e8f0; line-height: 1.6;">
@@ -168,39 +141,24 @@ async function sendAlertEmail(
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
                   <td>
-                    <a href="${BASE_URL}/jobs" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #059669); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 15px; letter-spacing: 0.3px;">
-                      View All Jobs
-                    </a>
+                    ${primaryButton('View All Jobs', `${BASE_URL}/jobs`)}
                   </td>
                 </tr>
               </table>
             </td>
-          </tr>
-        </table>
+          </tr>`,
+    `<p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
+      <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #64748b; text-decoration: none;">Manage alert</a>
+      &nbsp;·&nbsp;
+      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #64748b; text-decoration: none;">Delete alert</a>
+    </p>`
+  );
 
-        <!-- Footer -->
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
-          <tr>
-            <td style="padding: 24px 16px 8px 16px; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
-                10,000+ Jobs · 3,000+ Companies · 50 States
-              </p>
-              <p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
-                <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #64748b; text-decoration: none;">Manage alert</a>
-                &nbsp;·&nbsp;
-                <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #64748b; text-decoration: none;">Delete alert</a>
-              </p>
-              <p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
-                © ${currentYear} PMHNP Hiring · <a href="${BASE_URL}" style="color: #475569; text-decoration: none;">pmhnphiring.com</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
+  await resend.emails.send({
+    from: EMAIL_FROM,
+    to: alert.email,
+    subject,
+    html,
   });
 }
 

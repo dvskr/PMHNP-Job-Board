@@ -44,19 +44,7 @@ const LEVER_COMPANIES = [
   'carbonhealth',        // Carbon Health — 0 currently but valid endpoint
 ];
 
-const PMHNP_KEYWORDS = [
-  'pmhnp',
-  'psychiatric',
-  'psych np',
-  'psych nurse',
-  'mental health nurse',
-  'behavioral health nurse',
-  'psychiatric mental health',
-  'psychiatric aprn',
-  'nurse practitioner psychiatry',
-  'aprn psych',
-  'psychiatry',
-];
+import { isRelevantJob } from '../utils/job-filter';
 
 const COMPANY_NAMES: Record<string, string> = {
   'talkiatry': 'Talkiatry',
@@ -73,8 +61,7 @@ function formatCompanyName(slug: string): string {
 }
 
 function isPMHNPJob(title: string, description: string): boolean {
-  const searchText = `${title} ${description}`.toLowerCase();
-  return PMHNP_KEYWORDS.some(keyword => searchText.includes(keyword));
+  return isRelevantJob(title, description);
 }
 
 function sleep(ms: number): Promise<void> {

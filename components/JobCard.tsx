@@ -98,11 +98,11 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     }
   };
 
-  // Calculate job age for freshness indicator
   const getJobAgeIndicator = () => {
     const now = new Date();
-    const createdAt = new Date(job.createdAt);
-    const ageInMs = now.getTime() - createdAt.getTime();
+    // Use original posted date when available, fall back to createdAt
+    const postedDate = new Date((job.originalPostedAt || job.createdAt) as unknown as string);
+    const ageInMs = now.getTime() - postedDate.getTime();
     const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
     // Skip indicator for jobs < 3 days (the existing "New" badge handles this)

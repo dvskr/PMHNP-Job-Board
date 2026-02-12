@@ -93,8 +93,14 @@ export async function cleanAllJobDescriptions(): Promise<{
 }> {
   console.log('[POST-INGESTION CLEANUP] Checking for jobs with HTML tags...');
 
-  // Get all jobs
+  // Only fetch jobs that likely have HTML (contains < character)
   const jobs = await prisma.job.findMany({
+    where: {
+      OR: [
+        { description: { contains: '<' } },
+        { descriptionSummary: { contains: '<' } },
+      ],
+    },
     select: {
       id: true,
       description: true,

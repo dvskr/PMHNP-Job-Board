@@ -1,5 +1,7 @@
 // Jooble API aggregator for PMHNP jobs
 
+import { isRelevantJob } from '../utils/job-filter';
+
 interface JoobleJob {
   title: string;
   location: string;
@@ -106,7 +108,12 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
           if (!seenIds.has(job.id)) {
             seenIds.add(job.id);
 
-            // Parse salary string logic... (omitted for brevity in replacement, but kept in final)
+            // Strict relevance filter — drop non-PMHNP jobs early
+            if (!isRelevantJob(job.title, job.snippet || '')) {
+              continue;
+            }
+
+            // Parse salary string
             // [KEEP EXISTING SALARY PARSING LOGIC]
             let minSalary = null;
             let maxSalary = null;

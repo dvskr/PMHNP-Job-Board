@@ -394,7 +394,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       sourceType: 'external',
       sourceProvider: source,
       externalId,
-      originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : null,
+      originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : new Date(),
       expiresAt,
       companyId: null,
     };

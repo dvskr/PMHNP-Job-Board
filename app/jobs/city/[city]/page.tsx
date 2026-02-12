@@ -274,7 +274,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
   const citySlug = cityParam.toLowerCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Breadcrumb Schema */}
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
@@ -287,7 +287,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
       </div>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12 md:py-16">
+      <section className="bg-teal-600 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -328,18 +328,18 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         <div className="max-w-7xl mx-auto">
           {/* Local Market Info */}
           <div className="mb-8 md:mb-12">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <div className="rounded-xl shadow-sm p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
+              <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
                 PMHNP Job Market in {cityName}
               </h2>
-              <p className="text-gray-600 leading-relaxed mb-4">
+              <p className="leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
                 {cityName} offers {stats.totalJobs === 1 ? 'a' : stats.totalJobs} active PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'} across
                 various healthcare settings including hospitals, outpatient clinics, telepsychiatry, and
                 private practices. The local mental health care landscape provides diverse opportunities
                 for psychiatric nurse practitioners at all career levels.
               </p>
               {stats.avgSalary > 0 && (
-                <p className="text-gray-600 leading-relaxed">
+                <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   The average salary for PMHNP positions in {cityName} is approximately ${stats.avgSalary},000
                   annually, with opportunities for both full-time and part-time work arrangements.
                 </p>
@@ -351,13 +351,14 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             {/* Main Content */}
             <div className="lg:col-span-3">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                   All Jobs ({stats.totalJobs})
                 </h2>
                 {stats.state && (
                   <Link
                     href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="text-teal-600 hover:text-teal-700 text-sm font-medium"
+                    className="text-sm font-medium hover:opacity-80 transition-opacity"
+                    style={{ color: 'var(--color-primary)' }}
                   >
                     View All {stats.stateCode} Jobs →
                   </Link>
@@ -365,13 +366,13 @@ export default async function CityJobsPage({ params }: CityPageProps) {
               </div>
 
               {jobs.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-8">
+                <div className="rounded-xl p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
                   <div className="text-center mb-8">
-                    <MapPin className="h-12 w-12 text-teal-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <MapPin className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
                       No PMHNP Jobs in {cityName} Right Now
                     </h3>
-                    <p className="text-gray-600 max-w-md mx-auto">
+                    <p className="max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
                       We don&apos;t have any active positions in {cityName} at the moment,
                       but new jobs are added daily. Here are some alternatives:
                     </p>
@@ -382,32 +383,36 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                     {stats.state && (
                       <Link
                         href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
-                        className="flex flex-col p-4 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 transition-colors"
+                        className="flex flex-col p-4 rounded-lg transition-colors hover:opacity-90"
+                        style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color-dark)' }}
                       >
-                        <span className="font-semibold text-teal-900">📍 Jobs in {stats.state}</span>
-                        <span className="text-sm text-teal-700 mt-1">Browse all positions statewide</span>
+                        <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>📍 Jobs in {stats.state}</span>
+                        <span className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse all positions statewide</span>
                       </Link>
                     )}
                     <Link
                       href="/jobs/remote"
-                      className="flex flex-col p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors"
+                      className="flex flex-col p-4 rounded-lg transition-colors hover:opacity-90"
+                      style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color-dark)' }}
                     >
-                      <span className="font-semibold text-purple-900">🏠 Remote PMHNP Jobs</span>
-                      <span className="text-sm text-purple-700 mt-1">Work from anywhere with telehealth</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>🏠 Remote PMHNP Jobs</span>
+                      <span className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Work from anywhere with telehealth</span>
                     </Link>
                     <Link
                       href={`/job-alerts?location=${encodeURIComponent(cityName)}`}
-                      className="flex flex-col p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors"
+                      className="flex flex-col p-4 rounded-lg transition-colors hover:opacity-90"
+                      style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color-dark)' }}
                     >
-                      <span className="font-semibold text-green-900">🔔 Set Up Job Alerts</span>
-                      <span className="text-sm text-green-700 mt-1">Get notified when {cityName} jobs are posted</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>🔔 Set Up Job Alerts</span>
+                      <span className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Get notified when {cityName} jobs are posted</span>
                     </Link>
                   </div>
 
                   <div className="text-center">
                     <Link
                       href="/jobs"
-                      className="inline-block px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
+                      className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-colors"
+                      style={{ backgroundColor: 'var(--color-primary)' }}
                     >
                       Browse All Jobs Nationwide
                     </Link>
@@ -425,7 +430,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               {/* Job Alert CTA */}
-              <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white mb-6 shadow-lg">
+              <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
                 <Bell className="h-8 w-8 mb-3" />
                 <h3 className="text-lg font-bold mb-2">
                   Get {cityName} Job Alerts
@@ -443,18 +448,18 @@ export default async function CityJobsPage({ params }: CityPageProps) {
 
               {/* Top Employers */}
               {stats.topEmployers.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="rounded-xl shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5 text-teal-600" />
-                    <h3 className="font-bold text-gray-900">Top Employers</h3>
+                    <Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Employers</h3>
                   </div>
                   <ul className="space-y-3">
                     {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
                       <li key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 truncate flex-1">
+                        <span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>
                           {employer.name}
                         </span>
-                        <span className="text-sm font-medium text-teal-600 ml-2">
+                        <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>
                           {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
                         </span>
                       </li>
@@ -465,23 +470,23 @@ export default async function CityJobsPage({ params }: CityPageProps) {
 
               {/* Salary Insights */}
               {stats.avgSalary > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="rounded-xl shadow-sm p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
                   <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <h3 className="font-bold text-gray-900">Salary Insights</h3>
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Salary Insights</h3>
                   </div>
                   <div className="mb-4">
-                    <div className="text-3xl font-bold text-gray-900">
+                    <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
                       ${stats.avgSalary}k
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       Average annual salary
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     Based on PMHNP positions in {cityName} with salary data.
                   </p>
-                  <Link href="/salary-guide" className="text-sm text-teal-600 hover:text-teal-700 mt-2 inline-block">
+                  <Link href="/salary-guide" className="text-sm hover:opacity-80 mt-2 inline-block" style={{ color: 'var(--color-primary)' }}>
                     View full 2026 Salary Guide →
                   </Link>
                 </div>
@@ -489,22 +494,23 @@ export default async function CityJobsPage({ params }: CityPageProps) {
 
               {/* Nearby Cities */}
               {stats.nearbyCities.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="rounded-xl shadow-sm p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Navigation className="h-5 w-5 text-teal-600" />
-                    <h3 className="font-bold text-gray-900">Nearby Cities</h3>
+                    <Navigation className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Nearby Cities</h3>
                   </div>
                   <ul className="space-y-2">
                     {stats.nearbyCities.map((city: ProcessedCity, index: number) => (
                       <li key={index}>
                         <Link
                           href={`/jobs/city/${city.slug}`}
-                          className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                          className="flex items-center justify-between p-2 rounded-lg transition-colors group"
+                          style={{}}
                         >
-                          <span className="text-sm text-gray-700 group-hover:text-teal-600 transition-colors">
+                          <span className="text-sm transition-colors" style={{ color: 'var(--text-secondary)' }}>
                             {city.name}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                             {city.count} {city.count === 1 ? 'job' : 'jobs'}
                           </span>
                         </Link>
@@ -514,7 +520,8 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                   {stats.state && (
                     <Link
                       href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`}
-                      className="block mt-4 text-sm text-center text-teal-600 hover:text-teal-700 font-medium"
+                      className="block mt-4 text-sm text-center font-medium hover:opacity-80"
+                      style={{ color: 'var(--color-primary)' }}
                     >
                       View all {stats.stateCode} cities →
                     </Link>
@@ -526,33 +533,33 @@ export default async function CityJobsPage({ params }: CityPageProps) {
 
           {/* Related Resources */}
           <section className="mt-12 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Explore More PMHNP Opportunities</h2>
+            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Opportunities</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">💰 2026 PMHNP Salary Guide</h3>
-                <p className="text-sm text-gray-600 mt-1">National average is $155,000+. See how your area compares.</p>
+              <Link href="/salary-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
+                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 2026 PMHNP Salary Guide</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>National average is $155,000+. See how your area compares.</p>
               </Link>
 
-              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">🏠 Remote PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 mt-1">Work from anywhere with telehealth positions.</p>
+              <Link href="/jobs/remote" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
+                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏠 Remote PMHNP Jobs</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Work from anywhere with telehealth positions.</p>
               </Link>
 
-              <Link href="/jobs/locations" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">📍 All Locations</h3>
-                <p className="text-sm text-gray-600 mt-1">Browse PMHNP jobs by state and city.</p>
+              <Link href="/jobs/locations" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
+                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 All Locations</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse PMHNP jobs by state and city.</p>
               </Link>
 
-              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">✈️ Travel PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 mt-1">Locum tenens positions with premium pay and housing.</p>
+              <Link href="/jobs/travel" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
+                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>✈️ Travel PMHNP Jobs</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Locum tenens positions with premium pay and housing.</p>
               </Link>
 
               {stats.state && (
-                <Link href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`} className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                  <h3 className="font-semibold text-teal-600">🗺️ All {stats.state} Jobs</h3>
-                  <p className="text-sm text-gray-600 mt-1">See all PMHNP positions across {stats.state}.</p>
+                <Link href={`/jobs/state/${stats.state.toLowerCase().replace(/\s+/g, '-')}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color-dark)' }}>
+                  <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🗺️ All {stats.state} Jobs</h3>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>See all PMHNP positions across {stats.state}.</p>
                 </Link>
               )}
             </div>
@@ -562,4 +569,3 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     </div>
   );
 }
-

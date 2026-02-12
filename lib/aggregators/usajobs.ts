@@ -1,3 +1,5 @@
+import { isRelevantJob } from '../utils/job-filter';
+
 interface USAJobsPosition {
   PositionID: string;
   PositionTitle: string;
@@ -179,6 +181,12 @@ export async function fetchUSAJobs(): Promise<USAJobRaw[]> {
             continue;
           }
           seenIds.add(positionId);
+
+          // Strict relevance filter — drop non-PMHNP jobs early
+          const jobDescription = item.MatchedObjectDescriptor.UserArea?.Details?.JobSummary || '';
+          if (!isRelevantJob(job.PositionTitle, jobDescription)) {
+            continue;
+          }
 
           const remuneration = job.PositionRemuneration?.[0];
           const locations = job.PositionLocation || [];

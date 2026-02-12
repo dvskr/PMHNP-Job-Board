@@ -60,7 +60,6 @@ import {
     SEARCH_QUERIES,
     STATES as LOCATIONS,
     TOP_500_CITIES as CITIES,
-    NOTABLE_COUNTIES as COUNTIES,
     TOP_EMPLOYERS
 } from './constants';
 
@@ -73,8 +72,11 @@ const LOCATION_KEYWORDS = [
     'Psychiatric APN'
 ];
 
-// Reduced keyword set for cron — these 2 cover 99% of results; the others are redundant subsets
-const CRON_KEYWORDS = [
+// Full keyword set for cron national + state searches (catches all title variations)
+const CRON_FULL_KEYWORDS = [...SEARCH_QUERIES];
+
+// Slim keyword set for city-level cron searches (JSearch returns same results at city granularity)
+const CRON_CITY_KEYWORDS = [
     'PMHNP',
     'Psychiatric Nurse Practitioner',
 ];
@@ -140,7 +142,7 @@ async function fetchJSearchPage(
         query: query,
         page: page.toString(),
         num_pages: '1',
-        date_posted: '3days', // Production: 3-day lookback (cron runs daily)
+        date_posted: 'week', // 1-week lookback — resilient to outages, catches more with expanded keywords
         country: 'us',
         language: 'en',
     });
@@ -201,7 +203,6 @@ export async function fetchJSearchJobs(
 
     const isCronChunk = options.chunk !== undefined && options.chunk >= 0;
     const pagesPerQuery = options.pagesPerQuery || (isCronChunk ? CRON_PAGES_PER_QUERY : PAGES_PER_QUERY);
-    const keywords = isCronChunk ? CRON_KEYWORDS : LOCATION_KEYWORDS;
     const startTime = Date.now();
 
     // Build Execution Queue
@@ -210,91 +211,55 @@ export async function fetchJSearchJobs(
     if (options.specificQueries) {
         queue = options.specificQueries;
     } else if (isCronChunk) {
-        // ── Cron mode: 12 micro-chunks designed to fit within 300s ──
+        // ── Cron mode: 8 chunks — all 23 keywords for national/state, slim 2 for cities ──
         const chunkId = options.chunk!;
         const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
 
-        // Pre-build location query arrays using cron keywords (2 instead of 6)
-        const stateQueries: string[] = [];
-        keywords.forEach(kw => {
-            LOCATIONS.forEach(loc => stateQueries.push(`${kw} ${loc}`));
-        });
+        // States split into two halves (A-M, N-Z + Remote)
+        const midpoint = Math.ceil(LOCATIONS.length / 2);
+        const statesFirstHalf = LOCATIONS.slice(0, midpoint);
+        const statesSecondHalf = LOCATIONS.slice(midpoint);
 
         // Split cities into 5 equal chunks
         const citiesPerChunk = Math.ceil(CITIES.length / 5);
-        // Split counties into 5 equal chunks
-        const countiesPerChunk = Math.ceil(COUNTIES.length / 5);
 
         switch (chunkId) {
-            case 0: // National keywords + Employers
-                queue = [...keywords, ...employerQueries];
+            case 0: // National keywords (all 23) + Employers
+                queue = [...CRON_FULL_KEYWORDS, ...employerQueries];
                 break;
-            case 1: // States (2 keywords × 51 states = 102 queries)
-                queue = stateQueries;
+            case 1: // States A-M (23 keywords × ~26 states)
+                CRON_FULL_KEYWORDS.forEach(kw => {
+                    statesFirstHalf.forEach(loc => queue.push(`${kw} ${loc}`));
+                });
                 break;
-            case 2: // Cities slice 1
-                keywords.forEach(kw => {
+            case 2: // States N-Z + Remote (23 keywords × ~25 states)
+                CRON_FULL_KEYWORDS.forEach(kw => {
+                    statesSecondHalf.forEach(loc => queue.push(`${kw} ${loc}`));
+                });
+                break;
+            case 3: // Cities slice 1 (2 keywords × ~100 cities)
+                CRON_CITY_KEYWORDS.forEach(kw => {
                     CITIES.slice(0, citiesPerChunk).forEach(city => queue.push(`${kw} ${city}`));
                 });
                 break;
-            case 3: // Cities slice 2
-                keywords.forEach(kw => {
+            case 4: // Cities slice 2
+                CRON_CITY_KEYWORDS.forEach(kw => {
                     CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => queue.push(`${kw} ${city}`));
                 });
                 break;
-            case 4: // Cities slice 3
-                keywords.forEach(kw => {
+            case 5: // Cities slice 3
+                CRON_CITY_KEYWORDS.forEach(kw => {
                     CITIES.slice(citiesPerChunk * 2, citiesPerChunk * 3).forEach(city => queue.push(`${kw} ${city}`));
                 });
                 break;
-            case 5: // Cities slice 4
-                keywords.forEach(kw => {
+            case 6: // Cities slice 4
+                CRON_CITY_KEYWORDS.forEach(kw => {
                     CITIES.slice(citiesPerChunk * 3, citiesPerChunk * 4).forEach(city => queue.push(`${kw} ${city}`));
                 });
                 break;
-            case 6: // Cities slice 5
-                keywords.forEach(kw => {
+            case 7: // Cities slice 5
+                CRON_CITY_KEYWORDS.forEach(kw => {
                     CITIES.slice(citiesPerChunk * 4).forEach(city => queue.push(`${kw} ${city}`));
-                });
-                break;
-            case 7: // Counties slice 1
-                keywords.forEach(kw => {
-                    COUNTIES.slice(0, countiesPerChunk).forEach(county => {
-                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
-                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                    });
-                });
-                break;
-            case 8: // Counties slice 2
-                keywords.forEach(kw => {
-                    COUNTIES.slice(countiesPerChunk, countiesPerChunk * 2).forEach(county => {
-                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
-                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                    });
-                });
-                break;
-            case 9: // Counties slice 3
-                keywords.forEach(kw => {
-                    COUNTIES.slice(countiesPerChunk * 2, countiesPerChunk * 3).forEach(county => {
-                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
-                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                    });
-                });
-                break;
-            case 10: // Counties slice 4
-                keywords.forEach(kw => {
-                    COUNTIES.slice(countiesPerChunk * 3, countiesPerChunk * 4).forEach(county => {
-                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
-                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                    });
-                });
-                break;
-            case 11: // Counties slice 5
-                keywords.forEach(kw => {
-                    COUNTIES.slice(countiesPerChunk * 4).forEach(county => {
-                        const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
-                        queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                    });
                 });
                 break;
             default:
@@ -304,11 +269,11 @@ export async function fetchJSearchJobs(
         console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries (${pagesPerQuery} pages/query, budget: ${CRON_TIME_BUDGET_MS / 1000}s)`);
     } else {
         // ── Full queue (for local/manual runs — no time budget) ──
-        const nationalQueries = [...LOCATION_KEYWORDS];
+        const nationalQueries = [...SEARCH_QUERIES];
         const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
 
         const stateQueries: string[] = [];
-        LOCATION_KEYWORDS.forEach(kw => {
+        SEARCH_QUERIES.forEach(kw => {
             LOCATIONS.forEach(loc => stateQueries.push(`${kw} ${loc}`));
         });
 
@@ -317,20 +282,11 @@ export async function fetchJSearchJobs(
             CITIES.forEach(city => cityQueries.push(`${kw} ${city}`));
         });
 
-        const countyQueries: string[] = [];
-        LOCATION_KEYWORDS.forEach(kw => {
-            COUNTIES.forEach(county => {
-                const [countyName, stateAbbrev] = county.split(',').map(s => s.trim());
-                countyQueries.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-            });
-        });
-
         queue = [
             ...nationalQueries,
             ...employerQueries,
             ...stateQueries,
             ...cityQueries,
-            ...countyQueries,
         ];
 
         console.log('[JSearch] Strategy Breakdown:');
@@ -338,13 +294,11 @@ export async function fetchJSearchJobs(
         console.log(`    - Employers: ${employerQueries.length}`);
         console.log(`    - States: ${stateQueries.length}`);
         console.log(`    - Cities: ${cityQueries.length}`);
-        console.log(`    - Counties: ${countyQueries.length}`);
     }
 
     console.log(`[JSearch] Total Execution Queue: ${queue.length} queries (Depth: ${pagesPerQuery} pages/query)`);
 
-    // Process in batches of 10 concurrent requests
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 15; // Mega plan: 20 req/sec rate limit
 
     // VALIDATION STATS
     let totalRawJobs = 0;
@@ -414,7 +368,7 @@ export async function fetchJSearchJobs(
                     if (expiryMs < Date.now()) continue;
                 }
 
-                // Global Relevance Gate
+                // Global Relevance Gate — strict early filtering before DB layer
                 if (!isRelevantJob(job.job_title, job.job_description || '')) {
                     droppedByFilter++;
                     continue;
@@ -450,7 +404,7 @@ export async function fetchJSearchJobs(
 
         // Pause 3 seconds between batches (Rate limiting: ~3.3 req/sec overall)
         if (i + BATCH_SIZE < queue.length) {
-            await sleep(3000);
+            await sleep(2000);
         }
     }
 
@@ -458,7 +412,7 @@ export async function fetchJSearchJobs(
     console.log(`[JSearch] VALIDATION STATS:`);
     console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
     console.log(`    Duplicate IDs (seen before): ${droppedByDup}`);
-    console.log(`    Dropped by Relevance Filter: ${droppedByFilter} (This validates filter strictness)`);
+    console.log(`    Dropped by Relevance Filter: ${droppedByFilter}`);
     console.log(`    Final Accepted: ${allJobs.length}`);
 
     return allJobs;
