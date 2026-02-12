@@ -41,9 +41,9 @@ async function getTotalJobCount(): Promise<number> {
  */
 export async function generateMetadata(): Promise<Metadata> {
   const totalJobs = await getTotalJobCount();
-  const jobCountDisplay = totalJobs > 1000
-    ? `${Math.floor(totalJobs / 100) * 100}+`
-    : totalJobs.toLocaleString();
+  const jobCountDisplay = totalJobs > 10000
+    ? `${Math.floor(totalJobs / 1000).toLocaleString()},000+`
+    : '10,000+';
 
   return {
     title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board`,
