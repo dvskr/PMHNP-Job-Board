@@ -43,6 +43,13 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
         });
 
+        // Cross-reference: which email leads have a user account?
+        const profileEmails = new Set(users.map(u => u.email.toLowerCase()));
+        const emailLeadsWithAccount = emailLeads.map(lead => ({
+            ...lead,
+            hasAccount: profileEmails.has(lead.email.toLowerCase()),
+        }));
+
         // Summary counts
         const totalUsers = users.length;
         const jobSeekers = users.filter(u => u.role === 'job_seeker').length;
@@ -52,6 +59,8 @@ export async function GET() {
         const totalSubscribers = emailLeads.length;
         const activeSubscribers = emailLeads.filter(e => e.isSubscribed).length;
         const newsletterOptIns = emailLeads.filter(e => e.newsletterOptIn).length;
+        const withAccount = emailLeadsWithAccount.filter(e => e.hasAccount).length;
+        const withoutAccount = emailLeadsWithAccount.filter(e => !e.hasAccount).length;
         const totalAlerts = emailLeads.reduce((sum, e) => sum + e.jobAlerts.length, 0);
         const activeAlerts = emailLeads.reduce(
             (sum, e) => sum + e.jobAlerts.filter(a => a.isActive).length,
@@ -69,7 +78,7 @@ export async function GET() {
         return NextResponse.json({
             success: true,
             users,
-            emailLeads,
+            emailLeads: emailLeadsWithAccount,
             summary: {
                 totalUsers,
                 jobSeekers,
@@ -78,6 +87,8 @@ export async function GET() {
                 totalSubscribers,
                 activeSubscribers,
                 newsletterOptIns,
+                withAccount,
+                withoutAccount,
                 totalAlerts,
                 activeAlerts,
                 dailyAlerts,
