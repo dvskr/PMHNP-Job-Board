@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 import { config } from '@/lib/config';
 import {
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
 export default function ForEmployersPage() {
   return (
     <div className="min-h-screen bg-white">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'For Employers', url: 'https://pmhnphiring.com/for-employers' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">

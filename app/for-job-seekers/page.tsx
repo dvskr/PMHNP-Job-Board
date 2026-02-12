@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import {
   Search,
   Bookmark,
@@ -28,6 +29,10 @@ export const metadata: Metadata = {
 export default function ForJobSeekersPage() {
   return (
     <div className="min-h-screen bg-white">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'For Job Seekers', url: 'https://pmhnphiring.com/for-job-seekers' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
