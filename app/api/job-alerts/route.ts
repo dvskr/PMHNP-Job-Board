@@ -185,30 +185,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Dedup: if this is a generic signup (no custom filters), reuse an existing active alert
-    const isGenericSignup = !keyword && !location && !mode && !jobType && !minSalary && !maxSalary;
+    // Dedup: check if an alert with the same criteria already exists for this email
     let jobAlert;
+    const existing = await prisma.jobAlert.findFirst({
+      where: {
+        email: normalizedEmail,
+        isActive: true,
+        keyword: keyword || null,
+        location: location || null,
+        mode: mode || null,
+        jobType: jobType || null,
+        minSalary: minSalary || null,
+        maxSalary: maxSalary || null,
+      },
+    });
 
-    if (isGenericSignup) {
-      const existing = await prisma.jobAlert.findFirst({
-        where: {
-          email: normalizedEmail,
-          isActive: true,
-          keyword: null,
-          location: null,
-          mode: null,
-          jobType: null,
-          minSalary: null,
-          maxSalary: null,
-        },
+    if (existing) {
+      // Update frequency if changed, otherwise just reuse
+      jobAlert = await prisma.jobAlert.update({
+        where: { id: existing.id },
+        data: { frequency, name: name || existing.name },
       });
-      if (existing) {
-        // Update frequency if changed, otherwise just reuse
-        jobAlert = await prisma.jobAlert.update({
-          where: { id: existing.id },
-          data: { frequency, name: name || existing.name },
-        });
-      }
     }
 
     if (!jobAlert) {
