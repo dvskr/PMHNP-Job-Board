@@ -73,8 +73,8 @@ const fakeAlerts = [
 export default function StayConnected() {
     const sectionRef = useRef<HTMLElement>(null);
     const [visible, setVisible] = useState(false);
-    const sg = useForm('/api/job-alerts', { frequency: 'daily', name: 'Salary Guide' });
-    const nl = useForm('/api/job-alerts', { frequency: 'weekly' });
+    const sg = useForm('/api/newsletter', { source: 'salary-guide' });
+    const nl = useForm('/api/job-alerts', { frequency: 'daily' });
     const [sgNewsletter, setSgNewsletter] = useState(true);
     const [nlNewsletter, setNlNewsletter] = useState(true);
 
@@ -314,7 +314,7 @@ export default function StayConnected() {
                                 fontSize: '11px', fontWeight: 700, color: '#E86C2C',
                                 textTransform: 'uppercase', letterSpacing: '0.1em',
                             }}>
-                                Weekly Job Alerts
+                                Daily Job Alerts
                             </span>
                             <span style={{
                                 width: '6px', height: '6px', borderRadius: '50%',
