@@ -33,9 +33,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   // Get total job count
   const whereClause = buildWhereClause(filters);
   const totalJobs = await prisma.job.count({ where: whereClause });
-  const jobCountDisplay = totalJobs > 1000
-    ? `${Math.floor(totalJobs / 100) * 100}+`
-    : totalJobs.toLocaleString();
+  const jobCountDisplay = totalJobs > 10000
+    ? `${Math.floor(totalJobs / 1000).toLocaleString()},000+`
+    : '10,000+';
 
   // Build dynamic title and description based on filters
   let title = `Browse ${jobCountDisplay} PMHNP Jobs`;
