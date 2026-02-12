@@ -225,6 +225,12 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
           : `${stats.totalJobs} PMHNP Jobs in ${location}`,
         description,
         type: 'website',
+        images: [{
+          url: `/api/og?type=page&title=${encodeURIComponent(`PMHNP Jobs in ${location}`)}&subtitle=${encodeURIComponent(`${stats.totalJobs} psychiatric NP positions`)}`,
+          width: 1200,
+          height: 630,
+          alt: `PMHNP Jobs in ${location}`,
+        }],
       },
       alternates: {
         canonical: `https://pmhnphiring.com/jobs/city/${cityParam}`,

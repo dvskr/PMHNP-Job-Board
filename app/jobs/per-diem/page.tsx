@@ -169,6 +169,12 @@ export async function generateMetadata(): Promise<Metadata> {
             title: `${stats.totalJobs} Per Diem PMHNP Jobs - PRN & Part-Time Positions`,
             description: 'Browse per diem and PRN psychiatric mental health nurse practitioner positions. Flexible schedules, higher hourly rates.',
             type: 'website',
+            images: [{
+                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Per Diem PMHNP Jobs`)}&subtitle=${encodeURIComponent('PRN & part-time psychiatric NP positions')}`,
+                width: 1200,
+                height: 630,
+                alt: 'Per Diem PMHNP Jobs',
+            }],
         },
         alternates: {
             canonical: 'https://pmhnphiring.com/jobs/per-diem',

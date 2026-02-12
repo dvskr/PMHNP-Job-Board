@@ -24,10 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     try {
         const post = getPostBySlug(slug);
 
-        // Construct absolute URL for OG image
-        const ogImage = post.image
-            ? `https://pmhnphiring.com${post.image}`
-            : 'https://pmhnphiring.com/og-blog-default.jpg'; // We should probably have a default
+        // Construct dynamic OG image URL
+        const ogImage = `/api/og?type=page&title=${encodeURIComponent(post.title)}&subtitle=${encodeURIComponent(post.description.length > 80 ? post.description.slice(0, 77) + '...' : post.description)}`;
 
         return {
             title: `${post.title} | PMHNP Hiring`,

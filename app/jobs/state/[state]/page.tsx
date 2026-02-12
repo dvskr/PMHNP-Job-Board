@@ -348,6 +348,12 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
           : `${stats.totalJobs} PMHNP Jobs in ${stateName}`,
         description,
         type: 'website',
+        images: [{
+          url: `/api/og?type=page&title=${encodeURIComponent(`PMHNP Jobs in ${stateName}`)}&subtitle=${encodeURIComponent(`${stats.totalJobs} psychiatric NP positions in ${stateCode}`)}`,
+          width: 1200,
+          height: 630,
+          alt: `PMHNP Jobs in ${stateName}`,
+        }],
       },
       alternates: {
         canonical: `https://pmhnphiring.com/jobs/state/${stateParam}`,

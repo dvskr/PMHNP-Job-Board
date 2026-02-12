@@ -129,6 +129,12 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${stats.totalJobs} Travel PMHNP Jobs - Locum Tenens Positions`,
       description: 'Browse travel and locum tenens psychiatric mental health nurse practitioner positions. Higher pay, flexible assignments, nationwide opportunities.',
       type: 'website',
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Travel PMHNP Jobs`)}&subtitle=${encodeURIComponent('Locum tenens psychiatric NP positions with premium pay')}`,
+        width: 1200,
+        height: 630,
+        alt: 'Travel PMHNP Jobs',
+      }],
     },
     alternates: {
       canonical: 'https://pmhnphiring.com/jobs/travel',

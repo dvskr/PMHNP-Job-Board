@@ -8,12 +8,15 @@ export async function GET(request: NextRequest) {
 
   // Get dynamic parameters
   const title = searchParams.get('title');
+  const type = searchParams.get('type'); // 'page' for category/blog/location pages
+  const subtitle = searchParams.get('subtitle') || '';
   const company = searchParams.get('company') || 'PMHNP Hiring';
   const salary = searchParams.get('salary') || 'Competitive Pay';
   const location = searchParams.get('location') || 'Remote / On-site';
   const jobType = searchParams.get('jobType') || 'Full-time';
   const isNew = searchParams.get('isNew') === 'true';
-  const isHomepage = !title; // No title = homepage/default OG
+  const isHomepage = !title && type !== 'page';
+  const isPageType = type === 'page';
   const displayTitle = title
     ? (title.length > 55 ? title.slice(0, 52) + '...' : title)
     : '';
@@ -188,6 +191,86 @@ export async function GET(request: NextRequest) {
                     </div>
                   </div>
                 ))}
+              </div>
+            </>
+          ) : isPageType ? (
+            /* ===== PAGE / CATEGORY OG IMAGE ===== */
+            <>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {logoSrc ? (
+                    <img src={logoSrc} height="80" style={{ objectFit: 'contain' }} alt="PMHNP Hiring" />
+                  ) : (
+                    <div style={{ display: 'flex', fontSize: 28, fontWeight: 800, color: '#2DD4BF', textShadow: '0 0 20px rgba(45, 212, 191, 0.5)' }}>PMHNP Hiring</div>
+                  )}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  color: '#2DD4BF',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                }}>
+                  {domain}
+                </div>
+              </div>
+
+              {/* Page title */}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1, gap: '16px' }}>
+                <div style={{
+                  display: 'flex',
+                  fontSize: displayTitle.length > 35 ? '52px' : '60px',
+                  fontWeight: 900,
+                  color: 'white',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.03em',
+                  textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                }}>
+                  {displayTitle}
+                </div>
+                {subtitle && (
+                  <div style={{
+                    display: 'flex',
+                    fontSize: '28px',
+                    fontWeight: 500,
+                    color: '#94a3b8',
+                    lineHeight: 1.4,
+                  }}>
+                    {subtitle}
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom bar */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                borderTop: '2px solid rgba(51, 65, 85, 0.5)',
+                paddingTop: '24px',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  padding: '8px 20px',
+                  backgroundColor: 'rgba(45, 212, 191, 0.15)',
+                  border: '1px solid rgba(45, 212, 191, 0.3)',
+                  borderRadius: '8px',
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  color: '#2DD4BF',
+                }}>
+                  pmhnphiring.com
+                </div>
+                <div style={{
+                  display: 'flex',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: '#64748b',
+                }}>
+                  The #1 PMHNP Job Board
+                </div>
               </div>
             </>
           ) : (
