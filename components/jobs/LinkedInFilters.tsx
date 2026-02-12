@@ -240,6 +240,7 @@ export default function LinkedInFilters() {
           backgroundColor: 'var(--bg-secondary)',
           borderRadius: '16px',
           border: '1px solid var(--border-color)',
+          overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
         }}
       >

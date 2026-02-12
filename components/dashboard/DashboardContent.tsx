@@ -377,25 +377,26 @@ export default function DashboardContent() {
                         <div style={{
                             ...cardBase,
                             padding: '20px',
-                            display: 'flex', flexDirection: 'column', gap: '10px',
+                            display: 'flex', flexDirection: 'column', gap: '8px',
                             cursor: s.href ? 'pointer' : 'default',
                             transition: 'border-color 0.2s',
                         }}>
-                            <div style={{
-                                width: '38px', height: '38px', borderRadius: '10px',
-                                background: `${s.color}18`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                                <Icon size={18} style={{ color: s.color }} />
-                            </div>
-                            <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    width: '38px', height: '38px', borderRadius: '10px',
+                                    background: `${s.color}18`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}>
+                                    <Icon size={18} style={{ color: s.color }} />
+                                </div>
                                 <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1 }}>
                                     {s.value}
                                 </p>
-                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', margin: '4px 0 0' }}>
-                                    {s.label}
-                                </p>
                             </div>
+                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                                {s.label}
+                            </p>
                         </div>
                     )
                     return s.href
