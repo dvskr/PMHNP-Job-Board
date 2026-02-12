@@ -197,7 +197,7 @@ export default function RootLayout({
         }}
       >
         <ThemeProvider>
-          <div style={{ overflowX: 'hidden', width: '100%', position: 'relative' }}>
+          <div style={{ width: '100%', position: 'relative' }}>
             <GoogleAnalytics />
             <LayoutShell>
               <Header />

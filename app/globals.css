@@ -14,9 +14,7 @@
 }
 
 html,
-body {
-  overflow-x: hidden;
-}
+body {}
 
 /* Reset Tailwind v4 preflight that sets form inputs to background-color: field (white) */
 html.dark input,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LayoutGrid, List, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import JobCard from '@/components/JobCard';
@@ -196,9 +196,9 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         {/* Main Content with Sidebar Layout */}
         <div style={{ display: 'flex', gap: '28px' }}>
           {/* Sidebar Filters - Hidden on mobile by default, visible on desktop */}
-          <aside className="hidden lg:block" style={{ width: '300px', flexShrink: 0 }}>
+          <StickyFilterSidebar>
             <LinkedInFilters />
-          </aside>
+          </StickyFilterSidebar>
 
           {/* Job Results */}
           <main style={{ flex: 1, minWidth: 0 }}>
@@ -626,6 +626,64 @@ function LoadingFallback() {
     <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '32px 16px' }}>
       <JobsListSkeleton count={9} />
     </div>
+  );
+}
+
+/**
+ * StickyFilterSidebar — JS-based fixed sidebar that stays pinned while scrolling.
+ * Works regardless of ancestor overflow properties.
+ */
+function StickyFilterSidebar({ children }: { children: React.ReactNode }) {
+  const placeholderRef = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+  const [leftPx, setLeftPx] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      if (placeholderRef.current) {
+        const rect = placeholderRef.current.getBoundingClientRect();
+        setLeftPx(rect.left + window.scrollX);
+        setReady(true);
+      }
+    };
+
+    // Wait for layout to fully settle after hydration
+    requestAnimationFrame(() => {
+      requestAnimationFrame(measure);
+    });
+
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  return (
+    <>
+      {/* Placeholder that reserves space in the flex layout */}
+      <div
+        ref={placeholderRef}
+        className="hidden lg:block"
+        style={{ width: '300px', flexShrink: 0 }}
+      />
+      {/* Fixed panel that stays pinned — always rendered, hidden until measured */}
+      <div
+        className="hidden lg:block"
+        style={{
+          position: 'fixed',
+          top: '110px',
+          left: `${leftPx}px`,
+          width: '300px',
+          maxHeight: 'calc(100vh - 120px)',
+          overflowY: 'auto',
+          zIndex: 10,
+          scrollbarWidth: 'none',
+          visibility: ready ? 'visible' : 'hidden',
+        }}
+      >
+        {children}
+      </div>
+    </>
   );
 }
 
