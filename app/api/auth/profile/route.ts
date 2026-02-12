@@ -130,25 +130,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create EmailLead for all new signups (employers always, job seekers always)
+    // Create leads for new signups — job seekers go to email_leads, employers go to employer_leads
     if (!existingProfile) {
       try {
-        await prisma.emailLead.upsert({
-          where: { email },
-          update: {
-            isSubscribed: true,
-            newsletterOptIn: newsletterOptIn || role === 'employer' ? true : undefined,
-          },
-          create: {
-            email,
-            source: role === 'employer' ? 'employer_signup' : 'signup',
-            isSubscribed: true,
-            newsletterOptIn: newsletterOptIn || role === 'employer',
-          },
-        })
-        logger.info('EmailLead created/updated for new user', { email, role })
+        if (role === 'employer') {
+          // Employers go into employer_leads table
+          const existingEmployerLead = await prisma.employerLead.findFirst({
+            where: { contactEmail: email },
+          })
+          if (!existingEmployerLead) {
+            await prisma.employerLead.create({
+              data: {
+                companyName: company || `${firstName || ''} ${lastName || ''}`.trim() || 'Unknown',
+                contactEmail: email,
+                contactName: [firstName, lastName].filter(Boolean).join(' ') || null,
+                source: 'employer_signup',
+                status: 'prospect',
+              },
+            })
+          }
+          logger.info('EmployerLead created for employer signup', { email })
+        } else {
+          // Job seekers go into email_leads table
+          await prisma.emailLead.upsert({
+            where: { email },
+            update: {
+              isSubscribed: true,
+              newsletterOptIn: newsletterOptIn ? true : undefined,
+            },
+            create: {
+              email,
+              source: 'signup',
+              isSubscribed: true,
+              newsletterOptIn: !!newsletterOptIn,
+            },
+          })
+          logger.info('EmailLead created for job seeker signup', { email })
+        }
       } catch (leadError) {
-        logger.error('Failed to create EmailLead', leadError)
+        logger.error('Failed to create lead', leadError)
       }
     }
 

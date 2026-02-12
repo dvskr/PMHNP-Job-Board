@@ -3,9 +3,9 @@ import { prisma } from './prisma';
 /**
  * Collects employer contact emails from EmployerJob records and
  * from user profiles with role "employer", then upserts them into
- * the email_leads table with newsletter opt-in enabled.
+ * the employer_leads table (NOT email_leads — that's for job seekers).
  *
- * This is idempotent — existing leads are updated, not duplicated.
+ * This is idempotent — existing leads are matched by contactEmail.
  */
 export async function collectEmployerEmails(): Promise<{
     created: number;
@@ -17,62 +17,67 @@ export async function collectEmployerEmails(): Promise<{
 
     // Source 1: Contact emails from employer job postings
     const employerJobs = await prisma.employerJob.findMany({
-        select: { contactEmail: true, employerName: true },
+        select: { contactEmail: true, employerName: true, companyWebsite: true },
     });
 
-    const emailSet = new Map<string, string>(); // email -> source label
+    // email -> { companyName, website }
+    const emailMap = new Map<string, { companyName: string; website?: string | null }>();
     for (const job of employerJobs) {
-        if (job.contactEmail && !emailSet.has(job.contactEmail.toLowerCase())) {
-            emailSet.set(job.contactEmail.toLowerCase(), 'employer_posting');
+        const email = job.contactEmail.toLowerCase();
+        if (!emailMap.has(email)) {
+            emailMap.set(email, {
+                companyName: job.employerName,
+                website: job.companyWebsite,
+            });
         }
     }
 
     // Source 2: Emails from user profiles with role "employer"
     const employers = await prisma.userProfile.findMany({
         where: { role: 'employer' },
-        select: { email: true },
+        select: { email: true, company: true, firstName: true, lastName: true },
     });
 
     for (const emp of employers) {
-        if (emp.email && !emailSet.has(emp.email.toLowerCase())) {
-            emailSet.set(emp.email.toLowerCase(), 'employer_signup');
+        const email = emp.email.toLowerCase();
+        if (!emailMap.has(email)) {
+            emailMap.set(email, {
+                companyName: emp.company || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown',
+            });
         }
     }
 
-    // Upsert each email into email_leads
-    for (const [email, source] of emailSet) {
+    // Upsert each into employer_leads
+    for (const [email, info] of emailMap) {
         try {
-            const existing = await prisma.emailLead.findUnique({
-                where: { email },
+            // Check if this employer already exists in employer_leads by contactEmail
+            const existing = await prisma.employerLead.findFirst({
+                where: { contactEmail: email },
             });
 
             if (existing) {
-                if (!existing.newsletterOptIn || !existing.isSubscribed) {
-                    await prisma.emailLead.update({
-                        where: { email },
-                        data: { isSubscribed: true, newsletterOptIn: true },
-                    });
-                    updated++;
-                }
+                // Already exists — nothing to do
+                updated++;
             } else {
-                await prisma.emailLead.create({
+                // Create new employer lead
+                await prisma.employerLead.create({
                     data: {
-                        email,
-                        isSubscribed: true,
-                        newsletterOptIn: true,
-                        source,
+                        companyName: info.companyName,
+                        contactEmail: email,
+                        website: info.website || null,
+                        source: 'auto_collected',
+                        status: 'prospect',
                     },
                 });
                 created++;
             }
         } catch (error) {
-            // Skip duplicate key errors (race conditions)
             console.error(`[Employer Email Collect] Error for ${email}:`, error);
         }
     }
 
-    const total = emailSet.size;
-    console.log(`[Employer Email Collect] Done: ${created} created, ${updated} updated, ${total} total`);
+    const total = emailMap.size;
+    console.log(`[Employer Email Collect] Done: ${created} created, ${updated} existing, ${total} total`);
 
     return { created, updated, total };
 }
