@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     }
 
     // Auto-link legacy jobs (e.g. guest posts) to this user
-    if (data.user.email) {
+    if (data.user?.email) {
       try {
         const updated = await prisma.employerJob.updateMany({
           where: {
@@ -104,9 +104,9 @@ export async function GET(request: Request) {
     }
 
     // Otherwise, redirect based on role
-    const profile = await prisma.userProfile.findUnique({
+    const profile = data.user ? await prisma.userProfile.findUnique({
       where: { supabaseId: data.user.id }
-    })
+    }) : null
 
     if (profile?.role === 'admin') {
       return NextResponse.redirect(`${origin}/admin/jobs`)
@@ -116,8 +116,6 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/dashboard`)
     }
   }
-}
 
-return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }
-
