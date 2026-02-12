@@ -72,21 +72,7 @@ const GREENHOUSE_COMPANIES = [
   'brave',               // Brave Health — 9 total jobs
 ];
 
-const PMHNP_KEYWORDS = [
-  'pmhnp',
-  'psychiatric',
-  'psych np',
-  'psych nurse',
-  'mental health nurse',
-  'behavioral health nurse',
-  'psychiatric mental health',
-  'nurse practitioner psychiatry',
-  'aprn psych',
-  'aprn psychiatric',
-  'psychiatric aprn',
-  'nurse practitioner', // Broader, carefully used with other checks usually, but here relies on boolean OR
-  'psychiatry',
-];
+import { isRelevantJob } from '../utils/job-filter';
 
 const COMPANY_NAMES: Record<string, string> = {
   // Verified companies
@@ -136,8 +122,7 @@ function formatCompanyName(slug: string): string {
 }
 
 function isPMHNPJob(title: string, content: string): boolean {
-  const searchText = `${title} ${content}`.toLowerCase();
-  return PMHNP_KEYWORDS.some(keyword => searchText.includes(keyword));
+  return isRelevantJob(title, content);
 }
 
 function sleep(ms: number): Promise<void> {

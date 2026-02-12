@@ -47,6 +47,7 @@ export default async function FeaturedJobsSection() {
         jobType: true,
         displaySalary: true,
         createdAt: true,
+        originalPostedAt: true,
     } as const;
 
     type RawJob = {
@@ -58,6 +59,7 @@ export default async function FeaturedJobsSection() {
         jobType: string | null;
         displaySalary: string | null;
         createdAt: Date;
+        originalPostedAt: Date | null;
     };
 
     let jobs: {
@@ -69,6 +71,7 @@ export default async function FeaturedJobsSection() {
         jobType: string | null;
         displaySalary: string | null;
         createdAt: string;
+        originalPostedAt: string | null;
     }[] = [];
 
     try {
@@ -158,6 +161,7 @@ export default async function FeaturedJobsSection() {
         jobs = collected.map((j) => ({
             ...j,
             createdAt: j.createdAt.toISOString(),
+            originalPostedAt: j.originalPostedAt?.toISOString() ?? null,
         }));
     } catch (error) {
         console.error('Error fetching featured jobs:', error instanceof Error ? error.message : error);

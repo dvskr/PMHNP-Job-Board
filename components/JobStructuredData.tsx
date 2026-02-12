@@ -46,11 +46,11 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     return date;
   }, []);
 
-  // Convert date strings to Date objects if needed (memoized to avoid recomputation)
-  const datePosted = useMemo(() =>
-    job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt),
-    [job.createdAt]
-  );
+  // Use originalPostedAt (real source date) with createdAt fallback for SEO accuracy
+  const datePosted = useMemo(() => {
+    const rawDate = job.originalPostedAt || job.createdAt;
+    return rawDate instanceof Date ? rawDate : new Date(rawDate as string);
+  }, [job.originalPostedAt, job.createdAt]);
 
   const validThrough = useMemo(() =>
     job.expiresAt

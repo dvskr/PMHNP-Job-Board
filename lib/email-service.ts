@@ -17,7 +17,7 @@ interface EmailResult {
 // ─── Shared Premium Design System ─────────────────────────────────────────────
 // All templates use a consistent premium dark-header design with teal/emerald accents
 
-function emailShell(content: string, footerContent: string = ''): string {
+export function emailShell(content: string, footerContent: string = ''): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,7 +69,7 @@ function emailShell(content: string, footerContent: string = ''): string {
 </html>`;
 }
 
-function headerBlock(title: string, subtitle: string = ''): string {
+export function headerBlock(title: string, subtitle: string = ''): string {
   return `
           <!-- Gradient Header -->
           <tr>
@@ -83,15 +83,15 @@ function headerBlock(title: string, subtitle: string = ''): string {
           </tr>`;
 }
 
-function primaryButton(text: string, url: string): string {
+export function primaryButton(text: string, url: string): string {
   return `<a href="${url}" style="display: inline-block; background: linear-gradient(135deg, #0d9488, #059669); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 700; font-size: 15px; letter-spacing: 0.3px; mso-padding-alt: 14px 32px;">${text}</a>`;
 }
 
-function secondaryButton(text: string, url: string): string {
+export function secondaryButton(text: string, url: string): string {
   return `<a href="${url}" style="display: inline-block; background: transparent; color: #2dd4bf; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px; border: 2px solid #2dd4bf;">${text}</a>`;
 }
 
-function infoCard(content: string, borderColor: string = '#0d9488'): string {
+export function infoCard(content: string, borderColor: string = '#0d9488'): string {
   return `
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
                 <tr>

@@ -14,6 +14,7 @@ interface FeaturedJob {
     jobType: string | null;
     displaySalary: string | null;
     createdAt: string;
+    originalPostedAt?: string | null;
 }
 
 interface FeaturedJobsProps {
@@ -181,7 +182,8 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                 >
                     {jobs.map((job, idx) => {
                         const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
-                        const fresh = isNew(job.createdAt);
+                        const postedDate = job.originalPostedAt || job.createdAt;
+                        const fresh = isNew(postedDate);
 
                         return (
                             <motion.div key={job.id} variants={rowSlide}>
@@ -257,7 +259,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                             )}
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
                                                 <Clock size={11} />
-                                                {relativeTime(job.createdAt)}
+                                                {relativeTime(job.originalPostedAt || job.createdAt)}
                                             </span>
                                         </div>
                                     </div>
