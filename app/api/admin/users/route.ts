@@ -43,11 +43,36 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
         });
 
+        // Employer leads
+        const employerLeads = await prisma.employerLead.findMany({
+            select: {
+                id: true,
+                companyName: true,
+                contactName: true,
+                contactEmail: true,
+                contactTitle: true,
+                website: true,
+                status: true,
+                source: true,
+                jobsPosted: true,
+                lastContactedAt: true,
+                nextFollowUpAt: true,
+                createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
         // Cross-reference: which email leads have a user account?
         const profileEmails = new Set(users.map(u => u.email.toLowerCase()));
         const emailLeadsWithAccount = emailLeads.map(lead => ({
             ...lead,
             hasAccount: profileEmails.has(lead.email.toLowerCase()),
+        }));
+
+        // Cross-reference: which employer leads have a user account?
+        const employerLeadsWithAccount = employerLeads.map(lead => ({
+            ...lead,
+            hasAccount: lead.contactEmail ? profileEmails.has(lead.contactEmail.toLowerCase()) : false,
         }));
 
         // Summary counts
@@ -75,10 +100,18 @@ export async function GET() {
             0
         );
 
+        // Employer lead stats
+        const totalEmployerLeads = employerLeads.length;
+        const employerProspects = employerLeads.filter(e => e.status === 'prospect').length;
+        const employerContacted = employerLeads.filter(e => e.status === 'contacted').length;
+        const employerWithAccount = employerLeadsWithAccount.filter(e => e.hasAccount).length;
+        const employerWithoutAccount = employerLeadsWithAccount.filter(e => !e.hasAccount).length;
+
         return NextResponse.json({
             success: true,
             users,
             emailLeads: emailLeadsWithAccount,
+            employerLeads: employerLeadsWithAccount,
             summary: {
                 totalUsers,
                 jobSeekers,
@@ -93,6 +126,11 @@ export async function GET() {
                 activeAlerts,
                 dailyAlerts,
                 weeklyAlerts,
+                totalEmployerLeads,
+                employerProspects,
+                employerContacted,
+                employerWithAccount,
+                employerWithoutAccount,
             },
         });
     } catch (error) {
