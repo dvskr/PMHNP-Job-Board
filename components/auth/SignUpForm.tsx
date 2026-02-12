@@ -94,7 +94,7 @@ export default function SignUpForm() {
             company: role === 'employer' ? company : null,
             wantJobHighlights: role === 'job_seeker' ? wantJobHighlights : false,
             highlightsFrequency: role === 'job_seeker' ? highlightsFrequency : undefined,
-            newsletterOptIn: role === 'job_seeker' ? newsletterOptIn : false,
+            newsletterOptIn,
           }),
         })
 
@@ -413,6 +413,27 @@ export default function SignUpForm() {
               </span>
             </label>
           </div>
+        </div>
+      )}
+
+      {/* Newsletter Opt-in (Employers) */}
+      {role === 'employer' && (
+        <div
+          className="rounded-lg p-4"
+          style={{ background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.15)' }}
+        >
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded"
+              style={{ accentColor: 'var(--color-primary)' }}
+            />
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Send me hiring tips, market insights &amp; platform updates
+            </span>
+          </label>
         </div>
       )}
 

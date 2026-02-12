@@ -61,10 +61,10 @@ export default function SalaryGuideSection() {
       return;
     }
     try {
-      const res = await fetch('/api/job-alerts', {
+      const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, frequency: 'daily', name: 'Salary Guide Signup' }),
+        body: JSON.stringify({ email, source: 'salary-guide' }),
       });
       const data = await res.json();
       if (res.ok && data.success) { setStatus('success'); setEmail(''); }

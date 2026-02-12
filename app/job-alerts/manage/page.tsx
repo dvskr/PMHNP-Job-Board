@@ -298,26 +298,7 @@ function ManageAlertsContent() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-wrap items-center gap-3 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  {/* Frequency Select */}
-                  <div className="flex items-center gap-2">
-                    <label htmlFor={`frequency-${alert.id}`} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      Frequency:
-                    </label>
-                    <select
-                      id={`frequency-${alert.id}`}
-                      value={alert.frequency}
-                      onChange={(e) => handleChangeFrequency(alert, e.target.value)}
-                      disabled={actionLoading === alert.id}
-                      className="text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:opacity-50"
-                      style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-                    >
-                      <option value="weekly">Weekly</option>
-                      <option value="daily">Daily</option>
-                    </select>
-                  </div>
-
-                  <div className="flex-1" />
+                <div className="flex flex-wrap items-center justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
 
                   {/* Pause/Resume Button */}
                   <button
