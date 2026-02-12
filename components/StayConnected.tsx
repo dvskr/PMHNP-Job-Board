@@ -13,7 +13,7 @@ function useForm(endpoint: string, body: Record<string, string>) {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [err, setErr] = useState('');
 
-    const submit = async (e: FormEvent) => {
+    const submit = async (e: FormEvent, extraBody?: Record<string, unknown>) => {
         e.preventDefault();
         setErr('');
         if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -23,7 +23,7 @@ function useForm(endpoint: string, body: Record<string, string>) {
         try {
             const res = await fetch(endpoint, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, ...body }),
+                body: JSON.stringify({ email, ...body, ...extraBody }),
             });
             const data = await res.json();
             if (res.ok && data.success) { setStatus('success'); setEmail(''); }
@@ -75,6 +75,8 @@ export default function StayConnected() {
     const [visible, setVisible] = useState(false);
     const sg = useForm('/api/job-alerts', { frequency: 'daily', name: 'Salary Guide' });
     const nl = useForm('/api/job-alerts', { frequency: 'weekly' });
+    const [sgNewsletter, setSgNewsletter] = useState(true);
+    const [nlNewsletter, setNlNewsletter] = useState(true);
 
     const onIntersect = useCallback((entries: IntersectionObserverEntry[]) => {
         if (entries[0].isIntersecting) setVisible(true);
@@ -235,7 +237,7 @@ export default function StayConnected() {
                             </div>
                         ) : (
                             <>
-                                <form onSubmit={sg.submit} style={{ display: 'flex', gap: '8px' }}>
+                                <form onSubmit={(e) => sg.submit(e, { newsletterOptIn: sgNewsletter })} style={{ display: 'flex', gap: '8px' }}>
                                     <input
                                         type="email" value={sg.email}
                                         onChange={(e) => sg.setEmail(e.target.value)}
@@ -269,6 +271,18 @@ export default function StayConnected() {
                                         }
                                     </button>
                                 </form>
+                                <label style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    margin: '10px 0 0', cursor: 'pointer', fontSize: '12px',
+                                    color: 'var(--text-secondary)',
+                                }}>
+                                    <input
+                                        type="checkbox" checked={sgNewsletter}
+                                        onChange={(e) => setSgNewsletter(e.target.checked)}
+                                        style={{ accentColor: '#2DD4BF', width: '14px', height: '14px', cursor: 'pointer' }}
+                                    />
+                                    Also send me the monthly PMHNP newsletter
+                                </label>
                                 {sg.status === 'error' && (
                                     <p style={{ fontSize: '12px', color: '#ef4444', margin: '6px 0 0' }}>{sg.err}</p>
                                 )}
@@ -385,7 +399,7 @@ export default function StayConnected() {
                             </div>
                         ) : (
                             <>
-                                <form onSubmit={nl.submit} style={{ display: 'flex', gap: '8px' }}>
+                                <form onSubmit={(e) => nl.submit(e, { newsletterOptIn: nlNewsletter })} style={{ display: 'flex', gap: '8px' }}>
                                     <input
                                         type="email" value={nl.email}
                                         onChange={(e) => {
@@ -422,6 +436,18 @@ export default function StayConnected() {
                                         }
                                     </button>
                                 </form>
+                                <label style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    margin: '10px 0 0', cursor: 'pointer', fontSize: '12px',
+                                    color: 'var(--text-secondary)',
+                                }}>
+                                    <input
+                                        type="checkbox" checked={nlNewsletter}
+                                        onChange={(e) => setNlNewsletter(e.target.checked)}
+                                        style={{ accentColor: '#E86C2C', width: '14px', height: '14px', cursor: 'pointer' }}
+                                    />
+                                    Also send me the monthly PMHNP newsletter
+                                </label>
                                 {nl.status === 'error' && (
                                     <div style={{
                                         display: 'flex', alignItems: 'center', gap: '4px',

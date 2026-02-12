@@ -3,6 +3,7 @@ import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
+import EmailJobButton from '@/components/EmailJobButton';
 import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
@@ -312,7 +313,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   const canonicalUrl = `https://pmhnphiring.com/jobs/${slug}`;
 
   return {
-    title: `${job.title} at ${job.employer} | PMHNP Jobs`,
+    title: `${job.title} at ${job.employer} | PMHNP Hiring`,
     description,
     openGraph: {
       title: `${job.title} at ${job.employer}`,
@@ -656,6 +657,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 <div className="space-y-3 mb-5">
                   <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
                   <SaveJobButton jobId={job.id} />
+                  <EmailJobButton jobId={job.id} jobTitle={job.title} jobUrl={`/jobs/${slugify(job.title, job.id)}`} />
                 </div>
 
                 {/* Share Section - Desktop */}

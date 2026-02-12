@@ -10,7 +10,7 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const freeParam = searchParams.get('free');
-  
+
   // Determine if this is a free posting
   const isFreeMode = freeParam === 'true' || !config.isPaidPostingEnabled;
 
@@ -35,8 +35,8 @@ function SuccessContent() {
         {/* Messages */}
         <div className="space-y-2 mb-8">
           <p className="text-gray-600 text-lg">
-            {isFreeMode 
-              ? 'Your job listing is now live on PMHNP Jobs.'
+            {isFreeMode
+              ? 'Your job listing is now live on PMHNP Hiring.'
               : 'Your job post is now live.'}
           </p>
           <p className="text-gray-500">

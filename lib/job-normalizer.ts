@@ -319,6 +319,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
     const jobType = rawJob.jobType ? String(rawJob.jobType) : detectJobType(fullText);
     const mode = detectMode(fullText);
 
+
     // Set expiration
     let expiresAt = new Date();
 
@@ -350,6 +351,12 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
     // Parse location into structured data
     const parsedLocationData = parseLocation(location);
 
+    // Sync isHybrid/isRemote with mode detection (mode checks full text, location parser only checks location)
+    let isRemote = parsedLocationData.isRemote;
+    let isHybrid = parsedLocationData.isHybrid;
+    if (mode === 'Hybrid') isHybrid = true;
+    if (mode === 'Remote') isRemote = true;
+
     // Generate display salary
     const displaySalary = formatDisplaySalary(
       normalizedSalaryData.normalizedMinSalary,
@@ -378,8 +385,8 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       state: parsedLocationData.state,
       stateCode: parsedLocationData.stateCode,
       country: parsedLocationData.country,
-      isRemote: parsedLocationData.isRemote,
-      isHybrid: parsedLocationData.isHybrid,
+      isRemote: isRemote,
+      isHybrid: isHybrid,
       applyLink,
       isFeatured: false,
       isPublished: true,

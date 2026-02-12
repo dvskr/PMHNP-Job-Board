@@ -106,6 +106,16 @@ export default function Header() {
       {/* Spacer so content below doesn't sit behind the floating nav */}
       <div style={{ height: '94px' }} />
 
+      {/* Solid background strip behind the floating nav — prevents content bleed-through */}
+      <div
+        className="fixed top-0 left-0 right-0 z-40"
+        style={{
+          height: '108px',
+          backgroundColor: 'var(--bg-primary)',
+          pointerEvents: 'none',
+        }}
+      />
+
       <header
         className="fixed z-50"
         style={{
@@ -120,11 +130,7 @@ export default function Header() {
         <div
           className="nav-pill"
           style={{
-            backgroundColor: showSolid
-              ? 'rgba(var(--bg-secondary-rgb, 22, 28, 36), 0.92)'
-              : 'rgba(var(--bg-secondary-rgb, 22, 28, 36), 0.7)',
-            backdropFilter: 'blur(20px) saturate(1.4)',
-            WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+            backgroundColor: 'var(--bg-secondary)',
             borderRadius: '18px',
             border: '1px solid var(--border-color)',
             borderBottom: '1px solid rgba(45, 212, 191, 0.25)',

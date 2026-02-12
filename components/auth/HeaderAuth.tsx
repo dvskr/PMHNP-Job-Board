@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import UserMenu from './UserMenu'
 import { User } from '@supabase/supabase-js'
+import { calculateCompleteness, ProfileData } from '@/lib/profile-completeness'
 
 interface UserProfile {
   email: string
@@ -21,6 +22,7 @@ interface HeaderAuthProps {
 export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [profileCompleteness, setProfileCompleteness] = useState(100)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -42,6 +44,9 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
               lastName: profileData.lastName,
               avatarUrl: profileData.avatarUrl,
             })
+            if (profileData.role === 'job_seeker') {
+              setProfileCompleteness(calculateCompleteness(profileData as ProfileData).percentage)
+            }
           }
         } catch (err) {
           console.error('Failed to fetch profile:', err)
@@ -69,6 +74,9 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
                 lastName: profileData.lastName,
                 avatarUrl: profileData.avatarUrl,
               })
+              if (profileData.role === 'job_seeker') {
+                setProfileCompleteness(calculateCompleteness(profileData as ProfileData).percentage)
+              }
             }
           } catch (err) {
             console.error('Failed to fetch profile:', err)
@@ -91,6 +99,19 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
   }
 
   if (user && profile) {
+    if (profile.role === 'admin') {
+      return (
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin"
+            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
+          >
+            Admin
+          </Link>
+          <UserMenu user={profile} />
+        </div>
+      )
+    }
     if (profile.role === 'employer') {
       return (
         <div className="flex items-center gap-4">
@@ -100,11 +121,34 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
           >
             Dashboard
           </Link>
+          <Link
+            href="/employer/candidates"
+            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
+          >
+            Candidates
+          </Link>
           <UserMenu user={profile} />
         </div>
       )
     }
-    return <UserMenu user={profile} />
+    return (
+      <div className="flex items-center gap-4">
+        <Link
+          href="/dashboard"
+          className="nav-link"
+          style={{
+            padding: '8px 14px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          Dashboard
+        </Link>
+        <UserMenu user={profile} profileCompleteness={profileCompleteness} />
+      </div>
+    )
   }
 
   return (

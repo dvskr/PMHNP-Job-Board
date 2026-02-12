@@ -47,13 +47,13 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
   }, []);
 
   // Convert date strings to Date objects if needed (memoized to avoid recomputation)
-  const datePosted = useMemo(() => 
+  const datePosted = useMemo(() =>
     job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt),
     [job.createdAt]
   );
-  
-  const validThrough = useMemo(() => 
-    job.expiresAt 
+
+  const validThrough = useMemo(() =>
+    job.expiresAt
       ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
       : thirtyDaysFromNow,
     [job.expiresAt, thirtyDaysFromNow]
@@ -85,7 +85,7 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     "directApply": true,
     "identifier": {
       "@type": "PropertyValue",
-      "name": "PMHNP Jobs",
+      "name": "PMHNP Hiring",
       "value": job.id
     }
   };

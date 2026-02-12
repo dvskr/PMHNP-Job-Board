@@ -5,8 +5,8 @@ import LoginContent from '@/components/auth/LoginContent'
 import { Suspense } from 'react'
 
 export const metadata = {
-  title: 'Sign In | PMHNP Jobs',
-  description: 'Sign in to your PMHNP Jobs account',
+  title: 'Sign In | PMHNP Hiring',
+  description: 'Sign in to your PMHNP Hiring account',
 }
 
 export default async function LoginPage() {
@@ -17,7 +17,7 @@ export default async function LoginPage() {
 
   return (
     <div
-      className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12"
+      className="min-h-screen flex items-center justify-center px-4 py-12"
       style={{ background: 'var(--bg-primary)' }}
     >
       <div className="w-full max-w-md relative">

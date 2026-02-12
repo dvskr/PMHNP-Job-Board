@@ -5,7 +5,7 @@ import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, 
 
 export const metadata: Metadata = {
   title: 'About Us | PMHNP Hiring - The #1 Job Board for Psychiatric NPs',
-  description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. 10,000+ jobs from 3,000+ companies across 51 states.',
+  description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. 10,000+ jobs from 3,000+ companies across 50 states.',
   alternates: {
     canonical: 'https://pmhnphiring.com/about',
   },
@@ -286,7 +286,7 @@ export default function AboutPage() {
               </p>
               <p className="font-medium border-l-4 border-emerald-500 pl-4 py-3 rounded-r-lg" style={{ color: 'var(--text-primary)', background: 'rgba(16,185,129,0.1)' }}>
                 Today, PMHNP Hiring is the largest dedicated job board for psychiatric mental health nurse
-                practitioners, with over 10,000+ active positions from 3,000+ companies across 51 states.
+                practitioners, with over 10,000+ active positions from 3,000+ companies across 50 states.
                 We&apos;re committed to providing the most comprehensive, accurate, and transparent PMHNP
                 career resource available.
               </p>

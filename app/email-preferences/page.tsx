@@ -8,6 +8,7 @@ import { Mail, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 interface PreferencesData {
   email: string;
   isSubscribed: boolean;
+  newsletterOptIn: boolean;
 }
 
 function EmailPreferencesContent() {
@@ -40,6 +41,7 @@ function EmailPreferencesContent() {
         setPreferences({
           email: data.email,
           isSubscribed: data.isSubscribed,
+          newsletterOptIn: data.newsletterOptIn ?? false,
         });
       } catch {
         setError('Failed to load preferences');
@@ -63,25 +65,62 @@ function EmailPreferencesContent() {
         : '/api/email/unsubscribe';
 
       const options = preferences.isSubscribed
-        ? { method: 'GET' }
+        ? { method: 'GET' as const }
         : {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-          };
+          method: 'POST' as const,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        };
 
       const response = await fetch(endpoint, options);
       const data = await response.json();
 
       if (data.success) {
+        const newSubscribed = !preferences.isSubscribed;
         setPreferences({
           ...preferences,
-          isSubscribed: !preferences.isSubscribed,
+          isSubscribed: newSubscribed,
+          // Unsubscribing also clears newsletter (backend does this)
+          newsletterOptIn: newSubscribed ? preferences.newsletterOptIn : false,
         });
         setSuccessMessage(
-          preferences.isSubscribed
-            ? 'You have been unsubscribed from our emails.'
-            : 'You have been resubscribed to our emails!'
+          newSubscribed
+            ? 'You have been resubscribed to job alerts!'
+            : 'You have been unsubscribed from all emails.'
+        );
+      } else {
+        setError(data.message || 'Failed to update preferences');
+      }
+    } catch {
+      setError('Failed to update preferences');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleToggleNewsletter = async () => {
+    if (!token || !preferences) return;
+
+    setUpdating(true);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch('/api/email/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newsletterOptIn: !preferences.newsletterOptIn }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setPreferences({
+          ...preferences,
+          newsletterOptIn: !preferences.newsletterOptIn,
+        });
+        setSuccessMessage(
+          !preferences.newsletterOptIn
+            ? 'You are now subscribed to the newsletter!'
+            : 'You have been unsubscribed from the newsletter.'
         );
       } else {
         setError(data.message || 'Failed to update preferences');
@@ -160,51 +199,73 @@ function EmailPreferencesContent() {
           </div>
         )}
 
-        {/* Current Status */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Current Status</p>
+        {/* Subscription Toggles */}
+        <div className="space-y-4 mb-6">
+          {/* Job Alerts */}
+          <div className="bg-gray-50 rounded-lg p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Weekly Job Alerts</p>
+                <p className="text-xs text-gray-500 mt-1">New PMHNP job listings delivered weekly</p>
+              </div>
               <div className="flex items-center gap-2">
                 {preferences?.isSubscribed ? (
-                  <>
-                    <CheckCircle className="text-green-500" size={20} />
-                    <span className="font-semibold text-gray-900">Subscribed</span>
-                  </>
+                  <CheckCircle className="text-green-500" size={18} />
                 ) : (
-                  <>
-                    <XCircle className="text-gray-400" size={20} />
-                    <span className="font-semibold text-gray-900">Unsubscribed</span>
-                  </>
+                  <XCircle className="text-gray-400" size={18} />
                 )}
+                <button
+                  onClick={handleToggleSubscription}
+                  disabled={updating}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${preferences?.isSubscribed
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-teal-500 text-white hover:bg-teal-600'
+                    }`}
+                >
+                  {preferences?.isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Newsletter */}
+          <div className="bg-gray-50 rounded-lg p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Monthly Newsletter</p>
+                <p className="text-xs text-gray-500 mt-1">PMHNP industry news, salary trends & career tips</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {preferences?.newsletterOptIn ? (
+                  <CheckCircle className="text-green-500" size={18} />
+                ) : (
+                  <XCircle className="text-gray-400" size={18} />
+                )}
+                <button
+                  onClick={handleToggleNewsletter}
+                  disabled={updating}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${preferences?.newsletterOptIn
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-teal-500 text-white hover:bg-teal-600'
+                    }`}
+                >
+                  {preferences?.newsletterOptIn ? 'Unsubscribe' : 'Subscribe'}
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Description */}
-        <p className="text-gray-600 text-sm mb-6">
-          {preferences?.isSubscribed
-            ? "You're receiving weekly job alerts for PMHNP positions. Click below to unsubscribe."
-            : "You're not receiving job alerts. Click below to resubscribe and get notified about new opportunities."}
-        </p>
-
-        {/* Toggle Button */}
-        <button
-          onClick={handleToggleSubscription}
-          disabled={updating}
-          className={`w-full py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-            preferences?.isSubscribed
-              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-              : 'bg-teal-500 text-white hover:bg-teal-600'
-          }`}
-        >
-          {updating
-            ? 'Updating...'
-            : preferences?.isSubscribed
-            ? 'Unsubscribe from Emails'
-            : 'Resubscribe to Emails'}
-        </button>
+        {/* Unsubscribe All */}
+        {(preferences?.isSubscribed || preferences?.newsletterOptIn) && (
+          <button
+            onClick={handleToggleSubscription}
+            disabled={updating}
+            className="w-full py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
+          >
+            Unsubscribe from All Emails
+          </button>
+        )}
 
         {/* Footer Link */}
         <div className="text-center mt-6">

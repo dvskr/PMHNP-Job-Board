@@ -1,6 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BookOpen, DollarSign, Briefcase, Users, FileText, TrendingUp } from 'lucide-react';
+import ResourceDownloadGate from '@/components/ResourceDownloadGate';
+
+const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 export const metadata: Metadata = {
   title: 'PMHNP Resources & Career Guides',
@@ -26,6 +29,7 @@ const resources = [
     category: 'Salary',
     readTime: '8 min read',
     color: 'bg-green-50 text-green-600',
+    hasDownload: true,
   },
   {
     href: '/for-job-seekers',
@@ -102,31 +106,37 @@ export default function ResourcesPage() {
               {resources.map((resource) => {
                 const Icon = resource.icon;
                 return (
-                  <Link
+                  <div
                     key={resource.href}
-                    href={resource.href}
                     className="group block bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-teal-200 transition-all"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-lg ${resource.color}`}>
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">
-                            {resource.category}
-                          </span>
-                          <span className="text-xs text-gray-500">{resource.readTime}</span>
+                    <Link href={resource.href}>
+                      <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-lg ${resource.color}`}>
+                          <Icon className="w-6 h-6" />
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
-                          {resource.title}
-                        </h2>
-                        <p className="text-gray-600 text-sm">
-                          {resource.description}
-                        </p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded">
+                              {resource.category}
+                            </span>
+                            <span className="text-xs text-gray-500">{resource.readTime}</span>
+                          </div>
+                          <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
+                            {resource.title}
+                          </h2>
+                          <p className="text-gray-600 text-sm">
+                            {resource.description}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    {resource.hasDownload && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <ResourceDownloadGate resourceUrl={SALARY_GUIDE_URL} resourceTitle="Salary Guide PDF" />
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -164,3 +174,4 @@ export default function ResourcesPage() {
     </div>
   );
 }
+

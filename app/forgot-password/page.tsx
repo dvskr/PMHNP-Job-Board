@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div
-      className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12"
+      className="min-h-screen flex items-center justify-center px-4 py-12"
       style={{ background: 'var(--bg-primary)' }}
     >
       <div className="w-full max-w-md relative">
@@ -111,6 +111,7 @@ export default function ForgotPasswordPage() {
                   style={{
                     background: 'var(--bg-tertiary)',
                     color: 'var(--text-primary)',
+                    WebkitTextFillColor: 'var(--text-primary)',
                     borderColor: 'var(--border-color-dark)',
                   }}
                   placeholder="you@example.com"

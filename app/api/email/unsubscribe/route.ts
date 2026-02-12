@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Update isSubscribed to false
+    // Update isSubscribed and newsletterOptIn to false
     await prisma.emailLead.update({
       where: { unsubscribeToken: token },
-      data: { isSubscribed: false },
+      data: { isSubscribed: false, newsletterOptIn: false },
     });
 
     return NextResponse.json({

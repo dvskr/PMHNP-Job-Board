@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | PMHNP Jobs',
-  description: 'Terms of Service for PMHNP Jobs job board platform.',
+  title: 'Terms of Service | PMHNP Hiring',
+  description: 'Terms of Service for PMHNP Hiring job board platform.',
   alternates: {
     canonical: 'https://pmhnphiring.com/terms',
   },

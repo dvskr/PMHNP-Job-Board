@@ -33,6 +33,7 @@ export default function JobAlertSignupForm({
   const [mode, setMode] = useState(initialMode);
   const [jobType, setJobType] = useState(initialJobType);
   const [frequency, setFrequency] = useState('daily');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -58,6 +59,7 @@ export default function JobAlertSignupForm({
           mode: mode || undefined,
           jobType: jobType || undefined,
           frequency,
+          newsletterOptIn,
         }),
       });
 
@@ -195,6 +197,19 @@ export default function JobAlertSignupForm({
           </select>
         </div>
       </div>
+
+      {/* Newsletter Opt-in */}
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={newsletterOptIn}
+          onChange={(e) => setNewsletterOptIn(e.target.checked)}
+          className="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+        />
+        <span className="text-sm text-gray-600">
+          Also send me PMHNP career tips, salary insights & market updates
+        </span>
+      </label>
 
       {/* Error Message */}
       {status === 'error' && (

@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { AlertTriangle, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | PMHNP Jobs',
-  description: 'Privacy Policy for PMHNP Jobs. Learn how we collect, use, and protect your information.',
+  title: 'Privacy Policy | PMHNP Hiring',
+  description: 'Privacy Policy for PMHNP Hiring. Learn how we collect, use, and protect your information.',
   alternates: {
     canonical: 'https://pmhnphiring.com/privacy',
   },
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
           {/* Introduction */}
           <section className="mb-10">
             <p className="text-gray-700 leading-relaxed mb-4">
-              At PMHNP Jobs, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.
+              At PMHNP Hiring, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.
             </p>
             <p className="text-gray-700 leading-relaxed">
               Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.

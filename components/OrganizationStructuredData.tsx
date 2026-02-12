@@ -6,14 +6,14 @@ export default function OrganizationStructuredData({ baseUrl }: OrganizationStru
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "PMHNP Jobs",
+    "name": "PMHNP Hiring",
     "url": baseUrl,
     "logo": {
       "@type": "ImageObject",
       "url": `${baseUrl}/pmhnp_logo.png`
     },
     "image": `${baseUrl}/pmhnp_logo.png`,
-    "description": "The #1 job board for Psychiatric Mental Health Nurse Practitioners. Find remote and in-person PMHNP jobs with salary transparency.",
+    "description": "The #1 job board for Psychiatric Mental Health Nurse Practitioners. 10,000+ PMHNP jobs from 3,000+ companies across 50 states.",
     "contactPoint": {
       "@type": "ContactPoint",
       "email": "support@pmhnphiring.com",

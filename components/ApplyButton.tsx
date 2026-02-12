@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
+import { createClient } from '@/lib/supabase/client';
 
 interface ApplyButtonProps {
   jobId: string;
@@ -21,6 +22,14 @@ function formatAppliedDate(date: Date): string {
 export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null);
+    });
+  }, []);
 
   const applied = isApplied(jobId);
   const appliedDate = getAppliedDate(jobId);
@@ -49,6 +58,15 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
   const handleConfirmApplied = () => {
     markApplied(jobId);
     setShowConfirmModal(false);
+
+    // Also persist to database (fire-and-forget)
+    try {
+      fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, sourceUrl: applyLink }),
+      }).catch(() => { /* silent */ });
+    } catch { /* silent */ }
   };
 
   const handleNotApplied = () => {
@@ -113,6 +131,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
         onConfirmApplied={handleConfirmApplied}
         onNotApplied={handleNotApplied}
         jobTitle={jobTitle}
+        userEmail={userEmail}
       />
 
       <style>{`

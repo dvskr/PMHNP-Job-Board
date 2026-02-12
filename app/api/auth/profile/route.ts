@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
       company: rawCompany,
       phone: rawPhone,
       wantJobHighlights,
-      highlightsFrequency
+      highlightsFrequency,
+      newsletterOptIn
     } = body
 
     const firstName = rawFirstName ? sanitizeText(rawFirstName, 50) : null
@@ -129,6 +130,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create EmailLead if user opted into newsletter (only for new signups)
+    if (!existingProfile && newsletterOptIn) {
+      try {
+        await prisma.emailLead.upsert({
+          where: { email },
+          update: { newsletterOptIn: true },
+          create: {
+            email,
+            source: role === 'employer' ? 'employer_signup' : 'signup',
+            newsletterOptIn: true,
+          },
+        })
+        logger.info('EmailLead created/updated for newsletter opt-in', { email, role })
+      } catch (leadError) {
+        logger.error('Failed to create EmailLead for newsletter', leadError)
+      }
+    }
+
     // Send welcome email only for new signups (not updates)
     if (!existingProfile) {
       try {
@@ -158,24 +177,68 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { firstName: rawFirstName, lastName: rawLastName, phone: rawPhone, company: rawCompany, avatarUrl: rawAvatarUrl, resumeUrl: rawResumeUrl } = body
 
-    const firstName = rawFirstName ? sanitizeText(rawFirstName, 50) : undefined
-    const lastName = rawLastName ? sanitizeText(rawLastName, 50) : undefined
-    const phone = rawPhone ? sanitizeText(rawPhone, 20) : undefined
-    const company = rawCompany ? sanitizeText(rawCompany, 100) : undefined
-    const avatarUrl = rawAvatarUrl ? sanitizeUrl(rawAvatarUrl) : undefined
-    const resumeUrl = rawResumeUrl ? sanitizeUrl(rawResumeUrl) : undefined
+    // Sanitize basic fields
+    const firstName = body.firstName ? sanitizeText(body.firstName, 50) : undefined
+    const lastName = body.lastName ? sanitizeText(body.lastName, 50) : undefined
+    const phone = body.phone ? sanitizeText(body.phone, 20) : undefined
+    const company = body.company ? sanitizeText(body.company, 100) : undefined
+    const avatarUrl = body.avatarUrl !== undefined ? (body.avatarUrl ? sanitizeUrl(body.avatarUrl) : null) : undefined
+    const resumeUrl = body.resumeUrl !== undefined ? (body.resumeUrl ? sanitizeUrl(body.resumeUrl) : null) : undefined
+
+    // Sanitize new PMHNP fields
+    const headline = body.headline !== undefined ? (body.headline ? sanitizeText(body.headline, 120) : null) : undefined
+    const bio = body.bio !== undefined ? (body.bio ? sanitizeText(body.bio, 500) : null) : undefined
+    const certifications = body.certifications !== undefined ? (body.certifications ? sanitizeText(body.certifications, 500) : null) : undefined
+    const licenseStates = body.licenseStates !== undefined ? (body.licenseStates ? sanitizeText(body.licenseStates, 500) : null) : undefined
+    const specialties = body.specialties !== undefined ? (body.specialties ? sanitizeText(body.specialties, 500) : null) : undefined
+    const preferredWorkMode = body.preferredWorkMode !== undefined ? (body.preferredWorkMode ? sanitizeText(body.preferredWorkMode, 30) : null) : undefined
+    const preferredJobType = body.preferredJobType !== undefined ? (body.preferredJobType ? sanitizeText(body.preferredJobType, 30) : null) : undefined
+    const linkedinUrl = body.linkedinUrl !== undefined ? (body.linkedinUrl ? sanitizeUrl(body.linkedinUrl) : null) : undefined
+
+    // Integer fields
+    const yearsExperience = body.yearsExperience !== undefined
+      ? (body.yearsExperience !== null ? parseInt(String(body.yearsExperience), 10) || null : null)
+      : undefined
+    const desiredSalaryMin = body.desiredSalaryMin !== undefined
+      ? (body.desiredSalaryMin !== null ? parseInt(String(body.desiredSalaryMin), 10) || null : null)
+      : undefined
+    const desiredSalaryMax = body.desiredSalaryMax !== undefined
+      ? (body.desiredSalaryMax !== null ? parseInt(String(body.desiredSalaryMax), 10) || null : null)
+      : undefined
+
+    // Boolean fields
+    const openToOffers = typeof body.openToOffers === 'boolean' ? body.openToOffers : undefined
+    const profileVisible = typeof body.profileVisible === 'boolean' ? body.profileVisible : undefined
+
+    // DateTime field
+    const availableDate = body.availableDate !== undefined
+      ? (body.availableDate ? new Date(body.availableDate) : null)
+      : undefined
 
     const updatedProfile = await prisma.userProfile.update({
       where: { supabaseId: user.id },
       data: {
-        firstName: firstName || null,
-        lastName: lastName || null,
-        phone: phone || null,
-        company: company || null,
-        avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined,
-        resumeUrl: resumeUrl !== undefined ? resumeUrl : undefined,
+        ...(firstName !== undefined && { firstName: firstName || null }),
+        ...(lastName !== undefined && { lastName: lastName || null }),
+        ...(phone !== undefined && { phone: phone || null }),
+        ...(company !== undefined && { company: company || null }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(resumeUrl !== undefined && { resumeUrl }),
+        ...(headline !== undefined && { headline }),
+        ...(bio !== undefined && { bio }),
+        ...(certifications !== undefined && { certifications }),
+        ...(licenseStates !== undefined && { licenseStates }),
+        ...(specialties !== undefined && { specialties }),
+        ...(preferredWorkMode !== undefined && { preferredWorkMode }),
+        ...(preferredJobType !== undefined && { preferredJobType }),
+        ...(linkedinUrl !== undefined && { linkedinUrl }),
+        ...(yearsExperience !== undefined && { yearsExperience }),
+        ...(desiredSalaryMin !== undefined && { desiredSalaryMin }),
+        ...(desiredSalaryMax !== undefined && { desiredSalaryMax }),
+        ...(openToOffers !== undefined && { openToOffers }),
+        ...(profileVisible !== undefined && { profileVisible }),
+        ...(availableDate !== undefined && { availableDate }),
         updatedAt: new Date(),
       },
     })

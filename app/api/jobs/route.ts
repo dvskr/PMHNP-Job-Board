@@ -6,6 +6,41 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+
+    // If specific IDs are requested, return exactly those jobs (for saved/applied pages)
+    const idsParam = searchParams.get('ids');
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean);
+      if (ids.length > 0) {
+        const jobs = await prisma.job.findMany({
+          where: { id: { in: ids }, isPublished: true },
+          select: {
+            id: true,
+            title: true,
+            employer: true,
+            location: true,
+            city: true,
+            state: true,
+            jobType: true,
+            isRemote: true,
+            isHybrid: true,
+            displaySalary: true,
+            normalizedMinSalary: true,
+            normalizedMaxSalary: true,
+            salaryPeriod: true,
+            description: true,
+            descriptionSummary: true,
+            createdAt: true,
+            isFeatured: true,
+            isVerifiedEmployer: true,
+            mode: true,
+            originalPostedAt: true,
+          },
+        });
+        return NextResponse.json({ jobs, total: jobs.length, page: 1, totalPages: 1 });
+      }
+    }
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;

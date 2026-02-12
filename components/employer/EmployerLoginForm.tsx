@@ -71,6 +71,7 @@ export default function EmployerLoginForm() {
                     style={{
                         background: 'var(--bg-tertiary)',
                         color: 'var(--text-primary)',
+                        WebkitTextFillColor: 'var(--text-primary)',
                         borderColor: 'var(--border-color-dark)',
                     }}
                     placeholder="hiring@company.com"
@@ -94,6 +95,7 @@ export default function EmployerLoginForm() {
                         style={{
                             background: 'var(--bg-tertiary)',
                             color: 'var(--text-primary)',
+                            WebkitTextFillColor: 'var(--text-primary)',
                             borderColor: 'var(--border-color-dark)',
                         }}
                         placeholder="Enter your password"

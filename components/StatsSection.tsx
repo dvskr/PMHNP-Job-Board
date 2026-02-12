@@ -12,7 +12,7 @@ export default async function StatsSection() {
   let totalCompanies = 0;
   let newJobsCount = 0;
   let newJobsLabel = 'NEW TODAY';
-  let statesCovered = 51;
+  let statesCovered = 50;
 
   try {
     const now = new Date();
@@ -39,7 +39,7 @@ export default async function StatsSection() {
 
     totalJobs = Math.max(jobCount, 10000);
     totalCompanies = Math.max(companyGroups.length, 3000);
-    statesCovered = Math.max(stateGroups.length, 51);
+    statesCovered = Math.min(stateGroups.length, 50);
 
     if (newToday > 0) {
       newJobsCount = newToday;

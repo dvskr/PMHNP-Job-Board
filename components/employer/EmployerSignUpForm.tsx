@@ -25,6 +25,7 @@ export default function EmployerSignUpForm() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [newsletterOptIn, setNewsletterOptIn] = useState(true)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -85,6 +86,7 @@ export default function EmployerSignUpForm() {
                         role: 'employer',
                         company: company,
                         wantJobHighlights: false,
+                        newsletterOptIn,
                     }),
                 })
 
@@ -266,6 +268,20 @@ export default function EmployerSignUpForm() {
                     </button>
                 </div>
             </div>
+
+            {/* Newsletter Opt-in */}
+            <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={newsletterOptIn}
+                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded"
+                    style={{ accentColor: '#0D9488' }}
+                />
+                <span className="text-sm text-gray-600">
+                    Send me hiring tips, salary benchmarks & PMHNP market insights
+                </span>
+            </label>
 
             <button
                 type="submit"

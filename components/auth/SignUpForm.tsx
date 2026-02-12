@@ -32,6 +32,7 @@ export default function SignUpForm() {
   const [success, setSuccess] = useState(false)
   const [wantJobHighlights, setWantJobHighlights] = useState(true)
   const [highlightsFrequency, setHighlightsFrequency] = useState<'daily' | 'weekly'>('daily')
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -93,6 +94,7 @@ export default function SignUpForm() {
             company: role === 'employer' ? company : null,
             wantJobHighlights: role === 'job_seeker' ? wantJobHighlights : false,
             highlightsFrequency: role === 'job_seeker' ? highlightsFrequency : undefined,
+            newsletterOptIn: role === 'job_seeker' ? newsletterOptIn : false,
           }),
         })
 
@@ -112,9 +114,10 @@ export default function SignUpForm() {
 
   // Shared input classes
   const inputCls = "block w-full px-4 py-3 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
-  const inputSty = {
+  const inputSty: React.CSSProperties = {
     background: 'var(--bg-tertiary)',
     color: 'var(--text-primary)',
+    WebkitTextFillColor: 'var(--text-primary)',
     borderColor: 'var(--border-color-dark)',
   }
 
@@ -395,6 +398,21 @@ export default function SignUpForm() {
             </div>
           )}
           <p className="text-xs mt-2 ml-7" style={{ color: 'var(--text-tertiary)' }}>You can change this anytime</p>
+          {/* Newsletter Opt-in */}
+          <div style={{ borderTop: '1px solid rgba(13,148,136,0.15)', marginTop: '16px', paddingTop: '16px' }}>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newsletterOptIn}
+                onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded"
+                style={{ accentColor: 'var(--color-primary)' }}
+              />
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Send me career tips, salary insights & market updates
+              </span>
+            </label>
+          </div>
         </div>
       )}
 

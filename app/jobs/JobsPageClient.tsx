@@ -599,6 +599,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
           background-color: rgba(45,212,191,0.14) !important;
           border-color: rgba(45,212,191,0.3) !important;
         }
+        .jp-sort-select {
+          color: var(--text-primary) !important;
+          background-color: var(--bg-secondary) !important;
+        }
         .jp-sort-select:focus {
           border-color: #2DD4BF !important;
         }
