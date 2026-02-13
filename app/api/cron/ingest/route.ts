@@ -3,6 +3,7 @@ import {
   ingestJobs,
   cleanupExpiredJobs,
   getIngestionStats,
+  ALL_SOURCES,
   type JobSource
 } from '@/lib/ingestion-service';
 
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Determine which sources to run
     const sources: JobSource[] = sourceParam
       ? [sourceParam as JobSource]
-      : ['adzuna', 'jooble', 'greenhouse', 'lever', 'usajobs', 'jsearch']; // All active sources
+      : ALL_SOURCES;
 
     const chunkOption = chunkParam !== null ? { chunk: parseInt(chunkParam, 10) } : undefined;
 

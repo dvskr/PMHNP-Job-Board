@@ -70,6 +70,56 @@ const GREENHOUSE_COMPANIES = [
   'springhealth66',      // Spring Health — 91 total jobs
   'omadahealth',         // Omada Health — 32 total jobs
   'brave',               // Brave Health — 9 total jobs
+
+  // === ADDED 2026-02-13 — VERIFIED WITH PMHNP JOBS ===
+  'betterhelp',          // BetterHelp — 19 PMHNP jobs (18 recent)
+  'firsthand',           // Firsthand — 13 PMHNP jobs (2 recent)
+  'compasspathways',     // COMPASS Pathways — 11 PMHNP jobs (11 recent)
+
+  // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
+  'alma',                // Alma — 10 total jobs
+  'cortica',             // Cortica — 65 total jobs
+  'galileo',             // Galileo — 7 total jobs
+  'amaehealth',          // Amae Health — 27 total jobs
+  'pelago',              // Pelago — 8 total jobs
+
+  // === ADDED 2026-02-13 — EXPANDED SCAN (278 slugs tested) ===
+  'bouldercare',         // Boulder Care — 18 PMHNP jobs (18 recent) ⭐
+
+  // === EXPANDED SCAN — VALID, monitoring for PMHNP ===
+  'daybreakhealth',      // Daybreak Health — 37 total jobs
+  'parallellearning',    // Parallel Learning — 22 total jobs
+  'legion',              // Legion — 20 total jobs
+  'array',               // Array Behavioral Care — 20 total jobs
+  'neuroflow',           // NeuroFlow — 14 total jobs
+  'forgehealth',         // Forge Health — 9 total jobs
+  'iris',                // Iris — 4 total jobs
+
+  // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
+  'strivehealth',        // Strive Health — 14 PMHNP (14 recent) ⭐
+  'medelitellc',         // MedElite LLC — 13 PMHNP (13 recent) ⭐
+  'solmentalhealth',     // Sol Mental Health — 10 PMHNP (10 recent) ⭐
+  'meditelecare',        // MediTelecare — 7 PMHNP (3 recent)
+  'cloverhealth',        // Clover Health — 7 PMHNP (7 recent)
+  'prenuvo',             // Prenuvo — 7 PMHNP (5 recent)
+  'pineparkhealth',      // Pine Park Health — 6 PMHNP (3 recent)
+  'moodhealth',          // Moodhealth — 5 PMHNP (5 recent)
+  'compasshealthcenter', // Compass Health Center — 4 PMHNP (4 recent)
+  'onemedical',          // One Medical — 4 PMHNP (4 recent)
+  'seniordoc',           // Senior Doc — 3 PMHNP (3 recent)
+  'ascendhealthcare',    // Ascend Healthcare — 3 PMHNP (3 recent)
+  'lonestarcircleofcare',// Lone Star Circle of Care — 3 PMHNP (3 recent)
+  'hellobackpack',       // Backpack Healthcare — 3 PMHNP (3 recent)
+  'northpointrecoveryholdingsllc', // Northpoint Recovery — 3 PMHNP (3 recent)
+  'thejanepauleycommunityhealthcenterinc', // Jane Pauley CHC — 2 PMHNP (2 recent)
+  'riviamind',           // RIVIA Mind — 2 PMHNP (1 recent)
+  'mentalhealthcenterofdenver', // MH Center of Denver — 1 PMHNP
+  'overstoryhealth',     // Overstory Health — 1 PMHNP
+  'nursing',             // Nursing Wellness Center — 1 PMHNP
+  'vitalcaringgroup',    // VitalCaring Group — 1 PMHNP (1 recent)
+  'peregrinehealth',     // Peregrine Health — 1 PMHNP (1 recent)
+  'tia',                 // Tia — 1 PMHNP
+  'lts',                 // LTS — 1 PMHNP (1 recent)
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -112,6 +162,52 @@ const COMPANY_NAMES: Record<string, string> = {
   'springhealth66': 'Spring Health',
   'omadahealth': 'Omada Health',
   'brave': 'Brave Health',
+
+  // Added 2026-02-13
+  'betterhelp': 'BetterHelp',
+  'firsthand': 'Firsthand',
+  'compasspathways': 'COMPASS Pathways',
+  'alma': 'Alma',
+  'cortica': 'Cortica',
+  'galileo': 'Galileo',
+  'amaehealth': 'Amae Health',
+  'pelago': 'Pelago',
+
+  // Added 2026-02-13 (expanded scan)
+  'bouldercare': 'Boulder Care',
+  'daybreakhealth': 'Daybreak Health',
+  'parallellearning': 'Parallel Learning',
+  'legion': 'Legion',
+  'array': 'Array Behavioral Care',
+  'neuroflow': 'NeuroFlow',
+  'forgehealth': 'Forge Health',
+  'iris': 'Iris',
+
+  // Added 2026-02-13 (prod DB mining — 9,295 slugs)
+  'strivehealth': 'Strive Health',
+  'medelitellc': 'MedElite LLC',
+  'solmentalhealth': 'Sol Mental Health',
+  'meditelecare': 'MediTelecare',
+  'cloverhealth': 'Clover Health',
+  'prenuvo': 'Prenuvo',
+  'pineparkhealth': 'Pine Park Health',
+  'moodhealth': 'Moodhealth',
+  'compasshealthcenter': 'Compass Health Center',
+  'onemedical': 'One Medical',
+  'seniordoc': 'Senior Doc',
+  'ascendhealthcare': 'Ascend Healthcare',
+  'lonestarcircleofcare': 'Lone Star Circle of Care',
+  'hellobackpack': 'Backpack Healthcare',
+  'northpointrecoveryholdingsllc': 'Northpoint Recovery',
+  'thejanepauleycommunityhealthcenterinc': 'Jane Pauley Community Health Center',
+  'riviamind': 'RIVIA Mind',
+  'mentalhealthcenterofdenver': 'Mental Health Center of Denver',
+  'overstoryhealth': 'Overstory Health',
+  'nursing': 'Nursing Wellness Center',
+  'vitalcaringgroup': 'VitalCaring Group',
+  'peregrinehealth': 'Peregrine Health',
+  'tia': 'Tia',
+  'lts': 'LTS',
 };
 
 function formatCompanyName(slug: string): string {
