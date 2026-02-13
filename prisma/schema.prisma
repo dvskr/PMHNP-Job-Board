@@ -301,3 +301,22 @@ model ProfileView {
   @@index([candidateId])
   @@map("profile_views")
 }
+
+model BlogPost {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  content         String
+  metaDescription String?  @map("meta_description")
+  targetKeyword   String?  @map("target_keyword")
+  category        String
+  status          String   @default("draft")
+  publishDate     DateTime? @map("publish_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([status, publishDate(sort: Desc)])
+  @@index([slug])
+  @@index([category])
+  @@map("blog_posts")
+}

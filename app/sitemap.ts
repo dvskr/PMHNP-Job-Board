@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { getPostSlugs } from '@/lib/blog'
+import { getAllPublishedSlugs } from '@/lib/blog'
 
 // Type for job query result
 interface JobSitemapData {
@@ -191,16 +191,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
 
   try {
-    // Blog Posts
-    const blogSlugs = getPostSlugs();
-    const blogPages = blogSlugs
-      .filter((slug: string) => slug.endsWith('.mdx'))
-      .map((slug: string) => ({
-        url: `${baseUrl}/blog/${slug.replace(/\.mdx$/, '')}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }));
+    // Blog Posts from Supabase
+    const blogSlugs = await getAllPublishedSlugs();
+    const blogPages = blogSlugs.map((post) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: new Date(post.updated_at),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
 
     // Dynamic job pages
     const jobs = await prisma.job.findMany({
