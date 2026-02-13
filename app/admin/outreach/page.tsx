@@ -372,10 +372,10 @@ export default function OutreachPage() {
                   onClick={() => setActiveStatus(status)}
                   style={{
                     padding: '14px 24px', fontSize: '13px', fontWeight: active ? 700 : 500,
+                    borderTop: 'none', borderLeft: 'none', borderRight: 'none',
                     borderBottom: active ? '2px solid #2DD4BF' : '2px solid transparent',
                     color: active ? '#2DD4BF' : 'var(--text-tertiary)',
-                    background: 'none', border: 'none', borderBottomWidth: '2px',
-                    borderBottomStyle: 'solid', cursor: 'pointer',
+                    background: 'none', cursor: 'pointer',
                     textTransform: 'capitalize', transition: 'color 0.2s',
                   }}
                 >
