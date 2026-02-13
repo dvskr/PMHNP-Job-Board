@@ -7,6 +7,7 @@ import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
 
@@ -270,6 +271,12 @@ export async function POST(request: NextRequest) {
       jobId: job.id,
       employer: sanitized.employer
     });
+
+    // Ping search engines for indexing (fire-and-forget)
+    const jobUrl = `https://pmhnphiring.com/jobs/${slug}`;
+    pingAllSearchEngines(jobUrl).catch((err) =>
+      logger.error('[Post-Free] Background indexing ping failed', err)
+    );
 
     // Return success response
     return NextResponse.json({

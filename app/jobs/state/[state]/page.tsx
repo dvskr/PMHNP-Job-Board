@@ -363,7 +363,7 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
     console.error('Error generating metadata:', error);
     return {
       title: 'PMHNP Jobs by State',
-      description: 'Find psychiatric mental health nurse practitioner jobs by state.',
+      description: 'Find psychiatric mental health nurse practitioner jobs by state. Browse PMHNP positions with salary data, practice authority info, and top employers across all 50 states.',
     };
   }
 }

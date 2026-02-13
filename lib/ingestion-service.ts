@@ -13,6 +13,7 @@ import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
+import { pingAllSearchEnginesBatch } from './search-indexing';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby';
 
@@ -23,6 +24,7 @@ export interface IngestionResult {
   duplicates: number;
   errors: number;
   duration: number;
+  newJobUrls: string[];
 }
 
 /**
@@ -59,6 +61,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
   let added = 0;
   let duplicates = 0; // "Renewed" jobs are counted as duplicates for now to maintain stats semantics
   let errors = 0;
+  const newJobUrls: string[] = [];
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -70,7 +73,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
     if (fetched === 0) {
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls };
     }
 
     // Optimized: Load all existing externalIds for this source once
@@ -175,6 +178,9 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           data: { slug },
         });
 
+        // Collect URL for batch indexing
+        newJobUrls.push(`https://pmhnphiring.com/jobs/${slug}`);
+
         // Parse location
         try {
           await parseJobLocation(savedJob.id);
@@ -219,12 +225,12 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       console.error(`Failed to record stats for ${source}:`, statsError);
     }
 
-    return { source, fetched, added, duplicates, errors, duration };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
     const duration = Date.now() - startTime;
-    return { source, fetched, added, duplicates, errors: fetched, duration };
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [] };
   }
 }
 
@@ -296,6 +302,21 @@ export async function ingestJobs(
     console.log(`[Employer Emails] Auto-collected: ${emailResult.created} new, ${emailResult.updated} updated`);
   } catch (emailError) {
     console.error('[Employer Emails] Failed to collect:', emailError);
+  }
+
+  // Ping search engines for all newly added jobs
+  const allNewUrls = results.flatMap(r => r.newJobUrls);
+  if (allNewUrls.length > 0) {
+    console.log(`\n[Indexing] Submitting ${allNewUrls.length} new job URLs to search engines...`);
+    try {
+      const indexResults = await pingAllSearchEnginesBatch(allNewUrls);
+      const googleOk = indexResults.google.filter(r => r.success).length;
+      const bingOk = indexResults.bing.filter(r => r.success).length;
+      const indexNowOk = indexResults.indexNow.filter(r => r.success).length;
+      console.log(`[Indexing] Results: Google ${googleOk}/${Math.min(allNewUrls.length, 200)}, Bing ${bingOk}/${allNewUrls.length}, IndexNow ${indexNowOk}/${allNewUrls.length}`);
+    } catch (indexError) {
+      console.error('[Indexing] Failed to ping search engines:', indexError);
+    }
   }
 
   return results;
