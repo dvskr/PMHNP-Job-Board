@@ -42,6 +42,22 @@ const LEVER_COMPANIES = [
 
   // === VERIFIED — Valid, monitoring for PMHNP ===
   'carbonhealth',        // Carbon Health — 0 currently but valid endpoint
+
+  // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
+  'prosper',             // Prosper — 11 total jobs
+
+  // === ADDED 2026-02-13 — EXPANDED SCAN ===
+  'bighealth',           // Big Health — 7 total jobs
+  'genesis',             // Genesis — 4 total jobs
+  'sesame',              // Sesame — 1 total jobs
+
+  // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
+  'mindful',             // Mindful Haven — 5 PMHNP (0 recent)
+  'athenapsych',         // AthenaPsych — 4 PMHNP (0 recent)
+  'seven-starling',      // Seven Starling — 3 PMHNP (3 recent)
+  'beckley-clinical',    // Beckley Clinical — 1 PMHNP
+  'synapticure',         // SynaptiCure — 1 PMHNP
+  'arundellodge',        // Arundel Lodge — 1 PMHNP
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -51,6 +67,18 @@ const COMPANY_NAMES: Record<string, string> = {
   'includedhealth': 'Included Health',
   'lyrahealth': 'Lyra Health',
   'carbonhealth': 'Carbon Health',
+  'prosper': 'Prosper',
+  'bighealth': 'Big Health',
+  'genesis': 'Genesis',
+  'sesame': 'Sesame',
+
+  // Added 2026-02-13 (prod DB mining)
+  'mindful': 'Mindful Haven',
+  'athenapsych': 'AthenaPsych',
+  'seven-starling': 'Seven Starling',
+  'beckley-clinical': 'Beckley Clinical',
+  'synapticure': 'SynaptiCure',
+  'arundellodge': 'Arundel Lodge',
 };
 
 function formatCompanyName(slug: string): string {

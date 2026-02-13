@@ -6,6 +6,8 @@ import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchJSearchJobs } from './aggregators/jsearch';
 import { fetchAshbyJobs } from './aggregators/ashby';
+import { fetchWorkdayJobs } from './aggregators/workday';
+import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
@@ -15,7 +17,10 @@ import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
 import { pingAllSearchEnginesBatch } from './search-indexing';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db';
+
+/** Single source of truth — add new sources here and they'll auto-register everywhere */
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -46,6 +51,10 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       return await fetchJSearchJobs({ chunk: options?.chunk });
     case 'ashby':
       return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
+    case 'workday':
+      return await fetchWorkdayJobs() as unknown as Array<Record<string, unknown>>;
+    case 'ats-jobs-db':
+      return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     default:
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
@@ -238,7 +247,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
  * Main ingestion function - processes multiple sources
  */
 export async function ingestJobs(
-  sources: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby'],
+  sources: JobSource[] = ALL_SOURCES,
   options?: { chunk?: number }
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
