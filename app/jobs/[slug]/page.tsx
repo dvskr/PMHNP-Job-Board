@@ -210,7 +210,7 @@ async function getStateSalaryAverage(stateName: string | null, stateCode: string
 /**
  * Get relevant blog posts for this job
  */
-function getRelevantBlogPosts(job: Job) {
+async function getRelevantBlogPosts(job: Job) {
   const slugs = getRelevantBlogSlugs({
     isRemote: job.isRemote,
     isTelehealth: job.mode?.toLowerCase().includes('telehealth') ||
@@ -225,13 +225,15 @@ function getRelevantBlogPosts(job: Job) {
   const posts = [];
   for (const slug of slugs) {
     try {
-      const post = getPostBySlug(slug);
-      posts.push({
-        slug: post.slug,
-        title: post.title,
-        description: post.description,
-        category: post.category,
-      });
+      const post = await getPostBySlug(slug);
+      if (post) {
+        posts.push({
+          slug: post.slug,
+          title: post.title,
+          description: post.meta_description || '',
+          category: post.category,
+        });
+      }
     } catch {
       // Skip if blog post doesn't exist
     }
@@ -376,8 +378,8 @@ export default async function JobPage({ params }: JobPageProps) {
     getStateSalaryAverage(job.state, job.stateCode),
   ]);
 
-  // Get relevant blog posts (sync operation, reads from filesystem)
-  const relevantBlogPosts = getRelevantBlogPosts(job);
+  // Get relevant blog posts (async - fetches from Supabase)
+  const relevantBlogPosts = await getRelevantBlogPosts(job);
 
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);

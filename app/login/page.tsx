@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 
 export const metadata = {
   title: 'Sign In | PMHNP Hiring',
-  description: 'Sign in to your PMHNP Hiring account',
+  description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications. Access your personalized dashboard.',
 }
 
 export default async function LoginPage() {

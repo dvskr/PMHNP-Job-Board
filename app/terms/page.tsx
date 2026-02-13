@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | PMHNP Hiring',
-  description: 'Terms of Service for PMHNP Hiring job board platform.',
+  description: 'Read the Terms of Service for PMHNP Hiring. Understand your rights, responsibilities, and our policies for using the #1 PMHNP job board.',
   alternates: {
     canonical: 'https://pmhnphiring.com/terms',
   },

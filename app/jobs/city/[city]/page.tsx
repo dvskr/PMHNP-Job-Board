@@ -206,7 +206,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     if (stats.totalJobs === 0) {
       return {
         title: `PMHNP Jobs in ${cityName}`,
-        description: `Find psychiatric mental health nurse practitioner jobs in ${cityName}.`,
+        description: `Find psychiatric mental health nurse practitioner jobs in ${cityName}. Browse PMHNP positions including telehealth, inpatient, and outpatient roles updated daily.`,
       };
     }
 
@@ -240,7 +240,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     console.error('Error generating metadata:', error);
     return {
       title: 'PMHNP Jobs by City',
-      description: 'Find psychiatric mental health nurse practitioner jobs by city.',
+      description: 'Find psychiatric mental health nurse practitioner jobs by city. Browse PMHNP positions including telehealth, inpatient, and outpatient roles across the US.',
     };
   }
 }
