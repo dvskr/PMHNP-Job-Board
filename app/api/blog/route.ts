@@ -4,6 +4,7 @@ import {
     generateUniqueSlug,
     BlogCategory,
 } from '@/lib/blog';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
 
 const VALID_CATEGORIES: BlogCategory[] = [
     'job_seeker_attraction',
@@ -18,101 +19,6 @@ const VALID_CATEGORIES: BlogCategory[] = [
 ];
 
 const VALID_STATUSES = ['draft', 'published'] as const;
-
-// ─── Google Indexing API ─────────────────────────────────────────────────────
-
-async function pingGoogleIndexing(url: string): Promise<void> {
-    const credentialsRaw = process.env.GOOGLE_INDEXING_CREDENTIALS;
-    if (!credentialsRaw) {
-        console.log('[Blog API] GOOGLE_INDEXING_CREDENTIALS not set, skipping indexing ping');
-        return;
-    }
-
-    try {
-        // Support both raw JSON and base64-encoded JSON
-        let credentials;
-        try {
-            credentials = JSON.parse(credentialsRaw);
-        } catch {
-            // If raw JSON parse fails, try base64 decoding
-            credentials = JSON.parse(Buffer.from(credentialsRaw, 'base64').toString('utf-8'));
-        }
-        const now = Math.floor(Date.now() / 1000);
-
-        // Create JWT for Google API authentication
-        const header = { alg: 'RS256', typ: 'JWT' };
-        const claimSet = {
-            iss: credentials.client_email,
-            scope: 'https://www.googleapis.com/auth/indexing',
-            aud: 'https://oauth2.googleapis.com/token',
-            exp: now + 3600,
-            iat: now,
-        };
-
-        // Base64url encode
-        const b64url = (obj: object) =>
-            Buffer.from(JSON.stringify(obj))
-                .toString('base64')
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
-
-        const signatureInput = `${b64url(header)}.${b64url(claimSet)}`;
-
-        // Sign with RSA key
-        const crypto = await import('crypto');
-        const sign = crypto.createSign('RSA-SHA256');
-        sign.update(signatureInput);
-        const signature = sign
-            .sign(credentials.private_key, 'base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-        const jwt = `${signatureInput}.${signature}`;
-
-        // Exchange JWT for access token
-        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-        });
-
-        if (!tokenResponse.ok) {
-            console.error('[Blog API] Failed to get Google access token:', await tokenResponse.text());
-            return;
-        }
-
-        const { access_token } = await tokenResponse.json();
-
-        // Ping Indexing API
-        const indexResponse = await fetch(
-            'https://indexing.googleapis.com/v3/urlNotifications:publish',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${access_token}`,
-                },
-                body: JSON.stringify({
-                    url,
-                    type: 'URL_UPDATED',
-                }),
-            }
-        );
-
-        if (indexResponse.ok) {
-            console.log(`[Blog API] Successfully pinged Google Indexing API for: ${url}`);
-        } else {
-            console.error(
-                '[Blog API] Google Indexing API error:',
-                await indexResponse.text()
-            );
-        }
-    } catch (error) {
-        console.error('[Blog API] Error pinging Google Indexing API:', error);
-    }
-}
 
 // ─── POST /api/blog ──────────────────────────────────────────────────────────
 
@@ -182,11 +88,11 @@ export async function POST(request: NextRequest) {
             publish_date: publish_date || (postStatus === 'published' ? new Date().toISOString() : null),
         });
 
-        // If published, ping Google Indexing API
+        // If published, ping all search engines (Google, Bing, IndexNow)
         if (postStatus === 'published') {
             const postUrl = `https://pmhnphiring.com/blog/${slug}`;
             // Fire and forget — don't block the response
-            pingGoogleIndexing(postUrl).catch((err) =>
+            pingAllSearchEngines(postUrl).catch((err) =>
                 console.error('[Blog API] Background indexing ping failed:', err)
             );
         }

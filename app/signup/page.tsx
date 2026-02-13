@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth/protect'
 
 export const metadata = {
   title: 'Create Account | PMHNP Hiring',
-  description: 'Create your PMHNP Hiring account',
+  description: 'Create your free PMHNP Hiring account. Save jobs, set up alerts, and get matched with psychiatric nurse practitioner positions across all 50 states.',
 }
 
 export default async function SignUpPage() {
