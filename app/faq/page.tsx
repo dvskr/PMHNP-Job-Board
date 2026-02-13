@@ -9,7 +9,7 @@ import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
-  description: 'Frequently asked questions about PMHNP Jobs for job seekers and employers.',
+  description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the #1 PMHNP job board.',
   alternates: {
     canonical: 'https://pmhnphiring.com/faq',
   },
