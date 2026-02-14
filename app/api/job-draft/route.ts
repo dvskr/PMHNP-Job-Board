@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendDraftSavedEmail } from '@/lib/email-service';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 interface SaveDraftBody {
   email: string;
@@ -10,6 +12,10 @@ interface SaveDraftBody {
 
 // POST - Save draft
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResult = await rateLimit(request, 'drafts', RATE_LIMITS.postJob);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body: SaveDraftBody = await request.json();
     const { email, formData } = body;
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
       try {
         await sendDraftSavedEmail(email, draft.resumeToken);
       } catch (emailError) {
-        console.error('Error sending draft saved email:', emailError);
+        logger.error('Error sending draft saved email', emailError, { email });
         // Don't fail the request if email fails
       }
     }
@@ -76,7 +82,7 @@ export async function POST(request: NextRequest) {
       resumeToken: draft.resumeToken,
     });
   } catch (error) {
-    console.error('Error saving draft:', error);
+    logger.error('Error saving draft', error);
     return NextResponse.json(
       { error: 'Failed to save draft' },
       { status: 500 }
@@ -130,7 +136,7 @@ export async function GET(request: NextRequest) {
       expiresAt: draft.expiresAt,
     });
   } catch (error) {
-    console.error('Error retrieving draft:', error);
+    logger.error('Error retrieving draft', error);
     return NextResponse.json(
       { error: 'Failed to retrieve draft' },
       { status: 500 }
@@ -173,7 +179,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Draft deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting draft:', error);
+    logger.error('Error deleting draft', error);
     return NextResponse.json(
       { error: 'Failed to delete draft' },
       { status: 500 }

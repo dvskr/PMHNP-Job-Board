@@ -1,13 +1,14 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Wifi, Home, Clock, Globe, TrendingUp, Building2, Lightbulb, Bell } from 'lucide-react';
+import { Wifi, Home, Clock, Globe, TrendingUp, Building2, Lightbulb, Bell, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 0; // Disable cache to show fresh dates
 
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {
@@ -22,9 +23,9 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch remote jobs
+ * Fetch remote jobs with pagination
  */
-async function getRemoteJobs() {
+async function getRemoteJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
     where: {
       isPublished: true,
@@ -32,9 +33,11 @@ async function getRemoteJobs() {
     },
     orderBy: [
       { isFeatured: 'desc' },
+      { originalPostedAt: 'desc' },
       { createdAt: 'desc' },
     ],
-    take: 50,
+    skip,
+    take,
   });
 
   return jobs;
@@ -114,26 +117,49 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${stats.totalJobs} Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
       type: 'website',
+      images: [{
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Remote PMHNP Jobs`)}&subtitle=${encodeURIComponent('Work from home psychiatric NP positions')}`,
+        width: 1200,
+        height: 630,
+        alt: 'Remote PMHNP Jobs',
+      }],
     },
     alternates: {
-      canonical: '/jobs/remote',
+      canonical: 'https://pmhnphiring.com/jobs/remote',
     },
   };
+}
+
+interface PageProps {
+  searchParams: Promise<{ page?: string }>;
 }
 
 /**
  * Remote jobs page
  */
-export default async function RemoteJobsPage() {
+export default async function RemoteJobsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || '1'));
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
   const [jobs, stats] = await Promise.all([
-    getRemoteJobs(),
+    getRemoteJobs(skip, limit),
     getRemoteStats(),
   ]);
 
+  const totalPages = Math.ceil(stats.totalJobs / limit);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      {/* Breadcrumb Schema */}
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://pmhnphiring.com" },
+        { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
+        { name: "Remote", url: "https://pmhnphiring.com/jobs/remote" }
+      ]} />
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-12 md:py-16">
+      <section className="bg-teal-600 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -143,25 +169,28 @@ export default async function RemoteJobsPage() {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Remote PMHNP Jobs - Work From Home
             </h1>
-            <p className="text-lg md:text-xl text-blue-100 mb-6">
+            <p className="text-sm text-teal-200 text-center mt-2 mb-4">
+              Last Updated: February 2026 | {stats.totalJobs} remote PMHNP jobs available
+            </p>
+            <p className="text-lg md:text-xl text-teal-100 mb-6">
               Discover {stats.totalJobs} telehealth and remote psychiatric nurse practitioner positions
             </p>
-            
+
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-blue-100">Remote Positions</div>
+                <div className="text-sm text-teal-100">Remote Positions</div>
               </div>
               {stats.avgSalary > 0 && (
                 <div className="text-center">
                   <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                  <div className="text-sm text-blue-100">Avg. Salary</div>
+                  <div className="text-sm text-teal-100">Avg. Salary</div>
                 </div>
               )}
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                <div className="text-sm text-blue-100">Hiring Companies</div>
+                <div className="text-sm text-teal-100">Hiring Companies</div>
               </div>
             </div>
           </div>
@@ -172,46 +201,46 @@ export default async function RemoteJobsPage() {
         <div className="max-w-7xl mx-auto">
           {/* Benefits Section */}
           <div className="mb-8 md:mb-12">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
                 Why Choose Remote PMHNP Work?
               </h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Clock className="h-6 w-6 text-blue-600" />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                      <Clock className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Flexible Schedule</h3>
-                    <p className="text-sm text-gray-600">
+                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Flexible Schedule</h3>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       Set your own hours and create a work-life balance that fits your lifestyle.
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Home className="h-6 w-6 text-green-600" />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                      <Home className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Work From Anywhere</h3>
-                    <p className="text-sm text-gray-600">
+                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Work From Anywhere</h3>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       Eliminate commute time and work from the comfort of your home or anywhere you choose.
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Globe className="h-6 w-6 text-purple-600" />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                      <Globe className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">National Reach</h3>
-                    <p className="text-sm text-gray-600">
+                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>National Reach</h3>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       Serve patients across state lines and expand your impact beyond your local area.
                     </p>
                   </div>
@@ -224,56 +253,97 @@ export default async function RemoteJobsPage() {
             {/* Main Content */}
             <div className="lg:col-span-3">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                   All Remote Positions ({stats.totalJobs})
                 </h2>
-                <Link 
+                <Link
                   href="/jobs"
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="text-sm font-medium hover:opacity-80 transition-opacity"
+                  style={{ color: 'var(--color-primary)' }}
                 >
                   View All Jobs →
                 </Link>
               </div>
 
               {jobs.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                  <Wifi className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                  <Wifi className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                     No remote jobs available
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
                     We don&apos;t have any active remote PMHNP positions right now. Check back soon!
                   </p>
                   <Link
                     href="/jobs"
-                    className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                    className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
                   >
                     Browse All Jobs
                   </Link>
                 </div>
               ) : (
-                <div className="grid gap-4 md:gap-6">
-                  {jobs.map((job: Job) => (
-                    <JobCard key={job.id} job={job} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    {jobs.map((job: Job) => (
+                      <JobCard key={job.id} job={job} />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-4">
+                      {page > 1 ? (
+                        <Link
+                          href={`/jobs/remote?page=${page - 1}`}
+                          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                        >
+                          ← Previous
+                        </Link>
+                      ) : (
+                        <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                          ← Previous
+                        </span>
+                      )}
+
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        Page {page} of {totalPages}
+                      </span>
+
+                      {page < totalPages ? (
+                        <Link
+                          href={`/jobs/remote?page=${page + 1}`}
+                          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                        >
+                          Next →
+                        </Link>
+                      ) : (
+                        <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                          Next →
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
               {/* Job Alert CTA */}
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white mb-6 shadow-lg">
+              <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
                 <Bell className="h-8 w-8 mb-3" />
                 <h3 className="text-lg font-bold mb-2">
                   Get Remote Job Alerts
                 </h3>
-                <p className="text-sm text-blue-100 mb-4">
+                <p className="text-sm text-teal-100 mb-4">
                   Be the first to know about new remote PMHNP positions.
                 </p>
                 <Link
                   href="/job-alerts?mode=Remote"
-                  className="block w-full text-center px-4 py-2 bg-white text-blue-700 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                  className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors"
                 >
                   Create Alert
                 </Link>
@@ -281,18 +351,18 @@ export default async function RemoteJobsPage() {
 
               {/* Companies Hiring Remotely */}
               {stats.topEmployers.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-bold text-gray-900">Hiring Remotely</h3>
+                    <Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Hiring Remotely</h3>
                   </div>
                   <ul className="space-y-3">
                     {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
                       <li key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 truncate flex-1">
+                        <span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>
                           {employer.name}
                         </span>
-                        <span className="text-sm font-medium text-blue-600 ml-2">
+                        <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>
                           {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
                         </span>
                       </li>
@@ -303,50 +373,50 @@ export default async function RemoteJobsPage() {
 
               {/* Salary Insights */}
               {stats.avgSalary > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <h3 className="font-bold text-gray-900">Salary Insights</h3>
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Salary Insights</h3>
                   </div>
                   <div className="mb-4">
-                    <div className="text-3xl font-bold text-gray-900">
+                    <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
                       ${stats.avgSalary}k
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       Average annual salary
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     Based on remote PMHNP positions with salary data.
                   </p>
                 </div>
               )}
 
               {/* Remote Work Tips */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-sm border border-amber-200 p-6">
+              <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Lightbulb className="h-5 w-5 text-amber-600" />
-                  <h3 className="font-bold text-gray-900">Remote Work Tips</h3>
+                  <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
+                  <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Remote Work Tips</h3>
                 </div>
-                <ul className="space-y-3 text-sm text-gray-700">
+                <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                   <li className="flex gap-2">
-                    <span className="text-amber-600 font-bold">•</span>
+                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
                     <span>Ensure you have reliable high-speed internet</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-amber-600 font-bold">•</span>
+                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
                     <span>Create a quiet, professional workspace</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-amber-600 font-bold">•</span>
+                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
                     <span>Verify state licensure requirements</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-amber-600 font-bold">•</span>
+                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
                     <span>Invest in quality telehealth equipment</span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-amber-600 font-bold">•</span>
+                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
                     <span>Set clear boundaries for work hours</span>
                   </li>
                 </ul>
@@ -355,52 +425,115 @@ export default async function RemoteJobsPage() {
           </div>
 
           {/* Additional Resources Section */}
-          <div className="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 md:p-8 border border-blue-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
               Remote PMHNP Career Resources
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                   Telehealth Platforms
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Most remote PMHNP positions use HIPAA-compliant platforms like Zoom for Healthcare, 
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  Most remote PMHNP positions use HIPAA-compliant platforms like Zoom for Healthcare,
                   Doxy.me, or proprietary systems. Many employers provide training and technical support.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                   Licensure Considerations
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Remote work may require multi-state licensure. Check if your employer participates 
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  Remote work may require multi-state licensure. Check if your employer participates
                   in the Nurse Licensure Compact (NLC) or if they&apos;ll support additional state licenses.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                   Technology Requirements
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  You&apos;ll typically need a reliable computer, webcam, headset, and high-speed internet 
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  You&apos;ll typically need a reliable computer, webcam, headset, and high-speed internet
                   (minimum 10 Mbps). Some employers provide equipment or technology stipends.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
                   Work Environment
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Maintain a professional, private space for patient consultations. Consider background 
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  Maintain a professional, private space for patient consultations. Consider background
                   noise, lighting, and HIPAA compliance when setting up your home office.
                 </p>
               </div>
             </div>
           </div>
+
+          <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
+            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Explore Other Job Types</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link href="/jobs/telehealth" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <Video className="h-5 w-5 text-purple-500 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</div>
+                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Virtual care</div>
+              </Link>
+              <Link href="/jobs/travel" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <Plane className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Travel Jobs</div>
+                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Locum tenens</div>
+              </Link>
+              <Link href="/jobs/new-grad" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <GraduationCap className="h-5 w-5 text-indigo-500 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>New Grad Jobs</div>
+                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Entry level</div>
+              </Link>
+              <Link href="/jobs/per-diem" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <Calendar className="h-5 w-5 text-green-500 group-hover:text-white transition-colors" />
+                </div>
+                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Per Diem Jobs</div>
+                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Flexible shifts</div>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
+      <section className="mt-12 mb-8 container mx-auto px-4">
+        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Resources</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link href="/salary-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 2026 Salary Guide</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Average PMHNP salary is $155,000+. See pay by state, experience, and setting.</p>
+          </Link>
+
+          <Link href="/jobs/locations" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 Jobs by Location</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse PMHNP positions by state and city.</p>
+          </Link>
+
+          <Link href="/jobs/travel" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>✈️ Travel Jobs</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Locum tenens positions with premium pay.</p>
+          </Link>
+
+          <Link href="/jobs/new-grad" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🎓 New Grad Jobs</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Entry-level PMHNP opportunities.</p>
+          </Link>
+
+          <Link href="/jobs/telehealth" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💻 Telehealth Jobs</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care positions.</p>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
-

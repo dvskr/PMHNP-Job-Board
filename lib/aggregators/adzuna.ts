@@ -10,6 +10,8 @@ interface AdzunaJob {
   description: string;
   salary_min?: number;
   salary_max?: number;
+  contract_time?: string; // e.g., "full_time", "part_time"
+  contract_type?: string; // e.g., "permanent", "contract"
   redirect_url: string;
   created: string;
 }
@@ -19,16 +21,8 @@ interface AdzunaResponse {
   count: number;
 }
 
-// Multiple search queries for maximum coverage
-const SEARCH_QUERIES = [
-  'PMHNP',
-  'Psychiatric Nurse Practitioner',
-  'Psychiatric Mental Health Nurse Practitioner',
-  'Psych NP',
-  'Mental Health Nurse Practitioner',
-  'Psychiatric APRN',
-  'Behavioral Health Nurse Practitioner',
-];
+import { SEARCH_QUERIES } from './constants';
+import { isRelevantJob } from '../utils/job-filter';
 
 // Helper function for delays
 function sleep(ms: number): Promise<void> {
@@ -44,21 +38,35 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
     return [];
   }
 
+  const ADZUNA_TIME_BUDGET_MS = 250_000; // 250s budget (Vercel cron limit: 300s)
+  const startTime = Date.now();
+
   const allJobs: Array<Record<string, unknown>> = [];
   const seenIds = new Set<string>();
+
+  // VALIDATION STATS
+  let totalRawJobs = 0;
+  let droppedByFilter = 0;
 
   console.log(`[Adzuna] Starting fetch with ${SEARCH_QUERIES.length} search queries...`);
 
   for (const query of SEARCH_QUERIES) {
-    // Fetch up to 5 pages per query (50 results per page = 250 max per query)
-    for (let page = 1; page <= 5; page++) {
+    // Time budget check
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= ADZUNA_TIME_BUDGET_MS) {
+      console.warn(`[Adzuna] Time budget exhausted (${(elapsed / 1000).toFixed(1)}s). Returning ${allJobs.length} jobs collected so far.`);
+      break;
+    }
+
+    // Fetch up to 20 pages per query (50 results per page = 1000 max per query)
+    for (let page = 1; page <= 20; page++) {
       try {
         const params = new URLSearchParams({
           app_id: appId,
           app_key: appKey,
           what: query,
           results_per_page: '50',
-          max_days_old: '30',
+          max_days_old: '7', // Production: 7-day lookback (cron runs 2x/day)
           sort_by: 'date',
         });
 
@@ -70,15 +78,15 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           break; // Move to next query
         }
 
-              const data: AdzunaResponse = await response.json();
-              const jobs = data.results || [];
+        const data: AdzunaResponse = await response.json();
+        const jobs = data.results || [];
 
-              console.log(`[Adzuna] "${query}" page ${page}: ${jobs.length} jobs (total available: ${data.count})`);
-              
-              // Debug: Log first job structure on first page of first query
-              if (query === SEARCH_QUERIES[0] && page === 1 && jobs.length > 0) {
-                console.log('[Adzuna] Sample job structure:', JSON.stringify(jobs[0], null, 2));
-              }
+        console.log(`[Adzuna] "${query}" page ${page}: ${jobs.length} jobs (total available: ${data.count})`);
+
+        // Debug: Log first job structure on first page of first query
+        if (query === SEARCH_QUERIES[0] && page === 1 && jobs.length > 0) {
+          console.log('[Adzuna] Sample job structure:', JSON.stringify(jobs[0], null, 2));
+        }
 
         if (jobs.length === 0) {
           break; // No more results for this query
@@ -89,25 +97,41 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
           if (seenIds.has(job.id)) continue;
           seenIds.add(job.id);
 
-              // Skip jobs without a valid apply link
-              if (!job.redirect_url) {
-                console.log(`[Adzuna] Skipping job "${job.title}" - missing redirect_url`);
-                continue;
-              }
+          totalRawJobs++;
 
-              allJobs.push({
-                title: job.title,
-                employer: job.company?.display_name || 'Company Not Listed',
-                location: job.location?.display_name || 'United States',
-                description: job.description || '',
-                minSalary: job.salary_min || null,
-                maxSalary: job.salary_max || null,
-                salaryPeriod: job.salary_min ? 'annual' : null,
-                applyLink: job.redirect_url,
-                externalId: `adzuna_${job.id}`,
-                sourceProvider: 'adzuna',
-                postedAt: job.created,
-              });
+          // Skip jobs without a valid apply link
+          if (!job.redirect_url) {
+            droppedByFilter++;
+            continue;
+          }
+
+          // Strict relevance filter — drop non-PMHNP jobs early
+          if (!isRelevantJob(job.title, job.description || '')) {
+            droppedByFilter++;
+            continue;
+          }
+
+          // Map Adzuna contract types
+          let jobType = null;
+          if (job.contract_time === 'full_time') jobType = 'Full-Time';
+          else if (job.contract_time === 'part_time') jobType = 'Part-Time';
+          else if (job.contract_type === 'contract') jobType = 'Contract';
+          else if (job.contract_type === 'permanent') jobType = 'Full-Time';
+
+          allJobs.push({
+            title: job.title,
+            employer: job.company?.display_name || 'Company Not Listed',
+            location: job.location?.display_name || 'United States',
+            description: job.description || '',
+            minSalary: job.salary_min || null,
+            maxSalary: job.salary_max || null,
+            salaryPeriod: job.salary_min ? 'annual' : null,
+            jobType, // Pass raw mapped type
+            applyLink: job.redirect_url,
+            externalId: `adzuna_${job.id}`,
+            sourceProvider: 'adzuna',
+            postedAt: job.created,
+          });
         }
 
         // Rate limiting - 500ms between requests
@@ -128,6 +152,10 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
     await sleep(300);
   }
 
-  console.log(`[Adzuna] ✅ Total unique jobs fetched: ${allJobs.length}`);
+  console.log(`[Adzuna] VALIDATION STATS:`);
+  console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
+  console.log(`    Dropped by Cleanups/Filtering: ${droppedByFilter}`);
+  console.log(`    Final Accepted: ${allJobs.length}`);
+
   return allJobs;
 }

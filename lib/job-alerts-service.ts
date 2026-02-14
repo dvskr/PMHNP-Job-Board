@@ -14,7 +14,6 @@ export async function sendJobAlerts(): Promise<{
   }
 
   try {
-    // Get all active job alerts that need to be sent
     // For daily alerts: lastSentAt is null or more than 24 hours ago
     // For weekly alerts: lastSentAt is null or more than 7 days ago
     const now = new Date()
@@ -51,15 +50,27 @@ export async function sendJobAlerts(): Promise<{
           createdAt: {
             gt: alert.lastSentAt || alert.createdAt,
           },
+          // Exclude expired jobs (null or future expiry)
+          AND: [
+            {
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gt: now } },
+              ],
+            },
+          ],
         }
 
         // Add optional filters
         if (alert.keyword) {
-          whereClause.OR = [
-            { title: { contains: alert.keyword, mode: 'insensitive' } },
-            { description: { contains: alert.keyword, mode: 'insensitive' } },
-            { employer: { contains: alert.keyword, mode: 'insensitive' } },
-          ]
+          // Add keyword search to AND clause
+          (whereClause.AND as Prisma.JobWhereInput[]).push({
+            OR: [
+              { title: { contains: alert.keyword, mode: 'insensitive' } },
+              { description: { contains: alert.keyword, mode: 'insensitive' } },
+              { employer: { contains: alert.keyword, mode: 'insensitive' } },
+            ],
+          })
         }
         if (alert.location) {
           whereClause.location = { contains: alert.location, mode: 'insensitive' }
@@ -74,10 +85,13 @@ export async function sendJobAlerts(): Promise<{
           whereClause.minSalary = { gte: alert.minSalary }
         }
 
-        // Find matching jobs
+        // Find matching jobs - featured first, then by date
         const matchingJobs = await prisma.job.findMany({
           where: whereClause,
-          orderBy: { createdAt: 'desc' },
+          orderBy: [
+            { isFeatured: 'desc' },
+            { createdAt: 'desc' },
+          ],
           take: 10, // Limit to 10 jobs per alert
         })
 

@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { sanitizeContactForm } from '@/lib/sanitize';
+import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResult = await rateLimit(request, 'contact', RATE_LIMITS.contact);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await request.json();
-    const { name, email, subject, message } = body;
+
+    // Sanitize inputs
+    const sanitized = sanitizeContactForm(body);
+    const { name: trimmedName, email: trimmedEmail, subject: trimmedSubject, message: trimmedMessage } = sanitized;
 
     // Validate all required fields
-    if (!name || !email || !subject || !message) {
+    if (!trimmedName || !trimmedEmail || !trimmedSubject || !trimmedMessage) {
       return NextResponse.json(
         { success: false, error: 'All fields are required.' },
         { status: 400 }
@@ -17,21 +28,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate field lengths
-    if (name.trim().length === 0) {
+    if (trimmedName.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Name cannot be empty.' },
         { status: 400 }
       );
     }
 
-    if (subject.trim().length === 0) {
+    if (trimmedSubject.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Subject cannot be empty.' },
         { status: 400 }
       );
     }
 
-    if (message.trim().length === 0) {
+    if (trimmedMessage.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Message cannot be empty.' },
         { status: 400 }
@@ -40,24 +51,18 @@ export async function POST(request: NextRequest) {
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimmedEmail)) {
       return NextResponse.json(
         { success: false, error: 'Please provide a valid email address.' },
         { status: 400 }
       );
     }
 
-    // Trim all fields
-    const trimmedName = name.trim();
-    const trimmedEmail = email.trim().toLowerCase();
-    const trimmedSubject = subject.trim();
-    const trimmedMessage = message.trim();
-
     // 1. Send notification email to support team
     try {
       await resend.emails.send({
-        from: 'PMHNP Jobs <noreply@pmhnpjobs.com>',
-        to: 'hello@pmhnpjobs.com',
+        from: EMAIL_FROM,
+        to: 'support@pmhnphiring.com',
         subject: `Contact Form: ${trimmedSubject}`,
         html: `
           <!DOCTYPE html>
@@ -161,16 +166,16 @@ export async function POST(request: NextRequest) {
         replyTo: trimmedEmail,
       });
 
-      console.log(`Contact form submission from ${trimmedEmail} - Subject: ${trimmedSubject}`);
+      logger.info('Contact form submission', { email: trimmedEmail, subject: trimmedSubject });
     } catch (emailError) {
-      console.error('Error sending notification email:', emailError);
+      logger.error('Error sending notification email', emailError);
       // Continue to send confirmation email even if notification fails
     }
 
     // 2. Send confirmation email to user
     try {
       await resend.emails.send({
-        from: 'PMHNP Jobs <noreply@pmhnpjobs.com>',
+        from: EMAIL_FROM,
         to: trimmedEmail,
         subject: 'We received your message',
         html: `
@@ -260,13 +265,13 @@ export async function POST(request: NextRequest) {
                 
                 <ul style="color: #4b5563; margin: 15px 0;">
                   <li style="margin-bottom: 8px;">
-                    <a href="https://pmhnpjobs.com/jobs" style="color: #0D9488; text-decoration: none;">Browse available PMHNP jobs</a>
+                    <a href="https://pmhnphiring.com/jobs" style="color: #0D9488; text-decoration: none;">Browse available PMHNP jobs</a>
                   </li>
                   <li style="margin-bottom: 8px;">
-                    <a href="https://pmhnpjobs.com/faq" style="color: #0D9488; text-decoration: none;">Check out our FAQ</a>
+                    <a href="https://pmhnphiring.com/faq" style="color: #0D9488; text-decoration: none;">Check out our FAQ</a>
                   </li>
                   <li style="margin-bottom: 8px;">
-                    <a href="https://pmhnpjobs.com/about" style="color: #0D9488; text-decoration: none;">Learn more about us</a>
+                    <a href="https://pmhnphiring.com/about" style="color: #0D9488; text-decoration: none;">Learn more about us</a>
                   </li>
                 </ul>
                 
@@ -276,8 +281,8 @@ export async function POST(request: NextRequest) {
                     The #1 job board for psychiatric nurse practitioners
                   </p>
                   <p style="margin: 0;">
-                    <a href="mailto:hello@pmhnpjobs.com">hello@pmhnpjobs.com</a> | 
-                    <a href="https://pmhnpjobs.com">pmhnpjobs.com</a>
+                    <a href="mailto:support@pmhnphiring.com">support@pmhnphiring.com</a> | 
+                    <a href="https://pmhnphiring.com">pmhnphiring.com</a>
                   </p>
                 </div>
               </div>
@@ -286,27 +291,27 @@ export async function POST(request: NextRequest) {
         `,
       });
 
-      console.log(`Confirmation email sent to ${trimmedEmail}`);
+      logger.info('Confirmation email sent', { email: trimmedEmail });
     } catch (confirmationError) {
-      console.error('Error sending confirmation email:', confirmationError);
+      logger.error('Error sending confirmation email', confirmationError);
       // Don't fail the request if confirmation email fails
     }
 
     // Return success response
     return NextResponse.json(
-      { 
-        success: true, 
-        message: 'Message sent! We\'ll get back to you within 24-48 hours.' 
+      {
+        success: true,
+        message: 'Message sent! We\'ll get back to you within 24-48 hours.'
       },
       { status: 200 }
     );
 
   } catch (error) {
-    console.error('Contact form error:', error);
+    logger.error('Contact form error', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to send message. Please try again or email us directly at hello@pmhnpjobs.com.' 
+      {
+        success: false,
+        error: 'Failed to send message. Please try again or email us directly at support@pmhnphiring.com.'
       },
       { status: 500 }
     );

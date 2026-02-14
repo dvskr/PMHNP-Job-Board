@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface UpdateJobData {
@@ -23,7 +25,18 @@ interface UpdateRequestBody {
 export async function POST(request: NextRequest) {
   try {
     const body: UpdateRequestBody = await request.json();
-    const { token, jobData } = body;
+    const { token, jobData: rawJobData } = body;
+
+    // Sanitize job data
+    const jobData = {
+      ...rawJobData,
+      title: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).title,
+      location: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).location,
+      description: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).description,
+      applyLink: sanitizeUrl(rawJobData.applyLink),
+      contactEmail: rawJobData.contactEmail ? sanitizeEmail(rawJobData.contactEmail) : undefined,
+      companyWebsite: rawJobData.companyWebsite ? sanitizeUrl(rawJobData.companyWebsite) : undefined,
+    };
 
     if (!token) {
       return NextResponse.json(
@@ -125,7 +138,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Job unpublished successfully',
     });
   } catch (error) {
-    console.error('Error unpublishing job:', error);
+    logger.error('Error unpublishing job:', error);
     return NextResponse.json(
       { error: 'Failed to unpublish job' },
       { status: 500 }

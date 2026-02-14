@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ContactFormData {
@@ -60,15 +61,19 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Contact', url: 'https://pmhnphiring.com/contact' },
+      ]} />
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-16 px-4">
+      <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <Mail className="w-16 h-16 mx-auto mb-6 opacity-90" />
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Contact Us
           </h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+          <p className="text-xl text-teal-100 max-w-2xl mx-auto">
             We&apos;re here to help. Reach out with any questions.
           </p>
         </div>
@@ -80,7 +85,7 @@ export default function ContactPage() {
           {/* Left Column - Contact Form (2/3 width on desktop) */}
           <div className="lg:col-span-2">
             <Card padding="lg" variant="elevated">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
                 Send Us a Message
               </h2>
 
@@ -125,7 +130,7 @@ export default function ContactPage() {
                   label="Name"
                   type="text"
                   placeholder="Your full name"
-                  {...register('name', { 
+                  {...register('name', {
                     required: 'Name is required',
                     minLength: {
                       value: 2,
@@ -140,7 +145,7 @@ export default function ContactPage() {
                   label="Email"
                   type="email"
                   placeholder="your.email@example.com"
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'Email is required',
                     pattern: {
                       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -152,15 +157,15 @@ export default function ContactPage() {
 
                 {/* Subject Dropdown */}
                 <div>
-                  <label htmlFor="subject" className="block mb-1.5 text-sm font-medium text-gray-700">
+                  <label htmlFor="subject" className="block mb-1.5 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                     Subject
                   </label>
                   <select
                     id="subject"
                     {...register('subject', { required: 'Please select a subject' })}
-                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
-                      errors.subject ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors duration-200 ${errors.subject ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                      }`}
+                    style={{ color: 'var(--text-primary)', background: 'var(--bg-primary)', borderColor: errors.subject ? undefined : 'var(--border-color)' }}
                   >
                     <option value="">Select a subject...</option>
                     <option value="General Inquiry">General Inquiry</option>
@@ -186,16 +191,16 @@ export default function ContactPage() {
                     id="message"
                     rows={6}
                     placeholder="Tell us how we can help..."
-                    {...register('message', { 
+                    {...register('message', {
                       required: 'Message is required',
                       minLength: {
                         value: 10,
                         message: 'Message must be at least 10 characters'
                       }
                     })}
-                    className={`w-full px-4 py-2.5 border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 resize-vertical ${
-                      errors.message ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors duration-200 resize-vertical ${errors.message ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
+                      }`}
+                    style={{ color: 'var(--text-primary)', background: 'var(--bg-primary)', borderColor: errors.message ? undefined : 'var(--border-color)' }}
                   />
                   {errors.message && (
                     <p className="mt-1.5 text-sm text-red-600">
@@ -223,35 +228,35 @@ export default function ContactPage() {
           <div className="space-y-6">
             {/* Contact Information Card */}
             <Card padding="lg" variant="elevated">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
+              <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
                 Contact Information
               </h3>
 
               <div className="space-y-4">
                 {/* Email */}
                 <div className="flex items-start">
-                  <Mail className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <Mail className="w-5 h-5 text-teal-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 mb-1">
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                       Email
                     </p>
                     <a
-                      href="mailto:hello@pmhnpjobs.com"
-                      className="text-sm text-blue-600 hover:text-blue-700 underline"
+                      href="mailto:support@pmhnphiring.com"
+                      className="text-sm text-teal-600 hover:text-teal-700 underline"
                     >
-                      hello@pmhnpjobs.com
+                      support@pmhnphiring.com
                     </a>
                   </div>
                 </div>
 
                 {/* Response Time */}
                 <div className="flex items-start">
-                  <Clock className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <Clock className="w-5 h-5 text-teal-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 mb-1">
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                       Response Time
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       We typically respond within 24-48 hours
                     </p>
                   </div>
@@ -259,9 +264,9 @@ export default function ContactPage() {
 
                 {/* FAQ Link */}
                 <div className="flex items-start">
-                  <HelpCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <HelpCircle className="w-5 h-5 text-teal-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 mb-1">
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                       Quick Answers
                     </p>
                     <p className="text-sm text-gray-600 mb-2">
@@ -269,7 +274,7 @@ export default function ContactPage() {
                     </p>
                     <Link
                       href="/faq"
-                      className="text-sm text-blue-600 hover:text-blue-700 underline"
+                      className="text-sm text-teal-600 hover:text-teal-700 underline"
                     >
                       Visit FAQ →
                     </Link>
@@ -279,28 +284,28 @@ export default function ContactPage() {
             </Card>
 
             {/* Additional Help Card */}
-            <Card padding="lg" variant="bordered" className="bg-blue-50 border-blue-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">
+            <Card padding="lg" variant="bordered">
+              <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
                 Looking for Something Else?
               </h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/faq" className="text-blue-700 hover:text-blue-800 underline">
+                  <Link href="/faq" className="text-teal-700 hover:text-teal-800 underline">
                     FAQ
                   </Link>
                 </li>
                 <li>
-                  <Link href="/about" className="text-blue-700 hover:text-blue-800 underline">
+                  <Link href="/about" className="text-teal-700 hover:text-teal-800 underline">
                     About PMHNP Jobs
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="text-blue-700 hover:text-blue-800 underline">
+                  <Link href="/terms" className="text-teal-700 hover:text-teal-800 underline">
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="text-blue-700 hover:text-blue-800 underline">
+                  <Link href="/privacy" className="text-teal-700 hover:text-teal-800 underline">
                     Privacy Policy
                   </Link>
                 </li>

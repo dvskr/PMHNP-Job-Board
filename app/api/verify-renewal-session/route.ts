@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { slugify } from '@/lib/utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
       tier: tier || 'standard',
     });
   } catch (error) {
-    console.error('Error verifying renewal session:', error);
+    logger.error('Error verifying renewal session:', error);
     return NextResponse.json(
       { error: 'Failed to verify session' },
       { status: 500 }

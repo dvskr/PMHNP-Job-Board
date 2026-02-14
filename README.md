@@ -1,193 +1,201 @@
-# PMHNP Job Board
+# 🏥 PMHNP Job Board
 
-> A modern, full-featured job board platform specifically designed for Psychiatric Mental Health Nurse Practitioners (PMHNPs), built with Next.js 14, TypeScript, Prisma, Supabase, and Stripe.
+> **The #1 Job Board for Psychiatric Mental Health Nurse Practitioners**  
+> A comprehensive, production-ready platform connecting PMHNPs with their dream roles through intelligent job aggregation and modern web technologies.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-7.1-2D3748)](https://www.prisma.io/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
+![Tailwind](https://img.shields.io/badge/Tailwind-4-cyan?style=flat-square&logo=tailwindcss)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-teal?style=flat-square&logo=prisma)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue?style=flat-square&logo=postgresql)
+![Stripe](https://img.shields.io/badge/Stripe-Payments-635bff?style=flat-square&logo=stripe)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel&style=flat-square)
 
 ---
 
-## 📋 Table of Contents
+## 📖 Table of Contents
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
 - [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [Database Schema](#-database-schema)
-- [API Endpoints](#-api-endpoints)
-- [Job Aggregation](#-job-aggregation)
-- [Authentication System](#-authentication-system)
-- [Payment Integration](#-payment-integration)
-- [Email System](#-email-system)
-- [Cron Jobs](#-cron-jobs)
-- [Scripts & Utilities](#-scripts--utilities)
-- [Deployment](#-deployment)
 - [Project Structure](#-project-structure)
-- [Configuration](#-configuration)
-- [SEO & Metadata](#-seo--metadata)
+- [Features Deep Dive](#-features-deep-dive)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#-database-schema)
+- [Job Aggregation System](#-job-aggregation-system)
+- [Scripts & Commands](#-scripts--commands)
+- [Cron Jobs](#-cron-jobs)
+- [Environment Variables](#-environment-variables)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
 - [Contributing](#-contributing)
 - [License](#-license)
 
 ---
 
-## 🎯 Overview
+## 📖 Overview
 
-PMHNP Job Board is a comprehensive job listing platform that aggregates psychiatric nursing positions from multiple sources, allows employers to post paid/free job listings, enables candidates to create job alerts, and provides a full-featured dashboard experience.
+**PMHNP Job Board** is a specialized, full-stack job platform designed exclusively for Psychiatric Mental Health Nurse Practitioners. The platform features:
 
-### Project Status: **85-87% Complete** ✅
+- **Multi-source job aggregation** from 6+ major job APIs
+- **Smart deduplication** and data normalization
+- **Real-time job alerts** with customizable filters
+- **Employer dashboard** with analytics and applicant tracking
+- **Payment processing** via Stripe for premium job posts
+- **SEO-optimized** with dynamic sitemaps and structured data
+- **Admin panel** for job and lead management
+- **Responsive design** optimized for all devices
 
-The application is **production-ready** with the following completion status:
-- ✅ Core features fully implemented
-- ✅ Payment processing (Stripe)
-- ✅ Multi-source job aggregation
-- ✅ Authentication & authorization
-- ✅ Email system
-- ✅ Job alerts & notifications
-- ⚠️ Some nice-to-have features pending (analytics dashboard, quality scoring)
+### 🌟 Key Features
 
----
+#### For Job Seekers
+| Feature | Description |
+|---------|-------------|
+| **Advanced Filtering** | Filter by location, work mode (remote/hybrid/in-person), job type, salary range |
+| **One-Click Apply** | Direct application links with apply tracking |
+| **Job Alerts** | Daily or weekly email alerts matching search criteria |
+| **Saved Jobs** | Bookmark jobs for later review |
+| **Resume Upload** | Upload and manage resume via Supabase Storage |
+| **Location-Based Search** | Search by city, state, or remote |
+| **Salary Display** | Normalized salary ranges with hourly ↔ annual conversion |
 
-## ✨ Key Features
+#### For Employers
+| Feature | Description |
+|---------|-------------|
+| **Free Job Posting** | Post jobs for free during launch period |
+| **Featured Listings** | Premium featured jobs with enhanced visibility |
+| **Dashboard Analytics** | Track views, clicks, and applicant engagement |
+| **Job Management** | Edit, renew, or upgrade active job posts |
+| **Stripe Invoices** | Automatic PDF invoice generation |
+| **Save Draft** | Save incomplete job posts and resume later via email |
+| **Email Notifications** | Expiry warnings and renewal reminders |
 
-### For Job Seekers
-- 🔍 **Advanced Job Search** - Search with filters (location, job type, mode, salary)
-- 🔔 **Job Alerts** - Daily/weekly email notifications for matching jobs
-- 💾 **Save Jobs** - Bookmark jobs for later review
-- 📝 **Application Tracking** - Track applied jobs
-- 🏷️ **Smart Badges** - "New" (< 24hrs), "Featured", "Verified Employer"
-- 📱 **Responsive Design** - Mobile-optimized with bottom navigation
-- 🔗 **Social Sharing** - Share jobs on LinkedIn, Twitter, email
-- 📊 **Live Filter Counts** - See available jobs per filter in real-time
-- 🌐 **Location-Based Browse** - Browse by state or city
-- 👤 **User Profiles** - Manage profile, resume, and preferences
+#### Smart Job Aggregation System
+| Feature | Description |
+|---------|-------------|
+| **5+ Data Sources** | Adzuna, Jooble, Greenhouse, Lever, USAJobs |
+| **Auto-Deduplication** | Fuzzy matching on title, company, and apply URL |
+| **Salary Normalization** | Converts all salary formats to standardized annual/hourly |
+| **Location Parsing** | Extracts city, state, country, remote/hybrid status |
+| **Company Linking** | Automatic company normalization and profile creation |
+| **Quality Scoring** | Calculates confidence scores for data quality |
+| **Freshness Decay** | Prioritizes recent jobs in search results |
 
-### For Employers
-- 💼 **Job Posting** - Post jobs (free or paid tiers)
-- 📊 **Employer Dashboard** - Track views, apply clicks, CTR
-- ✏️ **Edit Jobs** - Update job listings with secure tokens
-- 🔄 **Renewals & Upgrades** - Renew expired jobs or upgrade to featured
-- 📧 **Email Notifications** - Confirmation, expiry warnings, draft saves
-- 🎯 **Featured Listings** - Premium placement for better visibility
-- 💳 **Stripe Integration** - Secure payment processing
-- 📑 **Invoice Generation** - Downloadable PDF invoices
-- 🔐 **Dashboard Tokens** - Secure, password-free dashboard access
-
-### For Admins
-- 📈 **Admin Dashboard** - Site statistics and job management
-- 🔍 **Job Moderation** - Review and manage all listings
-- 📊 **Outreach Tracking** - Employer lead management
-- 🏢 **Company Management** - Track verified employers
-- 📉 **Source Analytics** - Monitor aggregator performance
-
-### Technical Features
-- 🤖 **Multi-Source Aggregation** - 6 job sources (Adzuna, Jooble, Greenhouse, Lever, USAJobs, CareerJet)
-- 🔄 **Smart Deduplication** - 4-strategy duplicate detection (exact ID, title+location, URL, fuzzy matching)
-- 🧹 **Job Normalization** - Standardize salaries, locations, descriptions
-- 💰 **Salary Intelligence** - Normalize to annual, estimate missing salaries
-- 📍 **Location Parsing** - Extract city, state, country from text
-- 🕒 **Freshness Decay** - Automatic job ranking based on age
-- ⏰ **Automated Cron Jobs** - Ingestion, alerts, expiry warnings, cleanup
-- 🔐 **Role-Based Access** - Job seeker, employer, admin roles
-- 🌐 **SEO Optimized** - Dynamic sitemap, robots.txt, structured data
-- 📧 **Transactional Emails** - Resend integration with 6 email types
+#### SEO & Performance
+| Feature | Description |
+|---------|-------------|
+| **Dynamic Sitemap** | Auto-generated XML sitemap for all jobs |
+| **Structured Data** | Schema.org JobPosting and Organization markup |
+| **Meta Tags** | Dynamic meta tags based on search filters |
+| **ISR (Incremental Static Regeneration)** | 60-second revalidation for job pages |
+| **Image Optimization** | Next.js Image component with AVIF/WebP |
+| **Code Splitting** | Dynamic imports for non-critical components |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠 Tech Stack
 
 ### Frontend
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript 5
-- **Styling**: Tailwind CSS 4
-- **UI Components**: Custom components with Lucide icons
-- **Forms**: React Hook Form + Zod validation
-- **State Management**: React hooks (useState, useEffect, useCallback)
+- **[Next.js 16](https://nextjs.org/)** - React framework with App Router
+- **[React 19](https://react.dev/)** - UI library
+- **[TypeScript 5](https://www.typescriptlang.org/)** - Type safety
+- **[Tailwind CSS 4](https://tailwindcss.com/)** - Utility-first CSS
+- **[Lucide React](https://lucide.dev/)** - Icon library
+- **[React Hook Form](https://react-hook-form.com/)** - Form management
+- **[Zod](https://zod.dev/)** - Schema validation
 
 ### Backend
-- **Runtime**: Node.js (server components)
-- **Database**: PostgreSQL with Prisma ORM 7.1
-- **Authentication**: Supabase Auth (with SSR)
-- **Storage**: Supabase Storage (avatars, resumes)
-- **Payments**: Stripe (checkouts, webhooks)
-- **Emails**: Resend API
-- **Cron Jobs**: Vercel Cron
+- **[Next.js API Routes](https://nextjs.org/docs/api-routes/introduction)** - Serverless API
+- **[Prisma 7](https://www.prisma.io/)** - Type-safe ORM
+- **[PostgreSQL](https://www.postgresql.org/)** - Relational database
+- **[Supabase](https://supabase.com/)** - Auth & Storage
 
-### External APIs
-- **Adzuna** - Job search API
-- **Jooble** - Job aggregator API
-- **Greenhouse** - ATS integration
-- **Lever** - ATS integration
-- **USAJobs** - Government job listings
-- **CareerJet** - Job search API
+### Integrations
+- **[Stripe](https://stripe.com/)** - Payment processing
+- **[Resend](https://resend.com/)** - Transactional emails
+- **[Upstash Redis](https://upstash.com/)** - Rate limiting
+- **[@react-pdf/renderer](https://react-pdf.org/)** - Invoice generation
+
+### Job Aggregation APIs
+- **Adzuna API** - Job search aggregator
+- **Jooble API** - International job search
+- **Greenhouse API** - ATS integration
+- **Lever API** - ATS integration
+- **USAJobs API** - Federal jobs
 
 ### DevOps
-- **Hosting**: Vercel (recommended)
-- **Database**: Neon/Supabase PostgreSQL
-- **Version Control**: Git
-- **Package Manager**: npm
+- **[Vercel](https://vercel.com/)** - Hosting & deployment
+- **[Vercel Cron](https://vercel.com/docs/cron-jobs)** - Scheduled tasks
+- **[Vitest](https://vitest.dev/)** - Unit testing
+- **[ESLint](https://eslint.org/)** - Code linting
+- **[Prettier](https://prettier.io/)** - Code formatting
 
 ---
 
-## 🏗️ Architecture
+## 🏗 Architecture
 
-### System Architecture
+### System Design
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│                         Next.js App                          │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                    App Router Pages                     │  │
-│  │  /jobs, /dashboard, /admin, /post-job, /settings, etc  │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                            │                                  │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                     API Routes                          │  │
-│  │  /api/jobs, /api/auth, /api/cron, /api/webhooks, etc   │  │
-│  └────────────────────────────────────────────────────────┘  │
+│                     PMHNP Job Board                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌─────────────┐     ┌──────────────┐     ┌──────────────┐ │
+│  │   Next.js   │────▶│   Prisma     │────▶│ PostgreSQL   │ │
+│  │  Frontend   │     │     ORM      │     │   Database   │ │
+│  └─────────────┘     └──────────────┘     └──────────────┘ │
+│         │                                                     │
+│         │                                                     │
+│  ┌─────▼─────────────────────────────────────────────────┐ │
+│  │           Next.js API Routes                           │ │
+│  ├────────────────────────────────────────────────────────┤ │
+│  │  Jobs API  │  Auth API  │  Cron API  │  Webhooks API  │ │
+│  └────────────────────────────────────────────────────────┘ │
+│         │            │            │            │             │
+│  ┌──────▼────┐  ┌───▼────┐  ┌───▼─────┐  ┌──▼──────┐      │
+│  │ Job Agg.  │  │Supabase│  │ Vercel  │  │ Stripe  │      │
+│  │  Engine   │  │  Auth  │  │  Cron   │  │Webhooks │      │
+│  └───────────┘  └────────┘  └─────────┘  └─────────┘      │
+│         │                                                     │
+│  ┌──────▼──────────────────────────────────────────┐        │
+│  │  External Job APIs (Adzuna, Jooble, etc.)      │        │
+│  └─────────────────────────────────────────────────┘        │
+│                                                               │
 └─────────────────────────────────────────────────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-    ┌───▼────┐      ┌───────▼────────┐   ┌────▼──────┐
-    │Supabase│      │   PostgreSQL   │   │  Stripe   │
-    │  Auth  │      │  (via Prisma)  │   │  Payment  │
-    │Storage │      │                │   │           │
-    └────────┘      └────────────────┘   └───────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-    ┌───▼────┐      ┌───────▼────────┐   ┌────▼──────┐
-    │ Resend │      │  Job Sources   │   │   Vercel  │
-    │ Email  │      │  (6 APIs)      │   │   Cron    │
-    └────────┘      └────────────────┘   └───────────┘
 ```
 
 ### Data Flow
 
-1. **Job Aggregation Flow**:
-   ```
-   External APIs → Fetcher → Normalizer → Deduplicator → Database
-   ```
+1. **Job Ingestion** (Cron Jobs)
+   - Vercel Cron triggers `/api/cron/ingest`
+   - Fetches jobs from multiple sources
+   - Normalizes data (salary, location, company)
+   - Deduplicates using fuzzy matching
+   - Links to company profiles
+   - Stores in PostgreSQL via Prisma
 
-2. **Job Posting Flow**:
-   ```
-   Form → Validation → [Stripe Payment] → Webhook → Database → Email
-   ```
+2. **Job Search** (User-Facing)
+   - User applies filters
+   - Next.js Server Component fetches from DB
+   - Results rendered with ISR (60s revalidation)
+   - Client-side hydration for interactivity
 
-3. **Job Alert Flow**:
-   ```
-   Cron → Match Criteria → Filter Jobs → Send Emails → Update lastSentAt
-   ```
+3. **Job Posting** (Employer Flow)
+   - Employer fills form
+   - Validation via Zod schema
+   - Draft saved with email resume token
+   - Payment via Stripe Checkout
+   - Webhook confirms payment
+   - Job published to database
 
-4. **Authentication Flow**:
-   ```
-   Login/Signup → Supabase Auth → Server Helper → Profile Creation → Dashboard
-   ```
+4. **Job Alerts** (Automated)
+   - Cron runs daily at 8 AM
+   - Queries alerts with matching criteria
+   - Fetches new jobs since last send
+   - Sends personalized emails via Resend
 
 ---
 
@@ -195,1232 +203,880 @@ The application is **production-ready** with the following completion status:
 
 ### Prerequisites
 
-- **Node.js** 20+ and npm
-- **PostgreSQL** database (local or hosted)
-- **Supabase** account (for auth & storage)
-- **Stripe** account (for payments)
-- **Resend** account (for emails)
+- **Node.js 20+** ([Download](https://nodejs.org/))
+- **PostgreSQL Database** (Supabase recommended)
+- **Stripe Account** (for payments)
+- **Resend Account** (for emails)
 
 ### Installation
 
-1. **Clone the repository**:
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/pmhnp-job-board.git
+   git clone https://github.com/your-username/pmhnp-job-board.git
    cd pmhnp-job-board
    ```
 
-2. **Install dependencies**:
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**:
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your credentials
+3. **Configure Environment Variables:**
+   
+   Create a `.env.local` file in the root directory:
+
+   ```env
+   # Database
+   DATABASE_URL="postgresql://user:password@host:5432/database"
+
+   # Supabase (Auth & Storage)
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+   SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+
+   # App URL
+   NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+
+   # Email (Resend)
+   RESEND_API_KEY="re_xxxxxxxxxxxxx"
+   EMAIL_FROM="PMHNP Hiring <noreply@pmhnphiring.com>"
+
+   # Stripe (Optional - for paid posting)
+   STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxx"
+   STRIPE_WEBHOOK_SECRET="whsec_xxxxxxxxxxxxx"
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_xxxxxxxxxxxxx"
+
+   # Feature Flags
+   ENABLE_PAID_POSTING="false"
+
+   # Cron Security
+   CRON_SECRET="your-random-secret-string"
+
+   # Job Aggregator APIs (Optional)
+   ADZUNA_APP_ID="your-adzuna-app-id"
+   ADZUNA_APP_KEY="your-adzuna-app-key"
+   JOOBLE_API_KEY="your-jooble-api-key"
+
+   # Monitoring (Optional)
+   SENTRY_DSN="https://xxxxxxxxxxxxx@sentry.io/xxxxxxxxxxxxx"
    ```
 
-4. **Set up the database**:
+4. **Setup Database:**
    ```bash
+   # Generate Prisma Client
    npx prisma generate
+
+   # Push schema to database
    npx prisma db push
-   npx prisma db seed  # Optional: seed with sample data
+
+   # (Optional) Seed database with test data
+   npx prisma db seed
    ```
 
-5. **Run the development server**:
+5. **Run Development Server:**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser**:
+   Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+6. **View Database (Optional):**
+   ```bash
+   npx prisma studio
    ```
-   http://localhost:3000
-   ```
-
-### Quick Setup Checklist
-
-- [ ] PostgreSQL database created
-- [ ] Supabase project created (auth & storage configured)
-- [ ] Stripe account set up (test mode)
-- [ ] Resend API key obtained
-- [ ] All environment variables configured
-- [ ] Database migrated and seeded
-- [ ] Google OAuth configured (optional)
-- [ ] Job aggregator API keys obtained (optional)
 
 ---
 
-## 🔐 Environment Variables
+## 📂 Project Structure
 
-Create a `.env.local` file in the root directory:
-
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@host:5432/database?sslmode=require"
-DIRECT_URL="postgresql://user:password@host:5432/database?sslmode=require"
-
-# Supabase (Auth & Storage)
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-
-# Stripe (Payments)
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
-
-# Resend (Emails)
-RESEND_API_KEY="re_..."
-
-# App Configuration
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-ENABLE_PAID_POSTING="false"  # Set to "true" to enable paid postings
-CRON_SECRET="your-random-secret-here"  # For securing cron endpoints
-
-# Job Aggregator APIs (Optional)
-ADZUNA_APP_ID="your-adzuna-app-id"
-ADZUNA_APP_KEY="your-adzuna-app-key"
-JOOBLE_API_KEY="your-jooble-key"
-USAJOBS_API_KEY="your-usajobs-key"
-# CareerJet, Greenhouse, Lever use public APIs
-
-# Admin (Optional)
-ADMIN_EMAIL="admin@yourdomain.com"  # Email for admin user
+```text
+pmhnp-job-board/
+├── app/                      # Next.js 15+ App Router
+│   ├── (auth)/               # Auth pages (login, signup, etc.)
+│   ├── admin/                # Admin dashboard & management
+│   │   ├── jobs/             # Admin job management
+│   │   └── outreach/         # Employer lead management
+│   ├── api/                  # API Routes
+│   │   ├── admin/            # Admin endpoints
+│   │   ├── analytics/        # Click tracking & stats
+│   │   ├── auth/             # Auth endpoints
+│   │   ├── cron/             # Scheduled job ingestion
+│   │   ├── email/            # Email preferences
+│   │   ├── employer/         # Employer dashboard API
+│   │   ├── job-alerts/       # Job alert management
+│   │   ├── jobs/             # Job CRUD operations
+│   │   ├── outreach/         # Employer outreach API
+│   │   ├── stats/            # Site statistics
+│   │   └── webhooks/         # Stripe webhooks
+│   ├── dashboard/            # User dashboard
+│   ├── employer/             # Employer-specific pages
+│   ├── jobs/                 # Job listing & detail pages
+│   │   ├── [slug]/           # Dynamic job detail
+│   │   ├── city/             # City-based search
+│   │   ├── state/            # State-based search
+│   │   ├── remote/           # Remote jobs
+│   │   └── edit/             # Edit job (employer)
+│   ├── post-job/             # Job posting flow
+│   │   ├── checkout/         # Stripe checkout
+│   │   └── preview/          # Preview before payment
+│   ├── layout.tsx            # Root layout
+│   ├── page.tsx              # Homepage
+│   ├── globals.css           # Global styles
+│   ├── robots.ts             # Robots.txt generator
+│   └── sitemap.ts            # Dynamic sitemap
+│
+├── components/               # Reusable UI Components
+│   ├── auth/                 # Auth components
+│   │   ├── LoginForm.tsx
+│   │   ├── SignUpForm.tsx
+│   │   ├── HeaderAuth.tsx
+│   │   └── UserMenu.tsx
+│   ├── jobs/                 # Job-related components
+│   ├── ui/                   # Base UI components
+│   │   ├── Badge.tsx
+│   │   ├── Button.tsx
+│   │   └── Card.tsx
+│   ├── ApplyButton.tsx
+│   ├── EmailSignupForm.tsx
+│   ├── FAQAccordion.tsx
+│   ├── Footer.tsx
+│   ├── Header.tsx
+│   ├── JobCard.tsx
+│   ├── JobFilters.tsx
+│   ├── SaveJobButton.tsx
+│   ├── ShareButtons.tsx
+│   └── StatsSection.tsx
+│
+├── lib/                      # Core Business Logic
+│   ├── aggregators/          # Job source integrations
+│   │   ├── adzuna.ts         # Adzuna API client
+│   │   ├── jooble.ts         # Jooble API client
+│   │   ├── greenhouse.ts     # Greenhouse ATS client
+│   │   ├── lever.ts          # Lever ATS client
+│   │   └── usajobs.ts        # USAJobs API client
+│   ├── auth/                 # Auth utilities
+│   │   └── protect.ts        # Route protection
+│   ├── hooks/                # React hooks
+│   ├── supabase/             # Supabase clients
+│   ├── alert-sender.ts       # Job alert email service
+│   ├── company-normalizer.ts # Company name normalization
+│   ├── config.ts             # App configuration
+│   ├── deduplicator.ts       # Job deduplication logic
+│   ├── description-cleaner.ts# HTML/text cleanup
+│   ├── email-service.ts      # Email sending (Resend)
+│   ├── env.ts                # Environment validation
+│   ├── expiry-checker.ts     # Job expiry warnings
+│   ├── filters.ts            # Search filter logic
+│   ├── freshness-decay.ts    # Job ranking algorithm
+│   ├── ingestion-service.ts  # Main ingestion orchestrator
+│   ├── invoice-generator.tsx # PDF invoice generation
+│   ├── job-alerts-service.ts # Alert matching & sending
+│   ├── job-normalizer.ts     # Job data normalization
+│   ├── location-parser.ts    # Location extraction & parsing
+│   ├── logger.ts             # Logging utility
+│   ├── outreach-service.ts   # Employer outreach logic
+│   ├── prisma.ts             # Prisma client singleton
+│   ├── rate-limit.ts         # API rate limiting
+│   ├── salary-display.ts     # Salary formatting
+│   ├── salary-normalizer.ts  # Salary standardization
+│   ├── sanitize.ts           # Input sanitization
+│   ├── sentry.ts             # Error tracking
+│   ├── source-analytics.ts   # Source performance tracking
+│   ├── supabase-storage.ts   # File upload utilities
+│   ├── types.ts              # Shared TypeScript types
+│   └── utils.ts              # General utilities
+│
+├── prisma/                   # Database
+│   ├── migrations/           # SQL migration files
+│   ├── schema.prisma         # Database schema
+│   └── seed.ts               # Seed data script
+│
+├── scripts/                  # Maintenance Scripts
+│   ├── audit-and-fix-jobs.ts # Data quality audit
+│   ├── audit-salaries.ts     # Salary validation
+│   ├── backfill-locations.ts # Backfill location data
+│   ├── clean-job-descriptions.ts
+│   ├── fix-all-salaries.ts   # Salary fixes
+│   ├── populate-display-salaries.ts
+│   ├── run-ingestion.ts      # Manual ingestion trigger
+│   ├── test-*.ts             # API testing scripts
+│   └── tsconfig.json         # Scripts TypeScript config
+│
+├── tests/                    # Test Files
+│   ├── api/                  # API tests
+│   ├── lib/                  # Library tests
+│   └── setup.ts              # Test configuration
+│
+├── types/                    # Type Definitions
+│   ├── filters.ts
+│   └── job.ts
+│
+├── public/                   # Static Assets
+│   ├── favicon.svg
+│   ├── logo.svg
+│   ├── og-image.svg
+│   └── *.svg
+│
+├── .env.local                # Environment variables (create this)
+├── .gitignore
+├── eslint.config.mjs         # ESLint configuration
+├── next.config.ts            # Next.js configuration
+├── package.json              # Dependencies
+├── postcss.config.mjs        # PostCSS config
+├── tailwind.config.ts        # Tailwind configuration
+├── tsconfig.json             # TypeScript configuration
+├── vercel.json               # Vercel deployment config
+├── vitest.config.ts          # Vitest test config
+└── README.md                 # This file
 ```
-
-### Required vs Optional Variables
-
-**Required for Basic Functionality**:
-- `DATABASE_URL`, `DIRECT_URL`
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_APP_URL`
-- `RESEND_API_KEY`
-
-**Required for Paid Postings**:
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- `ENABLE_PAID_POSTING="true"`
-
-**Optional (for job aggregation)**:
-- Aggregator API keys
 
 ---
 
-## 🗄️ Database Schema
+## 🎯 Features Deep Dive
 
-### Core Models
+### 1. Job Aggregation Engine
 
-#### **Job**
-The main job listing model with comprehensive fields:
-- Basic: `title`, `employer`, `location`, `description`
-- Salary: `minSalary`, `maxSalary`, `normalizedMinSalary`, `displaySalary`
-- Location: `city`, `state`, `stateCode`, `country`, `isRemote`, `isHybrid`
-- Metadata: `jobType`, `mode`, `isFeatured`, `isPublished`, `expiresAt`
-- Analytics: `viewCount`, `applyClickCount`
-- Source: `sourceType`, `sourceProvider`, `externalId`
+The heart of the platform is a sophisticated job ingestion system that:
 
-#### **EmailLead**
-Email subscribers for newsletter and job alerts:
-- `email`, `preferences`, `source`, `isSubscribed`
-- `unsubscribeToken` (secure unsubscribe)
+**Sources Integrated:**
+- **Adzuna** - Major job search aggregator (UK/US)
+- **Jooble** - International job search engine
+- **Greenhouse** - ATS for tech companies
+- **Lever** - Modern ATS platform
+- **USAJobs** - Federal government jobs
 
-#### **JobAlert**
-User-created job alert criteria:
-- Search: `keyword`, `location`, `mode`, `jobType`, `minSalary`
-- Settings: `frequency` (daily/weekly), `isActive`
-- Tracking: `lastSentAt`, `totalSent`
+**Ingestion Process:**
+1. Fetch raw jobs from each source API
+2. Normalize job data (title, company, location, salary)
+3. Parse and structure location data (city, state, remote)
+4. Normalize salaries to annual equivalent
+5. Check for duplicates using fuzzy matching
+6. Link to existing or create new company profiles
+7. Store in database with source tracking
 
-#### **EmployerJob**
-Employer-specific job metadata:
-- `employerName`, `contactEmail`, `company`
-- `editToken`, `dashboardToken` (secure access)
-- `paymentStatus`, `stripeSessionId`
-- `originalTier`, `wasRenewed`, `wasUpgraded`
+**Deduplication Logic:**
+- Exact match on external ID
+- Exact match on apply URL
+- Fuzzy match on title + company + location
+- Confidence scoring (0-1)
 
-#### **UserProfile**
-User accounts linked to Supabase:
-- `supabaseId`, `email`, `role` (job_seeker/employer/admin)
-- `firstName`, `lastName`, `phone`, `company`
-- `avatarUrl`, `resumeUrl` (Supabase Storage)
+**Salary Normalization:**
+- Detects period (hourly, weekly, monthly, annual)
+- Converts all to annual equivalent
+- Validates against PMHNP salary ranges ($80k-$250k)
+- Confidence scoring for estimated salaries
 
-#### **Company**
-Company information for verified employers:
-- `name`, `slug`, `description`, `website`
-- `logoUrl`, `isVerified`
-- `jobCount` (denormalized)
+### 2. Job Alerts System
 
-#### Supporting Models
-- `JobDraft` - Save job drafts before posting
-- `ApplyClick` - Track apply button clicks by source
-- `SourceStats` - Aggregator performance metrics
-- `SiteStat` - Overall site statistics
-- `EmployerLead` - Outreach tracking
+**Features:**
+- User-defined search criteria (location, mode, salary, type)
+- Daily or weekly frequency options
+- Email delivery via Resend
+- Personalized job recommendations
+- Unsubscribe/manage preferences links
 
-### Relationships
+**Implementation:**
+- Cron job runs daily at 8 AM
+- Queries active alerts not sent in last 24h/7d
+- Matches new jobs against alert criteria
+- Sends HTML emails with job cards
+- Updates `lastSentAt` timestamp
 
-```
-Job ──┬─→ EmployerJob (1:many)
-      ├─→ ApplyClick (1:many)
-      └─→ Company (many:1)
+### 3. Employer Dashboard
 
-EmailLead ──→ JobAlert (1:many)
+**Features:**
+- View all posted jobs
+- Analytics: views, clicks, applicant count
+- Edit active job posts
+- Renew expiring jobs
+- Upgrade to featured
+- Download Stripe invoices
 
-UserProfile (linked to Supabase Auth)
-```
+**Access Control:**
+- Token-based authentication
+- Dashboard token in email
+- Edit token for modifications
 
-### Indexes
+### 4. Admin Panel
 
-Optimized for common queries:
-- `jobs`: `isPublished`, `isFeatured`, `location`, `createdAt`, `minSalary`, `state`, `isRemote`
-- `email_leads`: `email`, `unsubscribeToken`
-- `job_alerts`: `email`, `isActive`
+**Capabilities:**
+- Job management (approve, edit, delete)
+- Employer lead tracking
+- Outreach campaign management
+- Source performance analytics
+- Manual ingestion triggers
+
+**Protected Routes:**
+- Role-based access control
+- Supabase Auth integration
+
+### 5. Payment System
+
+**Stripe Integration:**
+- Checkout Sessions for job posts
+- Webhook handling for payment confirmation
+- Invoice generation via @react-pdf/renderer
+- Renewal and upgrade flows
+- Metadata tracking (job ID, tier)
+
+**Pricing:**
+- Standard: $99 (30 days)
+- Featured: $199 (30 days, enhanced visibility)
+- Renewals: $99
+- Upgrades: $100 (standard → featured)
+- **Free Mode:** Can disable payments via `ENABLE_PAID_POSTING=false`
 
 ---
 
-## 🌐 API Endpoints
+## 📡 API Documentation
 
 ### Public Endpoints
 
-#### Jobs
-- `GET /api/jobs` - List jobs with filters
-  - Query params: `search`, `location`, `jobType`, `mode`, `minSalary`, `maxSalary`, `page`, `limit`
-- `GET /api/jobs/[id]` - Get single job (increments view count)
-- `GET /api/jobs/filter-counts` - Get job counts per filter
-- `GET /api/jobs/locations` - Get unique locations
-- `POST /api/jobs/post-free` - Post a free job (when paid posting disabled)
+#### `GET /api/jobs`
+Fetch jobs with filters.
 
-#### Authentication
-- `POST /api/auth/callback` - Supabase callback handler
-- `GET /api/auth/user` - Get current user
-- `GET /api/auth/profile` - Get user profile
-- `PATCH /api/auth/profile` - Update user profile
-- `DELETE /api/auth/delete-account` - Delete user account
+**Query Parameters:**
+- `keyword` - Search term
+- `location` - City/State
+- `mode` - Remote, Hybrid, In-Person
+- `jobType` - Full-Time, Part-Time, Contract, Per Diem
+- `minSalary` - Minimum salary (annual)
+- `maxSalary` - Maximum salary (annual)
+- `page` - Pagination (default: 1)
+- `limit` - Results per page (default: 50)
 
-#### Job Alerts
-- `POST /api/job-alerts/create` - Create job alert
-- `GET /api/job-alerts/manage` - Get user's alerts
-- `DELETE /api/job-alerts/[id]` - Delete alert
-- `PATCH /api/job-alerts/[id]` - Update alert
-
-#### Email
-- `POST /api/subscribe` - Newsletter signup
-- `GET /api/email/unsubscribe?token=xxx` - Unsubscribe from emails
-- `GET /api/email/preferences?token=xxx` - Email preferences page
-
-#### Stats
-- `GET /api/stats` - Public site stats (total jobs, subscribers, companies)
-
-#### Other
-- `POST /api/contact` - Contact form submission
-- `GET /api/companies/[slug]` - Get company details
-- `POST /api/upload` - Upload file to Supabase Storage
-
-### Employer Endpoints
-
-- `POST /api/create-checkout` - Create Stripe checkout for new job
-- `POST /api/create-renewal-checkout` - Renew expired job
-- `POST /api/create-upgrade-checkout` - Upgrade standard to featured
-- `GET /api/employer/dashboard?token=xxx` - Employer dashboard data
-- `GET /api/employer/invoice?jobId=xxx&token=xxx` - Download PDF invoice
-- `GET /api/jobs/edit/[token]` - Get job for editing
-- `PUT /api/jobs/edit/[token]` - Update job
-- `POST /api/job-draft` - Save job draft
-- `GET /api/job-draft?email=xxx` - Get saved draft
-- `DELETE /api/job-draft?email=xxx` - Delete draft
-
-### Admin Endpoints (Protected)
-
-- `GET /api/admin/stats` - Admin dashboard statistics
-- `GET /api/admin/jobs` - All jobs (with filters)
-- `PATCH /api/admin/jobs/[id]` - Update job (publish, feature, verify)
-- `DELETE /api/admin/jobs/[id]` - Delete job
-- `GET /api/admin/outreach` - Employer leads
-- `GET /api/admin/companies` - Company management
-- `GET /api/analytics/apply-clicks` - Apply click analytics
-- `GET /api/analytics/source-performance` - Source comparison
-
-### Webhook Endpoints
-
-- `POST /api/webhooks/stripe` - Stripe webhook handler (checkout.session.completed)
-
-### Cron Endpoints (Protected by CRON_SECRET)
-
-- `POST /api/ingest?source=[source]` - Trigger job ingestion
-- `POST /api/cron/send-alerts` - Send job alert emails
-- `POST /api/cron/expiry-warnings` - Send expiry warning emails
-- `POST /api/cron/freshness-decay` - Update job freshness scores
-- `POST /api/cron/cleanup-descriptions` - Clean HTML from descriptions
-- `POST /api/cron/parse-locations` - Parse location strings
-
----
-
-## 🤖 Job Aggregation
-
-### Supported Sources
-
-| Source | Type | Frequency | Jobs/Run | Status |
-|--------|------|-----------|----------|--------|
-| **Adzuna** | Job Search API | Every 4 hours | ~1,400 | ✅ Active |
-| **Jooble** | Job Search API | 4x daily | ~500 | ✅ Active |
-| **Greenhouse** | ATS Scraper | Every 6 hours | ~200 | ✅ Active |
-| **Lever** | ATS API | On-demand | ~100 | ✅ Active |
-| **USAJobs** | Government API | On-demand | ~50 | ✅ Active |
-| **CareerJet** | Job Search API | On-demand | ~300 | ✅ Active |
-
-### Aggregation Pipeline
-
-1. **Fetch** - Query external API with PMHNP-related keywords
-2. **Normalize** - Standardize job data (see Job Normalizer)
-3. **Deduplicate** - Check for existing jobs (see Deduplicator)
-4. **Store** - Save to database with source tracking
-5. **Cleanup** - Remove HTML, fix formatting
-
-### Job Normalizer (`lib/job-normalizer.ts`)
-
-**377 lines** of robust normalization logic:
-
-- **HTML Cleaning**: Remove tags, decode entities (20+ types)
-- **Salary Extraction**: Regex patterns for various formats
-- **Salary Validation**: Reject fake/placeholder values
-- **Job Type Detection**: Full-Time, Part-Time, Contract, Per Diem
-- **Mode Detection**: Remote, Hybrid, On-Site
-- **Location Parsing**: Extract city, state, country
-- **Summary Generation**: Create 150-char description summary
-- **Salary Normalization**: Convert all to annual rates
-
-### Deduplicator (`lib/deduplicator.ts`)
-
-**4-strategy duplicate detection** with confidence scores:
-
-1. **Exact External ID** (100% confidence) - Same source ID
-2. **Exact Match** (95% confidence) - Title + Company + Location
-3. **Apply URL Match** (90% confidence) - Same application link
-4. **Fuzzy Title Match** (85%+ confidence) - Levenshtein distance algorithm
-
-**Normalization helpers**:
-- Title normalization (remove special chars, lowercase)
-- Company normalization (remove legal suffixes)
-- Location normalization (remove state codes)
-- URL normalization (strip query params, fragments)
-
-### Salary Intelligence
-
-**Salary Normalizer** (`lib/salary-normalizer.ts`):
-- Converts hourly → annual (assumes 2,080 hours/year)
-- Converts monthly → annual (× 12)
-- Handles ranges ($50-$60/hr)
-- Estimates missing salaries based on role/location
-- Confidence scoring (0.0-1.0)
-
-**Display Formatter** (`lib/salary-display.ts`):
-- User-friendly formats: "$145-$200/hr" or "$150k-$180k/yr"
-- Handles estimates with indicators
-- Consistent formatting across app
-
-### Location Parser (`lib/location-parser.ts`)
-
-Extracts structured location data:
-- City, State, State Code, Country
-- Remote/Hybrid detection
-- Handles various formats: "Remote - CA", "New York, NY", "Telehealth"
-
----
-
-## 🔐 Authentication System
-
-### Modern Server-Side Route Protection
-
-**No traditional middleware.ts** - Using Next.js 14+ best practice with server-side helpers.
-
-### Implementation (`lib/auth/protect.ts`)
-
-**Helper Functions**:
-
-1. **`requireAuth()`** - Require any authenticated user
-   ```typescript
-   const { user, profile } = await requireAuth()
-   // Redirects to /login if not authenticated
-   ```
-
-2. **`requireRole(['employer', 'admin'])`** - Require specific role(s)
-   ```typescript
-   const { user, profile } = await requireRole(['admin'])
-   // Redirects to /unauthorized if wrong role
-   ```
-
-3. **`requireAdmin()`** - Shorthand for admin-only
-   ```typescript
-   await requireAdmin()
-   // Redirects if not admin
-   ```
-
-4. **`getCurrentUser()`** - Get user without requiring auth
-   ```typescript
-   const currentUser = await getCurrentUser()
-   // Returns null if not logged in
-   ```
-
-### User Roles
-
-- **`job_seeker`** (default) - Can save jobs, create alerts, apply
-- **`employer`** - Can post jobs, access employer dashboard
-- **`admin`** - Full system access, moderation, analytics
-
-### Supabase Integration
-
-**Client-side** (`lib/supabase/client.ts`):
-```typescript
-import { createBrowserClient } from '@supabase/ssr'
+**Response:**
+```json
+{
+  "success": true,
+  "jobs": [...],
+  "total": 245,
+  "page": 1,
+  "totalPages": 5
+}
 ```
 
-**Server-side** (`lib/supabase/server.ts`):
-```typescript
-import { createServerClient } from '@supabase/ssr'
-// Cookie-based session management
+#### `POST /api/jobs/post-free`
+Create a free job posting.
+
+**Body:**
+```json
+{
+  "title": "Remote PMHNP",
+  "employer": "HealthCo",
+  "location": "Remote",
+  "mode": "Remote",
+  "jobType": "Full-Time",
+  "description": "...",
+  "applyLink": "https://...",
+  "contactEmail": "hiring@healthco.com",
+  "minSalary": 120000,
+  "maxSalary": 150000,
+  "salaryPeriod": "annual"
+}
 ```
 
-### Authentication Flow
+#### `GET /api/job-alerts`
+Fetch job alerts for email.
 
-1. User signs up/logs in via Supabase Auth
-2. Redirected to `/auth/callback`
-3. Server helper checks auth status
-4. Profile auto-created in database if doesn't exist
-5. User redirected to dashboard
+#### `POST /api/job-alerts`
+Create a new job alert.
 
-### Google OAuth
+### Admin Endpoints
 
-**Configured** in Supabase dashboard:
-- Google Sign-In button on login/signup pages
-- Automatic profile creation on first login
-- Seamless integration with email/password auth
+#### `GET /api/admin/stats`
+Get dashboard statistics.
 
-### Protected Routes
+#### `POST /api/admin/trigger-ingestion`
+Manually trigger job ingestion.
 
-**Protected Pages** (require auth):
-- `/dashboard`
-- `/settings`
-- `/job-alerts/manage`
+### Cron Endpoints (Protected)
 
-**Protected Layouts**:
-- `/admin/*` - Requires admin role
-- Uses `requireAdmin()` in `app/admin/layout.tsx`
+#### `GET /api/cron/ingest?source=adzuna`
+Ingest jobs from specified source.
 
-### Profile Management
+**Auth:** `Authorization: Bearer <CRON_SECRET>`
 
-**Fields**:
-- Basic: `firstName`, `lastName`, `email` (non-editable)
-- Contact: `phone`, `company`
-- Files: `avatarUrl`, `resumeUrl` (Supabase Storage)
+#### `GET /api/cron/send-alerts`
+Send job alert emails.
 
-**Features**:
-- Avatar upload/removal
-- Resume upload/removal (job seekers only)
-- Password reset via email
-- Account deletion
+#### `GET /api/cron/expiry-warnings`
+Send expiry warning emails to employers.
+
+#### `GET /api/cron/freshness-decay`
+Update job rankings based on age.
+
+### Webhooks
+
+#### `POST /api/webhooks/stripe`
+Handle Stripe payment webhooks.
+
+**Events:**
+- `checkout.session.completed`
+- Payment confirmation and job publication
 
 ---
 
-## 💳 Payment Integration
+## 🗄 Database Schema
 
-### Stripe Setup
+### Core Models
 
-**Pricing** (configured in `lib/config.ts`):
-- Standard Job Post: **$99** (30 days)
-- Featured Job Post: **$199** (30 days)
-- Job Renewal: **$99** (30 days)
-- Upgrade to Featured: **$100**
+#### Job
+```prisma
+model Job {
+  id                  String   @id @default(uuid())
+  title               String
+  slug                String?  @unique
+  employer            String
+  location            String
+  jobType             String?  // Full-Time, Part-Time, etc.
+  mode                String?  // Remote, Hybrid, In-Person
+  description         String
+  descriptionSummary  String?
+  
+  // Parsed location
+  city                String?
+  state               String?
+  stateCode           String?
+  country             String?  @default("US")
+  isRemote            Boolean  @default(false)
+  isHybrid            Boolean  @default(false)
+  
+  // Salary (normalized to annual)
+  normalizedMinSalary Int?
+  normalizedMaxSalary Int?
+  salaryPeriod        String?
+  displaySalary       String?  // User-friendly format
+  
+  applyLink           String
+  isFeatured          Boolean  @default(false)
+  isPublished         Boolean  @default(true)
+  sourceType          String?
+  sourceProvider      String?
+  
+  viewCount           Int      @default(0)
+  applyClickCount     Int      @default(0)
+  
+  createdAt           DateTime @default(now())
+  expiresAt           DateTime?
+  
+  companyId           String?
+  company             Company? @relation(fields: [companyId], references: [id])
+}
+```
 
-### Feature Flag
+#### JobAlert
+```prisma
+model JobAlert {
+  id         String   @id @default(cuid())
+  email      String
+  keyword    String?
+  location   String?
+  mode       String?
+  jobType    String?
+  minSalary  Int?
+  frequency  String   @default("weekly") // daily, weekly
+  isActive   Boolean  @default(true)
+  lastSentAt DateTime?
+  token      String   @unique
+}
+```
 
-Toggle paid posting on/off:
+#### EmployerJob
+```prisma
+model EmployerJob {
+  id                  String   @id @default(uuid())
+  employerName        String
+  contactEmail        String
+  jobId               String   @unique
+  editToken           String   @unique
+  dashboardToken      String   @unique
+  paymentStatus       String   // pending, paid, free
+  expiryWarningSentAt DateTime?
+}
+```
+
+#### Company
+```prisma
+model Company {
+  id             String   @id @default(uuid())
+  name           String   @unique
+  normalizedName String   @unique
+  logoUrl        String?
+  website        String?
+  jobCount       Int      @default(0)
+  isVerified     Boolean  @default(false)
+}
+```
+
+#### UserProfile
+```prisma
+model UserProfile {
+  id         String   @id @default(cuid())
+  supabaseId String   @unique
+  email      String   @unique
+  role       String   @default("job_seeker") // job_seeker, employer, admin
+  resumeUrl  String?
+}
+```
+
+#### EmployerLead
+```prisma
+model EmployerLead {
+  id              String    @id @default(uuid())
+  companyName     String
+  contactEmail    String?
+  status          String    @default("prospect")
+  lastContactedAt DateTime?
+  jobsPosted      Int       @default(0)
+}
+```
+
+---
+
+## 🤖 Job Aggregation System
+
+### Source Connectors
+
+Each aggregator in `lib/aggregators/` implements:
+
+```typescript
+export async function fetchSourceJobs(): Promise<RawJob[]> {
+  // API call logic
+  // Data transformation
+  // Error handling
+}
+```
+
+**Adzuna** (`adzuna.ts`)
+- REST API with app ID/key auth
+- Supports US and UK regions
+- Returns: title, company, location, salary, description, URL
+
+**Jooble** (`jooble.ts`)
+- POST API with JSON body
+- Keywords: "psychiatric nurse practitioner", "PMHNP"
+- Returns: structured job data with salary
+
+**Greenhouse** (`greenhouse.ts`)
+- Public job board scraping
+- Filters for healthcare companies
+- ATS data format
+
+**Lever** (`lever.ts`)
+- Public API endpoint
+- Company-specific job feeds
+- ATS data format
+
+### Normalization Pipeline
+
+**1. Job Normalizer** (`lib/job-normalizer.ts`)
+- Standardizes field names across sources
+- Cleans HTML/special characters
+- Generates SEO-friendly slugs
+
+**2. Location Parser** (`lib/location-parser.ts`)
+- Extracts city, state, country
+- Detects remote/hybrid keywords
+- Maps state codes (NY → New York)
+- Confidence scoring
+
+**3. Salary Normalizer** (`lib/salary-normalizer.ts`)
+- Detects pay period (hourly, weekly, monthly, annual)
+- Converts to annual equivalent
+- Validates against PMHNP ranges
+- Generates display format ("$120k-$150k/yr")
+
+**4. Deduplicator** (`lib/deduplicator.ts`)
+- Checks external ID
+- Fuzzy match on title + company
+- Apply URL comparison
+- Confidence-based matching
+
+**5. Company Normalizer** (`lib/company-normalizer.ts`)
+- Normalizes company names
+- Links to existing Company records
+- Creates new company profiles
+- Maintains aliases
+
+### Data Quality
+
+**Quality Checks:**
+- Salary within valid range
+- Required fields present (title, employer, location, applyLink)
+- Description length > 100 characters
+- Valid URL format for apply link
+
+**Confidence Scores:**
+- Location: 0.0-1.0 based on parsing success
+- Salary: 0.0-1.0 based on validation
+- Overall job quality score
+
+---
+
+## 🔧 Scripts & Commands
+
+### Development
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server (port 3000) |
+| `npm run build` | Build for production |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Fix ESLint errors |
+| `npm run type-check` | Run TypeScript compiler (no emit) |
+| `npm run format` | Format code with Prettier |
+| `npm run validate` | Run type-check + lint |
+
+### Database
+
+| Command | Description |
+|---------|-------------|
+| `npx prisma generate` | Generate Prisma Client |
+| `npx prisma db push` | Push schema to database |
+| `npx prisma db seed` | Seed database with test data |
+| `npx prisma studio` | Open Prisma Studio (DB GUI) |
+| `npx prisma migrate dev` | Create new migration |
+
+### Testing
+
+| Command | Description |
+|---------|-------------|
+| `npm test` | Run tests once |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Generate coverage report |
+
+### Maintenance Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run audit:jobs` | Audit job data quality |
+| `npm run audit:salaries` | Check salary normalization |
+| `npm run fix:locations` | Backfill missing locations |
+| `npm run fix:salaries` | Fix salary normalization issues |
+| `npm run populate:display-salaries` | Generate display salary strings |
+| `npm run clean:descriptions` | Clean job descriptions (HTML) |
+
+### Manual Ingestion
+
 ```bash
-ENABLE_PAID_POSTING="false"  # Free mode (launch)
-ENABLE_PAID_POSTING="true"   # Paid mode
+# Run ingestion for specific source
+ts-node scripts/run-ingestion.ts adzuna
+
+# Test API connections
+ts-node scripts/test-jooble.ts
+ts-node scripts/test-greenhouse.ts
 ```
-
-**When disabled**: All jobs post for free via `/api/jobs/post-free`
-**When enabled**: Jobs go through Stripe checkout
-
-### Payment Flows
-
-#### 1. New Job Posting
-```
-/post-job → Form → /post-job/checkout → Stripe → Webhook → Published
-```
-
-**Process**:
-1. User fills job form
-2. Data saved to localStorage
-3. Redirected to checkout page
-4. Click "Proceed to Payment"
-5. Creates Stripe Checkout Session
-6. Redirected to Stripe hosted page
-7. Payment completed
-8. Webhook fires: `checkout.session.completed`
-9. Job published, email sent
-10. Redirected to `/success`
-
-#### 2. Job Renewal
-```
-Dashboard → Renew → Stripe → Webhook → Extended 30 days
-```
-
-**Metadata**:
-```json
-{
-  "type": "renewal",
-  "jobId": "abc123",
-  "dashboardToken": "xyz789"
-}
-```
-
-#### 3. Job Upgrade
-```
-Dashboard → Upgrade → Stripe → Webhook → Marked as Featured
-```
-
-**Metadata**:
-```json
-{
-  "type": "upgrade",
-  "jobId": "abc123",
-  "dashboardToken": "xyz789"
-}
-```
-
-### Webhook Handler (`/api/webhooks/stripe/route.ts`)
-
-**Handles**:
-- Signature verification (security)
-- New job posting completion
-- Job renewal completion
-- Job upgrade completion
-
-**Actions**:
-- Updates job in database
-- Marks as published/featured
-- Extends expiry date
-- Sends confirmation email
-- Cleans up drafts
-
-### Invoices
-
-**PDF Generation** (`lib/invoice-generator.tsx`):
-- Uses `@react-pdf/renderer`
-- Professional invoice design
-- Includes job details, pricing, transaction ID
-- Download via employer dashboard
-
-**Endpoint**: `GET /api/employer/invoice?jobId=xxx&token=xxx`
-
----
-
-## 📧 Email System
-
-### Resend Integration
-
-**Configuration**: Set `RESEND_API_KEY` in `.env.local`
-
-### Email Service (`lib/email-service.ts`)
-
-**6 Email Templates**:
-
-1. **`sendWelcomeEmail(email, name?)`**
-   - Sent after newsletter signup
-   - Welcome message, what to expect
-
-2. **`sendConfirmationEmail(email, job, editLink, dashboardLink)`**
-   - Sent after job posting
-   - Includes edit & dashboard links
-   - Receipt for paid postings
-
-3. **`sendJobAlertEmail(email, jobs, alertCriteria)`**
-   - Daily/weekly job matches
-   - Up to 10 jobs per email
-   - Criteria summary
-
-4. **`sendRenewalConfirmationEmail(email, job, dashboardToken)`**
-   - Sent after renewal
-   - New expiry date
-   - Dashboard link
-
-5. **`sendExpiryWarningEmail(email, job, daysUntilExpiry, renewalLink)`**
-   - Sent 5 days before expiry
-   - Renewal call-to-action
-   - Dashboard access
-
-6. **`sendDraftSavedEmail(email, draftLink)`**
-   - Sent when draft is saved
-   - Resume posting link
-
-### Unsubscribe System
-
-**All emails include**:
-- Unsubscribe link with token
-- Preference management link
-
-**Endpoints**:
-- `GET /api/email/unsubscribe?token=xxx` - One-click unsubscribe
-- `GET /api/email/preferences?token=xxx` - Manage preferences
-
-**Token-based** (no login required):
-- Secure `unsubscribeToken` per email lead
-- Prevents unauthorized unsubscribes
-
-### Email Frequency
-
-**Job Alerts**:
-- Daily: Sent at 8am (matches from last 24hrs)
-- Weekly: Sent Mondays at 8am (matches from last 7 days)
-
-**Expiry Warnings**:
-- Sent 5 days before expiry (9am daily cron)
 
 ---
 
 ## ⏰ Cron Jobs
 
-### Vercel Cron Configuration (`vercel.json`)
+Configured in `vercel.json`:
 
-**7 Scheduled Jobs**:
+| Cron | Schedule | Endpoint | Description |
+|------|----------|----------|-------------|
+| Adzuna Ingestion | Every 4 hours | `/api/cron/ingest?source=adzuna` | Fetch Adzuna jobs |
+| Jooble Ingestion | 1,7,13,19 (UTC) | `/api/cron/ingest?source=jooble` | Fetch Jooble jobs |
+| Greenhouse Ingestion | Every 6 hours | `/api/cron/ingest?source=greenhouse` | Fetch Greenhouse jobs |
+| Freshness Decay | Daily 3 AM | `/api/cron/freshness-decay` | Update job rankings |
+| Send Alerts | Daily 8 AM | `/api/cron/send-alerts` | Send job alert emails |
+| Expiry Warnings | Daily 9 AM | `/api/cron/expiry-warnings` | Email employers about expiring jobs |
+| Cleanup Descriptions | Daily 2 AM | `/api/cron/cleanup-descriptions` | Clean HTML from descriptions |
 
-| Job | Path | Schedule | Purpose |
-|-----|------|----------|---------|
-| **Adzuna Ingest** | `/api/cron/ingest?source=adzuna` | Every 4 hours | Fetch Adzuna jobs |
-| **Jooble Ingest** | `/api/cron/ingest?source=jooble` | 4x daily (1,7,13,19h) | Fetch Jooble jobs |
-| **Greenhouse Ingest** | `/api/cron/ingest?source=greenhouse` | Every 6 hours | Fetch Greenhouse jobs |
-| **Freshness Decay** | `/api/cron/freshness-decay` | Daily at 3am | Update job rankings |
-| **Send Alerts** | `/api/cron/send-alerts` | Daily at 8am | Send job alert emails |
-| **Expiry Warnings** | `/api/cron/expiry-warnings` | Daily at 9am | Warn about expiring jobs |
-| **Cleanup Descriptions** | `/api/cron/cleanup-descriptions` | Daily at 2am | Remove HTML from descriptions |
-
-### Security
-
-All cron endpoints require `CRON_SECRET`:
-```typescript
-const secret = request.headers.get('Authorization')?.replace('Bearer ', '')
-if (secret !== process.env.CRON_SECRET) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-}
-```
-
-### Manual Triggering
-
-For testing or one-off runs:
-```bash
-# Using curl
-curl -X POST "http://localhost:3000/api/cron/send-alerts" \
-  -H "Authorization: Bearer your-cron-secret"
-
-# Using PowerShell
-Invoke-RestMethod -Method POST -Uri "http://localhost:3000/api/ingest?source=adzuna" -Headers @{"Authorization"="Bearer your-cron-secret"}
-```
-
-### Cron Job Details
-
-**Job Ingestion** (`/api/ingest`):
-- Fetches jobs from specified source
-- Normalizes and deduplicates
-- Returns stats (fetched, duplicates, saved, errors)
-
-**Freshness Decay** (`/api/cron/freshness-decay`):
-- Decreases older jobs' ranking
-- Keeps feed fresh with recent posts
-
-**Send Alerts** (`/api/cron/send-alerts`):
-- Finds active alerts due to send
-- Matches jobs to criteria
-- Sends email for each matching alert
-- Updates `lastSentAt`
-
-**Expiry Warnings** (`/api/cron/expiry-warnings`):
-- Finds jobs expiring in 5 days
-- Sends warning email to employer
-- Includes renewal link
-
-**Cleanup Descriptions** (`/api/cron/cleanup-descriptions`):
-- Removes remaining HTML tags
-- Fixes formatting issues
-- Batch processes 100 jobs at a time
+**Security:** All cron endpoints require `Authorization: Bearer <CRON_SECRET>` header.
 
 ---
 
-## 🛠️ Scripts & Utilities
+## 🔐 Environment Variables
 
-### Available Scripts
+### Required
 
-Located in `scripts/` directory:
-
-**Job Management**:
-- `audit-and-fix-jobs.ts` - Audit job data quality
-- `audit-salaries.ts` - Audit salary data
-- `fix-missing-locations.ts` - Parse and fix location fields
-- `fix-all-salaries.ts` - Normalize all salary data
-- `populate-display-salaries.ts` - Generate display salary strings
-- `clean-job-descriptions.ts` - Remove HTML from descriptions
-
-**Data Analysis**:
-- `analyze-location-formats.ts` - Analyze location string patterns
-- `analyze-salary-data.ts` - Analyze salary distributions
-- `check-duplicate-jobs.ts` - Find potential duplicates
-
-**Source Testing**:
-- `test-aggregators.ts` - Test all job sources
-- `test-adzuna.ts` - Test Adzuna API
-- `test-jooble.ts` - Test Jooble API
-- `test-greenhouse.ts` - Test Greenhouse scraper
-
-**Run scripts**:
-```bash
-npm run audit:jobs
-npm run audit:salaries
-npm run fix:locations
-npm run fix:salaries
-npm run populate:display-salaries
-npm run clean:descriptions
+```env
+DATABASE_URL="postgresql://..."
+NEXT_PUBLIC_SUPABASE_URL="https://..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
 ```
 
-### PowerShell Test Scripts
+### Optional (Recommended)
 
-Located in project root:
+```env
+# Email
+RESEND_API_KEY="re_..."
+EMAIL_FROM="PMHNP Hiring <noreply@pmhnphiring.com>"
 
-- `test-all-sources.ps1` - Test all aggregators
-- `test-careerjet-api.ps1` - Test CareerJet
-- `test-jooble-api.ps1` - Test Jooble
-- `test-cron-endpoints.ps1` - Test all cron jobs
-- `test-parse-locations-api.ps1` - Test location parser
-- `test-cleanup-descriptions.ps1` - Test description cleaner
+# Stripe (for paid posting)
+STRIPE_SECRET_KEY="sk_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_..."
 
-### Utility Libraries
+# Job APIs
+ADZUNA_APP_ID="..."
+ADZUNA_APP_KEY="..."
+JOOBLE_API_KEY="..."
 
-**Location Parser** (`lib/location-parser.ts`):
-- Extract city, state, country
-- Detect remote/hybrid
-- Handle various formats
+# Security
+CRON_SECRET="your-random-secret"
+SUPABASE_SERVICE_ROLE_KEY="..."
 
-**Salary Utils** (`lib/salary-utils.ts`):
-- Parse salary strings
-- Convert periods (hourly/monthly → annual)
-- Validate ranges
+# Feature Flags
+ENABLE_PAID_POSTING="false"
+```
 
-**Company Normalizer** (`lib/company-normalizer.ts`):
-- Remove legal suffixes (LLC, Inc, Corp)
-- Standardize company names
-- Merge similar companies
+### Development Defaults
 
-**Description Cleaner** (`lib/description-cleaner.ts`):
-- Remove HTML tags
-- Decode entities
-- Fix whitespace
-- Remove URLs (optional)
-
-**Filters** (`lib/filters.ts`):
-- Build Prisma queries from filter criteria
-- Handle complex combinations
+If optional variables are missing in development, the app will continue with:
+- Free posting mode (no Stripe required)
+- Limited job sources (only APIs with keys)
+- Console logging instead of external services
 
 ---
 
-## 🚀 Deployment
+## 🧪 Testing
 
-### Recommended: Vercel
+### Unit Tests
 
-**Why Vercel**:
-- Native Next.js support
-- Automatic cron jobs
-- Edge functions
-- Zero-config deployment
+```bash
+npm test                # Run once
+npm run test:watch      # Watch mode
+npm run test:coverage   # Coverage report
+```
 
-**Steps**:
+Tests located in `tests/`:
+- `tests/lib/` - Library function tests
+- `tests/api/` - API endpoint tests
 
-1. **Connect Repository**:
-   - Import project to Vercel
-   - Connect GitHub repo
+### Manual API Testing
 
-2. **Configure Environment Variables**:
-   - Add all variables from `.env.local`
-   - Set `NEXT_PUBLIC_APP_URL` to your domain
+PowerShell scripts for testing:
+- `test-all-sources.ps1` - Test all job source APIs
+- `test-cron-endpoints.ps1` - Test cron endpoints
+- `test-jooble-api.ps1` - Test Jooble specifically
 
-3. **Configure Cron Jobs**:
-   - Automatic from `vercel.json`
-   - Verify in Vercel dashboard
+### Browser Testing
 
-4. **Set up Stripe Webhook**:
-   ```
-   https://yourdomain.com/api/webhooks/stripe
-   ```
-   - Add endpoint in Stripe dashboard
-   - Select event: `checkout.session.completed`
-   - Copy webhook secret to `STRIPE_WEBHOOK_SECRET`
+1. Start dev server: `npm run dev`
+2. Navigate to pages and test:
+   - Jobs listing with filters
+   - Job detail page
+   - Post job flow
+   - Employer dashboard
+   - Admin panel
 
-5. **Deploy**:
+---
+
+## 🚢 Deployment
+
+### Vercel (Recommended)
+
+1. **Push to GitHub:**
    ```bash
-   vercel --prod
+   git push origin main
    ```
+
+2. **Connect to Vercel:**
+   - Import project from GitHub
+   - Configure environment variables
+   - Deploy
+
+3. **Configure Webhooks:**
+   - Get Stripe webhook endpoint: `https://your-domain.com/api/webhooks/stripe`
+   - Add to Stripe Dashboard → Webhooks
+   - Copy signing secret to `STRIPE_WEBHOOK_SECRET`
+
+4. **Setup Cron Jobs:**
+   - Cron jobs auto-configured from `vercel.json`
+   - Ensure `CRON_SECRET` is set
 
 ### Database Setup
 
-**Option 1: Neon** (recommended)
-- PostgreSQL with connection pooling
-- Free tier available
-- Works with Prisma
+**Supabase:**
+1. Create project at [supabase.com](https://supabase.com)
+2. Copy connection string to `DATABASE_URL`
+3. Enable Auth providers (Email/Google)
+4. Setup Storage bucket for resumes
 
-**Option 2: Supabase**
-- PostgreSQL + auth + storage
-- All-in-one solution
-- Generous free tier
-
-**Option 3: Railway**
-- PostgreSQL hosting
-- Simple deployment
-- Pay-as-you-go
+**Manual PostgreSQL:**
+1. Create database
+2. Set `DATABASE_URL`
+3. Run `npx prisma db push`
 
 ### Post-Deployment Checklist
 
-- [ ] All environment variables set
-- [ ] Database migrated (`prisma db push`)
-- [ ] Stripe webhook configured and tested
-- [ ] Supabase redirect URLs configured
-- [ ] Google OAuth redirect configured (if using)
-- [ ] DNS configured (if custom domain)
+- [ ] Environment variables configured
+- [ ] Database migrated
+- [ ] Stripe webhook configured
+- [ ] Cron secret set
+- [ ] Email service configured (Resend)
 - [ ] Test job posting flow
-- [ ] Test payment flow
-- [ ] Test job alerts
-- [ ] Test email delivery
+- [ ] Test payment flow (if enabled)
 - [ ] Verify cron jobs running
-- [ ] Set up error monitoring (Sentry, etc.)
-- [ ] Configure analytics (GA, Plausible, etc.)
-
-### Performance Optimizations
-
-**Already Implemented**:
-- Database indexes on common queries
-- Connection pooling (Prisma + pg)
-- Image optimization (Next.js)
-- Static generation where possible
-- Lazy loading components
-
-**Additional Recommendations**:
-- Enable Redis caching (for filter counts)
-- CDN for static assets
-- Compress API responses
-- Add rate limiting
-
----
-
-## 📁 Project Structure
-
-```
-pmhnp-job-board/
-├── app/                          # Next.js App Router
-│   ├── (routes)/                 # Route groups
-│   │   ├── jobs/                 # Job listing & detail pages
-│   │   ├── dashboard/            # User dashboard
-│   │   ├── admin/                # Admin pages (protected)
-│   │   ├── post-job/             # Job posting flow
-│   │   ├── settings/             # User settings
-│   │   └── ...                   # Other pages
-│   ├── api/                      # API routes
-│   │   ├── jobs/                 # Job endpoints
-│   │   ├── auth/                 # Auth endpoints
-│   │   ├── cron/                 # Cron job endpoints
-│   │   ├── webhooks/             # Webhook handlers
-│   │   └── ...                   # Other endpoints
-│   ├── layout.tsx                # Root layout
-│   ├── page.tsx                  # Homepage
-│   ├── globals.css               # Global styles
-│   ├── sitemap.ts                # Dynamic sitemap
-│   └── robots.ts                 # Robots.txt
-├── components/                   # React components
-│   ├── auth/                     # Auth components
-│   ├── jobs/                     # Job-related components
-│   ├── ui/                       # UI primitives
-│   ├── Header.tsx                # Site header
-│   ├── Footer.tsx                # Site footer
-│   ├── JobCard.tsx               # Job card component
-│   └── ...                       # Other components
-├── lib/                          # Utility libraries
-│   ├── aggregators/              # Job source fetchers
-│   │   ├── adzuna.ts
-│   │   ├── jooble.ts
-│   │   ├── greenhouse.ts
-│   │   ├── lever.ts
-│   │   ├── usajobs.ts
-│   │   └── careerjet.ts
-│   ├── auth/                     # Auth utilities
-│   │   └── protect.ts            # Route protection
-│   ├── supabase/                 # Supabase clients
-│   │   ├── client.ts             # Browser client
-│   │   ├── server.ts             # Server client
-│   │   └── middleware.ts         # Session refresh
-│   ├── config.ts                 # App configuration
-│   ├── prisma.ts                 # Prisma client
-│   ├── job-normalizer.ts         # Job data normalizer
-│   ├── deduplicator.ts           # Duplicate detection
-│   ├── salary-normalizer.ts      # Salary processing
-│   ├── location-parser.ts        # Location extraction
-│   ├── email-service.ts          # Email sender
-│   ├── job-alerts-service.ts     # Alert matching
-│   └── ...                       # Other utilities
-├── prisma/                       # Database
-│   ├── schema.prisma             # Database schema
-│   ├── migrations/               # Migration history
-│   └── seed.ts                   # Seed data
-├── scripts/                      # Utility scripts
-│   ├── audit-and-fix-jobs.ts
-│   ├── fix-all-salaries.ts
-│   └── ...
-├── types/                        # TypeScript types
-│   ├── job.ts
-│   └── filters.ts
-├── public/                       # Static assets
-│   ├── logo.svg
-│   └── ...
-├── .env.local                    # Environment variables (not in repo)
-├── .env.example                  # Example env file
-├── next.config.ts                # Next.js config
-├── tailwind.config.ts            # Tailwind config
-├── vercel.json                   # Vercel config (cron jobs)
-├── package.json                  # Dependencies
-├── tsconfig.json                 # TypeScript config
-└── README.md                     # This file
-```
-
----
-
-## ⚙️ Configuration
-
-### App Config (`lib/config.ts`)
-
-**Feature Flags**:
-```typescript
-isPaidPostingEnabled: process.env.ENABLE_PAID_POSTING === 'true'
-```
-
-**Pricing**:
-```typescript
-pricing: {
-  standard: 99,      // $99 for standard post
-  featured: 199,     // $199 for featured post
-  renewal: 99,       // $99 to renew
-  upgrade: 100,      // $100 to upgrade
-}
-```
-
-**Job Settings**:
-```typescript
-jobSettings: {
-  durationDays: 30,           // Jobs expire after 30 days
-  featuredDurationDays: 30,   // Featured jobs also 30 days
-}
-```
-
-**Helper Functions**:
-- `getPostingPrice(tier)` - Get price for tier
-- `getRenewalPrice()` - Get renewal price
-- `getUpgradePrice()` - Get upgrade price
-- `formatPrice(amount)` - Format as currency
-- `getPricingLabel(tier)` - Get display label
-
-### Tailwind Config (`tailwind.config.ts`)
-
-**Custom Design System**:
-
-**Colors**:
-```typescript
-colors: {
-  primary: { /* Blue shades */ },
-  accent: { /* Purple shades */ },
-  success: { /* Green */ },
-  warning: { /* Yellow */ },
-  error: { /* Red */ },
-}
-```
-
-**Typography**:
-- Custom font sizes
-- Line heights
-- Letter spacing
-
-**Spacing**:
-- Consistent spacing scale
-- Custom padding/margin
-
-**Border Radius**:
-- `sm`, `md`, `lg`, `xl`, `2xl`, `full`
-
-**Shadows**:
-- `sm`, `md`, `lg`, `xl`, `2xl`
-
-**Animations**:
-- `fadeIn`, `slideIn`, `scaleIn`
-- Custom keyframes
-
----
-
-## 🔍 SEO & Metadata
-
-### Dynamic Sitemap (`app/sitemap.ts`)
-
-**Includes**:
-- Static pages (home, about, jobs, etc.)
-- All published job pages (last 1000)
-- Dynamic landing pages (states, cities)
-
-**Updates**: Regenerates on each build
-
-### Robots.txt (`app/robots.ts`)
-
-**Allows**: All pages except:
-- `/api/*` - API routes
-- `/admin/*` - Admin pages
-- `/employer/*` - Employer dashboards
-- `/jobs/edit/*` - Edit pages
-- `/dashboard` - User dashboard
-- `/settings` - User settings
-
-**Sitemap**: Points to `/sitemap.xml`
-
-### Structured Data
-
-**Job Postings** (`components/JobStructuredData.tsx`):
-```json
-{
-  "@type": "JobPosting",
-  "title": "...",
-  "description": "...",
-  "datePosted": "...",
-  "hiringOrganization": {...},
-  "jobLocation": {...},
-  "baseSalary": {...}
-}
-```
-
-**Organization** (`components/OrganizationStructuredData.tsx`):
-```json
-{
-  "@type": "Organization",
-  "name": "PMHNP Jobs",
-  "url": "...",
-  "logo": "..."
-}
-```
-
-### Meta Tags
-
-**Every Page**:
-- Title (SEO-optimized)
-- Description
-- OpenGraph tags (title, description, image, url)
-- Twitter cards
-
-**Job Detail Pages**:
-- Dynamic title: "Job Title at Company | PMHNP Jobs"
-- Dynamic description from job summary
-- OpenGraph image (configured, needs `/public/og-image.png`)
-
-### SEO Landing Pages
-
-**State Pages** (`/jobs/state/[state]`):
-- "PMHNP Jobs in [State]"
-- State-specific job listings
-- SEO-optimized titles/descriptions
-
-**City Pages** (`/jobs/city/[city]`):
-- "PMHNP Jobs in [City], [State]"
-- City-specific listings
-- Breadcrumb navigation
-
-**Remote Page** (`/jobs/remote`):
-- "Remote PMHNP Jobs"
-- All remote positions
-
----
-
-## 🎨 Design System
-
-### Color Palette
-
-**Primary (Blue)**:
-- 50-900 scale
-- Used for CTAs, links, focus states
-
-**Accent (Purple)**:
-- 50-900 scale
-- Used for highlights, badges
-
-**Semantic Colors**:
-- Success (Green)
-- Warning (Yellow)
-- Error (Red)
-- Info (Blue)
-
-### Typography
-
-**Headings**:
-- H1: 3rem (48px), bold
-- H2: 2.25rem (36px), semibold
-- H3: 1.875rem (30px), semibold
-- H4: 1.5rem (24px), medium
-
-**Body**:
-- Base: 1rem (16px)
-- Small: 0.875rem (14px)
-- Extra small: 0.75rem (12px)
-
-### Components
-
-**Buttons**:
-- Primary: Blue background
-- Secondary: White background, blue border
-- Ghost: Transparent background
-
-**Cards**:
-- White background
-- Border: gray-200
-- Shadow: sm
-- Hover: shadow-md transition
-
-**Badges**:
-- Rounded-full
-- Padding: px-3 py-1
-- Text: xs font-medium
-
-**Inputs**:
-- Border: gray-300
-- Focus: blue-500 ring
-- Rounded: md
+- [ ] Check job ingestion logs
 
 ---
 
 ## 🤝 Contributing
 
-### Development Workflow
+Contributions are welcome! Please follow these guidelines:
 
 1. **Fork the repository**
-2. **Create a feature branch**:
+2. **Create a feature branch:**
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feature/amazing-feature
    ```
 3. **Make your changes**
-4. **Test thoroughly**:
-   - Test UI changes
-   - Test API endpoints
-   - Test cron jobs (manually)
-5. **Commit with descriptive messages**:
+4. **Run tests and linting:**
    ```bash
-   git commit -m "Add: Feature description"
+   npm run validate
+   npm test
    ```
-6. **Push to your fork**:
+5. **Commit your changes:**
    ```bash
-   git push origin feature/your-feature-name
+   git commit -m "Add amazing feature"
    ```
-7. **Create a Pull Request**
+6. **Push to your fork:**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. **Open a Pull Request**
 
 ### Code Style
 
-**Follow existing patterns**:
-- TypeScript for all files
-- Use arrow functions
-- Destructure props
-- Use async/await (not .then)
-- Add comments for complex logic
-
-**Naming Conventions**:
-- Components: PascalCase (`JobCard.tsx`)
-- Utilities: camelCase (`job-normalizer.ts`)
-- Constants: UPPER_SNAKE_CASE
-- Types: PascalCase with `I` prefix for interfaces
-
-**Formatting**:
-- 2 spaces indentation
-- Single quotes for strings
-- Semicolons required
-- Trailing commas in objects/arrays
-
-### Testing
-
-**Before submitting PR**:
-- [ ] Test in development mode
-- [ ] Test in production build (`npm run build`)
-- [ ] No TypeScript errors
-- [ ] No console errors
-- [ ] Responsive on mobile
-- [ ] Accessible (keyboard navigation, screen readers)
+- Use TypeScript for all new code
+- Follow existing naming conventions
+- Add JSDoc comments for functions
+- Write tests for new features
+- Keep components small and focused
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ---
 
 ## 🙏 Acknowledgments
 
-**Built with**:
-- [Next.js](https://nextjs.org/) - React framework
-- [Prisma](https://www.prisma.io/) - Database ORM
-- [Supabase](https://supabase.com/) - Auth & Storage
-- [Stripe](https://stripe.com/) - Payment processing
-- [Resend](https://resend.com/) - Email delivery
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [Lucide](https://lucide.dev/) - Icons
-
-**Job Sources**:
-- Adzuna, Jooble, Greenhouse, Lever, USAJobs, CareerJet
+- **Next.js** - Amazing React framework
+- **Prisma** - Best-in-class ORM
+- **Supabase** - Powerful backend platform
+- **Vercel** - Seamless deployment
+- **Stripe** - Reliable payments
+- **Resend** - Modern email service
 
 ---
 
 ## 📞 Support
 
-**Issues**: [GitHub Issues](https://github.com/yourusername/pmhnp-job-board/issues)
-**Email**: support@pmhnpjobs.com
-**Website**: https://pmhnpjobs.com
+For questions or issues:
+- Open a GitHub issue
+- Email: support@pmhnphiring.com
+- Documentation: [Full Docs](https://docs.pmhnphiring.com)
 
 ---
 
-## 🗺️ Roadmap
-
-### Planned Features
-
-**Short Term** (v1.1):
-- [ ] Quality scoring system for jobs
-- [ ] Admin analytics dashboard frontend
-- [ ] Company pages (`/company/[slug]`)
-- [ ] Employer logos on job cards
-- [ ] Job comparison tool
-- [ ] Dark mode support
-
-**Medium Term** (v1.5):
-- [ ] Advanced search (Boolean operators)
-- [ ] Salary insights page
-- [ ] Resume parsing
-- [ ] One-click apply
-- [ ] Employer verification process
-- [ ] Job recommendation engine
-
-**Long Term** (v2.0):
-- [ ] Mobile app (React Native)
-- [ ] API for third-party integrations
-- [ ] Bulk job posting
-- [ ] Video job descriptions
-- [ ] Live chat support
-- [ ] Recruiter accounts
-
----
-
-## 📊 Stats
-
-- **Lines of Code**: ~25,000+
-- **Components**: 50+
-- **API Routes**: 40+
-- **Database Models**: 11
-- **Job Sources**: 6
-- **Email Templates**: 6
-- **Cron Jobs**: 7
-- **Scripts**: 35+
-
----
+## 💙 Built with Love
 
 **Built with ❤️ for the PMHNP community**
-
-_Last updated: December 23, 2025_

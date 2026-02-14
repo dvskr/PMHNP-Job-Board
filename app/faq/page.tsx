@@ -3,12 +3,16 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import FAQAccordion from '@/components/FAQAccordion';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Mail, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
-  description: 'Frequently asked questions about PMHNP Jobs for job seekers and employers.',
+  description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the #1 PMHNP job board.',
+  alternates: {
+    canonical: 'https://pmhnphiring.com/faq',
+  },
 };
 
 export default function FAQPage() {
@@ -42,7 +46,7 @@ export default function FAQPage() {
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: config.isPaidPostingEnabled 
+      answer: config.isPaidPostingEnabled
         ? "We offer two posting options: Standard ($99) for a 30-day listing with full features, and Featured ($199) which includes priority placement, a featured badge, and highlighted inclusion in our email digest."
         : "During our launch period, job postings are completely FREE! This includes both Standard and Featured listings. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
     },
@@ -71,19 +75,19 @@ export default function FAQPage() {
     {
       question: "How do I access my employer dashboard?",
       answer: config.isPaidPostingEnabled
-        ? "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at hello@pmhnpjobs.com."
-        : "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, and renew listings for free during our launch period. If you've lost the link, contact us at hello@pmhnpjobs.com."
+        ? "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at support@pmhnphiring.com."
+        : "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, and renew listings for free during our launch period. If you've lost the link, contact us at support@pmhnphiring.com."
     },
     {
       question: "Do you offer refunds?",
-      answer: "Contact us at hello@pmhnpjobs.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
+      answer: "Contact us at support@pmhnphiring.com within 7 days of posting if you're unsatisfied and we'll work with you. We want you to have a great experience and will do our best to resolve any issues."
     },
   ];
 
   const generalFaqs = [
     {
       question: "How do I contact support?",
-      answer: "Email us at hello@pmhnpjobs.com and we'll respond within 24 hours (usually much faster). You can also use our contact form for general inquiries."
+      answer: "Email us at support@pmhnphiring.com and we'll respond within 24 hours (usually much faster). You can also use our contact form for general inquiries."
     },
     {
       question: "Is my information secure?",
@@ -100,15 +104,19 @@ export default function FAQPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'FAQ', url: 'https://pmhnphiring.com/faq' },
+      ]} />
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 px-4">
+      <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <HelpCircle className="w-16 h-16 mx-auto mb-6 opacity-90" />
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Frequently Asked Questions
           </h1>
-          <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+          <p className="text-xl text-teal-100 max-w-3xl mx-auto">
             Find answers to common questions about PMHNP Jobs
           </p>
         </div>
@@ -119,7 +127,7 @@ export default function FAQPage() {
         {/* For Job Seekers FAQ */}
         <section className="mb-12">
           <Card padding="lg" variant="elevated">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+            <h2 className="text-2xl font-bold mb-6 pb-4 border-b" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>
               For Job Seekers
             </h2>
             <FAQAccordion items={jobSeekerFaqs} />
@@ -129,7 +137,7 @@ export default function FAQPage() {
         {/* For Employers FAQ */}
         <section className="mb-12">
           <Card padding="lg" variant="elevated">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+            <h2 className="text-2xl font-bold mb-6 pb-4 border-b" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>
               For Employers
             </h2>
             <FAQAccordion items={employerFaqs} />
@@ -139,7 +147,7 @@ export default function FAQPage() {
         {/* General FAQ */}
         <section className="mb-12">
           <Card padding="lg" variant="elevated">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">
+            <h2 className="text-2xl font-bold mb-6 pb-4 border-b" style={{ color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}>
               General Questions
             </h2>
             <FAQAccordion items={generalFaqs} />
@@ -148,16 +156,16 @@ export default function FAQPage() {
 
         {/* Still Have Questions Section */}
         <section>
-          <Card padding="lg" variant="elevated" className="bg-blue-50 border-blue-200 text-center">
-            <Mail className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <Card padding="lg" variant="bordered" className="text-center">
+            <Mail className="w-12 h-12 text-teal-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
               Still Have Questions?
             </h2>
-            <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+            <p className="mb-6 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
               Didn&apos;t find your answer? We&apos;re here to help. Reach out and we&apos;ll get back to you within 24 hours.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
-              <a href="mailto:hello@pmhnpjobs.com" className="w-full sm:w-auto">
+              <a href="mailto:support@pmhnphiring.com" className="w-full sm:w-auto">
                 <Button variant="primary" size="lg" className="w-full">
                   <Mail size={20} />
                   Email Us

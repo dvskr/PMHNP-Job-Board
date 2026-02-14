@@ -56,6 +56,45 @@ interface ClickAnalytics {
   }>;
 }
 
+/* ─── Shared inline style objects ─── */
+const s = {
+  card: {
+    backgroundColor: 'var(--bg-secondary)',
+    border: '1px solid var(--border-color)',
+    borderRadius: '14px',
+    overflow: 'hidden' as const,
+  },
+  cardBody: { padding: '24px' },
+  heading: { color: 'var(--text-primary)', fontWeight: 700 as const },
+  sub: { color: 'var(--text-secondary)', fontSize: '14px' },
+  muted: { color: 'var(--text-tertiary)', fontSize: '12px' },
+  th: {
+    padding: '12px 16px',
+    textAlign: 'left' as const,
+    fontSize: '11px',
+    fontWeight: 600 as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+    color: 'var(--text-tertiary)',
+    backgroundColor: 'var(--bg-tertiary)',
+  },
+  td: {
+    padding: '14px 16px',
+    fontSize: '13px',
+    color: 'var(--text-secondary)',
+    whiteSpace: 'nowrap' as const,
+    borderBottom: '1px solid var(--border-color)',
+  },
+  tdBold: {
+    padding: '14px 16px',
+    fontSize: '13px',
+    color: 'var(--text-primary)',
+    fontWeight: 600 as const,
+    whiteSpace: 'nowrap' as const,
+    borderBottom: '1px solid var(--border-color)',
+  },
+};
+
 export default function AdminJobsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [sourceAnalytics, setSourceAnalytics] = useState<SourcePerformance[] | null>(null);
@@ -71,13 +110,8 @@ export default function AdminJobsPage() {
       setLoading(true);
       setError(null);
       const response = await fetch('/api/admin/stats');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
-      }
-      
-      const data = await response.json();
-      setStats(data);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      setStats(await response.json());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -88,12 +122,7 @@ export default function AdminJobsPage() {
   const fetchSourceAnalytics = async () => {
     try {
       const response = await fetch('/api/analytics/sources');
-      
-      if (!response.ok) {
-        console.error('Failed to fetch source analytics');
-        return;
-      }
-      
+      if (!response.ok) return;
       const data = await response.json();
       setSourceAnalytics(data.sources || []);
     } catch (err) {
@@ -104,14 +133,8 @@ export default function AdminJobsPage() {
   const fetchClickAnalytics = async () => {
     try {
       const response = await fetch('/api/analytics/clicks?days=30');
-      
-      if (!response.ok) {
-        console.error('Failed to fetch click analytics');
-        return;
-      }
-      
-      const data = await response.json();
-      setClickAnalytics(data);
+      if (!response.ok) return;
+      setClickAnalytics(await response.json());
     } catch (err) {
       console.error('Error fetching click analytics:', err);
     }
@@ -121,7 +144,6 @@ export default function AdminJobsPage() {
     fetchStats();
     fetchSourceAnalytics();
     fetchClickAnalytics();
-    // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
       fetchStats();
       fetchSourceAnalytics();
@@ -134,32 +156,24 @@ export default function AdminJobsPage() {
     try {
       setActionLoading(true);
       setActionResult(null);
-      
       const response = await fetch('/api/admin/trigger-ingestion', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           source: selectedSource === 'all' ? undefined : selectedSource,
         }),
       });
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Ingestion failed');
       }
-      
       const result = await response.json();
       const totalAdded = result.ingestion?.summary?.totalAdded || 0;
       const totalFetched = result.ingestion?.summary?.totalFetched || 0;
       const totalDuplicates = result.ingestion?.summary?.totalDuplicates || 0;
-      
       setActionResult(
         `Success! Fetched ${totalFetched} jobs, added ${totalAdded} new, ${totalDuplicates} duplicates`
       );
-      
-      // Refresh stats after ingestion
       setTimeout(fetchStats, 2000);
     } catch (err) {
       setActionResult(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -168,26 +182,40 @@ export default function AdminJobsPage() {
     }
   };
 
+  /* ─── Loading / Error ─── */
   if (loading && !stats) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading statistics...</p>
-        </div>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '80px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px', textAlign: 'center' }}>
+        <div
+          style={{
+            width: 48, height: 48, border: '3px solid var(--border-color)',
+            borderTop: '3px solid #2DD4BF', borderRadius: '50%',
+            margin: '0 auto', animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <p style={{ marginTop: '16px', ...s.sub }}>Loading statistics…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-red-800 font-bold mb-2">Error</h2>
-          <p className="text-red-600">{error}</p>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
+        <div
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '12px', padding: '24px',
+          }}
+        >
+          <h2 style={{ color: '#EF4444', fontWeight: 700, marginBottom: '8px' }}>Error</h2>
+          <p style={{ color: '#F87171', fontSize: '14px' }}>{error}</p>
           <button
             onClick={fetchStats}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            style={{
+              marginTop: '12px', padding: '10px 20px',
+              background: '#EF4444', color: '#fff', border: 'none',
+              borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+            }}
           >
             Retry
           </button>
@@ -201,150 +229,136 @@ export default function AdminJobsPage() {
   const avgDailyNew = Object.keys(stats.jobsByDay).length > 0
     ? Math.round(Object.values(stats.jobsByDay).reduce((a: number, b: number) => a + b, 0) / Object.keys(stats.jobsByDay).length)
     : 0;
-
   const totalBySource = Object.values(stats.bySource).reduce((a: number, b: number) => a + b, 0);
-
   const sortedDays = Object.entries(stats.jobsByDay).sort(([a]: [string, number], [b]: [string, number]) => a.localeCompare(b));
   const trend = sortedDays.length >= 2
     ? (sortedDays[sortedDays.length - 1]?.[1] ?? 0) > (sortedDays[sortedDays.length - 2]?.[1] ?? 0)
     : null;
 
+  /* ─── Color-coded badge helper ─── */
+  const badge = (value: string, color: 'green' | 'yellow' | 'red' | 'gray') => {
+    const colors = {
+      green: { bg: 'rgba(34,197,94,0.12)', fg: '#22C55E' },
+      yellow: { bg: 'rgba(234,179,8,0.12)', fg: '#EAB308' },
+      red: { bg: 'rgba(239,68,68,0.12)', fg: '#EF4444' },
+      gray: { bg: 'var(--bg-tertiary)', fg: 'var(--text-secondary)' },
+    };
+    const c = colors[color];
+    return (
+      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, backgroundColor: c.bg, color: c.fg }}>
+        {value}
+      </span>
+    );
+  };
+
+  /* ─── Highlight card helper ─── */
+  const highlightCard = (
+    emoji: string,
+    label: string,
+    accent: string,
+    name: string,
+    detail: string,
+  ) => (
+    <div
+      style={{
+        ...s.card,
+        padding: '20px 24px',
+        borderColor: accent + '30',
+        background: `linear-gradient(135deg, ${accent}08, ${accent}05)`,
+      }}
+    >
+      <h3 style={{ fontSize: '12px', fontWeight: 600, color: accent, marginBottom: '12px' }}>
+        {emoji} {label}
+      </h3>
+      <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{name}</p>
+      <p style={{ fontSize: '13px', color: accent, marginTop: '4px' }}>{detail}</p>
+    </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Job Aggregation Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Last updated: {new Date(stats.lastUpdated).toLocaleString()}
-            </p>
+    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
+      {/* ─── Header ─── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '28px' }}>
+        <div>
+          <h1 style={{ ...s.heading, fontSize: '26px' }}>Job Aggregation Dashboard</h1>
+          <p style={{ ...s.muted, marginTop: '4px' }}>
+            Last updated: {new Date(stats.lastUpdated).toLocaleString()}
+          </p>
+        </div>
+        <button
+          onClick={fetchStats}
+          disabled={loading}
+          style={{
+            padding: '10px 22px', borderRadius: '10px', cursor: 'pointer',
+            backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none',
+            fontWeight: 700, fontSize: '13px', transition: 'opacity 0.2s',
+            opacity: loading ? 0.5 : 1,
+          }}
+        >
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+
+      {/* ─── Stats Cards ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" style={{ marginBottom: '28px' }}>
+        {[
+          { label: 'Total Active Jobs', value: stats.totalActive, color: 'var(--text-primary)' },
+          { label: 'Added Last 24h', value: stats.addedLast24h, color: '#22C55E' },
+          { label: 'Active Sources', value: Object.keys(stats.bySource).length, color: '#2DD4BF' },
+          { label: 'Avg Daily New', value: avgDailyNew, color: '#A855F7' },
+        ].map((c) => (
+          <div key={c.label} style={{ ...s.card, padding: '20px 24px' }}>
+            <h3 style={{ ...s.muted, marginBottom: '8px' }}>{c.label}</h3>
+            <p style={{ fontSize: '30px', fontWeight: 800, color: c.color }}>{c.value.toLocaleString()}</p>
           </div>
-          <button
-            onClick={fetchStats}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Active Jobs</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats.totalActive}</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Added Last 24h</h3>
-          <p className="text-3xl font-bold text-green-600">{stats.addedLast24h}</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Active Sources</h3>
-          <p className="text-3xl font-bold text-blue-600">{Object.keys(stats.bySource).length}</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Avg Daily New</h3>
-          <p className="text-3xl font-bold text-purple-600">{avgDailyNew}</p>
-        </div>
-      </div>
-
-      {/* Top Sources Summary */}
+      {/* ─── Top Sources Highlights ─── */}
       {sourceAnalytics && sourceAnalytics.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
-            <h3 className="text-sm font-medium text-blue-700 mb-3">🏆 Best for Volume</h3>
-            {(() => {
-              const bestVolume = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.totalJobs - a.totalJobs)[0];
-              if (!bestVolume) return <p className="text-sm text-gray-500">No data</p>;
-              return (
-                <>
-                  <p className="text-2xl font-bold text-blue-900 capitalize">{bestVolume.source}</p>
-                  <p className="text-sm text-blue-600 mt-1">{bestVolume.totalJobs.toLocaleString()} active jobs</p>
-                </>
-              );
-            })()}
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
-            <h3 className="text-sm font-medium text-green-700 mb-3">⭐ Best for Quality</h3>
-            {(() => {
-              const bestQuality = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.avgQualityScore - a.avgQualityScore)[0];
-              if (!bestQuality) return <p className="text-sm text-gray-500">No data</p>;
-              return (
-                <>
-                  <p className="text-2xl font-bold text-green-900 capitalize">{bestQuality.source}</p>
-                  <p className="text-sm text-green-600 mt-1">{(bestQuality.avgQualityScore * 100).toFixed(0)}% quality score</p>
-                </>
-              );
-            })()}
-          </div>
-          
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
-            <h3 className="text-sm font-medium text-purple-700 mb-3">🎯 Best for Clicks</h3>
-            {(() => {
-              const bestClicks = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.clickThroughRate - a.clickThroughRate)[0];
-              if (!bestClicks) return <p className="text-sm text-gray-500">No data</p>;
-              return (
-                <>
-                  <p className="text-2xl font-bold text-purple-900 capitalize">{bestClicks.source}</p>
-                  <p className="text-sm text-purple-600 mt-1">{(bestClicks.clickThroughRate * 100).toFixed(1)}% CTR</p>
-                </>
-              );
-            })()}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '28px' }}>
+          {(() => {
+            const bestVolume = [...sourceAnalytics].sort((a, b) => b.totalJobs - a.totalJobs)[0];
+            const bestQuality = [...sourceAnalytics].sort((a, b) => b.avgQualityScore - a.avgQualityScore)[0];
+            const bestClicks = [...sourceAnalytics].sort((a, b) => b.clickThroughRate - a.clickThroughRate)[0];
+            return (
+              <>
+                {bestVolume && highlightCard('🏆', 'Best for Volume', '#2DD4BF', bestVolume.source, `${bestVolume.totalJobs.toLocaleString()} active jobs`)}
+                {bestQuality && highlightCard('⭐', 'Best for Quality', '#22C55E', bestQuality.source, `${(bestQuality.avgQualityScore * 100).toFixed(0)}% quality score`)}
+                {bestClicks && highlightCard('🎯', 'Best for Clicks', '#A855F7', bestClicks.source, `${(bestClicks.clickThroughRate * 100).toFixed(1)}% CTR`)}
+              </>
+            );
+          })()}
         </div>
       )}
 
-      {/* Jobs by Source */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Jobs by Source</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+      {/* ─── Jobs by Source ─── */}
+      <div style={{ ...s.card, marginBottom: '28px' }}>
+        <div style={s.cardBody}>
+          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Jobs by Source</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Source
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Count
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Percentage
-                  </th>
+                  <th style={s.th}>Source</th>
+                  <th style={s.th}>Count</th>
+                  <th style={s.th}>Percentage</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {Object.entries(stats.bySource)
                   .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
                   .map(([source, count]: [string, number]) => (
                     <tr key={source}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                        {source}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {((count / totalBySource) * 100).toFixed(1)}%
-                      </td>
+                      <td style={{ ...s.tdBold, textTransform: 'capitalize' }}>{source}</td>
+                      <td style={s.td}>{count.toLocaleString()}</td>
+                      <td style={s.td}>{((count / totalBySource) * 100).toFixed(1)}%</td>
                     </tr>
                   ))}
-                <tr className="bg-gray-50 font-bold">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    Total
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {totalBySource}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    100%
-                  </td>
+                <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <td style={{ ...s.tdBold, borderBottom: 'none' }}>Total</td>
+                  <td style={{ ...s.tdBold, borderBottom: 'none' }}>{totalBySource.toLocaleString()}</td>
+                  <td style={{ ...s.tdBold, borderBottom: 'none' }}>100%</td>
                 </tr>
               </tbody>
             </table>
@@ -352,76 +366,61 @@ export default function AdminJobsPage() {
         </div>
       </div>
 
-      {/* Jobs Added Per Day */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+      {/* ─── Jobs Added Per Day ─── */}
+      <div style={{ ...s.card, marginBottom: '28px' }}>
+        <div style={s.cardBody}>
+          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>
             Jobs Added Per Day (Last 7 Days)
             {trend !== null && (
-              <span className="ml-3 text-sm">
-                {trend ? (
-                  <span className="text-green-600">↑ Trending Up</span>
-                ) : (
-                  <span className="text-red-600">↓ Trending Down</span>
-                )}
+              <span style={{ marginLeft: '12px', fontSize: '13px', color: trend ? '#22C55E' : '#EF4444' }}>
+                {trend ? '↑ Trending Up' : '↓ Trending Down'}
               </span>
             )}
           </h2>
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {sortedDays.length > 0 ? (
               sortedDays.map(([date, count]: [string, number]) => (
-                <div key={date} className="flex items-center">
-                  <div className="w-32 text-sm text-gray-600">{date}</div>
-                  <div className="flex-1 flex items-center">
+                <div key={date} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: '110px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0 }}>{date}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
                     <div
-                      className="bg-blue-500 h-8 rounded"
                       style={{
+                        background: 'linear-gradient(90deg, #2DD4BF, #14B8A6)',
+                        height: '28px', borderRadius: '6px',
                         width: `${(count / Math.max(...Object.values(stats.jobsByDay))) * 100}%`,
-                        minWidth: '2rem',
+                        minWidth: '24px',
                       }}
-                    ></div>
-                    <span className="ml-3 text-sm font-medium text-gray-900">{count}</span>
+                    />
+                    <span style={{ marginLeft: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{count}</span>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">No data available</p>
+              <p style={s.sub}>No data available</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Top Employers */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Top Employers</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+      {/* ─── Top Employers ─── */}
+      <div style={{ ...s.card, marginBottom: '28px' }}>
+        <div style={s.cardBody}>
+          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Top Employers</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rank
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Job Count
-                  </th>
+                  <th style={s.th}>Rank</th>
+                  <th style={s.th}>Employer</th>
+                  <th style={s.th}>Job Count</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stats.topEmployers.map((employer: { employer: string; count: number }, index: number) => (
-                  <tr key={employer.employer}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      #{index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {employer.employer}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employer.count}
-                    </td>
+              <tbody>
+                {stats.topEmployers.map((emp, i) => (
+                  <tr key={emp.employer}>
+                    <td style={s.td}>#{i + 1}</td>
+                    <td style={s.tdBold}>{emp.employer}</td>
+                    <td style={s.td}>{emp.count}</td>
                   </tr>
                 ))}
               </tbody>
@@ -430,213 +429,119 @@ export default function AdminJobsPage() {
         </div>
       </div>
 
-      {/* Source Performance */}
+      {/* ─── Source Performance ─── */}
       {sourceAnalytics && sourceAnalytics.length > 0 && (
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Source Performance</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        <div style={{ ...s.card, marginBottom: '28px' }}>
+          <div style={s.cardBody}>
+            <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Source Performance</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Source
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Active Jobs
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      7-Day Adds
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Quality
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Views
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Clicks
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      CTR
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Dup Rate
-                    </th>
+                    {['Source', 'Active Jobs', '7-Day Adds', 'Quality', 'Views', 'Clicks', 'CTR', 'Dup Rate'].map((h) => (
+                      <th key={h} style={{ ...s.th, textAlign: h === 'Source' ? 'left' : 'right' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sourceAnalytics.map((source: SourcePerformance, index: number) => {
-                    // Performance scoring for color coding
-                    const qualityScore = source.avgQualityScore * 100;
-                    const ctr = source.clickThroughRate * 100;
-                    const dupRate = source.duplicateRate * 100;
-                    
-                    // Color coding logic
-                    const getQualityColor = (score: number) => {
-                      if (score >= 75) return 'text-green-700 bg-green-50';
-                      if (score >= 50) return 'text-yellow-700 bg-yellow-50';
-                      return 'text-red-700 bg-red-50';
-                    };
-                    
-                    const getCtrColor = (rate: number) => {
-                      if (rate >= 5) return 'text-green-700 bg-green-50';
-                      if (rate >= 2) return 'text-yellow-700 bg-yellow-50';
-                      return 'text-gray-700 bg-gray-50';
-                    };
-                    
-                    const getDupColor = (rate: number) => {
-                      if (rate >= 50) return 'text-red-700 bg-red-50';
-                      if (rate >= 30) return 'text-yellow-700 bg-yellow-50';
-                      return 'text-green-700 bg-green-50';
-                    };
-                    
+                <tbody>
+                  {sourceAnalytics.map((src) => {
+                    const q = src.avgQualityScore * 100;
+                    const ctr = src.clickThroughRate * 100;
+                    const dup = src.duplicateRate * 100;
+                    const qColor = q >= 75 ? 'green' : q >= 50 ? 'yellow' : 'red';
+                    const ctrColor = ctr >= 5 ? 'green' : ctr >= 2 ? 'yellow' : 'gray';
+                    const dupColor = dup >= 50 ? 'red' : dup >= 30 ? 'yellow' : 'green';
+
                     return (
-                      <tr key={source.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                          {source.source}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
-                          {source.totalJobs.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                          {source.jobsLast7Days.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                          <span className={`px-2 py-1 rounded-full font-medium ${getQualityColor(qualityScore)}`}>
-                            {qualityScore.toFixed(0)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                          {source.totalViews.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                          {source.totalApplyClicks.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                          <span className={`px-2 py-1 rounded-full font-medium ${getCtrColor(ctr)}`}>
-                            {ctr.toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                          <span className={`px-2 py-1 rounded-full font-medium ${getDupColor(dupRate)}`}>
-                            {dupRate.toFixed(0)}%
-                          </span>
-                        </td>
+                      <tr key={src.source}>
+                        <td style={{ ...s.tdBold, textTransform: 'capitalize' }}>{src.source}</td>
+                        <td style={{ ...s.tdBold, textAlign: 'right' }}>{src.totalJobs.toLocaleString()}</td>
+                        <td style={{ ...s.td, textAlign: 'right' }}>{src.jobsLast7Days.toLocaleString()}</td>
+                        <td style={{ ...s.td, textAlign: 'right' }}>{badge(`${q.toFixed(0)}`, qColor as 'green' | 'yellow' | 'red')}</td>
+                        <td style={{ ...s.td, textAlign: 'right' }}>{src.totalViews.toLocaleString()}</td>
+                        <td style={{ ...s.td, textAlign: 'right' }}>{src.totalApplyClicks.toLocaleString()}</td>
+                        <td style={{ ...s.td, textAlign: 'right' }}>{badge(`${ctr.toFixed(1)}%`, ctrColor as 'green' | 'yellow' | 'red' | 'gray')}</td>
+                        <td style={{ ...s.td, textAlign: 'right' }}>{badge(`${dup.toFixed(0)}%`, dupColor as 'green' | 'yellow' | 'red')}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-200"></span>
-                <span>Good performance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-yellow-200"></span>
-                <span>Average performance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-200"></span>
-                <span>Needs improvement</span>
-              </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '14px', ...s.muted }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#22C55E', display: 'inline-block' }} /> Good
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#EAB308', display: 'inline-block' }} /> Average
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block' }} /> Needs improvement
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Apply Click Analytics */}
+      {/* ─── Apply Click Analytics ─── */}
       {clickAnalytics && (
-        <div className="space-y-8 mb-8">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Apply Click Analytics (Last 30 Days)</h2>
-              
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-6 border border-indigo-200">
-                  <h3 className="text-sm font-medium text-indigo-700 mb-2">Total Clicks</h3>
-                  <p className="text-3xl font-bold text-indigo-900">{clickAnalytics.summary.totalClicks.toLocaleString()}</p>
-                  <p className="text-xs text-indigo-600 mt-1">{clickAnalytics.summary.uniqueJobs} unique jobs</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-6 border border-teal-200">
-                  <h3 className="text-sm font-medium text-teal-700 mb-2">Avg Clicks per Job</h3>
-                  <p className="text-3xl font-bold text-teal-900">{clickAnalytics.summary.avgClicksPerJob.toFixed(2)}</p>
-                  <p className="text-xs text-teal-600 mt-1">Engagement rate</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow p-6 border border-amber-200">
-                  <h3 className="text-sm font-medium text-amber-700 mb-2">Best Converting Source</h3>
-                  {(() => {
-                    const best = clickAnalytics.bySource.length > 0 ? clickAnalytics.bySource[0] : null;
-                    return best ? (
-                      <>
-                        <p className="text-3xl font-bold text-amber-900 capitalize">{best.source}</p>
-                        <p className="text-xs text-amber-600 mt-1">{best.clicks} clicks ({best.avgPerJob.toFixed(2)} per job)</p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-amber-600">No data</p>
-                    );
-                  })()}
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginBottom: '28px' }}>
+          <div style={s.card}>
+            <div style={s.cardBody}>
+              <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '24px' }}>Apply Click Analytics (Last 30 Days)</h2>
+
+              {/* Summary cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5" style={{ marginBottom: '28px' }}>
+                {[
+                  { label: 'Total Clicks', value: clickAnalytics.summary.totalClicks.toLocaleString(), detail: `${clickAnalytics.summary.uniqueJobs} unique jobs`, accent: '#818CF8' },
+                  { label: 'Avg Clicks per Job', value: clickAnalytics.summary.avgClicksPerJob.toFixed(2), detail: 'Engagement rate', accent: '#2DD4BF' },
+                  {
+                    label: 'Best Converting Source',
+                    value: clickAnalytics.bySource[0]?.source || 'N/A',
+                    detail: clickAnalytics.bySource[0] ? `${clickAnalytics.bySource[0].clicks} clicks (${clickAnalytics.bySource[0].avgPerJob.toFixed(2)} per job)` : 'No data',
+                    accent: '#F59E0B',
+                  },
+                ].map((c) => (
+                  <div
+                    key={c.label}
+                    style={{
+                      ...s.card, padding: '20px 24px',
+                      borderColor: c.accent + '30',
+                      background: `linear-gradient(135deg, ${c.accent}08, ${c.accent}05)`,
+                    }}
+                  >
+                    <h3 style={{ fontSize: '12px', fontWeight: 600, color: c.accent, marginBottom: '8px' }}>{c.label}</h3>
+                    <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{c.value}</p>
+                    <p style={{ fontSize: '12px', color: c.accent, marginTop: '4px' }}>{c.detail}</p>
+                  </div>
+                ))}
               </div>
 
               {/* Clicks by Source */}
               {clickAnalytics.bySource.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Clicks by Source</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                <div style={{ marginBottom: '28px' }}>
+                  <h3 style={{ ...s.heading, fontSize: '16px', marginBottom: '14px' }}>Clicks by Source</h3>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Source
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Total Clicks
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Jobs Clicked
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Avg per Job
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Performance
-                          </th>
+                          {['Source', 'Total Clicks', 'Jobs Clicked', 'Avg per Job', 'Performance'].map((h) => (
+                            <th key={h} style={{ ...s.th, textAlign: h === 'Source' ? 'left' : 'right' }}>{h}</th>
+                          ))}
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {clickAnalytics.bySource.map((sourceData: { source: string; clicks: number; jobs: number; avgPerJob: number }, index: number) => {
-                          const performance = sourceData.avgPerJob;
-                          const getPerformanceColor = () => {
-                            if (performance >= 0.5) return 'text-green-700 bg-green-50';
-                            if (performance >= 0.3) return 'text-yellow-700 bg-yellow-50';
-                            return 'text-red-700 bg-red-50';
-                          };
-                          
+                      <tbody>
+                        {clickAnalytics.bySource.map((src) => {
+                          const perf = src.avgPerJob;
+                          const perfLabel = perf >= 0.5 ? '🔥 Hot' : perf >= 0.3 ? '👍 Good' : '📊 Low';
+                          const perfColor = perf >= 0.5 ? 'green' : perf >= 0.3 ? 'yellow' : 'red';
                           return (
-                            <tr key={sourceData.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                                {sourceData.source}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
-                                {sourceData.clicks.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                                {sourceData.jobs.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                                {sourceData.avgPerJob.toFixed(2)}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                                <span className={`px-2 py-1 rounded-full font-medium ${getPerformanceColor()}`}>
-                                  {performance >= 0.5 ? '🔥 Hot' : performance >= 0.3 ? '👍 Good' : '📊 Low'}
-                                </span>
-                              </td>
+                            <tr key={src.source}>
+                              <td style={{ ...s.tdBold, textTransform: 'capitalize' }}>{src.source}</td>
+                              <td style={{ ...s.tdBold, textAlign: 'right' }}>{src.clicks.toLocaleString()}</td>
+                              <td style={{ ...s.td, textAlign: 'right' }}>{src.jobs.toLocaleString()}</td>
+                              <td style={{ ...s.td, textAlign: 'right' }}>{src.avgPerJob.toFixed(2)}</td>
+                              <td style={{ ...s.td, textAlign: 'right' }}>{badge(perfLabel, perfColor as 'green' | 'yellow' | 'red')}</td>
                             </tr>
                           );
                         })}
@@ -649,43 +554,29 @@ export default function AdminJobsPage() {
               {/* Top 10 Most Clicked Jobs */}
               {clickAnalytics.topJobs.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Top 10 Most Clicked Jobs</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                  <h3 style={{ ...s.heading, fontSize: '16px', marginBottom: '14px' }}>Top 10 Most Clicked Jobs</h3>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Rank
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Job Title
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Employer
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Clicks
-                          </th>
+                          <th style={s.th}>Rank</th>
+                          <th style={s.th}>Job Title</th>
+                          <th style={s.th}>Employer</th>
+                          <th style={{ ...s.th, textAlign: 'right' }}>Clicks</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {clickAnalytics.topJobs.map((job: { jobId: string; title: string; employer: string; clicks: number }, index: number) => (
-                          <tr key={job.jobId} className={index < 3 ? 'bg-yellow-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <span className={`font-bold ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-500' : index === 2 ? 'text-amber-600' : ''}`}>
-                                #{index + 1}
+                      <tbody>
+                        {clickAnalytics.topJobs.map((job, i) => (
+                          <tr key={job.jobId}>
+                            <td style={s.td}>
+                              <span style={{ fontWeight: 700, color: i === 0 ? '#F59E0B' : i === 1 ? '#94A3B8' : i === 2 ? '#CD7F32' : 'var(--text-tertiary)' }}>
+                                #{i + 1}
                               </span>
                             </td>
-                            <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                              {job.title}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-gray-600">
-                              {job.employer}
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {job.clicks} clicks
-                              </span>
+                            <td style={s.tdBold}>{job.title}</td>
+                            <td style={s.td}>{job.employer}</td>
+                            <td style={{ ...s.td, textAlign: 'right' }}>
+                              {badge(`${job.clicks} clicks`, 'gray')}
                             </td>
                           </tr>
                         ))}
@@ -699,42 +590,57 @@ export default function AdminJobsPage() {
         </div>
       )}
 
-      {/* Actions Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Actions</h2>
-          
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
+      {/* ─── Actions ─── */}
+      <div style={s.card}>
+        <div style={s.cardBody}>
+          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Actions</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="flex flex-col sm:flex-row" style={{ gap: '12px' }}>
               <select
                 value={selectedSource}
                 onChange={(e) => setSelectedSource(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{
+                  flex: 1, padding: '10px 16px', borderRadius: '10px',
+                  backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)', fontSize: '14px',
+                  outline: 'none',
+                }}
               >
                 <option value="all">All Sources</option>
-                {Object.keys(stats.bySource).map((source: string) => (
-                  <option key={source} value={source}>
-                    {source.charAt(0).toUpperCase() + source.slice(1)}
-                  </option>
-                ))}
+                <option value="adzuna">Adzuna</option>
+                <option value="jooble">Jooble</option>
+                <option value="greenhouse">Greenhouse</option>
+                <option value="lever">Lever</option>
+                <option value="usajobs">USAJobs</option>
+                <option value="jsearch">JSearch</option>
               </select>
-              
               <button
                 onClick={handleTriggerIngestion}
                 disabled={actionLoading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                style={{
+                  padding: '10px 24px', borderRadius: '10px', cursor: 'pointer',
+                  backgroundColor: '#22C55E', color: '#0F172A', border: 'none',
+                  fontWeight: 700, fontSize: '13px', transition: 'opacity 0.2s',
+                  opacity: actionLoading ? 0.5 : 1, whiteSpace: 'nowrap',
+                }}
               >
-                {actionLoading ? 'Running...' : 'Trigger Ingestion'}
+                {actionLoading ? 'Running…' : 'Trigger Ingestion'}
               </button>
             </div>
-            
+
             {actionResult && (
-              <div className={`p-4 rounded-lg ${actionResult.includes('Error') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}>
+              <div
+                style={{
+                  padding: '14px 18px', borderRadius: '10px', fontSize: '13px',
+                  backgroundColor: actionResult.includes('Error') ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                  color: actionResult.includes('Error') ? '#F87171' : '#22C55E',
+                }}
+              >
                 {actionResult}
               </div>
             )}
-            
-            <p className="text-sm text-gray-500">
+
+            <p style={s.muted}>
               ⚠️ Note: Full ingestion can take 40+ seconds. The page will refresh automatically when complete.
             </p>
           </div>
@@ -743,4 +649,3 @@ export default function AdminJobsPage() {
     </div>
   );
 }
-

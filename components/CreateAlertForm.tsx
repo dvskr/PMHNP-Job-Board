@@ -53,7 +53,7 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
-      frequency: 'weekly',
+      frequency: 'daily',
     },
   });
 
@@ -130,11 +130,10 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
           type="email"
           id="email"
           placeholder="you@example.com"
-          className={`w-full rounded-lg border px-3.5 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-            errors.email
+          className={`w-full rounded-lg border px-3.5 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${errors.email
               ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500'
-          }`}
+              : 'border-slate-300 focus:border-teal-500 focus:ring-teal-500'
+            }`}
           {...register('email', {
             required: 'Email is required',
             pattern: {
@@ -155,11 +154,11 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
         </label>
         <select
           id="frequency"
-          className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-blue-500 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:border-teal-500 focus:ring-teal-500"
           {...register('frequency')}
         >
-          <option value="weekly">Weekly digest</option>
           <option value="daily">Daily digest</option>
+          <option value="weekly">Weekly digest</option>
         </select>
       </div>
 
@@ -174,7 +173,7 @@ export default function CreateAlertForm({ initialFilters = {}, onSuccess }: Crea
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isLoading ? (
           <>

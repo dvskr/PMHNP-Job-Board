@@ -1,0 +1,79 @@
+{
+  "total_scanned": 150,
+  "accepted_count": 145,
+  "dropped_count": 5,
+  "sample_drops": [
+    {
+      "title": "Family Medicine Physician Associate Needed for Locum Tenens Coverage at Outpatient Clinic in Massachusetts",
+      "company": "LocumTenens.com",
+      "salary": 197412.44,
+      "status": "DROPPED",
+      "reason": "Relevance Filter (Not PMHNP)"
+    },
+    {
+      "title": "Psychiatry Physician",
+      "company": "AMN Healthcare",
+      "salary": 102674.89,
+      "status": "DROPPED",
+      "reason": "Relevance Filter (Not PMHNP)"
+    },
+    {
+      "title": "PHYSICIAN - Psychiatry Consult, Duluth, MN",
+      "company": "Essentia Health",
+      "salary": 132247.94,
+      "status": "DROPPED",
+      "reason": "Relevance Filter (Not PMHNP)"
+    },
+    {
+      "title": "PHYSICIAN - Pediatrics - Jamestown, ND",
+      "company": "Essentia Health",
+      "salary": 152967.62,
+      "status": "DROPPED",
+      "reason": "Relevance Filter (Not PMHNP)"
+    },
+    {
+      "title": "PHYSICIAN - Child & Adolescent Outpatient Psychiatry - Duluth, MN",
+      "company": "Essentia Health",
+      "salary": 223122.97,
+      "status": "DROPPED",
+      "reason": "Relevance Filter (Not PMHNP)"
+    }
+  ],
+  "sample_accepted": [
+    {
+      "title": "Psychiatric Nurse Practitioner",
+      "company": "Correctional Medicine Associates",
+      "salary": 178718.44,
+      "status": "ACCEPTED",
+      "reason": ""
+    },
+    {
+      "title": "Psychiatric Nurse Practitioner",
+      "company": "SENIOR CARE THERAPY",
+      "salary": 130000,
+      "status": "ACCEPTED",
+      "reason": ""
+    },
+    {
+      "title": "Psychiatric Nurse Practitioner (Pediatrics–Adults)",
+      "company": "South Peninsula Hospital",
+      "salary": 125012.01,
+      "status": "ACCEPTED",
+      "reason": ""
+    },
+    {
+      "title": "Psychiatric Nurse Practitioner",
+      "company": "SENIOR CARE THERAPY",
+      "salary": 130000,
+      "status": "ACCEPTED",
+      "reason": ""
+    },
+    {
+      "title": "Psychiatric Nurse Practitioner",
+      "company": "SENIOR CARE THERAPY",
+      "salary": 130000,
+      "status": "ACCEPTED",
+      "reason": ""
+    }
+  ]
+}

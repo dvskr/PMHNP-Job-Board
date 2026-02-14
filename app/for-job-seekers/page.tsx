@@ -1,14 +1,15 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
-import { 
-  Search, 
-  Bookmark, 
-  CheckCircle, 
-  Database, 
-  DollarSign, 
-  Bell, 
-  FileCheck, 
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import {
+  Search,
+  Bookmark,
+  CheckCircle,
+  Database,
+  DollarSign,
+  Bell,
+  FileCheck,
   Heart,
   Sparkles,
   Monitor,
@@ -20,11 +21,18 @@ import {
 export const metadata: Metadata = {
   title: 'For Job Seekers | PMHNP Jobs',
   description: 'Find your next PMHNP opportunity. 200+ remote and in-person psychiatric nurse practitioner jobs with salary transparency.',
+  alternates: {
+    canonical: 'https://pmhnphiring.com/for-job-seekers',
+  },
 };
 
 export default function ForJobSeekersPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'For Job Seekers', url: 'https://pmhnphiring.com/for-job-seekers' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -35,7 +43,7 @@ export default function ForJobSeekersPage() {
             200+ remote and in-person psychiatric NP jobs, updated daily
           </p>
           <Link href="/jobs">
-            <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
+            <button className="bg-teal-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition-colors shadow-md hover:shadow-lg">
               Browse Jobs
             </button>
           </Link>
@@ -116,7 +124,7 @@ export default function ForJobSeekersPage() {
                 Aggregated Listings
               </h3>
               <p className="text-gray-600 text-sm">
-                Jobs from multiple sources in one place. No more checking dozens of different sites.
+                Jobs from multiple sources in one place. Everything you need in a single search.
               </p>
             </Card>
 
@@ -261,12 +269,12 @@ export default function ForJobSeekersPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
             <Link href="/jobs" className="w-full sm:w-auto">
-              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full shadow-md hover:shadow-lg">
+              <button className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors w-full shadow-md hover:shadow-lg">
                 Browse Jobs
               </button>
             </Link>
             <Link href="/#subscribe" className="w-full sm:w-auto">
-              <button className="border-2 border-blue-600 text-blue-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors w-full shadow-sm hover:shadow-md">
+              <button className="border-2 border-teal-600 text-teal-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition-colors w-full shadow-sm hover:shadow-md">
                 Set Up Job Alerts
               </button>
             </Link>

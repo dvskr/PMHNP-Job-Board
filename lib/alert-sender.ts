@@ -2,10 +2,12 @@ import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import { Job, JobAlert } from '@/lib/types';
 import { slugify } from '@/lib/utils';
+import { emailShell, headerBlock, primaryButton } from '@/lib/email-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Jobs <noreply@rolerabbit.com>';
+// Always use production URL for email links
+const BASE_URL = 'https://pmhnphiring.com';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 // Batch size for processing alerts
 const BATCH_SIZE = 50;
@@ -91,19 +93,17 @@ function generateJobListHtml(jobs: Job[]): string {
       const salaryText = job.salaryRange || (job.minSalary ? `$${job.minSalary.toLocaleString()}+` : '');
 
       return `
-        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-          <a href="${jobUrl}" style="color: #1a1a1a; text-decoration: none; font-size: 16px; font-weight: 600; display: block; margin-bottom: 4px;">
-            ${job.title}
-          </a>
-          <p style="color: #4b5563; margin: 0 0 8px 0; font-size: 14px;">
-            ${job.employer} · ${job.location}
-          </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            ${job.mode ? `<span style="background-color: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${job.mode}</span>` : ''}
-            ${job.jobType ? `<span style="background-color: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${job.jobType}</span>` : ''}
-            ${salaryText ? `<span style="background-color: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${salaryText}</span>` : ''}
-          </div>
-        </div>
+        <tr>
+          <td style="padding: 16px 20px; border-bottom: 1px solid #334155;">
+            <a href="${jobUrl}" style="color: #2dd4bf; text-decoration: none; font-size: 16px; font-weight: 600; letter-spacing: -0.2px;">${job.title}</a>
+            <p style="margin: 6px 0 0 0; font-size: 14px; color: #94a3b8;">${job.employer} · ${job.location}</p>
+            <p style="margin: 8px 0 0 0; font-size: 12px;">
+              ${job.mode ? `<span style="background-color: #1e293b; color: #94a3b8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; border: 1px solid #334155;">${job.mode}</span>` : ''}
+              ${job.jobType ? `<span style="background-color: #1e293b; color: #94a3b8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; border: 1px solid #334155;">${job.jobType}</span>` : ''}
+              ${salaryText ? `<span style="background-color: #064e3b; color: #34d399; padding: 3px 10px; border-radius: 6px; font-weight: 600;">${salaryText}</span>` : ''}
+            </p>
+          </td>
+        </tr>
       `;
     })
     .join('');
@@ -115,46 +115,50 @@ async function sendAlertEmail(
   criteriaSummary: string
 ): Promise<void> {
   const jobCount = jobs.length;
-  const subject = `${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
+  const subject = `🔔 ${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
+
+  const html = emailShell(`
+          ${headerBlock(
+    `${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found 🔔`,
+    `${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'} Alert`
+  )}
+          <tr>
+            <td style="padding: 24px 40px 8px 40px;">
+              <p style="margin: 0; font-size: 16px; color: #e2e8f0; line-height: 1.6;">
+                New positions matching your criteria:
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; overflow: hidden;">
+                ${generateJobListHtml(jobs)}
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 24px 40px;">
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    ${primaryButton('View All Jobs', `${BASE_URL}/jobs`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+    `<p style="margin: 8px 0 0 0; font-size: 11px; color: #475569;">
+      <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #64748b; text-decoration: none;">Manage alert</a>
+      &nbsp;·&nbsp;
+      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #64748b; text-decoration: none;">Delete alert</a>
+    </p>`
+  );
 
   await resend.emails.send({
     from: EMAIL_FROM,
     to: alert.email,
     subject,
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 8px;">
-            ${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found
-          </h1>
-          
-          <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">
-            Alert: ${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'} digest
-          </p>
-          
-          ${generateJobListHtml(jobs)}
-          
-          ${jobCount >= 20 ? `
-            <p style="text-align: center; margin: 24px 0;">
-              <a href="${BASE_URL}/jobs" style="color: #3b82f6; font-weight: 500;">View all matching jobs →</a>
-            </p>
-          ` : ''}
-          
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-            <p>You're receiving this because you created a job alert at PMHNPJobs.com</p>
-            <p>
-              <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #3b82f6;">Manage this alert</a> | 
-              <a href="${BASE_URL}/api/job-alerts?token=${alert.token}" style="color: #3b82f6;">Delete alert</a>
-            </p>
-          </div>
-        </body>
-      </html>
-    `,
+    html,
   });
 }
 

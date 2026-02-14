@@ -9,7 +9,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 30,
-    borderBottom: '2px solid #3b82f6',
+    borderBottom: '2px solid #14B8A6',
     paddingBottom: 15,
   },
   companyName: {
@@ -206,7 +206,7 @@ const InvoiceDocument = ({ data }: { data: InvoiceData }) => (
       <View style={styles.footer}>
         <Text>Thank you for using PMHNP Jobs!</Text>
         <Text style={{ marginTop: 5 }}>
-          Questions? Contact us at support@pmhnpjobs.com
+          Questions? Contact us at support@pmhnphiring.com
         </Text>
       </View>
     </Page>
@@ -219,11 +219,11 @@ export async function generateInvoice(data: InvoiceData): Promise<Buffer> {
     const doc = <InvoiceDocument data={data} />;
     const asPdf = pdf(doc);
     const blob = await asPdf.toBlob();
-    
+
     // Convert blob to buffer
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
+
     return buffer;
   } catch (error) {
     console.error('Error generating invoice:', error);

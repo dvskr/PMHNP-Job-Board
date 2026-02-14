@@ -22,75 +22,63 @@ interface LeverPosting {
 }
 
 export interface LeverJobRaw {
-  id: string;
+  externalId: string;
   title: string;
   company: string;
   location: string;
   description: string;
-  redirect_url: string;
+  applyLink: string;
   job_type: string | null;
   department: string | null;
+  postedDate?: string;
 }
 
 const LEVER_COMPANIES = [
-  // Mental Health (Primary - high PMHNP volume)
-  'headway',
-  'talkspace', 
-  'lyrahealth',
-  'springhealth',
-  'modernhealth',
-  'alma',
-  'cerebral',
-  'brightside',
-  'gaborhealth',
-  
-  // Healthcare/Telehealth
-  'carbonhealth',
-  'onemedical',
-  'zocdoc',
-  'devoted',
-  'clover',
-  
-  // Healthcare Staffing
-  'nomadhealth',
-  'trustedhealth',
-  'incrediblehealth',
+  // === VERIFIED — Have PMHNP jobs ===
+  'lifestance',          // LifeStance Health — 100+ PMHNP jobs (BIGGEST SOURCE)
+  'talkiatry',           // Talkiatry — 59 PMHNP jobs
+  'includedhealth',      // Included Health — 6 PMHNP jobs
+  'lyrahealth',          // Lyra Health — 1 PMHNP job
+
+  // === VERIFIED — Valid, monitoring for PMHNP ===
+  'carbonhealth',        // Carbon Health — 0 currently but valid endpoint
+
+  // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
+  'prosper',             // Prosper — 11 total jobs
+
+  // === ADDED 2026-02-13 — EXPANDED SCAN ===
+  'bighealth',           // Big Health — 7 total jobs
+  'genesis',             // Genesis — 4 total jobs
+  'sesame',              // Sesame — 1 total jobs
+
+  // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
+  'mindful',             // Mindful Haven — 5 PMHNP (0 recent)
+  'athenapsych',         // AthenaPsych — 4 PMHNP (0 recent)
+  'seven-starling',      // Seven Starling — 3 PMHNP (3 recent)
+  'beckley-clinical',    // Beckley Clinical — 1 PMHNP
+  'synapticure',         // SynaptiCure — 1 PMHNP
+  'arundellodge',        // Arundel Lodge — 1 PMHNP
 ];
 
-const PMHNP_KEYWORDS = [
-  'pmhnp',
-  'psychiatric',
-  'psych np',
-  'psych nurse',
-  'mental health nurse',
-  'behavioral health nurse',
-  'psychiatric mental health',
-  'psychiatric aprn',
-];
+import { isRelevantJob } from '../utils/job-filter';
 
 const COMPANY_NAMES: Record<string, string> = {
-  // Mental Health
-  'headway': 'Headway',
-  'talkspace': 'Talkspace',
+  'talkiatry': 'Talkiatry',
+  'includedhealth': 'Included Health',
   'lyrahealth': 'Lyra Health',
-  'springhealth': 'Spring Health',
-  'modernhealth': 'Modern Health',
-  'alma': 'Alma',
-  'cerebral': 'Cerebral',
-  'brightside': 'Brightside Health',
-  'gaborhealth': 'Gabor Health',
-  
-  // Healthcare/Telehealth
   'carbonhealth': 'Carbon Health',
-  'onemedical': 'One Medical',
-  'zocdoc': 'Zocdoc',
-  'devoted': 'Devoted Health',
-  'clover': 'Clover Health',
-  
-  // Healthcare Staffing
-  'nomadhealth': 'Nomad Health',
-  'trustedhealth': 'Trusted Health',
-  'incrediblehealth': 'Incredible Health',
+  'prosper': 'Prosper',
+  'bighealth': 'Big Health',
+  'genesis': 'Genesis',
+  'sesame': 'Sesame',
+
+  // Added 2026-02-13 (prod DB mining)
+  'mindful': 'Mindful Haven',
+  'athenapsych': 'AthenaPsych',
+  'seven-starling': 'Seven Starling',
+  'beckley-clinical': 'Beckley Clinical',
+  'synapticure': 'SynaptiCure',
+  'arundellodge': 'Arundel Lodge',
 };
 
 function formatCompanyName(slug: string): string {
@@ -101,8 +89,7 @@ function formatCompanyName(slug: string): string {
 }
 
 function isPMHNPJob(title: string, description: string): boolean {
-  const searchText = `${title} ${description}`.toLowerCase();
-  return PMHNP_KEYWORDS.some(keyword => searchText.includes(keyword));
+  return isRelevantJob(title, description);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -124,15 +111,9 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
     const postings: LeverPosting[] = await response.json();
     const totalJobs = postings.length;
 
-    // Filter for PMHNP-related jobs
-    const filteredPostings = postings.filter((posting: LeverPosting) =>
-      isPMHNPJob(posting.text, posting.descriptionPlain || posting.description || '')
-    );
-    const relevantCount = filteredPostings.length;
+    console.log(`[Lever] ${companySlug}: ${totalJobs} jobs fetched`);
 
-    console.log(`[Lever] ${companySlug}: ${totalJobs} total, ${relevantCount} PMHNP-relevant`);
-
-    return filteredPostings.map((posting: LeverPosting) => {
+    const allJobs = postings.map((posting: LeverPosting) => {
       // Combine description parts
       const descriptionParts = [
         posting.descriptionPlain || posting.description,
@@ -141,16 +122,23 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
       ].filter(Boolean);
 
       return {
-        id: `lever-${companySlug}-${posting.id}`,
+        externalId: `lever-${companySlug}-${posting.id}`,
         title: posting.text,
         company: companyName,
         location: posting.categories?.location || 'Remote',
         description: descriptionParts.join('\n\n'),
-        redirect_url: posting.hostedUrl || posting.applyUrl,
+        applyLink: posting.hostedUrl || posting.applyUrl,
         job_type: posting.categories?.commitment || null,
         department: posting.categories?.department || null,
+        postedDate: new Date(posting.createdAt).toISOString(),
       };
     });
+
+    // Pre-filter for PMHNP relevance
+    const relevantJobs = allJobs.filter(job => isPMHNPJob(job.title, job.description));
+    console.log(`[Lever] ${companySlug}: ${relevantJobs.length}/${totalJobs} jobs relevant`);
+
+    return relevantJobs;
   } catch (error) {
     console.error(`[Lever] ${companySlug}: Error -`, error);
     return [];
@@ -159,7 +147,7 @@ async function fetchCompanyPostings(companySlug: string): Promise<LeverJobRaw[]>
 
 export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
   console.log(`[Lever] Checking ${LEVER_COMPANIES.length} companies for PMHNP jobs...`);
-  
+
   const allJobs: LeverJobRaw[] = [];
   const failedCompanies: string[] = [];
 
@@ -168,7 +156,7 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
       try {
         const jobs = await fetchCompanyPostings(companySlug);
         allJobs.push(...jobs);
-        
+
         // Rate limiting: 500ms delay between companies
         await sleep(500);
       } catch {
@@ -178,7 +166,7 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
     }
 
     console.log(`[Lever] Total PMHNP jobs fetched: ${allJobs.length}`);
-    
+
     if (failedCompanies.length > 0) {
       console.log(`[Lever] Failed companies (${failedCompanies.length}): ${failedCompanies.join(', ')}`);
     }

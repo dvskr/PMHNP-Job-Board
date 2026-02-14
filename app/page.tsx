@@ -1,110 +1,120 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
-import EmailSignupForm from '@/components/EmailSignupForm';
-import StatsSection from '@/components/StatsSection';
-import PopularCategories from '@/components/PopularCategories';
-import TestimonialsSection from '@/components/TestimonialsSection';
 
-export default function Home() {
+import { prisma } from '@/lib/prisma';
+import StatsSection from '@/components/StatsSection';
+import EmployerMarqueeSection from '@/components/EmployerMarqueeSection';
+import FeaturedJobsSection from '@/components/FeaturedJobsSection';
+import WhyUs from '@/components/WhyUs';
+import Testimonial from '@/components/Testimonial';
+import StayConnected from '@/components/StayConnected';
+import EmployerCTA from '@/components/EmployerCTA';
+import BrowseByStateSection from '@/components/BrowseByStateSection';
+import Comparison from '@/components/Comparison';
+import ScrollReveal from '@/components/ScrollReveal';
+import HomepageHero from '@/components/HomepageHero';
+
+
+
+
+
+
+// Revalidate every 60 seconds
+export const revalidate = 60;
+
+/**
+ * Get total job count for dynamic metadata
+ */
+async function getTotalJobCount(): Promise<number> {
+  try {
+    const count = await prisma.job.count({
+      where: { isPublished: true },
+    });
+    return count;
+  } catch {
+    return 200; // Fallback
+  }
+}
+
+/**
+ * Generate dynamic metadata with job count
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const totalJobs = await getTotalJobCount();
+  const jobCountDisplay = totalJobs > 10000
+    ? `${Math.floor(totalJobs / 1000).toLocaleString()},000+`
+    : '10,000+';
+
+  return {
+    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board`,
+    description: `Find ${jobCountDisplay} PMHNP jobs across the United States. The #1 job board for psychiatric mental health nurse practitioners. Remote and in-person positions updated daily.`,
+    openGraph: {
+      title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
+      description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
+    },
+    alternates: {
+      canonical: 'https://pmhnphiring.com',
+    },
+  };
+}
+
+export default async function Home() {
+  const totalJobs = await getTotalJobCount();
+  const jobCountDisplay = totalJobs > 1000
+    ? `${Math.floor(totalJobs / 100) * 100}+`
+    : totalJobs.toLocaleString();
+
   return (
     <div>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Find Your Next PMHNP Role
-          </h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            The #1 job board for psychiatric mental health nurse practitioners. 
-            200+ remote and in-person jobs updated daily.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/jobs"
-              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
-            >
-              Browse Jobs
-            </Link>
-            <Link
-              href="/post-job"
-              className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-200 hover:bg-blue-50 transition-colors w-full sm:w-auto text-center"
-            >
-              Post a Job for Free
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* 1. Hero Section — no scroll reveal (above the fold) */}
+      <HomepageHero jobCountDisplay={jobCountDisplay} />
 
-      {/* Stats Section */}
-      <StatsSection />
+      {/* 2. Stats Counter (animated numbers) */}
+      <ScrollReveal>
+        <StatsSection />
+      </ScrollReveal>
 
-      {/* Popular Categories */}
-      <PopularCategories />
+      {/* 3. Employer Marquee (scrolling company names) */}
+      <ScrollReveal>
+        <EmployerMarqueeSection />
+      </ScrollReveal>
 
-      {/* Features Section */}
-      <section className="py-16 px-4 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Why PMHNP Jobs?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="text-3xl mb-4">🎯</div>
-              <h3 className="text-xl font-semibold mb-2">Specialized Focus</h3>
-              <p className="text-gray-600">
-                Only psychiatric nurse practitioner jobs. No filtering through irrelevant listings.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="text-3xl mb-4">🏠</div>
-              <h3 className="text-xl font-semibold mb-2">Remote & In-Person</h3>
-              <p className="text-gray-600">
-                Find telehealth, hybrid, and on-site positions that match your lifestyle.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="text-3xl mb-4">📧</div>
-              <h3 className="text-xl font-semibold mb-2">Weekly Alerts</h3>
-              <p className="text-gray-600">
-                Get new jobs delivered to your inbox. Never miss an opportunity.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials Section */}
-      <TestimonialsSection />
 
-      {/* Email Signup Section */}
-      <section id="subscribe" className="bg-blue-50 py-16 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Get PMHNP Job Alerts
-          </h2>
-          <p className="text-gray-600 mb-8">
-            New psychiatric nurse practitioner jobs delivered weekly
-          </p>
-          <EmailSignupForm source="homepage" />
-        </div>
-      </section>
+      {/* 5. Featured Jobs (6 latest job cards) */}
+      <ScrollReveal>
+        <FeaturedJobsSection />
+      </ScrollReveal>
 
-      {/* CTA Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Hiring PMHNPs?
-          </h2>
-          <p className="text-gray-600 mb-8">
-            Reach thousands of qualified psychiatric nurse practitioners actively looking for their next role.
-          </p>
-          <Link
-            href="/post-job"
-            className="inline-block bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-600 transition-colors"
-          >
-            Post a Job for Free
-          </Link>
-        </div>
-      </section>
+      {/* 6. Why PMHNPs Choose Us (3 cards: Shield, Zap, DollarSign) */}
+      <ScrollReveal>
+        <WhyUs />
+      </ScrollReveal>
+
+      {/* 7. Testimonial (Sarah M. quote) */}
+      <ScrollReveal>
+        <Testimonial />
+      </ScrollReveal>
+
+      {/* 8. Browse by Location (state cards with job counts) */}
+      <ScrollReveal>
+        <BrowseByStateSection />
+      </ScrollReveal>
+
+      {/* 9. Comparison Cards (Us vs Indeed vs LinkedIn vs ZipRecruiter) */}
+      <ScrollReveal>
+        <Comparison />
+      </ScrollReveal>
+
+      {/* 10. Salary Guide + Job Alerts (side-by-side) */}
+      <ScrollReveal>
+        <StayConnected />
+      </ScrollReveal>
+
+      {/* 12. Employer CTA (new design) */}
+      <ScrollReveal>
+        <EmployerCTA />
+      </ScrollReveal>
     </div>
   );
 }

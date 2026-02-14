@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
@@ -45,7 +46,7 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (error) {
     // If job not found, still return success (don't break the apply flow)
-    console.error('Error tracking apply click:', error);
+    logger.error('Error tracking apply click:', error);
     return NextResponse.json({ success: true });
   }
 }

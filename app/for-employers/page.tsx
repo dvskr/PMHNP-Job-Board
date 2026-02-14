@@ -3,12 +3,13 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import TestimonialsSection from '@/components/TestimonialsSection';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+
 import { config } from '@/lib/config';
-import { 
-  Target, 
-  DollarSign, 
-  Clock, 
+import {
+  Target,
+  DollarSign,
+  Clock,
   TrendingUp,
   FileText,
   Award,
@@ -24,11 +25,18 @@ import {
 export const metadata: Metadata = {
   title: 'For Employers | PMHNP Jobs',
   description: 'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post jobs for free. Reach thousands of PMHNPs.',
+  alternates: {
+    canonical: 'https://pmhnphiring.com/for-employers',
+  },
 };
 
 export default function ForEmployersPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'For Employers', url: 'https://pmhnphiring.com/for-employers' },
+      ]} />
       {/* Hero Section */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -38,8 +46,8 @@ export default function ForEmployersPage() {
           <p className="text-gray-600 text-xl mb-8 max-w-3xl mx-auto">
             Reach thousands of psychiatric nurse practitioners actively looking for opportunities
           </p>
-          <Link href="/post-job">
-            <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">
+          <Link href="/employer/signup">
+            <button className="bg-teal-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition-colors shadow-md hover:shadow-lg">
               Post a Job
             </button>
           </Link>
@@ -118,10 +126,10 @@ export default function ForEmployersPage() {
               Post Jobs for FREE
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              For a limited time, all job postings are completely free. 
+              For a limited time, all job postings are completely free.
               Get your PMHNP positions in front of qualified candidates today.
             </p>
-            
+
             <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
               <div className="bg-white p-6 rounded-xl shadow-md border-2 border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Standard Post</h3>
@@ -134,9 +142,9 @@ export default function ForEmployersPage() {
                   <li>✓ Full job description</li>
                 </ul>
               </div>
-              
-              <div className="bg-white p-6 rounded-xl shadow-md border-2 border-blue-500">
-                <div className="text-blue-600 text-sm font-semibold mb-1">RECOMMENDED</div>
+
+              <div className="bg-white p-6 rounded-xl shadow-md border-2 border-teal-500">
+                <div className="text-teal-600 text-sm font-semibold mb-1">RECOMMENDED</div>
                 <h3 className="text-lg font-semibold text-gray-900">Featured Post</h3>
                 <p className="text-3xl font-bold text-gray-900 my-2">
                   <span className="line-through text-gray-400 text-lg">$199</span> FREE
@@ -149,10 +157,10 @@ export default function ForEmployersPage() {
                 </ul>
               </div>
             </div>
-            
-            <Link 
+
+            <Link
               href="/post-job"
-              className="inline-block mt-8 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
+              className="inline-block mt-8 bg-teal-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition-colors"
             >
               Post a Job - Free
             </Link>
@@ -205,7 +213,7 @@ export default function ForEmployersPage() {
                   </li>
                 </ul>
 
-                <Link href="/post-job">
+                <Link href="/employer/signup">
                   <Button variant="outline" size="lg" className="w-full">
                     Get Started
                   </Button>
@@ -260,7 +268,7 @@ export default function ForEmployersPage() {
                   </li>
                 </ul>
 
-                <Link href="/post-job">
+                <Link href="/employer/signup">
                   <Button variant="primary" size="lg" className="w-full">
                     Get Featured
                   </Button>
@@ -404,30 +412,7 @@ export default function ForEmployersPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <TestimonialsSection
-        title="What Employers Say"
-        testimonials={[
-          {
-            quote: "PMHNP Jobs delivered exactly what we needed - qualified candidates who are specifically looking for psychiatric roles.",
-            author: "David K.",
-            role: "Recruiting Manager",
-            company: "Telehealth Startup"
-          },
-          {
-            quote: "The featured posting was worth every penny. We had 50+ qualified applicants in the first week.",
-            author: "Amanda S.",
-            role: "Practice Owner",
-            company: "Private Practice"
-          },
-          {
-            quote: "We filled our PMHNP position within 2 weeks of posting. The quality of candidates was excellent.",
-            author: "Sarah J.",
-            role: "HR Director",
-            company: "Community Health Center"
-          }
-        ]}
-      />
+
 
       {/* CTA Section */}
       <section className="bg-white py-16">
@@ -439,13 +424,13 @@ export default function ForEmployersPage() {
             Post your job today and start receiving applications from qualified psychiatric nurse practitioners.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
-            <Link href="/post-job" className="w-full sm:w-auto">
-              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full shadow-md hover:shadow-lg">
+            <Link href="/employer/signup" className="w-full sm:w-auto">
+              <button className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors w-full shadow-md hover:shadow-lg">
                 Post a Job
               </button>
             </Link>
-            <a href="mailto:hello@pmhnpjobs.com" className="w-full sm:w-auto">
-              <button className="border-2 border-blue-600 text-blue-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors w-full shadow-sm hover:shadow-md">
+            <a href="mailto:support@pmhnphiring.com" className="w-full sm:w-auto">
+              <button className="border-2 border-teal-600 text-teal-600 bg-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition-colors w-full shadow-sm hover:shadow-md">
                 Contact Us
               </button>
             </a>

@@ -44,7 +44,7 @@ function RenewalSuccessContent() {
       try {
         const res = await fetch(`/api/verify-renewal-session?session_id=${sessionId}`);
         const data = await res.json();
-        
+
         if (data.error) {
           setState({
             loading: false,
@@ -68,7 +68,7 @@ function RenewalSuccessContent() {
     };
 
     fetchData();
-    return () => {}; // Explicit cleanup function for all paths
+    return () => { }; // Explicit cleanup function for all paths
   }, [sessionId]);
 
   const { loading, error, renewalData } = state;
@@ -95,7 +95,7 @@ function RenewalSuccessContent() {
           <p className="text-gray-600 mb-6">{error || 'Something went wrong'}</p>
           <Link
             href="/"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+            className="inline-block bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
           >
             Go Home
           </Link>
@@ -107,7 +107,7 @@ function RenewalSuccessContent() {
   const daysExtended = renewalData.tier === 'featured' ? 60 : 30;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-teal-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 max-w-2xl w-full text-center">
         {/* Success Icon */}
         <div className="mb-6">
@@ -147,13 +147,13 @@ function RenewalSuccessContent() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href={`/employer/dashboard/${renewalData.dashboardToken}`}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-md hover:shadow-lg"
+            className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition shadow-md hover:shadow-lg"
           >
             Go to Dashboard
           </Link>
           <Link
             href={`/jobs/${renewalData.jobSlug}`}
-            className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
+            className="bg-white text-teal-600 border-2 border-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
           >
             View Your Job
           </Link>
@@ -167,8 +167,8 @@ function RenewalSuccessContent() {
           <p className="text-sm text-gray-500">
             Need help?{' '}
             <a
-              href="mailto:support@pmhnpjobs.com"
-              className="text-blue-600 hover:underline"
+              href="mailto:support@pmhnphiring.com"
+              className="text-teal-600 hover:underline"
             >
               Contact support
             </a>

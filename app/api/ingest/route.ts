@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ingestJobs, type JobSource } from '@/lib/ingestion-service';
+import { logger } from '@/lib/logger';
 
 interface IngestRequestBody {
   sources?: string[];
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret) {
-      console.error('CRON_SECRET not configured');
+      logger.error('CRON_SECRET not configured');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
@@ -28,13 +29,13 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: IngestRequestBody = await request.json().catch(() => ({}));
-    
+
     // Default to all sources if none provided
     const sources: JobSource[] = (body.sources && Array.isArray(body.sources) && body.sources.length > 0)
       ? body.sources as JobSource[]
-      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'careerjet'] as JobSource[];
+      : ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch'] as JobSource[];
 
-    console.log(`[API] Starting ingestion for sources: ${sources.join(', ')}`);
+    logger.info('Starting ingestion', { sources });
 
     // Run comprehensive ingestion (new service handles everything)
     const results = await ingestJobs(sources);
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error in ingest API:', error);
+    logger.error('Error in ingest API', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

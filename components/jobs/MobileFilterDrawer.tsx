@@ -24,7 +24,7 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
         <SlidersHorizontal className="w-4 h-4" />
         <span className="font-medium">Filters</span>
         {activeCount > 0 && (
-          <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+          <span className="bg-teal-600 text-white text-xs px-2 py-0.5 rounded-full">
             {activeCount}
           </span>
         )}
@@ -45,9 +45,8 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
         role="dialog"
         aria-modal="true"
         aria-label="Filter options"
-        className={`fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">Filters</h2>
@@ -65,7 +64,7 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
           <button
             onClick={() => setIsOpen(false)}
-            className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
+            className="w-full py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700"
           >
             Show Results
           </button>
