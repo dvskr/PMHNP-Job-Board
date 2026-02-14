@@ -25,7 +25,8 @@ export default async function BlogIndexPage({
     searchParams: Promise<{ category?: string; page?: string }>;
 }) {
     const { category, page } = await searchParams;
-    const currentPage = Math.max(1, parseInt(page || '1', 10));
+    const parsed = parseInt(page || '1', 10);
+    const currentPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
     const categoryFilter = category || undefined;
 
     const [posts, totalCount] = await Promise.all([
@@ -110,8 +111,8 @@ export default async function BlogIndexPage({
                     <Link
                         href="/blog"
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!categoryFilter
-                                ? 'bg-teal-600 text-white shadow-md'
-                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                            ? 'bg-teal-600 text-white shadow-md'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                             }`}
                     >
                         All
@@ -121,8 +122,8 @@ export default async function BlogIndexPage({
                             key={cat.id}
                             href={`/blog?category=${cat.id}`}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat.id
-                                    ? 'bg-teal-600 text-white shadow-md'
-                                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                ? 'bg-teal-600 text-white shadow-md'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
                         >
                             {cat.label}
@@ -219,8 +220,8 @@ export default async function BlogIndexPage({
                                         key={p}
                                         href={buildUrl(p, categoryFilter)}
                                         className={`w-10 h-10 rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${p === currentPage
-                                                ? 'bg-teal-600 text-white shadow-md'
-                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-teal-600 text-white shadow-md'
+                                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
                                             }`}
                                     >
                                         {p}

@@ -28,16 +28,12 @@ CREATE INDEX IF NOT EXISTS idx_blog_posts_publish_date ON blog_posts(publish_dat
 -- Row Level Security
 ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access
+-- Allow public read access (published posts only)
 CREATE POLICY "Public can read published blog posts"
   ON blog_posts FOR SELECT
-  USING (true);
+  USING (status = 'published');
 
--- Allow service role full access (for API writes)
-CREATE POLICY "Service role can manage blog posts"
-  ON blog_posts FOR ALL
-  USING (true)
-  WITH CHECK (true);
+-- Note: Service role bypasses RLS automatically — no explicit policy needed for writes.
 
 -- Auto-update updated_at on row changes
 CREATE OR REPLACE FUNCTION update_blog_updated_at()

@@ -166,7 +166,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
                         externalId: `workday-${company.slug}-${jobId}`,
                         title: posting.title,
                         company: company.name,
-                        location: posting.locationsText || 'Remote',
+                        location: posting.locationsText || 'United States',
                         description,
                         applyLink: `${applyBase}${posting.externalPath}`,
                         postedDate: posting.postedOn || undefined,
