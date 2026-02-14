@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import sanitizeHtml from 'sanitize-html';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -314,6 +315,20 @@ export function markdownToHtml(markdown: string): string {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
         html = html.replace(`%%INLINECODE_${i}%%`, `<code>${escaped}</code>`);
+    });
+
+    // Sanitize HTML to prevent XSS
+    html = sanitizeHtml(html, {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+            'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'hr',
+        ]),
+        allowedAttributes: {
+            ...sanitizeHtml.defaults.allowedAttributes,
+            '*': ['id', 'class'],
+            'img': ['src', 'alt', 'loading', 'width', 'height'],
+            'a': ['href', 'target', 'rel'],
+        },
+        allowedSchemes: ['http', 'https', 'mailto'],
     });
 
     return html;

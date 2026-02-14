@@ -253,9 +253,11 @@ export async function pingAllSearchEnginesBatch(urls: string[]): Promise<{
     bing: IndexResult[];
     indexNow: IndexResult[];
 }> {
-    // Google: must be individual (no batch API)
+    // Google: must be individual (no batch API) — cap at 200/day
+    const GOOGLE_DAILY_CAP = 200;
+    const googleUrls = urls.slice(0, GOOGLE_DAILY_CAP);
     const googleResults: IndexResult[] = [];
-    for (const url of urls) {
+    for (const url of googleUrls) {
         const result = await pingGoogle(url);
         googleResults.push(result);
         // Small delay between Google requests

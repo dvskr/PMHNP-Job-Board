@@ -9,6 +9,8 @@
  *   npx tsx scripts/google-index.ts --engine google     # Google only
  *   npx tsx scripts/google-index.ts --engine bing       # Bing only
  *   npx tsx scripts/google-index.ts --engine indexnow   # IndexNow only
+ *   npx tsx scripts/google-index.ts --skip 200          # Skip first 200 URLs (for day 2+)
+ *   npx tsx scripts/google-index.ts --engine google --skip 200  # Google day 2
  * 
  * Requires env vars in .env.local:
  *   GOOGLE_INDEXING_CREDENTIALS  — Google service account JSON
@@ -69,13 +71,23 @@ async function main() {
 
     let singleUrl: string | null = null;
     let engine: 'all' | 'google' | 'bing' | 'indexnow' = 'all';
+    let skip = 0;
 
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--url' && args[i + 1]) {
             singleUrl = args[i + 1];
             i++;
         } else if (args[i] === '--engine' && args[i + 1]) {
-            engine = args[i + 1] as typeof engine;
+            const validEngines = ['all', 'google', 'bing', 'indexnow'];
+            const engineArg = args[i + 1];
+            if (!validEngines.includes(engineArg)) {
+                console.error(`❌ Invalid engine: "${engineArg}". Valid options: ${validEngines.join(', ')}`);
+                process.exit(1);
+            }
+            engine = engineArg as typeof engine;
+            i++;
+        } else if (args[i] === '--skip' && args[i + 1]) {
+            skip = parseInt(args[i + 1], 10) || 0;
             i++;
         }
     }
@@ -103,14 +115,17 @@ async function main() {
     } else {
         console.log('📋 Fetching all site URLs from sitemap...');
         urls = await getAllUrls();
-        console.log(`   Found ${urls.length} URLs\n`);
+        console.log(`   Found ${urls.length} total URLs`);
+        if (skip > 0) {
+            urls = urls.slice(skip);
+            console.log(`   Skipping first ${skip}, processing ${urls.length} remaining URLs`);
+        }
+        console.log('');
     }
 
     if (engine === 'all') {
-        // Cap Google at 200
-        const googleUrls = urls.slice(0, 200);
         if (urls.length > 200) {
-            console.warn(`⚠️  Google capped at 200/day. Submitting ${googleUrls.length} of ${urls.length} to Google.`);
+            console.warn(`⚠️  Google capped at 200/day. Submitting 200 of ${urls.length} to Google.`);
             console.warn(`   Bing and IndexNow will get all ${urls.length} URLs.\n`);
         }
 

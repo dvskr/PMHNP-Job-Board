@@ -2,7 +2,11 @@ import pg from 'pg';
 import { isRelevantJob } from '../lib/utils/job-filter';
 const { Pool } = pg;
 
-const PROD_URL = 'postgresql://postgres.sggccmqjzuimwlahocmy:oWTJ14PgJiEenXTf@aws-1-us-east-1.pooler.supabase.com:6543/postgres';
+const PROD_URL = process.env.PROD_DATABASE_URL;
+if (!PROD_URL) {
+    console.error('PROD_DATABASE_URL env var is required. Set it in .env.local');
+    process.exit(1);
+}
 const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
 const ALREADY_ADDED = new Set([
