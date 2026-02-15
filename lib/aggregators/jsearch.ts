@@ -188,6 +188,8 @@ function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+
+
 /**
  * Main export: Fetch all PMHNP jobs from JSearch
  */
@@ -385,7 +387,6 @@ export async function fetchJSearchJobs(
                     applyLink: job.job_apply_link,
                     externalId: `jsearch_${job.job_id}`,
                     sourceProvider: 'jsearch',
-                    sourceSite: job.job_publisher || 'Google Jobs',
                     minSalary: job.job_min_salary,
                     maxSalary: job.job_max_salary,
                     salaryCurrency: job.job_salary_currency || 'USD',
