@@ -61,7 +61,7 @@ export interface AtsJobsDbJobRaw {
     postedDate?: string;
 }
 
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '9675ff8f1fmshed5f56fda67be2dp1569c5jsn079ccb95bbe6';
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const BASE_URL = 'https://ats-jobs-db.p.rapidapi.com/v1/jobs';
 const PAGE_SIZE = 25;
 
@@ -126,7 +126,7 @@ async function fetchPage(query: string, page: number): Promise<AtsJobsDbResponse
 
         const res = await fetch(url, {
             headers: {
-                'x-rapidapi-key': RAPIDAPI_KEY,
+                'x-rapidapi-key': RAPIDAPI_KEY!,
                 'x-rapidapi-host': 'ats-jobs-db.p.rapidapi.com',
             },
             signal: controller.signal,
@@ -157,6 +157,11 @@ async function fetchPage(query: string, page: number): Promise<AtsJobsDbResponse
 }
 
 export async function fetchAtsJobsDbJobs(): Promise<AtsJobsDbJobRaw[]> {
+    if (!RAPIDAPI_KEY) {
+        console.error('[ATS-Jobs-DB] RAPIDAPI_KEY env var is not set. Skipping.');
+        return [];
+    }
+
     console.log(`[ATS-Jobs-DB] Searching across all ATS platforms for PMHNP jobs...`);
 
     const allJobs: AtsJobsDbJobRaw[] = [];

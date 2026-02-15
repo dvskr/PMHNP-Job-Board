@@ -1,104 +1,153 @@
 /**
- * Profile completeness scoring utility.
- * Pure function — no side effects, works on both client and server.
+ * Profile completeness scoring utility — v2
+ * Section-based scoring with per-section breakdown.
+ * Works on both client and server.
  */
 
-export interface ProfileData {
+
+export interface ProfileDataV2 {
+    // Personal Info
     firstName?: string | null
     lastName?: string | null
     phone?: string | null
     headline?: string | null
-    bio?: string | null
-    yearsExperience?: number | null
-    certifications?: string | null
-    licenseStates?: string | null
-    specialties?: string | null
-    preferredWorkMode?: string | null
+    addressLine1?: string | null
+    city?: string | null
+    state?: string | null
+    zipCode?: string | null
+    // Credentials
+    npiNumber?: string | null
+    deaNumber?: string | null
+    // Resume
     resumeUrl?: string | null
+    // Counts (from includes or separate queries)
+    _count?: {
+        licenses?: number
+        certificationRecords?: number
+        education?: number
+        workExperience?: number
+        documents?: number
+        screeningAnswers?: number
+        openEndedResponses?: number
+        candidateReferences?: number
+    }
+    // Clinical details flag
+    _hasClinicalDetails?: boolean
 }
 
-export interface MissingItem {
+/** @deprecated Use ProfileDataV2 instead */
+export type ProfileData = ProfileDataV2
+
+export interface SectionScore {
     label: string
-    weight: number
-    fieldId: string
+    earned: number
+    total: number
+    missing: string[]
 }
 
 export interface CompletenessResult {
     percentage: number
     color: string
-    missingItems: MissingItem[]
-}
-
-// ── Field definitions with weights ──
-
-interface FieldDef {
-    key: keyof ProfileData
-    label: string
-    weight: number
-    fieldId: string
-    check: (val: unknown) => boolean
+    sections: SectionScore[]
+    missingItems: { label: string; weight: number; fieldId: string }[]
 }
 
 const hasText = (v: unknown): boolean => typeof v === 'string' && v.trim().length > 0
 
-const hasListData = (v: unknown): boolean => {
-    if (typeof v !== 'string' || !v.trim()) return false
-    // Try JSON array first
-    try {
-        const parsed = JSON.parse(v)
-        if (Array.isArray(parsed) && parsed.length > 0) return true
-    } catch { /* not JSON */ }
-    // Comma-separated fallback
-    return v.split(',').some((s) => s.trim().length > 0)
-}
-
-const FIELDS: FieldDef[] = [
-    { key: 'firstName', label: 'Add your first name', weight: 10, fieldId: 'section-name', check: hasText },
-    { key: 'lastName', label: 'Add your last name', weight: 10, fieldId: 'section-name', check: hasText },
-    { key: 'phone', label: 'Add your phone number', weight: 5, fieldId: 'section-contact', check: hasText },
-    { key: 'headline', label: 'Add your headline', weight: 15, fieldId: 'section-headline', check: hasText },
-    { key: 'bio', label: 'Write a short bio', weight: 10, fieldId: 'section-bio', check: hasText },
-    { key: 'yearsExperience', label: 'Set your experience level', weight: 10, fieldId: 'section-experience', check: (v) => v !== null && v !== undefined },
-    { key: 'certifications', label: 'Add a certification', weight: 10, fieldId: 'section-certifications', check: hasListData },
-    { key: 'licenseStates', label: 'Add a licensed state', weight: 10, fieldId: 'section-states', check: hasListData },
-    { key: 'specialties', label: 'Add a specialty', weight: 5, fieldId: 'section-specialties', check: hasListData },
-    { key: 'preferredWorkMode', label: 'Set your work mode', weight: 5, fieldId: 'section-workmode', check: hasText },
-    { key: 'resumeUrl', label: 'Upload your resume', weight: 10, fieldId: 'section-resume', check: hasText },
-]
-
-// ── Main scoring function ──
-
-export function calculateCompleteness(profile: ProfileData | null | undefined): CompletenessResult {
+export function calculateCompleteness(profile: ProfileDataV2 | null | undefined): CompletenessResult {
     if (!profile) {
         return {
             percentage: 0,
-            color: '#EF4444', // red
-            missingItems: FIELDS.map((f) => ({ label: f.label, weight: f.weight, fieldId: f.fieldId })),
+            color: '#EF4444',
+            sections: [
+                { label: 'Personal Info', earned: 0, total: 15, missing: ['All fields'] },
+                { label: 'Credentials', earned: 0, total: 25, missing: ['All fields'] },
+                { label: 'Education', earned: 0, total: 10, missing: ['Add education'] },
+                { label: 'Work Experience', earned: 0, total: 20, missing: ['Add work experience'] },
+                { label: 'Documents', earned: 0, total: 15, missing: ['Upload resume', 'Upload documents'] },
+                { label: 'Screening & Responses', earned: 0, total: 10, missing: ['Answer screening questions'] },
+                { label: 'References', earned: 0, total: 5, missing: ['Add 3 references'] },
+            ],
+            missingItems: [],
         }
     }
 
-    let earned = 0
-    const missingItems: MissingItem[] = []
+    const c = profile._count || {}
+    const sections: SectionScore[] = []
+    const missingItems: { label: string; weight: number; fieldId: string }[] = []
 
-    for (const field of FIELDS) {
-        const value = profile[field.key]
-        if (field.check(value)) {
-            earned += field.weight
-        } else {
-            missingItems.push({ label: field.label, weight: field.weight, fieldId: field.fieldId })
-        }
+    // ── Personal Info (15%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if (hasText(profile.firstName)) earned += 3; else { missing.push('First name'); missingItems.push({ label: 'Add first name', weight: 3, fieldId: 'tab-personal' }) }
+        if (hasText(profile.lastName)) earned += 3; else { missing.push('Last name'); missingItems.push({ label: 'Add last name', weight: 3, fieldId: 'tab-personal' }) }
+        if (hasText(profile.phone)) earned += 2; else { missing.push('Phone'); missingItems.push({ label: 'Add phone', weight: 2, fieldId: 'tab-personal' }) }
+        if (hasText(profile.addressLine1) && hasText(profile.city) && hasText(profile.state) && hasText(profile.zipCode)) earned += 4; else { missing.push('Complete address'); missingItems.push({ label: 'Complete address', weight: 4, fieldId: 'tab-personal' }) }
+        if (hasText(profile.headline)) earned += 3; else { missing.push('Headline'); missingItems.push({ label: 'Add headline', weight: 3, fieldId: 'tab-personal' }) }
+        sections.push({ label: 'Personal Info', earned, total: 15, missing })
     }
 
-    const percentage = Math.min(earned, 100)
+    // ── Professional Credentials (25%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if ((c.licenses || 0) >= 1) earned += 8; else { missing.push('License'); missingItems.push({ label: 'Add a license', weight: 8, fieldId: 'tab-credentials' }) }
+        if ((c.certificationRecords || 0) >= 1) earned += 7; else { missing.push('Certification'); missingItems.push({ label: 'Add a certification', weight: 7, fieldId: 'tab-credentials' }) }
+        if (hasText(profile.npiNumber)) earned += 5; else { missing.push('NPI number'); missingItems.push({ label: 'Add NPI number', weight: 5, fieldId: 'tab-credentials' }) }
+        if (hasText(profile.deaNumber)) earned += 5; else { missing.push('DEA number'); missingItems.push({ label: 'Add DEA number', weight: 5, fieldId: 'tab-credentials' }) }
+        sections.push({ label: 'Credentials', earned, total: 25, missing })
+    }
+
+    // ── Education (10%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if ((c.education || 0) >= 1) earned += 10; else { missing.push('Add education'); missingItems.push({ label: 'Add education entry', weight: 10, fieldId: 'tab-education' }) }
+        sections.push({ label: 'Education', earned, total: 10, missing })
+    }
+
+    // ── Work Experience (20%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if ((c.workExperience || 0) >= 1) earned += 15; else { missing.push('Add work experience'); missingItems.push({ label: 'Add work experience', weight: 15, fieldId: 'tab-experience' }) }
+        if (profile._hasClinicalDetails) earned += 5; else { missing.push('Clinical details'); missingItems.push({ label: 'Fill clinical details', weight: 5, fieldId: 'tab-experience' }) }
+        sections.push({ label: 'Work Experience', earned, total: 20, missing })
+    }
+
+    // ── Documents (15%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if (hasText(profile.resumeUrl)) earned += 5; else { missing.push('Resume'); missingItems.push({ label: 'Upload resume', weight: 5, fieldId: 'tab-documents' }) }
+        if ((c.documents || 0) >= 3) earned += 10; else { missing.push(`${Math.max(0, 3 - (c.documents || 0))} more document(s)`); missingItems.push({ label: 'Upload 3+ documents', weight: 10, fieldId: 'tab-documents' }) }
+        sections.push({ label: 'Documents', earned, total: 15, missing })
+    }
+
+    // ── Screening & Responses (10%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if ((c.screeningAnswers || 0) >= 10) earned += 5; else { missing.push('Screening answers'); missingItems.push({ label: 'Answer 10+ screening questions', weight: 5, fieldId: 'tab-screening' }) }
+        if ((c.openEndedResponses || 0) >= 3) earned += 5; else { missing.push('Application responses'); missingItems.push({ label: 'Write 3+ application responses', weight: 5, fieldId: 'tab-responses' }) }
+        sections.push({ label: 'Screening & Responses', earned, total: 10, missing })
+    }
+
+    // ── References (5%) ──
+    {
+        let earned = 0
+        const missing: string[] = []
+        if ((c.candidateReferences || 0) >= 3) earned += 5; else { missing.push(`${Math.max(0, 3 - (c.candidateReferences || 0))} more reference(s)`); missingItems.push({ label: 'Add 3 references', weight: 5, fieldId: 'tab-references' }) }
+        sections.push({ label: 'References', earned, total: 5, missing })
+    }
+
+    const percentage = Math.min(sections.reduce((s, sec) => s + sec.earned, 0), 100)
 
     let color: string
-    if (percentage <= 30) {
-        color = '#EF4444' // red
-    } else if (percentage <= 60) {
-        color = '#F59E0B' // yellow/amber
-    } else {
-        color = '#22C55E' // green
-    }
+    if (percentage <= 30) color = '#EF4444'
+    else if (percentage <= 60) color = '#F59E0B'
+    else color = '#22C55E'
 
-    return { percentage, color, missingItems }
+    return { percentage, color, sections, missingItems }
 }

@@ -57,7 +57,6 @@ function buildSalaryDisplay(job: Job): string | null {
   return null;
 }
 
-
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
   const { isSaved, saveJob, removeJob } = useSavedJobs();

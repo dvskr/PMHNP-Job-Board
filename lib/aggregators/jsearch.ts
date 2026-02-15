@@ -387,6 +387,7 @@ export async function fetchJSearchJobs(
                     applyLink: job.job_apply_link,
                     externalId: `jsearch_${job.job_id}`,
                     sourceProvider: 'jsearch',
+                    sourceSite: job.job_publisher || 'Google Jobs',
                     minSalary: job.job_min_salary,
                     maxSalary: job.job_max_salary,
                     salaryCurrency: job.job_salary_currency || 'USD',

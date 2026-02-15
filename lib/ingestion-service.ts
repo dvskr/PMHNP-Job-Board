@@ -322,7 +322,7 @@ export async function ingestJobs(
       const googleOk = indexResults.google.filter(r => r.success).length;
       const bingOk = indexResults.bing.filter(r => r.success).length;
       const indexNowOk = indexResults.indexNow.filter(r => r.success).length;
-      console.log(`[Indexing] Results: Google ${googleOk}/${Math.min(allNewUrls.length, 200)}, Bing ${bingOk}/${allNewUrls.length}, IndexNow ${indexNowOk}/${allNewUrls.length}`);
+      console.log(`[Indexing] Results: Google ${googleOk}/${indexResults.google.length}, Bing ${bingOk}/${allNewUrls.length}, IndexNow ${indexNowOk}/${allNewUrls.length}`);
     } catch (indexError) {
       console.error('[Indexing] Failed to ping search engines:', indexError);
     }

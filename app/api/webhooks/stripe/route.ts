@@ -170,6 +170,13 @@ export async function POST(request: NextRequest) {
           }
 
           logger.info('Job upgraded to featured', { jobId });
+
+          // Ping search engines for upgraded job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (upgrade)', err)
+            );
+          }
         } catch (prismaError) {
           logger.error('Error upgrading job in database', prismaError, { jobId });
           return NextResponse.json(
