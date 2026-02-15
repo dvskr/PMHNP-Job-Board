@@ -5,6 +5,46 @@ import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 
+// Shared include for _count used by completeness scoring
+const profileInclude = {
+  _count: {
+    select: {
+      licenses: true,
+      certificationRecords: true,
+      education: true,
+      workExperience: true,
+      documents: true,
+      screeningAnswers: true,
+      openEndedResponses: true,
+      candidateReferences: true,
+    },
+  },
+  workExperience: {
+    select: { patientVolume: true, patientPopulations: true, treatmentModalities: true },
+    take: 1,
+  },
+} as const
+
+/** Check if any work experience entry has clinical details filled */
+function computeHasClinicalDetails(workExperience: Array<{ patientVolume: string | null; patientPopulations: string | null; treatmentModalities: string | null }> | undefined): boolean {
+  if (!workExperience || workExperience.length === 0) return false
+  return workExperience.some(
+    (w) => (w.patientVolume?.trim().length ?? 0) > 0 ||
+      (w.patientPopulations?.trim().length ?? 0) > 0 ||
+      (w.treatmentModalities?.trim().length ?? 0) > 0
+  )
+}
+
+/** Merge _hasClinicalDetails into the profile response */
+function enrichProfile(profile: Record<string, unknown>) {
+  const workExp = profile.workExperience as Array<{ patientVolume: string | null; patientPopulations: string | null; treatmentModalities: string | null }> | undefined
+  return {
+    ...profile,
+    _hasClinicalDetails: computeHasClinicalDetails(workExp),
+    workExperience: undefined, // Don't leak the raw work experience subset
+  }
+}
+
 // GET - Get current user's profile
 export async function GET() {
   try {
@@ -16,14 +56,15 @@ export async function GET() {
     }
 
     const profile = await prisma.userProfile.findUnique({
-      where: { supabaseId: user.id }
+      where: { supabaseId: user.id },
+      include: profileInclude,
     })
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    return NextResponse.json(profile)
+    return NextResponse.json(enrichProfile(profile as unknown as Record<string, unknown>))
   } catch (error) {
     logger.error('Profile GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -269,9 +310,10 @@ export async function PATCH(request: NextRequest) {
         ...(availableDate !== undefined && { availableDate }),
         updatedAt: new Date(),
       },
+      include: profileInclude,
     })
 
-    return NextResponse.json(updatedProfile)
+    return NextResponse.json(enrichProfile(updatedProfile as unknown as Record<string, unknown>))
   } catch (error) {
     logger.error('Profile PATCH error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
