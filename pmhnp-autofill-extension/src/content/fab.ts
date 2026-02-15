@@ -236,8 +236,8 @@ function updateFabPosition(): void {
 
 async function loadSavedPosition(): Promise<FabPosition | null> {
   try {
-    const result = await chrome.storage.local.get('fabPosition');
-    return result.fabPosition || null;
+    const pos = await getFABPosition();
+    return pos;
   } catch {
     return null;
   }
@@ -253,7 +253,14 @@ async function onFabClick(): Promise<void> {
   setState('filling');
 
   try {
-    const result = await chrome.runtime.sendMessage({ type: 'START_AUTOFILL' });
+    // Dispatch START_AUTOFILL to self (content script handles it directly)
+    const result = await new Promise<{ filled?: number; error?: string }>((resolve) => {
+      chrome.runtime.sendMessage({ type: 'START_AUTOFILL' }, (response) => {
+        // If background forwarded to us, we get the result here
+        resolve(response || {});
+      });
+    });
+
     if (result?.error) {
       setState('error', result.error);
     } else {

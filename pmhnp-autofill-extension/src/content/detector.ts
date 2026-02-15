@@ -7,7 +7,10 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
     // Personal
     first_name: { patterns: ['first name', 'first_name', 'firstname', 'fname', 'given name', 'legalnamefirstname'], category: 'personal' },
     last_name: { patterns: ['last name', 'last_name', 'lastname', 'lname', 'surname', 'family name', 'legalnamelastname'], category: 'personal' },
+    middle_name: { patterns: ['middle name', 'middle_name', 'middlename', 'mname', 'middle initial'], category: 'personal' },
     full_name: { patterns: ['full name', 'fullname', 'your name', 'candidate name', 'applicant name'], category: 'personal' },
+    preferred_name: { patterns: ['preferred name', 'nickname', 'goes by', 'known as'], category: 'personal' },
+    confirm_email: { patterns: ['confirm email', 'confirm your email', 'confirm e-mail', 'verify email', 'retype email', 're-enter email', 'email again'], category: 'personal' },
     email: { patterns: ['email', 'e-mail', 'email address', 'e-mail address'], category: 'personal' },
     phone: { patterns: ['phone', 'telephone', 'mobile', 'cell', 'phone number', 'contact number'], category: 'personal' },
     address_line1: { patterns: ['address', 'street', 'address line 1', 'street address', 'address1'], category: 'personal' },
@@ -17,16 +20,24 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
     zip: { patterns: ['zip', 'postal', 'zip code', 'postal code', 'zipcode'], category: 'personal' },
     country: { patterns: ['country', 'nation'], category: 'personal' },
     linkedin: { patterns: ['linkedin', 'linkedin url', 'linkedin profile'], category: 'personal' },
+    website: { patterns: ['website', 'personal website', 'portfolio', 'web url'], category: 'personal' },
+    headline: { patterns: ['headline', 'professional headline', 'bio', 'summary', 'professional summary', 'about you', 'about yourself'], category: 'personal' },
 
     // Credentials
     npi_number: { patterns: ['npi', 'national provider', 'npi number', 'provider identifier'], category: 'credential' },
     dea_number: { patterns: ['dea', 'dea number', 'dea license', 'dea registration'], category: 'credential' },
     dea_expiration: { patterns: ['dea expiration', 'dea exp'], category: 'credential' },
+    dea_schedule: { patterns: ['dea schedule', 'schedule authority', 'controlled substance schedule'], category: 'credential' },
     license_number: { patterns: ['license number', 'license #', 'license no', 'rn license', 'rn #', 'aprn license', 'aprn', 'advanced practice'], category: 'credential' },
     license_state: { patterns: ['license state', 'state of licensure', 'licensing state'], category: 'credential' },
     license_expiration: { patterns: ['license expiration', 'license exp', 'expiration date'], category: 'credential' },
     certification_number: { patterns: ['certification number', 'cert number', 'ancc', 'board certification'], category: 'credential' },
     prescriptive_authority: { patterns: ['prescriptive authority', 'prescribing authority'], category: 'credential' },
+    csr_number: { patterns: ['controlled substance registration', 'csr number', 'state csr', 'state controlled substance'], category: 'credential' },
+    pmp_registered: { patterns: ['pdmp', 'pmp', 'prescription monitoring', 'prescription drug monitoring'], category: 'credential' },
+    malpractice_carrier: { patterns: ['malpractice carrier', 'malpractice insurance', 'liability insurance', 'insurance carrier', 'insurance provider'], category: 'credential' },
+    malpractice_policy: { patterns: ['malpractice policy', 'policy number', 'insurance policy'], category: 'credential' },
+    malpractice_coverage: { patterns: ['malpractice coverage', 'coverage amount', 'insurance coverage', 'coverage limits'], category: 'credential' },
 
     // Education
     degree: { patterns: ['degree', 'highest degree', 'education level', 'degree type'], category: 'education' },
@@ -40,8 +51,22 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
     employer: { patterns: ['employer', 'company', 'organization', 'facility', 'company name', 'employer name'], category: 'experience' },
     start_date: { patterns: ['start date', 'from date', 'date started', 'from'], category: 'experience' },
     end_date: { patterns: ['end date', 'to date', 'date ended', 'to'], category: 'experience' },
-    supervisor: { patterns: ['supervisor', 'manager', 'reporting to', 'supervisor name'], category: 'experience' },
+    supervisor: { patterns: ['supervisor', 'supervisor name', 'reporting to', 'direct supervisor'], category: 'experience' },
+    message: { patterns: ['message to hiring', 'message to the hiring', 'hiring manager message', 'cover letter', 'additional message', 'message to recruiter', 'note to hiring', 'hiring team', 'let the company know'], category: 'open_ended' },
+    cover_letter: { patterns: ['cover letter text', 'cover letter content', 'letter of interest'], category: 'open_ended' },
     reason_leaving: { patterns: ['reason for leaving', 'reason left', 'why did you leave'], category: 'experience' },
+    years_experience: { patterns: ['years of experience', 'years experience', 'how many years', 'total experience', 'years in practice', 'years of practice'], category: 'experience' },
+    patient_volume: { patterns: ['patient volume', 'caseload', 'patients per', 'patient load', 'case load', 'how many patients'], category: 'experience' },
+    ehr_systems: { patterns: ['ehr', 'emr', 'electronic health record', 'electronic medical record', 'which ehr', 'ehr system'], category: 'experience' },
+    telehealth_experience: { patterns: ['telehealth', 'telemedicine', 'telepsych', 'virtual care', 'remote care'], category: 'experience' },
+    practice_setting: { patterns: ['practice setting', 'clinical setting', 'work setting', 'care setting', 'outpatient', 'inpatient'], category: 'experience' },
+
+    // Reference fields
+    reference_name: { patterns: ['reference name', 'reference 1', 'reference 2', 'reference 3', 'name of reference'], category: 'experience' },
+    reference_title: { patterns: ['reference title', 'title of reference', 'reference position'], category: 'experience' },
+    reference_phone: { patterns: ['reference phone', 'reference contact', 'reference telephone'], category: 'experience' },
+    reference_email: { patterns: ['reference email', 'reference e-mail'], category: 'experience' },
+    reference_relationship: { patterns: ['relationship to reference', 'relationship to applicant', 'how do you know'], category: 'experience' },
 
     // Screening
     felony: { patterns: ['felony', 'convicted of a felony', 'felony conviction'], category: 'screening' },
@@ -52,8 +77,12 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
     drug_screen: { patterns: ['drug screen', 'drug test'], category: 'screening' },
     work_authorized: { patterns: ['authorized to work', 'legally authorized', 'work authorization', 'eligible to work'], category: 'screening' },
     visa_sponsorship: { patterns: ['sponsorship', 'visa sponsorship', 'require sponsorship'], category: 'screening' },
-    salary: { patterns: ['salary', 'desired salary', 'compensation', 'pay rate', 'expected salary', 'salary expectation'], category: 'screening' },
-    start_date_available: { patterns: ['start date', 'earliest start', 'available date', 'when can you start', 'availability'], category: 'screening' },
+    salary: { patterns: ['salary', 'desired salary', 'compensation', 'pay rate', 'expected salary', 'salary expectation', 'hourly rate', 'wage'], category: 'screening' },
+    start_date_available: { patterns: ['start date', 'earliest start', 'available date', 'when can you start', 'availability', 'available to start'], category: 'screening' },
+    work_mode: { patterns: ['work mode', 'remote', 'hybrid', 'in-person', 'on-site', 'work arrangement', 'work preference', 'work schedule'], category: 'screening' },
+    job_type: { patterns: ['job type', 'employment type', 'full time', 'part time', 'contract', 'per diem', 'prn'], category: 'screening' },
+    willing_to_relocate: { patterns: ['relocate', 'relocation', 'willing to relocate', 'open to relocation'], category: 'screening' },
+    willing_to_travel: { patterns: ['travel', 'willing to travel', 'travel required', 'travel percentage'], category: 'screening' },
 
     // EEO
     veteran: { patterns: ['veteran', 'military', 'veteran status'], category: 'eeo' },
@@ -76,6 +105,23 @@ const OPEN_ENDED_PATTERNS = [
     'career goals', 'professional development', 'additional information',
     'cover letter', 'summary of qualifications', 'anything else',
     'why are you interested', 'what experience', 'strengths',
+    // Healthcare-specific open-ended
+    'patient population', 'clinical hours', 'ehr systems', 'emr experience',
+    'telemedicine', 'telepsychiatry', 'prescribing experience',
+    'collaborative agreement', 'medication-assisted', 'mat experience',
+    'therapeutic modalities', 'treatment modality', 'caseload',
+    'clinical supervision', 'population served', 'evidence-based',
+    'trauma-informed', 'crisis intervention', 'inpatient experience',
+    'outpatient experience', 'substance abuse', 'dual diagnosis',
+    // Generic question starters
+    'please provide', 'please describe', 'please explain', 'share your',
+    'what is your', 'how many', 'how would you', 'what are your',
+];
+
+// Detect if a label/text looks like a question (for text inputs, not just textareas)
+const QUESTION_INDICATORS = [
+    '?', 'describe ', 'explain ', 'please ', 'how do', 'how many', 'how would',
+    'what is', 'what are', 'why do', 'why are', 'tell us', 'share your',
 ];
 
 // ─── Detection Functions ───
@@ -236,15 +282,35 @@ function identifyField(el: HTMLElement, label: string): { identifier: string; ca
         }
     }
 
-    // Check for open-ended textarea
-    if (el.tagName.toLowerCase() === 'textarea') {
-        const maxLen = parseInt(el.getAttribute('maxlength') || '0', 10);
-        if (maxLen === 0 || maxLen > 100) {
-            const allText = (label + ' ' + (el as HTMLTextAreaElement).placeholder).toLowerCase();
-            const isOpenEnded = OPEN_ENDED_PATTERNS.some((p) => allText.includes(p));
-            if (isOpenEnded) {
+    // Check for open-ended questions (textareas AND text inputs with question-like labels)
+    const tagName = el.tagName.toLowerCase();
+    const inputType = (el as HTMLInputElement).type?.toLowerCase() || '';
+    const isTextInput = tagName === 'textarea' || (tagName === 'input' && (inputType === 'text' || inputType === ''));
+
+    if (isTextInput) {
+        const allText = (label + ' ' + ((el as HTMLInputElement).placeholder || '')).toLowerCase();
+
+        // Check 1: Matches our known open-ended patterns
+        const isOpenEnded = OPEN_ENDED_PATTERNS.some((p) => allText.includes(p));
+
+        // Check 2: Contains question indicators (?, "describe", "explain", etc.)
+        const isQuestion = QUESTION_INDICATORS.some((q) => allText.includes(q));
+
+        // Check 3: Long label text (20+ words) suggests a question, not a data field
+        const wordCount = allText.split(/\s+/).filter(Boolean).length;
+        const isLongLabel = wordCount >= 20;
+
+        // For textareas, any of these triggers open-ended classification
+        if (tagName === 'textarea') {
+            const maxLen = parseInt(el.getAttribute('maxlength') || '0', 10);
+            if ((maxLen === 0 || maxLen > 100) && (isOpenEnded || isQuestion || isLongLabel)) {
                 return { identifier: 'open_ended_question', category: 'open_ended', confidence: 0.7 };
             }
+        }
+
+        // For text inputs, require stronger signal (question + pattern, or very clear question)
+        if (tagName === 'input' && (isOpenEnded || (isQuestion && wordCount >= 6) || isLongLabel)) {
+            return { identifier: 'open_ended_question', category: 'open_ended', confidence: 0.6 };
         }
     }
 
@@ -389,6 +455,42 @@ export function detectATS(): { name: string; confidence: number } | null {
             name: 'BambooHR',
             urlPatterns: ['bamboohr.com/careers', 'bamboohr.com/jobs'],
         },
+        {
+            name: 'ADP',
+            urlPatterns: ['adp.com', 'run.adp.com', 'my.adp.com'],
+            domChecks: () => !!document.querySelector('[class*="adp-"], [data-adp], mat-form-field'),
+        },
+        {
+            name: 'UKG',
+            urlPatterns: ['ultipro.com', 'ukg.com', 'ukg.net', 'recruiting.ultipro'],
+        },
+        {
+            name: 'Taleo',
+            urlPatterns: ['taleo.net', 'oracle.com/careers', 'oraclecloud.com/hcmUI'],
+            domChecks: () => !!document.querySelector('[class*="taleo"], #requisitionDescriptionInterface'),
+        },
+        {
+            name: 'Indeed',
+            urlPatterns: ['indeed.com/viewjob', 'indeed.com/applyflow'],
+            domChecks: () => !!document.querySelector('[data-testid*="indeed"], #indeed-apply-widget'),
+        },
+        {
+            name: 'LinkedIn',
+            urlPatterns: ['linkedin.com/jobs'],
+            domChecks: () => !!document.querySelector('[class*="jobs-easy-apply"]'),
+        },
+        {
+            name: 'Jobvite',
+            urlPatterns: ['jobvite.com', 'jobs.jobvite'],
+        },
+        {
+            name: 'JazzHR',
+            urlPatterns: ['applytojob.com', 'jazzhr.com'],
+        },
+        {
+            name: 'Paylocity',
+            urlPatterns: ['paylocity.com', 'recruiting.paylocity'],
+        },
     ];
 
     for (const ats of atsPatterns) {
@@ -418,6 +520,17 @@ export function isApplicationPage(): boolean {
         'ashbyhq.com',
         'bamboohr.com',
         'apply.workable.com',
+        'adp.com',
+        'ultipro.com',
+        'ukg.com',
+        'taleo.net',
+        'oraclecloud.com',
+        'indeed.com',
+        'linkedin.com/jobs',
+        'jobvite.com',
+        'applytojob.com',
+        'jazzhr.com',
+        'paylocity.com',
     ];
     const isKnownATS = knownATSDomains.some(d => url.includes(d));
 

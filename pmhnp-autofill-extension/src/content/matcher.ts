@@ -8,11 +8,24 @@ export function mapFieldsToProfile(fields: DetectedField[], profile: ProfileData
 }
 
 function mapSingleField(field: DetectedField, profile: ProfileData): MappedField | null {
-    // Skip unknown fields with very low confidence
-    if (field.identifier === 'unknown' && field.confidence < 0.3) return null;
+    // Pass unknown/low-confidence fields through for AI classification instead of dropping
+    if (field.identifier === 'unknown' && field.confidence < 0.3) {
+        return {
+            field,
+            profileKey: 'unknown',
+            value: '',
+            fillMethod: 'text',
+            requiresAI: true,
+            requiresFile: false,
+            documentType: null,
+            confidence: field.confidence,
+            status: 'needs_ai_classification' as MappedField['status'],
+        };
+    }
 
-    // Open-ended questions
-    if (field.identifier === 'open_ended_question' || field.fieldCategory === 'open_ended') {
+    // Open-ended questions (but NOT message/cover_letter which have direct mappings)
+    if ((field.identifier === 'open_ended_question' || field.fieldCategory === 'open_ended') &&
+        field.identifier !== 'message' && field.identifier !== 'cover_letter') {
         return {
             field,
             profileKey: 'openEndedResponses',
@@ -88,6 +101,7 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
         last_name: () => ({ profileKey: 'personal.lastName', value: p.lastName || '', confidence: field.confidence }),
         full_name: () => ({ profileKey: 'personal.fullName', value: `${p.firstName || ''} ${p.lastName || ''}`.trim(), confidence: field.confidence }),
         email: () => ({ profileKey: 'personal.email', value: p.email || '', confidence: field.confidence }),
+        confirm_email: () => ({ profileKey: 'personal.email', value: p.email || '', confidence: field.confidence }),
         phone: () => ({ profileKey: 'personal.phone', value: p.phone || '', confidence: field.confidence }),
         address_line1: () => ({ profileKey: 'personal.address.line1', value: p.address.line1 || '', confidence: field.confidence }),
         address_line2: () => ({ profileKey: 'personal.address.line2', value: p.address.line2 || '', confidence: field.confidence }),
@@ -96,16 +110,26 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
         zip: () => ({ profileKey: 'personal.address.zip', value: p.address.zip || '', confidence: field.confidence }),
         country: () => ({ profileKey: 'personal.address.country', value: p.address.country || 'US', confidence: field.confidence }),
         linkedin: () => ({ profileKey: 'personal.linkedinUrl', value: p.linkedinUrl || '', confidence: field.confidence }),
+        website: () => ({ profileKey: 'personal.website', value: '', confidence: 0.3 }),
+        headline: () => ({ profileKey: 'personal.headline', value: p.headline || '', confidence: field.confidence }),
+        middle_name: () => ({ profileKey: 'personal.middleName', value: '', confidence: 0.3 }),
+        preferred_name: () => ({ profileKey: 'personal.preferredName', value: p.firstName || '', confidence: field.confidence }),
 
         // Credentials
         npi_number: () => ({ profileKey: 'credentials.npiNumber', value: c.npiNumber || '', confidence: field.confidence }),
         dea_number: () => ({ profileKey: 'credentials.deaNumber', value: c.deaNumber || '', confidence: field.confidence }),
         dea_expiration: () => ({ profileKey: 'credentials.deaExpirationDate', value: formatDate(c.deaExpirationDate), confidence: field.confidence }),
+        dea_schedule: () => ({ profileKey: 'credentials.deaScheduleAuthority', value: c.deaScheduleAuthority || '', confidence: field.confidence }),
         prescriptive_authority: () => ({
             profileKey: 'practiceAuthority.prescriptiveAuthorityStatus',
             value: profile.practiceAuthority.prescriptiveAuthorityStatus || '',
             confidence: field.confidence,
         }),
+        csr_number: () => ({ profileKey: 'credentials.stateControlledSubstanceReg', value: c.stateControlledSubstanceReg || '', confidence: field.confidence }),
+        pmp_registered: () => ({ profileKey: 'credentials.pmpRegistered', value: c.pmpRegistered ?? false, confidence: field.confidence }),
+        malpractice_carrier: () => ({ profileKey: 'malpractice.carrier', value: profile.malpractice.carrier || '', confidence: field.confidence }),
+        malpractice_policy: () => ({ profileKey: 'malpractice.policyNumber', value: profile.malpractice.policyNumber || '', confidence: field.confidence }),
+        malpractice_coverage: () => ({ profileKey: 'malpractice.coverage', value: profile.malpractice.coverage || '', confidence: field.confidence }),
 
         // License fields - pick best match
         license_number: () => {
@@ -193,6 +217,69 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
             const work = profile.workExperience[0];
             return work?.reasonForLeaving ? { profileKey: 'workExperience[0].reasonForLeaving', value: work.reasonForLeaving, confidence: field.confidence } : null;
         },
+        years_experience: () => {
+            // Try to calculate from work experience if not in profile
+            const work = profile.workExperience;
+            if (work.length > 0) {
+                const earliest = work.reduce((min, w) => {
+                    const d = new Date(w.startDate).getTime();
+                    return d < min ? d : min;
+                }, Date.now());
+                const years = Math.floor((Date.now() - earliest) / (365.25 * 24 * 60 * 60 * 1000));
+                return { profileKey: 'computed.yearsExperience', value: years.toString(), confidence: field.confidence };
+            }
+            return null;
+        },
+        patient_volume: () => {
+            const work = profile.workExperience[0];
+            return work?.clinicalDetails?.patientVolume
+                ? { profileKey: 'workExperience[0].clinicalDetails.patientVolume', value: work.clinicalDetails.patientVolume, confidence: field.confidence }
+                : null;
+        },
+        ehr_systems: () => {
+            const work = profile.workExperience[0];
+            const systems = work?.clinicalDetails?.ehrSystems;
+            return systems && systems.length > 0
+                ? { profileKey: 'workExperience[0].clinicalDetails.ehrSystems', value: systems.join(', '), confidence: field.confidence }
+                : null;
+        },
+        telehealth_experience: () => {
+            const work = profile.workExperience.find(w => w.clinicalDetails?.telehealthExperience);
+            if (work) {
+                const platforms = work.clinicalDetails?.telehealthPlatforms || [];
+                const value = platforms.length > 0 ? `Yes — ${platforms.join(', ')}` : 'Yes';
+                return { profileKey: 'workExperience[0].clinicalDetails.telehealthExperience', value, confidence: field.confidence };
+            }
+            return { profileKey: 'workExperience[0].clinicalDetails.telehealthExperience', value: 'No', confidence: 0.5 };
+        },
+        practice_setting: () => {
+            const work = profile.workExperience[0];
+            return work?.clinicalDetails?.practiceSetting
+                ? { profileKey: 'workExperience[0].clinicalDetails.practiceSetting', value: work.clinicalDetails.practiceSetting, confidence: field.confidence }
+                : null;
+        },
+
+        // Reference fields (first reference)
+        reference_name: () => {
+            const ref = profile.references?.[0];
+            return ref ? { profileKey: 'references[0].fullName', value: ref.fullName, confidence: field.confidence } : null;
+        },
+        reference_title: () => {
+            const ref = profile.references?.[0];
+            return ref?.title ? { profileKey: 'references[0].title', value: ref.title, confidence: field.confidence } : null;
+        },
+        reference_phone: () => {
+            const ref = profile.references?.[0];
+            return ref?.phone ? { profileKey: 'references[0].phone', value: ref.phone, confidence: field.confidence } : null;
+        },
+        reference_email: () => {
+            const ref = profile.references?.[0];
+            return ref?.email ? { profileKey: 'references[0].email', value: ref.email, confidence: field.confidence } : null;
+        },
+        reference_relationship: () => {
+            const ref = profile.references?.[0];
+            return ref?.relationship ? { profileKey: 'references[0].relationship', value: ref.relationship, confidence: field.confidence } : null;
+        },
 
         // Screening
         work_authorized: () => ({ profileKey: 'eeo.workAuthorized', value: e.workAuthorized ?? true, confidence: field.confidence }),
@@ -212,6 +299,10 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
             return null;
         },
         start_date_available: () => ({ profileKey: 'preferences.availableDate', value: formatDate(pref.availableDate), confidence: field.confidence }),
+        work_mode: () => ({ profileKey: 'preferences.preferredWorkMode', value: pref.preferredWorkMode || '', confidence: field.confidence }),
+        job_type: () => ({ profileKey: 'preferences.preferredJobType', value: pref.preferredJobType || '', confidence: field.confidence }),
+        willing_to_relocate: () => mapScreeningAnswer(field, profile, 'willing_to_relocate'),
+        willing_to_travel: () => mapScreeningAnswer(field, profile, 'willing_to_travel'),
 
         felony: () => mapScreeningAnswer(field, profile, 'felony_conviction'),
         misdemeanor: () => mapScreeningAnswer(field, profile, 'misdemeanor_conviction'),
@@ -219,6 +310,18 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
         malpractice: () => mapScreeningAnswer(field, profile, 'malpractice_claim'),
         background_check: () => ({ profileKey: 'screening.background_check', value: true, confidence: field.confidence }),
         drug_screen: () => ({ profileKey: 'screening.drug_screen', value: true, confidence: field.confidence }),
+
+        // Message / Cover letter
+        message: () => {
+            const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+            const msg = `I am writing to express my strong interest in this position. As a Psychiatric-Mental Health Nurse Practitioner (PMHNP) with clinical experience, I am confident I can make a meaningful contribution to your team. I look forward to discussing how my skills and experience align with your needs.\n\nBest regards,\n${name}`;
+            return { profileKey: 'personal.message', value: msg, confidence: field.confidence };
+        },
+        cover_letter: () => {
+            const name = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+            const msg = `I am writing to express my strong interest in this position. As a Psychiatric-Mental Health Nurse Practitioner (PMHNP) with clinical experience, I am confident I can make a meaningful contribution to your team. I look forward to discussing how my skills and experience align with your needs.\n\nBest regards,\n${name}`;
+            return { profileKey: 'personal.coverLetter', value: msg, confidence: field.confidence };
+        },
     };
 
     const mapper = map[field.identifier];

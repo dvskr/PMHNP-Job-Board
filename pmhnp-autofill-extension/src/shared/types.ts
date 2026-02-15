@@ -25,6 +25,7 @@ export interface PersonalInfo {
     address: Address;
     linkedinUrl: string | null;
     avatarUrl: string | null;
+    headline: string | null;
 }
 
 export interface Address {
@@ -244,7 +245,7 @@ export interface MappedField {
     requiresFile: boolean;
     documentType: string | null;
     confidence: number;
-    status: 'ready' | 'no_data' | 'needs_ai' | 'needs_file' | 'ambiguous';
+    status: 'ready' | 'no_data' | 'needs_ai' | 'needs_file' | 'ambiguous' | 'needs_ai_classification';
 }
 
 // ─── Form Filling Types ───
@@ -373,7 +374,11 @@ export type MessageType =
     | 'GET_USAGE'
     | 'RECORD_AUTOFILL'
     | 'OPEN_REVIEW_SIDEBAR'
-    | 'CLOSE_REVIEW_SIDEBAR';
+    | 'CLOSE_REVIEW_SIDEBAR'
+    | 'PROXY_FETCH'
+    | 'CLASSIFY_AND_MAP'
+    | 'FETCH_FILE'
+    | 'RECORD_AUTOFILL';
 
 export interface ExtensionMessage<T = unknown> {
     type: MessageType;

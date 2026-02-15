@@ -1,6 +1,7 @@
 import type { MappedField, FillResult, FillDetail } from '@/shared/types';
 import { getSettings } from '@/shared/storage';
 import { FILL_DELAYS } from '@/shared/constants';
+import { fillTypeahead, fillDateSmart, fillRichText, fillSlider } from './fields';
 
 // ─── Main Fill Function ───
 
@@ -102,13 +103,38 @@ export async function fillSingleField(mapped: MappedField): Promise<FillDetail> 
 
     try {
         switch (fillMethod) {
-            case 'text':
+            case 'text': {
+                // Check if element is a typeahead/combobox
+                const isTypeahead = el.getAttribute('role') === 'combobox' ||
+                    el.closest('[class*="typeahead"], [class*="autocomplete"], [class*="combobox"]') !== null ||
+                    el.getAttribute('aria-autocomplete') === 'list' ||
+                    el.getAttribute('aria-autocomplete') === 'both';
+
+                // Check if element is a rich text editor
+                const isRichText = el.getAttribute('contenteditable') === 'true' ||
+                    el.closest('.ck-editor, .ql-container, .ProseMirror, [class*="tinymce"]') !== null;
+
+                if (isTypeahead) {
+                    await fillTypeahead(el, String(value));
+                } else if (isRichText) {
+                    await fillRichText(el, String(value));
+                } else {
+                    await fillTextInput(el, String(value));
+                }
+                break;
+            }
             case 'date':
-                await fillTextInput(el, String(value));
+                await fillDateSmart(el, String(value));
                 break;
-            case 'select':
-                await fillSelect(el, String(value));
+            case 'select': {
+                // Check for range slider
+                if ((el as HTMLInputElement).type === 'range') {
+                    await fillSlider(el, String(value));
+                } else {
+                    await fillSelect(el, String(value));
+                }
                 break;
+            }
             case 'radio':
                 await fillRadio(el, value);
                 break;
@@ -152,7 +178,7 @@ export async function fillSingleField(mapped: MappedField): Promise<FillDetail> 
 
 // ─── Text Input (handles React AND Angular-controlled inputs) ───
 
-async function fillTextInput(el: HTMLElement, value: string): Promise<void> {
+export async function fillTextInput(el: HTMLElement, value: string): Promise<void> {
     const input = el as HTMLInputElement | HTMLTextAreaElement;
 
     // Focus the element
@@ -227,7 +253,7 @@ export function triggerReactChange(element: HTMLElement, value: string): void {
 
 // ─── Select Dropdown ───
 
-async function fillSelect(el: HTMLElement, value: string): Promise<void> {
+export async function fillSelect(el: HTMLElement, value: string): Promise<void> {
     if (el.tagName.toLowerCase() === 'select') {
         // Native select
         const select = el as HTMLSelectElement;
@@ -252,7 +278,7 @@ async function fillSelect(el: HTMLElement, value: string): Promise<void> {
     }
 }
 
-async function fillCustomDropdown(el: HTMLElement, value: string): Promise<void> {
+export async function fillCustomDropdown(el: HTMLElement, value: string): Promise<void> {
     // Click to open
     el.click();
     el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -284,7 +310,7 @@ async function fillCustomDropdown(el: HTMLElement, value: string): Promise<void>
 
 // ─── Radio Buttons ───
 
-async function fillRadio(el: HTMLElement, value: string | boolean): Promise<void> {
+export async function fillRadio(el: HTMLElement, value: string | boolean): Promise<void> {
     const name = (el as HTMLInputElement).name;
     if (!name) return;
 
@@ -327,7 +353,7 @@ function findRadioLabel(radio: HTMLInputElement): string {
 
 // ─── Checkbox ───
 
-async function fillCheckbox(el: HTMLElement, value: string | boolean): Promise<void> {
+export async function fillCheckbox(el: HTMLElement, value: string | boolean): Promise<void> {
     const checkbox = el as HTMLInputElement;
     const shouldBeChecked = typeof value === 'boolean' ? value : value === 'true' || value === 'yes' || value === '1';
 
@@ -361,7 +387,7 @@ export async function simulateTyping(element: HTMLElement, value: string): Promi
 
 // ─── Verification ───
 
-function verifyFill(el: HTMLElement, value: string | boolean): boolean {
+export function verifyFill(el: HTMLElement, value: string | boolean): boolean {
     const input = el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
     if (el.tagName.toLowerCase() === 'input' && (el as HTMLInputElement).type === 'checkbox') {
@@ -382,6 +408,6 @@ function verifyFill(el: HTMLElement, value: string | boolean): boolean {
 
 // ─── Utility ───
 
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

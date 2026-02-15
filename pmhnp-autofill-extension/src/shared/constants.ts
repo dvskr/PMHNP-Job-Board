@@ -5,6 +5,7 @@ export const AUTH_EXTENSION_TOKEN_ENDPOINT = '/api/auth/extension-token';
 export const AI_GENERATE_ENDPOINT = '/api/autofill/generate-answer';
 export const AI_COVER_LETTER_ENDPOINT = '/api/autofill/generate-cover-letter';
 export const AI_BULK_ENDPOINT = '/api/autofill/generate-bulk';
+export const AI_CLASSIFY_ENDPOINT = '/api/autofill/classify-fields';
 export const AUTOFILL_TRACK_ENDPOINT = '/api/autofill/track';
 export const AUTOFILL_USAGE_ENDPOINT = '/api/autofill/usage';
 

@@ -7,10 +7,63 @@ import {
     AI_GENERATE_ENDPOINT,
     AI_COVER_LETTER_ENDPOINT,
     AI_BULK_ENDPOINT,
+    AI_CLASSIFY_ENDPOINT,
 } from './constants';
 import { getAuthHeaders } from './auth';
 import { getCachedProfile, setCachedProfile, isCacheStale, getCachedUsage, setCachedUsage } from './storage';
 import type { AIGenerateRequest, AIGenerateResponse } from './types';
+
+// ─── CORS Proxy ───
+// Content scripts can't fetch localhost due to CORS. Route through background service worker.
+
+function isContentScript(): boolean {
+    try {
+        // chrome.tabs is undefined in content scripts
+        return typeof chrome !== 'undefined' && typeof chrome.tabs === 'undefined';
+    } catch {
+        return false;
+    }
+}
+
+interface ProxyResponse {
+    ok: boolean;
+    status: number;
+    body?: unknown;
+    error?: string;
+    json(): Promise<unknown>;
+    text(): Promise<string>;
+}
+
+async function proxyFetch(url: string, options?: RequestInit): Promise<ProxyResponse> {
+    if (!isContentScript()) {
+        // In background/popup — use native fetch
+        return fetch(url, options);
+    }
+
+    // In content script — proxy through background
+    const serializableOptions: Record<string, unknown> = {};
+    if (options?.method) serializableOptions.method = options.method;
+    if (options?.headers) serializableOptions.headers = options.headers;
+    if (options?.body) serializableOptions.body = options.body;
+
+    const result = await chrome.runtime.sendMessage({
+        type: 'PROXY_FETCH',
+        payload: { url, options: serializableOptions },
+    }) as { ok: boolean; status: number; body?: unknown; error?: string };
+
+    if (result.error && !result.ok) {
+        throw new Error(result.error);
+    }
+
+    // Return a fetch-Response-like object
+    return {
+        ok: result.ok,
+        status: result.status,
+        body: result.body,
+        json: async () => result.body,
+        text: async () => (typeof result.body === 'string' ? result.body : JSON.stringify(result.body)),
+    };
+}
 
 // ─── Profile ───
 
@@ -23,7 +76,7 @@ export async function fetchProfile(forceRefresh = false): Promise<ProfileData> {
     }
 
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${PROFILE_EXPORT_ENDPOINT}`, {
+    const response = await proxyFetch(`${API_BASE_URL}${PROFILE_EXPORT_ENDPOINT}`, {
         headers: { ...headers, 'Content-Type': 'application/json' },
     });
 
@@ -83,7 +136,7 @@ export async function fetchUsage(): Promise<UsageData> {
     if (cached) return cached;
 
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${AUTOFILL_USAGE_ENDPOINT}`, {
+    const response = await proxyFetch(`${API_BASE_URL}${AUTOFILL_USAGE_ENDPOINT}`, {
         headers: { ...headers, 'Content-Type': 'application/json' },
     });
 
@@ -102,7 +155,7 @@ export async function recordAutofill(
 ): Promise<void> {
     try {
         const headers = await getAuthHeaders();
-        await fetch(`${API_BASE_URL}${AUTOFILL_TRACK_ENDPOINT}`, {
+        await proxyFetch(`${API_BASE_URL}${AUTOFILL_TRACK_ENDPOINT}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
             body: JSON.stringify({ pageUrl, atsName, fieldsFilled, aiGenerations }),
@@ -116,14 +169,14 @@ export async function recordAutofill(
 
 export async function generateAnswer(request: AIGenerateRequest): Promise<AIGenerateResponse> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${AI_GENERATE_ENDPOINT}`, {
+    const response = await proxyFetch(`${API_BASE_URL}${AI_GENERATE_ENDPOINT}`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
     });
 
     if (response.status === 429) {
-        const data = await response.json();
+        const data = await response.json() as { error?: string };
         throw new Error(`Rate limited: ${data.error || 'AI generation limit reached'}`);
     }
 
@@ -138,7 +191,7 @@ export async function generateCoverLetter(
     jobDescription: string
 ): Promise<{ coverLetter: string; model: string }> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${AI_COVER_LETTER_ENDPOINT}`, {
+    const response = await proxyFetch(`${API_BASE_URL}${AI_COVER_LETTER_ENDPOINT}`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobTitle, employerName, jobDescription }),
@@ -147,14 +200,14 @@ export async function generateCoverLetter(
     if (response.status === 429) throw new Error('AI generation limit reached');
     if (!response.ok) throw new Error(`Cover letter generation failed: ${response.status}`);
 
-    return response.json();
+    return (await response.json()) as { coverLetter: string; model: string };
 }
 
 export async function generateBulkAnswers(
     questions: AIGenerateRequest[]
 ): Promise<AIGenerateResponse[]> {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${AI_BULK_ENDPOINT}`, {
+    const response = await proxyFetch(`${API_BASE_URL}${AI_BULK_ENDPOINT}`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ questions }),
@@ -163,5 +216,50 @@ export async function generateBulkAnswers(
     if (response.status === 429) throw new Error('AI generation limit reached');
     if (!response.ok) throw new Error(`Bulk generation failed: ${response.status}`);
 
-    return response.json();
+    return (await response.json()) as AIGenerateResponse[];
+}
+
+// ─── AI Field Classification ───
+
+export interface ClassifyFieldsRequest {
+    fields: {
+        label: string;
+        placeholder: string;
+        attributes: Record<string, string>;
+        fieldType: string;
+        options: string[];
+    }[];
+    jobTitle?: string;
+    jobDescription?: string;
+    employerName?: string;
+}
+
+export interface ClassifyFieldsResponse {
+    classified: {
+        index: number;
+        identifier: string;
+        profileKey: string | null;
+        value: string;
+        confidence: number;
+        isQuestion: boolean;
+    }[];
+    model: string;
+    resumeUsed: boolean;
+}
+
+export async function classifyFields(request: ClassifyFieldsRequest): Promise<ClassifyFieldsResponse> {
+    const headers = await getAuthHeaders();
+    const response = await proxyFetch(`${API_BASE_URL}${AI_CLASSIFY_ENDPOINT}`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+    });
+
+    if (response.status === 429) throw new Error('AI classification limit reached');
+    if (!response.ok) {
+        const errBody = await response.text();
+        throw new Error(`Field classification failed: ${response.status} — ${errBody}`);
+    }
+
+    return (await response.json()) as ClassifyFieldsResponse;
 }

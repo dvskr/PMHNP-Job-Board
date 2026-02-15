@@ -213,6 +213,9 @@ async function fillExpFields(rows: HTMLElement[][], profile: Record<string, unkn
     const work = (profile as any)?.workExperience?.[0];
     if (!work) { console.log('[PMHNP] No work experience data'); return; }
 
+    // Build location from employerCity + employerState (profile export doesn't have a single `location` field)
+    const location = [work.employerCity, work.employerState].filter(Boolean).join(', ');
+
     // Map field values to row/col positions
     // Each entry: [rowIdx, colIdx, value, isAutocomplete, isDate]
     type FieldDef = { row: number; col: number; value: string; autocomplete: boolean; date: boolean };
@@ -220,7 +223,7 @@ async function fillExpFields(rows: HTMLElement[][], profile: Record<string, unkn
     const fieldDefs: FieldDef[] = [
         { row: 0, col: 0, value: work.jobTitle || '', autocomplete: true, date: false },        // Title
         { row: 0, col: 1, value: work.employerName || '', autocomplete: true, date: false },     // Company
-        { row: 1, col: 0, value: work.location || '', autocomplete: true, date: false },         // Office location
+        { row: 1, col: 0, value: location, autocomplete: true, date: false },                    // Office location
         { row: 2, col: 0, value: work.description || '', autocomplete: false, date: false },     // Description
         { row: 3, col: 0, value: work.startDate || '', autocomplete: false, date: true },        // From
         { row: 3, col: 1, value: work.isCurrent ? '' : (work.endDate || ''), autocomplete: false, date: true }, // To
