@@ -38,6 +38,7 @@ model Job {
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
   sourceType          String?      @map("source_type")
   sourceProvider      String?      @map("source_provider")
+  sourceSite          String?      @map("source_site")
   externalId          String?      @map("external_id")
   viewCount           Int          @default(0) @map("view_count")
   applyClickCount     Int          @default(0) @map("apply_click_count")
