@@ -237,11 +237,11 @@ export default async function SalaryGuidePage() {
         { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
       ]} />
 
-      <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+      <div className="min-h-screen bg-gray-50">
         {/* Last Updated Notice */}
-        <div style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb', padding: '8px 16px' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
-            <p style={{ color: '#6b7280', fontSize: '0.75rem', margin: 0 }}>
+        <div className="bg-gray-100 border-b border-gray-200 px-4 py-2">
+          <div className="max-w-[1200px] mx-auto text-center">
+            <p className="text-gray-500 text-xs m-0">
               Last Updated: February 2026 | Sources: BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth
             </p>
           </div>
@@ -282,8 +282,8 @@ export default async function SalaryGuidePage() {
           </div>
         </section>
 
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
-          <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
+        <div className="max-w-[1200px] mx-auto px-4 py-6">
+          <div className="max-w-[1024px] mx-auto">
             {/* Quick Answer Box */}
             <section className="mb-6">
               <div className="bg-gradient-to-r from-teal-50 to-slate-50 rounded-lg border border-teal-200 p-6">
