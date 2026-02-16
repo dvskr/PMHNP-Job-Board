@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { ingestJobs, cleanupExpiredJobs, type JobSource } from '@/lib/ingestion-service';
+import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
 /**
  * Admin API wrapper for triggering ingestion
  * Handles authentication server-side
  */
 export async function POST(request: NextRequest) {
+  // Verify admin session
+  const authError = await requireApiAdmin();
+  if (authError) return authError;
+
   try {
     const body = await request.json().catch(() => ({}));
     const source = body.source;
