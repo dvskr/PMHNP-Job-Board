@@ -5,6 +5,21 @@ import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 
+// Shared include for _count used by completeness scoring
+const profileInclude = {
+  _count: {
+    select: {
+      licenses: true,
+      certificationRecords: true,
+      education: true,
+      workExperience: true,
+      screeningAnswers: true,
+      openEndedResponses: true,
+      candidateReferences: true,
+    },
+  },
+} as const
+
 // GET - Get current user's profile
 export async function GET() {
   try {
@@ -16,7 +31,8 @@ export async function GET() {
     }
 
     const profile = await prisma.userProfile.findUnique({
-      where: { supabaseId: user.id }
+      where: { supabaseId: user.id },
+      include: profileInclude,
     })
 
     if (!profile) {
@@ -269,6 +285,7 @@ export async function PATCH(request: NextRequest) {
         ...(availableDate !== undefined && { availableDate }),
         updatedAt: new Date(),
       },
+      include: profileInclude,
     })
 
     return NextResponse.json(updatedProfile)

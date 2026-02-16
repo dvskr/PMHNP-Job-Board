@@ -72,8 +72,8 @@ function JobFiltersComponent({ currentFilters, onFilterChange }: JobFiltersProps
   }, [isMobileOpen, currentFilters]);
 
   useEffect(() => {
-    document.body.style.overflow = isMobileOpen ? 'hidden' : 'unset';
-    return () => { document.body.style.overflow = 'unset'; };
+    document.body.style.overflow = isMobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
   }, [isMobileOpen]);
 
   const activeFilterCount = Object.keys(currentFilters).filter(

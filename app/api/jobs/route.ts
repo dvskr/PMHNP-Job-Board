@@ -50,13 +50,20 @@ export async function GET(request: NextRequest) {
     const where = buildWhereClause(filters);
 
     // Parse sort option
-    const sort = searchParams.get('sort') || 'newest';
+    const sort = searchParams.get('sort') || 'best';
     let orderBy: Record<string, unknown>[] = [
       { isFeatured: 'desc' },
+      { qualityScore: 'desc' },
       { originalPostedAt: 'desc' },
       { createdAt: 'desc' },
     ];
-    if (sort === 'salary') {
+    if (sort === 'newest') {
+      orderBy = [
+        { isFeatured: 'desc' },
+        { originalPostedAt: 'desc' },
+        { createdAt: 'desc' },
+      ];
+    } else if (sort === 'salary') {
       orderBy = [
         { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
         { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },

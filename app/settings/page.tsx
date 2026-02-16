@@ -1,22 +1,32 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import BreadcrumbSchema from '@/components/BreadcrumbSchema'
 import {
   User, Mail, Phone, Building, Save, Loader2, Lock, CheckCircle,
   AlertTriangle, X, Eye, EyeOff, Briefcase, Award, MapPin, Linkedin,
-  Calendar, DollarSign, FileText, Shield
+  Calendar, DollarSign, FileText, Shield, HelpCircle, ClipboardList
 } from 'lucide-react'
 import AvatarUpload from '@/components/auth/AvatarUpload'
 import ResumeUpload from '@/components/auth/ResumeUpload'
 import ChipSelector from '@/components/profile/ChipSelector'
 import PillSelector from '@/components/profile/PillSelector'
 import { calculateCompleteness } from '@/lib/profile-completeness'
+import LicensesSection from '@/components/settings/LicensesSection'
+import CertificationsSection from '@/components/settings/CertificationsSection'
+import SettingsTabs, { type TabKey } from '@/components/settings/SettingsTabs'
+import EducationSection from '@/components/settings/EducationSection'
+import WorkExperienceSection from '@/components/settings/WorkExperienceSection'
+import ScreeningAnswersSection from '@/components/settings/ScreeningAnswersSection'
+import OpenEndedResponsesSection from '@/components/settings/OpenEndedResponsesSection'
+
+import ReferencesSection from '@/components/settings/ReferencesSection'
+
 
 // ── Preset data ──
-const CERT_PRESETS = ['PMHNP-BC', 'ANCC', 'DEA', 'BLS/ACLS', 'CAQ-Psych']
+
 const SPECIALTY_PRESETS = [
   'ADHD', 'Anxiety/Depression', 'PTSD', 'Addiction',
   'Child & Adolescent', 'Geriatric', 'Eating Disorders',
@@ -32,13 +42,9 @@ const US_STATES = [
 const WORK_MODES = ['Remote', 'On-site', 'Hybrid', 'Telehealth', 'Any']
 const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem', 'Any']
 const EXPERIENCE_OPTIONS = [
-  { label: 'New Grad', value: 0 },
-  { label: '1-2 years', value: 1 },
-  { label: '3-5 years', value: 3 },
-  { label: '5-10 years', value: 5 },
-  { label: '10-15 years', value: 10 },
-  { label: '15-20 years', value: 15 },
-  { label: '20+ years', value: 20 },
+  { label: 'New Grad (0)', value: 0 },
+  ...Array.from({ length: 29 }, (_, i) => ({ label: `${i + 1} year${i + 1 === 1 ? '' : 's'}`, value: i + 1 })),
+  { label: '30+ years', value: 30 },
 ]
 const AVAILABILITY_OPTIONS = ['Immediately', '2 Weeks', '1 Month', '3 Months', 'Custom']
 
@@ -68,6 +74,24 @@ interface Profile {
   openToOffers: boolean
   profileVisible: boolean
   createdAt?: string
+  // Address
+  addressLine1: string | null
+  addressLine2: string | null
+  city: string | null
+  state: string | null
+  zipCode: string | null
+  country: string | null
+  // EEO & Work Authorization
+  workAuthorized: boolean | null
+  requiresSponsorship: boolean | null
+  veteranStatus: string | null
+  disabilityStatus: string | null
+  raceEthnicity: string | null
+  gender: string | null
+  // Federal Registrations
+  npiNumber: string | null
+  deaNumber: string | null
+  deaExpirationDate: string | null
 }
 
 // ── Shared card styles ──
@@ -108,11 +132,26 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
-export default function SettingsPage() {
+function SettingsPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const t = (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null) as TabKey | null
+    return t || 'personal'
+  })
+
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab)
+    const url = new URL(window.location.href)
+    url.searchParams.set('tab', tab)
+    window.history.replaceState({}, '', url.toString())
+  }
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingAddress, setSavingAddress] = useState(false)
+  const [savingEeo, setSavingEeo] = useState(false)
+  const [savingFedReg, setSavingFedReg] = useState(false)
   const [sendingReset, setSendingReset] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -256,8 +295,7 @@ export default function SettingsPage() {
           headline: profile.headline,
           bio: profile.bio,
           yearsExperience: profile.yearsExperience,
-          certifications: profile.certifications,
-          licenseStates: profile.licenseStates,
+
           specialties: profile.specialties,
           preferredWorkMode: profile.preferredWorkMode,
           preferredJobType: profile.preferredJobType,
@@ -355,12 +393,36 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '24px' }}>
-          Profile Settings
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            Profile Settings
+          </h1>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '10px 24px',
+              borderRadius: '12px',
+              background: saving ? 'rgba(45,212,191,0.3)' : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: saving ? 'not-allowed' : 'pointer',
+              border: 'none',
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              boxShadow: '0 2px 12px rgba(45,212,191,0.25)',
+              transition: 'all 0.3s',
+            }}
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+
+        <SettingsTabs activeTab={activeTab} onTabChange={handleTabChange} isJobSeeker={profile.role !== 'employer'} />
 
         {/* ═══ Profile Completeness Bar ═══ */}
-        {profile.role === 'job_seeker' && (() => {
+        {profile.role !== 'employer' && (() => {
           const { percentage, color, missingItems } = calculateCompleteness(profile)
           return (
             <div style={{ ...cardStyle, padding: '24px', marginBottom: '24px' }}>
@@ -419,520 +481,1021 @@ export default function SettingsPage() {
           )
         })()}
 
-        {/* ═════════════════════════════════════════════
+        {/* ═══ TAB: Personal ═══ */}
+        {activeTab === 'personal' && (<div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* ═════════════════════════════════════════════
           SECTION 1 — Profile Header
          ═════════════════════════════════════════════ */}
-        <div id="section-name" style={cardStyle}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-            <AvatarUpload
-              currentAvatarUrl={profile.avatarUrl}
-              userEmail={profile.email}
-              onUploadComplete={handleAvatarUpload}
-              onRemove={handleAvatarRemove}
-            />
-            <div style={{ textAlign: 'center' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                {displayName}
-              </h2>
-              {profile.headline && (
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-                  {profile.headline}
-                </p>
+          <div id="section-name" style={cardStyle}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+              <AvatarUpload
+                currentAvatarUrl={profile.avatarUrl}
+                userEmail={profile.email}
+                onUploadComplete={handleAvatarUpload}
+                onRemove={handleAvatarRemove}
+              />
+              <div style={{ textAlign: 'center' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  {displayName}
+                </h2>
+                {profile.headline && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
+                    {profile.headline}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Toggles — job seekers only */}
+            {profile.role !== 'employer' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <ToggleRow
+                  label="Open to offers"
+                  description="Let employers know you're available"
+                  icon={<Briefcase size={16} style={{ color: '#2DD4BF' }} />}
+                  checked={profile.openToOffers}
+                  onChange={(v) => updateProfile({ openToOffers: v })}
+                />
+                <ToggleRow
+                  label="Profile visible to employers"
+                  description="Hide your profile from employer searches"
+                  icon={<Eye size={16} style={{ color: '#818CF8' }} />}
+                  checked={profile.profileVisible}
+                  onChange={(v) => updateProfile({ profileVisible: v })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* ═════════════════════════════════════════════
+          SECTION — Resume (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <div id="section-resume" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <FileText size={20} style={{ color: '#F59E0B' }} />
+                Resume
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+                Upload your resume to quickly apply to jobs
+              </p>
+              <ResumeUpload
+                currentResumeUrl={profile.resumeUrl}
+                onUploadComplete={handleResumeUpload}
+                onRemove={handleResumeRemove}
+              />
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════
+          SECTION 2 — Professional Info (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <div id="section-headline" style={cardStyle}>
+              <div id="section-bio" />
+              <div id="section-experience" />
+              <div id="section-certifications" />
+              <div id="section-states" />
+              <div id="section-specialties" />
+              <h3 style={cardTitle}>
+                <Award size={20} style={{ color: '#2DD4BF' }} />
+                Professional Info
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Headline */}
+                <div>
+                  <label style={labelStyle}>Professional Headline</label>
+                  <input
+                    type="text"
+                    value={profile.headline || ''}
+                    onChange={(e) => updateProfile({ headline: e.target.value })}
+                    placeholder="e.g. PMHNP-BC | 5 Years Telehealth"
+                    maxLength={120}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Bio / Summary */}
+                <div>
+                  <label style={labelStyle}>Professional Summary</label>
+                  <textarea
+                    value={profile.bio || ''}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 1000) updateProfile({ bio: e.target.value })
+                    }}
+                    placeholder="Brief summary of your experience and goals..."
+                    rows={4}
+                    style={{ ...inputStyle, resize: 'vertical', minHeight: '100px' }}
+                  />
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {(profile.bio || '').length}/1000
+                  </div>
+                </div>
+
+                {/* Years of Experience */}
+                <div>
+                  <label style={labelStyle}>Years of Experience</label>
+                  <select
+                    value={profile.yearsExperience ?? ''}
+                    onChange={(e) => updateProfile({
+                      yearsExperience: e.target.value ? parseInt(e.target.value, 10) : null,
+                    })}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    <option value="">Select experience level</option>
+                    {EXPERIENCE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+
+
+                {/* Specialties */}
+                <ChipSelector
+                  label="Specialties"
+                  presets={SPECIALTY_PRESETS}
+                  value={profile.specialties || ''}
+                  onChange={(v) => updateProfile({ specialties: v })}
+                  customPlaceholder="Add specialty..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════
+          SECTION 3 — Job Preferences (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <div id="section-workmode" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <Briefcase size={20} style={{ color: '#E86C2C' }} />
+                Job Preferences
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+                {/* Work Mode */}
+                <PillSelector
+                  label="Preferred Work Mode"
+                  options={WORK_MODES}
+                  value={profile.preferredWorkMode || ''}
+                  onChange={(v) => updateProfile({ preferredWorkMode: v })}
+                />
+
+                {/* Job Type */}
+                <PillSelector
+                  label="Preferred Job Type"
+                  options={JOB_TYPES}
+                  value={profile.preferredJobType || ''}
+                  onChange={(v) => updateProfile({ preferredJobType: v })}
+                />
+
+                {/* Salary Range */}
+                <div>
+                  <label style={labelStyle}>Desired Salary Range</label>
+                  {/* Rate type toggle */}
+                  <div style={{
+                    display: 'inline-flex', borderRadius: '8px', overflow: 'hidden',
+                    border: '1px solid var(--border-color)', marginBottom: '10px',
+                  }}>
+                    {(['yearly', 'hourly'] as const).map((type) => {
+                      const isActive = (profile.desiredSalaryType || 'yearly') === type
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => updateProfile({ desiredSalaryType: type })}
+                          style={{
+                            padding: '6px 16px', fontSize: '13px', fontWeight: 600,
+                            border: 'none', cursor: 'pointer',
+                            backgroundColor: isActive ? 'var(--color-primary)' : 'transparent',
+                            color: isActive ? '#fff' : 'var(--text-secondary)',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          {type === 'yearly' ? 'Per Year' : 'Per Hour'}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <DollarSign
+                        size={16}
+                        style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
+                      />
+                      <input
+                        type="number"
+                        value={profile.desiredSalaryMin ?? ''}
+                        onChange={(e) => updateProfile({ desiredSalaryMin: e.target.value ? parseInt(e.target.value, 10) : null })}
+                        placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 60' : 'Min'}
+                        style={{ ...inputStyle, paddingLeft: '32px' }}
+                      />
+                    </div>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>to</span>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <DollarSign
+                        size={16}
+                        style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
+                      />
+                      <input
+                        type="number"
+                        value={profile.desiredSalaryMax ?? ''}
+                        onChange={(e) => updateProfile({ desiredSalaryMax: e.target.value ? parseInt(e.target.value, 10) : null })}
+                        placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 90' : 'Max'}
+                        style={{ ...inputStyle, paddingLeft: '32px' }}
+                      />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                    <Shield size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                    Private — employers see a range, not exact numbers
+                  </p>
+                </div>
+
+                {/* Available Start Date */}
+                <div>
+                  <label style={labelStyle}>Available to Start</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {AVAILABILITY_OPTIONS.map((opt) => {
+                      const isSelected = availabilityMode === opt
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setAvailabilityMode(opt)}
+                          style={{
+                            padding: '8px 18px',
+                            borderRadius: '24px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {availabilityMode === 'Custom' && (
+                    <input
+                      type="date"
+                      value={profile.availableDate ? new Date(profile.availableDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => updateProfile({ availableDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                      style={{ ...inputStyle, marginTop: '10px', maxWidth: '220px' }}
+                    />
+                  )}
+                </div>
+
+                {/* LinkedIn */}
+                <div>
+                  <label style={labelStyle}>LinkedIn Profile</label>
+                  <div style={{ position: 'relative' }}>
+                    <Linkedin
+                      size={16}
+                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
+                    />
+                    <input
+                      type="url"
+                      value={profile.linkedinUrl || ''}
+                      onChange={(e) => updateProfile({ linkedinUrl: e.target.value })}
+                      placeholder="https://linkedin.com/in/yourprofile"
+                      style={{ ...inputStyle, paddingLeft: '36px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════
+          SECTION 4 — Personal Info
+         ═════════════════════════════════════════════ */}
+          <div id="section-contact" style={{ ...cardStyle, marginTop: '24px' }}>
+            <h3 style={cardTitle}>
+              <User size={20} style={{ color: '#818CF8' }} />
+              Personal Info
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={labelStyle}>First Name</label>
+                <input
+                  type="text"
+                  value={profile.firstName || ''}
+                  onChange={(e) => updateProfile({ firstName: e.target.value })}
+                  placeholder="First name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Last Name</label>
+                <input
+                  type="text"
+                  value={profile.lastName || ''}
+                  onChange={(e) => updateProfile({ lastName: e.target.value })}
+                  placeholder="Last name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="tel"
+                    value={profile.phone || ''}
+                    onChange={(e) => updateProfile({ phone: e.target.value })}
+                    placeholder="555-1234"
+                    style={{ ...inputStyle, paddingLeft: '36px' }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="email"
+                    value={profile.email}
+                    disabled
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '36px',
+                      opacity: 0.6,
+                      cursor: 'not-allowed',
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed</p>
+              </div>
+
+              {/* Company (only for employers) */}
+              {profile.role === 'employer' && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Company</label>
+                  <div style={{ position: 'relative' }}>
+                    <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      value={profile.company || ''}
+                      onChange={(e) => updateProfile({ company: e.target.value })}
+                      placeholder="Your company name"
+                      style={{ ...inputStyle, paddingLeft: '36px' }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Toggles — job seekers only */}
-          {profile.role === 'job_seeker' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <ToggleRow
-                label="Open to offers"
-                description="Let employers know you're available"
-                icon={<Briefcase size={16} style={{ color: '#2DD4BF' }} />}
-                checked={profile.openToOffers}
-                onChange={(v) => updateProfile({ openToOffers: v })}
-              />
-              <ToggleRow
-                label="Profile visible to employers"
-                description="Hide your profile from employer searches"
-                icon={<Eye size={16} style={{ color: '#818CF8' }} />}
-                checked={profile.profileVisible}
-                onChange={(v) => updateProfile({ profileVisible: v })}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* ═════════════════════════════════════════════
-          SECTION 2 — Professional Info (job seekers only)
+          {/* ═════════════════════════════════════════════
+          SECTION 4b — Address (job seekers only)
          ═════════════════════════════════════════════ */}
-        {profile.role === 'job_seeker' && (
-          <div id="section-headline" style={cardStyle}>
-            <div id="section-bio" />
-            <div id="section-experience" />
-            <div id="section-certifications" />
-            <div id="section-states" />
-            <div id="section-specialties" />
-            <h3 style={cardTitle}>
-              <Award size={20} style={{ color: '#2DD4BF' }} />
-              Professional Info
-            </h3>
+          {profile.role !== 'employer' && (
+            <div id="section-address" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <MapPin size={20} style={{ color: '#F59E0B' }} />
+                Address
+              </h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Headline */}
-              <div>
-                <label style={labelStyle}>Professional Headline</label>
-                <input
-                  type="text"
-                  value={profile.headline || ''}
-                  onChange={(e) => updateProfile({ headline: e.target.value })}
-                  placeholder="e.g. PMHNP-BC | 5 Years Telehealth"
-                  maxLength={120}
-                  style={inputStyle}
-                />
-              </div>
-
-              {/* Bio / Summary */}
-              <div>
-                <label style={labelStyle}>Professional Summary</label>
-                <textarea
-                  value={profile.bio || ''}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 1000) updateProfile({ bio: e.target.value })
-                  }}
-                  placeholder="Brief summary of your experience and goals..."
-                  rows={4}
-                  style={{ ...inputStyle, resize: 'vertical', minHeight: '100px' }}
-                />
-                <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {(profile.bio || '').length}/1000
-                </div>
-              </div>
-
-              {/* Years of Experience */}
-              <div>
-                <label style={labelStyle}>Years of Experience</label>
-                <select
-                  value={profile.yearsExperience ?? ''}
-                  onChange={(e) => updateProfile({
-                    yearsExperience: e.target.value ? parseInt(e.target.value, 10) : null,
-                  })}
-                  style={{ ...inputStyle, cursor: 'pointer' }}
-                >
-                  <option value="">Select experience level</option>
-                  {EXPERIENCE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Certifications */}
-              <ChipSelector
-                label="Certifications"
-                presets={CERT_PRESETS}
-                value={profile.certifications || ''}
-                onChange={(v) => updateProfile({ certifications: v })}
-                customPlaceholder="Add certification..."
-              />
-
-              {/* Licensed States */}
-              <ChipSelector
-                label="Licensed States"
-                presets={US_STATES}
-                value={profile.licenseStates || ''}
-                onChange={(v) => updateProfile({ licenseStates: v })}
-                allowCustom={false}
-              />
-
-              {/* Specialties */}
-              <ChipSelector
-                label="Specialties"
-                presets={SPECIALTY_PRESETS}
-                value={profile.specialties || ''}
-                onChange={(v) => updateProfile({ specialties: v })}
-                customPlaceholder="Add specialty..."
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ═════════════════════════════════════════════
-          SECTION 3 — Job Preferences (job seekers only)
-         ═════════════════════════════════════════════ */}
-        {profile.role === 'job_seeker' && (
-          <div id="section-workmode" style={cardStyle}>
-            <h3 style={cardTitle}>
-              <Briefcase size={20} style={{ color: '#E86C2C' }} />
-              Job Preferences
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-              {/* Work Mode */}
-              <PillSelector
-                label="Preferred Work Mode"
-                options={WORK_MODES}
-                value={profile.preferredWorkMode || ''}
-                onChange={(v) => updateProfile({ preferredWorkMode: v })}
-              />
-
-              {/* Job Type */}
-              <PillSelector
-                label="Preferred Job Type"
-                options={JOB_TYPES}
-                value={profile.preferredJobType || ''}
-                onChange={(v) => updateProfile({ preferredJobType: v })}
-              />
-
-              {/* Salary Range */}
-              <div>
-                <label style={labelStyle}>Desired Salary Range</label>
-                {/* Rate type toggle */}
-                <div style={{
-                  display: 'inline-flex', borderRadius: '8px', overflow: 'hidden',
-                  border: '1px solid var(--border-color)', marginBottom: '10px',
-                }}>
-                  {(['yearly', 'hourly'] as const).map((type) => {
-                    const isActive = (profile.desiredSalaryType || 'yearly') === type
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => updateProfile({ desiredSalaryType: type })}
-                        style={{
-                          padding: '6px 16px', fontSize: '13px', fontWeight: 600,
-                          border: 'none', cursor: 'pointer',
-                          backgroundColor: isActive ? 'var(--color-primary)' : 'transparent',
-                          color: isActive ? '#fff' : 'var(--text-secondary)',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {type === 'yearly' ? 'Per Year' : 'Per Hour'}
-                      </button>
-                    )
-                  })}
-                </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <DollarSign
-                      size={16}
-                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
-                    />
-                    <input
-                      type="number"
-                      value={profile.desiredSalaryMin ?? ''}
-                      onChange={(e) => updateProfile({ desiredSalaryMin: e.target.value ? parseInt(e.target.value, 10) : null })}
-                      placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 60' : 'Min'}
-                      style={{ ...inputStyle, paddingLeft: '32px' }}
-                    />
-                  </div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>to</span>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <DollarSign
-                      size={16}
-                      style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
-                    />
-                    <input
-                      type="number"
-                      value={profile.desiredSalaryMax ?? ''}
-                      onChange={(e) => updateProfile({ desiredSalaryMax: e.target.value ? parseInt(e.target.value, 10) : null })}
-                      placeholder={(profile.desiredSalaryType || 'yearly') === 'hourly' ? 'e.g. 90' : 'Max'}
-                      style={{ ...inputStyle, paddingLeft: '32px' }}
-                    />
-                  </div>
-                </div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                  <Shield size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                  Private — employers see a range, not exact numbers
-                </p>
-              </div>
-
-              {/* Available Start Date */}
-              <div>
-                <label style={labelStyle}>Available to Start</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {AVAILABILITY_OPTIONS.map((opt) => {
-                    const isSelected = availabilityMode === opt
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setAvailabilityMode(opt)}
-                        style={{
-                          padding: '8px 18px',
-                          borderRadius: '24px',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
-                          background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
-                          color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
-                        }}
-                      >
-                        {opt}
-                      </button>
-                    )
-                  })}
-                </div>
-                {availabilityMode === 'Custom' && (
-                  <input
-                    type="date"
-                    value={profile.availableDate ? new Date(profile.availableDate).toISOString().split('T')[0] : ''}
-                    onChange={(e) => updateProfile({ availableDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                    style={{ ...inputStyle, marginTop: '10px', maxWidth: '220px' }}
-                  />
-                )}
-              </div>
-
-              {/* LinkedIn */}
-              <div>
-                <label style={labelStyle}>LinkedIn Profile</label>
-                <div style={{ position: 'relative' }}>
-                  <Linkedin
-                    size={16}
-                    style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
-                  />
-                  <input
-                    type="url"
-                    value={profile.linkedinUrl || ''}
-                    onChange={(e) => updateProfile({ linkedinUrl: e.target.value })}
-                    placeholder="https://linkedin.com/in/yourprofile"
-                    style={{ ...inputStyle, paddingLeft: '36px' }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═════════════════════════════════════════════
-          SECTION 3b — Resume (job seekers only)
-         ═════════════════════════════════════════════ */}
-        {profile.role === 'job_seeker' && (
-          <div id="section-resume">
-            <ResumeUpload
-              currentResumeUrl={profile.resumeUrl}
-              onUploadComplete={(url) => updateProfile({ resumeUrl: url })}
-              onRemove={() => updateProfile({ resumeUrl: null })}
-            />
-          </div>
-        )}
-
-        {/* ═════════════════════════════════════════════
-          SECTION 4 — Personal Info
-         ═════════════════════════════════════════════ */}
-        <div id="section-contact" style={{ ...cardStyle, marginTop: '24px' }}>
-          <h3 style={cardTitle}>
-            <User size={20} style={{ color: '#818CF8' }} />
-            Personal Info
-          </h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>First Name</label>
-              <input
-                type="text"
-                value={profile.firstName || ''}
-                onChange={(e) => updateProfile({ firstName: e.target.value })}
-                placeholder="First name"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Last Name</label>
-              <input
-                type="text"
-                value={profile.lastName || ''}
-                onChange={(e) => updateProfile({ lastName: e.target.value })}
-                placeholder="Last name"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Phone <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
-              <div style={{ position: 'relative' }}>
-                <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="tel"
-                  value={profile.phone || ''}
-                  onChange={(e) => updateProfile({ phone: e.target.value })}
-                  placeholder="555-1234"
-                  style={{ ...inputStyle, paddingLeft: '36px' }}
-                />
-              </div>
-            </div>
-            <div>
-              <label style={labelStyle}>Email</label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="email"
-                  value={profile.email}
-                  disabled
-                  style={{
-                    ...inputStyle,
-                    paddingLeft: '36px',
-                    opacity: 0.6,
-                    cursor: 'not-allowed',
-                  }}
-                />
-              </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed</p>
-            </div>
-
-            {/* Company (only for employers) */}
-            {profile.role === 'employer' && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Company</label>
-                <div style={{ position: 'relative' }}>
-                  <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Street Address */}
+                <div>
+                  <label style={labelStyle}>Street Address</label>
                   <input
                     type="text"
-                    value={profile.company || ''}
-                    onChange={(e) => updateProfile({ company: e.target.value })}
-                    placeholder="Your company name"
-                    style={{ ...inputStyle, paddingLeft: '36px' }}
+                    value={profile.addressLine1 || ''}
+                    onChange={(e) => updateProfile({ addressLine1: e.target.value })}
+                    placeholder="123 Main St"
+                    style={inputStyle}
                   />
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* ═════════════════════════════════════════════
-          SECTION 5 — Resume
+                {/* Address Line 2 */}
+                <div>
+                  <label style={labelStyle}>Apt, Suite, Unit <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
+                  <input
+                    type="text"
+                    value={profile.addressLine2 || ''}
+                    onChange={(e) => updateProfile({ addressLine2: e.target.value })}
+                    placeholder="Apt 4B"
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* City + State row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>City</label>
+                    <input
+                      type="text"
+                      value={profile.city || ''}
+                      onChange={(e) => updateProfile({ city: e.target.value })}
+                      placeholder="City"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>State</label>
+                    <select
+                      value={profile.state || ''}
+                      onChange={(e) => updateProfile({ state: e.target.value || null })}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                      <option value="">Select state</option>
+                      {US_STATES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Zip + Country row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>ZIP Code</label>
+                    <input
+                      type="text"
+                      value={profile.zipCode || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^\d-]/g, '').slice(0, 10)
+                        updateProfile({ zipCode: val })
+                      }}
+                      placeholder="12345"
+                      maxLength={10}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Country</label>
+                    <input
+                      type="text"
+                      value={profile.country || 'United States'}
+                      disabled
+                      style={{
+                        ...inputStyle,
+                        opacity: 0.6,
+                        cursor: 'not-allowed',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Save Address button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button
+                    onClick={async () => {
+                      setSavingAddress(true)
+                      try {
+                        const res = await fetch('/api/profile/address', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            addressLine1: profile.addressLine1,
+                            addressLine2: profile.addressLine2,
+                            city: profile.city,
+                            state: profile.state,
+                            zipCode: profile.zipCode,
+                            country: profile.country || 'US',
+                          }),
+                        })
+                        if (!res.ok) throw new Error('Failed to save')
+                        const updated = await res.json()
+                        setProfile(updated)
+                        showMsg('success', 'Address saved!')
+                      } catch {
+                        showMsg('error', 'Failed to save address.')
+                      } finally {
+                        setSavingAddress(false)
+                      }
+                    }}
+                    disabled={savingAddress}
+                    style={{
+                      padding: '10px 28px',
+                      borderRadius: '10px',
+                      background: savingAddress
+                        ? 'rgba(45,212,191,0.3)'
+                        : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: savingAddress ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    {savingAddress ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {savingAddress ? 'Saving...' : 'Save Address'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+
+          {/* ═════════════════════════════════════════════
+          SECTION 4c — EEO & Work Authorization (job seekers only)
          ═════════════════════════════════════════════ */}
-        {profile.role === 'job_seeker' && (
-          <div id="section-resume" style={cardStyle}>
-            <h3 style={cardTitle}>
-              <FileText size={20} style={{ color: '#F59E0B' }} />
-              Resume
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
-              Upload your resume to quickly apply to jobs
-            </p>
-            <ResumeUpload
-              currentResumeUrl={profile.resumeUrl}
-              onUploadComplete={handleResumeUpload}
-              onRemove={handleResumeRemove}
-            />
-          </div>
+          {profile.role !== 'employer' && (
+            <div id="section-eeo" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <Shield size={20} style={{ color: '#818CF8' }} />
+                EEO & Work Authorization
+              </h3>
+
+              {/* Privacy notice */}
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: '10px',
+                background: 'rgba(129,140,248,0.08)',
+                border: '1px solid rgba(129,140,248,0.2)',
+                marginBottom: '24px',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.5',
+              }}>
+                <Shield size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px', color: '#818CF8' }} />
+                This information is voluntary and used solely for autofilling EEO sections on job applications.
+                It will never be shared with employers or used for any other purpose.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {/* Work Authorization */}
+                <div>
+                  <label style={labelStyle}>Are you authorized to work in the United States?</label>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                    {([{ label: 'Yes', value: true }, { label: 'No', value: false }] as const).map((opt) => {
+                      const isSelected = profile.workAuthorized === opt.value
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          onClick={() => updateProfile({ workAuthorized: opt.value })}
+                          style={{
+                            padding: '8px 22px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
+                            cursor: 'pointer', transition: 'all 0.2s',
+                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Sponsorship */}
+                <div>
+                  <label style={labelStyle}>Do you now or in the future require visa sponsorship?</label>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                    {([{ label: 'Yes', value: true }, { label: 'No', value: false }] as const).map((opt) => {
+                      const isSelected = profile.requiresSponsorship === opt.value
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          onClick={() => updateProfile({ requiresSponsorship: opt.value })}
+                          style={{
+                            padding: '8px 22px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
+                            cursor: 'pointer', transition: 'all 0.2s',
+                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label style={labelStyle}>Gender</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                    {[
+                      { label: 'Male', value: 'male' },
+                      { label: 'Female', value: 'female' },
+                      { label: 'Non-binary', value: 'non_binary' },
+                      { label: 'I decline to self-identify', value: 'decline' },
+                    ].map((opt) => {
+                      const isSelected = profile.gender === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => updateProfile({ gender: opt.value })}
+                          style={{
+                            padding: '8px 18px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
+                            cursor: 'pointer', transition: 'all 0.2s',
+                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Race / Ethnicity */}
+                <div>
+                  <label style={labelStyle}>Race / Ethnicity</label>
+                  <select
+                    value={profile.raceEthnicity || ''}
+                    onChange={(e) => updateProfile({ raceEthnicity: e.target.value || null })}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    <option value="">Select one</option>
+                    <option value="american_indian_or_alaska_native">American Indian or Alaska Native</option>
+                    <option value="asian">Asian</option>
+                    <option value="black_or_african_american">Black or African American</option>
+                    <option value="hispanic_or_latino">Hispanic or Latino</option>
+                    <option value="native_hawaiian_or_other_pacific_islander">Native Hawaiian or Other Pacific Islander</option>
+                    <option value="white">White</option>
+                    <option value="two_or_more_races">Two or More Races</option>
+                    <option value="decline">I decline to self-identify</option>
+                  </select>
+                </div>
+
+                {/* Veteran Status */}
+                <div>
+                  <label style={labelStyle}>Veteran Status</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                    {[
+                      { label: 'I am a protected veteran', value: 'protected_veteran' },
+                      { label: 'I am not a veteran', value: 'not_a_veteran' },
+                      { label: 'I decline to self-identify', value: 'decline' },
+                    ].map((opt) => {
+                      const isSelected = profile.veteranStatus === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => updateProfile({ veteranStatus: opt.value })}
+                          style={{
+                            padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 500,
+                            cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left',
+                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Disability Status */}
+                <div>
+                  <label style={labelStyle}>Disability Status</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                    {[
+                      { label: 'Yes, I have a disability', value: 'yes' },
+                      { label: 'No, I do not have a disability', value: 'no' },
+                      { label: 'I decline to self-identify', value: 'decline' },
+                    ].map((opt) => {
+                      const isSelected = profile.disabilityStatus === opt.value
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => updateProfile({ disabilityStatus: opt.value })}
+                          style={{
+                            padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 500,
+                            cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left',
+                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
+                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
+                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Save EEO button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button
+                    onClick={async () => {
+                      setSavingEeo(true)
+                      try {
+                        const res = await fetch('/api/profile/eeo', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            workAuthorized: profile.workAuthorized,
+                            requiresSponsorship: profile.requiresSponsorship,
+                            veteranStatus: profile.veteranStatus,
+                            disabilityStatus: profile.disabilityStatus,
+                            raceEthnicity: profile.raceEthnicity,
+                            gender: profile.gender,
+                          }),
+                        })
+                        if (!res.ok) throw new Error('Failed to save')
+                        const updated = await res.json()
+                        setProfile(updated)
+                        showMsg('success', 'EEO information saved!')
+                      } catch {
+                        showMsg('error', 'Failed to save EEO information.')
+                      } finally {
+                        setSavingEeo(false)
+                      }
+                    }}
+                    disabled={savingEeo}
+                    style={{
+                      padding: '10px 28px',
+                      borderRadius: '10px',
+                      background: savingEeo
+                        ? 'rgba(45,212,191,0.3)'
+                        : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: savingEeo ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    {savingEeo ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {savingEeo ? 'Saving...' : 'Save EEO Info'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>)}
+
+        {/* ═══ TAB: Credentials ═══ */}
+        {activeTab === 'credentials' && (<div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* ═════════════════════════════════════════════
+          SECTION 4d — Licenses (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <LicensesSection showMsg={showMsg} />
+          )}
+
+          {/* ═════════════════════════════════════════════
+          SECTION 4e — Certifications (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <CertificationsSection showMsg={showMsg} />
+          )}
+
+          {/* ═════════════════════════════════════════════
+          SECTION 4f — Federal Registrations (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <div id="section-federal-reg" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <ClipboardList size={20} style={{ color: '#F59E0B' }} />
+                Federal Registrations
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {/* NPI Number */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <label style={{ ...labelStyle, marginBottom: 0 }}>NPI Number</label>
+                    <span title="Your NPI is a unique 10-digit number issued by CMS. It never changes. Find yours at npiregistry.cms.hhs.gov">
+                      <HelpCircle
+                        size={14}
+                        style={{ color: 'var(--text-muted)', cursor: 'help' }}
+                      />
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.npiNumber || ''}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                      updateProfile({ npiNumber: val })
+                    }}
+                    placeholder="10-digit National Provider Identifier"
+                    maxLength={10}
+                    style={inputStyle}
+                  />
+                  {profile.npiNumber && profile.npiNumber.length > 0 && profile.npiNumber.length !== 10 && (
+                    <p style={{ fontSize: '11px', color: '#FB923C', marginTop: '4px' }}>
+                      NPI must be exactly 10 digits ({profile.npiNumber.length}/10)
+                    </p>
+                  )}
+                </div>
+
+                {/* DEA Number */}
+                <div>
+                  <label style={labelStyle}>DEA Number</label>
+                  <input
+                    type="text"
+                    value={profile.deaNumber || ''}
+                    onChange={(e) => updateProfile({ deaNumber: e.target.value })}
+                    placeholder="DEA registration number"
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* DEA Expiration */}
+                <div style={{ maxWidth: '50%' }}>
+                  <label style={labelStyle}>DEA Expiration Date</label>
+                  <input
+                    type="date"
+                    value={profile.deaExpirationDate ? new Date(profile.deaExpirationDate).toISOString().slice(0, 10) : ''}
+                    onChange={(e) => updateProfile({ deaExpirationDate: e.target.value || null })}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Save button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button
+                    onClick={async () => {
+                      setSavingFedReg(true)
+                      try {
+                        const res = await fetch('/api/profile/federal-registrations', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            npiNumber: profile.npiNumber,
+                            deaNumber: profile.deaNumber,
+                            deaExpirationDate: profile.deaExpirationDate,
+                          }),
+                        })
+                        if (!res.ok) throw new Error('Failed to save')
+                        const updated = await res.json()
+                        setProfile(updated)
+                        showMsg('success', 'Federal registrations saved!')
+                      } catch {
+                        showMsg('error', 'Failed to save federal registrations.')
+                      } finally {
+                        setSavingFedReg(false)
+                      }
+                    }}
+                    disabled={savingFedReg}
+                    style={{
+                      padding: '10px 28px',
+                      borderRadius: '10px',
+                      background: savingFedReg
+                        ? 'rgba(45,212,191,0.3)'
+                        : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: savingFedReg ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    {savingFedReg ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {savingFedReg ? 'Saving...' : 'Save Registrations'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+        </div>)}
+
+        {/* ═══ TAB: Education ═══ */}
+        {activeTab === 'education' && (
+          <EducationSection showMsg={showMsg} />
         )}
 
-        {/* ═════════════════════════════════════════════
-          SECTION 6 — Account
-         ═════════════════════════════════════════════ */}
-        <div style={cardStyle}>
-          <h3 style={cardTitle}>
-            <Lock size={20} style={{ color: 'var(--text-muted)' }} />
-            Account
-          </h3>
+        {/* ═══ TAB: Experience ═══ */}
+        {activeTab === 'experience' && (
+          <WorkExperienceSection showMsg={showMsg} />
+        )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Account type */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Account Type</span>
-              <span style={{
-                padding: '4px 14px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 600,
-                textTransform: 'capitalize',
-                background: profile.role === 'admin' ? 'rgba(168,85,247,0.15)' : profile.role === 'employer' ? 'rgba(16,185,129,0.15)' : 'rgba(45,212,191,0.15)',
-                color: profile.role === 'admin' ? '#A855F7' : profile.role === 'employer' ? '#10B981' : '#2DD4BF',
-              }}>
-                {profile.role.replace('_', ' ')}
-              </span>
-            </div>
 
-            {/* Member since */}
-            {profile.createdAt && (
+
+        {/* ═══ TAB: Screening ═══ */}
+        {activeTab === 'screening' && (
+          <ScreeningAnswersSection showMsg={showMsg} />
+        )}
+
+        {/* ═══ TAB: Responses ═══ */}
+        {activeTab === 'responses' && (
+          <OpenEndedResponsesSection showMsg={showMsg} />
+        )}
+
+        {/* ═══ TAB: References ═══ */}
+        {activeTab === 'references' && (
+          <ReferencesSection showMsg={showMsg} />
+        )}
+
+        {/* ═══ TAB: Account ═══ */}
+        {activeTab === 'account' && (<div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>
+              <Lock size={20} style={{ color: 'var(--text-muted)' }} />
+              Account
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Account type */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Member Since</span>
-                <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
-                  {new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Account Type</span>
+                <span style={{
+                  padding: '4px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textTransform: 'capitalize',
+                  background: profile.role === 'admin' ? 'rgba(168,85,247,0.15)' : profile.role === 'employer' ? 'rgba(16,185,129,0.15)' : 'rgba(45,212,191,0.15)',
+                  color: profile.role === 'admin' ? '#A855F7' : profile.role === 'employer' ? '#10B981' : '#2DD4BF',
+                }}>
+                  {profile.role.replace('_', ' ')}
                 </span>
               </div>
-            )}
 
-            {/* Password reset */}
-            <div style={{ paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>
-                We&apos;ll send you an email with a link to reset your password.
-              </p>
-              <button
-                onClick={handlePasswordReset}
-                disabled={sendingReset}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '8px 18px', borderRadius: '10px',
-                  border: '1.5px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '13px', fontWeight: 500,
-                  cursor: sendingReset ? 'not-allowed' : 'pointer',
-                  opacity: sendingReset ? 0.6 : 1,
-                  transition: 'all 0.2s',
-                }}
-              >
-                {sendingReset ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
-                {sendingReset ? 'Sending...' : 'Send Reset Email'}
-              </button>
+              {/* Member since */}
+              {profile.createdAt && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Member Since</span>
+                  <span style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
+                    {new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
+                </div>
+              )}
+
+              {/* Password reset */}
+              <div style={{ paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '10px' }}>
+                  We&apos;ll send you an email with a link to reset your password.
+                </p>
+                <button
+                  onClick={handlePasswordReset}
+                  disabled={sendingReset}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 18px', borderRadius: '10px',
+                    border: '1.5px solid var(--border-color)',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-secondary)',
+                    fontSize: '13px', fontWeight: 500,
+                    cursor: sendingReset ? 'not-allowed' : 'pointer',
+                    opacity: sendingReset ? 0.6 : 1,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {sendingReset ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                  {sendingReset ? 'Sending...' : 'Send Reset Email'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Danger Zone ── */}
-        <div style={{ ...cardStyle, borderColor: 'rgba(239,68,68,0.3)' }}>
-          <h3 style={{ ...cardTitle, color: '#EF4444' }}>
-            <AlertTriangle size={20} />
-            Danger Zone
-          </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '14px' }}>
-            Once you delete your account, there is no going back. Please be certain.
-          </p>
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            style={{
-              padding: '8px 20px', borderRadius: '10px',
-              background: 'rgba(239,68,68,0.1)',
-              border: '1.5px solid rgba(239,68,68,0.3)',
-              color: '#EF4444',
-              fontSize: '13px', fontWeight: 600,
-              cursor: 'pointer', transition: 'all 0.2s',
-            }}
-          >
-            Delete Account
-          </button>
-        </div>
+          {/* ── Danger Zone ── */}
+          <div style={{ ...cardStyle, borderColor: 'rgba(239,68,68,0.3)' }}>
+            <h3 style={{ ...cardTitle, color: '#EF4444' }}>
+              <AlertTriangle size={20} />
+              Danger Zone
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '14px' }}>
+              Once you delete your account, there is no going back. Please be certain.
+            </p>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              style={{
+                padding: '8px 20px', borderRadius: '10px',
+                background: 'rgba(239,68,68,0.1)',
+                border: '1.5px solid rgba(239,68,68,0.3)',
+                color: '#EF4444',
+                fontSize: '13px', fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>)}
 
-        {/* ── Save Button (sticky) ── */}
-        <div style={{
-          position: 'sticky', bottom: '20px', zIndex: 50,
-          padding: '16px', marginTop: '8px',
-          display: 'flex', justifyContent: 'center',
-        }}>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              padding: '14px 48px',
-              borderRadius: '14px',
-              background: saving ? 'rgba(45,212,191,0.3)' : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-              color: '#fff',
-              fontSize: '15px',
-              fontWeight: 700,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              border: 'none',
-              display: 'flex', alignItems: 'center', gap: '10px',
-              boxShadow: '0 4px 20px rgba(45,212,191,0.3)',
-              transition: 'all 0.3s',
-            }}
-          >
-            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+
 
         {/* ── Delete Confirmation Modal ── */}
         {showDeleteModal && (
@@ -1019,6 +1582,14 @@ export default function SettingsPage() {
         )}
       </div>
     </>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 16px', textAlign: 'center' }}>Loading...</div>}>
+      <SettingsPageInner />
+    </Suspense>
   )
 }
 

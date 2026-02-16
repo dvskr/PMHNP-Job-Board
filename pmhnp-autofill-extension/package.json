@@ -1,0 +1,33 @@
+{
+    "name": "pmhnp-autofill-extension",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc --noEmit && vite build",
+        "build:prod": "cross-env NODE_ENV=production vite build",
+        "build:zip": "npm run build:prod && node scripts/zip.js",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
+    },
+    "devDependencies": {
+        "@crxjs/vite-plugin": "^2.0.0-beta.28",
+        "@types/chrome": "^0.0.287",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@vitejs/plugin-react": "^4.3.4",
+        "autoprefixer": "^10.4.20",
+        "cross-env": "^7.0.3",
+        "jsdom": "^28.0.0",
+        "postcss": "^8.4.49",
+        "sharp": "^0.34.5",
+        "tailwindcss": "^3.4.17",
+        "typescript": "^5.7.0",
+        "vite": "^5.4.11",
+        "vitest": "^4.0.18"
+    }
+}
