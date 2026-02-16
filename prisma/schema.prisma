@@ -42,6 +42,7 @@ model Job {
   externalId          String?      @map("external_id")
   viewCount           Int          @default(0) @map("view_count")
   applyClickCount     Int          @default(0) @map("apply_click_count")
+  qualityScore        Int?         @map("quality_score")
   createdAt           DateTime     @default(now()) @map("created_at")
   updatedAt           DateTime     @updatedAt @map("updated_at")
   expiresAt           DateTime?    @map("expires_at")

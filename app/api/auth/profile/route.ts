@@ -13,36 +13,19 @@ const profileInclude = {
       certificationRecords: true,
       education: true,
       workExperience: true,
-      documents: true,
       screeningAnswers: true,
       openEndedResponses: true,
       candidateReferences: true,
     },
   },
-  workExperience: {
-    select: { patientVolume: true, patientPopulations: true, treatmentModalities: true },
-    take: 1,
-  },
 } as const
 
-/** Check if any work experience entry has clinical details filled */
-function computeHasClinicalDetails(workExperience: Array<{ patientVolume: string | null; patientPopulations: string | null; treatmentModalities: string | null }> | undefined): boolean {
-  if (!workExperience || workExperience.length === 0) return false
-  return workExperience.some(
-    (w) => (w.patientVolume?.trim().length ?? 0) > 0 ||
-      (w.patientPopulations?.trim().length ?? 0) > 0 ||
-      (w.treatmentModalities?.trim().length ?? 0) > 0
-  )
-}
-
-/** Merge _hasClinicalDetails into the profile response */
+/** Merge extra computed fields into the profile response */
 function enrichProfile(profile: Record<string, unknown>) {
-  const workExp = profile.workExperience as Array<{ patientVolume: string | null; patientPopulations: string | null; treatmentModalities: string | null }> | undefined
   return {
     ...profile,
-    _hasClinicalDetails: computeHasClinicalDetails(workExp),
-    workExperience: undefined, // Don't leak the raw work experience subset
-  }
+    _hasClinicalDetails: false,
+  };
 }
 
 // GET - Get current user's profile

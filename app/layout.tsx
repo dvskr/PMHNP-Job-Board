@@ -197,18 +197,22 @@ export default function RootLayout({
         }}
       >
         <ThemeProvider>
-          <div style={{ width: '100%', position: 'relative' }}>
-            <GoogleAnalytics />
+          <div className="site-wrapper" style={{ width: '100%', minHeight: '100dvh', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
             <LayoutShell>
-              <Header />
-              <ProfileNudgeBanner />
+              <div>
+                <GoogleAnalytics />
+                <Header />
+                <ProfileNudgeBanner />
+              </div>
             </LayoutShell>
             <MainContent>{children}</MainContent>
             <LayoutShell>
-              <Footer />
-              <FloatingSocial />
-              <BottomNav />
-              <StickyEmailBar />
+              <div>
+                <Footer />
+                <FloatingSocial />
+                <BottomNav />
+                <StickyEmailBar />
+              </div>
             </LayoutShell>
           </div>
         </ThemeProvider>
