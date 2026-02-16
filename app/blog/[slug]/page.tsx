@@ -199,7 +199,7 @@ export default async function BlogPostPage({ params }: Props) {
                     <main className="lg:col-span-8">
                         <article className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
                             <div
-                                className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-teal-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-blockquote:border-l-teal-500 prose-blockquote:bg-teal-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:text-gray-700 prose-blockquote:italic prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100"
+                                className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-teal-600 dark:prose-a:text-teal-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-blockquote:border-l-teal-500 prose-blockquote:bg-teal-50 dark:prose-blockquote:bg-teal-950/30 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300 prose-blockquote:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-li:text-gray-700 dark:prose-li:text-gray-300"
                                 dangerouslySetInnerHTML={{ __html: contentHtml }}
                             />
 
@@ -326,8 +326,8 @@ export default async function BlogPostPage({ params }: Props) {
                                                 key={idx}
                                                 href={`#${heading.id}`}
                                                 className={`block text-sm hover:text-teal-600 transition-colors ${heading.level === 3
-                                                        ? 'pl-4 text-gray-500'
-                                                        : 'text-gray-700 font-medium'
+                                                    ? 'pl-4 text-gray-500'
+                                                    : 'text-gray-700 font-medium'
                                                     }`}
                                             >
                                                 {heading.text}
