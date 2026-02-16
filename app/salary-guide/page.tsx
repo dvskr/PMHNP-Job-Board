@@ -380,9 +380,7 @@ export default async function SalaryGuidePage() {
                           <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                             Jobs
                           </th>
-                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-
-                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"><span className="sr-only">Actions</span></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
