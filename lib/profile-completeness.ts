@@ -26,13 +26,10 @@ export interface ProfileDataV2 {
         certificationRecords?: number
         education?: number
         workExperience?: number
-        documents?: number
         screeningAnswers?: number
         openEndedResponses?: number
         candidateReferences?: number
     }
-    // Clinical details flag
-    _hasClinicalDetails?: boolean
 }
 
 /** @deprecated Use ProfileDataV2 instead */
@@ -60,11 +57,11 @@ export function calculateCompleteness(profile: ProfileDataV2 | null | undefined)
             percentage: 0,
             color: '#EF4444',
             sections: [
-                { label: 'Personal Info', earned: 0, total: 15, missing: ['All fields'] },
+                { label: 'Personal Info', earned: 0, total: 20, missing: ['All fields'] },
                 { label: 'Credentials', earned: 0, total: 25, missing: ['All fields'] },
-                { label: 'Education', earned: 0, total: 10, missing: ['Add education'] },
+                { label: 'Education', earned: 0, total: 15, missing: ['Add education'] },
                 { label: 'Work Experience', earned: 0, total: 20, missing: ['Add work experience'] },
-                { label: 'Documents', earned: 0, total: 15, missing: ['Upload resume', 'Upload documents'] },
+                { label: 'Documents', earned: 0, total: 5, missing: ['Upload resume'] },
                 { label: 'Screening & Responses', earned: 0, total: 10, missing: ['Answer screening questions'] },
                 { label: 'References', earned: 0, total: 5, missing: ['Add 3 references'] },
             ],
@@ -76,16 +73,16 @@ export function calculateCompleteness(profile: ProfileDataV2 | null | undefined)
     const sections: SectionScore[] = []
     const missingItems: { label: string; weight: number; fieldId: string }[] = []
 
-    // ── Personal Info (15%) ──
+    // ── Personal Info (20%) ──
     {
         let earned = 0
         const missing: string[] = []
-        if (hasText(profile.firstName)) earned += 3; else { missing.push('First name'); missingItems.push({ label: 'Add first name', weight: 3, fieldId: 'tab-personal' }) }
-        if (hasText(profile.lastName)) earned += 3; else { missing.push('Last name'); missingItems.push({ label: 'Add last name', weight: 3, fieldId: 'tab-personal' }) }
-        if (hasText(profile.phone)) earned += 2; else { missing.push('Phone'); missingItems.push({ label: 'Add phone', weight: 2, fieldId: 'tab-personal' }) }
-        if (hasText(profile.addressLine1) && hasText(profile.city) && hasText(profile.state) && hasText(profile.zipCode)) earned += 4; else { missing.push('Complete address'); missingItems.push({ label: 'Complete address', weight: 4, fieldId: 'tab-personal' }) }
-        if (hasText(profile.headline)) earned += 3; else { missing.push('Headline'); missingItems.push({ label: 'Add headline', weight: 3, fieldId: 'tab-personal' }) }
-        sections.push({ label: 'Personal Info', earned, total: 15, missing })
+        if (hasText(profile.firstName)) earned += 4; else { missing.push('First name'); missingItems.push({ label: 'Add first name', weight: 4, fieldId: 'tab-personal' }) }
+        if (hasText(profile.lastName)) earned += 4; else { missing.push('Last name'); missingItems.push({ label: 'Add last name', weight: 4, fieldId: 'tab-personal' }) }
+        if (hasText(profile.phone)) earned += 3; else { missing.push('Phone'); missingItems.push({ label: 'Add phone', weight: 3, fieldId: 'tab-personal' }) }
+        if (hasText(profile.addressLine1) && hasText(profile.city) && hasText(profile.state) && hasText(profile.zipCode)) earned += 5; else { missing.push('Complete address'); missingItems.push({ label: 'Complete address', weight: 5, fieldId: 'tab-personal' }) }
+        if (hasText(profile.headline)) earned += 4; else { missing.push('Headline'); missingItems.push({ label: 'Add headline', weight: 4, fieldId: 'tab-personal' }) }
+        sections.push({ label: 'Personal Info', earned, total: 20, missing })
     }
 
     // ── Professional Credentials (25%) ──
@@ -99,37 +96,35 @@ export function calculateCompleteness(profile: ProfileDataV2 | null | undefined)
         sections.push({ label: 'Credentials', earned, total: 25, missing })
     }
 
-    // ── Education (10%) ──
+    // ── Education (15%) ──
     {
         let earned = 0
         const missing: string[] = []
-        if ((c.education || 0) >= 1) earned += 10; else { missing.push('Add education'); missingItems.push({ label: 'Add education entry', weight: 10, fieldId: 'tab-education' }) }
-        sections.push({ label: 'Education', earned, total: 10, missing })
+        if ((c.education || 0) >= 1) earned += 15; else { missing.push('Add education'); missingItems.push({ label: 'Add education entry', weight: 15, fieldId: 'tab-education' }) }
+        sections.push({ label: 'Education', earned, total: 15, missing })
     }
 
     // ── Work Experience (20%) ──
     {
         let earned = 0
         const missing: string[] = []
-        if ((c.workExperience || 0) >= 1) earned += 15; else { missing.push('Add work experience'); missingItems.push({ label: 'Add work experience', weight: 15, fieldId: 'tab-experience' }) }
-        if (profile._hasClinicalDetails) earned += 5; else { missing.push('Clinical details'); missingItems.push({ label: 'Fill clinical details', weight: 5, fieldId: 'tab-experience' }) }
+        if ((c.workExperience || 0) >= 1) earned += 20; else { missing.push('Add work experience'); missingItems.push({ label: 'Add work experience', weight: 20, fieldId: 'tab-experience' }) }
         sections.push({ label: 'Work Experience', earned, total: 20, missing })
     }
 
-    // ── Documents (15%) ──
+    // ── Resume (5%) ──
     {
         let earned = 0
         const missing: string[] = []
-        if (hasText(profile.resumeUrl)) earned += 5; else { missing.push('Resume'); missingItems.push({ label: 'Upload resume', weight: 5, fieldId: 'tab-documents' }) }
-        if ((c.documents || 0) >= 3) earned += 10; else { missing.push(`${Math.max(0, 3 - (c.documents || 0))} more document(s)`); missingItems.push({ label: 'Upload 3+ documents', weight: 10, fieldId: 'tab-documents' }) }
-        sections.push({ label: 'Documents', earned, total: 15, missing })
+        if (hasText(profile.resumeUrl)) earned += 5; else { missing.push('Resume'); missingItems.push({ label: 'Upload resume', weight: 5, fieldId: 'tab-personal' }) }
+        sections.push({ label: 'Resume', earned, total: 5, missing })
     }
 
     // ── Screening & Responses (10%) ──
     {
         let earned = 0
         const missing: string[] = []
-        if ((c.screeningAnswers || 0) >= 10) earned += 5; else { missing.push('Screening answers'); missingItems.push({ label: 'Answer 10+ screening questions', weight: 5, fieldId: 'tab-screening' }) }
+        if ((c.screeningAnswers || 0) >= 5) earned += 5; else { missing.push('Screening answers'); missingItems.push({ label: 'Answer 5+ screening questions', weight: 5, fieldId: 'tab-screening' }) }
         if ((c.openEndedResponses || 0) >= 3) earned += 5; else { missing.push('Application responses'); missingItems.push({ label: 'Write 3+ application responses', weight: 5, fieldId: 'tab-responses' }) }
         sections.push({ label: 'Screening & Responses', earned, total: 10, missing })
     }

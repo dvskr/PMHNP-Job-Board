@@ -5,13 +5,10 @@ export interface ProfileData {
     personal: PersonalInfo;
     eeo: EEOData;
     credentials: CredentialsData;
-    malpractice: MalpracticeData;
-    practiceAuthority: PracticeAuthorityData;
     education: EducationEntry[];
     workExperience: WorkExperienceEntry[];
     screeningAnswers: ScreeningAnswers;
     openEndedResponses: Record<string, OpenEndedResponse>;
-    documents: DocumentEntry[];
     references: ReferenceEntry[];
     preferences: PreferencesData;
     meta: MetaData;
@@ -52,10 +49,6 @@ export interface CredentialsData {
     npiNumber: string | null;
     deaNumber: string | null;
     deaExpirationDate: string | null;
-    deaScheduleAuthority: string | null;
-    stateControlledSubstanceReg: string | null;
-    stateCSRExpirationDate: string | null;
-    pmpRegistered: boolean | null;
 }
 
 export interface License {
@@ -73,22 +66,6 @@ export interface Certification {
     expirationDate: string | null;
 }
 
-export interface MalpracticeData {
-    carrier: string | null;
-    policyNumber: string | null;
-    coverage: string | null;
-    claimsHistory: boolean | null;
-    claimsDetails: string | null;
-}
-
-export interface PracticeAuthorityData {
-    fullPracticeAuthority: boolean | null;
-    collaborativeAgreementReq: boolean | null;
-    collaboratingPhysicianName: string | null;
-    collaboratingPhysicianContact: string | null;
-    prescriptiveAuthorityStatus: string | null;
-}
-
 export interface EducationEntry {
     degreeType: string;
     fieldOfStudy: string | null;
@@ -96,22 +73,6 @@ export interface EducationEntry {
     graduationDate: string | null;
     gpa: string | null;
     isHighestDegree: boolean;
-}
-
-export interface ClinicalDetails {
-    patientVolume: string | null;
-    patientPopulations: string[] | null;
-    treatmentModalities: string[] | null;
-    disordersTreated: string[] | null;
-    practiceSetting: string | null;
-    telehealthExperience: boolean | null;
-    telehealthPlatforms: string[] | null;
-    ehrSystems: string[] | null;
-    prescribingExp: boolean | null;
-    prescribingSchedules: string | null;
-    assessmentTools: string[] | null;
-    supervisoryRole: boolean | null;
-    supervisoryDetails: string | null;
 }
 
 export interface WorkExperienceEntry {
@@ -128,7 +89,6 @@ export interface WorkExperienceEntry {
     mayContact: boolean | null;
     reasonForLeaving: string | null;
     description: string | null;
-    clinicalDetails: ClinicalDetails;
 }
 
 export interface ScreeningAnswerEntry {
@@ -138,7 +98,6 @@ export interface ScreeningAnswerEntry {
 
 export interface ScreeningAnswers {
     background: Record<string, ScreeningAnswerEntry>;
-    clinical: Record<string, ScreeningAnswerEntry>;
     logistics: Record<string, ScreeningAnswerEntry>;
 }
 
@@ -155,6 +114,7 @@ export interface DocumentEntry {
     fileName: string;
     expirationDate: string | null;
 }
+
 
 export interface ReferenceEntry {
     fullName: string;
@@ -377,6 +337,7 @@ export type MessageType =
     | 'CLOSE_REVIEW_SIDEBAR'
     | 'PROXY_FETCH'
     | 'CLASSIFY_AND_MAP'
+    | 'EXTRACT_RESUME_SECTIONS'
     | 'FETCH_FILE'
     | 'RECORD_AUTOFILL';
 

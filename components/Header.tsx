@@ -30,9 +30,14 @@ export default function Header() {
   }, [isHomepage]);
 
   useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? 'hidden' : 'unset';
-    return () => { document.body.style.overflow = 'unset'; };
+    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
   }, [isMenuOpen]);
+
+  // Clear any stale overflow lock when navigating between pages
+  useEffect(() => {
+    document.body.style.overflow = '';
+  }, [pathname]);
 
   const showSolid = !isHomepage || scrolled;
 

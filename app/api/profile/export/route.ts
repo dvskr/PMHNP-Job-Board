@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { getResumeUrl, getPathFromUrl } from '@/lib/supabase-storage'
+import { verifyExtensionToken } from '@/lib/verify-extension-token'
 
 function tryParseJson(val: string | null): string[] | null {
     if (!val) return null
@@ -15,14 +16,25 @@ function tryParseJson(val: string | null): string[] | null {
 }
 
 // GET /api/profile/export — full structured profile for Chrome extension
-export async function GET() {
+// Supports both JWT Bearer token (extension) and Supabase cookie (settings page)
+export async function GET(req: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        let profileWhereClause: { id: string } | { supabaseId: string }
+
+        // Try JWT Bearer token first (from Chrome extension)
+        const extensionUser = await verifyExtensionToken(req)
+        if (extensionUser) {
+            profileWhereClause = { id: extensionUser.userId }
+        } else {
+            // Fallback to Supabase cookie auth (from settings page)
+            const supabase = await createClient()
+            const { data: { user }, error } = await supabase.auth.getUser()
+            if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            profileWhereClause = { supabaseId: user.id }
+        }
 
         const profile = await prisma.userProfile.findUnique({
-            where: { supabaseId: user.id },
+            where: profileWhereClause,
             include: {
                 licenses: true,
                 certificationRecords: true,
@@ -30,7 +42,6 @@ export async function GET() {
                 workExperience: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] },
                 screeningAnswers: true,
                 openEndedResponses: true,
-                documents: true,
                 candidateReferences: true,
             },
         })
@@ -43,6 +54,8 @@ export async function GET() {
                 lastName: profile.lastName,
                 email: profile.email,
                 phone: profile.phone,
+                yearsExperience: profile.yearsExperience,
+                specialties: tryParseJson(profile.specialties) || [],
                 address: {
                     line1: profile.addressLine1,
                     line2: profile.addressLine2,
@@ -53,6 +66,7 @@ export async function GET() {
                 },
                 linkedinUrl: profile.linkedinUrl,
                 avatarUrl: profile.avatarUrl,
+                headline: profile.headline,
             },
             eeo: {
                 workAuthorized: profile.workAuthorized,
@@ -79,24 +93,6 @@ export async function GET() {
                 npiNumber: profile.npiNumber,
                 deaNumber: profile.deaNumber,
                 deaExpirationDate: profile.deaExpirationDate,
-                deaScheduleAuthority: profile.deaScheduleAuthority,
-                stateControlledSubstanceReg: profile.stateControlledSubstanceReg,
-                stateCSRExpirationDate: profile.stateCSRExpirationDate,
-                pmpRegistered: profile.pmpRegistered,
-            },
-            malpractice: {
-                carrier: profile.malpracticeCarrier,
-                policyNumber: profile.malpracticePolicyNumber,
-                coverage: profile.malpracticeCoverage,
-                claimsHistory: profile.malpracticeClaimsHistory,
-                claimsDetails: profile.malpracticeClaimsDetails,
-            },
-            practiceAuthority: {
-                fullPracticeAuthority: profile.fullPracticeAuthority,
-                collaborativeAgreementReq: profile.collaborativeAgreementReq,
-                collaboratingPhysicianName: profile.collaboratingPhysicianName,
-                collaboratingPhysicianContact: profile.collaboratingPhysicianContact,
-                prescriptiveAuthorityStatus: profile.prescriptiveAuthorityStatus,
             },
             education: profile.education.map((e) => ({
                 degreeType: e.degreeType,
@@ -120,32 +116,14 @@ export async function GET() {
                 mayContact: w.mayContact,
                 reasonForLeaving: w.reasonForLeaving,
                 description: w.description,
-                clinicalDetails: {
-                    patientVolume: w.patientVolume,
-                    patientPopulations: tryParseJson(w.patientPopulations),
-                    treatmentModalities: tryParseJson(w.treatmentModalities),
-                    disordersTreated: tryParseJson(w.disordersTreated),
-                    practiceSetting: w.practiceSetting,
-                    telehealthExperience: w.telehealthExperience,
-                    telehealthPlatforms: tryParseJson(w.telehealthPlatforms),
-                    ehrSystems: tryParseJson(w.ehrSystems),
-                    prescribingExp: w.prescribingExp,
-                    prescribingSchedules: w.prescribingSchedules,
-                    assessmentTools: tryParseJson(w.assessmentTools),
-                    supervisoryRole: w.supervisoryRole,
-                    supervisoryDetails: w.supervisoryDetails,
-                },
             })),
             screeningAnswers: (() => {
                 const grouped: Record<string, Record<string, { answer: boolean | null; details: string | null }>> = {
                     background: {},
-                    clinical: {},
                     logistics: {},
                 }
                 for (const a of profile.screeningAnswers) {
-                    const cat = a.category.toLowerCase().includes('background') ? 'background'
-                        : a.category.toLowerCase().includes('clinical') ? 'clinical'
-                            : 'logistics'
+                    const cat = a.category.toLowerCase().includes('background') ? 'background' : 'logistics'
                     grouped[cat][a.questionKey] = { answer: a.answerBool, details: a.answerText }
                 }
                 return grouped
@@ -156,13 +134,6 @@ export async function GET() {
                     { questionText: r.questionText, response: r.response, isAIGenerated: r.isAIGenerated },
                 ])
             ),
-            documents: profile.documents.map((d) => ({
-                documentType: d.documentType,
-                documentLabel: d.documentLabel,
-                fileUrl: d.fileUrl,
-                fileName: d.fileName,
-                expirationDate: d.expirationDate,
-            })),
             references: profile.candidateReferences.map((r) => ({
                 fullName: r.fullName,
                 title: r.title,

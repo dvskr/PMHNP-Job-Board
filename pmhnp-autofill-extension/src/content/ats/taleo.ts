@@ -1,6 +1,7 @@
-import type { ATSHandler, DetectedField, MappedField, FillDetail } from '@/shared/types';
+﻿import type { ATSHandler, DetectedField, MappedField, FillDetail } from '@/shared/types';
 import { detectFormFields } from '../detector';
 import { fillSingleField } from '../filler';
+import { log, warn } from '@/shared/logger';
 
 function isTaleo(): boolean {
     const url = window.location.href.toLowerCase();
@@ -20,7 +21,7 @@ function detectTaleoFields(): DetectedField[] {
             if (iframeDoc) {
                 const inputs = iframeDoc.querySelectorAll('input, select, textarea');
                 // Generic detection would handle these if accessible
-                console.log(`[PMHNP-Taleo] Found ${inputs.length} fields in iframe`);
+                log(`[PMHNP-Taleo] Found ${inputs.length} fields in iframe`);
             }
         } catch {
             // Cross-origin iframe — cannot access

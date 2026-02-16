@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { sanitizeText } from '@/lib/sanitize'
 
-const VALID_DEA_SCHEDULES = ['Schedule II-V', 'Schedule III-V']
 
 export async function PUT(request: NextRequest) {
     try {
@@ -19,10 +18,6 @@ export async function PUT(request: NextRequest) {
             npiNumber,
             deaNumber,
             deaExpirationDate,
-            deaScheduleAuthority,
-            stateControlledSubstanceReg,
-            stateCSRExpirationDate,
-            pmpRegistered,
         } = body
 
         const updatedProfile = await prisma.userProfile.update({
@@ -36,25 +31,6 @@ export async function PUT(request: NextRequest) {
                 }),
                 ...(deaExpirationDate !== undefined && {
                     deaExpirationDate: deaExpirationDate ? new Date(deaExpirationDate) : null,
-                }),
-                ...(deaScheduleAuthority !== undefined && {
-                    deaScheduleAuthority:
-                        deaScheduleAuthority && VALID_DEA_SCHEDULES.includes(deaScheduleAuthority)
-                            ? deaScheduleAuthority
-                            : null,
-                }),
-                ...(stateControlledSubstanceReg !== undefined && {
-                    stateControlledSubstanceReg: stateControlledSubstanceReg
-                        ? sanitizeText(stateControlledSubstanceReg, 50)
-                        : null,
-                }),
-                ...(stateCSRExpirationDate !== undefined && {
-                    stateCSRExpirationDate: stateCSRExpirationDate
-                        ? new Date(stateCSRExpirationDate)
-                        : null,
-                }),
-                ...(pmpRegistered !== undefined && {
-                    pmpRegistered: typeof pmpRegistered === 'boolean' ? pmpRegistered : null,
                 }),
             },
         })

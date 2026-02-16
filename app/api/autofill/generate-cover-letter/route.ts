@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { verifyExtensionToken } from '@/lib/verify-extension-token';
 
-const JWT_SECRET = process.env.EXTENSION_JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
-
-async function verifyExtensionToken(req: NextRequest) {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) return null;
-    const token = authHeader.slice(7);
-    try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        if (payload.purpose !== 'extension') return null;
-        return payload as { userId: string; supabaseId: string; email: string; role: string };
-    } catch {
-        return null;
-    }
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -77,7 +62,7 @@ Write a compelling, professional cover letter (3-4 paragraphs). Use first person
                 Authorization: `Bearer ${OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
+                model: 'gpt-5.2',
                 messages: [
                     {
                         role: 'system',
@@ -85,7 +70,7 @@ Write a compelling, professional cover letter (3-4 paragraphs). Use first person
                     },
                     { role: 'user', content: prompt },
                 ],
-                max_tokens: 1500,
+                max_completion_tokens: 1500,
                 temperature: 0.7,
             }),
         });

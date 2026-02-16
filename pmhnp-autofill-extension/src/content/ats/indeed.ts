@@ -1,7 +1,8 @@
-import type { ATSHandler, DetectedField, MappedField, FillDetail } from '@/shared/types';
+﻿import type { ATSHandler, DetectedField, MappedField, FillDetail } from '@/shared/types';
 import { detectFormFields } from '../detector';
 import { fillSingleField } from '../filler';
 import { triggerReactChange } from '../filler';
+import { log, warn } from '@/shared/logger';
 
 function isIndeed(): boolean {
     const url = window.location.href.toLowerCase();
@@ -15,7 +16,7 @@ function detectIndeedFields(): DetectedField[] {
     const modal = document.querySelector('[class*="indeed-apply"], [class*="ia-"], [role="dialog"]');
     if (modal) {
         const inputs = modal.querySelectorAll('input, select, textarea');
-        console.log(`[PMHNP-Indeed] Found ${inputs.length} fields in apply modal`);
+        log(`[PMHNP-Indeed] Found ${inputs.length} fields in apply modal`);
     }
     return detectFormFields();
 }

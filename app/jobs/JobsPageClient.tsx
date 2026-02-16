@@ -51,13 +51,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const router = useRouter();
 
   // Read sort from URL params (persists across navigation)
-  const urlSort = searchParams.get('sort') || 'newest';
+  const urlSort = searchParams.get('sort') || 'best';
   const [sortOption, setSortOption] = useState(urlSort);
 
   // Persist filter preferences across sessions
   useFilterPersistence();
 
-  const fetchJobs = useCallback(async (filters: FilterState, page: number = 1, sort: string = 'newest') => {
+  const fetchJobs = useCallback(async (filters: FilterState, page: number = 1, sort: string = 'best') => {
     try {
       setLoading(true);
       setError(null);
@@ -70,7 +70,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
       params.set('limit', '50'); // Show 50 jobs per page
 
       // Add sort
-      if (sort && sort !== 'newest') {
+      if (sort && sort !== 'best') {
         params.set('sort', sort);
       }
 
@@ -148,7 +148,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     setSortOption(newSort);
     // Update URL to persist sort
     const params = new URLSearchParams(searchParams.toString());
-    if (newSort === 'newest') {
+    if (newSort === 'best') {
       params.delete('sort');
     } else {
       params.set('sort', newSort);
@@ -290,6 +290,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                         transition: 'border-color 0.2s',
                       }}
                     >
+                      <option value="best">Best Match</option>
                       <option value="newest">Newest First</option>
                       <option value="salary">Salary: High → Low</option>
                     </select>

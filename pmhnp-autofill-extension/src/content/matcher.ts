@@ -119,17 +119,6 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
         npi_number: () => ({ profileKey: 'credentials.npiNumber', value: c.npiNumber || '', confidence: field.confidence }),
         dea_number: () => ({ profileKey: 'credentials.deaNumber', value: c.deaNumber || '', confidence: field.confidence }),
         dea_expiration: () => ({ profileKey: 'credentials.deaExpirationDate', value: formatDate(c.deaExpirationDate), confidence: field.confidence }),
-        dea_schedule: () => ({ profileKey: 'credentials.deaScheduleAuthority', value: c.deaScheduleAuthority || '', confidence: field.confidence }),
-        prescriptive_authority: () => ({
-            profileKey: 'practiceAuthority.prescriptiveAuthorityStatus',
-            value: profile.practiceAuthority.prescriptiveAuthorityStatus || '',
-            confidence: field.confidence,
-        }),
-        csr_number: () => ({ profileKey: 'credentials.stateControlledSubstanceReg', value: c.stateControlledSubstanceReg || '', confidence: field.confidence }),
-        pmp_registered: () => ({ profileKey: 'credentials.pmpRegistered', value: c.pmpRegistered ?? false, confidence: field.confidence }),
-        malpractice_carrier: () => ({ profileKey: 'malpractice.carrier', value: profile.malpractice.carrier || '', confidence: field.confidence }),
-        malpractice_policy: () => ({ profileKey: 'malpractice.policyNumber', value: profile.malpractice.policyNumber || '', confidence: field.confidence }),
-        malpractice_coverage: () => ({ profileKey: 'malpractice.coverage', value: profile.malpractice.coverage || '', confidence: field.confidence }),
 
         // License fields - pick best match
         license_number: () => {
@@ -230,34 +219,7 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
             }
             return null;
         },
-        patient_volume: () => {
-            const work = profile.workExperience[0];
-            return work?.clinicalDetails?.patientVolume
-                ? { profileKey: 'workExperience[0].clinicalDetails.patientVolume', value: work.clinicalDetails.patientVolume, confidence: field.confidence }
-                : null;
-        },
-        ehr_systems: () => {
-            const work = profile.workExperience[0];
-            const systems = work?.clinicalDetails?.ehrSystems;
-            return systems && systems.length > 0
-                ? { profileKey: 'workExperience[0].clinicalDetails.ehrSystems', value: systems.join(', '), confidence: field.confidence }
-                : null;
-        },
-        telehealth_experience: () => {
-            const work = profile.workExperience.find(w => w.clinicalDetails?.telehealthExperience);
-            if (work) {
-                const platforms = work.clinicalDetails?.telehealthPlatforms || [];
-                const value = platforms.length > 0 ? `Yes — ${platforms.join(', ')}` : 'Yes';
-                return { profileKey: 'workExperience[0].clinicalDetails.telehealthExperience', value, confidence: field.confidence };
-            }
-            return { profileKey: 'workExperience[0].clinicalDetails.telehealthExperience', value: 'No', confidence: 0.5 };
-        },
-        practice_setting: () => {
-            const work = profile.workExperience[0];
-            return work?.clinicalDetails?.practiceSetting
-                ? { profileKey: 'workExperience[0].clinicalDetails.practiceSetting', value: work.clinicalDetails.practiceSetting, confidence: field.confidence }
-                : null;
-        },
+
 
         // Reference fields (first reference)
         reference_name: () => {
@@ -305,11 +267,14 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
         willing_to_travel: () => mapScreeningAnswer(field, profile, 'willing_to_travel'),
 
         felony: () => mapScreeningAnswer(field, profile, 'felony_conviction'),
-        misdemeanor: () => mapScreeningAnswer(field, profile, 'misdemeanor_conviction'),
         license_revoked: () => mapScreeningAnswer(field, profile, 'license_revoked'),
-        malpractice: () => mapScreeningAnswer(field, profile, 'malpractice_claim'),
-        background_check: () => ({ profileKey: 'screening.background_check', value: true, confidence: field.confidence }),
-        drug_screen: () => ({ profileKey: 'screening.drug_screen', value: true, confidence: field.confidence }),
+        malpractice: () => mapScreeningAnswer(field, profile, 'malpractice_lawsuit'),
+        board_disciplinary: () => mapScreeningAnswer(field, profile, 'board_disciplinary'),
+        background_check: () => mapScreeningAnswer(field, profile, 'consent_background_check'),
+        drug_screen: () => mapScreeningAnswer(field, profile, 'consent_drug_screen'),
+        telehealth: () => mapScreeningAnswer(field, profile, 'telehealth_comfortable'),
+        currently_employed: () => mapScreeningAnswer(field, profile, 'currently_employed'),
+        notice_period: () => mapScreeningAnswer(field, profile, 'notice_period'),
 
         // Message / Cover letter
         message: () => {
@@ -329,7 +294,7 @@ function getDirectMapping(field: DetectedField, profile: ProfileData): DirectMap
 }
 
 function mapScreeningAnswer(field: DetectedField, profile: ProfileData, key: string): DirectMapping | null {
-    const allAnswers = { ...profile.screeningAnswers.background, ...profile.screeningAnswers.clinical, ...profile.screeningAnswers.logistics };
+    const allAnswers = { ...profile.screeningAnswers.background, ...profile.screeningAnswers.logistics };
     const answer = allAnswers[key];
     if (answer) {
         return { profileKey: `screeningAnswers.${key}`, value: answer.answer ?? false, confidence: field.confidence };

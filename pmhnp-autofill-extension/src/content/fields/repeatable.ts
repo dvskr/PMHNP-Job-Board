@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Repeatable field group handler.
  * Handles "Add another" patterns for education, work experience, certifications, etc.
  * Common in: Workday, Greenhouse, SmartRecruiters, iCIMS.
@@ -7,6 +7,7 @@ import { mapFieldsToProfile } from '../matcher';
 import { fillForm } from '../filler';
 import { getActiveHandler } from '../ats';
 import type { ProfileData, EducationEntry, WorkExperienceEntry, FillResult } from '@/shared/types';
+import { log, warn } from '@/shared/logger';
 
 /**
  * Fill repeatable field groups by clicking "Add another" and filling each entry.
@@ -46,7 +47,7 @@ async function addAndFillGroup(
     // 1. Find and click "Add another" button
     const addButton = findAddButton(groupType);
     if (!addButton) {
-        console.log(`[PMHNP-Repeat] No "Add another" button found for ${groupType} #${index + 1}`);
+        log(`[PMHNP-Repeat] No "Add another" button found for ${groupType} #${index + 1}`);
         return 0;
     }
 
@@ -67,7 +68,7 @@ async function addAndFillGroup(
     const mapped = mapFieldsToProfile(fields, tempProfile);
     const result: FillResult = await fillForm(mapped);
 
-    console.log(`[PMHNP-Repeat] Filled ${result.filled} fields for ${groupType} #${index + 1}`);
+    log(`[PMHNP-Repeat] Filled ${result.filled} fields for ${groupType} #${index + 1}`);
     return result.filled;
 }
 

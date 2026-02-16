@@ -46,10 +46,7 @@ export async function POST(request: NextRequest) {
             jobTitle, employerName, employerCity, employerState,
             startDate, endDate, isCurrent, supervisorName, supervisorPhone,
             supervisorEmail, mayContact, reasonForLeaving, description,
-            patientVolume, patientPopulations, treatmentModalities, disordersTreated,
-            practiceSetting, telehealthExperience, telehealthPlatforms, ehrSystems,
-            prescribingExp, prescribingSchedules, assessmentTools, supervisoryRole,
-            supervisoryDetails,
+            practiceSetting,
         } = body
 
         if (!jobTitle || !employerName || !startDate) {
@@ -75,19 +72,7 @@ export async function POST(request: NextRequest) {
                 mayContact: mayContact ?? null,
                 reasonForLeaving: reasonForLeaving ? sanitizeText(reasonForLeaving, 500) : null,
                 description: description ? sanitizeText(description, 2000) : null,
-                patientVolume: patientVolume ? sanitizeText(patientVolume, 50) : null,
-                patientPopulations: patientPopulations ?? null,
-                treatmentModalities: treatmentModalities ?? null,
-                disordersTreated: disordersTreated ?? null,
                 practiceSetting: practiceSetting ? sanitizeText(practiceSetting, 100) : null,
-                telehealthExperience: telehealthExperience ?? null,
-                telehealthPlatforms: telehealthPlatforms ?? null,
-                ehrSystems: ehrSystems ?? null,
-                prescribingExp: prescribingExp ?? null,
-                prescribingSchedules: prescribingSchedules ? sanitizeText(prescribingSchedules, 50) : null,
-                assessmentTools: assessmentTools ?? null,
-                supervisoryRole: supervisoryRole ?? null,
-                supervisoryDetails: supervisoryDetails ? sanitizeText(supervisoryDetails, 500) : null,
             },
         })
 

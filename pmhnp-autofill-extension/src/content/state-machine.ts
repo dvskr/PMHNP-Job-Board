@@ -1,5 +1,6 @@
-import type { FillResult, DetectedField, MappedField, ProfileData, ExtensionSettings } from '@/shared/types';
+﻿import type { FillResult, DetectedField, MappedField, ProfileData, ExtensionSettings } from '@/shared/types';
 import { captureError } from '@/shared/errorHandler';
+import { log, warn } from '@/shared/logger';
 
 // ─── State Definitions ───
 
@@ -108,7 +109,7 @@ export class AutofillStateMachine {
         const currentState = this.context.state;
 
         if (!VALID_TRANSITIONS[currentState]?.includes(newState)) {
-            console.warn(`[PMHNP-SM] Invalid transition: ${currentState} → ${newState}`);
+            warn(`[PMHNP-SM] Invalid transition: ${currentState} → ${newState}`);
             return;
         }
 
@@ -119,7 +120,7 @@ export class AutofillStateMachine {
             state: newState,
         };
 
-        console.log(`[PMHNP-SM] ${previousState} → ${newState}`, updates ? Object.keys(updates) : '');
+        log(`[PMHNP-SM] ${previousState} → ${newState}`, updates ? Object.keys(updates) : '');
 
         // Fire listeners
         for (const listener of this.listeners) {

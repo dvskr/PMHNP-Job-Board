@@ -40,6 +40,7 @@ async function getTelehealthJobs(skip: number = 0, take: number = 10) {
         },
         orderBy: [
             { isFeatured: 'desc' },
+            { qualityScore: 'desc' },
             { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ],

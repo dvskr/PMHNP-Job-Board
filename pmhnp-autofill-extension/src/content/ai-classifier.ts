@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AI Field Classifier
  * 
  * Handles "surprise" fields that our static pattern dictionary doesn't recognize.
@@ -9,6 +9,7 @@
 import type { DetectedField, MappedField, ProfileData } from '@/shared/types';
 import { classifyFields } from '@/shared/api';
 import { extractJobContext } from './ai';
+import { log, warn } from '@/shared/logger';
 
 export interface ClassifiedResult {
     index: number;
@@ -29,7 +30,7 @@ export async function classifyUnknownFields(
 ): Promise<MappedField[]> {
     if (unknownFields.length === 0) return [];
 
-    console.log(`[PMHNP-AI] Classifying ${unknownFields.length} unknown field(s)...`);
+    log(`[PMHNP-AI] Classifying ${unknownFields.length} unknown field(s)...`);
 
     const jobContext = extractJobContext();
 
@@ -55,7 +56,7 @@ export async function classifyUnknownFields(
             employerName: jobContext.employerName,
         });
 
-        console.log(`[PMHNP-AI] Classification complete: ${result.classified.length} fields classified${result.resumeUsed ? ' (resume used)' : ''}`);
+        log(`[PMHNP-AI] Classification complete: ${result.classified.length} fields classified${result.resumeUsed ? ' (resume used)' : ''}`);
 
         // Convert classified results back to MappedField entries
         const mappedFields: MappedField[] = [];

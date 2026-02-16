@@ -8,6 +8,7 @@ import {
     AI_COVER_LETTER_ENDPOINT,
     AI_BULK_ENDPOINT,
     AI_CLASSIFY_ENDPOINT,
+    AI_EXTRACT_SECTIONS_ENDPOINT,
 } from './constants';
 import { getAuthHeaders } from './auth';
 import { getCachedProfile, setCachedProfile, isCacheStale, getCachedUsage, setCachedUsage } from './storage';
@@ -262,4 +263,45 @@ export async function classifyFields(request: ClassifyFieldsRequest): Promise<Cl
     }
 
     return (await response.json()) as ClassifyFieldsResponse;
+}
+
+// ─── AI Resume Section Extraction ───
+
+export interface ExtractedSections {
+    education: {
+        schoolName: string;
+        degreeType: string;
+        fieldOfStudy: string | null;
+        graduationDate: string | null;
+        gpa: string | null;
+        isHighestDegree: boolean;
+    }[];
+    experience: {
+        jobTitle: string;
+        employerName: string;
+        employerCity: string | null;
+        employerState: string | null;
+        startDate: string;
+        endDate: string | null;
+        isCurrent: boolean;
+        description: string | null;
+    }[];
+    model: string;
+}
+
+export async function extractResumeSections(sections: string[] = ['education', 'experience']): Promise<ExtractedSections> {
+    const headers = await getAuthHeaders();
+    const response = await proxyFetch(`${API_BASE_URL}${AI_EXTRACT_SECTIONS_ENDPOINT}`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections }),
+    });
+
+    if (response.status === 429) throw new Error('Resume extraction limit reached');
+    if (!response.ok) {
+        const errBody = await response.text();
+        throw new Error(`Resume section extraction failed: ${response.status} — ${errBody}`);
+    }
+
+    return (await response.json()) as ExtractedSections;
 }
