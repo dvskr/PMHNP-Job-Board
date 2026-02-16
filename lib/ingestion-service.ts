@@ -32,6 +32,7 @@ export interface IngestionResult {
   errors: number;
   duration: number;
   newJobUrls: string[];
+  newJobIds: string[];
 }
 
 /**
@@ -54,7 +55,7 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
     case 'ashby':
       return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
     case 'workday':
-      return await fetchWorkdayJobs() as unknown as Array<Record<string, unknown>>;
+      return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'ats-jobs-db':
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     default:
@@ -73,6 +74,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
   let duplicates = 0; // "Renewed" jobs are counted as duplicates for now to maintain stats semantics
   let errors = 0;
   const newJobUrls: string[] = [];
+  const newJobIds: string[] = [];
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -84,7 +86,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
     if (fetched === 0) {
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
     }
 
     // Optimized: Load all existing externalIds for this source once
@@ -196,6 +198,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           data: normalizedJob as any,
         });
         added++;
+        newJobIds.push(savedJob.id);
 
         // Generate and update slug
         const slug = `${normalizedJob.title
@@ -304,12 +307,12 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       console.error(`Failed to record stats for ${source}:`, statsError);
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls };
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
     const duration = Date.now() - startTime;
-    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [] };
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [] };
   }
 }
 
@@ -332,7 +335,8 @@ export async function ingestJobs(
 
   // Process each source sequentially
   for (const source of sources) {
-    const result = await ingestFromSource(source, source === 'jsearch' ? options : undefined);
+    const useChunk = source === 'jsearch' || source === 'workday';
+    const result = await ingestFromSource(source, useChunk ? options : undefined);
     results.push(result);
   }
 
@@ -373,6 +377,40 @@ export async function ingestJobs(
   if (totals.added > 0) {
     const { cleanAllJobDescriptions } = await import('./description-cleaner');
     await cleanAllJobDescriptions();
+
+    // Recompute quality scores for newly added jobs after description cleaning
+    // This ensures scores reflect cleaned descriptions (description quality points)
+    const allNewJobIds = results.flatMap(r => r.newJobIds);
+    if (allNewJobIds.length > 0) {
+      console.log(`[Quality] Recomputing scores for ${allNewJobIds.length} newly added jobs...`);
+      let recomputed = 0;
+      for (const jobId of allNewJobIds) {
+        try {
+          const job = await prisma.job.findUnique({
+            where: { id: jobId },
+            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
+          });
+          if (job) {
+            const qScore = computeQualityScore({
+              applyLink: job.applyLink,
+              displaySalary: job.displaySalary,
+              normalizedMinSalary: job.normalizedMinSalary,
+              normalizedMaxSalary: job.normalizedMaxSalary,
+              descriptionSummary: job.descriptionSummary,
+              description: job.description,
+              city: job.city,
+              state: job.state,
+              isEmployerPosted: false,
+            });
+            await prisma.job.update({ where: { id: jobId }, data: { qualityScore: qScore } });
+            recomputed++;
+          }
+        } catch (e) {
+          // Non-fatal — keep existing score
+        }
+      }
+      console.log(`[Quality] Recomputed ${recomputed}/${allNewJobIds.length} quality scores`);
+    }
   }
 
   // Auto-collect employer emails into leads

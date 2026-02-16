@@ -120,6 +120,15 @@ const GREENHOUSE_COMPANIES = [
   'peregrinehealth',     // Peregrine Health — 1 PMHNP (1 recent)
   'tia',                 // Tia — 1 PMHNP
   'lts',                 // LTS — 1 PMHNP (1 recent)
+
+  // === ADDED 2026-02-16 — Full ATS Discovery (189 companies scanned) ===
+  'prosperhealth',       // Prosper Health — 47 total jobs
+  'pma',                 // Pathlight Mood & Anxiety — 18 total jobs
+  'carbon',              // Carbon Health — 7 total jobs
+  'veterans',            // Veterans Affairs — 6 total jobs
+  'summit',              // Summit Healthcare — 5 total jobs
+  'universal',           // Universal Health Services — 2 total jobs
+  'calm',                // Calm — 1 total job
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -208,6 +217,15 @@ const COMPANY_NAMES: Record<string, string> = {
   'peregrinehealth': 'Peregrine Health',
   'tia': 'Tia',
   'lts': 'LTS',
+
+  // Added 2026-02-16 (ATS discovery)
+  'prosperhealth': 'Prosper Health',
+  'pma': 'Pathlight Mood & Anxiety',
+  'carbon': 'Carbon Health',
+  'veterans': 'Veterans Affairs',
+  'summit': 'Summit Healthcare',
+  'universal': 'Universal Health Services',
+  'calm': 'Calm',
 };
 
 function formatCompanyName(slug: string): string {

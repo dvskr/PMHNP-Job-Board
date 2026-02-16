@@ -46,6 +46,17 @@ const ASHBY_COMPANIES = [
     { slug: "legionhealth", name: "Legion Health" },
     { slug: "array-behavioral-care", name: "Array Behavioral Care" },
     { slug: "blossom-health", name: "Blossom Health" },
+    // === ADDED 2026-02-16 — Discovered via scripts/discover-lever-ashby.ts ===
+    { slug: "sondermind", name: "SonderMind" },         // 150 total jobs
+    { slug: "hims-and-hers", name: "Hims & Hers" },     // 101 total jobs
+    { slug: "rula", name: "Rula" },                      // 21 total jobs
+    { slug: "tavahealth", name: "Tava Health" },         // 10 total jobs
+    // === ADDED 2026-02-16 — Full ATS Discovery (189 companies scanned) ===
+    { slug: "sesame", name: "Sesame Care" },               // 29 total jobs
+    { slug: "wheel", name: "Wheel Health" },               // 7 total jobs
+    { slug: "oh", name: "Ochsner Health" },                // 5 total jobs
+    { slug: "prime", name: "Prime Healthcare" },           // 3 total jobs
+    { slug: "foresight", name: "Foresight Mental Health" },// 3 total jobs
 ];
 
 /**

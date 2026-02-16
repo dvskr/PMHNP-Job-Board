@@ -79,6 +79,30 @@
     {
       "path": "/api/cron/ingest?source=ashby",
       "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=0",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=1",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=2",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=3",
+      "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=4",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=ats-jobs-db",
+      "schedule": "30 17 * * *"
     }
   ],
   "headers": [

@@ -58,6 +58,11 @@ const LEVER_COMPANIES = [
   'beckley-clinical',    // Beckley Clinical — 1 PMHNP
   'synapticure',         // SynaptiCure — 1 PMHNP
   'arundellodge',        // Arundel Lodge — 1 PMHNP
+
+  // === ADDED 2026-02-16 — Full ATS Discovery (189 companies scanned) ===
+  'ro',                  // Ro Health — 40 total jobs
+  'advocate',            // Advocate Health — 9 total jobs
+  'ucsf',                // UCSF Health — 1 total job
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -79,6 +84,11 @@ const COMPANY_NAMES: Record<string, string> = {
   'beckley-clinical': 'Beckley Clinical',
   'synapticure': 'SynaptiCure',
   'arundellodge': 'Arundel Lodge',
+
+  // Added 2026-02-16 (ATS discovery)
+  'ro': 'Ro Health',
+  'advocate': 'Advocate Health',
+  'ucsf': 'UCSF Health',
 };
 
 function formatCompanyName(slug: string): string {
