@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireApiAdmin } from '@/lib/auth/require-api-admin'
 
 export async function POST() {
+  // Verify admin session
+  const authError = await requireApiAdmin();
+  if (authError) return authError;
+
   try {
     // Find all Adzuna jobs with salaries that need fixing (< 10000 means stored in thousands)
     const adzunaJobs = await prisma.job.findMany({

@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getIngestionStats } from '@/lib/ingestion-service';
 import { logger } from '@/lib/logger';
+import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
 /**
  * GET handler for admin statistics
  * Provides comprehensive metrics about the job board
  */
 export async function GET() {
+  // Verify admin session
+  const authError = await requireApiAdmin();
+  if (authError) return authError;
+
   try {
     logger.info('[Admin Stats] Fetching comprehensive statistics');
 
