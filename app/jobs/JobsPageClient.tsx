@@ -632,12 +632,17 @@ function LoadingFallback() {
 
 /**
  * StickyFilterSidebar — JS-based fixed sidebar that stays pinned while scrolling.
- * Works regardless of ancestor overflow properties.
+ * Dynamically shrinks when the footer enters the viewport to avoid overlap.
  */
 function StickyFilterSidebar({ children }: { children: React.ReactNode }) {
   const placeholderRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [leftPx, setLeftPx] = useState(0);
+  const [maxH, setMaxH] = useState('calc(100vh - 120px)');
+
+  const SIDEBAR_TOP = 110; // px from top of viewport
+  const FOOTER_GAP = 24;   // px gap between sidebar bottom and footer top
 
   useEffect(() => {
     const measure = () => {
@@ -648,14 +653,39 @@ function StickyFilterSidebar({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const adjustForFooter = () => {
+      const footer = document.querySelector('footer');
+      if (!footer) {
+        setMaxH('calc(100vh - 120px)');
+        return;
+      }
+      const footerTop = footer.getBoundingClientRect().top;
+      const viewportH = window.innerHeight;
+
+      if (footerTop < viewportH) {
+        // Footer is visible — shrink sidebar to stop above it
+        const available = footerTop - SIDEBAR_TOP - FOOTER_GAP;
+        setMaxH(`${Math.max(available, 200)}px`);
+      } else {
+        setMaxH('calc(100vh - 120px)');
+      }
+    };
+
+    const onScrollOrResize = () => {
+      measure();
+      adjustForFooter();
+    };
+
     // Wait for layout to fully settle after hydration
     requestAnimationFrame(() => {
-      requestAnimationFrame(measure);
+      requestAnimationFrame(onScrollOrResize);
     });
 
-    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
     return () => {
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
     };
   }, []);
 
@@ -669,17 +699,19 @@ function StickyFilterSidebar({ children }: { children: React.ReactNode }) {
       />
       {/* Fixed panel that stays pinned — always rendered, hidden until measured */}
       <div
+        ref={sidebarRef}
         className="hidden lg:block"
         style={{
           position: 'fixed',
           top: '110px',
           left: `${leftPx}px`,
           width: '300px',
-          maxHeight: 'calc(100vh - 120px)',
+          maxHeight: maxH,
           overflowY: 'auto',
           zIndex: 10,
           scrollbarWidth: 'none',
           visibility: ready ? 'visible' : 'hidden',
+          transition: 'max-height 0.15s ease-out',
         }}
       >
         {children}
