@@ -114,8 +114,9 @@ export async function POST(request: NextRequest) {
         );
     } catch (error) {
         console.error('[Blog API] Error creating post:', error);
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Internal server error', detail: message },
             { status: 500 }
         );
     }
