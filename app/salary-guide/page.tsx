@@ -223,7 +223,7 @@ export default async function SalaryGuidePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary, #FFFFFF)' }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }}
@@ -237,9 +237,9 @@ export default async function SalaryGuidePage() {
         { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
       ]} />
       {/* Last Updated Notice */}
-      <div className="border-b px-4 py-2" style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}>
-        <div className="max-w-[1200px] mx-auto text-center">
-          <p className="text-xs m-0" style={{ color: 'var(--text-tertiary)' }}>
+      <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderBottom: '1px solid var(--border-color, #E5E7EB)', padding: '8px 16px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-tertiary, #6B7280)', fontSize: '0.75rem', margin: 0 }}>
             Last Updated: February 2026 | Sources: BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth
           </p>
         </div>
@@ -280,18 +280,18 @@ export default async function SalaryGuidePage() {
         </div>
       </section>
 
-      <div className="max-w-[1200px] mx-auto px-4 py-6">
-        <div className="max-w-[1024px] mx-auto">
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
+        <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
           {/* Quick Answer Box */}
-          <section className="mb-6">
-            <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <section style={{ marginBottom: '24px' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '24px' }}>
               <div className="flex items-start gap-3 mb-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                <div className="flex-shrink-0" style={{ width: '40px', height: '40px', backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <BarChart3 className="h-5 w-5 text-teal-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Quick Answer: PMHNP Salary in 2026</h2>
-                  <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary, #111827)', marginBottom: '8px' }}>Quick Answer: PMHNP Salary in 2026</h2>
+                  <p style={{ color: 'var(--text-secondary, #374151)', lineHeight: '1.625' }}>
                     The average PMHNP salary is <strong>$155,000+ per year</strong> in 2026. The top 10% earn <strong>$210,000+</strong>.
                     New graduates start at $115,000-$145,000, while experienced PMHNPs (7-15 years) earn $180,000-$210,000.
                     Private practice owners can earn $180,000-$300,000+. The highest-paying state is Idaho at $205,080,
@@ -300,7 +300,7 @@ export default async function SalaryGuidePage() {
                 </div>
               </div>
               {/* Stats Row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color, #E5E7EB)' }}>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">$155,000+</div>
                   <div className="text-sm text-gray-600 " style={{ color: 'var(--text-tertiary)' }}>National Average</div>
@@ -322,19 +322,19 @@ export default async function SalaryGuidePage() {
           </section>
 
           {/* Overview Section */}
-          <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+          <section style={{ marginBottom: '24px' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)', marginBottom: '16px' }}>
                 How Much Do PMHNPs Make in {currentYear}?
               </h2>
               <div className="prose prose-gray max-w-none">
-                <p className="leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+                <p style={{ color: 'var(--text-secondary, #374151)', lineHeight: '1.625', marginBottom: '16px' }}>
                   Psychiatric Mental Health Nurse Practitioners (PMHNPs) are among the highest-paid
                   nursing specialties in the United States. The national average PMHNP salary is <strong>$155,000+ per year</strong> in 2026,
                   with the top 10% earning <strong>$210,000 or more</strong>. Job growth is projected at 45% through 2032,
                   making it one of the fastest-growing healthcare professions.
                 </p>
-                <p className="text-sm italic" style={{ color: 'var(--text-tertiary)' }}>
+                <p style={{ color: 'var(--text-tertiary, #6B7280)', fontSize: '0.875rem', fontStyle: 'italic' }}>
                   Salary data compiled from the Bureau of Labor Statistics (BLS), ZipRecruiter, Indeed, PayScale,
                   Glassdoor, and CompHealth (January 2026).
                 </p>
@@ -345,17 +345,17 @@ export default async function SalaryGuidePage() {
           {/* Salary by State Table */}
           {stateSalaries.length > 0 && (
             <section className="mb-6">
-              <div className="rounded-lg shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="p-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color, #E5E7EB)' }}>
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className="h-6 w-6 text-emerald-600" />
-                    <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>PMHNP Salary by State</h2>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>PMHNP Salary by State</h2>
                   </div>
-                  <p className="mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  <p style={{ color: 'var(--text-secondary, #374151)', marginBottom: '12px' }}>
                     See how PMHNP salaries compare across different states. Click any state to view available jobs.
                   </p>
-                  <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '12px' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', margin: 0 }}>
                       <strong>Note:</strong> The table below shows real-time salary data from active PMHNP job postings on our platform.
                       For comprehensive state-by-state data including cost-of-living adjustments and practice authority status,
                       download our full 2026 PMHNP Salary Guide PDF.
@@ -364,7 +364,7 @@ export default async function SalaryGuidePage() {
                 </div>
                 <div className="overflow-x-auto" suppressHydrationWarning>
                   <table className="w-full" suppressHydrationWarning>
-                    <thead style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                    <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                           State
@@ -430,14 +430,14 @@ export default async function SalaryGuidePage() {
 
           {/* Salary by Experience Level */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <GraduationCap className="h-6 w-6 text-emerald-600" />
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>PMHNP Salary by Experience Level</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>PMHNP Salary by Experience Level</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--text-tertiary)' }}>Experience</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold uppercase" style={{ color: 'var(--text-tertiary)' }}>Salary Range</th>
@@ -466,8 +466,8 @@ export default async function SalaryGuidePage() {
 
           {/* Salary by Setting */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>PMHNP Salary by Setting</h2>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary, #111827)', marginBottom: '16px' }}>PMHNP Salary by Setting</h2>
               <div className="space-y-4">
                 {[
                   { setting: 'Private Practice (Owner)', range: '$180,000 - $300,000+', notes: 'Highest earning potential, requires business skills' },
@@ -477,7 +477,7 @@ export default async function SalaryGuidePage() {
                   { setting: 'Hospital / Inpatient', range: '$115,000 - $150,000', notes: 'Often includes shift differentials, benefits' },
                   { setting: 'Community Mental Health', range: '$100,000 - $130,000', notes: 'May qualify for loan forgiveness programs' },
                 ].map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <div key={index} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
                     <div>
                       <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.setting}</h3>
                       <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{item.notes}</p>
@@ -493,14 +493,14 @@ export default async function SalaryGuidePage() {
 
           {/* Specialty Premiums */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <Award className="h-6 w-6 text-emerald-600" />
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>PMHNP Specialty Salary Premiums</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>PMHNP Specialty Salary Premiums</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Specialty</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Premium</th>
@@ -531,16 +531,16 @@ export default async function SalaryGuidePage() {
 
           {/* Full Practice Authority Impact */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <Shield className="h-6 w-6 text-emerald-600" />
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Full Practice Authority (FPA) Impact on PMHNP Salary</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>Full Practice Authority (FPA) Impact on PMHNP Salary</h2>
               </div>
               <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
                 <strong>34 states plus DC</strong> now have Full Practice Authority. PMHNPs in FPA states earn <strong>12-15% more</strong> on average.
               </p>
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '16px' }}>
                   <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>✓ Full Practice Authority</h3>
                   <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                     <li>• +12-15% salary premium</li>
@@ -548,7 +548,7 @@ export default async function SalaryGuidePage() {
                     <li>• Full clinical independence</li>
                   </ul>
                 </div>
-                <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '16px' }}>
                   <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Restricted/Reduced Practice</h3>
                   <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                     <li>• Baseline salary</li>
@@ -562,14 +562,14 @@ export default async function SalaryGuidePage() {
 
           {/* 2026 Market Trends */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-6 w-6 text-emerald-600" />
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>2026 PMHNP Market Trends</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>2026 PMHNP Market Trends</h2>
               </div>
               <div className="overflow-x-auto mb-4">
                 <table className="w-full">
-                  <thead style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Metric</th>
                       <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">2024</th>
@@ -605,7 +605,7 @@ export default async function SalaryGuidePage() {
                   </tbody>
                 </table>
               </div>
-              <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+              <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '16px' }}>
                 <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Why Demand is High</h3>
                 <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>• <strong>123 million</strong> Americans in areas seeking more mental health providers</li>
@@ -618,10 +618,10 @@ export default async function SalaryGuidePage() {
 
           {/* Factors Affecting Salary */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-6 w-6 text-emerald-600" />
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Factors Affecting PMHNP Salary</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>Factors Affecting PMHNP Salary</h2>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
                 <div style={{ flex: '1 1 280px', minWidth: '250px' }}>
@@ -706,7 +706,7 @@ export default async function SalaryGuidePage() {
 
           {/* FAQ Section */}
           <section className="mb-6">
-            <div className="rounded-lg shadow-sm p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
               <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
                 Frequently Asked Questions About PMHNP Salary
               </h2>
@@ -768,7 +768,7 @@ export default async function SalaryGuidePage() {
 
           {/* Data Sources & Methodology */}
           <section className="mb-6">
-            <div className="rounded-lg p-4 text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+            <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <strong>Data Sources & Methodology:</strong> Salary data compiled from Bureau of Labor Statistics (BLS),
                 ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth, and analysis of 10,000+ active PMHNP job postings
@@ -778,7 +778,7 @@ export default async function SalaryGuidePage() {
           </section>
 
           {/* Cite This Page */}
-          <div className="rounded-lg p-6 mb-8 mt-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '24px', marginBottom: '32px', marginTop: '32px' }}>
             <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>📋 Cite This Page</h3>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Use the following citation when referencing data from this salary guide:</p>
 
