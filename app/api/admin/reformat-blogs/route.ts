@@ -20,9 +20,10 @@ export async function POST(request: NextRequest) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Optionally target a specific slug
+    // Optionally target a specific slug, and optionally supply original content to restore
     const body = await request.json().catch(() => ({}));
     const targetSlug = body.slug;
+    const originalContent = body.original_content; // If provided, replaces content before formatting
 
     let query = supabase.from('blog_posts').select('id, slug, content');
     if (targetSlug) {
@@ -38,7 +39,9 @@ export async function POST(request: NextRequest) {
     const results = [];
 
     for (const post of posts || []) {
-        const formatted = formatBlogContent(post.content);
+        // Use original_content if provided, otherwise use existing content
+        const contentToFormat = originalContent || post.content;
+        const formatted = formatBlogContent(contentToFormat);
 
         // Only update if content actually changed
         if (formatted !== post.content) {
