@@ -8,53 +8,62 @@
 
 // ─── Internal Link Formatting ────────────────────────────────────────────────
 
-/** Map of known PMHNP Hiring URLs to descriptive link text */
+/**
+ * Map of known PMHNP Hiring URL patterns to descriptive link text.
+ * Order matters: more specific patterns first to avoid partial matches.
+ */
 const INTERNAL_LINK_MAP: [RegExp, string][] = [
-    [/https?:\/\/pmhnphiring\.com\/jobs\?type=remote/g, 'Browse remote PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\?type=telehealth/g, 'Browse telehealth PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\?type=travel/g, 'Browse travel PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\/remote/g, 'Browse remote PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\/telehealth/g, 'Browse telehealth jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\/travel/g, 'Browse travel PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\/new-grad/g, 'Browse new grad PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/jobs\/per-diem/g, 'Browse per diem PMHNP jobs →'],
-    [/https?:\/\/pmhnphiring\.com\/salary-guide/g, 'PMHNP Salary Guide'],
-    [/https?:\/\/pmhnphiring\.com\/salaries/g, 'PMHNP Salary Data'],
-    [/https?:\/\/pmhnphiring\.com\/job-alerts/g, 'Set up job alerts'],
-    [/https?:\/\/pmhnphiring\.com\/jobs/g, 'Browse all PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\?type=remote\b/g, 'Browse remote PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\?type=telehealth\b/g, 'Browse telehealth PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\?type=travel\b/g, 'Browse travel PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\/remote\b/g, 'Browse remote PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\/telehealth\b/g, 'Browse telehealth jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\/travel\b/g, 'Browse travel PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\/new-grad\b/g, 'Browse new grad PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\/per-diem\b/g, 'Browse per diem PMHNP jobs →'],
+    [/https?:\/\/pmhnphiring\.com\/salary-guide\b/g, 'PMHNP Salary Guide'],
+    [/https?:\/\/pmhnphiring\.com\/salaries\b/g, 'PMHNP Salary Data'],
+    [/https?:\/\/pmhnphiring\.com\/job-alerts\b/g, 'Set up job alerts'],
+    [/https?:\/\/pmhnphiring\.com\/jobs\b/g, 'Browse all PMHNP jobs →'],
 ];
+
+/** Regex to match a raw URL (not already inside a markdown link) */
+const RAW_URL_RE = /(?<!\]\()(?<!\()(?<!")(?<!\[)(https?:\/\/pmhnphiring\.com\/[^\s)"',;!>\]]*[^\s)"',;!.>\]])/g;
 
 /** Convert raw pmhnphiring.com URLs into descriptive markdown links */
 function formatInternalLinks(content: string): string {
-    // Don't touch URLs already inside markdown links [text](url)
-    // Process line by line to avoid breaking existing markdown links
     return content
         .split('\n')
         .map((line) => {
-            // Skip lines that already have markdown link syntax
-            if (/\[.*?\]\(https?:\/\/pmhnphiring\.com/.test(line)) return line;
+            // Skip lines that already contain well-formed markdown links to pmhnphiring.com
+            if (/\[.+?\]\(https?:\/\/pmhnphiring\.com/.test(line)) return line;
 
             // Handle state page URLs: /states/california → "PMHNP jobs in California"
             line = line.replace(
-                /(?<!\]\()https?:\/\/pmhnphiring\.com\/states\/([a-z-]+)/g,
-                (_, state: string) => {
-                    const stateName = state
-                        .split('-')
-                        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                        .join(' ');
-                    return `[PMHNP jobs in ${stateName}](https://pmhnphiring.com/states/${state})`;
+                RAW_URL_RE,
+                (url) => {
+                    // Match state pages
+                    const stateMatch = url.match(/\/states\/([a-z-]+)/);
+                    if (stateMatch) {
+                        const stateName = stateMatch[1]
+                            .split('-')
+                            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                            .join(' ');
+                        return `[PMHNP jobs in ${stateName}](${url})`;
+                    }
+
+                    // Match known URL patterns
+                    for (const [pattern, label] of INTERNAL_LINK_MAP) {
+                        // Reset regex lastIndex for global patterns
+                        pattern.lastIndex = 0;
+                        if (pattern.test(url)) {
+                            return `[${label}](${url})`;
+                        }
+                    }
+
+                    // Catch-all for other internal URLs
+                    return `[Learn more →](${url})`;
                 }
-            );
-
-            // Handle known internal URLs
-            for (const [pattern, label] of INTERNAL_LINK_MAP) {
-                line = line.replace(pattern, (url) => `[${label}](${url})`);
-            }
-
-            // Catch-all: any remaining raw pmhnphiring.com URLs
-            line = line.replace(
-                /(?<!\]\()(?<!\()(https?:\/\/pmhnphiring\.com\/[^\s),."]+)/g,
-                (url) => `[Learn more →](${url})`
             );
 
             return line;
@@ -62,100 +71,99 @@ function formatInternalLinks(content: string): string {
         .join('\n');
 }
 
-// ─── Sequential Paragraph → Bullet List Conversion ──────────────────────────
+// ─── Sequential Paragraph → List Conversion ─────────────────────────────────
 
-/** Ordinal word starters that indicate a sequential list */
-const ORDINAL_STARTERS = [
-    /^First(?:\s+is|\s+,|,|\s)/i,
-    /^Second(?:\s+is|\s+,|,|\s)/i,
-    /^Third(?:\s+is|\s+,|,|\s)/i,
-    /^Fourth(?:\s+is|\s+,|,|\s)/i,
-    /^Fifth(?:\s+is|\s+,|,|\s)/i,
-];
+/** Check if text starts with ordinal words */
+function startsWithOrdinal(text: string): boolean {
+    return /^(First|Second|Third|Fourth|Fifth)(\s+is|\s*,|\s)/i.test(text);
+}
 
-/** Alternative list starters: "One is...", "Another is..." */
-const ALT_LIST_STARTERS = [
-    /^One\s+is\s/i,
-    /^Another\s+is\s/i,
-    /^Also[\s,]/i,
-    /^Finally[\s,]/i,
-    /^Watch\s+for\s/i,
-    /^Also\s+look\s+for\s/i,
-    /^Be\s+cautious\s/i,
-];
+/** Check if text starts with "red flag" style list phrases */
+function startsWithListPhrase(text: string): boolean {
+    return /^(One\s+is|Another\s+is|Also\s|Watch\s+for\s|Also\s+look\s+for|Be\s+cautious)/i.test(text);
+}
 
-/** Step-by-step instruction starters */
-const STEP_STARTERS = [
-    /^Start\s+(?:with|by)\s/i,
-    /^Next[\s,]/i,
-    /^Then[\s,]/i,
-    /^Finally[\s,]/i,
-    /^After\s+that[\s,]/i,
-    /^Last(?:ly)?[\s,]/i,
-];
+/** Check if text starts with step-by-step instruction words */
+function startsWithStep(text: string): boolean {
+    return /^(Start\s+(with|by)\s|Next[\s,]|Then[\s,]|Finally[\s,]|After\s+that[\s,]|Last(ly)?[\s,])/i.test(text);
+}
 
 /**
- * Detect if a run of consecutive paragraphs forms a sequential list,
- * and convert them to markdown bullet or numbered list items.
+ * Split content into paragraphs (separated by blank lines or headings),
+ * then detect sequential patterns and convert to lists.
  */
 function convertSequentialParagraphs(content: string): string {
-    const lines = content.split('\n');
+    // Split into paragraphs (blocks separated by blank lines)
+    const blocks = content.split(/\n\n+/);
     const result: string[] = [];
     let i = 0;
 
-    while (i < lines.length) {
-        const line = lines[i].trim();
+    while (i < blocks.length) {
+        const block = blocks[i].trim();
 
-        // Check if this line starts a sequential ordinal pattern
-        if (ORDINAL_STARTERS[0].test(line)) {
-            // Look ahead for matching ordinals
-            const listItems: string[] = [line];
+        // Skip headings and already-formatted content
+        if (block.startsWith('#') || block.startsWith('-') || block.startsWith('1.') || block.startsWith('>')) {
+            result.push(blocks[i]);
+            i++;
+            continue;
+        }
+
+        // Check for ordinal pattern: "First is..." / "Second is..." / "Third is..."
+        if (startsWithOrdinal(block)) {
+            const listItems: string[] = [block];
             let j = i + 1;
 
-            while (j < lines.length) {
-                const nextLine = lines[j].trim();
-                if (nextLine === '') {
-                    j++;
-                    continue;
-                }
-                // Check if it matches any ordinal or alt-list starter
-                const matchesOrdinal = ORDINAL_STARTERS.some((r) => r.test(nextLine));
-                const matchesAlt = ALT_LIST_STARTERS.some((r) => r.test(nextLine));
-                if (matchesOrdinal || matchesAlt) {
-                    listItems.push(nextLine);
+            while (j < blocks.length) {
+                const nextBlock = blocks[j].trim();
+                if (nextBlock === '') { j++; continue; }
+                if (startsWithOrdinal(nextBlock) || startsWithListPhrase(nextBlock)) {
+                    listItems.push(nextBlock);
                     j++;
                 } else {
                     break;
                 }
             }
 
-            // Only convert if we found at least 2 items
             if (listItems.length >= 2) {
-                result.push('');
-                for (const item of listItems) {
-                    // Bold the first sentence for scannability
-                    const bolded = boldFirstSentence(item);
-                    result.push(`- ${bolded}`);
-                }
-                result.push('');
+                result.push(listItems.map((item) => `- ${boldFirstSentence(item)}`).join('\n'));
                 i = j;
                 continue;
             }
         }
 
-        // Check if this line starts a step-by-step pattern
-        if (STEP_STARTERS[0].test(line)) {
-            const stepItems: string[] = [line];
+        // Check for "red flag" style lists: "One is..." / "Another is..."
+        if (startsWithListPhrase(block)) {
+            const listItems: string[] = [block];
             let j = i + 1;
 
-            while (j < lines.length) {
-                const nextLine = lines[j].trim();
-                if (nextLine === '') {
+            while (j < blocks.length) {
+                const nextBlock = blocks[j].trim();
+                if (nextBlock === '') { j++; continue; }
+                if (startsWithListPhrase(nextBlock)) {
+                    listItems.push(nextBlock);
                     j++;
-                    continue;
+                } else {
+                    break;
                 }
-                if (STEP_STARTERS.some((r) => r.test(nextLine))) {
-                    stepItems.push(nextLine);
+            }
+
+            if (listItems.length >= 2) {
+                result.push(listItems.map((item) => `- ${boldFirstSentence(item)}`).join('\n'));
+                i = j;
+                continue;
+            }
+        }
+
+        // Check for step-by-step: "Start with..." / "Next..." / "Then..." / "Finally..."
+        if (startsWithStep(block)) {
+            const stepItems: string[] = [block];
+            let j = i + 1;
+
+            while (j < blocks.length) {
+                const nextBlock = blocks[j].trim();
+                if (nextBlock === '') { j++; continue; }
+                if (startsWithStep(nextBlock)) {
+                    stepItems.push(nextBlock);
                     j++;
                 } else {
                     break;
@@ -163,22 +171,21 @@ function convertSequentialParagraphs(content: string): string {
             }
 
             if (stepItems.length >= 2) {
-                result.push('');
-                stepItems.forEach((item, idx) => {
-                    const bolded = boldFirstSentence(item);
-                    result.push(`${idx + 1}. ${bolded}`);
-                });
-                result.push('');
+                result.push(
+                    stepItems
+                        .map((item, idx) => `${idx + 1}. ${boldFirstSentence(item)}`)
+                        .join('\n')
+                );
                 i = j;
                 continue;
             }
         }
 
-        result.push(lines[i]);
+        result.push(blocks[i]);
         i++;
     }
 
-    return result.join('\n');
+    return result.join('\n\n');
 }
 
 // ─── Bold Injection ─────────────────────────────────────────────────────────
@@ -188,7 +195,7 @@ function boldFirstSentence(text: string): string {
     // If already has bold markers, skip
     if (text.includes('**')) return text;
 
-    // Find the end of the first sentence (period, question mark, exclamation, or comma with enough length)
+    // Find the end of the first sentence (period, question mark, exclamation)
     const match = text.match(/^(.{15,}?[.!?])\s/);
     if (match) {
         return `**${match[1]}** ${text.slice(match[0].length)}`;
@@ -203,17 +210,18 @@ function boldFirstSentence(text: string): string {
     return text;
 }
 
-/** Bold key statistics: percentages, dollar amounts, and year ranges */
+/** Bold key statistics: percentages, dollar amounts, and day counts */
 function boldStatistics(content: string): string {
     // Bold dollar amounts like $139K, $155,000, $126K–$155K
+    // Negative lookbehind for ** and [ to avoid double-bolding or breaking links
     content = content.replace(
-        /(?<!\*\*)(\$[\d,]+K?(?:\s*[–-]\s*\$[\d,]+K?)?)(?!\*\*)/g,
+        /(?<!\*\*)(?<!\[)(\$[\d,]+K?(?:\s*[–-]\s*\$[\d,]+K?)?)(?!\*\*)(?!\])/g,
         '**$1**'
     );
 
     // Bold percentages like 35%, 62%
     content = content.replace(
-        /(?<!\*\*)(\d+%(?:\s*[–-]\s*\d+%)?)(?!\*\*)/g,
+        /(?<!\*\*)(?<!\d)(\d{1,3}%(?:\s*[–-]\s*\d{1,3}%)?)(?!\*\*)/g,
         '**$1**'
     );
 
@@ -258,8 +266,8 @@ function cleanBlankLines(content: string): string {
 
 /**
  * Auto-format blog markdown content for better readability.
- * Applies: internal links, sequential lists, bold stats,
- * callouts, heading spacing, and cleanup.
+ * Applies: heading spacing, sequential list detection, callouts,
+ * bold statistics, internal links, and cleanup.
  */
 export function formatBlogContent(content: string): string {
     if (!content || content.trim().length === 0) return content;
