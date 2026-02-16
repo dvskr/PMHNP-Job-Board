@@ -91,6 +91,62 @@ const DELAY_BETWEEN_REQUESTS = 334; // ~3 requests per second
 // Hard time budget for cron runs (Vercel timeout is 300s)
 const CRON_TIME_BUDGET_MS = 250_000; // 250s — leave 50s buffer
 
+// Job board domains — JSearch marks these as "direct" but they're NOT employer pages.
+// Users still have to click through to the actual employer application from these sites.
+const JOB_BOARD_DOMAINS = [
+    'indeed.com', 'ziprecruiter.com', 'linkedin.com', 'glassdoor.com',
+    'monster.com', 'simplyhired.com', 'snagajob.com', 'talent.com',
+    'lensa.com', 'ladders.com', 'bebee.com', 'learn4good.com',
+    'doccafe.com', 'practicematch.com', 'docjobs.com', 'doximity.com',
+    'jobrapido.com', 'whatjobs.com', 'teal.com', 'career.io',
+    'gothamenterprises.com', 'jooble.org', 'adzuna.com',
+    'localjobs.com', 'jobs.ac', 'alumnijobs', 'enpnetwork.com',
+    'jobtarget.com', 'getwork.com',
+];
+
+function isJobBoardUrl(url: string): boolean {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        return JOB_BOARD_DOMAINS.some(d => hostname.includes(d));
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Pick the best apply link from JSearch data.
+ * Prefer actual employer/ATS links over job board redirect links.
+ * JSearch's is_direct flag is unreliable (marks Indeed/ZipRecruiter as "direct"),
+ * so we cross-check against known job board domains.
+ */
+function getBestApplyLink(job: JSearchJob): string {
+    if (job.apply_options && job.apply_options.length > 0) {
+        // First pass: find a direct option that is NOT a job board
+        const trueDirectOption = job.apply_options.find(
+            opt => opt.is_direct && opt.apply_link && !isJobBoardUrl(opt.apply_link)
+        );
+        if (trueDirectOption) {
+            return trueDirectOption.apply_link;
+        }
+
+        // Second pass: find ANY option that is not a job board (even if not marked direct)
+        const nonJobBoardOption = job.apply_options.find(
+            opt => opt.apply_link && !isJobBoardUrl(opt.apply_link)
+        );
+        if (nonJobBoardOption) {
+            return nonJobBoardOption.apply_link;
+        }
+    }
+
+    // If primary link is not a job board, use it
+    if (job.job_apply_link && !isJobBoardUrl(job.job_apply_link)) {
+        return job.job_apply_link;
+    }
+
+    // Last resort: use the primary link even if it's a job board
+    return job.job_apply_link;
+}
+
 /**
  * Build location string from JSearch job data
  */
@@ -384,7 +440,7 @@ export async function fetchJSearchJobs(
                     employer: job.employer_name || 'Company Not Listed',
                     location: buildLocation(job),
                     description: job.job_description || '',
-                    applyLink: job.job_apply_link,
+                    applyLink: getBestApplyLink(job),
                     externalId: `jsearch_${job.job_id}`,
                     sourceProvider: 'jsearch',
                     sourceSite: job.job_publisher || 'Google Jobs',

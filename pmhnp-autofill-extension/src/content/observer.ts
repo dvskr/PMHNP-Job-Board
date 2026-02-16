@@ -1,4 +1,5 @@
-import { captureError } from '@/shared/errorHandler';
+﻿import { captureError } from '@/shared/errorHandler';
+import { log, warn } from '@/shared/logger';
 
 type FieldChangeCallback = (addedElements: HTMLElement[]) => void;
 
@@ -66,7 +67,7 @@ export class DOMObserver {
             this.observeExistingIframes();
         }
 
-        console.log('[PMHNP-Observer] Started watching for DOM changes');
+        log('[PMHNP-Observer] Started watching for DOM changes');
     }
 
     /**
@@ -96,7 +97,7 @@ export class DOMObserver {
         }
 
         this.pendingElements = [];
-        console.log('[PMHNP-Observer] Stopped watching');
+        log('[PMHNP-Observer] Stopped watching');
     }
 
     /**
@@ -167,7 +168,7 @@ export class DOMObserver {
                 const unique = [...new Set(this.pendingElements)];
                 this.pendingElements = [];
 
-                console.log(`[PMHNP-Observer] ${unique.length} new form elements detected`);
+                log(`[PMHNP-Observer] ${unique.length} new form elements detected`);
                 try {
                     this.callback(unique);
                 } catch (err) {

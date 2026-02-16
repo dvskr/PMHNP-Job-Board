@@ -1,9 +1,10 @@
-/**
+﻿/**
  * Undo / Rollback functionality.
  * Takes a DOM snapshot of all form field values before autofill,
  * then restores them on undo.
  */
 import { triggerReactChange } from './filler';
+import { log, warn } from '@/shared/logger';
 
 interface FieldSnapshot {
     element: HTMLElement;
@@ -42,7 +43,7 @@ export function takeSnapshot(): void {
     }
 
     hasSnapshot = true;
-    console.log(`[PMHNP-Undo] Snapshot taken: ${snapshots.length} fields`);
+    log(`[PMHNP-Undo] Snapshot taken: ${snapshots.length} fields`);
 }
 
 /**
@@ -50,7 +51,7 @@ export function takeSnapshot(): void {
  */
 export function restoreSnapshot(): { restored: number; failed: number } {
     if (!hasSnapshot || snapshots.length === 0) {
-        console.log('[PMHNP-Undo] No snapshot available');
+        log('[PMHNP-Undo] No snapshot available');
         return { restored: 0, failed: 0 };
     }
 
@@ -95,7 +96,7 @@ export function restoreSnapshot(): { restored: number; failed: number } {
         }
     }
 
-    console.log(`[PMHNP-Undo] Restored ${restored}/${snapshots.length} fields (${failed} failed)`);
+    log(`[PMHNP-Undo] Restored ${restored}/${snapshots.length} fields (${failed} failed)`);
     return { restored, failed };
 }
 

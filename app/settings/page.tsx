@@ -21,13 +21,12 @@ import EducationSection from '@/components/settings/EducationSection'
 import WorkExperienceSection from '@/components/settings/WorkExperienceSection'
 import ScreeningAnswersSection from '@/components/settings/ScreeningAnswersSection'
 import OpenEndedResponsesSection from '@/components/settings/OpenEndedResponsesSection'
-import DocumentVaultSection from '@/components/settings/DocumentVaultSection'
+
 import ReferencesSection from '@/components/settings/ReferencesSection'
-import MalpracticeSection from '@/components/settings/MalpracticeSection'
-import PracticeAuthoritySection from '@/components/settings/PracticeAuthoritySection'
+
 
 // ── Preset data ──
-const CERT_PRESETS = ['PMHNP-BC', 'ANCC', 'DEA', 'BLS/ACLS', 'CAQ-Psych']
+
 const SPECIALTY_PRESETS = [
   'ADHD', 'Anxiety/Depression', 'PTSD', 'Addiction',
   'Child & Adolescent', 'Geriatric', 'Eating Disorders',
@@ -43,13 +42,9 @@ const US_STATES = [
 const WORK_MODES = ['Remote', 'On-site', 'Hybrid', 'Telehealth', 'Any']
 const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem', 'Any']
 const EXPERIENCE_OPTIONS = [
-  { label: 'New Grad', value: 0 },
-  { label: '1-2 years', value: 1 },
-  { label: '3-5 years', value: 3 },
-  { label: '5-10 years', value: 5 },
-  { label: '10-15 years', value: 10 },
-  { label: '15-20 years', value: 15 },
-  { label: '20+ years', value: 20 },
+  { label: 'New Grad (0)', value: 0 },
+  ...Array.from({ length: 29 }, (_, i) => ({ label: `${i + 1} year${i + 1 === 1 ? '' : 's'}`, value: i + 1 })),
+  { label: '30+ years', value: 30 },
 ]
 const AVAILABILITY_OPTIONS = ['Immediately', '2 Weeks', '1 Month', '3 Months', 'Custom']
 
@@ -97,23 +92,6 @@ interface Profile {
   npiNumber: string | null
   deaNumber: string | null
   deaExpirationDate: string | null
-  deaScheduleAuthority: string | null
-  stateControlledSubstanceReg: string | null
-  stateCSRExpirationDate: string | null
-  pmpRegistered: boolean | null
-  // Malpractice Insurance
-  malpracticeCarrier: string | null
-  malpracticePolicyNumber: string | null
-  malpracticeExpirationDate: string | null
-  malpracticeCoverageAmount: string | null
-  malpracticeClaimsHistory: boolean | null
-  malpracticeClaimsDetails: string | null
-  // Practice Authority
-  practiceAuthorityType: string | null
-  collaboratingPhysician: string | null
-  collaboratingPhysicianNpi: string | null
-  prescriptiveAuthorityStatus: string | null
-  stateProtocolRequirements: string | null
 }
 
 // ── Shared card styles ──
@@ -317,8 +295,7 @@ function SettingsPageInner() {
           headline: profile.headline,
           bio: profile.bio,
           yearsExperience: profile.yearsExperience,
-          certifications: profile.certifications,
-          licenseStates: profile.licenseStates,
+
           specialties: profile.specialties,
           preferredWorkMode: profile.preferredWorkMode,
           preferredJobType: profile.preferredJobType,
@@ -551,6 +528,26 @@ function SettingsPageInner() {
           </div>
 
           {/* ═════════════════════════════════════════════
+          SECTION — Resume (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <div id="section-resume" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <FileText size={20} style={{ color: '#F59E0B' }} />
+                Resume
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+                Upload your resume to quickly apply to jobs
+              </p>
+              <ResumeUpload
+                currentResumeUrl={profile.resumeUrl}
+                onUploadComplete={handleResumeUpload}
+                onRemove={handleResumeRemove}
+              />
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════
           SECTION 2 — Professional Info (job seekers only)
          ═════════════════════════════════════════════ */}
           {profile.role !== 'employer' && (
@@ -613,23 +610,7 @@ function SettingsPageInner() {
                   </select>
                 </div>
 
-                {/* Certifications */}
-                <ChipSelector
-                  label="Certifications"
-                  presets={CERT_PRESETS}
-                  value={profile.certifications || ''}
-                  onChange={(v) => updateProfile({ certifications: v })}
-                  customPlaceholder="Add certification..."
-                />
 
-                {/* Licensed States */}
-                <ChipSelector
-                  label="Licensed States"
-                  presets={US_STATES}
-                  value={profile.licenseStates || ''}
-                  onChange={(v) => updateProfile({ licenseStates: v })}
-                  allowCustom={false}
-                />
 
                 {/* Specialties */}
                 <ChipSelector
@@ -1020,6 +1001,8 @@ function SettingsPageInner() {
             </div>
           )}
 
+
+
           {/* ═════════════════════════════════════════════
           SECTION 4c — EEO & Work Authorization (job seekers only)
          ═════════════════════════════════════════════ */}
@@ -1333,78 +1316,15 @@ function SettingsPageInner() {
                   />
                 </div>
 
-                {/* DEA Expiration + Schedule row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={labelStyle}>DEA Expiration Date</label>
-                    <input
-                      type="date"
-                      value={profile.deaExpirationDate ? new Date(profile.deaExpirationDate).toISOString().slice(0, 10) : ''}
-                      onChange={(e) => updateProfile({ deaExpirationDate: e.target.value || null })}
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>DEA Schedule Authority</label>
-                    <select
-                      value={profile.deaScheduleAuthority || ''}
-                      onChange={(e) => updateProfile({ deaScheduleAuthority: e.target.value || null })}
-                      style={{ ...inputStyle, cursor: 'pointer' }}
-                    >
-                      <option value="">Select schedule</option>
-                      <option value="Schedule II-V">Schedule II-V</option>
-                      <option value="Schedule III-V">Schedule III-V</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* State Controlled Substance Registration */}
-                <div>
-                  <label style={labelStyle}>State Controlled Substance Registration Number</label>
-                  <input
-                    type="text"
-                    value={profile.stateControlledSubstanceReg || ''}
-                    onChange={(e) => updateProfile({ stateControlledSubstanceReg: e.target.value })}
-                    placeholder="State CSR number"
-                    style={inputStyle}
-                  />
-                </div>
-
-                {/* State CSR Expiration */}
+                {/* DEA Expiration */}
                 <div style={{ maxWidth: '50%' }}>
-                  <label style={labelStyle}>State CSR Expiration Date</label>
+                  <label style={labelStyle}>DEA Expiration Date</label>
                   <input
                     type="date"
-                    value={profile.stateCSRExpirationDate ? new Date(profile.stateCSRExpirationDate).toISOString().slice(0, 10) : ''}
-                    onChange={(e) => updateProfile({ stateCSRExpirationDate: e.target.value || null })}
+                    value={profile.deaExpirationDate ? new Date(profile.deaExpirationDate).toISOString().slice(0, 10) : ''}
+                    onChange={(e) => updateProfile({ deaExpirationDate: e.target.value || null })}
                     style={inputStyle}
                   />
-                </div>
-
-                {/* PMP Registered */}
-                <div>
-                  <label style={labelStyle}>Registered with Prescription Monitoring Program (PMP)?</label>
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
-                    {([{ label: 'Yes', value: true }, { label: 'No', value: false }] as const).map((opt) => {
-                      const isSelected = profile.pmpRegistered === opt.value
-                      return (
-                        <button
-                          key={opt.label}
-                          type="button"
-                          onClick={() => updateProfile({ pmpRegistered: opt.value })}
-                          style={{
-                            padding: '8px 22px', borderRadius: '24px', fontSize: '13px', fontWeight: 600,
-                            cursor: 'pointer', transition: 'all 0.2s',
-                            border: isSelected ? '1.5px solid #2DD4BF' : '1.5px solid var(--border-color)',
-                            background: isSelected ? 'rgba(45,212,191,0.12)' : 'var(--bg-primary)',
-                            color: isSelected ? '#2DD4BF' : 'var(--text-secondary)',
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
                 </div>
 
                 {/* Save button */}
@@ -1420,10 +1340,6 @@ function SettingsPageInner() {
                             npiNumber: profile.npiNumber,
                             deaNumber: profile.deaNumber,
                             deaExpirationDate: profile.deaExpirationDate,
-                            deaScheduleAuthority: profile.deaScheduleAuthority,
-                            stateControlledSubstanceReg: profile.stateControlledSubstanceReg,
-                            stateCSRExpirationDate: profile.stateCSRExpirationDate,
-                            pmpRegistered: profile.pmpRegistered,
                           }),
                         })
                         if (!res.ok) throw new Error('Failed to save')
@@ -1462,8 +1378,7 @@ function SettingsPageInner() {
             </div>
           )}
 
-          <MalpracticeSection profile={profile} updateProfile={updateProfile} showMsg={showMsg} />
-          <PracticeAuthoritySection profile={profile} updateProfile={updateProfile} showMsg={showMsg} />
+
         </div>)}
 
         {/* ═══ TAB: Education ═══ */}
@@ -1476,26 +1391,7 @@ function SettingsPageInner() {
           <WorkExperienceSection showMsg={showMsg} />
         )}
 
-        {/* ═══ TAB: Documents ═══ */}
-        {activeTab === 'documents' && (<div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {profile.role !== 'employer' && (
-            <div id="section-resume" style={cardStyle}>
-              <h3 style={cardTitle}>
-                <FileText size={20} style={{ color: '#F59E0B' }} />
-                Resume
-              </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
-                Upload your resume to quickly apply to jobs
-              </p>
-              <ResumeUpload
-                currentResumeUrl={profile.resumeUrl}
-                onUploadComplete={handleResumeUpload}
-                onRemove={handleResumeRemove}
-              />
-            </div>
-          )}
-          <DocumentVaultSection showMsg={showMsg} />
-        </div>)}
+
 
         {/* ═══ TAB: Screening ═══ */}
         {activeTab === 'screening' && (

@@ -1,4 +1,5 @@
-import type { ExtensionMessage, ApplicationPageInfo, ProfileData, ProfileReadiness, AuthState } from './types';
+﻿import type { ExtensionMessage, ApplicationPageInfo, ProfileData, ProfileReadiness, AuthState } from './types';
+import { log, warn } from '@/shared/logger';
 
 // ─── Send message to background service worker ───
 
@@ -32,50 +33,78 @@ export async function sendToActiveTab<T = unknown>(message: ExtensionMessage): P
 }
 
 /**
- * Send IS_APPLICATION_PAGE to ALL frames in the active tab, return the best result
- * (the frame with the most detected fields). This handles ATS platforms like
- * SmartRecruiters that render forms inside iframes.
+ * Send IS_APPLICATION_PAGE to ALL frames in the active tab, return the best result.
+ * Prioritizes frames where isApplication=true, then by fieldCount.
+ * Handles ATS platforms like SmartRecruiters that render forms inside iframes.
  */
 export async function checkApplicationPageAllFrames(): Promise<ApplicationPageInfo> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No active tab found');
 
-    // Get all frames in the tab
-    const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
-    if (!frames || frames.length === 0) throw new Error('No frames found');
+    async function queryFrames(): Promise<{ bestResult: ApplicationPageInfo; bestFrameId: number }> {
+        const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id! });
+        if (!frames || frames.length === 0) throw new Error('No frames found');
 
-    console.log(`[PMHNP] Checking ${frames.length} frames for application fields...`);
+        log(`[PMHNP] Checking ${frames.length} frames for application fields...`);
 
-    let bestResult: ApplicationPageInfo = { isApplication: false, atsName: null, fieldCount: 0 };
-    let bestFrameId = 0;
+        let bestResult: ApplicationPageInfo = { isApplication: false, atsName: null, fieldCount: 0 };
+        let bestFrameId = 0;
 
-    // Query each frame
-    const results = await Promise.allSettled(
-        frames.map(async (frame) => {
-            try {
-                const response = await chrome.tabs.sendMessage(tab.id!, { type: 'IS_APPLICATION_PAGE' }, { frameId: frame.frameId });
-                return { frameId: frame.frameId, url: frame.url, response: response as ApplicationPageInfo };
-            } catch {
-                return null;
-            }
-        })
-    );
+        const results = await Promise.allSettled(
+            frames.map(async (frame) => {
+                try {
+                    const response = await chrome.tabs.sendMessage(tab.id!, { type: 'IS_APPLICATION_PAGE' }, { frameId: frame.frameId });
+                    return { frameId: frame.frameId, url: frame.url, response: response as ApplicationPageInfo };
+                } catch {
+                    return null;
+                }
+            })
+        );
 
-    for (const result of results) {
-        if (result.status === 'fulfilled' && result.value) {
-            const { frameId, url, response } = result.value;
-            console.log(`[PMHNP] Frame ${frameId} (${url}): isApp=${response.isApplication}, fields=${response.fieldCount}`);
-            if (response.fieldCount > bestResult.fieldCount) {
-                bestResult = response;
-                bestFrameId = frameId;
+        for (const result of results) {
+            if (result.status === 'fulfilled' && result.value) {
+                const { frameId, url, response } = result.value;
+                log(`[PMHNP] Frame ${frameId} (${url}): isApp=${response.isApplication}, ats=${response.atsName}, fields=${response.fieldCount}`);
+
+                // Priority: isApplication=true beats isApplication=false
+                // Among isApplication=true frames, prefer the one with more fields (or ATS name)
+                const currentIsApp = bestResult.isApplication;
+                const candidateIsApp = response.isApplication;
+
+                if (candidateIsApp && !currentIsApp) {
+                    // New candidate is an application, old best wasn't — always prefer
+                    bestResult = response;
+                    bestFrameId = frameId;
+                } else if (candidateIsApp && currentIsApp) {
+                    // Both are applications — prefer the one with more fields, or ATS name
+                    const candidateScore = Math.max(response.fieldCount, 0) + (response.atsName ? 100 : 0);
+                    const bestScore = Math.max(bestResult.fieldCount, 0) + (bestResult.atsName ? 100 : 0);
+                    if (candidateScore > bestScore) {
+                        bestResult = response;
+                        bestFrameId = frameId;
+                    }
+                }
             }
         }
+
+        return { bestResult, bestFrameId };
     }
 
-    console.log(`[PMHNP] Best frame: ${bestFrameId} with ${bestResult.fieldCount} fields, isApplication=${bestResult.isApplication}`);
+    // First attempt
+    let { bestResult, bestFrameId } = await queryFrames();
+
+    // If no application detected, the content script may not be ready yet (SPA loading).
+    // Wait briefly and retry once.
+    if (!bestResult.isApplication) {
+        log('[PMHNP] No application detected on first attempt, retrying in 1.5s...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        ({ bestResult, bestFrameId } = await queryFrames());
+    }
+
+    log(`[PMHNP] Best frame: ${bestFrameId} with ${bestResult.fieldCount} fields, isApplication=${bestResult.isApplication}, ats=${bestResult.atsName}`);
 
     // Store the best frameId for later autofill
-    if (bestResult.fieldCount > 0) {
+    if (bestResult.isApplication) {
         await chrome.storage.local.set({ _autofillFrameId: bestFrameId, _autofillTabId: tab.id });
     }
 
@@ -122,7 +151,7 @@ export async function triggerAutofill(): Promise<void> {
     const stored = await chrome.storage.local.get(['_autofillFrameId', '_autofillTabId']);
     const frameId = stored._autofillTabId === tab.id ? (stored._autofillFrameId ?? 0) : 0;
 
-    console.log(`[PMHNP] Triggering autofill on tab ${tab.id}, frame ${frameId}`);
+    log(`[PMHNP] Triggering autofill on tab ${tab.id}, frame ${frameId}`);
     const response = await chrome.tabs.sendMessage(tab.id, { type: 'START_AUTOFILL' }, { frameId });
     if (response?.error) throw new Error(response.error);
 }

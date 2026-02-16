@@ -3,15 +3,8 @@
 /* Enable class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Hide scrollbar globally (still scrollable) */
-* {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
+/* Use .scrollbar-hide class on individual elements that need hidden scrollbars */
 
-*::-webkit-scrollbar {
-  display: none !important;
-}
 
 html,
 body {}

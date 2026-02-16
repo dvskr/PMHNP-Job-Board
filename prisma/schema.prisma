@@ -42,6 +42,7 @@ model Job {
   externalId          String?      @map("external_id")
   viewCount           Int          @default(0) @map("view_count")
   applyClickCount     Int          @default(0) @map("apply_click_count")
+  qualityScore        Int          @default(0) @map("quality_score")
   createdAt           DateTime     @default(now()) @map("created_at")
   updatedAt           DateTime     @updatedAt @map("updated_at")
   expiresAt           DateTime?    @map("expires_at")
@@ -62,6 +63,7 @@ model Job {
   @@index([companyId])
   @@index([slug])
   @@index([externalId, sourceProvider])
+  @@index([qualityScore(sort: Desc)])
   @@map("jobs")
 }
 
@@ -285,24 +287,6 @@ model UserProfile {
   npiNumber                    String?    @map("npi_number")
   deaNumber                    String?    @map("dea_number")
   deaExpirationDate            DateTime?  @map("dea_expiration_date")
-  deaScheduleAuthority         String?    @map("dea_schedule_authority")
-  stateControlledSubstanceReg  String?    @map("state_controlled_substance_reg")
-  stateCSRExpirationDate       DateTime?  @map("state_csr_expiration_date")
-  pmpRegistered                Boolean?   @map("pmp_registered")
-
-  // ── Malpractice Insurance ──
-  malpracticeCarrier       String?   @map("malpractice_carrier")
-  malpracticePolicyNumber  String?   @map("malpractice_policy_number")
-  malpracticeCoverage      String?   @map("malpractice_coverage")
-  malpracticeClaimsHistory Boolean?  @map("malpractice_claims_history")
-  malpracticeClaimsDetails String?   @map("malpractice_claims_details")
-
-  // ── Practice Authority ──
-  fullPracticeAuthority          Boolean?  @map("full_practice_authority")
-  collaborativeAgreementReq      Boolean?  @map("collaborative_agreement_req")
-  collaboratingPhysicianName     String?   @map("collaborating_physician_name")
-  collaboratingPhysicianContact  String?   @map("collaborating_physician_contact")
-  prescriptiveAuthorityStatus    String?   @map("prescriptive_authority_status")
 
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
@@ -316,7 +300,7 @@ model UserProfile {
   workExperience       CandidateWorkExperience[]
   screeningAnswers     CandidateScreeningAnswer[]
   openEndedResponses   CandidateOpenEndedResponse[]
-  documents            CandidateDocument[]
+
   candidateReferences  CandidateReference[]
   autofillUsage        AutofillUsage[]
 
@@ -413,6 +397,7 @@ model CandidateEducation {
   degreeType      String    @map("degree_type")
   fieldOfStudy    String?   @map("field_of_study")
   schoolName      String    @map("school_name")
+  startDate       DateTime? @map("start_date")
   graduationDate  DateTime? @map("graduation_date")
   gpa             String?
   isHighestDegree Boolean   @default(false) @map("is_highest_degree")
@@ -441,20 +426,7 @@ model CandidateWorkExperience {
   reasonForLeaving    String?   @map("reason_for_leaving")
   description         String?
 
-  // PMHNP-Specific Clinical Details
-  patientVolume        String?   @map("patient_volume")
-  patientPopulations   String?   @map("patient_populations")
-  treatmentModalities  String?   @map("treatment_modalities")
-  disordersTreated     String?   @map("disorders_treated")
   practiceSetting      String?   @map("practice_setting")
-  telehealthExperience Boolean?  @map("telehealth_experience")
-  telehealthPlatforms  String?   @map("telehealth_platforms")
-  ehrSystems           String?   @map("ehr_systems")
-  prescribingExp       Boolean?  @map("prescribing_exp")
-  prescribingSchedules String?   @map("prescribing_schedules")
-  assessmentTools      String?   @map("assessment_tools")
-  supervisoryRole      Boolean?  @map("supervisory_role")
-  supervisoryDetails   String?   @map("supervisory_details")
 
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
@@ -498,23 +470,7 @@ model CandidateOpenEndedResponse {
   @@map("candidate_open_ended_responses")
 }
 
-model CandidateDocument {
-  id             String    @id @default(cuid())
-  userId         String    @map("user_id")
-  documentType   String    @map("document_type")
-  documentLabel  String    @map("document_label")
-  fileUrl        String    @map("file_url")
-  fileName       String    @map("file_name")
-  fileSize       Int?      @map("file_size")
-  mimeType       String?   @map("mime_type")
-  expirationDate DateTime? @map("expiration_date")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  user           UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@map("candidate_documents")
-}
 
 model CandidateReference {
   id            String    @id @default(cuid())

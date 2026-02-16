@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import type { AuthState, ApplicationPageInfo, ProfileReadiness } from '@/shared/types';
 import {
     getAuthState,
@@ -10,6 +10,7 @@ import {
     triggerAutofill,
 } from '@/shared/messaging';
 import { SETTINGS_URL, SIGNUP_URL } from '@/shared/constants';
+import { log, warn } from '@/shared/logger';
 
 type ViewState = 'loading' | 'logged_out' | 'logged_in' | 'on_application';
 
@@ -43,9 +44,11 @@ export default function App() {
             // Check if on application page
             try {
                 const info = await checkApplicationPage();
+                log('[PMHNP Popup] Application check result:', info);
                 setAppInfo(info);
                 setViewState(info.isApplication ? 'on_application' : 'logged_in');
-            } catch {
+            } catch (err) {
+                warn('[PMHNP Popup] Application page check failed:', err);
                 setViewState('logged_in');
             }
         } catch {
@@ -236,18 +239,13 @@ export default function App() {
                         </div>
                     )}
 
-                    {/* ATS Detection */}
+                    {/* Application Status */}
                     {appInfo && (
                         <div className="bg-navy-light rounded-lg p-2.5 flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-teal animate-pulse" />
                             <span className="text-xs text-text-secondary">
-                                {appInfo.atsName
-                                    ? `Detected: ${appInfo.atsName} application`
-                                    : 'Unknown application form — using generic autofill'}
+                                Application form detected — ready to autofill
                             </span>
-                            {appInfo.fieldCount > 0 && (
-                                <span className="text-xs text-text-muted ml-auto">{appInfo.fieldCount} fields</span>
-                            )}
                         </div>
                     )}
 

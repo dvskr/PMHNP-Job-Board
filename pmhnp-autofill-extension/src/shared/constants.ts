@@ -1,11 +1,17 @@
-// TODO: Change back to 'https://pmhnphiring.com' before publishing to Chrome Web Store
-export const API_BASE_URL = 'http://localhost:3000';
+// Auto-detect dev vs production: published Chrome extensions have update_url
+export const IS_DEV = (() => {
+    try { return !chrome.runtime.getManifest().update_url; }
+    catch { return true; }
+})();
+
+export const API_BASE_URL = IS_DEV ? 'http://localhost:3000' : 'https://pmhnphiring.com';
 export const PROFILE_EXPORT_ENDPOINT = '/api/profile/export';
 export const AUTH_EXTENSION_TOKEN_ENDPOINT = '/api/auth/extension-token';
 export const AI_GENERATE_ENDPOINT = '/api/autofill/generate-answer';
 export const AI_COVER_LETTER_ENDPOINT = '/api/autofill/generate-cover-letter';
 export const AI_BULK_ENDPOINT = '/api/autofill/generate-bulk';
 export const AI_CLASSIFY_ENDPOINT = '/api/autofill/classify-fields';
+export const AI_EXTRACT_SECTIONS_ENDPOINT = '/api/autofill/extract-resume-sections';
 export const AUTOFILL_TRACK_ENDPOINT = '/api/autofill/track';
 export const AUTOFILL_USAGE_ENDPOINT = '/api/autofill/usage';
 

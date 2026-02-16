@@ -29,10 +29,7 @@ export async function PUT(
             jobTitle, employerName, employerCity, employerState,
             startDate, endDate, isCurrent, supervisorName, supervisorPhone,
             supervisorEmail, mayContact, reasonForLeaving, description,
-            patientVolume, patientPopulations, treatmentModalities, disordersTreated,
-            practiceSetting, telehealthExperience, telehealthPlatforms, ehrSystems,
-            prescribingExp, prescribingSchedules, assessmentTools, supervisoryRole,
-            supervisoryDetails,
+            practiceSetting,
         } = body
 
         const updated = await prisma.candidateWorkExperience.update({
@@ -51,19 +48,7 @@ export async function PUT(
                 ...(mayContact !== undefined && { mayContact }),
                 ...(reasonForLeaving !== undefined && { reasonForLeaving: reasonForLeaving ? sanitizeText(reasonForLeaving, 500) : null }),
                 ...(description !== undefined && { description: description ? sanitizeText(description, 2000) : null }),
-                ...(patientVolume !== undefined && { patientVolume: patientVolume ? sanitizeText(patientVolume, 50) : null }),
-                ...(patientPopulations !== undefined && { patientPopulations }),
-                ...(treatmentModalities !== undefined && { treatmentModalities }),
-                ...(disordersTreated !== undefined && { disordersTreated }),
                 ...(practiceSetting !== undefined && { practiceSetting: practiceSetting ? sanitizeText(practiceSetting, 100) : null }),
-                ...(telehealthExperience !== undefined && { telehealthExperience }),
-                ...(telehealthPlatforms !== undefined && { telehealthPlatforms }),
-                ...(ehrSystems !== undefined && { ehrSystems }),
-                ...(prescribingExp !== undefined && { prescribingExp }),
-                ...(prescribingSchedules !== undefined && { prescribingSchedules: prescribingSchedules ? sanitizeText(prescribingSchedules, 50) : null }),
-                ...(assessmentTools !== undefined && { assessmentTools }),
-                ...(supervisoryRole !== undefined && { supervisoryRole }),
-                ...(supervisoryDetails !== undefined && { supervisoryDetails: supervisoryDetails ? sanitizeText(supervisoryDetails, 500) : null }),
             },
         })
 

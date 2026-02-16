@@ -14,6 +14,7 @@ interface Education {
     degreeType: string
     fieldOfStudy: string | null
     schoolName: string
+    startDate: string | null
     graduationDate: string | null
     gpa: string | null
     isHighestDegree: boolean
@@ -23,6 +24,8 @@ interface EduForm {
     degreeType: string
     fieldOfStudy: string
     schoolName: string
+    startMonth: string
+    startYear: string
     gradMonth: string
     gradYear: string
     gpa: string
@@ -31,7 +34,7 @@ interface EduForm {
 
 const emptyForm: EduForm = {
     degreeType: '', fieldOfStudy: '', schoolName: '',
-    gradMonth: '', gradYear: '', gpa: '', isHighestDegree: false,
+    startMonth: '', startYear: '', gradMonth: '', gradYear: '', gpa: '', isHighestDegree: false,
 }
 
 const cardStyle: React.CSSProperties = { background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '28px' }
@@ -82,6 +85,9 @@ export default function EducationSection({ showMsg }: Props) {
         setSaving(true)
         try {
             const isEdit = editingId !== null
+            const startDate = form.startMonth && form.startYear
+                ? new Date(parseInt(form.startYear), parseInt(form.startMonth) - 1, 1).toISOString()
+                : null
             const gradDate = form.gradMonth && form.gradYear
                 ? new Date(parseInt(form.gradYear), parseInt(form.gradMonth) - 1, 1).toISOString()
                 : null
@@ -95,6 +101,7 @@ export default function EducationSection({ showMsg }: Props) {
                         degreeType: form.degreeType,
                         fieldOfStudy: form.fieldOfStudy || null,
                         schoolName: form.schoolName,
+                        startDate,
                         graduationDate: gradDate,
                         gpa: form.gpa || null,
                         isHighestDegree: form.isHighestDegree,
@@ -123,10 +130,12 @@ export default function EducationSection({ showMsg }: Props) {
 
     const startEdit = (e: Education) => {
         const my = toMonthYear(e.graduationDate)
+        const sy = toMonthYear(e.startDate)
         setEditingId(e.id)
         setForm({
             degreeType: e.degreeType, fieldOfStudy: e.fieldOfStudy || '',
-            schoolName: e.schoolName, gradMonth: my.month, gradYear: my.year,
+            schoolName: e.schoolName, startMonth: sy.month, startYear: sy.year,
+            gradMonth: my.month, gradYear: my.year,
             gpa: e.gpa || '', isHighestDegree: e.isHighestDegree,
         })
         setShowForm(true)
@@ -158,7 +167,10 @@ export default function EducationSection({ showMsg }: Props) {
                                         </div>
                                         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                                             {e.fieldOfStudy && <>{e.fieldOfStudy} · </>}{e.schoolName}
-                                            {e.graduationDate && <> · {formatGradDate(e.graduationDate)}</>}
+                                            {e.startDate && <> · {formatGradDate(e.startDate)}</>}
+                                            {e.startDate && e.graduationDate && ' – '}
+                                            {!e.startDate && e.graduationDate && ' · '}
+                                            {e.graduationDate && <>{formatGradDate(e.graduationDate)}</>}
                                             {e.gpa && <> · GPA: {e.gpa}</>}
                                         </div>
                                     </div>
@@ -210,18 +222,30 @@ export default function EducationSection({ showMsg }: Props) {
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
                                     <div>
-                                        <label style={labelStyle}>Graduation Month</label>
-                                        <select value={form.gradMonth} onChange={(e) => setForm({ ...form, gradMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                                            <option value="">Month</option>
-                                            {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
-                                        </select>
+                                        <label style={labelStyle}>From</label>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                                                <option value="">Month</option>
+                                                {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
+                                            </select>
+                                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                                                <option value="">Year</option>
+                                                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label style={labelStyle}>Graduation Year</label>
-                                        <select value={form.gradYear} onChange={(e) => setForm({ ...form, gradYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                                            <option value="">Year</option>
-                                            {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-                                        </select>
+                                        <label style={labelStyle}>Graduated</label>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                            <select value={form.gradMonth} onChange={(e) => setForm({ ...form, gradMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                                                <option value="">Month</option>
+                                                {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
+                                            </select>
+                                            <select value={form.gradYear} onChange={(e) => setForm({ ...form, gradYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
+                                                <option value="">Year</option>
+                                                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div>
                                         <label style={labelStyle}>GPA (optional)</label>

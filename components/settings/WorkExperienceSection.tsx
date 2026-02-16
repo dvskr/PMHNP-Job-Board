@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit3, Trash2, Save, Loader2, X, Briefcase, ChevronDown, ChevronUp, Check } from 'lucide-react'
-import ChipSelector from '@/components/profile/ChipSelector'
 
 const US_STATES = [
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN',
@@ -17,13 +16,6 @@ const PRACTICE_SETTINGS = [
     'Integrated Primary Care', 'Crisis Center', 'VA/Military', 'Nursing Home/Long-Term Care', 'Home Health',
 ]
 
-const PATIENT_POPS = ['Children (0-12)', 'Adolescents (13-17)', 'Young Adults (18-25)', 'Adults (26-64)', 'Geriatric (65+)', 'Lifespan/All Ages']
-const TX_MODALITIES = ['Medication Management', 'Individual Psychotherapy', 'Group Therapy', 'Family Therapy', 'Both Med Mgmt + Therapy']
-const DISORDERS = ['Depression', 'Anxiety', 'PTSD', 'Bipolar Disorder', 'Schizophrenia', 'Substance Use Disorder', 'ADHD', 'OCD', 'Eating Disorders', 'Personality Disorders', 'Autism Spectrum', 'Insomnia']
-const TELEHEALTH_PLATS = ['Doxy.me', 'Zoom for Healthcare', 'Teladoc', 'Amwell', 'SimplePractice', 'TherapyNotes']
-const EHR_LIST = ['Epic', 'Cerner/Oracle Health', 'Athena', 'eClinicalWorks', 'AdvancedMD', 'DrChrono', 'SimplePractice', 'TherapyNotes', 'Valant', 'Netsmart/myAvatar', 'CPRS (VA)', 'NextGen', 'Allscripts']
-const ASSESS_TOOLS = ['PHQ-9', 'GAD-7', 'C-SSRS', 'AIMS', 'CIWA-Ar', 'COWS', 'MMSE', 'MoCA', 'Vanderbilt', 'Conners', 'ASRS', 'PCL-5', 'AUDIT', 'DAST', 'MDQ', 'Edinburgh', 'SCARED', 'Y-BOCS']
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface WExp { id: string;[key: string]: any }
 
@@ -32,11 +24,7 @@ interface WForm {
     startMonth: string; startYear: string; endMonth: string; endYear: string; isCurrent: boolean
     supervisorName: string; supervisorPhone: string; supervisorEmail: string
     mayContact: boolean | null; reasonForLeaving: string; description: string
-    patientVolume: string; patientPopulations: string; treatmentModalities: string
-    disordersTreated: string; practiceSetting: string; telehealthExperience: boolean | null
-    telehealthPlatforms: string; ehrSystems: string; prescribingExp: boolean | null
-    prescribingSchedules: string; assessmentTools: string; supervisoryRole: boolean | null
-    supervisoryDetails: string
+    practiceSetting: string
 }
 
 const emptyForm: WForm = {
@@ -44,11 +32,7 @@ const emptyForm: WForm = {
     startMonth: '', startYear: '', endMonth: '', endYear: '', isCurrent: false,
     supervisorName: '', supervisorPhone: '', supervisorEmail: '',
     mayContact: null, reasonForLeaving: '', description: '',
-    patientVolume: '', patientPopulations: '', treatmentModalities: '',
-    disordersTreated: '', practiceSetting: '', telehealthExperience: null,
-    telehealthPlatforms: '', ehrSystems: '', prescribingExp: null,
-    prescribingSchedules: '', assessmentTools: '', supervisoryRole: null,
-    supervisoryDetails: '',
+    practiceSetting: '',
 }
 
 const cardStyle: React.CSSProperties = { background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '28px' }
@@ -69,19 +53,6 @@ function fmtDate(iso: string | null): string {
     return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
-function countClinical(w: WExp): number {
-    let c = 0
-    if (w.patientPopulations) c++
-    if (w.treatmentModalities) c++
-    if (w.disordersTreated) c++
-    if (w.ehrSystems) c++
-    if (w.assessmentTools) c++
-    if (w.practiceSetting) c++
-    if (w.telehealthExperience !== null) c++
-    if (w.prescribingExp !== null) c++
-    return c
-}
-
 interface Props { showMsg: (type: 'success' | 'error', text: string) => void }
 
 export default function WorkExperienceSection({ showMsg }: Props) {
@@ -92,7 +63,6 @@ export default function WorkExperienceSection({ showMsg }: Props) {
     const [showForm, setShowForm] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [form, setForm] = useState<WForm>({ ...emptyForm })
-    const [clinicalOpen, setClinicalOpen] = useState(false)
     const [expandedCard, setExpandedCard] = useState<string | null>(null)
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -119,17 +89,8 @@ export default function WorkExperienceSection({ showMsg }: Props) {
             supervisorName: form.supervisorName || null, supervisorPhone: form.supervisorPhone || null,
             supervisorEmail: form.supervisorEmail || null, mayContact: form.mayContact,
             reasonForLeaving: form.isCurrent ? null : (form.reasonForLeaving || null),
-            description: form.description || null, patientVolume: form.patientVolume || null,
-            patientPopulations: form.patientPopulations || null,
-            treatmentModalities: form.treatmentModalities || null,
-            disordersTreated: form.disordersTreated || null,
+            description: form.description || null,
             practiceSetting: form.practiceSetting || null,
-            telehealthExperience: form.telehealthExperience,
-            telehealthPlatforms: form.telehealthExperience ? (form.telehealthPlatforms || null) : null,
-            ehrSystems: form.ehrSystems || null, prescribingExp: form.prescribingExp,
-            prescribingSchedules: form.prescribingExp ? (form.prescribingSchedules || null) : null,
-            assessmentTools: form.assessmentTools || null, supervisoryRole: form.supervisoryRole,
-            supervisoryDetails: form.supervisoryRole ? (form.supervisoryDetails || null) : null,
         }
     }
 
@@ -172,21 +133,14 @@ export default function WorkExperienceSection({ showMsg }: Props) {
             isCurrent: w.isCurrent || false, supervisorName: w.supervisorName || '',
             supervisorPhone: w.supervisorPhone || '', supervisorEmail: w.supervisorEmail || '',
             mayContact: w.mayContact, reasonForLeaving: w.reasonForLeaving || '',
-            description: w.description || '', patientVolume: w.patientVolume || '',
-            patientPopulations: w.patientPopulations || '', treatmentModalities: w.treatmentModalities || '',
-            disordersTreated: w.disordersTreated || '', practiceSetting: w.practiceSetting || '',
-            telehealthExperience: w.telehealthExperience, telehealthPlatforms: w.telehealthPlatforms || '',
-            ehrSystems: w.ehrSystems || '', prescribingExp: w.prescribingExp,
-            prescribingSchedules: w.prescribingSchedules || '', assessmentTools: w.assessmentTools || '',
-            supervisoryRole: w.supervisoryRole, supervisoryDetails: w.supervisoryDetails || '',
+            description: w.description || '', practiceSetting: w.practiceSetting || '',
         })
-        setClinicalOpen(true)
         setShowForm(true)
     }
 
-    const cancelForm = () => { setShowForm(false); setEditingId(null); setForm({ ...emptyForm }); setClinicalOpen(false) }
+    const cancelForm = () => { setShowForm(false); setEditingId(null); setForm({ ...emptyForm }) }
 
-    const RadioPill = ({ value, current, onChange, labels }: { value: boolean | null; current: boolean | null; onChange: (v: boolean) => void; labels: [string, string] }) => (
+    const RadioPill = ({ current, onChange, labels }: { value: boolean | null; current: boolean | null; onChange: (v: boolean) => void; labels: [string, string] }) => (
         <div style={{ display: 'flex', gap: '6px' }}>
             {[true, false].map((v, i) => (
                 <button key={String(v)} type="button" onClick={() => onChange(v)} style={{
@@ -223,9 +177,6 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                                                 {w.employerName}{w.practiceSetting && <> · {w.practiceSetting}</>} · {fmtDate(w.startDate)} — {w.isCurrent ? 'Present' : fmtDate(w.endDate)}
                                             </div>
-                                            {countClinical(w) > 0 && (
-                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{countClinical(w)} clinical detail{countClinical(w) > 1 ? 's' : ''} filled</div>
-                                            )}
                                         </div>
                                         <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
                                             <button onClick={(e) => { e.stopPropagation(); startEdit(w) }} style={{ ...btnOutline, padding: '6px 10px', fontSize: '12px' }}><Edit3 size={14} /> Edit</button>
@@ -263,13 +214,12 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                                 <button onClick={cancelForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={18} /></button>
                             </div>
 
-                            {/* PART A — Standard Employment Info */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                                     <div><label style={labelStyle}>Job Title *</label><input type="text" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} placeholder="Psychiatric NP" style={inputStyle} /></div>
                                     <div><label style={labelStyle}>Employer *</label><input type="text" value={form.employerName} onChange={(e) => setForm({ ...form, employerName: e.target.value })} placeholder="ABC Health System" style={inputStyle} /></div>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '14px' }}>
                                     <div><label style={labelStyle}>City</label><input type="text" value={form.employerCity} onChange={(e) => setForm({ ...form, employerCity: e.target.value })} style={inputStyle} /></div>
                                     <div>
                                         <label style={labelStyle}>State</label>
@@ -278,18 +228,25 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                                             {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
+                                    <div>
+                                        <label style={labelStyle}>Practice Setting</label>
+                                        <select value={form.practiceSetting} onChange={(e) => setForm({ ...form, practiceSetting: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                            <option value="">Select setting</option>
+                                            {PRACTICE_SETTINGS.map((s) => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {/* Dates */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                                     <div>
                                         <label style={labelStyle}>Start Date *</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                            <select value={form.startMonth} onChange={(e) => setForm({ ...form, startMonth: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                                 <option value="">Month</option>
                                                 {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
                                             </select>
-                                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                            <select value={form.startYear} onChange={(e) => setForm({ ...form, startYear: e.target.value })} style={{ ...inputStyle, cursor: 'pointer', flex: 1 }}>
                                                 <option value="">Year</option>
                                                 {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                                             </select>
@@ -297,12 +254,12 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                                     </div>
                                     <div>
                                         <label style={labelStyle}>End Date</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                            <select value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1 }}>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                            <select value={form.endMonth} onChange={(e) => setForm({ ...form, endMonth: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
                                                 <option value="">Month</option>
                                                 {MONTHS.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}
                                             </select>
-                                            <select value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1 }}>
+                                            <select value={form.endYear} onChange={(e) => setForm({ ...form, endYear: e.target.value })} disabled={form.isCurrent} style={{ ...inputStyle, cursor: form.isCurrent ? 'not-allowed' : 'pointer', opacity: form.isCurrent ? 0.5 : 1, flex: 1 }}>
                                                 <option value="">Year</option>
                                                 {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
                                             </select>
@@ -341,76 +298,6 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                                     <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{form.description.length}/2000</div>
                                 </div>
 
-                                {/* PART B — Clinical Details (Collapsible) */}
-                                <div style={{ borderRadius: '10px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-                                    <button type="button" onClick={() => setClinicalOpen(!clinicalOpen)} style={{
-                                        width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600,
-                                    }}>
-                                        <span>Clinical Experience Details</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>
-                                                {(() => { let c = 0; if (form.patientPopulations) c++; if (form.treatmentModalities) c++; if (form.disordersTreated) c++; if (form.ehrSystems) c++; if (form.assessmentTools) c++; if (form.practiceSetting) c++; return c > 0 ? `${c} field${c > 1 ? 's' : ''} filled` : 'optional' })()}
-                                            </span>
-                                            {clinicalOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                        </span>
-                                    </button>
-                                    {clinicalOpen && (
-                                        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                                <div><label style={labelStyle}>Patient Volume</label><input type="text" value={form.patientVolume} onChange={(e) => setForm({ ...form, patientVolume: e.target.value })} placeholder="e.g. 15-20 patients/day" style={inputStyle} /></div>
-                                                <div>
-                                                    <label style={labelStyle}>Practice Setting</label>
-                                                    <select value={form.practiceSetting} onChange={(e) => setForm({ ...form, practiceSetting: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                                                        <option value="">Select setting</option>
-                                                        {PRACTICE_SETTINGS.map((s) => <option key={s} value={s}>{s}</option>)}
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <ChipSelector label="Patient Populations" presets={PATIENT_POPS} value={form.patientPopulations} onChange={(v) => setForm({ ...form, patientPopulations: v })} />
-                                            <ChipSelector label="Treatment Modalities" presets={TX_MODALITIES} value={form.treatmentModalities} onChange={(v) => setForm({ ...form, treatmentModalities: v })} />
-                                            <ChipSelector label="Disorders Treated" presets={DISORDERS} value={form.disordersTreated} onChange={(v) => setForm({ ...form, disordersTreated: v })} />
-                                            <ChipSelector label="EHR Systems" presets={EHR_LIST} value={form.ehrSystems} onChange={(v) => setForm({ ...form, ehrSystems: v })} />
-                                            <ChipSelector label="Assessment Tools Used" presets={ASSESS_TOOLS} value={form.assessmentTools} onChange={(v) => setForm({ ...form, assessmentTools: v })} />
-
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                                                <div>
-                                                    <label style={labelStyle}>Telehealth Experience?</label>
-                                                    <RadioPill value={form.telehealthExperience} current={form.telehealthExperience} onChange={(v) => setForm({ ...form, telehealthExperience: v })} labels={['Yes', 'No']} />
-                                                </div>
-                                                <div>
-                                                    <label style={labelStyle}>Prescribing Experience?</label>
-                                                    <RadioPill value={form.prescribingExp} current={form.prescribingExp} onChange={(v) => setForm({ ...form, prescribingExp: v })} labels={['Yes', 'No']} />
-                                                </div>
-                                            </div>
-
-                                            {form.telehealthExperience && (
-                                                <ChipSelector label="Telehealth Platforms" presets={TELEHEALTH_PLATS} value={form.telehealthPlatforms} onChange={(v) => setForm({ ...form, telehealthPlatforms: v })} />
-                                            )}
-
-                                            {form.prescribingExp && (
-                                                <div>
-                                                    <label style={labelStyle}>Prescribing Schedules</label>
-                                                    <select value={form.prescribingSchedules} onChange={(e) => setForm({ ...form, prescribingSchedules: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                                                        <option value="">Select</option>
-                                                        <option value="Schedule II-V">Schedule II-V</option>
-                                                        <option value="Schedule III-V">Schedule III-V</option>
-                                                    </select>
-                                                </div>
-                                            )}
-
-                                            <div>
-                                                <label style={labelStyle}>Supervisory Role?</label>
-                                                <RadioPill value={form.supervisoryRole} current={form.supervisoryRole} onChange={(v) => setForm({ ...form, supervisoryRole: v })} labels={['Yes', 'No']} />
-                                            </div>
-                                            {form.supervisoryRole && (
-                                                <div><label style={labelStyle}>Supervisory Details</label><input type="text" value={form.supervisoryDetails} onChange={(e) => setForm({ ...form, supervisoryDetails: e.target.value })} placeholder="e.g. Supervise 2 NP students and 1 LPC" style={inputStyle} /></div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
                                     <button onClick={cancelForm} style={btnOutline}>Cancel</button>
                                     <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}>
@@ -423,7 +310,7 @@ export default function WorkExperienceSection({ showMsg }: Props) {
                     )}
 
                     {!showForm && (
-                        <button onClick={() => { setForm({ ...emptyForm }); setEditingId(null); setClinicalOpen(false); setShowForm(true) }}
+                        <button onClick={() => { setForm({ ...emptyForm }); setEditingId(null); setShowForm(true) }}
                             style={{ ...btnOutline, borderStyle: 'dashed', width: '100%', justifyContent: 'center', padding: '12px', color: '#2DD4BF', borderColor: 'rgba(45,212,191,0.4)' }}>
                             <Plus size={16} /> Add Work Experience
                         </button>

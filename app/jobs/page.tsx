@@ -100,17 +100,24 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
 
   // Get page and sort from params
   const page = parseInt((params.page as string) || '1');
-  const sort = (params.sort as string) || 'newest';
+  const sort = (params.sort as string) || 'best';
   const limit = 50;
   const skip = (page - 1) * limit;
 
   // Build orderBy based on sort param
   let orderBy: Record<string, unknown>[] = [
     { isFeatured: 'desc' },
+    { qualityScore: 'desc' },
     { originalPostedAt: 'desc' },
     { createdAt: 'desc' },
   ];
-  if (sort === 'salary') {
+  if (sort === 'newest') {
+    orderBy = [
+      { isFeatured: 'desc' },
+      { originalPostedAt: 'desc' },
+      { createdAt: 'desc' },
+    ];
+  } else if (sort === 'salary') {
     orderBy = [
       { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
       { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },

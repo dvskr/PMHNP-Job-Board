@@ -1,8 +1,9 @@
-import type { ATSHandler, DetectedField, MappedField, FillDetail } from '@/shared/types';
+﻿import type { ATSHandler, DetectedField, MappedField, FillDetail } from '@/shared/types';
 import { detectFormFields } from '../detector';
 import { fillSingleField } from '../filler';
 import { triggerReactChange } from '../filler';
 import { fillTypeahead } from '../fields/typeahead';
+import { log, warn } from '@/shared/logger';
 
 function isLinkedIn(): boolean {
     const url = window.location.href.toLowerCase();
@@ -15,7 +16,7 @@ function detectLinkedInFields(): DetectedField[] {
     const modal = document.querySelector('[class*="jobs-easy-apply"], [class*="artdeco-modal"], [role="dialog"]');
     if (modal) {
         const inputs = modal.querySelectorAll('input, select, textarea');
-        console.log(`[PMHNP-LinkedIn] Found ${inputs.length} fields in Easy Apply modal`);
+        log(`[PMHNP-LinkedIn] Found ${inputs.length} fields in Easy Apply modal`);
     }
     return detectFormFields();
 }
