@@ -4,6 +4,7 @@ import {
     generateUniqueSlug,
     BlogCategory,
 } from '@/lib/blog';
+import { formatBlogContent } from '@/lib/blog-formatter';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 
 const VALID_CATEGORIES: BlogCategory[] = [
@@ -77,10 +78,13 @@ export async function POST(request: NextRequest) {
         const slug = await generateUniqueSlug(title);
 
         // Create the post
+        // Auto-format the markdown content for better readability
+        const formattedContent = formatBlogContent(content);
+
         const post = await createBlogPost({
             title,
             slug,
-            content,
+            content: formattedContent,
             meta_description: meta_description || null,
             target_keyword: target_keyword || null,
             category,
