@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 
 interface ContactFormData {
   name: string;
@@ -20,6 +20,34 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const FAQ_ITEMS = [
+    {
+      q: 'Is PMHNP Hiring free for job seekers?',
+      a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.',
+    },
+    {
+      q: 'How often are jobs updated?',
+      a: 'Our pipeline runs twice daily, pulling from 3,000+ companies across major job boards and direct career pages.',
+    },
+    {
+      q: 'How do I post a job as an employer?',
+      a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.',
+    },
+    {
+      q: 'Can I get daily job alerts?',
+      a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.',
+    },
+    {
+      q: 'How do I delete my account?',
+      a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.',
+    },
+    {
+      q: 'Why did a job listing disappear?',
+      a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.',
+    },
+  ];
 
   const {
     register,
@@ -78,6 +106,51 @@ export default function ContactPage() {
           </p>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: 'var(--text-primary)' }}>
+            Frequently Asked Questions
+          </h2>
+          <div className="space-y-2">
+            {FAQ_ITEMS.map((item, i) => (
+              <div
+                key={i}
+                className="rounded-xl overflow-hidden transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left"
+                >
+                  <span className="text-sm font-semibold pr-4" style={{ color: 'var(--text-primary)' }}>
+                    {item.q}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className="flex-shrink-0 transition-transform duration-200"
+                    style={{
+                      color: 'var(--text-tertiary)',
+                      transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
+                    }}
+                  />
+                </button>
+                {openFaq === i && (
+                  <div className="px-5 pb-4">
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      {item.a}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -171,6 +244,8 @@ export default function ContactPage() {
                     <option value="General Inquiry">General Inquiry</option>
                     <option value="Job Seeker Support">Job Seeker Support</option>
                     <option value="Employer Support">Employer Support</option>
+                    <option value="Report a Bug">Report a Bug</option>
+                    <option value="Partnership Inquiry">Partnership Inquiry</option>
                     <option value="Technical Issue">Technical Issue</option>
                     <option value="Feedback">Feedback</option>
                     <option value="Other">Other</option>

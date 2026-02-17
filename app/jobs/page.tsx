@@ -113,8 +113,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   ];
   if (sort === 'newest') {
     orderBy = [
-      { isFeatured: 'desc' },
-      { originalPostedAt: 'desc' },
+      { originalPostedAt: { sort: 'desc', nulls: 'last' } },
       { createdAt: 'desc' },
     ];
   } else if (sort === 'salary') {

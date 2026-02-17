@@ -12,6 +12,7 @@ import MainContent from '@/components/MainContent';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import StickyEmailBar from '@/components/StickyEmailBar';
+import FeedbackWidget from '@/components/FeedbackWidget';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -197,7 +198,7 @@ export default function RootLayout({
         }}
       >
         <ThemeProvider>
-          <div style={{ width: '100%', position: 'relative' }}>
+          <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative' }}>
             <GoogleAnalytics />
             <LayoutShell>
               <Header />
@@ -207,6 +208,7 @@ export default function RootLayout({
             <LayoutShell>
               <Footer />
               <FloatingSocial />
+              <FeedbackWidget />
               <BottomNav />
               <StickyEmailBar />
             </LayoutShell>

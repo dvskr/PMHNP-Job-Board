@@ -4,42 +4,67 @@ import { Search, Home, Briefcase, MapPin } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4 py-16">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-16"
+      style={{ backgroundColor: 'var(--bg-primary)' }}
+    >
       <div className="max-w-2xl w-full text-center animate-fade-in">
         {/* 404 Number */}
         <div className="mb-8">
-          <h1 className="text-9xl md:text-[12rem] font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600 leading-none">
+          <h1
+            className="text-9xl md:text-[12rem] font-bold leading-none"
+            style={{
+              background: 'linear-gradient(135deg, #0D9488, #2DD4BF)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             404
           </h1>
         </div>
 
         {/* Icon */}
         <div className="mb-6">
-          <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center">
-            <MapPin className="w-12 h-12 text-primary-600" />
+          <div
+            className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+          >
+            <MapPin className="w-12 h-12" style={{ color: 'var(--color-primary)' }} />
           </div>
         </div>
 
         {/* Heading */}
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <h2
+          className="text-3xl md:text-4xl font-bold mb-4"
+          style={{ color: 'var(--text-primary)' }}
+        >
           Page Not Found
         </h2>
 
         {/* Subtext */}
-        <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+        <p
+          className="text-lg mb-8 max-w-md mx-auto"
+          style={{ color: 'var(--text-secondary)' }}
+        >
           Oops! The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
 
         {/* Search Suggestion */}
         <div className="mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto border border-gray-200">
+          <div
+            className="rounded-xl shadow-md p-6 max-w-md mx-auto"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
             <div className="flex items-center gap-3 mb-3">
-              <Search className="w-5 h-5 text-primary-600" />
-              <p className="font-medium text-gray-900">
+              <Search className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                 Try searching for jobs
               </p>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               Browse our 200+ PMHNP positions or use filters to find exactly what you&apos;re looking for.
             </p>
           </div>
@@ -62,35 +87,42 @@ export default function NotFound() {
         </div>
 
         {/* Quick Links */}
-        <div className="pt-8 border-t border-gray-200 max-w-md mx-auto">
-          <p className="text-sm text-gray-600 mb-3">
+        <div
+          className="pt-8 max-w-md mx-auto"
+          style={{ borderTop: '1px solid var(--border-color)' }}
+        >
+          <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
             Or explore these popular pages:
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/for-job-seekers"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
+              className="text-sm hover:underline"
+              style={{ color: 'var(--color-primary)' }}
             >
               For Job Seekers
             </Link>
-            <span className="text-gray-400">·</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>·</span>
             <Link
               href="/for-employers"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
+              className="text-sm hover:underline"
+              style={{ color: 'var(--color-primary)' }}
             >
               For Employers
             </Link>
-            <span className="text-gray-400">·</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>·</span>
             <Link
               href="/faq"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
+              className="text-sm hover:underline"
+              style={{ color: 'var(--color-primary)' }}
             >
               FAQ
             </Link>
-            <span className="text-gray-400">·</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>·</span>
             <Link
               href="/contact"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
+              className="text-sm hover:underline"
+              style={{ color: 'var(--color-primary)' }}
             >
               Contact Us
             </Link>
@@ -100,4 +132,3 @@ export default function NotFound() {
     </div>
   );
 }
-

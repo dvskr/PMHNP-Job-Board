@@ -8,7 +8,10 @@
 
 
 html,
-body {}
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 
 /* Reset Tailwind v4 preflight that sets form inputs to background-color: field (white) */
 html.dark input,

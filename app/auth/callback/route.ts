@@ -8,13 +8,22 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next') || '/dashboard'
   const origin = requestUrl.origin
 
-  if (code) {
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  }
+
+  try {
     const supabase = await createClient()
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error && data.user) {
-      // Check if profile exists, create if not
+    if (error || !data.user) {
+      console.error('Auth callback: code exchange failed', error?.message)
+      return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+    }
+
+    // Check if profile exists, create if not
+    try {
       const existingProfile = await prisma.userProfile.findUnique({
         where: { supabaseId: data.user.id }
       })
@@ -74,39 +83,37 @@ export async function GET(request: Request) {
           }
         }
       }
+    } catch (profileError) {
+      // Don't block login if profile creation fails
+      console.error('Auth callback: profile creation error', profileError)
     }
 
     // Auto-link legacy jobs (e.g. guest posts) to this user
     if (data.user?.email) {
       try {
-        const updated = await prisma.employerJob.updateMany({
+        await prisma.employerJob.updateMany({
           where: {
-            contactEmail: data.user.email, // Exact match
-            userId: null, // Only claim unowned jobs
+            contactEmail: data.user.email,
+            userId: null,
           },
           data: {
             userId: data.user.id,
           },
         })
-
-        if (updated.count > 0) {
-          // console.log(`Linked ${updated.count} legacy jobs to user ${data.user.email}`)
-        }
       } catch (e) {
         console.error('Failed to link legacy jobs', e)
       }
     }
 
     // If 'next' parameter is explicitly provided, use it
-    // This is important for password reset flows and other auth redirects
     if (requestUrl.searchParams.has('next')) {
       return NextResponse.redirect(`${origin}${next}`)
     }
 
     // Otherwise, redirect based on role
-    const profile = data.user ? await prisma.userProfile.findUnique({
+    const profile = await prisma.userProfile.findUnique({
       where: { supabaseId: data.user.id }
-    }) : null
+    })
 
     if (profile?.role === 'admin') {
       return NextResponse.redirect(`${origin}/admin/jobs`)
@@ -115,7 +122,8 @@ export async function GET(request: Request) {
     } else {
       return NextResponse.redirect(`${origin}/dashboard`)
     }
+  } catch (e) {
+    console.error('Auth callback: unexpected error', e)
+    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
   }
-
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }
