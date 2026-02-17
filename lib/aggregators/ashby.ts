@@ -92,6 +92,104 @@ const ASHBY_COMPANIES = [
     { slug: "radai", name: "Radai" },
     { slug: "valeriehealth", name: "Valeriehealth" },
     { slug: "versemedical", name: "Versemedical" },
+
+    // === BULK ADD — All remaining CSV companies (96) ===
+    { slug: "1password", name: "1password" },
+    { slug: "abridge", name: "Abridge (Ashby)" },
+    { slug: "accurx", name: "Accurx" },
+    { slug: "akasa", name: "Akasa" },
+    { slug: "alto", name: "Alto Pharmacy (Ashby)" },
+    { slug: "ambiencehealthcare", name: "Ambiencehealthcare" },
+    { slug: "annaautismcare", name: "Annaautismcare" },
+    { slug: "anterior", name: "Anterior" },
+    { slug: "august-health", name: "August Health" },
+    { slug: "awellhealth", name: "Awell Health" },
+    { slug: "babylonlabs", name: "Babylonlabs" },
+    { slug: "bariendo", name: "Bariendo" },
+    { slug: "bespokelabs", name: "Bespokelabs" },
+    { slug: "bioptimizers", name: "Bioptimizers" },
+    { slug: "bjakcareer", name: "Bjakcareer" },
+    { slug: "blossom-health", name: "Blossom Health" },
+    { slug: "branchinsurance", name: "Branchinsurance" },
+    { slug: "bravehealth", name: "Bravehealth" },
+    { slug: "cambio", name: "Cambio" },
+    { slug: "candidhealth", name: "Candidhealth" },
+    { slug: "category-labs", name: "Category Labs" },
+    { slug: "chainalysis-careers", name: "Chainalysis Careers" },
+    { slug: "chainlink-labs", name: "Chainlink Labs" },
+    { slug: "characterbio", name: "Characterbio" },
+    { slug: "claritypediatrics", name: "Claritypediatrics" },
+    { slug: "claylabs", name: "Claylabs" },
+    { slug: "commure", name: "Commure/Athelas" },
+    { slug: "coursecareers", name: "Coursecareers" },
+    { slug: "cradlebio", name: "Cradlebio" },
+    { slug: "crossjoin-solutions", name: "Crossjoin Solutions" },
+    { slug: "cylinderhealth", name: "Cylinderhealth" },
+    { slug: "dandelionhealth", name: "Dandelion Health" },
+    { slug: "definelycareers", name: "Definelycareers" },
+    { slug: "easygenerator", name: "Easygenerator" },
+    { slug: "eigen-labs", name: "Eigen Labs" },
+    { slug: "elationhealth", name: "Elation Health" },
+    { slug: "elevenlabs", name: "Elevenlabs" },
+    { slug: "ellipsislabs", name: "Ellipsislabs" },
+    { slug: "finni-health", name: "Finni Health" },
+    { slug: "foundationhealthcareers", name: "Foundationhealthcareers" },
+    { slug: "fountainlife", name: "Fountain Life" },
+    { slug: "frontcareers", name: "Frontcareers" },
+    { slug: "general-counsel-ai", name: "General Counsel Ai" },
+    { slug: "genesis-ai", name: "Genesis Ai" },
+    { slug: "gradient-labs", name: "Gradient Labs" },
+    { slug: "handspring", name: "Handspring" },
+    { slug: "hike-medical", name: "Hike Medical" },
+    { slug: "hims", name: "Hims & Hers (Ashby)" },
+    { slug: "hims-and-hers", name: "Hims And Hers" },
+    { slug: "hippocraticai", name: "Hippocratic AI" },
+    { slug: "iacollaborative", name: "Iacollaborative" },
+    { slug: "iambic-therapeutics", name: "Iambic Therapeutics" },
+    { slug: "injective-labs", name: "Injective Labs" },
+    { slug: "lavendo", name: "Lavendo" },
+    { slug: "levelpath", name: "Levelpath" },
+    { slug: "lindushealth", name: "Lindushealth" },
+    { slug: "lumoshealth", name: "Lumos Health" },
+    { slug: "maticrobots", name: "Maticrobots" },
+    { slug: "matter-labs", name: "Matter Labs" },
+    { slug: "myedspacecareers", name: "Myedspacecareers" },
+    { slug: "mystenlabs", name: "Mystenlabs" },
+    { slug: "nabla", name: "Nabla" },
+    { slug: "nest-health", name: "Nest Health" },
+    { slug: "netboxlabs", name: "Netboxlabs" },
+    { slug: "nextlinklabs", name: "Nextlinklabs" },
+    { slug: "oakslab", name: "Oakslab" },
+    { slug: "oplabs", name: "Oplabs" },
+    { slug: "orbitalmaterials", name: "Orbitalmaterials" },
+    { slug: "oura", name: "Oura" },
+    { slug: "pearlhealth", name: "Pearlhealth" },
+    { slug: "polygon-labs", name: "Polygon Labs" },
+    { slug: "prior-labs", name: "Prior Labs" },
+    { slug: "procurementsciences", name: "Procurementsciences" },
+    { slug: "pylon-labs", name: "Pylon Labs" },
+    { slug: "radai", name: "Rad AI" },
+    { slug: "relationrx", name: "Relationrx" },
+    { slug: "remedyrobotics", name: "Remedyrobotics" },
+    { slug: "risklabs", name: "Risklabs" },
+    { slug: "ruby-labs", name: "Ruby Labs" },
+    { slug: "socure", name: "Socure" },
+    { slug: "springhealth", name: "Spring Health (Ashby)" },
+    { slug: "standinsurance", name: "Standinsurance" },
+    { slug: "summerhealth", name: "Summer Health" },
+    { slug: "symbiotic", name: "Symbiotic" },
+    { slug: "tandem-health", name: "Tandem Health" },
+    { slug: "tavahealth", name: "Tavahealth" },
+    { slug: "twelve-labs", name: "Twelve Labs" },
+    { slug: "uipath", name: "Uipath" },
+    { slug: "valeriehealth", name: "Valeriehealth" },
+    { slug: "versemedical", name: "Versemedical" },
+    { slug: "virtahealth", name: "Virtahealth" },
+    { slug: "visanahealth", name: "Visanahealth" },
+    { slug: "worldlabs", name: "Worldlabs" },
+    { slug: "wormholelabs", name: "Wormholelabs" },
+    { slug: "wynd-labs", name: "Wynd Labs" },
+    { slug: "xlabs", name: "Xlabs" },
 ];
 
 /**
@@ -176,13 +274,24 @@ export async function fetchAshbyJobs(): Promise<AshbyJobRaw[]> {
     console.log(`[Ashby] Checking ${ASHBY_COMPANIES.length} companies for PMHNP jobs...`);
 
     const allJobs: AshbyJobRaw[] = [];
+    const BATCH_SIZE = 10;
 
-    for (const company of ASHBY_COMPANIES) {
-        const jobs = await fetchCompanyPostings(company.slug, company.name);
-        allJobs.push(...jobs);
+    for (let i = 0; i < ASHBY_COMPANIES.length; i += BATCH_SIZE) {
+        const batch = ASHBY_COMPANIES.slice(i, i + BATCH_SIZE);
 
-        // Small delay to be respectful
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const results = await Promise.allSettled(
+            batch.map(company => fetchCompanyPostings(company.slug, company.name))
+        );
+
+        for (const result of results) {
+            if (result.status === 'fulfilled') {
+                allJobs.push(...result.value);
+            }
+        }
+
+        if (i + BATCH_SIZE < ASHBY_COMPANIES.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
     }
 
     return allJobs;
