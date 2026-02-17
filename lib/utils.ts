@@ -37,6 +37,11 @@ export function formatSalary(
     if (period === 'hourly' || period === 'weekly' || period === 'monthly') {
       return `$${n.toLocaleString()}`;
     }
+    // Annual — values 20-999 are almost certainly stored in thousands (e.g. 125 = $125K)
+    // No PMHNP job pays $125/year, so normalize these
+    if (n >= 20 && n < 1000) {
+      return `$${Math.round(n)}k`;
+    }
     // Annual - use k format for thousands
     if (n >= 1000) return `$${Math.round(n / 1000)}k`;
     return `$${n}`;

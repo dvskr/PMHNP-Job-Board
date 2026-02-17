@@ -6,6 +6,8 @@
  * 1. MUST contain at least one "Positive Keyword" (PMHNP specific).
  * 2. MUST NOT contain "Negative Keywords" (Physician, Social Worker, etc.) UNLESS
  *    invalidated by a Positive Keyword.
+ * 3. Generic "Nurse Practitioner" titles MUST have psychiatric/mental health context
+ *    in BOTH the title AND context to pass.
  */
 
 const POSITIVE_KEYWORDS = [
@@ -24,10 +26,12 @@ const POSITIVE_KEYWORDS = [
     'psychiatric np',
     'pmhnp-bc',
     'fpmhnp',
+    'pmnhp', // Common misspelling of PMHNP
     'app - psychiatry',
     'advanced practice provider - psychiatry',
     'nurse practitioner - psychiatry',
     'nurse practitioner - mental health',
+    'nurse practitioner - behavioral health',
     'np - psychiatry',
     'np - mental health',
     'nurse practitioner psychiatry',
@@ -39,6 +43,7 @@ const POSITIVE_KEYWORDS = [
 ];
 
 const NEGATIVE_KEYWORDS = [
+    // Wrong provider type
     'physician',
     'medical doctor',
     ' m.d.',
@@ -75,7 +80,7 @@ const NEGATIVE_KEYWORDS = [
     'orthopedic',
     'urology',
     'occupational health',
-    // Gap Closing: Strict exclusions for non-provider roles
+    // Non-provider roles
     'registered nurse',
     ' rn ',
     ' rn-',
@@ -99,10 +104,9 @@ const NEGATIVE_KEYWORDS = [
     'medical director',
     'director of',
     'graduate',
-    'technician',
-    'child adolescent', // ambiguous title, often therapist
-    'outpatient position', // ambiguous
-    // Gap closing round 2: titles leaking from adzuna, jooble, lever, etc.
+    'child adolescent',
+    'outpatient position',
+    // Gap closing: titles leaking from adzuna, jooble, lever, etc.
     'chiropractor',
     'hospitalist',
     'physician assistant',
@@ -120,11 +124,85 @@ const NEGATIVE_KEYWORDS = [
     'nocturnist',
     'pediatric icu',
     'collaborating psychiatrist',
+    // Gap closing round 3: from Feb 2026 audit of leaked jobs
+    'neurologist',
+    'interim cfo',
+    'cfo',
+    'building automation',
+    'project sales',
+    'recruiter',
+    'bookings specialist',
+    'medical science liaison',
+    'lmsw',
+    'lcpc',
+    'lgpc',
+    'prospect application',
+    'pediatric nurse practitioner',
+    'pediatric np',
+    'pediatrics nurse practitioner',
+    'women\'s health nurse practitioner',
+    'women\'s health np',
+    'certified nurse midwife',
+    'nurse midwife',
+    'midwife',
+    'substance abuse nurse practitioner',
+    'addiction medicine nurse practitioner',
+    'travel nurse practitioner',
+    'outpatient rn',
+    'inpatient rn',
+    'skilled nursing',
+    'walk-in clinic',
+    'urgent care',
+    'oncology',
+    'endocrinology',
+    'gastroenterology',
+    'nephrology',
+    'pulmonology',
+    'rheumatology',
+    'hematology',
+    'neurology',
+    'bariatric',
+    'neonatal',
+    'labor and delivery',
+    ' pace ',
+    'wound care',
+    'palliative',
+    'hospice',
+    'nursing home',
+    'long term care',
+    'long-term care',
+    'home health',
+    'infusion',
+    'dialysis',
+    'transplant',
+    'float',
+    'medical np',
+    'medical pa',
+    'centralized nurse practioner', // Typo in Firsthand posting
+];
+
+/** Titles that are so generic they need STRONG psychiatric context in both title and description */
+const GENERIC_NP_TITLES = [
+    'nurse practitioner',
+    'advanced practice provider',
+    'advanced practice nurse',
+    'advanced practice professional',
+    'app',
+    'apn',
+    'inpatient app',
+    'outpatient app',
+    'prn nurse practitioner',
+    'part time nurse practitioner',
+    'part-time nurse practitioner',
+    'weekend nurse practitioner',
+    'clinical nurse practitioner',
+    'pnp',
+    'lpnp',
 ];
 
 export function isRelevantJob(title: string = '', description: string = ''): boolean {
     const combinedText = `${title} ${description}`.toLowerCase();
-    const titleLower = title.toLowerCase();
+    const titleLower = title.toLowerCase().trim();
 
     // 1. MUST have a Positive Keyword in Title OR Description
     let hasPositive = POSITIVE_KEYWORDS.some(kw => combinedText.includes(kw));
@@ -143,7 +221,6 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
             titleLower.includes('arnp');
 
         // Only allow combination match if TITLE has NP context
-        // Description-only 'np' matches are too loose (e.g. "Hospitalist NP/PA" descriptions mentioning psychiatry)
         if (hasMentalHealthContext && titleHasNP) {
             hasPositive = true;
         } else if (combinedText.includes('pmhnp')) {
@@ -156,9 +233,41 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
         return false;
     }
 
-    // 2. Strong Filter on TITLE for wrong roles
-    // Exception: If title itself contains a positive PMHNP keyword, trust it —
-    // titles like "Associate PMHNP" or "PMHNP Clinical Manager" should pass
+    // 2. GENERIC TITLE CHECK: If the title is just "Nurse Practitioner" or similar generic title,
+    //    demand that the TITLE ITSELF has psychiatric/mental health context.
+    //    Description-only context is too weak (many non-psych NP jobs at mental health orgs).
+    const isGenericTitle = GENERIC_NP_TITLES.some(generic => {
+        // Match exactly or with location/qualifier suffix
+        // e.g. "Nurse Practitioner", "Nurse Practitioner - Memphis, TN", "Nurse Practitioner (NP)"
+        return titleLower === generic ||
+            titleLower.startsWith(generic + ' -') ||
+            titleLower.startsWith(generic + ' –') ||
+            titleLower.startsWith(generic + ' (') ||
+            titleLower.startsWith(generic + ',') ||
+            titleLower.startsWith(generic + ' $') ||
+            titleLower.endsWith(' ' + generic) ||
+            titleLower.startsWith(generic + ' sign') ||
+            titleLower.startsWith(generic + ' travel') ||
+            titleLower.startsWith(generic + ' prn') ||
+            titleLower.startsWith(generic + ' weekend') ||
+            titleLower.startsWith(generic + ' part') ||
+            titleLower.startsWith(generic + ' full');
+    });
+
+    if (isGenericTitle) {
+        // For generic titles, the TITLE must contain psychiatric/mental health keywords
+        const titleHasPsych = titleLower.includes('psych') ||
+            titleLower.includes('mental health') ||
+            titleLower.includes('behavioral health') ||
+            titleLower.includes('pmhnp');
+
+        if (!titleHasPsych) {
+            return false;
+        }
+    }
+
+    // 3. Strong Filter on TITLE for wrong roles
+    // Exception: If title itself contains a positive PMHNP keyword, trust it
     const titleHasPositive = POSITIVE_KEYWORDS.some(kw => titleLower.includes(kw));
     if (titleHasPositive) {
         return true;
@@ -178,7 +287,6 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
                 'psych np'
             ].some(indicator => combinedText.includes(indicator));
 
-            // Only count as "Wrong Role" if it DOES NOT mention any NP indicators
             return !hasPMHNPIndicator;
         }
 

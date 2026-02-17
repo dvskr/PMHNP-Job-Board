@@ -151,22 +151,31 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
 
 /**
  * Fetch PMHNP jobs from all BambooHR companies
+ * Uses parallel batches to stay within Vercel timeout limits
  */
 export async function fetchBambooHRJobs(): Promise<BambooHRJobRaw[]> {
     console.log(`[BambooHR] Scanning ${BAMBOOHR_COMPANIES.length} company career sites...`);
 
     const allJobs: BambooHRJobRaw[] = [];
+    const BATCH_SIZE = 10; // Process 10 companies in parallel
 
-    for (const company of BAMBOOHR_COMPANIES) {
-        try {
-            const jobs = await fetchCompanyJobs(company);
-            allJobs.push(...jobs);
-        } catch (error) {
-            console.warn(`[BambooHR] Error processing ${company.name}:`, error);
+    for (let i = 0; i < BAMBOOHR_COMPANIES.length; i += BATCH_SIZE) {
+        const batch = BAMBOOHR_COMPANIES.slice(i, i + BATCH_SIZE);
+
+        const results = await Promise.allSettled(
+            batch.map(company => fetchCompanyJobs(company))
+        );
+
+        for (const result of results) {
+            if (result.status === 'fulfilled') {
+                allJobs.push(...result.value);
+            }
         }
 
-        // Rate limiting between companies
-        await sleep(500);
+        // Small delay between batches to be polite
+        if (i + BATCH_SIZE < BAMBOOHR_COMPANIES.length) {
+            await sleep(300);
+        }
     }
 
     console.log(`[BambooHR] Total: ${allJobs.length} PMHNP jobs found across all companies`);

@@ -262,94 +262,33 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           backgroundColor: 'var(--bg-secondary)',
           borderRadius: '16px',
           border: '1px solid var(--border-color)',
-          padding: '22px 24px',
+          padding: '20px',
           display: 'flex', flexDirection: 'column', gap: '10px',
           width: '100%', height: '100%',
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           opacity: viewed ? 0.75 : 1,
-          position: 'relative',
         }}
       >
-        {/* Badges – top right corner */}
-        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer) && (
-          <div style={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '5px', flexWrap: 'nowrap' }}>
-            {isNew && <Badge variant="warning" size="sm">New</Badge>}
-            {viewed && !applied && (
-              <Badge variant="secondary" size="sm"><Eye size={12} /> Viewed</Badge>
-            )}
-            {applied && (
-              <Badge variant="success" size="sm">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-                Applied
-              </Badge>
-            )}
-            {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
-            {job.isVerifiedEmployer && (
-              <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
-            )}
-          </div>
-        )}
-
-        {/* Title */}
-        <h3 style={{
-          fontSize: '17px', fontWeight: 700,
-          color: 'var(--text-primary)',
-          margin: 0, lineHeight: 1.3,
-          paddingRight: '140px',
+        {/* Title row: title + salary + actions */}
+        <div className="jc-title-row" style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
         }}>
-          {job.title}
-        </h3>
-
-        {/* Company Name */}
-        <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{job.employer}</p>
-
-        {/* Location and Meta */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-            <MapPin size={15} style={{ color: 'var(--color-primary)' }} />
-            <span>{job.location}</span>
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
-            {job.mode && <Badge variant="primary" size="sm">{job.mode}</Badge>}
-          </div>
-        </div>
-
-        {/* Salary - Prominent display */}
-        {salaryDisplay && (
-          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--salary-color, #1d4ed8)', marginTop: '2px' }}>
-            {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
-          </div>
-        )}
-
-        {/* Description Summary */}
-        {cleanSummary && (
-          <p style={{
-            fontSize: '14px', color: 'rgba(var(--text-primary-rgb), 0.78)',
-            margin: '4px 0 0', lineHeight: 1.6,
+          <h3 style={{
+            fontSize: '16px', fontWeight: 700,
+            color: 'var(--text-primary)',
+            margin: 0, lineHeight: 1.35,
+            flex: 1, minWidth: 0,
             overflow: 'hidden', textOverflow: 'ellipsis',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
           }}>
-            {cleanSummary}
-          </p>
-        )}
-
-        {/* Freshness and Share */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{freshness}</p>
-            {ageIndicator && (
-              <span style={{
-                fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
-                backgroundColor: ageIndicator.color, color: ageIndicator.textColor,
-              }}>
-                {ageIndicator.text}
+            {job.title}
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {salaryDisplay && (
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#2DD4BF', whiteSpace: 'nowrap' }}>
+                {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
               </span>
             )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button
               onClick={handleSaveClick}
               className="jc-save-btn"
@@ -378,15 +317,79 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               <ShareIcon size={16} />
             </button>
           </div>
-          {showShareMenu && (
-            <ShareModal
-              url={fullJobUrl}
-              title={shareTitle}
-              description={shareDescription}
-              onClose={() => setShowShareMenu(false)}
-            />
+        </div>
+
+        {/* Badges */}
+        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer) && (
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            {isNew && <Badge variant="warning" size="sm">New</Badge>}
+            {viewed && !applied && (
+              <Badge variant="secondary" size="sm"><Eye size={12} /> Viewed</Badge>
+            )}
+            {applied && (
+              <Badge variant="success" size="sm">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Applied
+              </Badge>
+            )}
+            {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
+            {job.isVerifiedEmployer && (
+              <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
+            )}
+          </div>
+        )}
+
+        {/* Company Name */}
+        <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{job.employer}</p>
+
+        {/* Location and Meta */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <MapPin size={15} style={{ color: 'var(--color-primary)' }} />
+            <span>{job.location}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
+            {job.mode && <Badge variant="primary" size="sm">{job.mode}</Badge>}
+          </div>
+        </div>
+
+
+
+        {/* Description Summary */}
+        {cleanSummary && (
+          <p style={{
+            fontSize: '14px', color: 'rgba(var(--text-primary-rgb), 0.78)',
+            margin: '4px 0 0', lineHeight: 1.6,
+            overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          }}>
+            {cleanSummary}
+          </p>
+        )}
+
+        {/* Freshness */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto' }}>
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{freshness}</p>
+          {ageIndicator && (
+            <span style={{
+              fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
+              backgroundColor: ageIndicator.color, color: ageIndicator.textColor,
+            }}>
+              {ageIndicator.text}
+            </span>
           )}
         </div>
+        {showShareMenu && (
+          <ShareModal
+            url={fullJobUrl}
+            title={shareTitle}
+            description={shareDescription}
+            onClose={() => setShowShareMenu(false)}
+          />
+        )}
       </div>
 
       <style>{`
