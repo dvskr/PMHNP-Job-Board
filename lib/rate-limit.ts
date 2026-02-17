@@ -36,6 +36,8 @@ export const RATE_LIMITS = {
     auth: { limit: 10, windowSeconds: 60 },
     /** Uploads: 10 req/min */
     upload: { limit: 10, windowSeconds: 60 },
+    /** Admin endpoints: 20 req/min */
+    admin: { limit: 20, windowSeconds: 60 },
 } as const;
 
 // --- Redis Backend Setup ---

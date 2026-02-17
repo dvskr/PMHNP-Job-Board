@@ -16,6 +16,8 @@ import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
 import { pingAllSearchEnginesBatch } from './search-indexing';
+import { validateApplyLink } from './utils/resolve-url';
+import { computeQualityScore } from './utils/quality-score';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db';
 
@@ -86,32 +88,48 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
     }
 
     // Optimized: Load all existing externalIds for this source once
-    // Map ExternalID -> InternalID for fast lookup and renewal
-    const existingJobsMap = new Map<string, string>();
+    // Map ExternalID -> { id, originalPostedAt } for fast lookup, renewal, and age-cap
+    const existingJobsMap = new Map<string, { id: string; originalPostedAt: Date | null }>();
     const existingJobs = await prisma.job.findMany({
       where: { sourceProvider: source },
-      select: { id: true, externalId: true },
+      select: { id: true, externalId: true, originalPostedAt: true },
     });
 
     existingJobs.forEach(job => {
       if (job.externalId) {
-        existingJobsMap.set(job.externalId, job.id);
+        existingJobsMap.set(job.externalId, { id: job.id, originalPostedAt: job.originalPostedAt });
       }
     });
 
-    // Helper to renew a job (Auto-Renewal)
-    const renewJob = async (id: string, title: string, originalDate?: Date | null) => {
+    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap
+    const RENEWAL_EXTENSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day renewal window
+    let expiredByAge = 0;
+
+    // Helper to renew a job (Auto-Renewal) — with max-age cap
+    const renewJob = async (id: string, title: string, existingPostedAt?: Date | null) => {
       try {
+        // Enforce max-age cap: if originalPostedAt > 120 days ago, unpublish instead
+        if (existingPostedAt) {
+          const ageMs = Date.now() - new Date(existingPostedAt).getTime();
+          if (ageMs > MAX_JOB_AGE_MS) {
+            await prisma.job.update({
+              where: { id },
+              data: { isPublished: false },
+            });
+            expiredByAge++;
+            return;
+          }
+        }
+
         await prisma.job.update({
           where: { id },
           data: {
-            expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // Extend 60 days
-            isPublished: true, // Revive if expired
-            updatedAt: new Date(), // Mark as active/fresh
-            ...(originalDate ? { originalPostedAt: originalDate } : {}),
+            expiresAt: new Date(Date.now() + RENEWAL_EXTENSION_MS),
+            isPublished: true,
+            updatedAt: new Date(),
+            // NOTE: Never overwrite originalPostedAt — first ingestion date is truth
           }
         });
-        // console.log(`[${source.toUpperCase()}] Auto-Renewed job: ${title}`);
       } catch (e) {
         console.error(`[${source.toUpperCase()}] Failed to renew job ${id}:`, e);
       }
@@ -141,8 +159,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
         // Strategy 1: Fast in-memory lookup for exact externalId match
         if (normalizedJob.externalId && existingJobsMap.has(normalizedJob.externalId)) {
           // AUTO-RENEWAL: Job exists, so we extend its life instead of ignoring it
-          const existingId = existingJobsMap.get(normalizedJob.externalId)!;
-          await renewJob(existingId, normalizedJob.title, normalizedJob.originalPostedAt);
+          const existing = existingJobsMap.get(normalizedJob.externalId)!;
+          await renewJob(existing.id, normalizedJob.title, existing.originalPostedAt);
 
           duplicates++; // Count as duplicate (it IS a duplicate, just renewed)
           continue;
@@ -161,7 +179,12 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
         if (dupCheck.isDuplicate) {
           // AUTO-RENEWAL: Fuzzy match found, renew the matched job
           if (dupCheck.matchedJobId) {
-            await renewJob(dupCheck.matchedJobId, normalizedJob.title, normalizedJob.originalPostedAt);
+            // Look up the existing job's originalPostedAt for age-cap enforcement
+            const matchedJob = await prisma.job.findUnique({
+              where: { id: dupCheck.matchedJobId },
+              select: { originalPostedAt: true },
+            });
+            await renewJob(dupCheck.matchedJobId, normalizedJob.title, matchedJob?.originalPostedAt);
           }
 
           duplicates++;
@@ -204,6 +227,52 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           console.error(`Failed to link company for job ${savedJob.id}:`, companyError);
         }
 
+        // Validate and resolve apply link — reject dead/unresolvable tracking URLs
+        try {
+          const validation = await validateApplyLink(normalizedJob.applyLink);
+          if (!validation.cleanUrl || validation.isDead) {
+            // Dead or unresolvable — unpublish immediately
+            await prisma.job.update({
+              where: { id: savedJob.id },
+              data: { isPublished: false },
+            });
+            added--; // Don't count dead-on-arrival jobs
+            continue;
+          }
+          if (validation.cleanUrl !== normalizedJob.applyLink) {
+            await prisma.job.update({
+              where: { id: savedJob.id },
+              data: { applyLink: validation.cleanUrl },
+            });
+          }
+        } catch (urlError) {
+          // URL validation failure is non-fatal — keep original link
+        }
+
+        // Compute quality score based on final resolved link and job data
+        try {
+          const currentJob = await prisma.job.findUnique({
+            where: { id: savedJob.id },
+            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
+          });
+          if (currentJob) {
+            const qScore = computeQualityScore({
+              applyLink: currentJob.applyLink,
+              displaySalary: currentJob.displaySalary,
+              normalizedMinSalary: currentJob.normalizedMinSalary,
+              normalizedMaxSalary: currentJob.normalizedMaxSalary,
+              descriptionSummary: currentJob.descriptionSummary,
+              description: currentJob.description,
+              city: currentJob.city,
+              state: currentJob.state,
+              isEmployerPosted: false,  // aggregated jobs are never employer-posted
+            });
+            await prisma.job.update({ where: { id: savedJob.id }, data: { qualityScore: qScore } });
+          }
+        } catch (qError) {
+          // Non-fatal — job remains with default score of 0
+        }
+
         // Log progress every 10 jobs
         if ((i + 1) % 10 === 0) {
           console.log(`[${source.toUpperCase()}] Processed ${i + 1}/${fetched} jobs (${added} added, ${duplicates} renewed/dup, ${errors} errors)`);
@@ -222,6 +291,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       fetched,
       added,
       duplicates,
+      expiredByAge,
       errors,
       duplicateRate: `${duplicateRate}%`,
       duration: `${(duration / 1000).toFixed(1)}s`
@@ -338,7 +408,8 @@ export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
 
-    const result = await prisma.job.updateMany({
+    // Sweep 1: Unpublish jobs past their expiresAt date
+    const expiredResult = await prisma.job.updateMany({
       where: {
         expiresAt: {
           lt: now,
@@ -350,9 +421,26 @@ export async function cleanupExpiredJobs(): Promise<number> {
       },
     });
 
-    console.log(`[Cleanup] Cleaned up ${result.count} expired jobs`);
+    // Sweep 2: Unpublish jobs older than 120 days (max lifetime cap)
+    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
+    const agedOutResult = await prisma.job.updateMany({
+      where: {
+        originalPostedAt: {
+          lt: maxAgeDate,
+        },
+        isPublished: true,
+        // Only apply to aggregated jobs, not employer-posted
+        sourceProvider: { not: null },
+      },
+      data: {
+        isPublished: false,
+      },
+    });
 
-    return result.count;
+    const total = expiredResult.count + agedOutResult.count;
+    console.log(`[Cleanup] Cleaned up ${expiredResult.count} expired + ${agedOutResult.count} aged-out (>120d) = ${total} total`);
+
+    return total;
   } catch (error) {
     console.error('[Cleanup] Error cleaning up expired jobs:', error);
     return 0;

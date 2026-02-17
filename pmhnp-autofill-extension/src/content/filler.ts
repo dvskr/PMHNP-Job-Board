@@ -1,7 +1,8 @@
-import type { MappedField, FillResult, FillDetail } from '@/shared/types';
+﻿import type { MappedField, FillResult, FillDetail } from '@/shared/types';
 import { getSettings } from '@/shared/storage';
 import { FILL_DELAYS } from '@/shared/constants';
 import { fillTypeahead, fillDateSmart, fillRichText, fillSlider } from './fields';
+import { log, warn } from '@/shared/logger';
 
 // ─── Main Fill Function ───
 
@@ -30,25 +31,25 @@ export async function fillForm(mappedFields: MappedField[]): Promise<FillResult>
         if (mapped.requiresAI) {
             result.needsAI++;
             result.details.push({ field: mapped, status: 'needs_review' });
-            console.log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → needs AI`);
+            log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → needs AI`);
             continue;
         }
         if (mapped.requiresFile) {
             result.needsFile++;
             result.details.push({ field: mapped, status: 'needs_review' });
-            console.log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → needs file upload`);
+            log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → needs file upload`);
             continue;
         }
         if (mapped.status === 'no_data') {
             result.skipped++;
             result.details.push({ field: mapped, status: 'skipped', error: 'No profile data' });
-            console.log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → no profile data`);
+            log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → no profile data`);
             continue;
         }
         if (mapped.status === 'ambiguous') {
             result.skipped++;
             result.details.push({ field: mapped, status: 'skipped', error: 'Ambiguous match' });
-            console.log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → ambiguous match`);
+            log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → ambiguous match`);
             continue;
         }
 
@@ -56,27 +57,27 @@ export async function fillForm(mappedFields: MappedField[]): Promise<FillResult>
         if (!settings.overwriteExistingValues && mapped.field.currentValue) {
             result.skipped++;
             result.details.push({ field: mapped, status: 'skipped', error: 'Already has value' });
-            console.log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → already has value: "${String(mapped.field.currentValue).substring(0, 20)}"`);
+            log(`[PMHNP]   ⏭️ "${mapped.field.identifier}" → already has value: "${String(mapped.field.currentValue).substring(0, 20)}"`);
             continue;
         }
 
         try {
-            console.log(`[PMHNP] Filling field "${mapped.field.identifier}" (${mapped.fillMethod}) with value: "${String(mapped.value).substring(0, 30)}"`);
+            log(`[PMHNP] Filling field "${mapped.field.identifier}" (${mapped.fillMethod}) with value: "${String(mapped.value).substring(0, 30)}"`);
             const detail = await fillSingleField(mapped);
             result.details.push(detail);
             if (detail.status === 'filled') {
                 result.filled++;
-                console.log(`[PMHNP]   ✅ Filled "${mapped.field.identifier}"`);
+                log(`[PMHNP]   ✅ Filled "${mapped.field.identifier}"`);
             } else if (detail.status === 'failed') {
                 result.failed++;
-                console.log(`[PMHNP]   ❌ Failed "${mapped.field.identifier}": ${detail.error}`);
+                log(`[PMHNP]   ❌ Failed "${mapped.field.identifier}": ${detail.error}`);
             } else {
                 result.skipped++;
-                console.log(`[PMHNP]   ⏭️ Skipped "${mapped.field.identifier}": ${detail.error || detail.status}`);
+                log(`[PMHNP]   ⏭️ Skipped "${mapped.field.identifier}": ${detail.error || detail.status}`);
             }
         } catch (err) {
             result.failed++;
-            console.log(`[PMHNP]   ❌ Exception filling "${mapped.field.identifier}": ${err instanceof Error ? err.message : err}`);
+            log(`[PMHNP]   ❌ Exception filling "${mapped.field.identifier}": ${err instanceof Error ? err.message : err}`);
             result.details.push({
                 field: mapped,
                 status: 'failed',
@@ -149,19 +150,19 @@ export async function fillSingleField(mapped: MappedField): Promise<FillDetail> 
         await sleep(200);
         const verified = verifyFill(el, value);
         if (!verified) {
-            console.log(`[PMHNP]   Verification failed for "${field.identifier}", trying character-by-character typing...`);
+            log(`[PMHNP]   Verification failed for "${field.identifier}", trying character-by-character typing...`);
             try {
                 await simulateTyping(el, String(value));
                 await sleep(200);
                 const retryVerified = verifyFill(el, value);
                 if (!retryVerified) {
                     // Still consider it as 'filled' since some frameworks process async
-                    console.log(`[PMHNP]   Retry verification also failed — marking as needs_review`);
+                    log(`[PMHNP]   Retry verification also failed — marking as needs_review`);
                     return { field: mapped, status: 'filled', error: 'Value set but verification uncertain' };
                 }
             } catch (retryErr) {
                 // Character-by-character may error on date fields — still mark as attempted
-                console.log(`[PMHNP]   simulateTyping error: ${retryErr instanceof Error ? retryErr.message : retryErr}`);
+                log(`[PMHNP]   simulateTyping error: ${retryErr instanceof Error ? retryErr.message : retryErr}`);
                 return { field: mapped, status: 'filled', error: 'Fill attempted, verification skipped' };
             }
         }
@@ -197,7 +198,7 @@ export async function fillTextInput(el: HTMLElement, value: string): Promise<voi
         input.select();
         const cmdResult = document.execCommand('insertText', false, value);
         if (cmdResult) {
-            console.log(`[PMHNP] execCommand insertText succeeded for "${value.substring(0, 20)}..."`);
+            log(`[PMHNP] execCommand insertText succeeded for "${value.substring(0, 20)}..."`);
             await sleep(50);
             input.dispatchEvent(new Event('change', { bubbles: true }));
             input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
@@ -253,24 +254,60 @@ export function triggerReactChange(element: HTMLElement, value: string): void {
 
 // ─── Select Dropdown ───
 
-export async function fillSelect(el: HTMLElement, value: string): Promise<void> {
+export async function fillSelect(el: HTMLElement, value: string, overlayElement?: HTMLElement): Promise<void> {
     if (el.tagName.toLowerCase() === 'select') {
-        // Native select
         const select = el as HTMLSelectElement;
         const options = Array.from(select.options);
 
-        // Find matching option
-        const match = options.find(
-            (o) =>
-                o.value.toLowerCase() === value.toLowerCase() ||
-                o.text.toLowerCase().trim() === value.toLowerCase() ||
-                o.text.toLowerCase().includes(value.toLowerCase()) ||
-                value.toLowerCase().includes(o.text.toLowerCase().trim())
-        );
+        if (options.length > 0) {
+            // Native select has options — find matching one
+            const match = options.find(
+                (o) => {
+                    const oText = o.text.toLowerCase().trim();
+                    const oVal = o.value.toLowerCase();
+                    const v = value.toLowerCase();
+                    // Exact matches (safe even with empty strings)
+                    if (oVal === v) return true;
+                    if (oText === v) return true;
+                    // Substring matches — guard against empty strings
+                    // ("6".includes("") is true, so we must ensure the needle is non-empty)
+                    if (oText && oText.includes(v)) return true;
+                    if (oText && v.includes(oText)) return true;
+                    return false;
+                }
+            );
 
-        if (match) {
-            select.value = match.value;
-            triggerReactChange(el, match.value);
+            if (match) {
+                // Set the native select value
+                log(`[PMHNP] fillSelect: "${select.id}" matched option "${match.text.trim()}" (value="${match.value}"), ${options.length} options`);
+                select.value = match.value;
+                triggerReactChange(el, match.value);
+
+                // Sync the visual display
+                const displayText = match.text.trim() || match.value;
+                log(`[PMHNP] fillSelect: calling syncVisualDisplay for "${select.id}" displayText="${displayText}" overlayElement=${overlayElement ? 'yes' : 'no'}`);
+                try {
+                    await syncVisualDisplay(select, displayText, overlayElement);
+                } catch (err) {
+                    console.error(`[PMHNP] fillSelect: syncVisualDisplay threw for "${select.id}":`, err);
+                }
+                return;
+            } else {
+                warn(`[PMHNP] ⚠️ fillSelect: no matching option for "${value}" in <select> with ${options.length} options`);
+                warn(`[PMHNP]   Available options:`, options.map(o => `"${o.text.trim()}" (${o.value})`).slice(0, 10));
+                // Fall through to try custom dropdown overlay
+            }
+        }
+
+        // Native select has 0 options (or value didn't match any option).
+        // Use click-through on the overlay.
+        log(`[PMHNP] Native <select> "${select.id}" has ${options.length} options — trying overlay click-through...`);
+        const overlay = overlayElement || findAdjacentOverlay(select);
+        if (overlay) {
+            log(`[PMHNP]   Found overlay, clicking to select "${value}"...`);
+            await clickOptionInOverlay(overlay, value);
+        } else {
+            warn(`[PMHNP] ⚠️ No overlay found for <select> "${select.id}" — cannot fill "${value}"`);
         }
     } else {
         // Custom dropdown (div-based)
@@ -278,14 +315,263 @@ export async function fillSelect(el: HTMLElement, value: string): Promise<void> 
     }
 }
 
+/**
+ * After setting a native <select>'s value, sync the visible display element.
+ * Uses a multi-tier approach:
+ * 1. Try Vue's __vue__ component API
+ * 2. Find the visible display element and set its text directly
+ * 3. Fall back to click-through
+ * 4. Verify the display actually updated
+ */
+async function syncVisualDisplay(select: HTMLSelectElement, displayText: string, overlayElement?: HTMLElement): Promise<void> {
+    if (!displayText) return;
+
+    // Resolve the overlay element
+    const overlay = overlayElement || findAdjacentOverlay(select);
+    if (!overlay) {
+        log(`[PMHNP] No overlay found for <select> "${select.id}" — native events should suffice`);
+        return;
+    }
+
+    log(`[PMHNP] Syncing visual display for "${displayText}" (select id="${select.id}")...`);
+
+    // ── Strategy 1: Try Vue component's internal API ──
+    try {
+        const vueComp = (overlay as any).__vue__;
+        if (vueComp && typeof vueComp.select === 'function' && vueComp.options) {
+            const vueOpt = vueComp.options.find((o: any) => {
+                const label = typeof o === 'string' ? o : (o?.label || o?.name || '');
+                return label.toLowerCase().includes(displayText.toLowerCase()) ||
+                    displayText.toLowerCase().includes(label.toLowerCase());
+            });
+            if (vueOpt) {
+                vueComp.select(vueOpt);
+                log(`[PMHNP]   ✅ Synced via Vue component API`);
+                return;
+            }
+        }
+    } catch { /* Vue API not available */ }
+
+    // ── Strategy 2: Find the visible display element and set text directly ──
+    const display = findVisibleDisplay(select, overlay);
+    if (display) {
+        display.textContent = displayText;
+        log(`[PMHNP]   ✅ Synced via direct display text: "${displayText}" (tag=${display.tagName}, class="${display.className?.substring?.(0, 40) || ''}")`);
+
+        // Verify after a short delay
+        await sleep(200);
+        const currentText = display.textContent?.trim().toLowerCase() || '';
+        if (currentText.includes(displayText.toLowerCase()) || displayText.toLowerCase().includes(currentText)) {
+            log(`[PMHNP]   ✅ Verified: display still shows "${display.textContent?.trim()}"`);
+            return;
+        } else {
+            log(`[PMHNP]   ⚠️ Display was overwritten to "${display.textContent?.trim()}" — trying click-through...`);
+            // Fall through to click-through
+        }
+    }
+
+    // ── Strategy 3: Click-through (last resort) ──
+    log(`[PMHNP]   Falling back to clickOptionInOverlay...`);
+    await clickOptionInOverlay(overlay, displayText);
+}
+
+/**
+ * Find the visible element that displays a select's current value.
+ * Uses pure visibility + DOM position — no class-name matching needed.
+ * Will find .multiselect__single, .select2-selection__rendered, or any
+ * visible text element near the hidden select.
+ */
+function findVisibleDisplay(select: HTMLSelectElement, overlay: HTMLElement): HTMLElement | null {
+    // Quick wins: known display selectors (fast path, still generic enough)
+    const knownSelectors = [
+        '.multiselect__single',
+        '.select2-selection__rendered',
+        '.chosen-single span',
+        '[class*="single-value"]',
+        '[class*="placeholder"]',
+    ];
+    for (const sel of knownSelectors) {
+        const el = overlay.querySelector(sel) as HTMLElement;
+        if (el && el.offsetParent !== null) return el;
+    }
+
+    // Generic approach: find any visible text-bearing element inside the overlay
+    // that could display the selected value
+    const candidates: HTMLElement[] = [];
+    overlay.querySelectorAll('span, div').forEach(el => {
+        const htmlEl = el as HTMLElement;
+        if (htmlEl === select) return;
+        // Must be a leaf or near-leaf element (not a big container)
+        if (htmlEl.children.length > 3) return;
+        // Must be visible
+        const rect = htmlEl.getBoundingClientRect();
+        if (rect.width < 10 || rect.height < 5) return;
+        try {
+            const style = getComputedStyle(htmlEl);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return;
+        } catch { return; }
+        candidates.push(htmlEl);
+    });
+
+    // Prefer the innermost text-bearing element
+    if (candidates.length > 0) {
+        // Sort by depth (deepest first) then by position (leftmost first)
+        candidates.sort((a, b) => {
+            const depthA = getDepth(a);
+            const depthB = getDepth(b);
+            if (depthB !== depthA) return depthB - depthA;
+            return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+        });
+        return candidates[0];
+    }
+
+    return null;
+}
+
+/** Count DOM depth of an element */
+function getDepth(el: HTMLElement): number {
+    let depth = 0;
+    let current: HTMLElement | null = el;
+    while (current) {
+        depth++;
+        current = current.parentElement;
+    }
+    return depth;
+}
+
+/**
+ * Find the custom dropdown overlay element adjacent to a native <select>.
+ * Legacy fallback — prefers overlayElement from scanner when available.
+ */
+function findAdjacentOverlay(select: HTMLSelectElement): HTMLElement | null {
+    function isOverlay(el: HTMLElement): boolean {
+        if (el.getAttribute('role') === 'combobox' || el.getAttribute('role') === 'listbox') return true;
+        if (el.className && typeof el.className === 'string' && /multiselect|select2|chosen/i.test(el.className)) return true;
+        if (el.querySelector('[role="combobox"], [role="listbox"], [role="option"]')) return true;
+        if (el.hasAttribute('aria-expanded') || el.hasAttribute('aria-controls')) return true;
+        // Generic: visible div with interactive children near the select
+        const rect = el.getBoundingClientRect();
+        if (el.tagName === 'DIV' && el.children.length > 0 && rect.height > 20 && rect.height < 100) {
+            if (el.querySelector('span, [class*="select"], [class*="placeholder"]')) return true;
+        }
+        return false;
+    }
+
+    // Check next siblings (up to 5)
+    let sibling = select.nextElementSibling as HTMLElement | null;
+    for (let i = 0; sibling && i < 5; i++) {
+        if (sibling instanceof HTMLElement && isOverlay(sibling)) return sibling;
+        sibling = sibling.nextElementSibling as HTMLElement | null;
+    }
+
+    // Check parent's children
+    const parent = select.parentElement;
+    if (parent) {
+        for (const child of parent.children) {
+            if (child === select || !(child instanceof HTMLElement)) continue;
+            if (isOverlay(child)) return child;
+        }
+        if (parent instanceof HTMLElement && isOverlay(parent)) return parent;
+
+        const grandparent = parent.parentElement;
+        if (grandparent) {
+            for (const child of grandparent.children) {
+                if (child === parent || child === select || !(child instanceof HTMLElement)) continue;
+                if (isOverlay(child)) return child;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Click to open a dropdown overlay, find the matching option, and click it.
+ * Uses full mouse event sequence for maximum compatibility with Vue/React/Angular.
+ */
+async function clickOptionInOverlay(container: HTMLElement, optionText: string): Promise<void> {
+    // Click the wrapper/toggle to open the dropdown
+    const toggle = container.querySelector(
+        '[role="combobox"], .multiselect__select, .select2-selection, .chosen-single, [class*="toggle"], [class*="trigger"]'
+    ) as HTMLElement;
+    const clickTarget = toggle || container;
+
+    // Full mouse event sequence to open dropdown
+    clickTarget.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    clickTarget.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    clickTarget.click();
+    await sleep(500);  // Wait for options to render
+
+    // Search for the matching option
+    const optionSelectors = [
+        '.multiselect__option',
+        '.multiselect__element span',
+        '[role="option"]',
+        '.select2-results__option',
+        '.chosen-results li',
+        '[class*="option"]',
+        'li',
+    ];
+
+    const searchRoots: Element[] = [container, document.body];
+    const valueLower = optionText.toLowerCase();
+
+    for (const root of searchRoots) {
+        for (const sel of optionSelectors) {
+            try {
+                const opts = root.querySelectorAll(sel);
+                for (const opt of opts) {
+                    const text = opt.textContent?.trim().toLowerCase() || '';
+                    if (!text) continue;
+                    if (text === valueLower || text.includes(valueLower) || valueLower.includes(text)) {
+                        const el = opt as HTMLElement;
+                        el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+                        el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+                        el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                        el.click();
+                        log(`[PMHNP]   ✅ Clicked option: "${opt.textContent?.trim()}"`);
+                        await sleep(200);
+                        return;
+                    }
+                }
+            } catch { /* ignore selector errors */ }
+        }
+    }
+
+    // If we couldn't find the option, click the wrapper again to close
+    clickTarget.click();
+    log(`[PMHNP]   ⚠️ Could not find "${optionText}" in custom dropdown overlay`);
+}
+
 export async function fillCustomDropdown(el: HTMLElement, value: string): Promise<void> {
-    // Click to open
+    // Click to open / focus
     el.click();
     el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    await sleep(300);
+    await sleep(200);
+
+    // For typeahead/autocomplete dropdowns: find the inner input and type the value
+    const innerInput = el.tagName === 'INPUT' ? el as HTMLInputElement
+        : el.querySelector('input') as HTMLInputElement
+        || (el.shadowRoot?.querySelector('input') as HTMLInputElement);
+
+    if (innerInput) {
+        // Focus and clear
+        innerInput.focus();
+        innerInput.value = '';
+        innerInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await sleep(100);
+
+        // Type the value to trigger autocomplete suggestions
+        await simulateTyping(innerInput, value);
+        await sleep(500); // Wait for suggestions to appear
+    }
 
     // Look for option elements in the dropdown popup
+    // Search both the main DOM and shadow DOMs
     const optionSelectors = [
         '[role="option"]',
         '[data-automation-id*="promptOption"]',
@@ -295,16 +581,34 @@ export async function fillCustomDropdown(el: HTMLElement, value: string): Promis
         'li',
     ];
 
-    for (const selector of optionSelectors) {
-        const options = document.querySelectorAll(selector);
-        for (const opt of options) {
-            const text = opt.textContent?.trim().toLowerCase() || '';
-            if (text === value.toLowerCase() || text.includes(value.toLowerCase())) {
-                (opt as HTMLElement).click();
-                await sleep(100);
-                return;
-            }
+    const searchRoots: (Document | ShadowRoot)[] = [document];
+    // Also check shadow roots of the element and its ancestors
+    let ancestor: HTMLElement | null = el;
+    for (let depth = 0; ancestor && depth < 5; depth++) {
+        if (ancestor.shadowRoot) searchRoots.push(ancestor.shadowRoot);
+        ancestor = ancestor.parentElement;
+    }
+
+    for (const root of searchRoots) {
+        for (const selector of optionSelectors) {
+            try {
+                const options = root.querySelectorAll(selector);
+                for (const opt of options) {
+                    const text = opt.textContent?.trim().toLowerCase() || '';
+                    if (text === value.toLowerCase() || text.includes(value.toLowerCase())) {
+                        (opt as HTMLElement).click();
+                        await sleep(100);
+                        return;
+                    }
+                }
+            } catch { /* invalid selector in shadow root */ }
         }
+    }
+
+    // Fallback: press Enter to select the first suggestion
+    if (innerInput) {
+        innerInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+        await sleep(100);
     }
 }
 

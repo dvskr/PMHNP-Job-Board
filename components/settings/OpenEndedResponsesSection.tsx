@@ -8,21 +8,9 @@ interface OEQuestion { questionKey: string; questionText: string }
 const QUESTIONS: OEQuestion[] = [
     { questionKey: 'why_interested', questionText: 'Why are you interested in this position?' },
     { questionKey: 'clinical_approach', questionText: 'Describe your clinical approach to psychiatric evaluation and treatment' },
-    { questionKey: 'population_experience', questionText: 'Describe your experience with [specific population]' },
     { questionKey: 'challenging_case', questionText: 'Tell us about a challenging case you\'ve managed' },
-    { questionKey: 'med_mgmt_philosophy', questionText: 'What is your philosophy on medication management vs. therapy?' },
-    { questionKey: 'crisis_handling', questionText: 'How do you handle patients in crisis / suicidal ideation?' },
-    { questionKey: 'multidisciplinary_team', questionText: 'Describe your experience working in a collaborative/multidisciplinary team' },
     { questionKey: 'reason_leaving', questionText: 'Why are you leaving your current position?' },
-    { questionKey: 'good_fit', questionText: 'What makes you a good fit for our organization?' },
-    { questionKey: 'evidence_based', questionText: 'Describe your experience with evidence-based practices' },
-    { questionKey: 'staying_current', questionText: 'How do you stay current with psychiatric research and best practices?' },
-    { questionKey: 'treatment_resistant', questionText: 'What is your approach to treatment-resistant conditions?' },
-    { questionKey: 'polypharmacy', questionText: 'Describe your experience managing patients on multiple psychotropic medications' },
-    { questionKey: 'cultural_competence', questionText: 'How do you address cultural competence in your practice?' },
     { questionKey: 'career_goals', questionText: 'What are your long-term career goals?' },
-    { questionKey: 'disagreed_treatment', questionText: 'Describe a time you disagreed with a treatment plan. How did you handle it?' },
-    { questionKey: 'crisis_intervention', questionText: 'What experience do you have with crisis intervention?' },
     { questionKey: 'anything_else', questionText: 'Is there anything else you\'d like us to know?' },
 ]
 
@@ -79,7 +67,7 @@ export default function OpenEndedResponsesSection({ showMsg }: Props) {
                 <MessageSquare size={20} style={{ color: '#A78BFA' }} /> Saved Application Responses
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px', marginTop: 0 }}>
-                {filledCount} of {QUESTIONS.length} written — the autofill extension can tailor these per job
+                {filledCount} of {QUESTIONS.length} written — these auto-fill on job applications
             </p>
 
             {loading ? (
@@ -93,9 +81,7 @@ export default function OpenEndedResponsesSection({ showMsg }: Props) {
                             <div key={q.questionKey} style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                                     <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>{q.questionText}</label>
-                                    <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                                        <Sparkles size={10} /> AI can tailor this
-                                    </span>
+
                                     {r.isAIGenerated && (
                                         <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>AI Generated</span>
                                     )}

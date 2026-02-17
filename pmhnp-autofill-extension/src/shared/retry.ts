@@ -1,3 +1,4 @@
+﻿import { log, warn } from '@/shared/logger';
 /**
  * Retry utility with exponential backoff and jitter.
  * For resilient API calls from the Chrome extension.
@@ -58,7 +59,7 @@ export async function withRetry<T>(
 
             // Calculate delay with exponential backoff + jitter
             const delay = calculateDelay(attempt, cfg);
-            console.log(`[PMHNP-Retry] Attempt ${attempt + 1}/${cfg.maxRetries + 1} failed, retrying in ${delay}ms...`);
+            log(`[PMHNP-Retry] Attempt ${attempt + 1}/${cfg.maxRetries + 1} failed, retrying in ${delay}ms...`);
             await sleep(delay);
         }
     }
@@ -102,13 +103,13 @@ export function initOfflineDetection(): void {
     isOffline = !navigator.onLine;
 
     window.addEventListener('online', () => {
-        console.log('[PMHNP-Retry] Back online, processing queue...');
+        log('[PMHNP-Retry] Back online, processing queue...');
         isOffline = false;
         processOfflineQueue();
     });
 
     window.addEventListener('offline', () => {
-        console.log('[PMHNP-Retry] Went offline');
+        log('[PMHNP-Retry] Went offline');
         isOffline = true;
     });
 }
@@ -130,7 +131,7 @@ export function queueForOnline(fn: () => Promise<void>): Promise<void> {
 
     return new Promise<void>((resolve, reject) => {
         offlineQueue.push({ fn, resolve, reject });
-        console.log(`[PMHNP-Retry] Queued operation (${offlineQueue.length} in queue)`);
+        log(`[PMHNP-Retry] Queued operation (${offlineQueue.length} in queue)`);
     });
 }
 
@@ -147,7 +148,7 @@ async function processOfflineQueue(): Promise<void> {
         }
     }
 
-    console.log(`[PMHNP-Retry] Processed ${queue.length} queued operations`);
+    log(`[PMHNP-Retry] Processed ${queue.length} queued operations`);
 }
 
 // ─── Helpers ───

@@ -1,24 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { verifyExtensionToken } from '@/lib/verify-extension-token';
 
-const JWT_SECRET = process.env.EXTENSION_JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
-
-async function verifyExtensionToken(req: NextRequest) {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return null;
-    }
-    const token = authHeader.slice(7);
-    try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        if (payload.purpose !== 'extension') return null;
-        return payload as { userId: string; supabaseId: string; email: string; role: string };
-    } catch {
-        return null;
-    }
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -101,9 +84,10 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        // Build AI prompt
+        // Build AI prompt with resume context
         const profileContext = buildProfileContext(candidateProfile);
-        const prompt = buildPrompt(questionText, jobTitle, jobDescription, employerName, profileContext, maxLength);
+        const resumeText = await extractResumeText(candidateProfile?.resumeUrl);
+        const prompt = buildPrompt(questionText, jobTitle, jobDescription, employerName, profileContext, resumeText, maxLength);
 
         // Call OpenAI
         const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -118,12 +102,12 @@ export async function POST(req: NextRequest) {
                 Authorization: `Bearer ${OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
+                model: 'gpt-4o',
                 messages: [
                     { role: 'system', content: systemPrompt() },
                     { role: 'user', content: prompt },
                 ],
-                max_tokens: Math.min(maxLength * 2, 1000),
+                max_completion_tokens: Math.min(maxLength * 2, 1000),
                 temperature: 0.7,
             }),
         });
@@ -223,6 +207,7 @@ function buildPrompt(
     jobDescription: string,
     employerName: string,
     profileContext: string,
+    resumeText: string,
     maxLength: number
 ): string {
     let prompt = `Generate a professional response for this job application question.\n\n`;
@@ -233,7 +218,35 @@ function buildPrompt(
     if (jobDescription) prompt += `**Job Description (excerpt):** ${jobDescription.substring(0, 1000)}\n\n`;
 
     prompt += `**Candidate Profile:**\n${profileContext}\n\n`;
-    prompt += `**Requirements:** Write a response of approximately ${maxLength} characters. Be specific, professional, and tailored to this role.`;
+
+    if (resumeText) {
+        prompt += `**Full Resume Content:**\n${resumeText}\n\n`;
+    }
+
+    prompt += `**Requirements:** Write a response of approximately ${maxLength} characters. Be specific, professional, and tailored to this role. Reference actual credentials, experience, and skills from the candidate's resume when relevant.`;
 
     return prompt;
+}
+
+// ─── Resume Text Extraction ───
+
+async function extractResumeText(resumeUrl: string | null | undefined): Promise<string> {
+    if (!resumeUrl) return '';
+
+    try {
+        const response = await fetch(resumeUrl);
+        if (!response.ok) return '';
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require('pdf-parse');
+        const data = await pdfParse(buffer);
+
+        // Cap at 4000 chars to avoid token limits
+        return data.text?.substring(0, 4000) || '';
+    } catch (err) {
+        console.error('Resume text extraction failed:', err);
+        return '';
+    }
 }

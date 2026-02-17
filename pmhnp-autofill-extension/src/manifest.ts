@@ -10,7 +10,6 @@ export default defineManifest({
     host_permissions: [
         'https://pmhnphiring.com/*',
         'https://www.pmhnphiring.com/*',
-        'http://localhost:3000/*',
         '<all_urls>',
     ],
     background: {

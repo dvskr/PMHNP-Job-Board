@@ -8,36 +8,19 @@ interface Question {
 }
 
 const QUESTIONS: Question[] = [
-    // Background & Compliance
-    { questionKey: 'felony_conviction', questionText: 'Have you ever been convicted of a felony?', answerType: 'boolean_with_details', category: 'Background & Compliance' },
-    { questionKey: 'misdemeanor_conviction', questionText: 'Have you ever been convicted of a misdemeanor?', answerType: 'boolean_with_details', category: 'Background & Compliance' },
-    { questionKey: 'license_revoked', questionText: 'Have you ever had a professional license revoked, suspended, or restricted?', answerType: 'boolean_with_details', category: 'Background & Compliance' },
-    { questionKey: 'federal_exclusion', questionText: 'Have you ever been excluded from federal healthcare programs (Medicare/Medicaid)?', answerType: 'boolean', category: 'Background & Compliance' },
-    { questionKey: 'oig_exclusion', questionText: 'Have you ever been listed on the OIG Exclusion List?', answerType: 'boolean', category: 'Background & Compliance' },
-    { questionKey: 'malpractice_lawsuit', questionText: 'Have you ever been named in a malpractice lawsuit?', answerType: 'boolean_with_details', category: 'Background & Compliance' },
-    { questionKey: 'board_disciplinary', questionText: 'Have you ever been subject to disciplinary action by any licensing board?', answerType: 'boolean_with_details', category: 'Background & Compliance' },
-    { questionKey: 'terminated', questionText: 'Have you ever been terminated or asked to resign from a position?', answerType: 'boolean_with_details', category: 'Background & Compliance' },
-    { questionKey: 'controlled_substance_conviction', questionText: 'Have you ever been convicted of possession/use/distribution of controlled substances?', answerType: 'boolean', category: 'Background & Compliance' },
-    { questionKey: 'consent_background_check', questionText: 'Do you consent to a background check?', answerType: 'boolean', category: 'Background & Compliance' },
-    { questionKey: 'consent_drug_screen', questionText: 'Do you consent to a drug screen?', answerType: 'boolean', category: 'Background & Compliance' },
-    { questionKey: 'under_investigation', questionText: 'Are you currently under investigation by any licensing board?', answerType: 'boolean', category: 'Background & Compliance' },
-    // Clinical Screening
-    { questionKey: 'comfortable_children', questionText: 'Are you comfortable managing children/adolescents?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'comfortable_geriatric', questionText: 'Are you comfortable managing geriatric patients?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'comfortable_controlled_substances', questionText: 'Are you comfortable prescribing controlled substances (benzodiazepines, stimulants)?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'mat_experience', questionText: 'Do you have experience with MAT (Medication-Assisted Treatment) / buprenorphine?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'telehealth_comfortable', questionText: 'Are you comfortable providing care via telehealth?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'willing_evenings_weekends', questionText: 'Are you willing to work evenings or weekends?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'willing_on_call', questionText: 'Are you available for on-call duties?', answerType: 'boolean', category: 'Clinical Screening' },
-    { questionKey: 'insurance_panels', questionText: 'Are you currently credentialed with any insurance panels?', answerType: 'boolean_with_details', category: 'Clinical Screening' },
-    // Employment Logistics
-    { questionKey: 'willing_to_relocate', questionText: 'Are you willing to relocate?', answerType: 'boolean', category: 'Employment Logistics' },
-    { questionKey: 'currently_employed', questionText: 'Are you currently employed?', answerType: 'boolean', category: 'Employment Logistics' },
-    { questionKey: 'notice_period', questionText: 'Notice period required at current job', answerType: 'text', category: 'Employment Logistics' },
-    { questionKey: 'relatives_employed', questionText: 'Do you have any relatives employed at the organization you\'re applying to?', answerType: 'boolean', category: 'Employment Logistics' },
+    { questionKey: 'felony_conviction', questionText: 'Have you ever been convicted of a felony?', answerType: 'boolean_with_details', category: 'Background' },
+    { questionKey: 'license_revoked', questionText: 'Have you ever had a professional license revoked, suspended, or restricted?', answerType: 'boolean_with_details', category: 'Background' },
+    { questionKey: 'malpractice_lawsuit', questionText: 'Have you ever been named in a malpractice lawsuit?', answerType: 'boolean_with_details', category: 'Background' },
+    { questionKey: 'board_disciplinary', questionText: 'Have you ever been subject to disciplinary action by any licensing board?', answerType: 'boolean_with_details', category: 'Background' },
+    { questionKey: 'consent_background_check', questionText: 'Do you consent to a background check?', answerType: 'boolean', category: 'Background' },
+    { questionKey: 'consent_drug_screen', questionText: 'Do you consent to a drug screen?', answerType: 'boolean', category: 'Background' },
+    { questionKey: 'telehealth_comfortable', questionText: 'Are you comfortable providing care via telehealth?', answerType: 'boolean', category: 'Logistics' },
+    { questionKey: 'willing_to_relocate', questionText: 'Are you willing to relocate?', answerType: 'boolean', category: 'Logistics' },
+    { questionKey: 'currently_employed', questionText: 'Are you currently employed?', answerType: 'boolean', category: 'Logistics' },
+    { questionKey: 'notice_period', questionText: 'Notice period required at current job', answerType: 'text', category: 'Logistics' },
 ]
 
-const CATEGORIES = ['Background & Compliance', 'Clinical Screening', 'Employment Logistics']
+const CATEGORIES = ['Background', 'Logistics']
 
 interface AnswerMap { [key: string]: { answerBool: boolean | null; answerText: string } }
 
@@ -95,7 +78,8 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
         finally { setSaving(false) }
     }
 
-    const answeredCount = Object.values(answers).filter((a) => a.answerBool !== null || a.answerText).length
+    const validKeys = new Set(QUESTIONS.map((q) => q.questionKey))
+    const answeredCount = Object.entries(answers).filter(([key, a]) => validKeys.has(key) && (a.answerBool !== null || a.answerText)).length
 
     return (
         <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '28px' }}>

@@ -1,17 +1,11 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Enable class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Hide scrollbar globally (still scrollable) */
-* {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
+/* Use .scrollbar-hide class on individual elements that need hidden scrollbars */
 
-*::-webkit-scrollbar {
-  display: none !important;
-}
 
 html,
 body {
@@ -338,6 +332,161 @@ html.dark .bg-gradient-to-r.from-blue-50,
 html.dark .bg-gradient-to-br.from-blue-50 {
   background: var(--bg-tertiary) !important;
 }
+
+/* ===== PROSE / BLOG CONTENT DARK MODE ===== */
+html.dark .prose {
+  --tw-prose-body: var(--text-secondary) !important;
+  --tw-prose-headings: var(--text-primary) !important;
+  --tw-prose-lead: var(--text-secondary) !important;
+  --tw-prose-links: #2DD4BF !important;
+  --tw-prose-bold: var(--text-primary) !important;
+  --tw-prose-counters: var(--text-tertiary) !important;
+  --tw-prose-bullets: var(--text-tertiary) !important;
+  --tw-prose-hr: var(--border-color) !important;
+  --tw-prose-quotes: var(--text-secondary) !important;
+  --tw-prose-quote-borders: #14B8A6 !important;
+  --tw-prose-captions: var(--text-muted) !important;
+  --tw-prose-code: var(--text-primary) !important;
+  --tw-prose-pre-code: #E2E8F0 !important;
+  --tw-prose-pre-bg: #0F1923 !important;
+  --tw-prose-th-borders: var(--border-color-dark) !important;
+  --tw-prose-td-borders: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+html.dark .prose h1,
+html.dark .prose h2,
+html.dark .prose h3,
+html.dark .prose h4,
+html.dark .prose h5,
+html.dark .prose h6 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .prose p,
+html.dark .prose li,
+html.dark .prose td,
+html.dark .prose th {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .prose a {
+  color: #2DD4BF !important;
+}
+
+html.dark .prose strong {
+  color: var(--text-primary) !important;
+}
+
+html.dark .prose blockquote {
+  border-left-color: #14B8A6 !important;
+  background-color: rgba(20, 184, 166, 0.08) !important;
+  color: var(--text-secondary) !important;
+}
+
+html.dark .prose code {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+html.dark .prose pre {
+  background-color: #0F1923 !important;
+}
+
+html.dark .prose hr {
+  border-color: var(--border-color) !important;
+}
+
+/* ===== TEAL / EMERALD / AMBER DARK MODE OVERRIDES ===== */
+/* Badges and pills (e.g. job count badges) */
+html.dark .bg-teal-100 {
+  background-color: rgba(20, 184, 166, 0.15) !important;
+}
+
+html.dark .text-teal-800,
+html.dark .text-teal-700 {
+  color: #5EEAD4 !important;
+}
+
+html.dark .text-teal-600 {
+  color: #2DD4BF !important;
+}
+
+html.dark .border-teal-200,
+html.dark .border-teal-100 {
+  border-color: rgba(20, 184, 166, 0.25) !important;
+}
+
+/* Teal background boxes (Quick Answer, FPA, callouts) */
+html.dark .bg-teal-50 {
+  background-color: rgba(20, 184, 166, 0.08) !important;
+}
+
+html.dark .text-teal-900 {
+  color: #CCFBF1 !important;
+}
+
+html.dark .text-teal-800 {
+  color: #99F6E4 !important;
+}
+
+/* Emerald colors (salary values, badges) */
+html.dark .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+html.dark .text-emerald-600,
+html.dark .text-emerald-700 {
+  color: #34D399 !important;
+}
+
+html.dark .text-emerald-800 {
+  color: #A7F3D0 !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50 {
+  background-color: rgba(16, 185, 129, 0.06) !important;
+}
+
+html.dark .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Amber/warning colors (note boxes) */
+html.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+html.dark .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html.dark .text-amber-800 {
+  color: #FCD34D !important;
+}
+
+/* Gradient boxes (Quick Answer, teal-50 to slate-50) */
+html.dark .bg-gradient-to-r.from-teal-50,
+html.dark .bg-gradient-to-r.from-teal-50.to-slate-50 {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Table hover states */
+html.dark tr.hover\:bg-gray-50:hover {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html.dark .bg-gray-50 thead,
+html.dark thead.bg-gray-50 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+/* Top-3 state rows in salary table */
+html.dark tr.bg-emerald-50\/50 {
+  background-color: rgba(16, 185, 129, 0.06) !important;
+}
+
 
 @theme inline {
   --color-background: var(--bg-primary);

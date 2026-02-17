@@ -33,6 +33,7 @@ async function getRemoteJobs(skip: number = 0, take: number = 20) {
     },
     orderBy: [
       { isFeatured: 'desc' },
+      { qualityScore: 'desc' },
       { originalPostedAt: 'desc' },
       { createdAt: 'desc' },
     ],

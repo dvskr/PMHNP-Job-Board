@@ -20,14 +20,6 @@ const profileInclude = {
   },
 } as const
 
-/** Merge extra computed fields into the profile response */
-function enrichProfile(profile: Record<string, unknown>) {
-  return {
-    ...profile,
-    _hasClinicalDetails: false,
-  };
-}
-
 // GET - Get current user's profile
 export async function GET() {
   try {
@@ -47,7 +39,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    return NextResponse.json(enrichProfile(profile as unknown as Record<string, unknown>))
+    return NextResponse.json(profile)
   } catch (error) {
     logger.error('Profile GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -296,7 +288,7 @@ export async function PATCH(request: NextRequest) {
       include: profileInclude,
     })
 
-    return NextResponse.json(enrichProfile(updatedProfile as unknown as Record<string, unknown>))
+    return NextResponse.json(updatedProfile)
   } catch (error) {
     logger.error('Profile PATCH error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

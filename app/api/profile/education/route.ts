@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json()
-        const { degreeType, fieldOfStudy, schoolName, graduationDate, gpa, isHighestDegree } = body
+        const { degreeType, fieldOfStudy, schoolName, startDate, graduationDate, gpa, isHighestDegree } = body
 
         if (!degreeType || !schoolName) {
             return NextResponse.json(
@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
                 degreeType: sanitizeText(degreeType, 50),
                 fieldOfStudy: fieldOfStudy ? sanitizeText(fieldOfStudy, 200) : null,
                 schoolName: sanitizeText(schoolName, 200),
+                startDate: startDate ? new Date(startDate) : null,
                 graduationDate: graduationDate ? new Date(graduationDate) : null,
                 gpa: gpa ? sanitizeText(gpa, 10) : null,
                 isHighestDegree: isHighestDegree ?? false,

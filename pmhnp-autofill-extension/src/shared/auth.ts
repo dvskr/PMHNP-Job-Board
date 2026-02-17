@@ -1,6 +1,7 @@
-import type { AuthState, ExtensionTokenResponse } from './types';
+﻿import type { AuthState, ExtensionTokenResponse } from './types';
 import { API_BASE_URL, AUTH_EXTENSION_TOKEN_ENDPOINT, LOGIN_URL, EXTENSION_CONNECTED_PATH } from './constants';
 import { getStoredAuth, setStoredAuth, clearAuth, clearCachedProfile } from './storage';
+import { log, warn } from '@/shared/logger';
 
 export async function initiateLogin(): Promise<void> {
     const tab = await chrome.tabs.create({ url: LOGIN_URL });
@@ -152,7 +153,7 @@ export async function refreshTokenIfNeeded(): Promise<void> {
             try {
                 await getExtensionToken();
             } catch (err) {
-                console.warn('[PMHNP] Token refresh failed:', err);
+                warn('[PMHNP] Token refresh failed:', err);
             }
         }
     }

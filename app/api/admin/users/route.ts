@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 
 export async function GET() {
+    // Verify admin session
+    const authError = await requireApiAdmin();
+    if (authError) return authError;
+
     try {
         // User profiles
         const users = await prisma.userProfile.findMany({

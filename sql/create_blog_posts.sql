@@ -35,6 +35,14 @@ CREATE POLICY "Public can read published blog posts"
 
 -- Note: Service role bypasses RLS automatically — no explicit policy needed for writes.
 
+-- Grant schema + table permissions for anon and authenticated roles
+-- (Required for RLS policies to work — RLS controls WHICH rows, but
+--  the role still needs base SELECT permission on the table)
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT SELECT ON blog_posts TO anon;
+GRANT SELECT ON blog_posts TO authenticated;
+
 -- Auto-update updated_at on row changes
 CREATE OR REPLACE FUNCTION update_blog_updated_at()
 RETURNS TRIGGER AS $$

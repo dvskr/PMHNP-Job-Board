@@ -33,7 +33,7 @@ export async function PUT(
         }
 
         const body = await request.json()
-        const { degreeType, fieldOfStudy, schoolName, graduationDate, gpa, isHighestDegree } = body
+        const { degreeType, fieldOfStudy, schoolName, startDate, graduationDate, gpa, isHighestDegree } = body
 
         // If marking as highest degree, unmark any existing one
         if (isHighestDegree && !existing.isHighestDegree) {
@@ -54,6 +54,9 @@ export async function PUT(
                 }),
                 ...(schoolName !== undefined && {
                     schoolName: sanitizeText(schoolName, 200),
+                }),
+                ...(startDate !== undefined && {
+                    startDate: startDate ? new Date(startDate) : null,
                 }),
                 ...(graduationDate !== undefined && {
                     graduationDate: graduationDate ? new Date(graduationDate) : null,

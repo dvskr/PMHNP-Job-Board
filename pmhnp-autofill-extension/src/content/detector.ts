@@ -32,12 +32,7 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
     license_state: { patterns: ['license state', 'state of licensure', 'licensing state'], category: 'credential' },
     license_expiration: { patterns: ['license expiration', 'license exp', 'expiration date'], category: 'credential' },
     certification_number: { patterns: ['certification number', 'cert number', 'ancc', 'board certification'], category: 'credential' },
-    prescriptive_authority: { patterns: ['prescriptive authority', 'prescribing authority'], category: 'credential' },
-    csr_number: { patterns: ['controlled substance registration', 'csr number', 'state csr', 'state controlled substance'], category: 'credential' },
-    pmp_registered: { patterns: ['pdmp', 'pmp', 'prescription monitoring', 'prescription drug monitoring'], category: 'credential' },
-    malpractice_carrier: { patterns: ['malpractice carrier', 'malpractice insurance', 'liability insurance', 'insurance carrier', 'insurance provider'], category: 'credential' },
-    malpractice_policy: { patterns: ['malpractice policy', 'policy number', 'insurance policy'], category: 'credential' },
-    malpractice_coverage: { patterns: ['malpractice coverage', 'coverage amount', 'insurance coverage', 'coverage limits'], category: 'credential' },
+
 
     // Education
     degree: { patterns: ['degree', 'highest degree', 'education level', 'degree type'], category: 'education' },
@@ -59,7 +54,7 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
     patient_volume: { patterns: ['patient volume', 'caseload', 'patients per', 'patient load', 'case load', 'how many patients'], category: 'experience' },
     ehr_systems: { patterns: ['ehr', 'emr', 'electronic health record', 'electronic medical record', 'which ehr', 'ehr system'], category: 'experience' },
     telehealth_experience: { patterns: ['telehealth', 'telemedicine', 'telepsych', 'virtual care', 'remote care'], category: 'experience' },
-    practice_setting: { patterns: ['practice setting', 'clinical setting', 'work setting', 'care setting', 'outpatient', 'inpatient'], category: 'experience' },
+
 
     // Reference fields
     reference_name: { patterns: ['reference name', 'reference 1', 'reference 2', 'reference 3', 'name of reference'], category: 'experience' },
@@ -70,11 +65,14 @@ const FIELD_PATTERNS: Record<string, { patterns: string[]; category: FieldCatego
 
     // Screening
     felony: { patterns: ['felony', 'convicted of a felony', 'felony conviction'], category: 'screening' },
-    misdemeanor: { patterns: ['misdemeanor', 'misdemeanor conviction'], category: 'screening' },
     license_revoked: { patterns: ['revoked', 'suspended', 'restricted', 'license ever been revoked'], category: 'screening' },
     malpractice: { patterns: ['malpractice', 'lawsuit', 'malpractice claim'], category: 'screening' },
+    board_disciplinary: { patterns: ['disciplinary action', 'disciplinary', 'board action', 'licensing board'], category: 'screening' },
     background_check: { patterns: ['background check', 'consent to background'], category: 'screening' },
     drug_screen: { patterns: ['drug screen', 'drug test'], category: 'screening' },
+    telehealth: { patterns: ['telehealth', 'telemedicine', 'telepsych', 'virtual care', 'remote care'], category: 'screening' },
+    currently_employed: { patterns: ['currently employed', 'presently employed', 'current employment status'], category: 'screening' },
+    notice_period: { patterns: ['notice period', 'notice required', 'two weeks notice', 'how much notice'], category: 'screening' },
     work_authorized: { patterns: ['authorized to work', 'legally authorized', 'work authorization', 'eligible to work'], category: 'screening' },
     visa_sponsorship: { patterns: ['sponsorship', 'visa sponsorship', 'require sponsorship'], category: 'screening' },
     salary: { patterns: ['salary', 'desired salary', 'compensation', 'pay rate', 'expected salary', 'salary expectation', 'hourly rate', 'wage'], category: 'screening' },

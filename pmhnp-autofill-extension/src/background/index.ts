@@ -1,13 +1,14 @@
-import { initiateLogin, logout, getAuthState, refreshTokenIfNeeded } from '@/shared/auth';
-import { fetchProfile, getProfileReadiness, fetchUsage, classifyFields, recordAutofill } from '@/shared/api';
+﻿import { initiateLogin, logout, getAuthState, refreshTokenIfNeeded } from '@/shared/auth';
+import { fetchProfile, getProfileReadiness, fetchUsage, classifyFields, extractResumeSections, recordAutofill } from '@/shared/api';
 import { captureError } from '@/shared/errorHandler';
 import { ALARM_NAMES, TOKEN_REFRESH_INTERVAL, PROFILE_REFRESH_INTERVAL } from '@/shared/constants';
 import type { ExtensionMessage } from '@/shared/types';
+import { log, warn } from '@/shared/logger';
 
 // ─── Install / Startup ───
 
 chrome.runtime.onInstalled.addListener(async () => {
-    console.log('[PMHNP] Extension installed');
+    log('[PMHNP] Extension installed');
 
     // Set up alarms
     chrome.alarms.create(ALARM_NAMES.TOKEN_REFRESH, { periodInMinutes: TOKEN_REFRESH_INTERVAL });
@@ -183,7 +184,7 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
                     employerName,
                 });
 
-                console.log(`[PMHNP-BG] AI classified ${result.classified.length} fields`);
+                log(`[PMHNP-BG] AI classified ${result.classified.length} fields`);
 
                 // 5. Map results to fill instructions
                 const mappings = result.classified
@@ -224,6 +225,18 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
             }
         }
 
+        case 'EXTRACT_RESUME_SECTIONS': {
+            const { sections } = (message.payload || {}) as { sections?: string[] };
+            try {
+                const result = await extractResumeSections(sections || ['education', 'experience']);
+                log(`[PMHNP-BG] Extracted ${result.education?.length || 0} education, ${result.experience?.length || 0} experience entries from resume`);
+                return result;
+            } catch (err) {
+                console.error('[PMHNP-BG] EXTRACT_RESUME_SECTIONS error:', err);
+                return { education: [], experience: [], error: err instanceof Error ? err.message : 'Extraction failed' };
+            }
+        }
+
         case 'FETCH_FILE': {
             // Fetch the user's resume and return as base64
             try {
@@ -234,7 +247,7 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
                     return { error: 'No resume URL in profile' };
                 }
 
-                console.log(`[PMHNP-BG] Fetching resume from: ${resumeUrl.substring(0, 60)}...`);
+                log(`[PMHNP-BG] Fetching resume from: ${resumeUrl.substring(0, 60)}...`);
                 const response = await fetch(resumeUrl);
                 if (!response.ok) {
                     return { error: `Resume fetch failed: ${response.status}` };
@@ -248,7 +261,7 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
                 const contentType = response.headers.get('content-type') || 'application/pdf';
                 const fileName = resumeUrl.split('/').pop()?.split('?')[0] || 'resume.pdf';
 
-                console.log(`[PMHNP-BG] Resume fetched: ${blob.byteLength} bytes, type=${contentType}`);
+                log(`[PMHNP-BG] Resume fetched: ${blob.byteLength} bytes, type=${contentType}`);
                 return { base64, fileName, mimeType: contentType };
             } catch (err) {
                 console.error('[PMHNP-BG] FETCH_FILE error:', err);
