@@ -17,7 +17,6 @@ import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
 import { pingAllSearchEnginesBatch } from './search-indexing';
-import { validateApplyLink } from './utils/resolve-url';
 import { computeQualityScore } from './utils/quality-score';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr';
@@ -35,6 +34,9 @@ export interface IngestionResult {
   newJobUrls: string[];
   newJobIds: string[];
 }
+
+// Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
+const MAX_INGESTION_MS = 240_000; // 240s (leave 60s buffer for post-processing)
 
 /**
  * Fetch raw jobs from a specific source
@@ -140,8 +142,16 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       }
     };
 
-    // Process each job
+    // Process each job — with time budget
+    let stoppedEarly = false;
     for (let i = 0; i < rawJobs.length; i++) {
+      // Check time budget — stop before hitting Vercel's 300s limit
+      if (Date.now() - startTime > MAX_INGESTION_MS) {
+        console.warn(`[${source.toUpperCase()}] ⏰ Time budget exceeded at job ${i + 1}/${rawJobs.length} — stopping gracefully after ${((Date.now() - startTime) / 1000).toFixed(0)}s`);
+        stoppedEarly = true;
+        break;
+      }
+
       const rawJob = rawJobs[i];
 
       try {
@@ -233,27 +243,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           console.error(`Failed to link company for job ${savedJob.id}:`, companyError);
         }
 
-        // Validate and resolve apply link — reject dead/unresolvable tracking URLs
-        try {
-          const validation = await validateApplyLink(normalizedJob.applyLink);
-          if (!validation.cleanUrl || validation.isDead) {
-            // Dead or unresolvable — unpublish immediately
-            await prisma.job.update({
-              where: { id: savedJob.id },
-              data: { isPublished: false },
-            });
-            added--; // Don't count dead-on-arrival jobs
-            continue;
-          }
-          if (validation.cleanUrl !== normalizedJob.applyLink) {
-            await prisma.job.update({
-              where: { id: savedJob.id },
-              data: { applyLink: validation.cleanUrl },
-            });
-          }
-        } catch (urlError) {
-          // URL validation failure is non-fatal — keep original link
-        }
+        // NOTE: Link validation (validateApplyLink) is skipped during ingestion
+        // to avoid HTTP timeout overhead. It runs separately via check-dead-links cron.
 
         // Compute quality score based on final resolved link and job data
         try {
