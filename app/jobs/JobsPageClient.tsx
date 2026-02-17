@@ -301,9 +301,9 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     }} />
                   </div>
 
-                  {/* View Mode Toggle */}
-                  <div style={{
-                    display: 'flex', gap: '2px',
+                  {/* View Mode Toggle — hidden on mobile, grid is default */}
+                  <div className="hidden sm:flex" style={{
+                    gap: '2px',
                     backgroundColor: 'var(--bg-tertiary)',
                     borderRadius: '8px', padding: '3px',
                   }}>
