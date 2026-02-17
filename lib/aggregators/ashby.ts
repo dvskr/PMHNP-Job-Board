@@ -46,6 +46,52 @@ const ASHBY_COMPANIES = [
     { slug: "legionhealth", name: "Legion Health" },
     { slug: "array-behavioral-care", name: "Array Behavioral Care" },
     { slug: "blossom-health", name: "Blossom Health" },
+    // === ADDED 2026-02-16 — Discovered via scripts/discover-lever-ashby.ts ===
+    { slug: "sondermind", name: "SonderMind" },         // 150 total jobs
+    { slug: "hims-and-hers", name: "Hims & Hers" },     // 101 total jobs
+    { slug: "rula", name: "Rula" },                      // 21 total jobs
+    { slug: "tavahealth", name: "Tava Health" },         // 10 total jobs
+    // === ADDED 2026-02-16 — Full ATS Discovery (189 companies scanned) ===
+    { slug: "sesame", name: "Sesame Care" },               // 29 total jobs
+    { slug: "wheel", name: "Wheel Health" },               // 7 total jobs
+    { slug: "oh", name: "Ochsner Health" },                // 5 total jobs
+    { slug: "prime", name: "Prime Healthcare" },           // 3 total jobs
+    { slug: "foresight", name: "Foresight Mental Health" },// 3 total jobs
+
+    // === ADDED 2026-02-16 — CSV test: 9 new PMHNP-active slugs ===
+    { slug: "bravehealth", name: "Brave Health" },          // 23 PMHNP
+    { slug: "visanahealth", name: "Visana Health" },        // 13 PMHNP
+    { slug: "finni-health", name: "Finni Health" },         // 5 PMHNP
+    { slug: "annaautismcare", name: "Anna Autism Care" },   // 3 PMHNP
+    { slug: "claritypediatrics", name: "Clarity Pediatrics" }, // 2 PMHNP
+    { slug: "nest-health", name: "Nest Health" },           // 7 PMHNP
+    { slug: "cylinderhealth", name: "Cylinder Health" },    // 1 PMHNP
+    { slug: "tandem-health", name: "Tandem Health" },       // 1 PMHNP
+    { slug: "virtahealth", name: "Virta Health" },          // 1 PMHNP
+
+    // === ADDED 2026-02-16 — All live healthcare slugs from CSV ===
+    { slug: "abridge", name: "Abridge" },
+    { slug: "akasa", name: "Akasa" },
+    { slug: "ambiencehealthcare", name: "Ambiencehealthcare" },
+    { slug: "anterior", name: "Anterior" },
+    { slug: "august-health", name: "August Health" },
+    { slug: "bjakcareer", name: "Bjakcareer" },
+    { slug: "candidhealth", name: "Candidhealth" },
+    { slug: "chainalysis-careers", name: "Chainalysis Careers" },
+    { slug: "commure", name: "Commure" },
+    { slug: "coursecareers", name: "Coursecareers" },
+    { slug: "definelycareers", name: "Definelycareers" },
+    { slug: "foundationhealthcareers", name: "Foundationhealthcareers" },
+    { slug: "frontcareers", name: "Frontcareers" },
+    { slug: "hike-medical", name: "Hike Medical" },
+    { slug: "iambic-therapeutics", name: "Iambic Therapeutics" },
+    { slug: "lindushealth", name: "Lindushealth" },
+    { slug: "myedspacecareers", name: "Myedspacecareers" },
+    { slug: "nabla", name: "Nabla" },
+    { slug: "pearlhealth", name: "Pearlhealth" },
+    { slug: "radai", name: "Radai" },
+    { slug: "valeriehealth", name: "Valeriehealth" },
+    { slug: "versemedical", name: "Versemedical" },
 ];
 
 /**

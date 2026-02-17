@@ -157,6 +157,13 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
     }
 
     // 2. Strong Filter on TITLE for wrong roles
+    // Exception: If title itself contains a positive PMHNP keyword, trust it —
+    // titles like "Associate PMHNP" or "PMHNP Clinical Manager" should pass
+    const titleHasPositive = POSITIVE_KEYWORDS.some(kw => titleLower.includes(kw));
+    if (titleHasPositive) {
+        return true;
+    }
+
     const isWrongRole = NEGATIVE_KEYWORDS.some(neg => {
         if (!titleLower.includes(neg)) return false;
 

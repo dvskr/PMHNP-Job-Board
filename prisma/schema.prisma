@@ -50,6 +50,7 @@ model Job {
   originalPostedAt    DateTime?    @map("original_posted_at")
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
+  jobReports          JobReport[]
   employerJobs        EmployerJob?
   company             Company?     @relation(fields: [companyId], references: [id])
 
@@ -503,4 +504,27 @@ model AutofillUsage {
   @@index([userId])
   @@index([userId, createdAt])
   @@map("autofill_usage")
+}
+
+model JobReport {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  reason    String
+  details   String?
+  ipHash    String?  @map("ip_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_reports")
+}
+
+model UserFeedback {
+  id        String   @id @default(cuid())
+  rating    Int
+  message   String?
+  page      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("user_feedback")
 }

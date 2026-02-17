@@ -30,10 +30,38 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const profile = await prisma.userProfile.findUnique({
+    let profile = await prisma.userProfile.findUnique({
       where: { supabaseId: user.id },
       include: profileInclude,
     })
+
+    // Auto-create profile if it doesn't exist
+    if (!profile && user.email) {
+      // First check if a profile exists with this email (possibly under a different supabaseId)
+      profile = await prisma.userProfile.findFirst({
+        where: { email: user.email },
+        include: profileInclude,
+      })
+
+      if (profile && profile.supabaseId !== user.id) {
+        // Update the existing profile to point to the current supabase user
+        profile = await prisma.userProfile.update({
+          where: { id: profile.id },
+          data: { supabaseId: user.id },
+          include: profileInclude,
+        })
+      } else if (!profile) {
+        // No profile exists at all — create one
+        profile = await prisma.userProfile.create({
+          data: {
+            supabaseId: user.id,
+            email: user.email,
+            role: 'job_seeker',
+          },
+          include: profileInclude,
+        })
+      }
+    }
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })

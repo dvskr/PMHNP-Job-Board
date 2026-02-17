@@ -89,75 +89,78 @@ export default function Comparison() {
                 </div>
 
                 {/* Table-style comparison */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '140px repeat(4, 1fr)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    backgroundColor: 'var(--bg-secondary)',
-                }}>
-                    {/* Header row */}
-                    <div style={{ padding: '16px 14px', backgroundColor: 'var(--bg-secondary)' }} />
-                    {platforms.map((p) => (
-                        <div
-                            key={p.name}
-                            style={{
-                                padding: '18px 12px',
-                                textAlign: 'center',
-                                borderBottom: '1px solid var(--border-color)',
-                                borderLeft: '1px solid var(--border-color)',
-                                ...(p.highlighted ? {
-                                    background: 'linear-gradient(180deg, rgba(232,108,44,0.08), transparent)',
-                                    borderTop: '3px solid #E86C2C',
-                                } : {}),
-                            }}
-                        >
-                            <span style={{
-                                fontSize: '13px',
-                                fontWeight: p.highlighted ? 800 : 600,
-                                color: p.highlighted ? '#E86C2C' : 'var(--text-primary)',
-                            }}>
-                                {p.name}
-                            </span>
-                        </div>
-                    ))}
-
-                    {/* Feature rows */}
-                    {featureLabels.map((feat, rowIdx) => (
-                        <Fragment key={feat}>
-                            {/* Label cell */}
+                <div className="cmp-table" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '16px' }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '140px repeat(4, 1fr)',
+                        minWidth: '500px',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        backgroundColor: 'var(--bg-secondary)',
+                    }}>
+                        {/* Header row */}
+                        <div style={{ padding: '16px 14px', backgroundColor: 'var(--bg-secondary)' }} />
+                        {platforms.map((p) => (
                             <div
+                                key={p.name}
                                 style={{
-                                    padding: '14px 14px',
-                                    fontSize: '13px', fontWeight: 500,
-                                    color: 'var(--text-secondary)',
-                                    display: 'flex', alignItems: 'center',
-                                    borderBottom: rowIdx < featureLabels.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                    padding: '18px 12px',
+                                    textAlign: 'center',
+                                    borderBottom: '1px solid var(--border-color)',
+                                    borderLeft: '1px solid var(--border-color)',
+                                    ...(p.highlighted ? {
+                                        background: 'linear-gradient(180deg, rgba(232,108,44,0.08), transparent)',
+                                        borderTop: '3px solid #E86C2C',
+                                    } : {}),
                                 }}
                             >
-                                {feat}
+                                <span style={{
+                                    fontSize: '13px',
+                                    fontWeight: p.highlighted ? 800 : 600,
+                                    color: p.highlighted ? '#E86C2C' : 'var(--text-primary)',
+                                }}>
+                                    {p.name}
+                                </span>
                             </div>
+                        ))}
 
-                            {/* Status cells */}
-                            {platforms.map((p) => (
+                        {/* Feature rows */}
+                        {featureLabels.map((feat, rowIdx) => (
+                            <Fragment key={feat}>
+                                {/* Label cell */}
                                 <div
-                                    key={`${p.name}-${feat}`}
                                     style={{
-                                        padding: '14px 12px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        borderLeft: '1px solid var(--border-color)',
+                                        padding: '14px 14px',
+                                        fontSize: '13px', fontWeight: 500,
+                                        color: 'var(--text-secondary)',
+                                        display: 'flex', alignItems: 'center',
                                         borderBottom: rowIdx < featureLabels.length - 1 ? '1px solid var(--border-color)' : 'none',
-                                        ...(p.highlighted ? {
-                                            backgroundColor: 'rgba(232,108,44,0.03)',
-                                        } : {}),
                                     }}
                                 >
-                                    <StatusIcon status={p.features[feat]} />
+                                    {feat}
                                 </div>
-                            ))}
-                        </Fragment>
-                    ))}
+
+                                {/* Status cells */}
+                                {platforms.map((p) => (
+                                    <div
+                                        key={`${p.name}-${feat}`}
+                                        style={{
+                                            padding: '14px 12px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            borderLeft: '1px solid var(--border-color)',
+                                            borderBottom: rowIdx < featureLabels.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                            ...(p.highlighted ? {
+                                                backgroundColor: 'rgba(232,108,44,0.03)',
+                                            } : {}),
+                                        }}
+                                    >
+                                        <StatusIcon status={p.features[feat]} />
+                                    </div>
+                                ))}
+                            </Fragment>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Mobile-friendly version */}

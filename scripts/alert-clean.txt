@@ -1,0 +1,44 @@
+[dotenv@17.2.3] injecting env (23) from .env.local -- tip: ≡ƒùé∩╕Å backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ΓÜÖ∩╕Å  specify custom .env file path with { path: '/custom/path/.env' }
+=== JOB ALERT STATS ===
+Total alerts: 29
+Active: 29
+Inactive: 0
+Daily: 28
+Weekly: 1
+Never sent: 3
+Sent in last 24h: 5
+
+Unique active emails: 26
+
+=== ALL ACTIVE ALERTS (29) ===
+  wwmercy@yahoo.com                   daily   sent:2026-02-16T21:00  created:2026-02-16T12:59 (no filters)
+  gingerrobertsonbsn@gmail.com        daily   sent:2026-02-16T21:00  created:2026-02-15T18:22 (no filters)
+  renee@nauful.net                    daily   sent:2026-02-16T21:00  created:2026-02-15T16:45 mode:"In-Person", type:"Full-Time"
+  renee@nauful.net                    weekly  sent:2026-02-16T21:00  created:2026-02-15T16:44 type:"Full-Time"
+  ayobamiowoeye@gmail.com             daily   sent:NEVER             created:2026-02-15T04:31 kw:"New Grad Friendly"
+  zakisha.godfrey@gmail.com           daily   sent:2026-02-15T21:00  created:2026-02-13T03:58 kw:"Psychiatric Mental health Nurse Practitioner", loc:"Remote"
+  jrhrjh1009@yahoo.com                daily   sent:NEVER             created:2026-02-12T23:58 kw:"New Grad Friendly"
+  tcbetty@yahoo.com                   daily   sent:NEVER             created:2026-02-12T22:21 kw:"New Grad Friendly"
+  mkccelles@gmail.com                 daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  marlogayemartin@gmail.com           daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  mfasano1961@gmail.com               daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  severeanie@gmail.com                daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  daray.cochran@waldenu.edu           daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  smallare712@gmail.com               daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  sshahijani2@gmail.com               daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  jeepnurse1515@yahoo.com             daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  acham8897@gmail.com                 daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  kibesusan@yahoo.com                 daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  mebcschick4@gmail.com               daily   sent:2026-02-15T21:00  created:2026-02-12T20:57 (no filters)
+  dilara807@icloud.com                daily   sent:2026-02-15T21:00  created:2026-02-12T06:13 kw:"pmhnp", loc:"california"
+  ed2goe@gmail.com                    daily   sent:2026-02-15T21:00  created:2026-02-07T04:07 (no filters)
+  lakeisha.mills92@gmail.com          daily   sent:2026-02-15T21:00  created:2026-02-04T19:40 (no filters)
+  elpatriarca08@gmail.com             daily   sent:2026-02-16T21:00  created:2026-02-04T03:29 loc:"Texas", type:"Full-Time"
+  romsmith2020@gmail.com              daily   sent:2026-02-15T21:00  created:2026-01-31T04:34 (no filters)
+  jvantongerenrn@gmail.com            daily   sent:2026-02-15T21:00  created:2026-01-31T03:43 loc:"Florida"
+  jvantongerenrn@gmail.com            daily   sent:2026-02-15T21:00  created:2026-01-31T02:19 (no filters)
+  smith.sherrie13@yahoo.com           daily   sent:2026-02-15T21:00  created:2026-01-29T17:50 (no filters)
+  dburkettrn@gmail.com                daily   sent:2026-02-15T21:00  created:2026-01-29T17:30 loc:"South Carolina", type:"Full-Time"
+  dburkettrn@gmail.com                daily   sent:2026-02-15T21:00  created:2026-01-29T17:27 (no filters)
+Could not query accounts: Cannot read properties of undefined (reading 'findMany')
