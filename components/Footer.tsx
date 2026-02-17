@@ -77,7 +77,7 @@ export default function Footer() {
         {/* Link columns */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: '24px',
           marginBottom: '28px',
         }}>
