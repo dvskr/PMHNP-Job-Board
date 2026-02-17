@@ -113,6 +113,21 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     // === Verified CSV (Healthcare IT — Teladoc uses WD for hiring) ===
     { slug: 'teladoc', instance: 503, site: 'teladochealth_is_hiring', name: 'Teladoc Health' },
     { slug: 'athenahealth', instance: 1, site: 'External', name: 'athenahealth' },
+
+    // === ADDED 2026-02-16 — CSV test: 9 new PMHNP-active ===
+    { slug: 'essentiahealth', instance: 1, site: 'essentia_health', name: 'Essentia Health' },  // 11 PMHNP
+    { slug: 'solutionhealth', instance: 1, site: 'careers', name: 'Solution Health' },            // 7 PMHNP
+    { slug: 'gundersenhealth', instance: 5, site: 'gundersen', name: 'Gundersen Health' },        // 2 PMHNP
+    { slug: 'benefis', instance: 1, site: 'External', name: 'Benefis Health System' },            // 2 PMHNP
+    { slug: 'mercycare', instance: 1, site: 'External', name: 'Mercy Cedar Rapids' },             // 2 PMHNP
+    { slug: 'southshorehealth', instance: 1, site: 'External', name: 'South Shore Health' },      // 2 PMHNP
+    { slug: 'verawholehealth', instance: 1, site: 'External', name: 'Vera Whole Health' },        // 2 PMHNP
+    { slug: 'bozemanhealth', instance: 1, site: 'bozemanhealthcareers', name: 'Bozeman Health' }, // 1 PMHNP
+    { slug: 'hollandhospital', instance: 1, site: 'external', name: 'Holland Hospital' },         // 1 PMHNP
+
+    // === ADDED 2026-02-16 — All live healthcare slugs from CSV ===
+    { slug: 'marshfieldclinichealthsystems', instance: 5, site: 'external', name: 'Marshfieldclinichealthsystems' },
+    { slug: 'pullmanregionalhospital', instance: 1, site: 'External', name: 'Pullmanregionalhospital' },
 ];
 
 function sleep(ms: number): Promise<void> {
@@ -257,7 +272,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
 }
 
 /**
- * Total number of chunks for Workday (75 companies / 15 per chunk = 5)
+ * Total number of chunks for Workday (69 companies / ~14 per chunk = 5)
  */
 export const WORKDAY_TOTAL_CHUNKS = 5;
 const WORKDAY_CHUNK_SIZE = Math.ceil(WORKDAY_COMPANIES.length / WORKDAY_TOTAL_CHUNKS);

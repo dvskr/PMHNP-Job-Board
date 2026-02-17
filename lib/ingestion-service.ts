@@ -1,13 +1,14 @@
 import { prisma } from './prisma';
 import { fetchAdzunaJobs } from './aggregators/adzuna';
 import { fetchUSAJobs } from './aggregators/usajobs';
-import { fetchGreenhouseJobs } from './aggregators/greenhouse';
+import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchJSearchJobs } from './aggregators/jsearch';
 import { fetchAshbyJobs } from './aggregators/ashby';
 import { fetchWorkdayJobs } from './aggregators/workday';
 import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
+import { fetchBambooHRJobs } from './aggregators/bamboohr';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
@@ -19,10 +20,10 @@ import { pingAllSearchEnginesBatch } from './search-indexing';
 import { validateApplyLink } from './utils/resolve-url';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db'];
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db', 'bamboohr'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -45,7 +46,7 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
     case 'usajobs':
       return await fetchUSAJobs() as unknown as Array<Record<string, unknown>>;
     case 'greenhouse':
-      return await fetchGreenhouseJobs() as unknown as Array<Record<string, unknown>>;
+      return await fetchGreenhouseJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'lever':
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
     case 'jooble':
@@ -58,6 +59,8 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'ats-jobs-db':
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
+    case 'bamboohr':
+      return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
     default:
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
@@ -335,7 +338,7 @@ export async function ingestJobs(
 
   // Process each source sequentially
   for (const source of sources) {
-    const useChunk = source === 'jsearch' || source === 'workday';
+    const useChunk = source === 'jsearch' || source === 'workday' || source === 'greenhouse';
     const result = await ingestFromSource(source, useChunk ? options : undefined);
     results.push(result);
   }

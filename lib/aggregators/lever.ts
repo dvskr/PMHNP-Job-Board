@@ -63,6 +63,34 @@ const LEVER_COMPANIES = [
   'ro',                  // Ro Health — 40 total jobs
   'advocate',            // Advocate Health — 9 total jobs
   'ucsf',                // UCSF Health — 1 total job
+
+  // === ADDED 2026-02-16 — CSV test: 6 new PMHNP-active slugs ===
+  'lunaphysicaltherapy', // Luna Physical Therapy — 108 PMHNP
+  'guidestareldercare',  // Guidestar Eldercare — 31 PMHNP
+  'next-health',         // Next Health — 4 PMHNP
+  'ekohealth',           // Eko Health — 1 PMHNP
+  'heartbeathealth',     // Heartbeat Health — 1 PMHNP
+  'swordhealth',         // Sword Health — 1 PMHNP
+
+  // === ADDED 2026-02-16 — All live healthcare slugs from CSV ===
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -89,6 +117,14 @@ const COMPANY_NAMES: Record<string, string> = {
   'ro': 'Ro Health',
   'advocate': 'Advocate Health',
   'ucsf': 'UCSF Health',
+
+  // Added 2026-02-16 (CSV test)
+  'lunaphysicaltherapy': 'Luna Physical Therapy',
+  'guidestareldercare': 'GuideStar Eldercare',
+  'next-health': 'Next Health',
+  'ekohealth': 'Eko Health',
+  'heartbeathealth': 'Heartbeat Health',
+  'swordhealth': 'Sword Health',
 };
 
 function formatCompanyName(slug: string): string {
