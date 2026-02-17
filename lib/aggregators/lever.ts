@@ -91,6 +91,123 @@ const LEVER_COMPANIES = [
 
 
 
+
+  // === BULK ADD — All remaining CSV companies (115) ===
+  'airlinejobs.eu',
+  'aledade',
+  'annette.care',
+  'apex.careers',
+  'arbitalhealth',
+  'arsenalbio',
+  'arvor-insurance',
+  'augustbioservices',
+  'autonomywork.com',
+  'avalerehealth',
+  'aviahealth',
+  'bulletinhealthcare.com',
+  'cardiosense',
+  'cardiosense.com',
+  'celaralabs',
+  'cellares',
+  'clarifyhealth',
+  'clinicalhealthnetworkfortransformation',
+  'crescent-biopharma',
+  'crossfit',
+  'cscgeneration-2',
+  'delfidiagnostics',
+  'diversifiedradiology',
+  'enter.health',
+  'ethenalabs',
+  'fatetherapeutics',
+  'fehrandpeers',
+  'fieldnation',
+  'fishawack.com',
+  'gatchealth',
+  'genbio',
+  'genedit',
+  'genefab',
+  'getlabs',
+  'getmylifeforce.com',
+  'gordian-bio',
+  'grailbio',
+  'h1',
+  'healthcare',
+  'heard-therapy.info',
+  'heyjane.co',
+  'inductivehealth',
+  'jobradar.site',
+  'journeyclinical',
+  'kimiatherapeutics',
+  'koalahealth',
+  'kyverna',
+  'labelbox',
+  'landmarkbio.com',
+  'leolabs-2',
+  'limberhealth',
+  'lookflossy.com',
+  'lyciatx.com',
+  'lyracollective',
+  'machinalabs',
+  'mammothbiosci',
+  'medcarehouston.com',
+  'mediafly',
+  'mediagenix',
+  'micmos.com',
+  'moonsong-labs',
+  'multiplylabs',
+  'myplacehealth',
+  'nekohealth',
+  'nimblerx',
+  'npowermedicine',
+  'offchainlabs',
+  'okendo',
+  'ollie.com',
+  'onehot.io',
+  'optionb.org',
+  'orcabiosystems',
+  'outpacebio',
+  'outpacebio.com',
+  'paramedicservices',
+  'parcelvision',
+  'pattern-biosciences',
+  'peakped.com',
+  'piplabs',
+  'pointclickcare',
+  'pplacareers.org',
+  'procept-biorobotics',
+  'progression.fyi',
+  'project-healthy-minds',
+  'projecthealthyminds.com',
+  'qbio',
+  'quantum.jobs',
+  'quantumcareers.com',
+  'relayrobotics.com',
+  'remedyproductstudio',
+  'roshalhealth.com',
+  'salvohealth',
+  'sequel-med-tech',
+  'seranbio',
+  'simulmedia',
+  'sprinterhealth',
+  'tahoebio-ai',
+  'talentneuron',
+  'talentwerx',
+  'tendo',
+  'theattractiongame.online',
+  'torchdental',
+  'trivenibio',
+  'tryfi.com',
+  'umzim.com',
+  'vedatechlabs',
+  'veeva',
+  'vivo-care',
+  'waddellgrp.com',
+  'waivercore.com',
+  'warblerlabs',
+  'wepclinical',
+  'wilburlabs',
+  'workinbiotech.com',
+  'zushealth',
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -125,6 +242,19 @@ const COMPANY_NAMES: Record<string, string> = {
   'ekohealth': 'Eko Health',
   'heartbeathealth': 'Heartbeat Health',
   'swordhealth': 'Sword Health',
+
+  // Bulk-added CSV companies
+  'cardiosense.com': 'Cardiosense',
+  'enter.health': 'ENTER',
+  'fishawack.com': 'Avalere Health',
+  'h1': 'H1',
+  'landmarkbio.com': 'Landmark Bio',
+  'medcarehouston.com': 'MedCare Pediatric Group',
+  'ollie.com': 'Ollie',
+  'outpacebio.com': 'Outpace Bio',
+  'peakped.com': 'Peak Pediatric Therapies',
+  'simulmedia': 'Simulmedia',
+  'theattractiongame.online': 'Furum Jobs',
 };
 
 function formatCompanyName(slug: string): string {
@@ -196,18 +326,28 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
 
   const allJobs: LeverJobRaw[] = [];
   const failedCompanies: string[] = [];
+  const BATCH_SIZE = 10;
 
   try {
-    for (const companySlug of LEVER_COMPANIES) {
-      try {
-        const jobs = await fetchCompanyPostings(companySlug);
-        allJobs.push(...jobs);
+    for (let i = 0; i < LEVER_COMPANIES.length; i += BATCH_SIZE) {
+      const batch = LEVER_COMPANIES.slice(i, i + BATCH_SIZE);
 
-        // Rate limiting: 500ms delay between companies
-        await sleep(500);
-      } catch {
-        failedCompanies.push(companySlug);
-        console.error(`[Lever] Failed to fetch from ${companySlug}`);
+      const results = await Promise.allSettled(
+        batch.map(companySlug => fetchCompanyPostings(companySlug))
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        if (result.status === 'fulfilled') {
+          allJobs.push(...result.value);
+        } else {
+          failedCompanies.push(batch[j]);
+          console.error(`[Lever] Failed to fetch from ${batch[j]}`);
+        }
+      }
+
+      if (i + BATCH_SIZE < LEVER_COMPANIES.length) {
+        await sleep(200);
       }
     }
 
