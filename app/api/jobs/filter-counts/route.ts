@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
             {
               OR: [
                 { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-                { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+                { originalPostedAt: { gte: new Date(now.getTime() - 48 * 60 * 60 * 1000) } },
               ],
             },
           ],

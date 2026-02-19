@@ -20,9 +20,10 @@ export function formatDate(date: string | Date): string {
 
 function getEffectiveDate(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): Date {
   if (job instanceof Date || typeof job === 'string') return new Date(job as any);
-  // Debug log (temporary)
-  // if ((job as any).title?.includes('Nurse')) console.log('Date Debug:', { title: (job as any).title, orig: (job as any).originalPostedAt, created: (job as any).createdAt });
-  return (job as any).originalPostedAt ? new Date((job as any).originalPostedAt) : new Date((job as any).createdAt);
+  // Use createdAt (ingestion date) for freshness display — this ensures jobs
+  // in the "Past 24 hours" filter show "Posted today" instead of "Posted 2 days ago".
+  // originalPostedAt is still used for SEO structured data (JobStructuredData.tsx).
+  return new Date((job as any).createdAt);
 }
 
 export function formatSalary(

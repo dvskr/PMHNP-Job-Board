@@ -90,6 +90,18 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
 
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
+    // Buffer for rejected jobs (batch-inserted at end)
+    const rejectedJobs: Array<{
+      title: string;
+      employer: string | null;
+      location: string | null;
+      applyLink: string | null;
+      externalId: string | null;
+      sourceProvider: string;
+      rejectionReason: string;
+      rawData: object;
+    }> = [];
+
     if (fetched === 0) {
       return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
     }
@@ -159,15 +171,34 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
         const normalizedJob = normalizeJob(rawJob, source);
 
         if (!normalizedJob) {
-          // If normalizer returns null, it was either an error OR a filtered/stale job
-          // Normalizer already logs skips (stale/missing fields)
+          // Track normalizer rejections for accuracy analysis
+          rejectedJobs.push({
+            title: String(rawJob.title || rawJob.jobOpeningName || rawJob.job_title || 'Unknown'),
+            employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
+            location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
+            applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
+            externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
+            sourceProvider: source,
+            rejectionReason: 'normalizer',
+            rawData: rawJob as object,
+          });
           continue;
         }
 
         // Apply Strict Relevance Filter to Aggregator Sources
         // We skip this for employer postings (sourceProvider: null) to avoid false negatives on paid roles
         if (source !== null && !isRelevantJob(normalizedJob.title, normalizedJob.description)) {
-          // console.log(`[${source.toUpperCase()}] Skipping irrelevant job: ${normalizedJob.title}`);
+          // Track relevance filter rejections for accuracy analysis
+          rejectedJobs.push({
+            title: normalizedJob.title,
+            employer: normalizedJob.employer || null,
+            location: normalizedJob.location || null,
+            applyLink: normalizedJob.applyLink || null,
+            externalId: normalizedJob.externalId || null,
+            sourceProvider: source,
+            rejectionReason: 'relevance_filter',
+            rawData: rawJob as object,
+          });
           continue;
         }
 
@@ -299,6 +330,19 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       await recordIngestionStats(source, fetched, added, duplicates);
     } catch (statsError) {
       console.error(`Failed to record stats for ${source}:`, statsError);
+    }
+
+    // Batch-insert rejected jobs for accuracy analysis
+    if (rejectedJobs.length > 0) {
+      try {
+        await prisma.rejectedJob.createMany({
+          data: rejectedJobs,
+          skipDuplicates: true,
+        });
+        console.log(`[${source.toUpperCase()}] Logged ${rejectedJobs.length} rejected jobs for analysis`);
+      } catch (rejErr) {
+        console.error(`[${source.toUpperCase()}] Failed to log rejected jobs:`, rejErr);
+      }
     }
 
     return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds };

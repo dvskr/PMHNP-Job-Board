@@ -552,3 +552,21 @@ model AutofillTelemetry {
   @@index([createdAt])
   @@map("autofill_telemetry")
 }
+
+model RejectedJob {
+  id              String   @id @default(uuid())
+  title           String
+  employer        String?
+  location        String?
+  applyLink       String?  @map("apply_link")
+  externalId      String?  @map("external_id")
+  sourceProvider  String   @map("source_provider")
+  rejectionReason String   @map("rejection_reason")
+  rawData         Json?    @map("raw_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([sourceProvider])
+  @@index([rejectionReason])
+  @@index([createdAt])
+  @@map("rejected_jobs")
+}
