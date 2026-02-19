@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Validate required fields
-        const { title, content, meta_description, target_keyword, category, status, publish_date, format } =
+        const { title, content, meta_description, target_keyword, category, status, publish_date, format, image_url } =
             body;
 
         if (!title || !content) {
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
             content: finalContent,
             meta_description: meta_description || null,
             target_keyword: target_keyword || null,
+            image_url: image_url || null,
             category,
             status: postStatus,
             publish_date: publish_date || (postStatus === 'published' ? new Date().toISOString() : null),

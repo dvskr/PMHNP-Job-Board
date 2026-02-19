@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         return { title: 'Article Not Found' };
     }
 
-    const ogImage = 'https://pmhnphiring.com/api/og';
+    const ogImage = post.image_url || 'https://pmhnphiring.com/api/og';
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
@@ -117,7 +117,7 @@ export default async function BlogPostPage({ params }: Props) {
             '@type': 'WebPage',
             '@id': currentUrl,
         },
-        image: 'https://pmhnphiring.com/api/og',
+        image: post.image_url || 'https://pmhnphiring.com/api/og',
         keywords: post.target_keyword || undefined,
         articleSection: categoryLabel,
         url: currentUrl,
@@ -191,6 +191,18 @@ export default async function BlogPostPage({ params }: Props) {
                     </div>
                 </div>
             </header>
+
+            {/* Featured Image */}
+            {post.image_url && (
+                <div className="max-w-4xl mx-auto px-4 -mb-4 mt-8">
+                    <img
+                        src={post.image_url}
+                        alt={post.title}
+                        className="w-full h-auto max-h-[480px] object-cover rounded-xl shadow-md"
+                        loading="eager"
+                    />
+                </div>
+            )}
 
             {/* Content Area */}
             <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">

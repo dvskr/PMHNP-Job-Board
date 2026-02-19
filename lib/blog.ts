@@ -13,6 +13,7 @@ export interface BlogPost {
     category: BlogCategory;
     status: 'draft' | 'published';
     publish_date: string | null;
+    image_url: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -70,7 +71,7 @@ export async function getPublishedPosts(
 
     let query = supabase
         .from('blog_posts')
-        .select('id, title, slug, meta_description, category, publish_date, created_at')
+        .select('id, title, slug, meta_description, category, publish_date, created_at, image_url')
         .eq('status', 'published')
         .order('publish_date', { ascending: false, nullsFirst: false })
         .range(offset, offset + limit - 1);
