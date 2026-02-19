@@ -4,7 +4,7 @@ export interface FilterState {
   jobType: string[];       // ['Full-Time', 'Part-Time', 'Contract', 'Per Diem']
   specialty: string[];     // ['Telehealth', 'Travel', 'New Grad']
   salaryMin: number | null;
-  postedWithin: string | null;  // '24h', '7d', '30d', 'all'
+  postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
 }
 
@@ -29,6 +29,7 @@ export interface FilterCounts {
   };
   postedWithin: {
     '24h': number;
+    '3d': number;
     '7d': number;
     '30d': number;
   };

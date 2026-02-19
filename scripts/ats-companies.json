@@ -1,0 +1,127 @@
+{
+  "greenhouse": {
+    "firsthand": "firsthand Health",
+    "guidelighthealth": "Guidelight Health",
+    "solmentalhealth": "Ignite Mental Health",
+    "sondermind": "SonderMind Careers"
+  },
+  "lever": {
+    "lifestance": "LifeStance Health"
+  },
+  "workday": {
+    "benefis": {
+      "instance": "1",
+      "site": "?",
+      "employer": "Benefis Health System"
+    },
+    "bmc": {
+      "instance": "1",
+      "site": "?",
+      "employer": "BMC Software"
+    },
+    "brightli": {
+      "instance": "5",
+      "site": "?",
+      "employer": "BrightAI"
+    },
+    "brownhealth": {
+      "instance": "12",
+      "site": "?",
+      "employer": "Brown Medicine"
+    },
+    "canopygrowth": {
+      "instance": "3",
+      "site": "?",
+      "employer": "Canopy Growth Corporation"
+    },
+    "centerstone": {
+      "instance": "5",
+      "site": "?",
+      "employer": "Centerstone"
+    },
+    "humana": {
+      "instance": "5",
+      "site": "?",
+      "employer": "CenterWell"
+    },
+    "geodehealth": {
+      "instance": "1",
+      "site": "?",
+      "employer": "Geode Health"
+    },
+    "premera": {
+      "instance": "5",
+      "site": "?",
+      "employer": "Kinwell"
+    },
+    "lmh": {
+      "instance": "1",
+      "site": "?",
+      "employer": "LMH Health"
+    },
+    "mainegeneral": {
+      "instance": "5",
+      "site": "?",
+      "employer": "MaineGeneral Health System"
+    },
+    "meharrymedicalcollege": {
+      "instance": "12",
+      "site": "?",
+      "employer": "Meharry Medical College"
+    },
+    "monarch": {
+      "instance": "5",
+      "site": "?",
+      "employer": "MONARCH"
+    },
+    "multicare": {
+      "instance": "1",
+      "site": "?",
+      "employer": "MultiCare Health System"
+    },
+    "communicarehealth": {
+      "instance": "1",
+      "site": "?",
+      "employer": "NewVista Behavioral Health"
+    },
+    "saintlukes": {
+      "instance": "1",
+      "site": "?",
+      "employer": "Saint Luke's Health System"
+    },
+    "seamar": {
+      "instance": "12",
+      "site": "?",
+      "employer": "Sea Mar Community Health Centers"
+    },
+    "tuftsmedicine": {
+      "instance": "1",
+      "site": "?",
+      "employer": "Tufts Medicine"
+    }
+  },
+  "ashby": {},
+  "other": {
+    "www.paycomonline.net": "SUN BEHAVIORAL HEALTH GROUP",
+    "aspenmedical.applytojob.com": "Aspen Medical",
+    "atlasmedical.isolvedhire.com": "Atlasmedical",
+    "avenuesrecovery.applicantpro.com": "Avenuesrecovery",
+    "jobs.workable.com": "GoToTelemed",
+    "jobs.smartrecruiters.com": "Vericare",
+    "covenantfamilysolutions.isolvedhire.com": "Covenantfamilysolutions",
+    "familyconnections.applytojob.com": "Family Connections, Inc.",
+    "jobs.dayforcehcm.com": "Liberty Resources / Liberty POST",
+    "mastercenterforaddictionmedicine.applytojob.com": "Master Center for Addiction Medicine",
+    "mcrhealthinfo.applicantpro.com": "Mcrhealthinfo",
+    "medvidi.com": "Medvidi",
+    "midcolumbiacenterforliving.applytojob.com": "Mid-Columbia Center for Living",
+    "midcityobgyn.applicantpro.com": "Midcityobgyn",
+    "mindfulcare.isolvedhire.com": "Mindfulcare",
+    "mindifywellnessandcare.applytojob.com": "Mindify Wellness And Care",
+    "newcommunityclinic.isolvedhire.com": "Newcommunityclinic",
+    "nobleheartshrconsulting.applicantpro.com": "Nobleheartshrconsulting",
+    "stepsdetox.isolvedhire.com": "Stepsdetox",
+    "tonation-nsnhealthcare.isolvedhire.com": "Tonation-nsnhealthcare",
+    "urrly.breezy.hr": "Urrly"
+  }
+}

@@ -16,7 +16,7 @@ import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
-import { pingAllSearchEnginesBatch } from './search-indexing';
+import { pingAllSearchEnginesBatch, pingGoogle, pingIndexNow } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr';
@@ -483,6 +483,27 @@ export async function ingestJobs(
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
+    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
+
+    // First, find the jobs we're about to expire so we can build URLs for de-indexing
+    const jobsToExpire = await prisma.job.findMany({
+      where: {
+        isPublished: true,
+        OR: [
+          { expiresAt: { lt: now } },
+          {
+            originalPostedAt: { lt: maxAgeDate },
+            sourceProvider: { not: null },
+          },
+        ],
+      },
+      select: { id: true, title: true },
+    });
+
+    if (jobsToExpire.length === 0) {
+      console.log('[Cleanup] No expired jobs found');
+      return 0;
+    }
 
     // Sweep 1: Unpublish jobs past their expiresAt date
     const expiredResult = await prisma.job.updateMany({
@@ -498,7 +519,6 @@ export async function cleanupExpiredJobs(): Promise<number> {
     });
 
     // Sweep 2: Unpublish jobs older than 120 days (max lifetime cap)
-    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
     const agedOutResult = await prisma.job.updateMany({
       where: {
         originalPostedAt: {
@@ -513,8 +533,106 @@ export async function cleanupExpiredJobs(): Promise<number> {
       },
     });
 
-    const total = expiredResult.count + agedOutResult.count;
-    console.log(`[Cleanup] Cleaned up ${expiredResult.count} expired + ${agedOutResult.count} aged-out (>120d) = ${total} total`);
+    // Sweep 3: Check ATS job apply links for liveness (404 = unpublish)
+    const ATS_SOURCES = ['greenhouse', 'lever', 'ashby'];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const atsJobs = await prisma.job.findMany({
+      where: {
+        isPublished: true,
+        sourceProvider: { in: ATS_SOURCES },
+        applyLink: { not: '' },
+        // Only check jobs older than 7 days to avoid false positives on freshly posted
+        originalPostedAt: { lt: sevenDaysAgo },
+      },
+      select: { id: true, title: true, applyLink: true, sourceProvider: true },
+    });
+
+    let deadLinks = 0;
+    const deadJobIds: string[] = [];
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < atsJobs.length; i += BATCH_SIZE) {
+      const batch = atsJobs.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (job) => {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(job.applyLink!, {
+              method: 'HEAD',
+              redirect: 'follow',
+              signal: controller.signal,
+              headers: { 'User-Agent': 'PMHNPHiring-LinkChecker/1.0' },
+            });
+            clearTimeout(timeout);
+            // 404 or 410 = job removed
+            if (response.status === 404 || response.status === 410) {
+              return { dead: true, job };
+            }
+            return { dead: false, job };
+          } catch {
+            // Network errors, timeouts = don't unpublish (could be temporary)
+            return { dead: false, job };
+          }
+        })
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.dead) {
+          deadLinks++;
+          deadJobIds.push(result.value.job.id);
+          console.log(`[Cleanup] Dead link: [${result.value.job.sourceProvider}] "${result.value.job.title}"`);
+        }
+      }
+
+      // Rate limit: 200ms between batches
+      if (i + BATCH_SIZE < atsJobs.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+
+    if (deadJobIds.length > 0) {
+      await prisma.job.updateMany({
+        where: { id: { in: deadJobIds } },
+        data: { isPublished: false },
+      });
+    }
+    console.log(`[Cleanup] Checked ${atsJobs.length} ATS links, found ${deadLinks} dead`);
+
+    const total = expiredResult.count + agedOutResult.count + deadLinks;
+    console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out + ${deadLinks} dead links = ${total}`);
+
+    // Notify search engines to de-index expired job URLs
+    const allExpiredJobs = [...jobsToExpire, ...atsJobs.filter(j => deadJobIds.includes(j.id as string))];
+    if (allExpiredJobs.length > 0) {
+      try {
+        const { slugify } = await import('./utils');
+        const expiredUrls = allExpiredJobs.map(job => {
+          const slug = slugify(job.title, job.id);
+          return `https://pmhnphiring.com/jobs/${slug}`;
+        });
+
+        console.log(`[Cleanup] Sending URL_DELETED for ${expiredUrls.length} expired jobs...`);
+
+        // Send URL_DELETED to Google (individual, capped at 200/day)
+        const GOOGLE_CAP = 200;
+        const googleUrls = expiredUrls.slice(0, GOOGLE_CAP);
+        let googleOk = 0;
+        for (const url of googleUrls) {
+          const result = await pingGoogle(url, 'URL_DELETED');
+          if (result.success) googleOk++;
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // IndexNow for batch de-indexing (Bing, Yandex, etc.)
+        const indexNowResults = await pingIndexNow(expiredUrls);
+        const indexNowOk = indexNowResults.filter(r => r.success).length;
+
+        console.log(`[Cleanup] De-index results: Google ${googleOk}/${googleUrls.length}, IndexNow ${indexNowOk}/${expiredUrls.length}`);
+      } catch (indexError) {
+        console.error('[Cleanup] Failed to notify search engines about expired jobs:', indexError);
+      }
+    }
 
     return total;
   } catch (error) {

@@ -22,9 +22,10 @@ const C = {
 // ─── Build a single alert email HTML ──────────────────────────────────────────
 function buildAlertHtml(
   jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; mode?: string | null }>,
-  alertToken: string
+  alertToken: string,
+  totalCount?: number
 ): string {
-  const jobCount = jobs.length
+  const jobCount = totalCount || jobs.length
   const displayJobs = jobs.slice(0, 10)
 
   const salaryBadge = (text: string) =>
@@ -64,11 +65,11 @@ function buildAlertHtml(
               </table>
             </td>
           </tr>
-          ${jobCount > 10 ? `
+          ${jobCount > displayJobs.length ? `
           <tr>
             <td class="content-pad" style="padding: 8px 40px 0;">
               <p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; text-align: center;">
-                + ${jobCount - 10} more matching jobs
+                + ${jobCount - displayJobs.length} more matching jobs
               </p>
             </td>
           </tr>` : ''}
@@ -170,21 +171,26 @@ export async function sendJobAlerts(): Promise<{
           whereClause.jobType = alert.jobType
         }
         if (alert.minSalary) {
-          whereClause.minSalary = { gte: alert.minSalary }
+          whereClause.normalizedMaxSalary = { gte: alert.minSalary }
+        }
+        if (alert.maxSalary) {
+          whereClause.normalizedMinSalary = { lte: alert.maxSalary }
         }
 
-        const matchingJobs = await prisma.job.findMany({
-          where: whereClause,
-          orderBy: [
-            { isFeatured: 'desc' },
-            { createdAt: 'desc' },
-          ],
-          take: 10,
-        })
+        // Get total count first, then fetch top 10 for the email
+        const totalCount = await prisma.job.count({ where: whereClause })
 
-        if (matchingJobs.length > 0) {
-          const jobCount = matchingJobs.length
-          const html = buildAlertHtml(matchingJobs, alert.token)
+        if (totalCount > 0) {
+          const matchingJobs = await prisma.job.findMany({
+            where: whereClause,
+            orderBy: [
+              { isFeatured: 'desc' },
+              { createdAt: 'desc' },
+            ],
+            take: 10,
+          })
+
+          const html = buildAlertHtml(matchingJobs, alert.token, totalCount)
 
           emailPayloads.push({
             alertId: alert.id,
@@ -192,7 +198,7 @@ export async function sendJobAlerts(): Promise<{
             payload: {
               from: EMAIL_FROM,
               to: alert.email,
-              subject: `🔔 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
+              subject: `🔔 ${totalCount} New PMHNP Job${totalCount > 1 ? 's' : ''} Match Your Alert`,
               html,
             },
           })

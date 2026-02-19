@@ -26,29 +26,107 @@ function stripHtml(html: string): string {
 
 
 
-function extractSalary(text: string): { min: number | null; max: number | null; period: string | null } {
-  // Match patterns like "$120,000", "$120k", "$120,000 - $150,000", "$50/hour"
-  const annualPattern = /\$(\d{1,3}(?:,?\d{3})*(?:k)?)\s*(?:-|to)?\s*\$?(\d{1,3}(?:,?\d{3})*(?:k)?)?(?:\s*(?:per\s*)?(?:year|annual|yearly|pa|p\.a\.))?/gi;
-  const hourlyPattern = /\$(\d{1,3}(?:\.\d{2})?)\s*(?:-|to)?\s*\$?(\d{1,3}(?:\.\d{2})?)?(?:\s*(?:per\s*)?(?:hour|hr|hourly))/gi;
-
-  let match = hourlyPattern.exec(text);
-  if (match) {
-    const min = parseFloat(match[1]);
-    const max = match[2] ? parseFloat(match[2]) : null;
-    return { min, max, period: 'hour' };
+export function extractSalary(text: string): { min: number | null; max: number | null; period: string | null } {
+  // Helper to parse a dollar amount string like "120,000", "120k", "55.50"
+  function parseDollar(s: string): number {
+    const cleaned = s.replace(/,/g, '').trim();
+    if (/k$/i.test(cleaned)) {
+      return parseFloat(cleaned.replace(/k$/i, '')) * 1000;
+    }
+    return parseFloat(cleaned);
   }
 
-  match = annualPattern.exec(text);
+  // Common separator pattern: -, –, —, to, through
+  const sep = '(?:\\s*[-–—]\\s*|\\s+to\\s+|\\s+through\\s+)';
+  // Dollar amount: $120,000 or $120k or $55.50
+  const amt = '\\$([\\d,]+(?:\\.\\d{1,2})?(?:k)?)';
+
+  // 1. HOURLY: "$50/hour", "$45 - $55 per hour", "$40/hr"
+  const hourly = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*hour|per\\s*hr|\\/\\s*(?:hour|hr)|hourly)', 'gi');
+  let match = hourly.exec(text);
   if (match) {
-    const min = match[1].toLowerCase().includes('k')
-      ? parseFloat(match[1].replace(/k/i, '').replace(/,/g, '')) * 1000
-      : parseFloat(match[1].replace(/,/g, ''));
-    const max = match[2]
-      ? (match[2].toLowerCase().includes('k')
-        ? parseFloat(match[2].replace(/k/i, '').replace(/,/g, '')) * 1000
-        : parseFloat(match[2].replace(/,/g, '')))
-      : null;
-    return { min, max, period: 'year' };
+    return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'hour' };
+  }
+
+  // 2. DAILY: "$490 - $680 per day", "$500/day"
+  const daily = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*day|\\/\\s*day|daily|per\\s*diem)', 'gi');
+  match = daily.exec(text);
+  if (match) {
+    return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'day' };
+  }
+
+  // 3. WEEKLY: "$2,000/week", "$1,800 - $2,500 per week"
+  const weekly = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*week|\\/\\s*(?:week|wk)|weekly)', 'gi');
+  match = weekly.exec(text);
+  if (match) {
+    return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'week' };
+  }
+
+  // 4. BIWEEKLY: "$3,500 biweekly", "$3,000 - $4,000 biweekly"
+  const biweekly = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:bi-?weekly|every\\s*(?:two|2)\\s*weeks)', 'gi');
+  match = biweekly.exec(text);
+  if (match) {
+    return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'biweekly' };
+  }
+
+  // 5. MONTHLY: "$8,000/month", "$7,000 - $10,000 per month"
+  const monthly = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*month|\\/\\s*(?:month|mo)|monthly)', 'gi');
+  match = monthly.exec(text);
+  if (match) {
+    return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'month' };
+  }
+
+  // 6. ANNUAL (explicit): "$120,000/year", "$100k - $150k annually", "$120,000 per annum"
+  const annual = new RegExp(amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?\\s*(?:per\\s*year|\\/\\s*(?:year|yr)|annual(?:ly)?|yearly|per\\s*annum|p\\.?a\\.?)', 'gi');
+  match = annual.exec(text);
+  if (match) {
+    return { min: parseDollar(match[1]), max: match[2] ? parseDollar(match[2]) : null, period: 'year' };
+  }
+
+  // 7. RANGE WITH SALARY CONTEXT (no explicit period): "Salary: $100,000 - $150,000"
+  // "compensation: $120k-$140k", "pay range: $50 - $65", "earning potential $120,000+"
+  const salaryContext = new RegExp(
+    '(?:salary|compensation|pay|earning|income|wage|rate)\\s*(?:range|of|is|:)?\\s*(?:up\\s+to\\s+)?' +
+    amt + '(?:' + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?))?',
+    'gi'
+  );
+  match = salaryContext.exec(text);
+  if (match) {
+    const min = parseDollar(match[1]);
+    const max = match[2] ? parseDollar(match[2]) : null;
+    // Infer period from value magnitude
+    const period = min > 500 ? 'year' : 'hour';
+    return { min, max, period };
+  }
+
+  // 8. GENERIC RANGE (no period keyword): "$120,000 - $150,000" or "$120k-$150k"
+  // Only match if values look like salaries (not funding, deductibles, etc.)
+  const genericRange = new RegExp(amt + sep + '\\$?([\\d,]+(?:\\.\\d{1,2})?(?:k)?)', 'gi');
+  match = genericRange.exec(text);
+  if (match) {
+    const min = parseDollar(match[1]);
+    const max = parseDollar(match[2]);
+
+    // Filter false positives: skip funding amounts, insurance, sign-on bonuses
+    const context = text.substring(Math.max(0, (match.index || 0) - 50), (match.index || 0) + match[0].length + 50).toLowerCase();
+    const isFalsePositive =
+      context.includes('funding') || context.includes('raised') || context.includes('series') ||
+      context.includes('deductible') || context.includes('malpractice') || context.includes('insurance') ||
+      context.includes('sign-on') || context.includes('sign on') || context.includes('bonus') ||
+      context.includes('revenue') || context.includes('investment');
+
+    if (!isFalsePositive) {
+      // Infer period from value magnitude
+      if (min >= 15 && min <= 200 && max >= 15 && max <= 500) {
+        return { min, max, period: 'hour' };
+      } else if (min >= 200 && min <= 5000 && max >= 200 && max <= 10000) {
+        // Could be daily or weekly
+        if (min <= 1000) return { min, max, period: 'day' };
+        return { min, max, period: 'week' };
+      } else if (min >= 20000) {
+        return { min, max, period: 'year' };
+      }
+    }
   }
 
   return { min: null, max: null, period: null };
@@ -120,7 +198,8 @@ export function validateAndNormalizeSalary(
   minSalary: number | null,
   maxSalary: number | null,
   description: string,
-  title: string
+  title: string,
+  extractedPeriod?: string | null
 ): { minSalary: number | null; maxSalary: number | null; salaryPeriod: string | null } {
   let min = minSalary;
   let max = maxSalary;
@@ -131,11 +210,22 @@ export function validateAndNormalizeSalary(
     return { minSalary: null, maxSalary: null, salaryPeriod: null };
   }
 
-  // Step 2: Detect salary period from magnitude
-  // NPs don't make $40k/week, so if salary > 40000, it's annual.
-  if ((min && min > 40000) || (max && max > 40000)) {
+  // Map extractSalary period names to normalized names
+  const periodMap: Record<string, string> = {
+    'hour': 'hourly', 'hourly': 'hourly',
+    'day': 'daily', 'daily': 'daily',
+    'week': 'weekly', 'weekly': 'weekly',
+    'biweekly': 'biweekly',
+    'month': 'monthly', 'monthly': 'monthly',
+    'year': 'annual', 'annual': 'annual',
+  };
+
+  // Use extracted period if available, otherwise detect from magnitude
+  if (extractedPeriod && periodMap[extractedPeriod]) {
+    period = periodMap[extractedPeriod];
+  } else if ((min && min > 40000) || (max && max > 40000)) {
     period = 'annual';
-  } else if (!period) {
+  } else {
     const ref = min || max || 0;
     if (ref < 500) {
       period = 'hourly';    // $50-200/hr typical PMHNP
@@ -157,9 +247,15 @@ export function validateAndNormalizeSalary(
     } else if (period === 'annual') {
       return salary > 500000 || salary < 30000;
     }
-    // For weekly/monthly, use reasonable ranges
+    // For daily/weekly/biweekly/monthly, use reasonable ranges
+    if (period === 'daily') {
+      return salary > 2000 || salary < 100;
+    }
     if (period === 'weekly') {
       return salary > 10000 || salary < 400;
+    }
+    if (period === 'biweekly') {
+      return salary > 20000 || salary < 800;
     }
     if (period === 'monthly') {
       return salary > 40000 || salary < 2000;
@@ -283,8 +379,12 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       return null;
     }
 
-    // Global Freshness Filter (90 Days - Expanded for Scale)
-    if (originalPostedAt && !isNaN(originalPostedAt.getTime())) {
+    // Global Freshness Filter (90 Days)
+    // Skip for ATS sources (greenhouse, lever, ashby, bamboohr) — their APIs only
+    // return currently open positions, so postedDate age is irrelevant.
+    // originalPostedAt is still preserved for UI "Posted Within" filters.
+    const atsSources = ['greenhouse', 'lever', 'ashby', 'bamboohr'];
+    if (!atsSources.includes(source) && originalPostedAt && !isNaN(originalPostedAt.getTime())) {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       if (originalPostedAt < ninetyDaysAgo) {
@@ -299,10 +399,12 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
     const fullText = `${title} ${fullDescription} ${location}`;
 
     // Extract salary from description if not provided
+    let extractedPeriod: string | null = null;
     if (!salaryMin && !salaryMax) {
       const extracted = extractSalary(fullText);
       salaryMin = extracted.min;
       salaryMax = extracted.max;
+      extractedPeriod = extracted.period;
     }
 
     // Validate and normalize salary data
@@ -310,7 +412,8 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       salaryMin,
       salaryMax,
       fullText,
-      title
+      title,
+      extractedPeriod
     );
     salaryMin = validatedSalary.minSalary;
     salaryMax = validatedSalary.maxSalary;

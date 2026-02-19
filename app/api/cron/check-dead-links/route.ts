@@ -1,39 +1,36 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-const BATCH_SIZE = 50;
-const REQUEST_TIMEOUT_MS = 8000; // 8s per URL check
-const MAX_JOBS_PER_RUN = 200; // Limit per cron run to stay under Vercel timeout
-const TIME_BUDGET_MS = 250_000; // 250s budget
+const BATCH_SIZE = 15;
+const REQUEST_TIMEOUT_MS = 8000;
+const MAX_JOBS_PER_RUN = 1500;  // Check up to 1500 per run
+const TIME_BUDGET_MS = 250_000; // 250s budget (Vercel 300s max)
+const BATCH_DELAY_MS = 200;     // Rate-limit delay between batches
 
 /**
- * Check if an apply URL is still reachable
- * Uses HEAD request first (faster), falls back to GET on failure
+ * Check if an apply URL is still reachable.
+ * HEAD first (faster), falls back to GET on 405/403.
+ * 404/410 = dead. Network errors = assume alive (transient).
  */
-async function isLinkAlive(url: string): Promise<boolean> {
+async function isLinkAlive(url: string): Promise<{ alive: boolean; status: number }> {
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-        // Try HEAD request first (faster, no body download)
         const response = await fetch(url, {
             method: 'HEAD',
             redirect: 'follow',
             signal: controller.signal,
             headers: {
-                'User-Agent': 'PMHNP-Hiring-Bot/1.0 (link-checker)',
+                'User-Agent': 'Mozilla/5.0 (compatible; PMHNPHiring-LinkChecker/1.0)',
             },
         });
-
         clearTimeout(timeout);
 
-        // 2xx and 3xx are alive
-        if (response.ok) return true;
+        if (response.ok) return { alive: true, status: response.status };
+        if (response.status === 404 || response.status === 410) return { alive: false, status: response.status };
 
-        // 404, 410 = dead
-        if (response.status === 404 || response.status === 410) return false;
-
-        // 405 Method Not Allowed — some servers don't support HEAD, try GET
+        // Some servers block HEAD — retry with GET
         if (response.status === 405 || response.status === 403) {
             const controller2 = new AbortController();
             const timeout2 = setTimeout(() => controller2.abort(), REQUEST_TIMEOUT_MS);
@@ -43,20 +40,22 @@ async function isLinkAlive(url: string): Promise<boolean> {
                 redirect: 'follow',
                 signal: controller2.signal,
                 headers: {
-                    'User-Agent': 'PMHNP-Hiring-Bot/1.0 (link-checker)',
+                    'User-Agent': 'Mozilla/5.0 (compatible; PMHNPHiring-LinkChecker/1.0)',
                 },
             });
-
             clearTimeout(timeout2);
-            return getResponse.ok;
+
+            if (getResponse.status === 404 || getResponse.status === 410) {
+                return { alive: false, status: getResponse.status };
+            }
+            return { alive: getResponse.ok, status: getResponse.status };
         }
 
-        // Other errors (500, 502, 503) — assume temporarily down, not dead
-        return true;
-    } catch (error) {
-        // Network errors, timeouts — assume temporarily unreachable
-        // Don't unpublish on transient failures
-        return true;
+        // 5xx errors — assume temporarily down, not dead
+        return { alive: true, status: response.status };
+    } catch {
+        // Network errors, timeouts — don't unpublish (could be temporary)
+        return { alive: true, status: 0 };
     }
 }
 
@@ -76,20 +75,24 @@ export async function GET(req: Request) {
     try {
         console.log('[Dead Link Check] Starting...');
 
-        // Get published jobs, oldest-checked first
-        // Jobs that have never been checked (linkLastCheckedAt is null) come first
+        // Get published external jobs with apply links
+        // Order by updatedAt ASC so the least-recently-checked jobs get checked first.
+        // After we check a job, its updatedAt stays the same (we only update on unpublish),
+        // ensuring a fair rotation.
         const jobs = await prisma.job.findMany({
             where: {
                 isPublished: true,
-                sourceType: 'external', // Only check external jobs (employer jobs are managed)
+                sourceType: 'external',
+                applyLink: { not: '' },
             },
             select: {
                 id: true,
                 applyLink: true,
                 title: true,
+                sourceProvider: true,
             },
             orderBy: {
-                updatedAt: 'asc', // Check oldest-updated jobs first
+                updatedAt: 'asc',
             },
             take: MAX_JOBS_PER_RUN,
         });
@@ -100,11 +103,13 @@ export async function GET(req: Request) {
         let dead = 0;
         let alive = 0;
         let errors = 0;
+        const deadIds: string[] = [];
+        const deadBySource: Record<string, number> = {};
 
         for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
             // Time budget check
             if (Date.now() - startTime >= TIME_BUDGET_MS) {
-                console.warn(`[Dead Link Check] Time budget exhausted. Checked ${checked}/${jobs.length} jobs.`);
+                console.warn(`[Dead Link Check] Time budget exhausted at ${checked}/${jobs.length} jobs.`);
                 break;
             }
 
@@ -112,23 +117,18 @@ export async function GET(req: Request) {
 
             const results = await Promise.allSettled(
                 batch.map(async (job) => {
-                    try {
-                        const linkAlive = await isLinkAlive(job.applyLink);
+                    if (!job.applyLink) return 'error';
+                    const result = await isLinkAlive(job.applyLink);
 
-                        if (!linkAlive) {
-                            // Mark as unpublished
-                            await prisma.job.update({
-                                where: { id: job.id },
-                                data: { isPublished: false },
-                            });
-                            console.log(`[Dead Link Check] ❌ Dead link: "${job.title}" → ${job.applyLink}`);
-                            return 'dead';
-                        }
-
-                        return 'alive';
-                    } catch {
-                        return 'error';
+                    if (!result.alive) {
+                        deadIds.push(job.id as string);
+                        const src = job.sourceProvider || 'unknown';
+                        deadBySource[src] = (deadBySource[src] || 0) + 1;
+                        console.log(`[Dead Link Check] 💀 [${src}] "${job.title}" → ${result.status}`);
+                        return 'dead';
                     }
+
+                    return result.status === 0 ? 'error' : 'alive';
                 })
             );
 
@@ -142,10 +142,38 @@ export async function GET(req: Request) {
                     errors++;
                 }
             }
+
+            // Batch unpublish every 50 dead links to avoid accumulating too many
+            if (deadIds.length >= 50 && deadIds.length % 50 < BATCH_SIZE) {
+                await prisma.job.updateMany({
+                    where: { id: { in: deadIds } },
+                    data: { isPublished: false },
+                });
+            }
+
+            // Rate limit between batches
+            if (i + BATCH_SIZE < jobs.length) {
+                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+            }
+        }
+
+        // Final batch unpublish
+        if (deadIds.length > 0) {
+            await prisma.job.updateMany({
+                where: { id: { in: deadIds } },
+                data: { isPublished: false },
+            });
         }
 
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const summary = { checked, alive, dead, errors, elapsedSeconds: elapsed };
+        const summary = {
+            checked,
+            alive,
+            dead,
+            errors,
+            deadBySource,
+            elapsedSeconds: elapsed,
+        };
 
         console.log(`[Dead Link Check] Complete:`, summary);
 

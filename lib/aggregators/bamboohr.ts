@@ -90,6 +90,53 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Fetch full job description from the BambooHR detail API.
+ * Returns stripped text or empty string on failure.
+ */
+async function fetchJobDescription(companySlug: string, jobId: string): Promise<string> {
+    const url = `https://${companySlug}.bamboohr.com/careers/${jobId}/detail`;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        const res = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) return '';
+
+        const data = await res.json() as { result?: { jobOpening?: { description?: string } } };
+        const html = data.result?.jobOpening?.description || '';
+        // Strip HTML tags to get plain text for relevance checking
+        return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Check if a job title is a generic NP title that might be a PMHNP role.
+ * These titles need description enrichment for accurate filtering.
+ */
+function isAmbiguousNPTitle(title: string): boolean {
+    const lower = title.toLowerCase();
+    const hasNP = lower.includes('nurse practitioner') ||
+        lower.includes(' np') ||
+        lower.includes('aprn') ||
+        lower.includes('arnp');
+    const alreadyPMHNP = lower.includes('pmhnp') ||
+        lower.includes('psychiatric') ||
+        lower.includes('psych np') ||
+        lower.includes('mental health');
+    return hasNP && !alreadyPMHNP;
+}
+
+/**
  * Fetch job listings from a single BambooHR company
  */
 async function fetchCompanyJobs(company: { slug: string; name: string }): Promise<BambooHRJobRaw[]> {
@@ -122,19 +169,39 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
             const title = job.jobOpeningName || '';
             const location = job.locationLabelAlt || '';
             const department = job.departmentLabel || '';
+            const baseDescription = `${department} ${title}`;
 
-            // Use the same relevance filter as other aggregators
-            if (!isRelevantJob(title, `${department} ${location}`)) continue;
+            // Pass 1: Check relevance with title + department info
+            if (isRelevantJob(title, baseDescription)) {
+                relevant.push({
+                    externalId: `bamboohr-${company.slug}-${job.id}`,
+                    title,
+                    company: company.name,
+                    location,
+                    description: baseDescription,
+                    applyLink: `https://${company.slug}.bamboohr.com/careers/${job.id}`,
+                    jobType: job.employmentStatusLabel || undefined,
+                });
+                continue;
+            }
 
-            relevant.push({
-                externalId: `bamboohr-${company.slug}-${job.id}`,
-                title,
-                company: company.name,
-                location,
-                description: `${department} - ${title}`,
-                applyLink: `https://${company.slug}.bamboohr.com/careers/${job.id}`,
-                jobType: job.employmentStatusLabel || undefined,
-            });
+            // Pass 2: For ambiguous NP titles, fetch full description and re-check
+            if (isAmbiguousNPTitle(title)) {
+                const fullDescription = await fetchJobDescription(company.slug, job.id);
+                if (fullDescription && isRelevantJob(title, fullDescription)) {
+                    relevant.push({
+                        externalId: `bamboohr-${company.slug}-${job.id}`,
+                        title,
+                        company: company.name,
+                        location,
+                        description: fullDescription.substring(0, 2000),
+                        applyLink: `https://${company.slug}.bamboohr.com/careers/${job.id}`,
+                        jobType: job.employmentStatusLabel || undefined,
+                    });
+                }
+                // Small delay between detail fetches
+                await sleep(150);
+            }
         }
 
         if (relevant.length > 0) {

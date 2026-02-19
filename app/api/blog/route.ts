@@ -117,9 +117,10 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.error('[Blog API] Error creating post:', error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[Blog API] Error creating post:', message);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: `Failed to create blog post: ${message}` },
             { status: 500 }
         );
     }

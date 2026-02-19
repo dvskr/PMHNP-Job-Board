@@ -160,6 +160,17 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'tempus', instance: 1, site: 'External', name: 'Tempus AI' },
     { slug: 'tuftsmedicine', instance: 1, site: 'jobs', name: 'Tufts Medicine' },
     { slug: 'umchealthsystem', instance: 1, site: 'External', name: 'UMC Health System (Lubbock)' },
+
+    // === ADDED 2026-02-19 — ats-jobs-db API discovery ===
+    { slug: 'geodehealth', instance: 1, site: 'geode', name: 'Geode Health' },                      // 108 jobs
+    { slug: 'lmh', instance: 1, site: 'lmhjobs', name: 'LMH Health' },                              // 96 jobs
+    { slug: 'mainegeneral', instance: 5, site: 'mainegeneralcareers', name: 'MaineGeneral Health' }, // 206 jobs
+    { slug: 'monarch', instance: 5, site: 'monarch', name: 'Monarch' },                              // 293 jobs
+    { slug: 'bmc', instance: 1, site: 'bmc', name: 'Boston Medical Center' },                        // 827 jobs
+    { slug: 'brownhealth', instance: 12, site: 'External_Careers', name: 'Brown Medicine' },          // 1675 jobs
+    { slug: 'centerstone', instance: 5, site: 'centerstonecareers', name: 'Centerstone' },            // 169 jobs
+    { slug: 'meharrymedicalcollege', instance: 12, site: 'External', name: 'Meharry Medical College' }, // 91 jobs
+    { slug: 'seamar', instance: 12, site: 'sea_mar', name: 'Sea Mar Community Health Centers' },      // 425 jobs
 ];
 
 function sleep(ms: number): Promise<void> {
