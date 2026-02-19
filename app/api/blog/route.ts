@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Validate required fields
-        const { title, content, meta_description, target_keyword, category, status, publish_date } =
+        const { title, content, meta_description, target_keyword, category, status, publish_date, format } =
             body;
 
         if (!title || !content) {
@@ -78,13 +78,14 @@ export async function POST(request: NextRequest) {
         const slug = await generateUniqueSlug(title);
 
         // Create the post
-        // Auto-format the markdown content for better readability
-        const formattedContent = formatBlogContent(content);
+        // Only auto-format if explicitly requested (format: true)
+        // OpenAI already produces clean markdown, so default is no formatting
+        const finalContent = format ? formatBlogContent(content) : content;
 
         const post = await createBlogPost({
             title,
             slug,
-            content: formattedContent,
+            content: finalContent,
             meta_description: meta_description || null,
             target_keyword: target_keyword || null,
             category,

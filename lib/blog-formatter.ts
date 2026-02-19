@@ -28,7 +28,7 @@ const INTERNAL_LINK_MAP: [RegExp, string][] = [
 ];
 
 /** Regex to match a raw URL (not already inside a markdown link) */
-const RAW_URL_RE = /(?<!\]\()(?<!\()(?<!")(?<!\[)(https?:\/\/pmhnphiring\.com\/[^\s)"',;!>\]]*[^\s)"',;!.>\]])/g;
+const RAW_URL_RE = /(?<!\]\()(?<!\()(?<!")(?<!\[)(https?:\/\/pmhnphiring\.com\/[^\s)"',;!<>\]]*[^\s)"',;!.<>\]])/g;
 
 /** Convert raw pmhnphiring.com URLs into descriptive markdown links */
 function formatInternalLinks(content: string): string {
@@ -273,6 +273,10 @@ export function formatBlogContent(content: string): string {
     if (!content || content.trim().length === 0) return content;
 
     let formatted = content;
+
+    // 0. Normalize newlines: ensure ## headings always start on their own line
+    //    AI sometimes sends content with no line breaks before headings
+    formatted = formatted.replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2');
 
     // 1. Fix heading spacing first (structural)
     formatted = fixHeadingSpacing(formatted);
