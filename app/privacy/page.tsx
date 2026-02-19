@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { AlertTriangle, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | PMHNP Jobs',
-  description: 'Privacy Policy for PMHNP Jobs. Learn how we collect, use, and protect your information.',
+  title: 'Privacy Policy | PMHNP Hiring',
+  description: 'Privacy Policy for PMHNP Hiring. Learn how we collect, use, and protect your information.',
   alternates: {
     canonical: 'https://pmhnphiring.com/privacy',
   },
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Privacy Policy', url: 'https://pmhnphiring.com/privacy' },
+      ]} />
       <article className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 md:p-12">
         {/* Legal Disclaimer */}
         <div className="mb-8 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
@@ -27,7 +32,7 @@ export default function PrivacyPage() {
         {/* Header */}
         <header className="mb-12 pb-6 border-b border-gray-200">
           <div className="flex items-center gap-3 mb-3">
-            <Shield className="w-10 h-10 text-blue-600" />
+            <Shield className="w-10 h-10 text-teal-600" />
             <h1 className="text-4xl font-bold text-gray-900">
               Privacy Policy
             </h1>
@@ -42,7 +47,7 @@ export default function PrivacyPage() {
           {/* Introduction */}
           <section className="mb-10">
             <p className="text-gray-700 leading-relaxed mb-4">
-              At PMHNP Jobs, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.
+              At PMHNP Hiring, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.
             </p>
             <p className="text-gray-700 leading-relaxed">
               Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.
@@ -318,7 +323,7 @@ export default function PrivacyPage() {
               We will respond to your inquiry within 30 days.
             </p>
             <p className="text-gray-700 leading-relaxed mt-4">
-              For general questions about our service, please visit our <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">FAQ page</Link> or <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">Contact page</Link>.
+              For general questions about our service, please visit our <Link href="/faq" className="text-teal-600 hover:text-teal-700 underline">FAQ page</Link> or <Link href="/contact" className="text-teal-600 hover:text-teal-700 underline">Contact page</Link>.
             </p>
           </section>
 
@@ -365,19 +370,19 @@ export default function PrivacyPage() {
         {/* Bottom Navigation */}
         <footer className="mt-12 pt-8 border-t border-gray-200">
           <div className="flex flex-wrap gap-4 justify-center text-sm">
-            <Link href="/terms" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/terms" className="text-teal-600 hover:text-teal-700 underline">
               Terms of Service
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/faq" className="text-teal-600 hover:text-teal-700 underline">
               FAQ
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/about" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/about" className="text-teal-600 hover:text-teal-700 underline">
               About Us
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/contact" className="text-teal-600 hover:text-teal-700 underline">
               Contact
             </Link>
           </div>

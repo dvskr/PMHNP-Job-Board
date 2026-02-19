@@ -1,0 +1,204 @@
+<!--
+  BambooHR ATS Application Form Fixture
+  Based on: company.bamboohr.com/careers standard application template
+  Fields: .fab-Field classes, data-testid attributes, candidate information
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>BambooHR Application</title>
+</head>
+
+<body>
+    <div class="ApplicationPage" data-testid="application-page">
+        <form class="fab-Form" data-testid="application-form" method="post" enctype="multipart/form-data">
+
+            <!-- Personal Information -->
+            <div class="fab-FormSection" data-testid="personal-info-section">
+                <h3 class="fab-FormSection__title">Your Information</h3>
+
+                <div class="fab-Field" data-testid="field-firstName">
+                    <label for="firstName" class="fab-Label">First Name <span
+                            class="fab-Label--required">*</span></label>
+                    <input type="text" id="firstName" name="firstName" class="fab-TextInput"
+                        data-testid="input-firstName" required>
+                </div>
+
+                <div class="fab-Field" data-testid="field-lastName">
+                    <label for="lastName" class="fab-Label">Last Name <span class="fab-Label--required">*</span></label>
+                    <input type="text" id="lastName" name="lastName" class="fab-TextInput" data-testid="input-lastName"
+                        required>
+                </div>
+
+                <div class="fab-Field" data-testid="field-email">
+                    <label for="email" class="fab-Label">Email <span class="fab-Label--required">*</span></label>
+                    <input type="email" id="email" name="email" class="fab-TextInput" data-testid="input-email"
+                        required>
+                </div>
+
+                <div class="fab-Field" data-testid="field-phone">
+                    <label for="phone" class="fab-Label">Phone</label>
+                    <input type="tel" id="phone" name="phone" class="fab-TextInput" data-testid="input-phone">
+                </div>
+
+                <div class="fab-Field" data-testid="field-city">
+                    <label for="city" class="fab-Label">City</label>
+                    <input type="text" id="city" name="city" class="fab-TextInput" data-testid="input-city">
+                </div>
+
+                <div class="fab-Field" data-testid="field-state">
+                    <label for="state" class="fab-Label">State</label>
+                    <select id="state" name="state" class="fab-Select" data-testid="select-state">
+                        <option value="">Select...</option>
+                        <option value="Alabama">Alabama</option>
+                        <option value="Alaska">Alaska</option>
+                        <option value="Arizona">Arizona</option>
+                        <option value="California">California</option>
+                        <option value="Colorado">Colorado</option>
+                        <option value="Texas">Texas</option>
+                        <option value="New York">New York</option>
+                    </select>
+                </div>
+
+                <div class="fab-Field" data-testid="field-zip">
+                    <label for="zip" class="fab-Label">Zip Code</label>
+                    <input type="text" id="zip" name="zip" class="fab-TextInput" data-testid="input-zip">
+                </div>
+            </div>
+
+            <!-- Resume -->
+            <div class="fab-FormSection" data-testid="resume-section">
+                <h3 class="fab-FormSection__title">Resume</h3>
+                <div class="fab-Field" data-testid="field-resume">
+                    <label class="fab-Label">Resume / CV <span class="fab-Label--required">*</span></label>
+                    <input type="file" name="resume" class="fab-FileInput" data-testid="input-resume"
+                        accept=".pdf,.doc,.docx,.txt,.rtf">
+                </div>
+            </div>
+
+            <!-- Links -->
+            <div class="fab-FormSection" data-testid="links-section">
+                <h3 class="fab-FormSection__title">Links</h3>
+                <div class="fab-Field" data-testid="field-linkedin">
+                    <label for="linkedinUrl" class="fab-Label">LinkedIn Profile</label>
+                    <input type="url" id="linkedinUrl" name="linkedinUrl" class="fab-TextInput"
+                        data-testid="input-linkedin" placeholder="https://linkedin.com/in/...">
+                </div>
+                <div class="fab-Field" data-testid="field-website">
+                    <label for="websiteUrl" class="fab-Label">Portfolio / Website</label>
+                    <input type="url" id="websiteUrl" name="websiteUrl" class="fab-TextInput"
+                        data-testid="input-website" placeholder="https://...">
+                </div>
+            </div>
+
+            <!-- Education -->
+            <div class="fab-FormSection" data-testid="education-section">
+                <h3 class="fab-FormSection__title">Education</h3>
+                <div class="fab-Field" data-testid="field-school">
+                    <label for="school" class="fab-Label">School / University</label>
+                    <input type="text" id="school" name="school" class="fab-TextInput" data-testid="input-school">
+                </div>
+                <div class="fab-Field" data-testid="field-degree">
+                    <label for="degree" class="fab-Label">Degree</label>
+                    <select id="degree" name="degree" class="fab-Select" data-testid="select-degree">
+                        <option value="">Select...</option>
+                        <option value="Associate's">Associate's</option>
+                        <option value="Bachelor's">Bachelor's</option>
+                        <option value="Master's">Master's</option>
+                        <option value="Master of Science in Nursing">Master of Science in Nursing</option>
+                        <option value="Doctorate">Doctorate</option>
+                        <option value="Doctor of Nursing Practice">Doctor of Nursing Practice</option>
+                    </select>
+                </div>
+                <div class="fab-Field" data-testid="field-major">
+                    <label for="fieldOfStudy" class="fab-Label">Major / Field of Study</label>
+                    <input type="text" id="fieldOfStudy" name="fieldOfStudy" class="fab-TextInput"
+                        data-testid="input-major">
+                </div>
+            </div>
+
+            <!-- Screening Questions -->
+            <div class="fab-FormSection" data-testid="screening-section">
+                <h3 class="fab-FormSection__title">Additional Questions</h3>
+
+                <div class="fab-Field" data-testid="field-workAuth">
+                    <label for="workAuth" class="fab-Label">Are you authorized to work in the United States?</label>
+                    <select id="workAuth" name="workAuth" class="fab-Select" data-testid="select-workAuth">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="fab-Field" data-testid="field-sponsorship">
+                    <label for="sponsorship" class="fab-Label">Will you require sponsorship?</label>
+                    <select id="sponsorship" name="sponsorship" class="fab-Select" data-testid="select-sponsorship">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="fab-Field" data-testid="field-coverLetter">
+                    <label for="coverLetter" class="fab-Label">Cover Letter</label>
+                    <textarea id="coverLetter" name="coverLetter" class="fab-Textarea" data-testid="input-coverLetter"
+                        rows="5" placeholder="Tell us why you're interested..."></textarea>
+                </div>
+            </div>
+
+            <!-- EEO Section -->
+            <div class="fab-FormSection" data-testid="eeo-section">
+                <h3 class="fab-FormSection__title">Equal Employment Opportunity</h3>
+
+                <div class="fab-Field" data-testid="field-gender">
+                    <label for="eeoGender" class="fab-Label">Gender</label>
+                    <select id="eeoGender" name="eeoGender" class="fab-Select" data-testid="select-gender">
+                        <option value="">Select...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="fab-Field" data-testid="field-race">
+                    <label for="eeoRace" class="fab-Label">Race / Ethnicity</label>
+                    <select id="eeoRace" name="eeoRace" class="fab-Select" data-testid="select-race">
+                        <option value="">Select...</option>
+                        <option value="Hispanic or Latino">Hispanic or Latino</option>
+                        <option value="White">White</option>
+                        <option value="Black or African American">Black or African American</option>
+                        <option value="Asian">Asian</option>
+                        <option value="Two or More Races">Two or More Races</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="fab-Field" data-testid="field-veteran">
+                    <label for="eeoVeteran" class="fab-Label">Veteran Status</label>
+                    <select id="eeoVeteran" name="eeoVeteran" class="fab-Select" data-testid="select-veteran">
+                        <option value="">Select...</option>
+                        <option value="I am a protected veteran">I am a protected veteran</option>
+                        <option value="I am not a veteran">I am not a veteran</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="fab-Field" data-testid="field-disability">
+                    <label for="eeoDisability" class="fab-Label">Disability Status</label>
+                    <select id="eeoDisability" name="eeoDisability" class="fab-Select" data-testid="select-disability">
+                        <option value="">Select...</option>
+                        <option value="Yes, I have a disability">Yes, I have a disability</option>
+                        <option value="No, I do not have a disability">No, I do not have a disability</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="fab-Button fab-Button--primary" data-testid="submit-button">Submit
+                Application</button>
+        </form>
+    </div>
+</body>
+
+</html>

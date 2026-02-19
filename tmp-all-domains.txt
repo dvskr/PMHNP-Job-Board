@@ -1,0 +1,688 @@
+=== ALL Apply Link Domains (6329 jobs) ===
+
+Domain                                                  | Count | Sample Employer
+------------------------------------------------------- | ----- | ----------------------------------------
+learn4good.com                                          |  1068 | Stryker Corporation
+indeed.com                                              |   711 | STEPS Detox
+us.bebee.com                                            |   562 | Reparo Health
+adzuna.com                                              |   548 | Brightside Health
+doccafe.com                                             |   310 | Universal Health Services (UHS)
+jobilize.com                                            |   305 | CompHealth
+jobs.lever.co                                           |   263 | Lifestance
+gothamenterprisesltd.com                                |   133 | Jamaica Medical Clinic
+talent.com                                              |   126 | DocCafe
+linkedin.com                                            |   125 | Mood Treatment Center
+marithealth.com                                         |   121 | Lifestance Health
+nursingjobcafe.com                                      |   110 | GO Staffing
+whatjobs.com                                            |   102 | Hayman Daugherty Associates
+us.jobrapido.com                                        |    88 | Stryker Corporation
+medicalhirings.talentrushhq.com                         |    84 | LifeStance Health
+job-boards.greenhouse.io                                |    67 | SonderMind
+jobserve.com                                            |    58 | LifeStance Health
+jobs.stevenagefc.com                                    |    56 | International SOS Government Medical Services
+us.trabajo.org                                          |    53 | UMass Med School
+practicematch.com                                       |    51 | LifeStance Health
+fcspsy.com                                              |    45 | FCS, Inc.
+us.sercanto.com                                         |    43 | Lifestance Health
+jobleads.com                                            |    42 | Community Bridges
+jobzmall.com                                            |    30 | Massachusetts General Hospital
+jobs.ksnt.com                                           |    29 | PGS NH Care
+doximity.com                                            |    28 | LifeStance Health
+jobs.kget.com                                           |    27 | LocumJobsOnline
+physicianjob.com                                        |    26 | TeamHealth Corporate
+mdsearch.com                                            |    24 | Atlantic MEDsearch
+physemp.com                                             |    24 | Team Health
+jobs.smartrecruiters.com                                |    24 | Olesky Associates
+nchcr.com                                               |    23 | National Coalition Of Healthcare Recruiters
+jacobscenter.org                                        |    19 | Headway
+ihireadvancedpractitioners.com                          |    17 | New Directions Mental Health, New Directions Mental Health
+providermatching.com                                    |    17 | CoHear/BCS
+enpnetwork.com                                          |    16 | Family Health Center of Worcester
+intelycare.com                                          |    15 | University of Michigan Health-West
+trabajos.univision.com                                  |    13 | Mastersofpediatrics
+jobs.ka-recruiting.com                                  |    13 | K.A. Recruiting
+hospitalrecruiting.com                                  |    13 | Archway Physician Recruitment
+ihirementalhealth.com                                   |    12 | Valleywise Health System
+apply.usastaffing.gov                                   |    11 | Veterans Health Administration
+jobs.womenforhire.com                                   |    11 | Rula Health
+talentify.io                                            |    10 | Supportive Care
+teamhealth.com                                          |    10 | TeamHealth
+jobs.kxnet.com                                          |    10 | GO Staffing
+bandana.com                                             |    10 | State of Wyoming
+job-boards.eu.greenhouse.io                             |    10 | COMPASS Pathways
+zippia.com                                              |     9 | Universal Health Services
+pmhnphiring.com                                         |     9 | Serenity Healthcare, LLC
+jobs.uhsinc.com                                         |     9 | Summit Oaks Hospital
+governmentjobs.com                                      |     9 | State of Iowa
+keithabrownconsulting.com                               |     9 | K.A. Recruiting, Inc.
+candidate.nphire.com                                    |     8 | LocumTenens.com
+psychiatryrecruitment.org                               |     8 | Monroe & Weisbrod
+jobs.inline.group                                       |     8 | Springfield Health Center
+damienfoster.com.au                                     |     7 | Headway
+salutemyjob.com                                         |     7 | Columbia Mental Health, Columbia Mental Health
+brooklynhealthpt.com                                    |     7 | MindBodyPinnacle Health LLC
+clearholistictherapies.com                              |     7 | Korzen Health
+alamedaseniormagazine.com                               |     7 | RWJBarnabas Health
+jobtarget.com                                           |     7 | Recovery Monitoring Solutions Corporation
+firenzelodging.it                                       |     6 | Seasoned Recruitment
+careerboard.com                                         |     6 | LifeStance Health
+anirak.com                                              |     6 | Seasoned Recruitment
+aecliving.com                                           |     6 | Metta Psychiatry
+digiteck3d.com                                          |     6 | BlueSky Telepsych
+alcarazautomotores.com.ar                               |     6 | LifeStance Health
+dailyremote.com                                         |     6 | Renew Mental Health
+serenityhomes.com                                       |     6 | LifeStance Health
+remotive.com                                            |     6 | Brightways Counseling Group
+jobs.bswhealth.com                                      |     6 | Baylor Scott & White Health
+chauhanmedicity.com                                     |     5 | Korzen Health
+jobs.khon2.com                                          |     5 | Seasoned Recruitment
+careers.upstate.edu                                     |     5 | SUNY Upstate Medical University
+gutmicrobiomenews.com                                   |     5 | Cambridge Medical Professionals
+simplify.jobs                                           |     5 | Virtua Health
+weequahicalumni.org                                     |     5 | Serenity Healthcare
+clinicavanthienen.com                                   |     5 | MASC Medical
+porta23.com                                             |     5 | Headway
+georgiapappis.com                                       |     5 | Mindful Health Solutions
+practiceseeker.com                                      |     4 | confidential
+brackenridgeconstruction.com                            |     4 | Seasoned Recruitment
+charliehealth.com                                       |     4 | Charliehealth
+healthecareers.com                                      |     4 | LocumTenens.com
+medsourceconsultants.com                                |     4 | Medsource
+virtualvocations.com                                    |     4 | Seasoned Recruitment
+jobs.ashbyhq.com                                        |     4 | Reklame Health
+allproasset.com                                         |     4 | Seasoned Recruitment
+careers.apha.org                                        |     4 | Penn State Health
+petersonresearch.com.au                                 |     4 | Headway
+careers.mhanational.org                                 |     4 | LifeStance Health
+lms1995.com                                             |     4 | Headway
+palomaontario.com                                       |     4 | TeamHealth
+doctorschoiceplacement.com                              |     4 | Doctor's Choice Placement
+jobs.kdvr.com                                           |     4 | Headway
+barbarosbarberia.cl                                     |     4 | Headway
+medstaffnationwide.com                                  |     4 | MedStaff Nationwide
+regalaunacancion.com.ar                                 |     4 | Get It Recruit - Healthcare
+higheredjobs.com                                        |     4 | Texas State University
+wayup.com                                               |     4 | Ace Wellness Center
+careervault.io                                          |     4 | Author Health
+summitconstr.com                                        |     3 | Eleanor Health
+enterprisemed.com                                       |     3 | Enterprise Medical Recruiting
+traqueokids.org                                         |     3 | Integrity Placement Group
+goresearch.id                                           |     3 | Health Care Recruiting
+jobs.aspiremediagroup.net                               |     3 | LifeStance Health
+careeronestop.org                                       |     3 | OptiMindHealth
+hospitaljobsonline.com                                  |     3 | Sterling Medical Corporation
+tajprinting.co.uk                                       |     3 | Serenity Mental Health Centers
+tonyspeciale.com                                        |     3 | UPMC - Pittsburgh Medical Center
+app.directshifts.com                                    |     3 | DirectShifts
+marineresale.net                                        |     3 | Mindpath Health
+baptistjax.com                                          |     3 | Baptist Health
+talents.vaia.com                                        |     3 | Advantmed Careers
+colegionutricionsf.org.ar                               |     3 | Medical On Demand
+accentucare.com                                         |     3 | LifeStance Health
+pickleballroadwarrior.com                               |     3 | Department of Veterans Affairs
+thelexingtonienne.com                                   |     3 | Child and Family Guidance Center
+hayeslocums.com                                         |     3 | Hayes Locums
+nppajobsearch.com                                       |     3 | Jackson & Coker
+usajobs.gov                                             |     3 | Iowa City VA Health Care System
+app.hellotriad.com                                      |     3 | Thriveworks
+pmhnpcareers.com                                        |     3 | Care New England Medical Group
+entree3.com                                             |     3 | Headway
+remotenursingjobs.com                                   |     3 | Array Behavioral Care
+swamisukhabodhananda.com                                |     3 | Wellpath
+jobs.edinburghcityfc.com                                |     3 | Harbor Point Behavioral Health Center, Inc.
+wynnsgrainandspice.com                                  |     3 | Orange County, FL
+theboard.trueworkzone.com                               |     3 | Elev8 Recovery
+labroche-funeraire.fr                                   |     3 | UnitedHealth Group
+clps.edu.mx                                             |     3 | Mindful Behavioral Health PLLC
+gobeyondthebedside.com                                  |     3 | Talkiatry
+windpowersports.com                                     |     3 | Family Services of Westchester
+app.careerpuck.com                                      |     3 | Prenuvo
+asahihoikuen.net                                        |     2 | Personalized Health Partners
+main.hercjobs.org                                       |     2 | The Ohio State University
+careers.lgslegacycare.com                               |     2 | Legacy Care
+mahoneyalpineadventures.com                             |     2 | Serenity Healthcare
+my.recruitmilitary.com                                  |     2 | Elliot, Southern New Hampshire Health, SolutionHealth
+piedmontcareers.org                                     |     2 | Piedmont Careers
+jobright.ai                                             |     2 | Brave Health
+jobs.valleycentral.com                                  |     2 | Headway
+riviamind.com                                           |     2 | RIVIA Mind
+recruiterflow.com                                       |     2 | Talent Doc
+chuckgracer.com                                         |     2 | Mindpath Health
+ca.bebee.com                                            |     2 | Fraser Health Authority
+librinuovi.net                                          |     2 | MedSource Consultants
+jobs.wtnh.com                                           |     2 | Headway
+healthjobsnationwide.com                                |     2 | TeamHealth
+jobsource.aacap.org                                     |     2 | Atlantic Health
+jobs.ynhhs.org                                          |     2 | Yale New Haven Health
+careers.liveandworkinmaine.com                          |     2 | Katahdin Valley Health Center
+jobs.fox4kc.com                                         |     2 | Headway - Design & Development
+remote.co                                               |     2 | Blackbird Health
+remoterole.page.gd                                      |     2 | Topsiksha
+i4searchgroup.com                                       |     2 | i4 Search Group
+adenterprises.ca                                        |     2 | OnSite Healthcare and Wellness, LLC
+incrediblehealth.com                                    |     2 | Incredible Health
+jobs.jobvite.com                                        |     2 | The IMA Group
+stmgaard.dk                                             |     2 | Work with Willow
+jobs.wbtw.com                                           |     2 | Headway
+smitharnold.com                                         |     2 | Smith Arnold Partners
+fullyevent.com                                          |     2 | The MedElite Group
+blackflymedia.com                                       |     2 | UnitedHealth Group
+dieudonnefoundation.org                                 |     2 | Fcs Co
+theretrieveracademy.com                                 |     2 | Headway
+jobs.ghrhealthcare.com                                  |     2 | GHR Healthcare
+workonward.com                                          |     2 | Symphony Medical
+usnlx.com                                               |     2 | UnityPoint Health
+vacancies.cu-fc.com                                     |     2 | LifeStance Health
+healthcarejobfinder.com                                 |     2 | H3O Wellness
+arthdhara.com                                           |     2 | Certus Psychiatry and Integrated Care
+agronigeria.ng                                          |     2 | Cordial Health
+jobs.lilylifestyle.co.uk                                |     2 | LifeStance Health
+headlightny.com                                         |     2 | Medical Search International
+virtuacareers.com                                       |     2 | Virtua
+careers.christushealth.org                              |     2 | CHRISTUS Health System
+scalppl.com                                             |     2 | Ozark Center
+host.pcrecruiter.net                                    |     2 | MedLeaders Group
+idf-assainissement.com                                  |     2 | Med Source Consultants
+providercareers.lifepointhealth.net                     |     2 | Lifepoint Careers
+jobbio.upskillist.com                                   |     2 | Horizon Health
+jobs.weekday.works                                      |     2 | Affect Therapeutics
+thebizdeal.com                                          |     2 | Family Care Center
+musc.career-pages.com                                   |     2 | MUSC
+irishpubconcept.com                                     |     2 | woodside health and wellness
+jobs.trinity-health.org                                 |     2 | Trinity Health
+careers.internationalsos.com                            |     2 | International SOS
+careers2-universalhealthservices.icims.com              |     2 | Arrowhead Behavioral Health
+totalpneuspe.com.br                                     |     2 | UltaCare Medical
+unmhjobs.com                                            |     2 | UNM Hospital
+lucaciuti.com                                           |     2 | SSStaffing
+nurturedmumma.com                                       |     2 | Sunbelt Staffing
+readinginspanglish.com                                  |     2 | Headway
+diza.com.mx                                             |     2 | Life.Church
+atmashaktitrust.org                                     |     2 | LifeStance Health
+meritedu.co.uk                                          |     2 | LifeStance Health
+alhindiya.com                                           |     2 | All Points North
+dadoralive.com                                          |     2 | Seasoned Recruitment
+jobs2careers.com                                        |     2 | Cambridge Medical Professionals
+milwaukeejobs.com                                       |     2 | Virtua
+onemedical.com                                          |     2 | One Medical
+jobs.viemedstaffing.com                                 |     1 | VieMed Healthcare Staffing
+ayalocums.com                                           |     1 | Aya Locums
+jobs.justlanded.be                                      |     1 | Advantmed
+useparallel.com                                         |     1 | Mantra Health
+katzbbq.com                                             |     1 | Headway
+jobs.kark.com                                           |     1 | Headway
+gunyik.com                                              |     1 | Seasoned Recruitment
+careers.uvahealth.org                                   |     1 | UVA Health
+tallo.com                                               |     1 | LifeStance Health
+jobs.fox16.com                                          |     1 | SonderMind Careers
+maapconline.enpnetwork.com                              |     1 | LifeStance Health
+jobs.virginia.edu                                       |     1 | University of Virginia
+topstatecareers.com                                     |     1 | Brightside Health
+jobs.tagmedstaffing.com                                 |     1 | TAG MedStaffing
+caddemarina.nl                                          |     1 | LifeStance Health
+jobs.northside.com                                      |     1 | Northside Hospital
+gdsolaire-inter.com                                     |     1 | Seasoned Recruitment
+jobs.appcast.io                                         |     1 | LifeStance Health
+ccar.jp                                                 |     1 | Fcs Co
+locumtenens.com                                         |     1 | LocumTenens.com
+south-midwest.hercjobs.org                              |     1 | The Ohio State University
+jobs.psychiatry.org                                     |     1 | Northern Light Acadia Hospital
+jobs.wexfordhealth.com                                  |     1 | Wexford Health
+joblink.socialworkers.org                               |     1 | LifeStance Health Inc.
+apply.storm-bots.eu                                     |     1 | Talkiatry
+join.naphcare.com                                       |     1 | Naphcare, Inc.
+careers.npwh.org                                        |     1 | Lehigh Valley Health Network
+jobs.localjobnetwork.com                                |     1 | UMass Med School
+northwayinfotech.com                                    |     1 | LifeStance Health
+progressioagency.com                                    |     1 | LifeStance Health
+careers.duke.edu                                        |     1 | Duke Careers
+talking-heads.agency                                    |     1 | Elios Talent
+jobs.tenethealth.com                                    |     1 | MetroWest (VHM) Physician Services, Inc
+careers.dukehealth.org                                  |     1 | Duke Health
+crepeau-maurice-demenagement.fr                         |     1 | Clarity Mental Health, PLLC
+2angelsfashion.gr                                       |     1 | InSync Healthcare Recruiters
+judge.com                                               |     1 | confidential
+jobs.weill.cornell.edu                                  |     1 | Weill Cornell Medical College
+blackfostercarersalliance.co.uk                         |     1 | Skyway Behavioral Health
+eotaudio.com                                            |     1 | Talkiatry
+jobs.information-age.com                                |     1 | Christus Health
+jobs.vetjobs.org                                        |     1 | OptiMindHealth
+careers.aaai.org                                        |     1 | ReKlame Health
+frederickmentalhealth.com                               |     1 | Frederick Mental Health
+allied-it.gr8jobs.net                                   |     1 | MINDPATH HEALTH
+mypharmacie.ma                                          |     1 | Vitaly Health
+banpa.enpnetwork.com                                    |     1 | TeamHealth
+satyamprints.co.in                                      |     1 | Stryker Corporation
+jobbank.medsocieties.org                                |     1 | LifeStance Health
+careers.viva-it.com                                     |     1 | VIVA USA INC
+mystaffing.agency                                       |     1 | SL Staffing
+twochairs.com                                           |     1 | Two Chairs
+bbhnegocios.com.br                                      |     1 | UnitedHealth Group
+ajayjain.com                                            |     1 | Done.
+jobs.talhealthcare.com                                  |     1 | Tal Healthcare
+confessionsofadietitian.com                             |     1 | Tufts Medicine
+careerpilot.skillxchange.io                             |     1 | Mindpath Health
+coastalkey.ca                                           |     1 | Serenity Healthcare, LLC
+nsucareers.nova.edu                                     |     1 | Nova Southeastern University
+lastingsupportfoundation.org                            |     1 | Battelle Memorial Institute
+artcover.co.za                                          |     1 | Ballad Health
+fiftystatesjobs.com                                     |     1 | SonderMind Careers
+waldenu.jobboardhq.com                                  |     1 | LifeSource, Inc
+talents.studysmarter.co.uk                              |     1 | Rac
+benefis.wd1.myworkdayjobs.com                           |     1 | CO_07 Benefis Medical Group, Inc.
+ameldefense.ca                                          |     1 | Northeast Family Services
+solylunafestival.com                                    |     1 | LifeStance Health
+beachhousefilms.com.au                                  |     1 | Kurz Solutions
+fmbradio.com                                            |     1 | LifeStance Health
+excelmortgageusa.com                                    |     1 | Clarity Mental Health PLLC
+zahradubai.com                                          |     1 | Seasoned Recruitment
+lamaisondesluminaires.com                               |     1 | US Veterans Health Administration
+raeluminshop.com                                        |     1 | KA Recruiting Inc.
+smartrecruiters.com                                     |     1 | New York Psychotherapy and Counseling Center
+totalhealthcarestaffing.com                             |     1 | Total Healthcare Staffing
+tamus.wd1.myworkdayjobs.com                             |     1 | Texas A&M University Health Science Center
+careers-page.com                                        |     1 | Korzen Health
+careers.felton.org                                      |     1 | Felton Institute
+sparlingconstruct.com                                   |     1 | iRecruitmd
+emperia1900.com                                         |     1 | Medical Advantage Recruiters
+muskjobs.co.uk                                          |     1 | VHS Recruitment
+leotrombetta.com                                        |     1 | Wellpath
+assofxg.com                                             |     1 | LifeSource, Inc.
+surfsearch.org                                          |     1 | Surf Search
+thriveworks.wd5.myworkdayjobs.com                       |     1 | Thriveworks Clinical - Oregon, LLC
+chsmedcareers.com                                       |     1 | Community Health Systems
+kyleoreilly.com                                         |     1 | Mindpath Health
+ropertfioul.fr                                          |     1 | Mindify Wellness And Care
+bharatishipmanagement.com                               |     1 | BlueSky Telepsych, LLC
+new.efe.edu.co                                          |     1 | Peace Healthcare Incorporated
+ertr.fa.us2.oraclecloud.com                             |     1 | INTEGRIS Health
+ecollincountyhomes.com                                  |     1 | LifeStance Health
+ca.trabajo.org                                          |     1 | Interior Health Authority
+apmhnp.enpnetwork.com                                   |     1 | Integrated Psychiatric Consultants
+resistacap.com                                          |     1 | Brightside Health
+forumdesarts-cahors.fr                                  |     1 | Wellpath
+gobiadvertising.com                                     |     1 | Medicus Healthcare Solutions
+bartonassociates.com                                    |     1 | Barton Associates - The Locum Tenens Jobs & Staffing Leader
+jobs.corecivic.com                                      |     1 | Core Civic
+careers.elliot-hs.org                                   |     1 | Elliot Health System
+careers.jamanetwork.com                                 |     1 | LifeStance Health
+careers.hhs.texas.gov                                   |     1 | TX-HHSC-DSHS-DFPS
+jobs.sutterhealth.org                                   |     1 | Sutter Health
+bebecomuncoeur.com                                      |     1 | Pine Heights Comprehensive Treatment Center
+jobs.uhcsolutions.com                                   |     1 | UHC Solutions
+danceminds.co.uk                                        |     1 | Seasoned Recruitment
+queeningafrika.com                                      |     1 | Headway
+remotenurseconnection.com                               |     1 | Reklame Health
+noorrashan.com                                          |     1 | Headway
+jobs.digitalhire.com                                    |     1 | Itrust Wellness Group
+jobs.venturebeat.com                                    |     1 | LA CLINICA DE FAMILIA, INC.
+applewoodcenters.applytojob.com                         |     1 | Applewood Centers
+careers.aah.org                                         |     1 | Advocate Aurora
+employment.gonzaga.edu                                  |     1 | Gonzaga University Careers
+torr.com                                                |     1 | MidValley Healthcare
+jobs.koin.com                                           |     1 | Headway
+veterans.usnlx.com                                      |     1 | Queen's Health System
+hirichwater.com                                         |     1 | Insynch Health PLLC
+eyesbydesign.ca                                         |     1 | Seasoned Recruitment
+bhlandau.com                                            |     1 | Headway
+380.in.ua                                               |     1 | NP Now
+cellstaff.com                                           |     1 | Cell Staff
+godaellimentalhealth.com                                |     1 | Godaelli Psychiatry
+center-for-community-alternatives.rippling-ats.com      |     1 | Center for Community Alternatives
+axerecruiting.com                                       |     1 | Axe Recruiting
+jobs.bilh.org                                           |     1 | Beth Israel Lahey Health
+theorg.com                                              |     1 | Eleanor Health
+employment.utah.edu                                     |     1 | University of Utah
+completestaffingsolutions.com                           |     1 | Complete Staffing Solutions
+activityjunction.com.au                                 |     1 | Freedom Behavioral
+jobs.battelle.org                                       |     1 | Battelle
+whereami.org                                            |     1 | The Mindset Counseling Group
+mrojasfotografia.com                                    |     1 | LifeStance Health
+betgbs.in                                               |     1 | PermiaCare
+internaljobs.premisehealth.com                          |     1 | Premise Health Internal
+medisyscareers.org                                      |     1 | Jamaica Hospital
+sanfordcareers.com                                      |     1 | Sanford Health
+careers.mountsinai.org                                  |     1 | Mount Sinai Health Systems
+hortigold.com.br                                        |     1 | Headway
+boocatclub.com                                          |     1 | Haven Behavioral Healthcare
+jobboard.bmes.org                                       |     1 | BVCAA HealthPoint
+energyjobline.com                                       |     1 | Energy Jobline ZR
+bigbendholidayhotel.com                                 |     1 | New Life of Community Health Services, Inc.
+jobs.virginia.gov                                       |     1 | Commonwealth of VA Careers
+jobs.adventhealth.com                                   |     1 | AdventHealth Careers
+jobot.com                                               |     1 | Jobot
+jacobsfamilyfoundation.org                              |     1 | Optum
+ibfportal.com                                           |     1 | The Edge Treatment Center
+careers.harvard.edu                                     |     1 | Harvard University
+careers.seattlechildrens.org                            |     1 | Seattle Children's Hospital
+jobs.premisehealth.com                                  |     1 | Premise Health
+careers.chenmed.com                                     |     1 | ChenMed
+digitalinfo.org                                         |     1 | KLAMATH BASIN BEHAVIORAL HEALTH
+jobs.hackensackmeridianhealth.org                       |     1 | HMHMG SPECIALTY CARE 570
+careers.akronchildrens.org                              |     1 | Akron Children's
+nirmandevelopmentsociety.com                            |     1 | Ethos Care Inc
+smoothsailingplumbing.com                               |     1 | Supportive Care
+mofexsa.com                                             |     1 | Serenity Healthcare
+jobs.marqueestaffing.com                                |     1 | Marquee Staffing
+greenkeyllc.com                                         |     1 | Greenkey Resources LLC
+apply.workable.com                                      |     1 | Greenlife Healthcare Staffing
+donvanwinkle.com                                        |     1 | Priority Health Care
+ashtproject.co.nz                                       |     1 | Seasoned Recruitment
+jobs.uhs.com                                            |     1 | UHS
+fusionhcs.com                                           |     1 | Fusion Healthcare Staffing
+employmentcrossing.com                                  |     1 | The University of Cincinnati
+stanfordcolleges.com                                    |     1 | Seasoned Recruitment
+jamaicabobsleigh.org                                    |     1 | Seasoned Recruitment
+careers.vitalcaring.com                                 |     1 | VitalCaring Group
+georgianinternational.in                                |     1 | Seasoned Recruitment
+sharadacollegebasrur.com                                |     1 | T.L. JOHNSON AGENCY LLC
+providers-reidhealth.icims.com                          |     1 | UNAVAILABLE
+jobs.wdtn.com                                           |     1 | Headway
+radarteknik.com                                         |     1 | Health & Psychiatry
+ijagjobs.us                                             |     1 | OptiMindHealth
+telehealth.org                                          |     1 | Community Partners Of South Florida
+perris.id.au                                            |     1 | LifeStance Health
+careers.uhhospitals.org                                 |     1 | University Hospitals Careers
+careers.upmc.com                                        |     1 | UPMC
+golfbusinesstechnologyconference.com                    |     1 | LifeStance Health
+gemacycling.pt                                          |     1 | Commonwealth Medical Services
+providers.commonspirit.careers                          |     1 | CHI Health Clinic
+face.am                                                 |     1 | Seasoned Recruitment
+clearwavementalhealth.com                               |     1 | Clearwave Mental Health
+majoretteevents.com                                     |     1 | David Raines Community Health Center
+amphibiandesign.com                                     |     1 | Cutting Edge Staffing LLC
+kokoland.de                                             |     1 | Serenity Mental Health Centers
+dhproviders.org                                         |     1 | New Hampshire Hospital
+kelolandemployment.com                                  |     1 | South Dakota State Government
+opentoworkremote.com                                    |     1 | HelloBackpack
+physicianempire.com                                     |     1 | Physician Empire
+jobs.northwell.edu                                      |     1 | Northwell Careers
+jobs.equest.com                                         |     1 | Supplemental Health Care
+orpca.org                                               |     1 | Mosaic Community Health
+hatchglobalsearch.na.teamtailor.com                     |     1 | Hatch Global Search
+careercenter.kyaap.org                                  |     1 | LifeStance Health
+dekemphaan.com                                          |     1 | Reap Healthcare Agents
+careers.tuftsmedicine.org                               |     1 | Tufts Medical Center
+gksindustries.com                                       |     1 | CHE Behavioral Health Services
+idahonursingjobs.blogspot.com                           |     1 | All Seasons Mental Health and Family Care Clinic
+careers.ercpathlight.com                                |     1 | ERC Pathlight
+careers.nyp.org                                         |     1 | NewYork-Presbyterian
+hhstaff.com                                             |     1 | Horizon Healthcare Staffing
+laindependiente.madrid                                  |     1 | CMR RECRUITING
+remotepulse.42web.io                                    |     1 | remotepulse.42web
+modernpsychandwellness.com                              |     1 | Modern Psych and Wellness
+creadordepoemas.com                                     |     1 | Turnwell Mental Health Network, Inc.
+rogersbh.wd1.myworkdayjobs.com                          |     1 | 101 Rogers Memorial Hospital, Inc.
+jobs.minnesotanonprofits.org                            |     1 | Face to Face Health & Counseling
+jobted.com                                              |     1 | AllCare ai
+kentuckynursingjobs.blogspot.com                        |     1 | FCSpsy
+aladdinpro.net                                          |     1 | MaineHealth
+ofcathyscottage.nl                                      |     1 | Inpatient Psych Solutions
+collegerecruiter.com                                    |     1 | LocumJobsOnline
+rnlineup.caretalentcenter.com                           |     1 | Supplemental Health Care
+mtgheritage.com                                         |     1 | Equanimity Integrated Behavioral Health and Wellness
+swaninterface.net                                       |     1 | Direct Jobs
+careers.covenanthealth.net                              |     1 | Covenant Health
+jobs.fox8.com                                           |     1 | Headway
+jofdav.com                                              |     1 | Healthstat, Inc
+swooped.co                                              |     1 | Advantmed
+careers.alignmedpartners.com                            |     1 | AlignMed
+zaitunacademy.com                                       |     1 | Essential Healthcare Solutions LLC
+iowanursingjobs.blogspot.com                            |     1 | Orchard Place
+jobs.geogroup.com                                       |     1 | The GEO Group
+elliotphysicians.org                                    |     1 | Elliot Health System
+vmailer.co.in                                           |     1 | Nova Medical Services
+indianstreetfood.dk                                     |     1 | AdeIphi MedicaI Staffing
+masbest.ca                                              |     1 | TTF
+arclintfl.com                                           |     1 | NaphCare, Inc.
+merichop.com                                            |     1 | Palm Careers
+hsapparelsourcing.com                                   |     1 | Thriveworks
+georgianursingjobs.blogspot.com                         |     1 | Anchor Hospital
+careers-vhchealth.icims.com                             |     1 | VHC Health
+aotvintage.com                                          |     1 | Life Solutions Counseling
+jobs.ksl.com                                            |     1 | ClearFamily Medical (formerly Empathetix of Clearfield)
+larsonmentalhealth.com                                  |     1 | Larson Mental Health
+cdo-couverture.fr                                       |     1 | PATH INTEGRATED HEALTH
+careers.unitedhealthgroup.com                           |     1 | UnitedHealth Group
+fgsconsultores.com                                      |     1 | Boston Mountain Rural Health Center
+annemariehall.com                                       |     1 | Supplemental Health Care
+communitysavedproject.org                               |     1 | Liberty_Resources
+hispanic-jobs.com                                       |     1 | LifeStance Health
+live.selfbuild.ie                                       |     1 | Advantmed
+findenmark.com                                          |     1 | Vensure Employer Solutions
+farmingvillethemovie.com                                |     1 | Northeast Healthcare Recruitment
+ideup.com.br                                            |     1 | Smith Arnold Partners
+sjobs.brassring.com                                     |     1 | Texas Tech Univ Health Sciences Ctr
+networktrafficbooster.com                               |     1 | Cordial Health
+ncsilhouette.com                                        |     1 | North TX BEhavioral
+jobswalah.in                                            |     1 | Lighthouse Psychiatry Brain Health Center
+careers.unitypoint.org                                  |     1 | UnityPoint Health | SC Siouxland Child Advocacy Ct
+bvibound.com                                            |     1 | Healthcare Staffing Plus
+careers.armorhealthcare.com                             |     1 | Armor Health
+up2staff.com                                            |     1 | LifeStance Health
+coiffeur-jeanyves.fr                                    |     1 | San Angelo Area Behavioral Health Practice
+tuneclub.com                                            |     1 | International Health and Medical Services
+paycomonline.net                                        |     1 | MIND BODY OPTIMIZATION 1
+robertwiner.com                                         |     1 | Headway
+imprimeriedusquare.fr                                   |     1 | woodside health and wellness
+nursingjobs.lww.com                                     |     1 | Department of Veterans Affairs
+babasweetsmelton.com.au                                 |     1 | Ironside Human Resources
+vivohealthstaff.recruitpro.com                          |     1 | Vivo HealthStaff
+kabaashop.com                                           |     1 | Seasoned Recruitment
+acadiacareers.com                                       |     1 | Acadia
+postjobfree.com                                         |     1 | Atlantic MEDsearch
+facilityjobs-acadiahealthcare.icims.com                 |     1 | Vantage Point Behavioral Health
+kansasnursingjobs.blogspot.com                          |     1 | National Medical
+pogodyducha.org.pl                                      |     1 | Center for Human Development
+protouchstaffing.com                                    |     1 | Protouch Staffing
+ukcolorectal.com                                        |     1 | TeamHealth
+katalystpublishers.com                                  |     1 | LifeStance Health
+jainfoodfestival.com                                    |     1 | Seasoned Recruitment
+sisapo.es                                               |     1 | Seasoned Recruitment
+rwjbarnabashealthcareers.org                            |     1 | RWJBarnabas Health
+career.nmanet.org                                       |     1 | Chapa De Indian Health
+harrisonelectricalinc.com                               |     1 | Sierra Health and Wellness Centers
+careers.rosecrance.org                                  |     1 | Rosecrance
+emperorbiryani.in                                       |     1 | Transitions Counseling and Consulting
+curativetalent.com                                      |     1 | Curative Talent
+jobs.nm.org                                             |     1 | Northwestern Medical Group
+
+Total unique domains: 484
+Total jobs: 6329
+
+=== UNHANDLED Domains (no ATS handler) ===
+
+learn4good.com                                          |  1068 | Stryker Corporation | https://www.learn4good.com/jobs/indiana/healthcare/4851238331/e/?utm_campaign=go
+us.bebee.com                                            |   562 | Reparo Health | https://us.bebee.com/job/ce577255b4411f31cfbebe96df97056f?utm_campaign=google_jo
+adzuna.com                                              |   548 | Brightside Health | https://www.adzuna.com/details/5543661962?utm_medium=api&utm_source=2e43c1fd
+doccafe.com                                             |   310 | Universal Health Services (UHS) | https://www.doccafe.com/job/nurse-practitioner/psychiatric-mental-health/2014010
+jobilize.com                                            |   305 | CompHealth | https://www.jobilize.com/amp/job/us-ca-san-francisco-psychiatric-nurse-practitio
+gothamenterprisesltd.com                                |   133 | Jamaica Medical Clinic | https://www.gothamenterprisesltd.com/find-jobs/nurse-practitioner-jobs/cmbxrqsie
+talent.com                                              |   126 | DocCafe | https://www.talent.com/view?id=7e61a0e864b8&utm_campaign=google_jobs_apply&utm_s
+marithealth.com                                         |   121 | Lifestance Health | https://www.marithealth.com/jobs/cf06ce6a-3b81-4474-a836-538377e13854?utm_campai
+nursingjobcafe.com                                      |   110 | GO Staffing | https://www.nursingjobcafe.com/job/nurse-practitioner/psychiatric-mental-health/
+whatjobs.com                                            |   102 | Hayman Daugherty Associates | https://www.whatjobs.com/jobs/nurse-practitioner-psychiatry-new-mexico-locum-ten
+us.jobrapido.com                                        |    88 | Stryker Corporation | https://us.jobrapido.com/jobpreview/7945873968592846848?utm_campaign=google_jobs
+medicalhirings.talentrushhq.com                         |    84 | LifeStance Health | https://medicalhirings.talentrushhq.com/joblistingpage/t5fyn7eegqhs-3dc8cb32632c
+jobserve.com                                            |    58 | LifeStance Health | https://www.jobserve.com/us/en/extjob/PMHNP-NURSE-PRACTITIONER-CHICAGO-IL-in-Chi
+jobs.stevenagefc.com                                    |    56 | International SOS Government Medical Services | https://jobs.stevenagefc.com/jobs/advanced-practice-psychiatric-provider-san-ant
+us.trabajo.org                                          |    53 | UMass Med School | https://us.trabajo.org/job-982-951c167363dcf8daf6ece4a8dcd11b41?utm_campaign=goo
+practicematch.com                                       |    51 | LifeStance Health | https://www.practicematch.com/advanced-practitioners/job-details.cfm/846210/psyc
+fcspsy.com                                              |    45 | FCS, Inc. | https://www.fcspsy.com/job/wa959/?utm_campaign=google_jobs_apply&utm_source=goog
+us.sercanto.com                                         |    43 | Lifestance Health | https://us.sercanto.com/detail/a/flexible-pmhnp-high-earning-psychiatry-nurse-pr
+jobleads.com                                            |    42 | Community Bridges | https://www.jobleads.com/us/job/psych-nurse-practitioner-non-crisis-phoenix-mesa
+jobzmall.com                                            |    30 | Massachusetts General Hospital | https://www.jobzmall.com/massachusetts-general-hospital/job/nurse-practitioner-n
+jobs.ksnt.com                                           |    29 | PGS NH Care | https://jobs.ksnt.com/jobs/travel-psychiatric-nurse-practitioner-pittsburgh-penn
+doximity.com                                            |    28 | LifeStance Health | https://www.doximity.com/careers/job_cards/b6d91059-576b-4f40-83a2-422db0e5b01e?
+jobs.kget.com                                           |    27 | LocumJobsOnline | https://jobs.kget.com/jobs/locum-nurse-practitioner-psychiatry-general-other-sai
+physicianjob.com                                        |    26 | TeamHealth Corporate | https://www.physicianjob.com/1435179/behavioral-health/nurse-practitioner-behavi
+mdsearch.com                                            |    24 | Atlantic MEDsearch | https://www.mdsearch.com/home/job-detail/nurse-practitioner/kentucky/14224995?ut
+physemp.com                                             |    24 | Team Health | https://www.physemp.com/nurse-allied/jobs/2196066?utm_campaign=google_jobs_apply
+nchcr.com                                               |    23 | National Coalition Of Healthcare Recruiters | https://www.nchcr.com/healthcare-job-opportunity-details?JobID=2279659&utm_campa
+jacobscenter.org                                        |    19 | Headway | https://www.jacobscenter.org/apply/job/licensed-psychiatric-np-at-headway-bismar
+ihireadvancedpractitioners.com                          |    17 | New Directions Mental Health, New Directions Mental Health | https://www.ihireadvancedpractitioners.com/jobs/view/507334806?utm_campaign=goog
+providermatching.com                                    |    17 | CoHear/BCS | https://www.providermatching.com/tools/exchange/job/pmhnp-job-opportunity-in-bel
+enpnetwork.com                                          |    16 | Family Health Center of Worcester | https://www.enpnetwork.com/nurse-practitioner-jobs/840410-nurse-practitioner-wor
+intelycare.com                                          |    15 | University of Michigan Health-West | https://www.intelycare.com/jobs/169104898-psychiatry-advanced-practice-provider-
+trabajos.univision.com                                  |    13 | Mastersofpediatrics | https://trabajos.univision.com/empleo/23-14660_863038585324B488711C3698A3204F20?
+jobs.ka-recruiting.com                                  |    13 | K.A. Recruiting | https://jobs.ka-recruiting.com/Inpatient-Psychiatric-Mental-Health-Nurse-Practit
+hospitalrecruiting.com                                  |    13 | Archway Physician Recruitment | https://www.hospitalrecruiting.com/job/828376/pmhnp-opening-in-frederick-md/?utm
+ihirementalhealth.com                                   |    12 | Valleywise Health System | https://www.ihirementalhealth.com/jobs/view/504692692?utm_campaign=google_jobs_a
+apply.usastaffing.gov                                   |    11 | Veterans Health Administration | https://apply.usastaffing.gov/Application/Apply
+jobs.womenforhire.com                                   |    11 | Rula Health | https://jobs.womenforhire.com/job/usa/pinson-al/psychiatric-mental-health-nurse-
+talentify.io                                            |    10 | Supportive Care | https://www.talentify.io/job/psychiatric-nurse-practitioner-manchester-vermont-u
+teamhealth.com                                          |    10 | TeamHealth | https://www.teamhealth.com/jobs/57053br-nurse-practitioner-behavioral-health-tyl
+jobs.kxnet.com                                          |    10 | GO Staffing | https://jobs.kxnet.com/jobs/permanent-pmhnp-opening-in-outpatient-psychiatry-por
+bandana.com                                             |    10 | State of Wyoming | https://bandana.com/jobs/a60e44b6-da37-4d82-a834-1e8a47431f92?utm_campaign=googl
+zippia.com                                              |     9 | Universal Health Services | https://www.zippia.com/job-listing/shippensburg-pa/psychiatric-nurse-practitione
+pmhnphiring.com                                         |     9 | Serenity Healthcare, LLC | https://pmhnphiring.com/jobs/pmhnp-tms-ketamine-therapy-specialist-las-colinas-1
+jobs.uhsinc.com                                         |     9 | Summit Oaks Hospital | https://jobs.uhsinc.com/summit-oaks-hospital/jobs/6652?lang=en-us&utm_campaign=g
+governmentjobs.com                                      |     9 | State of Iowa | https://www.governmentjobs.com/careers/iowa/jobs/5216664/psychiatric-nurse-pract
+keithabrownconsulting.com                               |     9 | K.A. Recruiting, Inc. | https://keithabrownconsulting.com/joblib/job/psychiatric-nppa-at-ka-recruiting-i
+candidate.nphire.com                                    |     8 | LocumTenens.com | https://candidate.nphire.com/jobs/67a5195d343df87687384e75/698bac5ec48a6c558655d
+psychiatryrecruitment.org                               |     8 | Monroe & Weisbrod | https://psychiatryrecruitment.org/jobs/new-york/locum-outpatient-c-a-or-adult-te
+jobs.inline.group                                       |     8 | Springfield Health Center | https://jobs.inline.group/northstarhealth/jobs/Nurse-Practitioner-NP-job-in-Spri
+damienfoster.com.au                                     |     7 | Headway | https://damienfoster.com.au/list/job/remote-licensed-psychiatric-nurse-practitio
+salutemyjob.com                                         |     7 | Columbia Mental Health, Columbia Mental Health | https://salutemyjob.com/jobs/advanced-practice-provider-in-behavioral-health-np-
+brooklynhealthpt.com                                    |     7 | MindBodyPinnacle Health LLC | https://brooklynhealthpt.com/work/job/psychiatric-mental-health-nurse-practition
+clearholistictherapies.com                              |     7 | Korzen Health | https://clearholistictherapies.com/career/job/pmhnp-psychiatric-nurse-practition
+alamedaseniormagazine.com                               |     7 | RWJBarnabas Health | https://alamedaseniormagazine.com/samples/job/pd-psych-nurse-practitioner-ryan-w
+jobtarget.com                                           |     7 | Recovery Monitoring Solutions Corporation | https://www.jobtarget.com/jobs/jt-35erf9s1yv/nurse-practitioner-psych-focus-engl
+firenzelodging.it                                       |     6 | Seasoned Recruitment | https://firenzelodging.it/samples/job/remote-psychiatric-mental-health-nurse-pra
+careerboard.com                                         |     6 | LifeStance Health | https://www.careerboard.com/search-jobs-in-Boston,-Massachusetts,-USA/NURSE-PRAC
+anirak.com                                              |     6 | Seasoned Recruitment | http://anirak.com/samples/job/psychiatric-mental-health-nurse-practitioner-remot
+aecliving.com                                           |     6 | Metta Psychiatry | https://aecliving.com/jobs/job/psychiatric-nurse-practitioner-hybrid-pmhnp-at-me
+digiteck3d.com                                          |     6 | BlueSky Telepsych | http://digiteck3d.com/job-library/job/psychiatric-mental-health-nurse-practition
+alcarazautomotores.com.ar                               |     6 | LifeStance Health | https://alcarazautomotores.com.ar/list/job/psychiatric-nurse-practitioner-pmhnp-
+dailyremote.com                                         |     6 | Renew Mental Health | https://dailyremote.com/remote-job/remote-pmhnp-4470877?utm_campaign=google_jobs
+serenityhomes.com                                       |     6 | LifeStance Health | https://serenityhomes.com/library/job/psychiatric-nurse-practitioner-pmhnp-job-a
+remotive.com                                            |     6 | Brightways Counseling Group | https://remotive.com/remote/jobs/medical/psychiatric-mental-health-nurse-practit
+jobs.bswhealth.com                                      |     6 | Baylor Scott & White Health | https://jobs.bswhealth.com/us/en/job/BSWHUS25020300EXTERNALENUS/Nurse-Practition
+chauhanmedicity.com                                     |     5 | Korzen Health | https://chauhanmedicity.com/library/job/pmhnp-psychiatric-mental-health-nurse-pr
+jobs.khon2.com                                          |     5 | Seasoned Recruitment | https://jobs.khon2.com/jobs/remote-pmhnp-flexible-schedule-clinical-independence
+careers.upstate.edu                                     |     5 | SUNY Upstate Medical University | https://careers.upstate.edu/jobs/np-adult-psychiatric-inpatient-consult-ed-syrac
+gutmicrobiomenews.com                                   |     5 | Cambridge Medical Professionals | http://gutmicrobiomenews.com/library/job/psychiatric-nurse-practitioner-mental-h
+simplify.jobs                                           |     5 | Virtua Health | https://simplify.jobs/p/12ea580e-86f5-4c64-80c2-2462b9e1bf75/Psychiatric-Mental-
+weequahicalumni.org                                     |     5 | Serenity Healthcare | https://weequahicalumni.org/library/job/interventional-pmhnp-at-serenity-healthc
+clinicavanthienen.com                                   |     5 | MASC Medical | https://clinicavanthienen.com/wp-job/job/pmhnp-dollar-160k-plus-dollar-10k-sign-
+porta23.com                                             |     5 | Headway | https://porta23.com/job-listing/job/licensed-psychiatric-nurse-practitioner-at-h
+georgiapappis.com                                       |     5 | Mindful Health Solutions | https://georgiapappis.com/job-library/job/psychiatric-mental-health-nurse-practi
+practiceseeker.com                                      |     4 | confidential | https://practiceseeker.com/jobs/nurse-practitioner/psychiatry/14789/psych-np-in-
+brackenridgeconstruction.com                            |     4 | Seasoned Recruitment | https://brackenridgeconstruction.com/opportunity/job/remote-psychiatric-mental-h
+charliehealth.com                                       |     4 | Charliehealth | https://www.charliehealth.com/careers/current-openings?gh_jid=5611419004
+healthecareers.com                                      |     4 | LocumTenens.com | https://www.healthecareers.com/job/child-adolescent-psychiatric-nurse-practition
+medsourceconsultants.com                                |     4 | Medsource | https://medsourceconsultants.com/job/4056/?utm_campaign=google_jobs_apply&utm_so
+virtualvocations.com                                    |     4 | Seasoned Recruitment | https://www.virtualvocations.com/job/florida-licensed-pmhnp-2903755-i.html?utm_c
+allproasset.com                                         |     4 | Seasoned Recruitment | https://allproasset.com/work/job/pmhnp-psychiatric-mental-health-practitioner-at
+careers.apha.org                                        |     4 | Penn State Health | https://careers.apha.org/jobs/22000650/nurse-practitioner-outpatient-adult-psych
+petersonresearch.com.au                                 |     4 | Headway | http://petersonresearch.com.au/wp-job/job/psychiatric-nurse-practitioner-at-head
+careers.mhanational.org                                 |     4 | LifeStance Health | https://careers.mhanational.org/jobs/21991092/outpatient-psychiatric-mental-heal
+lms1995.com                                             |     4 | Headway | https://lms1995.com/joblib/job/licensed-psychiatric-np-at-headway-florence-ky-aG
+palomaontario.com                                       |     4 | TeamHealth | https://palomaontario.com/job-library/job/psychiatric-nurse-practitioner-14400br
+doctorschoiceplacement.com                              |     4 | Doctor's Choice Placement | https://doctorschoiceplacement.com/job/nurse-practitioner-psychiatry-opportunity
+jobs.kdvr.com                                           |     4 | Headway | https://jobs.kdvr.com/jobs/remote-licensed-psychiatric-nurse-practitioner-bismar
+barbarosbarberia.cl                                     |     4 | Headway | https://barbarosbarberia.cl/gig/job/licensed-psychiatric-nurse-practitioner-at-h
+medstaffnationwide.com                                  |     4 | MedStaff Nationwide | https://medstaffnationwide.com/jobs/psych-np-ip-ed-syracuse-ny-rq00001697?utm_ca
+regalaunacancion.com.ar                                 |     4 | Get It Recruit - Healthcare | https://regalaunacancion.com.ar/jobs/job/psychiatric-mental-health-nurse-practit
+higheredjobs.com                                        |     4 | Texas State University | https://www.higheredjobs.com/faculty/details.cfm?JobCode=179300989&utm_campaign=
+wayup.com                                               |     4 | Ace Wellness Center | https://www.wayup.com/i-j-Certified-Psychiatric-Nurse-Practitioner-Ace-Wellness-
+careervault.io                                          |     4 | Author Health | https://www.careervault.io/remote/author-health-26954/healthcare/psychiatric-men
+summitconstr.com                                        |     3 | Eleanor Health | https://summitconstr.com/library/job/psychiatric-nurse-practitioner-pmhnp-psychi
+enterprisemed.com                                       |     3 | Enterprise Medical Recruiting | https://www.enterprisemed.com/job/a0kqp00000dt31r2at-psychiatry-nurse-practition
+traqueokids.org                                         |     3 | Integrity Placement Group | https://traqueokids.org/joblib/job/psychiatric-mental-health-nurse-practitioner-
+goresearch.id                                           |     3 | Health Care Recruiting | https://goresearch.id/samples/job/a-pmhnp-c-is-sought-to-join-a-behavioral-healt
+jobs.aspiremediagroup.net                               |     3 | LifeStance Health | https://jobs.aspiremediagroup.net/jobs/psychiatric-nurse-practitioner-pmhnp-outp
+careeronestop.org                                       |     3 | OptiMindHealth | https://www.careeronestop.org/Toolkit/Jobs/find-jobs-details.aspx?keyword=Advanc
+hospitaljobsonline.com                                  |     3 | Sterling Medical Corporation | https://www.hospitaljobsonline.com/job/84425357/mental-health-nurse-practitioner
+tajprinting.co.uk                                       |     3 | Serenity Mental Health Centers | https://tajprinting.co.uk/work/job/psychiatric-nurse-practitioner-pmhnp-at-seren
+tonyspeciale.com                                        |     3 | UPMC - Pittsburgh Medical Center | https://tonyspeciale.com/job-listing/job/psychiatric-mental-health-nurse-practit
+app.directshifts.com                                    |     3 | DirectShifts | https://app.directshifts.com/jobs/p/seeking-pmhnps-with-consult-liaison-experien
+marineresale.net                                        |     3 | Mindpath Health | https://marineresale.net/job-listing/job/outpatient-pmhnp-hybrid-model-at-mindpa
+baptistjax.com                                          |     3 | Baptist Health | https://www.baptistjax.com/about-us/careers/job-listings/aprn-pa-behavioral-heal
+talents.vaia.com                                        |     3 | Advantmed Careers | https://talents.vaia.com/companies/advantmed-careers/nurse-practitioner-clark-co
+colegionutricionsf.org.ar                               |     3 | Medical On Demand | https://colegionutricionsf.org.ar/gig/job/psychiatric-mental-health-nurse-practi
+accentucare.com                                         |     3 | LifeStance Health | https://accentucare.com/work/job/psychiatric-nurse-practitioner-pmhnp-at-lifesta
+pickleballroadwarrior.com                               |     3 | Department of Veterans Affairs | http://pickleballroadwarrior.com/opportunity/job/nurse-practitioner-mental-healt
+thelexingtonienne.com                                   |     3 | Child and Family Guidance Center | https://thelexingtonienne.com/career/job/contract-psychiatric-mental-health-nurs
+hayeslocums.com                                         |     3 | Hayes Locums | https://www.hayeslocums.com/jobs/ohio-telehealth-psychiatric-nurse-practitioner-
+nppajobsearch.com                                       |     3 | Jackson & Coker | https://www.nppajobsearch.com/home/job-detail/psychiatry---np/new-york/1837389?u
+usajobs.gov                                             |     3 | Iowa City VA Health Care System | https://www.usajobs.gov/job/851811600?utm_campaign=google_jobs_apply&utm_source=
+app.hellotriad.com                                      |     3 | Thriveworks | https://app.hellotriad.com/jobs/job/3522882/details?utm_campaign=google_jobs_app
+pmhnpcareers.com                                        |     3 | Care New England Medical Group | https://pmhnpcareers.com/job/psychiatric-aprn-opportunity-at-premier-rhode-islan
+entree3.com                                             |     3 | Headway | https://entree3.com/wp-job/job/licensed-psychiatric-nurse-practitioner-virtual-a
+remotenursingjobs.com                                   |     3 | Array Behavioral Care | https://remotenursingjobs.com/job/100-remote-pmhnp-md/?utm_campaign=google_jobs_
+swamisukhabodhananda.com                                |     3 | Wellpath | https://swamisukhabodhananda.com/job-library/job/psychiatric-nurse-practitioner-
+jobs.edinburghcityfc.com                                |     3 | Harbor Point Behavioral Health Center, Inc. | https://jobs.edinburghcityfc.com/jobs/c-a-pmhnp-rtc-c-a-harbor-point-bhc-portsmo
+wynnsgrainandspice.com                                  |     3 | Orange County, FL | https://wynnsgrainandspice.com/office/job/nurse-practitioner-psychiatric-correct
+theboard.trueworkzone.com                               |     3 | Elev8 Recovery | https://theboard.trueworkzone.com/joblistings/x9n0enf5wzbc-598d3ecf7f-229bd-61e4
+labroche-funeraire.fr                                   |     3 | UnitedHealth Group | https://labroche-funeraire.fr/job-listing/job/psychiatric-mental-health-nurse-pr
+clps.edu.mx                                             |     3 | Mindful Behavioral Health PLLC | https://clps.edu.mx/work/job/psychiatric-nurse-practitioner-at-mindful-behaviora
+gobeyondthebedside.com                                  |     3 | Talkiatry | https://gobeyondthebedside.com/job/staff-psychiatric-nurse-practitioner-maryland
+windpowersports.com                                     |     3 | Family Services of Westchester | https://windpowersports.com/office/job/psychiatric-nurse-practitioner-at-family-
+app.careerpuck.com                                      |     3 | Prenuvo | https://app.careerpuck.com/job-board/prenuvo/job/4653661005?gh_jid=4653661005
+asahihoikuen.net                                        |     2 | Personalized Health Partners | https://asahihoikuen.net/job-library/job/psychiatric-mental-health-nurse-practit
+main.hercjobs.org                                       |     2 | The Ohio State University | https://main.hercjobs.org/jobs/22019037/staff-nurse-2-np-adult-inpatient-psychia
+careers.lgslegacycare.com                               |     2 | Legacy Care | https://careers.lgslegacycare.com/jobs/7068290-pmhnp-part-time-windsor-va?utm_ca
+mahoneyalpineadventures.com                             |     2 | Serenity Healthcare | https://mahoneyalpineadventures.com/list/job/interventional-pmhnp-at-serenity-he
+my.recruitmilitary.com                                  |     2 | Elliot, Southern New Hampshire Health, SolutionHealth | https://my.recruitmilitary.com/job/45930166/Nurse-Practitioner-Acute-Psychiatry-
+piedmontcareers.org                                     |     2 | Piedmont Careers | https://piedmontcareers.org/job/nurse-practitioner-behavioral-health-piedmont-ma
+jobright.ai                                             |     2 | Brave Health | https://jobright.ai/jobs/info/697d3a4d3f57a3356967091e?utm_campaign=google_jobs_
+jobs.valleycentral.com                                  |     2 | Headway | https://jobs.valleycentral.com/jobs/psychiatric-nurse-practitioner-m-w-d-salt-la
+riviamind.com                                           |     2 | RIVIA Mind | https://riviamind.com/contact-us/careers/?gh_jid=5041564007
+recruiterflow.com                                       |     2 | Talent Doc | https://recruiterflow.com/talentdoc/jobs/6?utm_campaign=google_jobs_apply&utm_so
+chuckgracer.com                                         |     2 | Mindpath Health | http://chuckgracer.com/opportunity/job/experienced-outpatient-psychiatric-mental
+ca.bebee.com                                            |     2 | Fraser Health Authority | https://ca.bebee.com/job/4aea65ade269b2b523b9417d74ef9a66?utm_campaign=google_jo
+librinuovi.net                                          |     2 | MedSource Consultants | https://librinuovi.net/office/job/up-to-195k-for-a-pmhnp-at-medsource-consultant
+jobs.wtnh.com                                           |     2 | Headway | https://jobs.wtnh.com/jobs/psychiatric-nurse-practitioner-m-w-d-milwaukee-wiscon
+healthjobsnationwide.com                                |     2 | TeamHealth | https://www.healthjobsnationwide.com/job/psychiatric-mental-health-nurse-practit
+jobsource.aacap.org                                     |     2 | Atlantic Health | https://jobsource.aacap.org/jobs/22030388/nurse-practitioner-psychiatry-eating-d
+jobs.ynhhs.org                                          |     2 | Yale New Haven Health | https://jobs.ynhhs.org/jobs/85108?lang=en-us&utm_campaign=google_jobs_apply&utm_
+careers.liveandworkinmaine.com                          |     2 | Katahdin Valley Health Center | https://careers.liveandworkinmaine.com/job/dc4kwm/psychiatric-mental-health-nurs
+jobs.fox4kc.com                                         |     2 | Headway - Design & Development | https://jobs.fox4kc.com/jobs/psychiatric-nurse-practitioner-independent-contract
+remote.co                                               |     2 | Blackbird Health | https://remote.co/job-details/psychiatric-nurse-practitioner-residency-program-d
+remoterole.page.gd                                      |     2 | Topsiksha | https://remoterole.page.gd/job/100-virtual-part-time-overnight-pmhnp-bc-2/?utm_c
+i4searchgroup.com                                       |     2 | i4 Search Group | https://i4searchgroup.com/job/3501455-psychiatric-nurse-practitioner-gaithersbur
+adenterprises.ca                                        |     2 | OnSite Healthcare and Wellness, LLC | https://adenterprises.ca/list/job/psychiatric-mental-health-nurse-practitioner-p
+incrediblehealth.com                                    |     2 | Incredible Health | https://www.incrediblehealth.com/jobs/nurse/3StBVmabABJEkZTGS7GJo7ob/a-psychiatr
+stmgaard.dk                                             |     2 | Work with Willow | https://stmgaard.dk/wp-job/job/psychiatric-nurse-practitioner-pmhnp-at-work-with
+jobs.wbtw.com                                           |     2 | Headway | https://jobs.wbtw.com/jobs/psychiatric-nurse-practitioner-m-w-d-kearney-nebraska
+smitharnold.com                                         |     2 | Smith Arnold Partners | https://smitharnold.com/job/psychiatric-nurse-practitioner-hybrid-bronx-ny/?utm_
+fullyevent.com                                          |     2 | The MedElite Group | https://fullyevent.com/office/job/psychiatric-nurse-practitioner-at-the-medelite
+blackflymedia.com                                       |     2 | UnitedHealth Group | https://blackflymedia.com/workspread/job/psychiatric-nurse-at-unitedhealth-group
+dieudonnefoundation.org                                 |     2 | Fcs Co | https://dieudonnefoundation.org/work/job/ma568d-psychiatric-nurse-practitioner-a
+theretrieveracademy.com                                 |     2 | Headway | https://theretrieveracademy.com/opportunity/job/remote-licensed-psychiatric-nurs
+jobs.ghrhealthcare.com                                  |     2 | GHR Healthcare | https://jobs.ghrhealthcare.com/jobs/psych-np-worcester-ma-455087?utm_campaign=go
+workonward.com                                          |     2 | Symphony Medical | https://www.workonward.com/job-search/detail/125c18d3-6430-4dbd-a12b-e78e4fbce80
+usnlx.com                                               |     2 | UnityPoint Health | https://usnlx.com/des-moines-ia/nurse-practitioner-behavorial-health/9C3178F7163
+vacancies.cu-fc.com                                     |     2 | LifeStance Health | https://vacancies.cu-fc.com/jobs/psychiatric-nurse-practitioner-pmhnp-acton-ca-a
+healthcarejobfinder.com                                 |     2 | H3O Wellness | https://www.healthcarejobfinder.com/job/nurse-practitioner-np-/psychiatry/idaho/
+arthdhara.com                                           |     2 | Certus Psychiatry and Integrated Care | https://arthdhara.com/library/job/part-time-pmhnp-nurse-practitioner-at-certus-p
+agronigeria.ng                                          |     2 | Cordial Health | https://agronigeria.ng/career/job/psychiatric-nurse-practitioner-tenton-nj-at-co
+jobs.lilylifestyle.co.uk                                |     2 | LifeStance Health | https://jobs.lilylifestyle.co.uk/jobs/pmhnp-nurse-practitioner-joliet-il-joliet-
+headlightny.com                                         |     2 | Medical Search International | https://headlightny.com/library/job/psychiatric-mental-health-nurse-practitioner
+virtuacareers.com                                       |     2 | Virtua | https://www.virtuacareers.com/job/mount-holly/psychiatric-mental-health-nurse-pr
+careers.christushealth.org                              |     2 | CHRISTUS Health System | https://careers.christushealth.org/opportunity/nurse-practitioner-psychiatry-320
+scalppl.com                                             |     2 | Ozark Center | https://www.scalppl.com/clinician-job-openings/psychiatry-full-time-job-in-jopli
+host.pcrecruiter.net                                    |     2 | MedLeaders Group | https://host.pcrecruiter.net/pcrbin/jobboard/job/Psychiatric-Nurse-Practitioner-
+idf-assainissement.com                                  |     2 | Med Source Consultants | https://idf-assainissement.com/jobs/job/psychiatric-nurse-practitioner-3667-at-m
+providercareers.lifepointhealth.net                     |     2 | Lifepoint Careers | https://providercareers.lifepointhealth.net/job/mental-health-advanced-practice-
+jobbio.upskillist.com                                   |     2 | Horizon Health | https://jobbio.upskillist.com/job/nurse-practitioner-behavioral-health-1099-empl
+jobs.weekday.works                                      |     2 | Affect Therapeutics | https://jobs.weekday.works/affect-therapeutics-massachusetts%7C-psychiatric-ment
+thebizdeal.com                                          |     2 | Family Care Center | https://thebizdeal.com/career/job/psychiatric-mental-health-nurse-practitioner-a
+musc.career-pages.com                                   |     2 | MUSC | https://musc.career-pages.com/jobs/univ-psychiatric-mental-health-nurse-practiti
+irishpubconcept.com                                     |     2 | woodside health and wellness | https://irishpubconcept.com/samples/job/psychiatric-nurse-practitioner-pmhnp-roc
+jobs.trinity-health.org                                 |     2 | Trinity Health | https://jobs.trinity-health.org/job/TRHEUS00601764MERCYONEENUS/NP-PA-Inpatient-P
+careers.internationalsos.com                            |     2 | International SOS | https://careers.internationalsos.com/job/Gregory-Nurse-Practitioner-%28PRN%29-TX
+totalpneuspe.com.br                                     |     2 | UltaCare Medical | https://totalpneuspe.com.br/office/job/psychiatric-mental-health-nurse-practitio
+unmhjobs.com                                            |     2 | UNM Hospital | https://www.unmhjobs.com/job/albuquerque/aprn-psych-psychiatry/7687/91110412720?
+lucaciuti.com                                           |     2 | SSStaffing | https://lucaciuti.com/jobs/job/psychiatric-np-at-ssstaffing-oceanside-ca-VmdOeDB
+nurturedmumma.com                                       |     2 | Sunbelt Staffing | https://nurturedmumma.com/opportunity/job/hybrid-psychiatric-mental-health-nurse
+readinginspanglish.com                                  |     2 | Headway | http://readinginspanglish.com/opportunity/job/licensed-psychiatric-np-at-headway
+diza.com.mx                                             |     2 | Life.Church | https://www.diza.com.mx/vacancy/job/psychiatric-mental-health-nurse-practitioner
+atmashaktitrust.org                                     |     2 | LifeStance Health | https://www.atmashaktitrust.org/gig/job/psychiatric-nurse-practitioner-pmhnp-at-
+meritedu.co.uk                                          |     2 | LifeStance Health | https://meritedu.co.uk/job-library/job/psychiatric-nurse-practitioner-pmhnp-nede
+alhindiya.com                                           |     2 | All Points North | https://alhindiya.com/apply/job/psychiatric-nurse-practitioner-prn-at-all-points
+dadoralive.com                                          |     2 | Seasoned Recruitment | https://dadoralive.com/list/job/remote-psychiatric-np-job-at-seasoned-recruitmen
+jobs2careers.com                                        |     2 | Cambridge Medical Professionals | https://www.jobs2careers.com/r/job/34947861980?c1=108&utm_campaign=google_jobs_a
+milwaukeejobs.com                                       |     2 | Virtua | https://www.milwaukeejobs.com/j/t-Psychiatric-Mental-Health-Nurse-Practitioner-P
+onemedical.com                                          |     2 | One Medical | http://www.onemedical.com/careers/all-departments/7535878?gh_jid=7535878

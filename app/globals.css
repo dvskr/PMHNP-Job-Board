@@ -1,59 +1,505 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Use .scrollbar-hide class on individual elements that need hidden scrollbars */
+
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Reset Tailwind v4 preflight that sets form inputs to background-color: field (white) */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+/* Chrome autofill forces white bg via internal UA stylesheet — box-shadow trick is the ONLY override */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #162231 inset !important;
+  box-shadow: 0 0 0 1000px #162231 inset !important;
+  -webkit-text-fill-color: #F1F5F9 !important;
+  border-color: var(--border-color-dark) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: #F1F5F9 !important;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Font references */
+  --font-geist-sans: 'Geist', system-ui, sans-serif;
+  --font-geist-mono: 'Geist Mono', monospace;
 
-  /* Colors */
-  --color-primary: #0D9488;
-  --color-primary-dark: #0F766E;
-  --color-primary-light: #14B8A6;
+  /* Brand colors */
+  --accent-orange: #E86C2C;
+  --accent-teal: #2DD4BF;
+  --brand-navy: #060E18;
+
+  /* DEFAULT TO DARK — prevents white flash since dark is the default theme */
+  /* Primary action color */
+  --color-primary: #2DD4BF;
+  --color-primary-dark: #14B8A6;
+  --color-primary-light: #5EEAD4;
+  --salary-color: #2DD4BF;
 
   /* Backgrounds */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F9FAFB;
-  --bg-tertiary: #F3F4F6;
+  --bg-primary: #060E18;
+  --bg-secondary: #0F1923;
+  --bg-secondary-rgb: 15, 25, 35;
+  --bg-tertiary: #162231;
 
-  /* Text */
-  --text-primary: #111827;
-  --text-secondary: #4B5563;
-  --text-tertiary: #9CA3AF;
+  /* Text — all shades bright enough to read easily on dark bg */
+  --text-primary: #F1F5F9;
+  --text-primary-rgb: 241, 245, 249;
+  --text-secondary: #E2E8F0;
+  --text-tertiary: #CBD5E1;
+  --text-muted: #94A3B8;
 
   /* Borders */
-  --border-color: #E5E7EB;
-  --border-color-dark: #D1D5DB;
+  --border-color: #1E293B;
+  --border-color-dark: #334155;
+
+  /* Shadows */
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px 0 var(--shadow-color);
+  --shadow-md: 0 4px 6px -1px var(--shadow-color);
+
+  /* Header / Nav */
+  --header-bg: #0B1320;
+  --mobile-menu-bg: #0F1923;
+  --nav-btn-bg: #162231;
+  --nav-btn-text: #F1F5F9;
+  --nav-btn-hover-bg: #1E293B;
+
+  /* Inputs */
+  --input-text: #F1F5F9;
+  --input-placeholder: #94A3B8;
+
+  /* Selection */
+  --selection-bg: #134E4A;
+  --selection-text: #CCFBF1;
 
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
   --transition-slow: 300ms ease;
+
+  /* Shimmer */
+  --shimmer-from: #162231;
+  --shimmer-via: #1E293B;
+
+  color-scheme: dark;
 }
 
+/* ===== LIGHT THEME ===== */
+html:not(.dark) {
+  --color-primary: #0D9488;
+  --color-primary-dark: #0F766E;
+  --color-primary-light: #14B8A6;
+  --salary-color: #0D9488;
+
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-secondary-rgb: 249, 250, 251;
+  --bg-tertiary: #F3F4F6;
+
+  --text-primary: #111827;
+  --text-primary-rgb: 17, 24, 39;
+  --text-secondary: #374151;
+  --text-tertiary: #4B5563;
+  --text-muted: #6B7280;
+
+  --border-color: #E5E7EB;
+  --border-color-dark: #D1D5DB;
+
+  --shadow-color: rgba(0, 0, 0, 0.1);
+
+  --header-bg: #FFFFFF;
+  --mobile-menu-bg: #FFFFFF;
+  --nav-btn-bg: #F3F4F6;
+  --nav-btn-text: #111827;
+  --nav-btn-hover-bg: #E5E7EB;
+
+  --input-text: #111827;
+  --input-placeholder: #6B7280;
+
+  --selection-bg: #CCFBF1;
+  --selection-text: #134E4A;
+
+  --shimmer-from: #f0f0f0;
+  --shimmer-via: #e0e0e0;
+
+  color-scheme: light;
+}
+
+/* ===== DARK THEME (explicit) ===== */
+html.dark {
+  color-scheme: dark;
+}
+
+/* ===== Autofill overrides ===== */
+/* Chrome forces white backgrounds on autofilled inputs; counteract with box-shadow trick */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-tertiary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  box-shadow: 0 0 0 1000px var(--bg-tertiary) inset !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+html.dark body {
+  background: #060E18 !important;
+  color: #F1F5F9 !important;
+}
+
+/* ===== DARK MODE: Override hardcoded Tailwind color utilities ===== */
+/* This ensures all pages using Tailwind classes like bg-white, text-gray-900, etc.
+   automatically adapt to the dark theme without editing each file individually. */
+
+html.dark .bg-white {
+  background-color: var(--bg-secondary) !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: var(--bg-primary) !important;
+}
+
+html.dark .bg-gray-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html.dark .bg-blue-50 {
+  background-color: rgba(37, 99, 235, 0.08) !important;
+}
+
+html.dark .bg-green-50,
+html.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+html.dark .bg-yellow-50,
+html.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+html.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+html.dark .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .text-gray-800 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .text-gray-500 {
+  color: var(--text-tertiary) !important;
+}
+
+html.dark .text-gray-400 {
+  color: var(--text-tertiary) !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-700,
+html.dark .text-slate-800,
+html.dark .text-slate-900 {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .border-gray-100 {
+  border-color: var(--border-color) !important;
+}
+
+html.dark .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+html.dark .border-gray-300 {
+  border-color: var(--border-color-dark) !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: var(--border-color) !important;
+}
+
+html.dark .border-blue-200 {
+  border-color: rgba(37, 99, 235, 0.25) !important;
+}
+
+html.dark .border-yellow-200 {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html.dark .divide-gray-200> :not([hidden])~ :not([hidden]) {
+  border-color: var(--border-color) !important;
+}
+
+/* Form elements in dark mode — force visible text */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"])::placeholder,
+html.dark textarea::placeholder {
+  color: var(--text-tertiary) !important;
+  -webkit-text-fill-color: var(--text-tertiary) !important;
+}
+
+/* Autofill / autocomplete fix — browsers force a white bg on autofill */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-primary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Select option elements need explicit bg in dark mode (most browsers ignore CSS vars here) */
+html.dark select option {
+  background-color: #0F1923;
+  color: #F1F5F9;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: var(--color-primary);
+}
+
+/* Placeholder text color overrides */
+html.dark .placeholder\:text-gray-400::placeholder,
+html.dark .placeholder\:text-gray-500::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+/* Ring/shadow color override for dark */
+html.dark .ring-gray-200,
+html.dark .ring-gray-300 {
+  --tw-ring-color: var(--border-color) !important;
+}
+
+/* Blue highlight sections - common CTA cards */
+html.dark .bg-gradient-to-r.from-blue-50,
+html.dark .bg-gradient-to-br.from-blue-50 {
+  background: var(--bg-tertiary) !important;
+}
+
+/* ===== PROSE / BLOG CONTENT DARK MODE ===== */
+html.dark .prose {
+  --tw-prose-body: var(--text-secondary) !important;
+  --tw-prose-headings: var(--text-primary) !important;
+  --tw-prose-lead: var(--text-secondary) !important;
+  --tw-prose-links: #2DD4BF !important;
+  --tw-prose-bold: var(--text-primary) !important;
+  --tw-prose-counters: var(--text-tertiary) !important;
+  --tw-prose-bullets: var(--text-tertiary) !important;
+  --tw-prose-hr: var(--border-color) !important;
+  --tw-prose-quotes: var(--text-secondary) !important;
+  --tw-prose-quote-borders: #14B8A6 !important;
+  --tw-prose-captions: var(--text-muted) !important;
+  --tw-prose-code: var(--text-primary) !important;
+  --tw-prose-pre-code: #E2E8F0 !important;
+  --tw-prose-pre-bg: #0F1923 !important;
+  --tw-prose-th-borders: var(--border-color-dark) !important;
+  --tw-prose-td-borders: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+html.dark .prose h1,
+html.dark .prose h2,
+html.dark .prose h3,
+html.dark .prose h4,
+html.dark .prose h5,
+html.dark .prose h6 {
+  color: var(--text-primary) !important;
+}
+
+html.dark .prose p,
+html.dark .prose li,
+html.dark .prose td,
+html.dark .prose th {
+  color: var(--text-secondary) !important;
+}
+
+html.dark .prose a {
+  color: #2DD4BF !important;
+}
+
+html.dark .prose strong {
+  color: var(--text-primary) !important;
+}
+
+html.dark .prose blockquote {
+  border-left-color: #14B8A6 !important;
+  background-color: rgba(20, 184, 166, 0.08) !important;
+  color: var(--text-secondary) !important;
+}
+
+html.dark .prose code {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+html.dark .prose pre {
+  background-color: #0F1923 !important;
+}
+
+html.dark .prose hr {
+  border-color: var(--border-color) !important;
+}
+
+/* ===== TEAL / EMERALD / AMBER DARK MODE OVERRIDES ===== */
+/* Badges and pills (e.g. job count badges) */
+html.dark .bg-teal-100 {
+  background-color: rgba(20, 184, 166, 0.15) !important;
+}
+
+html.dark .text-teal-800,
+html.dark .text-teal-700 {
+  color: #5EEAD4 !important;
+}
+
+html.dark .text-teal-600 {
+  color: #2DD4BF !important;
+}
+
+html.dark .border-teal-200,
+html.dark .border-teal-100 {
+  border-color: rgba(20, 184, 166, 0.25) !important;
+}
+
+/* Teal background boxes (Quick Answer, FPA, callouts) */
+html.dark .bg-teal-50 {
+  background-color: rgba(20, 184, 166, 0.08) !important;
+}
+
+html.dark .text-teal-900 {
+  color: #CCFBF1 !important;
+}
+
+html.dark .text-teal-800 {
+  color: #99F6E4 !important;
+}
+
+/* Emerald colors (salary values, badges) */
+html.dark .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+html.dark .text-emerald-600,
+html.dark .text-emerald-700 {
+  color: #34D399 !important;
+}
+
+html.dark .text-emerald-800 {
+  color: #A7F3D0 !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50 {
+  background-color: rgba(16, 185, 129, 0.06) !important;
+}
+
+html.dark .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Amber/warning colors (note boxes) */
+html.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+html.dark .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html.dark .text-amber-800 {
+  color: #FCD34D !important;
+}
+
+/* Gradient boxes (Quick Answer, teal-50 to slate-50) */
+html.dark .bg-gradient-to-r.from-teal-50,
+html.dark .bg-gradient-to-r.from-teal-50.to-slate-50 {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Table hover states */
+html.dark tr.hover\:bg-gray-50:hover {
+  background-color: var(--bg-tertiary) !important;
+}
+
+html.dark .bg-gray-50 thead,
+html.dark thead.bg-gray-50 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+/* Top-3 state rows in salary table */
+html.dark tr.bg-emerald-50\/50 {
+  background-color: rgba(16, 185, 129, 0.06) !important;
+}
+
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark mode disabled as per user request for white background */
-
-/* Base styles */
+/* ===== BASE STYLES ===== */
 body {
-  @apply bg-white text-gray-900;
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-
-  /* Better font rendering */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1;
   font-kerning: normal;
-
-  /* Prevent layout shift and improve rendering */
   font-optical-sizing: auto;
+
 }
 
 /* Apply antialiasing to all text elements */
@@ -64,7 +510,8 @@ body {
 
 /* Focus styles for accessibility */
 *:focus-visible {
-  @apply outline-none ring-2 ring-teal-500 ring-offset-2;
+  @apply outline-none ring-2 ring-offset-2;
+  --tw-ring-color: var(--color-primary);
 }
 
 /* Better text rendering for all text elements */
@@ -129,12 +576,11 @@ textarea {
   -webkit-perspective: 1000px;
 }
 
-/* Smooth scrolling - with data attribute to allow disabling during route transitions */
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Disable smooth scrolling during route transitions to prevent warning */
 html[data-scroll-behavior="smooth"] {
   scroll-behavior: smooth;
 }
@@ -145,14 +591,16 @@ html:not([data-scroll-behavior]) {
 
 /* Selection color */
 ::selection {
-  @apply bg-teal-100 text-teal-900;
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
-/* Share menu animations */
+/* ===== ANIMATIONS ===== */
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -163,6 +611,7 @@ html:not([data-scroll-behavior]) {
     transform: translateY(-8px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -193,12 +642,12 @@ html:not([data-scroll-behavior]) {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--shimmer-from) 25%, var(--shimmer-via) 50%, var(--shimmer-from) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
-/* Safe area padding for iPhone notch/home indicator */
+/* ===== SAFE AREA ===== */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -215,8 +664,7 @@ html:not([data-scroll-behavior]) {
   padding-top: calc(0.5rem + env(safe-area-inset-top));
 }
 
-/* Hide any third-party banners or overlays that might be injected */
-/* Use more specific selectors to avoid unintended matches */
+/* Hide third-party banners */
 [data-ph-banner],
 [data-product-hunt],
 #product-hunt-banner,
@@ -230,27 +678,95 @@ html:not([data-scroll-behavior]) {
   overflow: hidden !important;
 }
 
-/* Global input text color fix - ensure all inputs have dark, readable text */
+/* ===== INPUT COLORS (theme-aware) ===== */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
-  color: #111827 !important;
-  /* gray-900 - dark text for readability */
+  color: var(--input-text);
 }
 
 input::placeholder,
 textarea::placeholder,
 select::placeholder {
-  color: #6b7280 !important;
-  /* gray-500 - visible but clearly placeholder */
+  color: var(--input-placeholder);
   opacity: 1;
-  /* Firefox fix */
 }
 
-/* Ensure input text is never light colored */
 input:focus:not([type="checkbox"]):not([type="radio"]),
 textarea:focus,
 select:focus {
-  color: #111827 !important;
-  /* gray-900 */
+  color: var(--input-text);
+}
+
+/* Hero search inputs — forced white text, no highlight */
+.hero-input {
+  color: #F1F5F9 !important;
+  caret-color: #F1F5F9 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+.hero-input:-webkit-autofill,
+.hero-input:-webkit-autofill:hover,
+.hero-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #F1F5F9 !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  background-color: transparent !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.hero-input::placeholder {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+
+/* ===== HERO ANIMATIONS ===== */
+@keyframes heroPing {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+
+  75%,
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Gradient text animation */
+@keyframes heroGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hero-gradient-text {
+  background: linear-gradient(90deg,
+      var(--accent-orange),
+      var(--accent-teal),
+      var(--accent-orange));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

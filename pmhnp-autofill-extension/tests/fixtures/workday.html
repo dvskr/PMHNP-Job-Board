@@ -1,0 +1,222 @@
+<!--
+  Workday ATS Application Form Fixture
+  Based on: company.wd5.myworkdaysite.com standard application template
+  Fields: data-automation-id based, location typeahead, experience, work auth, EEO
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Workday Application</title>
+</head>
+
+<body>
+    <div data-automation-id="applicationPage">
+        <form data-automation-id="jobApplicationForm">
+
+            <!-- Legal Name Section -->
+            <div data-automation-id="legalNameSection">
+                <h3>Name</h3>
+                <div data-automation-id="formField-legalNameSection_firstName">
+                    <label for="input-1">First Name <span>*</span></label>
+                    <input type="text" id="input-1" data-automation-id="legalNameSection_firstName" name="firstName"
+                        required>
+                </div>
+                <div data-automation-id="formField-legalNameSection_lastName">
+                    <label for="input-2">Last Name <span>*</span></label>
+                    <input type="text" id="input-2" data-automation-id="legalNameSection_lastName" name="lastName"
+                        required>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div data-automation-id="contactInformationSection">
+                <h3>Contact Information</h3>
+                <div data-automation-id="formField-email">
+                    <label for="input-3">Email Address <span>*</span></label>
+                    <input type="email" id="input-3" data-automation-id="email" name="email" required>
+                </div>
+                <div data-automation-id="formField-phone-number">
+                    <label for="input-4">Phone Number <span>*</span></label>
+                    <input type="tel" id="input-4" data-automation-id="phone-number" name="phone" required>
+                </div>
+                <div data-automation-id="formField-addressSection_addressLine1">
+                    <label for="input-5">Address Line 1</label>
+                    <input type="text" id="input-5" data-automation-id="addressSection_addressLine1"
+                        name="addressLine1">
+                </div>
+                <div data-automation-id="formField-addressSection_addressLine2">
+                    <label for="input-6">Address Line 2</label>
+                    <input type="text" id="input-6" data-automation-id="addressSection_addressLine2"
+                        name="addressLine2">
+                </div>
+                <div data-automation-id="formField-addressSection_city">
+                    <label for="input-7">City</label>
+                    <input type="text" id="input-7" data-automation-id="addressSection_city" name="city">
+                </div>
+                <div data-automation-id="formField-addressSection_countryRegion">
+                    <label for="input-8">State / Province</label>
+                    <select id="input-8" data-automation-id="addressSection_countryRegion" name="state">
+                        <option value="">Select...</option>
+                        <option value="Alabama">Alabama</option>
+                        <option value="Alaska">Alaska</option>
+                        <option value="Arizona">Arizona</option>
+                        <option value="California">California</option>
+                        <option value="Colorado">Colorado</option>
+                        <option value="Texas">Texas</option>
+                        <option value="New York">New York</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-addressSection_postalCode">
+                    <label for="input-9">Postal Code</label>
+                    <input type="text" id="input-9" data-automation-id="addressSection_postalCode" name="zip">
+                </div>
+                <div data-automation-id="formField-country">
+                    <label for="input-10">Country</label>
+                    <select id="input-10" data-automation-id="country" name="country">
+                        <option value="">Select...</option>
+                        <option value="United States">United States</option>
+                        <option value="Canada">Canada</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Resume -->
+            <div data-automation-id="resumeSection">
+                <h3>Resume</h3>
+                <div data-automation-id="formField-resume">
+                    <label>Resume/CV <span>*</span></label>
+                    <input type="file" data-automation-id="file-upload-input-ref" name="resume"
+                        accept=".pdf,.doc,.docx">
+                </div>
+            </div>
+
+            <!-- LinkedIn -->
+            <div data-automation-id="linksSection">
+                <h3>Links</h3>
+                <div data-automation-id="formField-linkedInUrl">
+                    <label for="input-11">LinkedIn</label>
+                    <input type="url" id="input-11" data-automation-id="linkedInUrl" name="linkedin"
+                        placeholder="https://linkedin.com/in/...">
+                </div>
+            </div>
+
+            <!-- Work Experience -->
+            <div data-automation-id="workExperienceSection">
+                <h3>Work Experience</h3>
+                <div data-automation-id="formField-jobTitle">
+                    <label for="input-12">Job Title</label>
+                    <input type="text" id="input-12" data-automation-id="jobTitle" name="currentJobTitle">
+                </div>
+                <div data-automation-id="formField-company">
+                    <label for="input-13">Company</label>
+                    <input type="text" id="input-13" data-automation-id="company" name="employer">
+                </div>
+            </div>
+
+            <!-- Education -->
+            <div data-automation-id="educationSection">
+                <h3>Education</h3>
+                <div data-automation-id="formField-school">
+                    <label for="input-14">School</label>
+                    <input type="text" id="input-14" data-automation-id="school" name="school" role="combobox"
+                        aria-autocomplete="list">
+                </div>
+                <div data-automation-id="formField-degree">
+                    <label for="input-15">Degree</label>
+                    <select id="input-15" data-automation-id="degree" name="degree">
+                        <option value="">Select...</option>
+                        <option value="Associate's">Associate's</option>
+                        <option value="Bachelor's">Bachelor's</option>
+                        <option value="Master's">Master's</option>
+                        <option value="Master of Science in Nursing">Master of Science in Nursing</option>
+                        <option value="Doctorate">Doctorate</option>
+                        <option value="Doctor of Nursing Practice">Doctor of Nursing Practice</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-fieldOfStudy">
+                    <label for="input-16">Field of Study</label>
+                    <input type="text" id="input-16" data-automation-id="fieldOfStudy" name="fieldOfStudy">
+                </div>
+            </div>
+
+            <!-- Screening Questions -->
+            <div data-automation-id="questionnaireSection">
+                <h3>Application Questions</h3>
+                <div data-automation-id="formField-question1">
+                    <label for="q1">Are you legally authorized to work in the United States?</label>
+                    <select id="q1" name="question1">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-question2">
+                    <label for="q2">Will you now or in the future require visa sponsorship?</label>
+                    <select id="q2" name="question2">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-question3">
+                    <label for="q3">How many years of experience do you have in this field?</label>
+                    <input type="text" id="q3" name="question3">
+                </div>
+                <div data-automation-id="formField-question4">
+                    <label for="q4">What is your desired salary?</label>
+                    <input type="text" id="q4" name="question4">
+                </div>
+            </div>
+
+            <!-- EEO -->
+            <div data-automation-id="eeoSection">
+                <h3>Voluntary Self-Identification</h3>
+                <div data-automation-id="formField-gender">
+                    <label for="eeo-1">Gender</label>
+                    <select id="eeo-1" data-automation-id="gender" name="gender">
+                        <option value="">Select...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-ethnicityDropdown">
+                    <label for="eeo-2">Ethnicity</label>
+                    <select id="eeo-2" data-automation-id="ethnicityDropdown" name="ethnicity">
+                        <option value="">Select...</option>
+                        <option value="Hispanic or Latino">Hispanic or Latino</option>
+                        <option value="White">White</option>
+                        <option value="Black or African American">Black or African American</option>
+                        <option value="Asian">Asian</option>
+                        <option value="Two or More Races">Two or More Races</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-veteranStatus">
+                    <label for="eeo-3">Veteran Status</label>
+                    <select id="eeo-3" data-automation-id="veteranStatus" name="veteranStatus">
+                        <option value="">Select...</option>
+                        <option value="I am a protected veteran">I am a protected veteran</option>
+                        <option value="I am not a veteran">I am not a veteran</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+                <div data-automation-id="formField-disabilityStatus">
+                    <label for="eeo-4">Disability Status</label>
+                    <select id="eeo-4" data-automation-id="disabilityStatus" name="disability">
+                        <option value="">Select...</option>
+                        <option value="Yes, I have a disability">Yes, I have a disability</option>
+                        <option value="No, I don't have a disability">No, I don't have a disability</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" data-automation-id="bottom-navigation-next-button">Submit</button>
+        </form>
+    </div>
+</body>
+
+</html>

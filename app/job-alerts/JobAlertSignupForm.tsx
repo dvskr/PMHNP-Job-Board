@@ -33,6 +33,7 @@ export default function JobAlertSignupForm({
   const [mode, setMode] = useState(initialMode);
   const [jobType, setJobType] = useState(initialJobType);
   const [frequency, setFrequency] = useState('daily');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -58,6 +59,7 @@ export default function JobAlertSignupForm({
           mode: mode || undefined,
           jobType: jobType || undefined,
           frequency,
+          newsletterOptIn,
         }),
       });
 
@@ -88,7 +90,7 @@ export default function JobAlertSignupForm({
             setStatus('idle');
             setEmail('');
           }}
-          className="text-blue-600 hover:text-blue-700 font-medium"
+          className="text-teal-600 hover:text-teal-700 font-medium"
         >
           Create another alert
         </button>
@@ -108,7 +110,7 @@ export default function JobAlertSignupForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
           disabled={status === 'loading'}
           required
         />
@@ -124,7 +126,7 @@ export default function JobAlertSignupForm({
           <select
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none appearance-none bg-white"
             disabled={status === 'loading'}
           >
             <option value="">All Locations</option>
@@ -145,7 +147,7 @@ export default function JobAlertSignupForm({
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none appearance-none bg-white"
             disabled={status === 'loading'}
           >
             <option value="">Any Work Mode</option>
@@ -166,7 +168,7 @@ export default function JobAlertSignupForm({
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none appearance-none bg-white"
             disabled={status === 'loading'}
           >
             <option value="">Any Job Type</option>
@@ -187,7 +189,7 @@ export default function JobAlertSignupForm({
           <select
             value={frequency}
             onChange={(e) => setFrequency(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none appearance-none bg-white"
             disabled={status === 'loading'}
           >
             <option value="daily">Daily Digest</option>
@@ -195,6 +197,19 @@ export default function JobAlertSignupForm({
           </select>
         </div>
       </div>
+
+      {/* Newsletter Opt-in */}
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={newsletterOptIn}
+          onChange={(e) => setNewsletterOptIn(e.target.checked)}
+          className="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+        />
+        <span className="text-sm text-gray-600">
+          Also send me PMHNP career tips, salary insights & market updates
+        </span>
+      </label>
 
       {/* Error Message */}
       {status === 'error' && (
@@ -208,7 +223,7 @@ export default function JobAlertSignupForm({
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {status === 'loading' ? (
           <>

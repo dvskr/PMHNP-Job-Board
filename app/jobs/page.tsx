@@ -33,9 +33,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   // Get total job count
   const whereClause = buildWhereClause(filters);
   const totalJobs = await prisma.job.count({ where: whereClause });
-  const jobCountDisplay = totalJobs > 1000
-    ? `${Math.floor(totalJobs / 100) * 100}+`
-    : totalJobs.toLocaleString();
+  const jobCountDisplay = totalJobs > 10000
+    ? `${Math.floor(totalJobs / 1000).toLocaleString()},000+`
+    : '10,000+';
 
   // Build dynamic title and description based on filters
   let title = `Browse ${jobCountDisplay} PMHNP Jobs`;
@@ -59,6 +59,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
     description = `Find ${jobCountDisplay} ${titleParts.join(' ').toLowerCase()} psychiatric nurse practitioner positions. ${description}`;
   }
 
+  // Determine if this is a filtered/paginated view that should NOT be indexed
+  const hasFilters = Object.keys(params).length > 0;
+
   return {
     title: `${title} | PMHNP Hiring`,
     description,
@@ -75,6 +78,14 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
     alternates: {
       canonical: 'https://pmhnphiring.com/jobs',
     },
+    // Prevent Google from indexing filtered/paginated variants as separate pages
+    // This fixes the "Duplicate without user-selected canonical" GSC issue
+    ...(hasFilters && {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }),
   };
 }
 
@@ -98,21 +109,38 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const filters = parseFiltersFromParams(urlParams);
   const where = buildWhereClause(filters);
 
-  // Get page from params
+  // Get page and sort from params
   const page = parseInt((params.page as string) || '1');
+  const sort = (params.sort as string) || 'best';
   const limit = 50;
   const skip = (page - 1) * limit;
+
+  // Build orderBy based on sort param
+  let orderBy: Record<string, unknown>[] = [
+    { isFeatured: 'desc' },
+    { qualityScore: 'desc' },
+    { originalPostedAt: 'desc' },
+    { createdAt: 'desc' },
+  ];
+  if (sort === 'newest') {
+    orderBy = [
+      { originalPostedAt: { sort: 'desc', nulls: 'last' } },
+      { createdAt: 'desc' },
+    ];
+  } else if (sort === 'salary') {
+    orderBy = [
+      { normalizedMaxSalary: { sort: 'desc', nulls: 'last' } },
+      { normalizedMinSalary: { sort: 'desc', nulls: 'last' } },
+      { createdAt: 'desc' },
+    ];
+  }
 
   try {
     // Fetch jobs with same logic as API route
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
         where,
-        orderBy: [
-          { isFeatured: 'desc' },
-          { originalPostedAt: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy,
         skip,
         take: limit,
         select: {

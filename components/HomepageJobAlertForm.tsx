@@ -23,6 +23,7 @@ export default function HomepageJobAlertForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +46,7 @@ export default function HomepageJobAlertForm() {
           email,
           location: location || undefined,
           frequency,
+          newsletterOptIn,
         }),
       });
 
@@ -83,7 +85,7 @@ export default function HomepageJobAlertForm() {
           <div className="flex gap-3 mt-4">
             <Link
               href="/jobs"
-              className="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex-1 text-center px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
             >
               Browse Jobs Now
             </Link>
@@ -105,12 +107,12 @@ export default function HomepageJobAlertForm() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
+              className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -133,7 +135,7 @@ export default function HomepageJobAlertForm() {
           <button
             type="button"
             onClick={() => setShowOptions(!showOptions)}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 mx-auto"
+            className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1 mx-auto"
           >
             {showOptions ? 'Hide options' : 'Customize alert'}
             <ChevronDown className={`w-4 h-4 transition-transform ${showOptions ? 'rotate-180' : ''}`} />
@@ -151,7 +153,7 @@ export default function HomepageJobAlertForm() {
                   id="homepage-location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 >
                   <option value="">Any Location</option>
                   <option value="Remote">Remote Only</option>
@@ -178,7 +180,7 @@ export default function HomepageJobAlertForm() {
                       value="daily"
                       checked={frequency === 'daily'}
                       onChange={(e) => setFrequency(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                     />
                     <span className="text-sm text-gray-700">Daily</span>
                   </label>
@@ -189,7 +191,7 @@ export default function HomepageJobAlertForm() {
                       value="weekly"
                       checked={frequency === 'weekly'}
                       onChange={(e) => setFrequency(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                     />
                     <span className="text-sm text-gray-700">Weekly</span>
                   </label>
@@ -206,10 +208,23 @@ export default function HomepageJobAlertForm() {
             </div>
           )}
 
+          {/* Newsletter Opt-in */}
+          <label className="flex items-start gap-2 cursor-pointer justify-center">
+            <input
+              type="checkbox"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              className="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+            />
+            <span className="text-xs text-gray-600">
+              Also send me career tips & salary insights
+            </span>
+          </label>
+
           {/* Privacy Note */}
           <p className="text-xs text-gray-500 text-center">
             No spam, unsubscribe anytime.{' '}
-            <Link href="/job-alerts" className="text-blue-600 hover:underline">
+            <Link href="/job-alerts" className="text-teal-600 hover:underline">
               More options →
             </Link>
           </p>

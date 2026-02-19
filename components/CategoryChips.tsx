@@ -30,7 +30,7 @@ export default function CategoryChips({ categories, layout = 'row' }: CategoryCh
         <Link
           key={category.label}
           href={category.href}
-          className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:border-teal-500 hover:text-teal-600 hover:bg-teal-50 transition-colors"
         >
           <span>{category.label}</span>
         </Link>

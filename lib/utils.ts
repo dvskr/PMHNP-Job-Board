@@ -20,9 +20,10 @@ export function formatDate(date: string | Date): string {
 
 function getEffectiveDate(job: { originalPostedAt?: Date | null; createdAt: Date } | Date): Date {
   if (job instanceof Date || typeof job === 'string') return new Date(job as any);
-  // Debug log (temporary)
-  // if ((job as any).title?.includes('Nurse')) console.log('Date Debug:', { title: (job as any).title, orig: (job as any).originalPostedAt, created: (job as any).createdAt });
-  return (job as any).originalPostedAt ? new Date((job as any).originalPostedAt) : new Date((job as any).createdAt);
+  // Use createdAt (ingestion date) for freshness display — this ensures jobs
+  // in the "Past 24 hours" filter show "Posted today" instead of "Posted 2 days ago".
+  // originalPostedAt is still used for SEO structured data (JobStructuredData.tsx).
+  return new Date((job as any).createdAt);
 }
 
 export function formatSalary(
@@ -36,6 +37,11 @@ export function formatSalary(
     // For hourly/weekly/monthly, show the raw number with comma formatting
     if (period === 'hourly' || period === 'weekly' || period === 'monthly') {
       return `$${n.toLocaleString()}`;
+    }
+    // Annual — values 20-999 are almost certainly stored in thousands (e.g. 125 = $125K)
+    // No PMHNP job pays $125/year, so normalize these
+    if (n >= 20 && n < 1000) {
+      return `$${Math.round(n)}k`;
     }
     // Annual - use k format for thousands
     if (n >= 1000) return `$${Math.round(n / 1000)}k`;

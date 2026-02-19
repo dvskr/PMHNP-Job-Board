@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
 import { Job, JobAlert } from '@/lib/types';
 import { slugify } from '@/lib/utils';
+import { emailShell, headerBlock, primaryButton } from '@/lib/email-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 // Always use production URL for email links
@@ -9,9 +10,13 @@ const BASE_URL = 'https://pmhnphiring.com';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
 // Batch size for processing alerts
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 10;
 // Delay between batches (ms)
-const BATCH_DELAY = 1000;
+const BATCH_DELAY = 2000;
+// Delay between individual emails (ms) — Resend rate limit is 2/sec on free, 10/sec on pro
+const EMAIL_DELAY = 2000;
+// Max retries for rate-limited emails
+const MAX_RETRIES = 3;
 
 interface SendAlertsSummary {
   alertsProcessed: number;
@@ -85,21 +90,24 @@ function buildJobsWhereClause(alert: JobAlert, sinceDate: Date | null) {
   return where;
 }
 
+const FONT_STACK = "Arial, Helvetica, sans-serif";
+
 function generateJobListHtml(jobs: Job[]): string {
   return jobs
-    .map((job: Job) => {
+    .map((job: Job, index: number) => {
       const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`;
       const salaryText = job.salaryRange || (job.minSalary ? `$${job.minSalary.toLocaleString()}+` : '');
+      const isLast = index === jobs.length - 1;
 
       return `
         <tr>
-          <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
-            <a href="${jobUrl}" style="color: #2563eb; text-decoration: none; font-size: 16px; font-weight: 600;">${job.title}</a>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: #6b7280;">${job.employer} · ${job.location}</p>
-            <p style="margin: 8px 0 0 0; font-size: 12px;">
-              ${job.mode ? `<span style="background-color: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; margin-right: 4px;">${job.mode}</span>` : ''}
-              ${job.jobType ? `<span style="background-color: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 4px; margin-right: 4px;">${job.jobType}</span>` : ''}
-              ${salaryText ? `<span style="background-color: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px;">${salaryText}</span>` : ''}
+          <td style="padding: 16px 20px;${!isLast ? ' border-bottom: 1px solid #1E293B;' : ''}">
+            <a href="${jobUrl}" style="color: #2DD4BF; text-decoration: none; font-family: ${FONT_STACK}; font-size: 15px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.4;">${job.title}</a>
+            <p style="margin: 5px 0 0; font-family: ${FONT_STACK}; font-size: 13px; color: #94A3B8;">${job.employer} · ${job.location}</p>
+            <p style="margin: 8px 0 0; font-size: 11px;">
+              ${job.mode ? `<span style="display: inline-block; background-color: #1E293B; color: #94A3B8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; font-family: ${FONT_STACK}; font-size: 11px; font-weight: 500; border: 1px solid #1E293B;">${job.mode}</span>` : ''}
+              ${job.jobType ? `<span style="display: inline-block; background-color: #1E293B; color: #94A3B8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; font-family: ${FONT_STACK}; font-size: 11px; font-weight: 500; border: 1px solid #1E293B;">${job.jobType}</span>` : ''}
+              ${salaryText ? `<span style="display: inline-block; background-color: #064E3B; color: #34D399; padding: 3px 10px; border-radius: 6px; font-family: ${FONT_STACK}; font-size: 11px; font-weight: 600; border: 1px solid #065F46;">${salaryText}</span>` : ''}
             </p>
           </td>
         </tr>
@@ -114,78 +122,67 @@ async function sendAlertEmail(
   criteriaSummary: string
 ): Promise<void> {
   const jobCount = jobs.length;
-  const subject = `${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
+  const subject = `🔔 ${jobCount} new PMHNP job${jobCount !== 1 ? 's' : ''} matching your alert`;
 
-  await resend.emails.send({
-    from: EMAIL_FROM,
-    to: alert.email,
-    subject,
-    html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: Arial, Helvetica, sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+  const html = emailShell(`
+          ${headerBlock(
+    `${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found 🔔`,
+    `${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'} Alert`
+  )}
           <tr>
-            <td style="background-color: #2563eb; padding: 24px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 22px; color: #ffffff; font-weight: bold;">
-                ${jobCount} New Job${jobCount !== 1 ? 's' : ''} Found
-              </h1>
-              <p style="margin: 8px 0 0 0; font-size: 14px; color: #bfdbfe;">
-                ${criteriaSummary} · ${alert.frequency === 'daily' ? 'Daily' : 'Weekly'}
+            <td class="content-pad" style="padding: 24px 40px 8px;">
+              <p style="margin: 0; font-family: ${FONT_STACK}; font-size: 15px; color: #E2E8F0; line-height: 1.6;">
+                New positions matching your criteria:
               </p>
             </td>
           </tr>
           <tr>
-            <td style="padding: 24px 40px 8px 40px;">
-              <p style="margin: 0; font-size: 16px; color: #374151;">
-                New positions matching your alert:
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <td class="content-pad" style="padding: 12px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #162231; border: 1px solid #1E293B; border-radius: 12px; overflow: hidden;">
                 ${generateJobListHtml(jobs)}
               </table>
             </td>
           </tr>
           <tr>
-            <td style="padding: 24px 40px;">
-              <table role="presentation" cellspacing="0" cellpadding="0">
+            <td class="content-pad" style="padding: 24px 40px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                 <tr>
                   <td>
-                    <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
-                      View All Jobs
-                    </a>
+                    ${primaryButton('View All Matching Jobs →', `${BASE_URL}/jobs`)}
                   </td>
                 </tr>
               </table>
             </td>
-          </tr>
-          <tr>
-            <td style="background-color: #f4f4f5; padding: 20px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">
-                You created this alert at PMHNPHiring.com
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #6b7280;">
-                <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #6b7280;">Manage alert</a> | 
-                <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #6b7280;">Delete alert</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`,
-  });
+          </tr>`,
+    `<p style="margin: 8px 0 0; font-family: ${FONT_STACK}; font-size: 11px; color: #475569;">
+      <a href="${BASE_URL}/job-alerts/manage?token=${alert.token}" style="color: #64748B; text-decoration: none;">Manage alert</a>
+      &nbsp;·&nbsp;
+      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}" style="color: #64748B; text-decoration: none;">Delete alert</a>
+    </p>`
+  );
+
+  // Retry with exponential backoff for rate limits (429)
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: alert.email,
+        subject,
+        html,
+      });
+      return; // Success
+    } catch (error: unknown) {
+      const isRateLimit = error instanceof Error &&
+        (error.message.includes('429') || error.message.includes('rate') || error.message.includes('Too Many'));
+      if (isRateLimit && attempt < MAX_RETRIES) {
+        const backoff = EMAIL_DELAY * Math.pow(2, attempt - 1); // 2s, 4s, 8s
+        console.warn(`[Alert] Rate limited sending to ${alert.email}, retrying in ${backoff}ms (attempt ${attempt}/${MAX_RETRIES})`);
+        await sleep(backoff);
+      } else {
+        throw error; // Non-rate-limit error or max retries exceeded
+      }
+    }
+  }
 }
 
 async function processAlert(alert: JobAlert): Promise<boolean> {
@@ -273,14 +270,19 @@ export async function sendJobAlerts(): Promise<SendAlertsSummary> {
 
     console.log(`[Job Alerts] Processing batch ${batchNumber}/${totalBatches} (${batch.length} alerts)`);
 
-    // Process each alert in the batch
-    for (const alert of batch) {
+    // Process each alert in the batch with per-email delay
+    for (let j = 0; j < batch.length; j++) {
+      const alert = batch[j];
       summary.alertsProcessed++;
 
       try {
         const emailSent = await processAlert(alert);
         if (emailSent) {
           summary.emailsSent++;
+          // Delay between emails to avoid Resend rate limits
+          if (j < batch.length - 1) {
+            await sleep(EMAIL_DELAY);
+          }
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

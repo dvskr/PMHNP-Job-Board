@@ -35,6 +35,7 @@ export interface Job {
   isVerifiedEmployer: boolean;
   sourceType: string | null;
   sourceProvider: string | null;
+  sourceSite: string | null;
   externalId: string | null;
   originalPostedAt: Date | null;
   viewCount: number;

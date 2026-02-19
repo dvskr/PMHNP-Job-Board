@@ -93,7 +93,7 @@ export default function InternalLinks({
     const displayLinks = links.slice(0, 3);
 
     const colorClasses: Record<string, { bg: string; text: string; hover: string }> = {
-        blue: { bg: 'bg-blue-50', text: 'text-blue-700', hover: 'hover:bg-blue-100' },
+        blue: { bg: 'bg-teal-50', text: 'text-teal-700', hover: 'hover:bg-teal-100' },
         purple: { bg: 'bg-purple-50', text: 'text-purple-700', hover: 'hover:bg-purple-100' },
         teal: { bg: 'bg-teal-50', text: 'text-teal-700', hover: 'hover:bg-teal-100' },
         green: { bg: 'bg-green-50', text: 'text-green-700', hover: 'hover:bg-green-100' },
@@ -102,22 +102,39 @@ export default function InternalLinks({
 
     return (
         <section className="mt-6">
-            <h3 className="text-sm font-semibold text-gray-600 mb-3">Explore More Opportunities</h3>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: '12px' }}>Explore More Opportunities</h3>
             <div className="flex flex-wrap gap-2">
-                {displayLinks.map((link) => {
-                    const colors = colorClasses[link.color] || colorClasses.blue;
-                    return (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${colors.bg} ${colors.text} ${colors.hover}`}
-                        >
-                            {link.icon}
-                            {link.label}
-                        </Link>
-                    );
-                })}
+                {displayLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className="il-btn"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 12px',
+                            borderRadius: '10px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: 'var(--color-primary)',
+                            backgroundColor: 'var(--bg-tertiary)',
+                            border: '1px solid var(--border-color)',
+                            textDecoration: 'none',
+                            transition: 'all 0.2s',
+                        }}
+                    >
+                        {link.icon}
+                        {link.label}
+                    </Link>
+                ))}
             </div>
+            <style>{`
+                .il-btn:hover {
+                    border-color: var(--color-primary) !important;
+                    background-color: var(--bg-secondary) !important;
+                }
+            `}</style>
         </section>
     );
 }

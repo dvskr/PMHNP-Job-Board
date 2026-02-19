@@ -60,7 +60,6 @@ import {
     SEARCH_QUERIES,
     STATES as LOCATIONS,
     TOP_500_CITIES as CITIES,
-    NOTABLE_COUNTIES as COUNTIES,
     TOP_EMPLOYERS
 } from './constants';
 
@@ -73,11 +72,80 @@ const LOCATION_KEYWORDS = [
     'Psychiatric APN'
 ];
 
+// Full keyword set for cron national + state searches (catches all title variations)
+const CRON_FULL_KEYWORDS = [...SEARCH_QUERIES];
+
+// Slim keyword set for city-level cron searches (JSearch returns same results at city granularity)
+const CRON_CITY_KEYWORDS = [
+    'PMHNP',
+    'Psychiatric Nurse Practitioner',
+];
+
 // How many pages to fetch per query (each page = ~10 jobs)
 const PAGES_PER_QUERY = 5;
+const CRON_PAGES_PER_QUERY = 2; // Niche specialty — page 3+ rarely has new results
 
 // Rate limiting delay between API calls (ms)
 const DELAY_BETWEEN_REQUESTS = 334; // ~3 requests per second
+
+// Hard time budget for cron runs (Vercel timeout is 300s)
+const CRON_TIME_BUDGET_MS = 250_000; // 250s — leave 50s buffer
+
+// Job board domains — JSearch marks these as "direct" but they're NOT employer pages.
+// Users still have to click through to the actual employer application from these sites.
+const JOB_BOARD_DOMAINS = [
+    'indeed.com', 'ziprecruiter.com', 'linkedin.com', 'glassdoor.com',
+    'monster.com', 'simplyhired.com', 'snagajob.com', 'talent.com',
+    'lensa.com', 'ladders.com', 'bebee.com', 'learn4good.com',
+    'doccafe.com', 'practicematch.com', 'docjobs.com', 'doximity.com',
+    'jobrapido.com', 'whatjobs.com', 'teal.com', 'career.io',
+    'gothamenterprises.com', 'jooble.org', 'adzuna.com',
+    'localjobs.com', 'jobs.ac', 'alumnijobs', 'enpnetwork.com',
+    'jobtarget.com', 'getwork.com',
+];
+
+function isJobBoardUrl(url: string): boolean {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        return JOB_BOARD_DOMAINS.some(d => hostname.includes(d));
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Pick the best apply link from JSearch data.
+ * Prefer actual employer/ATS links over job board redirect links.
+ * JSearch's is_direct flag is unreliable (marks Indeed/ZipRecruiter as "direct"),
+ * so we cross-check against known job board domains.
+ */
+function getBestApplyLink(job: JSearchJob): string {
+    if (job.apply_options && job.apply_options.length > 0) {
+        // First pass: find a direct option that is NOT a job board
+        const trueDirectOption = job.apply_options.find(
+            opt => opt.is_direct && opt.apply_link && !isJobBoardUrl(opt.apply_link)
+        );
+        if (trueDirectOption) {
+            return trueDirectOption.apply_link;
+        }
+
+        // Second pass: find ANY option that is not a job board (even if not marked direct)
+        const nonJobBoardOption = job.apply_options.find(
+            opt => opt.apply_link && !isJobBoardUrl(opt.apply_link)
+        );
+        if (nonJobBoardOption) {
+            return nonJobBoardOption.apply_link;
+        }
+    }
+
+    // If primary link is not a job board, use it
+    if (job.job_apply_link && !isJobBoardUrl(job.job_apply_link)) {
+        return job.job_apply_link;
+    }
+
+    // Last resort: use the primary link even if it's a job board
+    return job.job_apply_link;
+}
 
 /**
  * Build location string from JSearch job data
@@ -130,7 +198,7 @@ async function fetchJSearchPage(
         query: query,
         page: page.toString(),
         num_pages: '1',
-        date_posted: '3days', // Production: 3-day lookback (cron runs daily)
+        date_posted: 'week', // 1-week lookback — resilient to outages, catches more with expanded keywords
         country: 'us',
         language: 'en',
     });
@@ -176,6 +244,8 @@ function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+
+
 /**
  * Main export: Fetch all PMHNP jobs from JSearch
  */
@@ -189,115 +259,104 @@ export async function fetchJSearchJobs(
         return [];
     }
 
-    const pagesPerQuery = options.pagesPerQuery || PAGES_PER_QUERY;
+    const isCronChunk = options.chunk !== undefined && options.chunk >= 0;
+    const pagesPerQuery = options.pagesPerQuery || (isCronChunk ? CRON_PAGES_PER_QUERY : PAGES_PER_QUERY);
+    const startTime = Date.now();
 
     // Build Execution Queue
     let queue: string[] = [];
 
     if (options.specificQueries) {
         queue = options.specificQueries;
+    } else if (isCronChunk) {
+        // ── Cron mode: 8 chunks — all 23 keywords for national/state, slim 2 for cities ──
+        const chunkId = options.chunk!;
+        const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
+
+        // States split into two halves (A-M, N-Z + Remote)
+        const midpoint = Math.ceil(LOCATIONS.length / 2);
+        const statesFirstHalf = LOCATIONS.slice(0, midpoint);
+        const statesSecondHalf = LOCATIONS.slice(midpoint);
+
+        // Split cities into 5 equal chunks
+        const citiesPerChunk = Math.ceil(CITIES.length / 5);
+
+        switch (chunkId) {
+            case 0: // National keywords (all 23) + Employers
+                queue = [...CRON_FULL_KEYWORDS, ...employerQueries];
+                break;
+            case 1: // States A-M (23 keywords × ~26 states)
+                CRON_FULL_KEYWORDS.forEach(kw => {
+                    statesFirstHalf.forEach(loc => queue.push(`${kw} ${loc}`));
+                });
+                break;
+            case 2: // States N-Z + Remote (23 keywords × ~25 states)
+                CRON_FULL_KEYWORDS.forEach(kw => {
+                    statesSecondHalf.forEach(loc => queue.push(`${kw} ${loc}`));
+                });
+                break;
+            case 3: // Cities slice 1 (2 keywords × ~100 cities)
+                CRON_CITY_KEYWORDS.forEach(kw => {
+                    CITIES.slice(0, citiesPerChunk).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 4: // Cities slice 2
+                CRON_CITY_KEYWORDS.forEach(kw => {
+                    CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 5: // Cities slice 3
+                CRON_CITY_KEYWORDS.forEach(kw => {
+                    CITIES.slice(citiesPerChunk * 2, citiesPerChunk * 3).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 6: // Cities slice 4
+                CRON_CITY_KEYWORDS.forEach(kw => {
+                    CITIES.slice(citiesPerChunk * 3, citiesPerChunk * 4).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            case 7: // Cities slice 5
+                CRON_CITY_KEYWORDS.forEach(kw => {
+                    CITIES.slice(citiesPerChunk * 4).forEach(city => queue.push(`${kw} ${city}`));
+                });
+                break;
+            default:
+                console.warn(`[JSearch] Unknown chunk ID: ${chunkId}`);
+                return [];
+        }
+        console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries (${pagesPerQuery} pages/query, budget: ${CRON_TIME_BUDGET_MS / 1000}s)`);
     } else {
-        // Build full queue first, then slice by chunk
-        const nationalQueries = [...LOCATION_KEYWORDS];
+        // ── Full queue (for local/manual runs — no time budget) ──
+        const nationalQueries = [...SEARCH_QUERIES];
         const employerQueries = TOP_EMPLOYERS.map(emp => `${emp} PMHNP`);
 
         const stateQueries: string[] = [];
-        LOCATION_KEYWORDS.forEach(kw => {
-            LOCATIONS.forEach(loc => {
-                stateQueries.push(`${kw} ${loc}`);
-            });
+        SEARCH_QUERIES.forEach(kw => {
+            LOCATIONS.forEach(loc => stateQueries.push(`${kw} ${loc}`));
         });
 
         const cityQueries: string[] = [];
         LOCATION_KEYWORDS.forEach(kw => {
-            CITIES.forEach(city => {
-                cityQueries.push(`${kw} ${city}`);
-            });
+            CITIES.forEach(city => cityQueries.push(`${kw} ${city}`));
         });
 
-        const countyQueries: string[] = [];
-        LOCATION_KEYWORDS.forEach(kw => {
-            COUNTIES.forEach(county => {
-                const countyName = county.split(',')[0].trim();
-                const stateAbbrev = county.split(',')[1].trim();
-                countyQueries.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-            });
-        });
+        queue = [
+            ...nationalQueries,
+            ...employerQueries,
+            ...stateQueries,
+            ...cityQueries,
+        ];
 
-        // Chunk-based splitting for production cron (Vercel 300s timeout)
-        if (options.chunk !== undefined && options.chunk >= 0 && options.chunk <= 5) {
-            const chunkId = options.chunk;
-            const citiesPerChunk = Math.ceil(CITIES.length / 3); // ~167 cities per chunk
-            const countiesPerChunk = Math.ceil(COUNTIES.length / 2); // ~125 counties per chunk
-
-            switch (chunkId) {
-                case 0: // National + States + Employers
-                    queue = [...nationalQueries, ...employerQueries, ...stateQueries];
-                    break;
-                case 1: // Cities 1-167
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        CITIES.slice(0, citiesPerChunk).forEach(city => {
-                            queue.push(`${kw} ${city}`);
-                        });
-                    });
-                    break;
-                case 2: // Cities 168-334
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        CITIES.slice(citiesPerChunk, citiesPerChunk * 2).forEach(city => {
-                            queue.push(`${kw} ${city}`);
-                        });
-                    });
-                    break;
-                case 3: // Cities 335-500
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        CITIES.slice(citiesPerChunk * 2).forEach(city => {
-                            queue.push(`${kw} ${city}`);
-                        });
-                    });
-                    break;
-                case 4: // Counties 1-125
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        COUNTIES.slice(0, countiesPerChunk).forEach(county => {
-                            const countyName = county.split(',')[0].trim();
-                            const stateAbbrev = county.split(',')[1].trim();
-                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                        });
-                    });
-                    break;
-                case 5: // Counties 126-250
-                    LOCATION_KEYWORDS.forEach(kw => {
-                        COUNTIES.slice(countiesPerChunk).forEach(county => {
-                            const countyName = county.split(',')[0].trim();
-                            const stateAbbrev = county.split(',')[1].trim();
-                            queue.push(`${kw} ${countyName} County, ${stateAbbrev}`);
-                        });
-                    });
-                    break;
-            }
-            console.log(`[JSearch] Chunk ${chunkId}: ${queue.length} queries`);
-        } else {
-            // Full queue (for local/manual runs)
-            queue = [
-                ...nationalQueries,
-                ...employerQueries,
-                ...stateQueries,
-                ...cityQueries,
-                ...countyQueries,
-            ];
-
-            console.log('[JSearch] Strategy Breakdown:');
-            console.log(`    - National: ${nationalQueries.length}`);
-            console.log(`    - Employers: ${employerQueries.length}`);
-            console.log(`    - States: ${stateQueries.length}`);
-            console.log(`    - Cities: ${cityQueries.length}`);
-            console.log(`    - Counties: ${countyQueries.length}`);
-        }
+        console.log('[JSearch] Strategy Breakdown:');
+        console.log(`    - National: ${nationalQueries.length}`);
+        console.log(`    - Employers: ${employerQueries.length}`);
+        console.log(`    - States: ${stateQueries.length}`);
+        console.log(`    - Cities: ${cityQueries.length}`);
     }
 
     console.log(`[JSearch] Total Execution Queue: ${queue.length} queries (Depth: ${pagesPerQuery} pages/query)`);
 
-    // Process in batches of 10 concurrent requests
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 15; // Mega plan: 20 req/sec rate limit
 
     // VALIDATION STATS
     let totalRawJobs = 0;
@@ -312,11 +371,20 @@ export async function fetchJSearchJobs(
     const seenJobIds = new Set<string>();
 
     for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+        // ── Time budget check (cron only) ──
+        if (isCronChunk) {
+            const elapsed = Date.now() - startTime;
+            if (elapsed >= CRON_TIME_BUDGET_MS) {
+                console.warn(`[JSearch] Time budget exhausted (${(elapsed / 1000).toFixed(1)}s). Returning ${allJobs.length} jobs collected so far.`);
+                break;
+            }
+        }
+
         const batch = queue.slice(i, i + BATCH_SIZE);
         const batchNum = Math.floor(i / BATCH_SIZE) + 1;
         const totalBatches = Math.ceil(queue.length / BATCH_SIZE);
 
-        console.log(`[JSearch] Processing Batch ${batchNum}/${totalBatches} (${batch.length} queries)...`);
+        console.log(`[JSearch] Batch ${batchNum}/${totalBatches} (${batch.length} queries)${isCronChunk ? ` [${((Date.now() - startTime) / 1000).toFixed(0)}s elapsed]` : ''}`);
 
         const batchResults = await Promise.all(
             batch.map(async (query) => {
@@ -358,7 +426,7 @@ export async function fetchJSearchJobs(
                     if (expiryMs < Date.now()) continue;
                 }
 
-                // Global Relevance Gate
+                // Global Relevance Gate — strict early filtering before DB layer
                 if (!isRelevantJob(job.job_title, job.job_description || '')) {
                     droppedByFilter++;
                     continue;
@@ -372,7 +440,7 @@ export async function fetchJSearchJobs(
                     employer: job.employer_name || 'Company Not Listed',
                     location: buildLocation(job),
                     description: job.job_description || '',
-                    applyLink: job.job_apply_link,
+                    applyLink: getBestApplyLink(job),
                     externalId: `jsearch_${job.job_id}`,
                     sourceProvider: 'jsearch',
                     sourceSite: job.job_publisher || 'Google Jobs',
@@ -394,7 +462,7 @@ export async function fetchJSearchJobs(
 
         // Pause 3 seconds between batches (Rate limiting: ~3.3 req/sec overall)
         if (i + BATCH_SIZE < queue.length) {
-            await sleep(3000);
+            await sleep(2000);
         }
     }
 
@@ -402,7 +470,7 @@ export async function fetchJSearchJobs(
     console.log(`[JSearch] VALIDATION STATS:`);
     console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
     console.log(`    Duplicate IDs (seen before): ${droppedByDup}`);
-    console.log(`    Dropped by Relevance Filter: ${droppedByFilter} (This validates filter strictness)`);
+    console.log(`    Dropped by Relevance Filter: ${droppedByFilter}`);
     console.log(`    Final Accepted: ${allJobs.length}`);
 
     return allJobs;

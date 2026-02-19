@@ -7,8 +7,10 @@ import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
+import { computeQualityScore } from '@/lib/utils/quality-score';
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for job posting
@@ -189,6 +191,19 @@ export async function POST(request: NextRequest) {
       parsedSalaryPeriod
     );
 
+    // Compute quality score — employer-posted jobs get the employer bonus (+30)
+    const qualityScore = computeQualityScore({
+      applyLink: sanitized.applyLink,
+      displaySalary,
+      normalizedMinSalary: normalizedSalary.normalizedMinSalary,
+      normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
+      descriptionSummary: sanitized.description.slice(0, 300),
+      description: sanitized.description,
+      city: null,
+      state: null,
+      isEmployerPosted: true,
+    });
+
     // Create job with Prisma
     const job = await prisma.job.create({
       data: {
@@ -212,6 +227,7 @@ export async function POST(request: NextRequest) {
         isPublished: true,
         sourceType: 'employer',
         expiresAt,
+        qualityScore,
       },
     });
 
@@ -270,6 +286,12 @@ export async function POST(request: NextRequest) {
       jobId: job.id,
       employer: sanitized.employer
     });
+
+    // Ping search engines for indexing (fire-and-forget)
+    const jobUrl = `https://pmhnphiring.com/jobs/${slug}`;
+    pingAllSearchEngines(jobUrl).catch((err) =>
+      logger.error('[Post-Free] Background indexing ping failed', err)
+    );
 
     // Return success response
     return NextResponse.json({

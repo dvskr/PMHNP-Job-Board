@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 
 // Custom SVG icons for brand accuracy
 const XIcon = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+  <svg width={size} height={size} viewBox="0 0 24 24" style={{ fill: 'var(--text-primary)' }}>
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
@@ -69,19 +69,19 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
       name: 'X',
       icon: <XIcon size={24} />,
       href: `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-      color: 'hover:bg-gray-100 text-gray-700',
+      color: 'hover:bg-gray-100 dark:hover:bg-gray-700',
     },
     {
       name: 'LinkedIn',
       icon: <LinkedInIcon size={24} />,
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-      color: 'hover:bg-blue-50 text-[#0A66C2]',
+      color: 'hover:bg-teal-50 text-[#0A66C2]',
     },
     {
       name: 'Facebook',
       icon: <FacebookIcon size={24} />,
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      color: 'hover:bg-blue-50 text-[#1877F2]',
+      color: 'hover:bg-teal-50 text-[#1877F2]',
     },
     {
       name: 'WhatsApp',
@@ -151,15 +151,17 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
 
       {/* Modal */}
       <div
-        className="relative bg-white w-full max-w-sm mx-4 sm:mx-auto rounded-2xl shadow-2xl"
+        className="relative w-full max-w-sm mx-4 sm:mx-auto rounded-2xl shadow-2xl"
+        style={{ backgroundColor: 'var(--bg-secondary)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 className="text-base font-semibold text-gray-900">Share</h3>
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Share</h3>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1.5 rounded-full transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
             aria-label="Close"
           >
             <X size={18} />
@@ -177,10 +179,10 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px' }}
                 className={`transition-colors ${option.color}`}
               >
-                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: '#f3f4f6' }}>
+                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)' }}>
                   {option.icon}
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 500, color: '#4b5563' }}>{option.name}</span>
+                <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{option.name}</span>
               </button>
             ))}
           </div>
@@ -193,17 +195,17 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px' }}
                 className={`transition-colors ${option.color}`}
               >
-                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: '#f3f4f6' }}>
+                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)' }}>
                   {option.icon}
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 500, color: '#4b5563' }}>{option.name}</span>
+                <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{option.name}</span>
               </button>
             ))}
             {/* Copy Link */}
             <button
               onClick={handleCopyLink}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px' }}
-              className={`transition-colors ${copied ? 'text-emerald-600' : 'hover:bg-gray-100 text-gray-700'}`}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px', color: copied ? undefined : 'var(--text-secondary)' }}
+              className={`transition-colors ${copied ? 'text-emerald-600' : ''}`}
             >
               <div style={{
                 width: '48px',
@@ -212,11 +214,11 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: '50%',
-                backgroundColor: copied ? '#d1fae5' : '#f3f4f6'
+                backgroundColor: copied ? '#d1fae5' : 'var(--bg-tertiary)'
               }}>
                 {copied ? <Check size={24} /> : <Link2 size={24} />}
               </div>
-              <span style={{ fontSize: '11px', fontWeight: 500 }}>{copied ? 'Copied!' : 'Copy'}</span>
+              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{copied ? 'Copied!' : 'Copy'}</span>
             </button>
           </div>
         </div>

@@ -53,7 +53,7 @@ function UnsubscribeContent() {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="flex items-center gap-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
                     <span className="text-gray-600">Loading...</span>
                 </div>
             </div>
@@ -116,7 +116,7 @@ function UnsubscribeContent() {
                         </p>
                         <Link
                             href="/job-alerts"
-                            className="block w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium text-center hover:bg-blue-700 transition-colors"
+                            className="block w-full px-4 py-3 bg-teal-600 text-white rounded-lg font-medium text-center hover:bg-teal-700 transition-colors"
                         >
                             Create New Alert
                         </Link>
@@ -138,7 +138,7 @@ function UnsubscribeContent() {
                         </p>
                         <Link
                             href="/jobs"
-                            className="block w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium text-center hover:bg-blue-700 transition-colors"
+                            className="block w-full px-4 py-3 bg-teal-600 text-white rounded-lg font-medium text-center hover:bg-teal-700 transition-colors"
                         >
                             Browse Jobs
                         </Link>
@@ -153,7 +153,7 @@ function LoadingFallback() {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="flex items-center gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
                 <span className="text-gray-600">Loading...</span>
             </div>
         </div>

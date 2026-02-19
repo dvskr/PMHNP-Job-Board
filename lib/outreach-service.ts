@@ -6,7 +6,7 @@ const TEMPLATES = {
     subject: 'Reach qualified PMHNPs with {{companyName}}',
     body: `Hi {{contactName}},
 
-I noticed {{companyName}} is hiring psychiatric nurse practitioners. I'm reaching out because we run PMHNP Jobs, the specialized job board for psychiatric mental health nurse practitioners.
+I noticed {{companyName}} is hiring psychiatric nurse practitioners. I'm reaching out because we run PMHNP Hiring, the specialized job board for psychiatric mental health nurse practitioners.
 
 We have over 1,000 PMHNPs subscribed to job alerts, and our site gets targeted traffic from practitioners actively looking for new opportunities.
 
@@ -16,7 +16,7 @@ Would you be interested in posting your open positions? I'm happy to set up your
 
 Best,
 [Your name]
-PMHNP Jobs
+PMHNP Hiring
 
 P.S. You can check out our site at pmhnphiring.com`
   },
@@ -39,7 +39,7 @@ Best,
     subject: 'Free PMHNP job posting for {{companyName}}',
     body: `Hi {{contactName}},
 
-I'd like to offer {{companyName}} a free featured job posting on PMHNP Jobs.
+I'd like to offer {{companyName}} a free featured job posting on PMHNP Hiring.
 
 No strings attached - I want to help you reach our audience of psychiatric nurse practitioners.
 

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -101,6 +102,13 @@ export async function POST(request: NextRequest) {
           }
 
           logger.info('Job renewed', { jobId, tier });
+
+          // Ping search engines for renewed job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (renewal)', err)
+            );
+          }
         } catch (prismaError) {
           logger.error('Error renewing job in database', prismaError, { jobId });
           return NextResponse.json(
@@ -162,6 +170,13 @@ export async function POST(request: NextRequest) {
           }
 
           logger.info('Job upgraded to featured', { jobId });
+
+          // Ping search engines for upgraded job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (upgrade)', err)
+            );
+          }
         } catch (prismaError) {
           logger.error('Error upgrading job in database', prismaError, { jobId });
           return NextResponse.json(
@@ -219,6 +234,13 @@ export async function POST(request: NextRequest) {
           }
 
           logger.info('Job published', { jobId });
+
+          // Ping search engines for new job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (new job)', err)
+            );
+          }
         } catch (prismaError) {
           logger.error('Error updating job in database', prismaError, { jobId });
           return NextResponse.json(

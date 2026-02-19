@@ -36,7 +36,7 @@ export default function TestimonialCard({
   // Generate a consistent color based on author name
   const getAvatarColor = (name: string) => {
     const colors = [
-      'from-blue-500 to-blue-700',
+      'from-teal-500 to-teal-700',
       'from-purple-500 to-purple-700',
       'from-pink-500 to-pink-700',
       'from-green-500 to-green-700',

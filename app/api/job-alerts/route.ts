@@ -20,6 +20,7 @@ interface CreateAlertBody {
   minSalary?: number;
   maxSalary?: number;
   frequency?: string;
+  newsletterOptIn?: boolean;
 }
 
 // Helper to build criteria summary for email
@@ -102,12 +103,12 @@ async function sendAlertConfirmationEmail(
             <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
             
             <p style="margin-bottom: 20px;">
-              <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 15px;">Browse Jobs Now</a>
+              <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #14B8A6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 15px;">Browse Jobs Now</a>
             </p>
             
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
               <p>You're receiving this because you signed up at PMHNPHiring.com</p>
-              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #3b82f6;">Manage your alerts</a> · <a href="${BASE_URL}/job-alerts/unsubscribe?token=${token}" style="color: #3b82f6;">Unsubscribe</a></p>
+              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #14B8A6;">Manage your alerts</a> · <a href="${BASE_URL}/job-alerts/unsubscribe?token=${token}" style="color: #14B8A6;">Unsubscribe</a></p>
             </div>
           </body>
         </html>
@@ -172,35 +173,56 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if EmailLead exists, create if not
-    const existingLead = await prisma.emailLead.findUnique({
+    // Upsert EmailLead — create if new, optionally flip newsletterOptIn
+    const newsletterOptIn = body.newsletterOptIn !== false; // default true
+    await prisma.emailLead.upsert({
       where: { email: normalizedEmail },
+      update: newsletterOptIn ? { newsletterOptIn: true } : {},
+      create: {
+        email: normalizedEmail,
+        source: 'job_alert',
+        newsletterOptIn,
+      },
     });
 
-    if (!existingLead) {
-      // Create EmailLead for the new subscriber
-      await prisma.emailLead.create({
-        data: {
-          email: normalizedEmail,
-          source: 'job_alert',
-        },
+    // Dedup: check if an alert with the same criteria already exists for this email
+    let jobAlert;
+    const existing = await prisma.jobAlert.findFirst({
+      where: {
+        email: normalizedEmail,
+        isActive: true,
+        keyword: keyword || null,
+        location: location || null,
+        mode: mode || null,
+        jobType: jobType || null,
+        minSalary: minSalary || null,
+        maxSalary: maxSalary || null,
+      },
+    });
+
+    if (existing) {
+      // Update frequency if changed, otherwise just reuse
+      jobAlert = await prisma.jobAlert.update({
+        where: { id: existing.id },
+        data: { frequency, name: name || existing.name },
       });
     }
 
-    // Create the job alert
-    const jobAlert = await prisma.jobAlert.create({
-      data: {
-        email: normalizedEmail,
-        name,
-        keyword,
-        location,
-        mode,
-        jobType,
-        minSalary,
-        maxSalary,
-        frequency,
-      },
-    });
+    if (!jobAlert) {
+      jobAlert = await prisma.jobAlert.create({
+        data: {
+          email: normalizedEmail,
+          name,
+          keyword,
+          location,
+          mode,
+          jobType,
+          minSalary,
+          maxSalary,
+          frequency,
+        },
+      });
+    }
 
     // Build criteria summary and send confirmation email
     const criteriaSummary = buildCriteriaSummary(body);
@@ -222,7 +244,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get alert details by token
+// GET - Get all alerts for an email (look up email from token)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -235,6 +257,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // First find the alert to get the email
     const jobAlert = await prisma.jobAlert.findUnique({
       where: { token },
     });
@@ -246,23 +269,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Now find ALL alerts for this email
+    const allAlerts = await prisma.jobAlert.findMany({
+      where: { email: jobAlert.email },
+      orderBy: { createdAt: 'desc' },
+    });
+
     return NextResponse.json({
       success: true,
-      alert: {
-        id: jobAlert.id,
-        email: jobAlert.email,
-        name: jobAlert.name,
-        keyword: jobAlert.keyword,
-        location: jobAlert.location,
-        mode: jobAlert.mode,
-        jobType: jobAlert.jobType,
-        minSalary: jobAlert.minSalary,
-        maxSalary: jobAlert.maxSalary,
-        frequency: jobAlert.frequency,
-        isActive: jobAlert.isActive,
-        lastSentAt: jobAlert.lastSentAt,
-        createdAt: jobAlert.createdAt,
-      },
+      alerts: allAlerts.map(a => ({
+        id: a.id,
+        token: a.token,
+        email: a.email,
+        name: a.name,
+        keyword: a.keyword,
+        location: a.location,
+        mode: a.mode,
+        jobType: a.jobType,
+        minSalary: a.minSalary,
+        maxSalary: a.maxSalary,
+        frequency: a.frequency,
+        isActive: a.isActive,
+        lastSentAt: a.lastSentAt,
+        createdAt: a.createdAt,
+      })),
     });
   } catch (error) {
     logger.error('Error fetching job alert', error);

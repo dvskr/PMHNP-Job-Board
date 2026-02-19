@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Post a Job | PMHNP Jobs',
-    description: 'Post your PMHNP job opening and reach thousands of qualified psychiatric nurse practitioners.',
+    title: 'Post a Job | PMHNP Hiring',
+    description: 'Post your PMHNP job opening and reach thousands of qualified psychiatric nurse practitioners. Standard and featured listings with email alerts to subscribers.',
     alternates: {
         canonical: 'https://pmhnphiring.com/post-job',
     },

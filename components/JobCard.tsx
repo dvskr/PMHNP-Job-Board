@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, CheckCircle, Eye } from 'lucide-react';
+import { MapPin, CheckCircle, Eye, Bookmark } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
+import useSavedJobs from '@/lib/hooks/useSavedJobs';
 import { useViewedJobs } from '@/lib/hooks/useViewedJobs';
 import Badge from '@/components/ui/Badge';
 import ShareModal from '@/components/ShareModal';
@@ -39,10 +40,29 @@ function stripHtml(html: string | null | undefined): string {
   return decoded.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Helper to build a salary string when displaySalary is missing
+function buildSalaryDisplay(job: Job): string | null {
+  if (job.displaySalary) return job.displaySalary;
+  const min = job.normalizedMinSalary;
+  const max = job.normalizedMaxSalary;
+  if (!min && !max) return null;
+  const fmt = (n: number) => {
+    if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
+    return `$${n.toLocaleString()}`;
+  };
+  const period = job.salaryPeriod === 'hourly' ? '/hr' : '/yr';
+  if (min && max && min !== max) return `${fmt(min)} - ${fmt(max)}${period}`;
+  if (min) return `${fmt(min)}${period}`;
+  if (max) return `${fmt(max)}${period}`;
+  return null;
+}
+
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
+  const { isSaved, saveJob, removeJob } = useSavedJobs();
   const { isViewed, markAsViewed, isHydrated } = useViewedJobs();
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const saved = isSaved(job.id);
   const applied = isApplied(job.id);
   const jobSlug = slugify(job.title, job.id);
   const jobUrl = `/jobs/${jobSlug}`;
@@ -55,6 +75,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
 
   // Clean summary for display
   const cleanSummary = stripHtml(job.descriptionSummary);
+  const salaryDisplay = buildSalaryDisplay(job);
 
   // Mark job as viewed when card is clicked
   const handleCardClick = () => {
@@ -67,18 +88,28 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
     setShowShareMenu(true);
   };
 
-  // Calculate job age for freshness indicator
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (saved) {
+      removeJob(job.id);
+    } else {
+      saveJob(job.id);
+    }
+  };
+
   const getJobAgeIndicator = () => {
     const now = new Date();
-    const createdAt = new Date(job.createdAt);
-    const ageInMs = now.getTime() - createdAt.getTime();
+    // Use original posted date when available, fall back to createdAt
+    const postedDate = new Date((job.originalPostedAt || job.createdAt) as unknown as string);
+    const ageInMs = now.getTime() - postedDate.getTime();
     const ageInDays = ageInMs / (1000 * 60 * 60 * 24);
 
     // Skip indicator for jobs < 3 days (the existing "New" badge handles this)
     if (ageInDays < 3) {
       return null;
     } else if (ageInDays < 7) {
-      return { text: 'Recent', className: 'bg-blue-50 text-blue-900 text-xs px-2 py-1 rounded-full font-bold' };
+      return { text: 'Recent', color: 'var(--bg-tertiary)', textColor: 'var(--color-primary)' };
     }
     return null;
   };
@@ -89,103 +120,132 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   if (viewMode === 'list') {
     return (
       <Link href={jobUrl} className="block touch-manipulation w-full" onClick={handleCardClick}>
-        <div className={`group !bg-white rounded-lg border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-5 ${viewed ? 'opacity-80' : ''}`}>
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
-            {/* Left Side - Main Info */}
-            <div className="flex-1 min-w-0">
-              {/* Title with Badges */}
-              <div className="flex flex-col sm:flex-row sm:items-start gap-2 mb-2">
-                <h3 className="text-base md:text-lg font-bold text-black group-hover:text-primary-800 transition-colors duration-200 leading-tight">
-                  {job.title}
-                </h3>
-                <div className="flex gap-1.5 flex-wrap">
-                  {isNew && (
-                    <Badge variant="warning" size="sm">New</Badge>
-                  )}
-                  {viewed && !applied && (
-                    <Badge variant="secondary" size="sm">
-                      <Eye size={12} />
-                      Viewed
-                    </Badge>
-                  )}
-                  {applied && (
-                    <Badge variant="success" size="sm">
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                      Applied
-                    </Badge>
-                  )}
-                  {job.isFeatured && (
-                    <Badge variant="featured" size="sm">Featured</Badge>
-                  )}
-                  {job.isVerifiedEmployer && (
-                    <Badge variant="success" size="sm">
-                      <CheckCircle size={12} />
-                      Verified
-                    </Badge>
+        <div
+          className="jc-card"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '14px',
+            border: '1px solid var(--border-color)',
+            padding: '18px 22px',
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            opacity: viewed ? 0.75 : 1,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+              {/* Left Side - Main Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Title with Badges */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <h3 style={{
+                    fontSize: '16px', fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    margin: 0, lineHeight: 1.3,
+                  }}>
+                    {job.title}
+                  </h3>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {isNew && <Badge variant="warning" size="sm">New</Badge>}
+                    {viewed && !applied && (
+                      <Badge variant="secondary" size="sm"><Eye size={12} /> Viewed</Badge>
+                    )}
+                    {applied && (
+                      <Badge variant="success" size="sm">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        Applied
+                      </Badge>
+                    )}
+                    {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
+                    {job.isVerifiedEmployer && (
+                      <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Company */}
+                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: '0 0 6px' }}>{job.employer}</p>
+
+                {/* Location and Type */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <MapPin size={14} style={{ color: '#2DD4BF' }} />
+                    <span>{job.location}</span>
+                  </div>
+                  {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
+                  {job.mode && <Badge variant="primary" size="sm">{job.mode}</Badge>}
+                </div>
+
+                {/* Description */}
+                {cleanSummary && (
+                  <p className="hidden md:block" style={{
+                    fontSize: '13px', color: 'var(--text-tertiary)',
+                    margin: '8px 0 0', lineHeight: 1.5,
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                    display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
+                  }}>
+                    {cleanSummary}
+                  </p>
+                )}
+
+                {/* Freshness */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', margin: 0 }}>{freshness}</p>
+                  {ageIndicator && (
+                    <span style={{
+                      fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
+                      backgroundColor: ageIndicator.color, color: ageIndicator.textColor,
+                    }}>
+                      {ageIndicator.text}
+                    </span>
                   )}
                 </div>
               </div>
 
-              {/* Company */}
-              <p className="text-black font-medium text-sm mb-2">{job.employer}</p>
-
-              {/* Location and Type */}
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <div className="flex items-center gap-1 text-black font-medium text-sm">
-                  <MapPin size={14} className="text-black" />
-                  <span>{job.location}</span>
-                </div>
-                {job.jobType && (
-                  <Badge variant="primary" size="sm">{job.jobType}</Badge>
+              {/* Right Side - Salary and Share */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                {salaryDisplay && (
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#2DD4BF', textAlign: 'right' }}>
+                    {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+                  </div>
                 )}
-                {job.mode && (
-                  <Badge variant="primary" size="sm">{job.mode}</Badge>
+                <button
+                  onClick={handleSaveClick}
+                  className="jc-save-btn"
+                  style={{
+                    padding: '8px', borderRadius: '50%',
+                    color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  aria-label={saved ? 'Unsave job' : 'Save job'}
+                  title={saved ? 'Unsave job' : 'Save job'}
+                >
+                  <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+                </button>
+                <button
+                  onClick={handleShareClick}
+                  className="jc-share-btn"
+                  style={{
+                    padding: '8px', borderRadius: '50%',
+                    color: 'var(--text-tertiary)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  aria-label="Share job"
+                >
+                  <ShareIcon size={18} />
+                </button>
+                {showShareMenu && (
+                  <ShareModal
+                    url={fullJobUrl}
+                    title={shareTitle}
+                    description={shareDescription}
+                    onClose={() => setShowShareMenu(false)}
+                  />
                 )}
               </div>
-
-              {/* Description - hidden on mobile */}
-              {cleanSummary && (
-                <p className="hidden md:block text-black text-sm line-clamp-1 mt-2">
-                  {cleanSummary}
-                </p>
-              )}
-
-              {/* Freshness */}
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-black font-medium text-xs">{freshness}</p>
-                {ageIndicator && (
-                  <span className={ageIndicator.className}>
-                    {ageIndicator.text}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Right Side - Salary and Share */}
-            <div className="flex items-center gap-3 shrink-0">
-              {job.displaySalary && (
-                <div className="text-black font-bold text-lg md:text-xl md:text-right">
-                  {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
-                </div>
-              )}
-              {/* Share Button */}
-              <button
-                onClick={handleShareClick}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Share job"
-              >
-                <ShareIcon size={18} />
-              </button>
-              {showShareMenu && (
-                <ShareModal
-                  url={fullJobUrl}
-                  title={shareTitle}
-                  description={shareDescription}
-                  onClose={() => setShowShareMenu(false)}
-                />
-              )}
             </div>
           </div>
         </div>
@@ -196,131 +256,161 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   // Grid view - default vertical card layout
   return (
     <Link href={jobUrl} className="block touch-manipulation h-full" onClick={handleCardClick}>
-      <div className={`group !bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col gap-2 sm:gap-3 w-full h-full p-4 md:p-6 ${viewed ? 'opacity-80' : ''}`}>
-        {/* Title and Badges Row */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
-          <h3 className="text-lg md:text-xl font-bold text-black group-hover:text-primary-800 transition-colors duration-200 flex-1 leading-tight">
+      <div
+        className="jc-card"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          borderRadius: '16px',
+          border: '1px solid var(--border-color)',
+          padding: '20px',
+          display: 'flex', flexDirection: 'column', gap: '10px',
+          width: '100%', height: '100%',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: viewed ? 0.75 : 1,
+        }}
+      >
+        {/* Title row: title + salary + actions */}
+        <div className="jc-title-row" style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
+        }}>
+          <h3 style={{
+            fontSize: '16px', fontWeight: 700,
+            color: 'var(--text-primary)',
+            margin: 0, lineHeight: 1.35,
+            flex: 1, minWidth: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+          }}>
             {job.title}
           </h3>
-          <div className="flex gap-2 flex-wrap shrink-0">
-            {isNew && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="warning" size="sm">
-                  New
-                </Badge>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {salaryDisplay && (
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#2DD4BF', whiteSpace: 'nowrap' }}>
+                {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
               </span>
             )}
+            <button
+              onClick={handleSaveClick}
+              className="jc-save-btn"
+              style={{
+                padding: '6px', borderRadius: '50%',
+                color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              aria-label={saved ? 'Unsave job' : 'Save job'}
+              title={saved ? 'Unsave job' : 'Save job'}
+            >
+              <Bookmark size={16} fill={saved ? 'currentColor' : 'none'} />
+            </button>
+            <button
+              onClick={handleShareClick}
+              className="jc-share-btn"
+              style={{
+                padding: '6px', borderRadius: '50%',
+                color: 'var(--text-tertiary)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              aria-label="Share job"
+            >
+              <ShareIcon size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Badges */}
+        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer) && (
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            {isNew && <Badge variant="warning" size="sm">New</Badge>}
             {viewed && !applied && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="secondary" size="sm">
-                  <Eye size={12} />
-                  Viewed
-                </Badge>
-              </span>
+              <Badge variant="secondary" size="sm"><Eye size={12} /> Viewed</Badge>
             )}
             {applied && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="success" size="sm">
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  Applied
-                </Badge>
-              </span>
+              <Badge variant="success" size="sm">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Applied
+              </Badge>
             )}
-            {job.isFeatured && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="featured" size="md">
-                  Featured
-                </Badge>
-              </span>
-            )}
+            {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
             {job.isVerifiedEmployer && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="success" size="sm">
-                  <CheckCircle size={12} />
-                  Verified
-                </Badge>
-              </span>
+              <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
             )}
-          </div>
-        </div>
-
-        {/* Company Name */}
-        <p className="text-black font-medium text-sm sm:text-base">{job.employer}</p>
-
-        {/* Location and Meta */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-1 text-black font-medium text-sm">
-            <MapPin size={16} className="text-black" />
-            <span>{job.location}</span>
-          </div>
-
-          {/* Job Type and Mode Badges */}
-          <div className="flex gap-2 flex-wrap">
-            {job.jobType && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="primary" size="sm">
-                  {job.jobType}
-                </Badge>
-              </span>
-            )}
-            {job.mode && (
-              <span className="hover:brightness-105 transition-all duration-200">
-                <Badge variant="primary" size="sm">
-                  {job.mode}
-                </Badge>
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Salary - Prominent display */}
-        {job.displaySalary && (
-          <div className="text-black font-bold text-lg sm:text-xl mt-1">
-            {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
           </div>
         )}
 
+        {/* Company Name */}
+        <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{job.employer}</p>
+
+        {/* Location and Meta */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <MapPin size={15} style={{ color: 'var(--color-primary)' }} />
+            <span>{job.location}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
+            {job.mode && <Badge variant="primary" size="sm">{job.mode}</Badge>}
+          </div>
+        </div>
+
+
+
         {/* Description Summary */}
         {cleanSummary && (
-          <p className="text-black text-sm mt-2 line-clamp-2">
+          <p style={{
+            fontSize: '14px', color: 'rgba(var(--text-primary-rgb), 0.78)',
+            margin: '4px 0 0', lineHeight: 1.6,
+            overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          }}>
             {cleanSummary}
           </p>
         )}
 
-        {/* Freshness and Share */}
-        <div className="flex items-center justify-between gap-2 mt-auto">
-          <div className="flex items-center gap-2">
-            <p className="text-black font-medium text-xs">{freshness}</p>
-            {ageIndicator && (
-              <span className={ageIndicator.className}>
-                {ageIndicator.text}
-              </span>
-            )}
-          </div>
-          {/* Share Button */}
-          <button
-            onClick={handleShareClick}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Share job"
-          >
-            <ShareIcon size={16} />
-          </button>
-          {showShareMenu && (
-            <ShareModal
-              url={fullJobUrl}
-              title={shareTitle}
-              description={shareDescription}
-              onClose={() => setShowShareMenu(false)}
-            />
+        {/* Freshness */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto' }}>
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{freshness}</p>
+          {ageIndicator && (
+            <span style={{
+              fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
+              backgroundColor: ageIndicator.color, color: ageIndicator.textColor,
+            }}>
+              {ageIndicator.text}
+            </span>
           )}
         </div>
+        {showShareMenu && (
+          <ShareModal
+            url={fullJobUrl}
+            title={shareTitle}
+            description={shareDescription}
+            onClose={() => setShowShareMenu(false)}
+          />
+        )}
       </div>
+
+      <style>{`
+        .jc-card:hover {
+          border-color: var(--color-primary) !important;
+          box-shadow: 0 4px 16px var(--shadow-color, rgba(0,0,0,0.1));
+          position: relative;
+          z-index: 1;
+        }
+        .jc-share-btn:hover {
+          color: var(--text-primary) !important;
+          background: var(--bg-tertiary) !important;
+        }
+        .jc-save-btn:hover {
+          color: var(--color-primary) !important;
+          background: var(--bg-tertiary) !important;
+        }
+      `}</style>
     </Link>
   );
 }
 
 // Memoize component to prevent unnecessary re-renders
 export default React.memo(JobCard);
-

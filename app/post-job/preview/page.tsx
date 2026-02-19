@@ -108,7 +108,7 @@ export default function PreviewPage() {
   if (loading || !formData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
@@ -145,7 +145,7 @@ export default function PreviewPage() {
                 </h3>
                 <div className="flex gap-1 flex-wrap">
                   {formData.tier === 'featured' && (
-                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       Featured
                     </span>
                   )}
@@ -164,12 +164,12 @@ export default function PreviewPage() {
               {/* Job Type and Mode Badges */}
               <div className="flex gap-2 flex-wrap">
                 {formData.jobType && (
-                  <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                  <span className="inline-flex px-2 py-1 rounded bg-teal-100 text-teal-700 text-xs">
                     {formData.jobType}
                   </span>
                 )}
                 {formData.mode && (
-                  <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                  <span className="inline-flex px-2 py-1 rounded bg-teal-100 text-teal-700 text-xs">
                     {formData.mode}
                   </span>
                 )}
@@ -241,7 +241,7 @@ export default function PreviewPage() {
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <button
                   disabled
-                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed"
+                  className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed"
                 >
                   Apply Now
                   <ExternalLink size={20} />
@@ -299,7 +299,7 @@ export default function PreviewPage() {
           <button
             onClick={handleContinue}
             disabled={isLoading}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading
               ? 'Processing...'

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ShieldX, ArrowLeft, Home } from 'lucide-react'
 
 export const metadata = {
-  title: 'Unauthorized | PMHNP Jobs',
+  title: 'Unauthorized | PMHNP Hiring',
 }
 
 export default function UnauthorizedPage() {
@@ -23,7 +23,7 @@ export default function UnauthorizedPage() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
           >
             <Home className="w-5 h-5" />
             Go to Homepage

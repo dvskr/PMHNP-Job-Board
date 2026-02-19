@@ -3,6 +3,8 @@ import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
+import ReportJobButton from '@/components/ReportJobButton';
+
 import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
@@ -209,7 +211,7 @@ async function getStateSalaryAverage(stateName: string | null, stateCode: string
 /**
  * Get relevant blog posts for this job
  */
-function getRelevantBlogPosts(job: Job) {
+async function getRelevantBlogPosts(job: Job) {
   const slugs = getRelevantBlogSlugs({
     isRemote: job.isRemote,
     isTelehealth: job.mode?.toLowerCase().includes('telehealth') ||
@@ -224,13 +226,15 @@ function getRelevantBlogPosts(job: Job) {
   const posts = [];
   for (const slug of slugs) {
     try {
-      const post = getPostBySlug(slug);
-      posts.push({
-        slug: post.slug,
-        title: post.title,
-        description: post.description,
-        category: post.category,
-      });
+      const post = await getPostBySlug(slug);
+      if (post) {
+        posts.push({
+          slug: post.slug,
+          title: post.title,
+          description: post.meta_description || '',
+          category: post.category,
+        });
+      }
     } catch {
       // Skip if blog post doesn't exist
     }
@@ -312,7 +316,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   const canonicalUrl = `https://pmhnphiring.com/jobs/${slug}`;
 
   return {
-    title: `${job.title} at ${job.employer} | PMHNP Jobs`,
+    title: `${job.title} at ${job.employer} | PMHNP Hiring`,
     description,
     openGraph: {
       title: `${job.title} at ${job.employer}`,
@@ -375,8 +379,8 @@ export default async function JobPage({ params }: JobPageProps) {
     getStateSalaryAverage(job.state, job.stateCode),
   ]);
 
-  // Get relevant blog posts (sync operation, reads from filesystem)
-  const relevantBlogPosts = getRelevantBlogPosts(job);
+  // Get relevant blog posts (async - fetches from Supabase)
+  const relevantBlogPosts = await getRelevantBlogPosts(job);
 
   const salary = formatSalary(job.minSalary, job.maxSalary, job.salaryPeriod);
   const freshness = getJobFreshness(job.createdAt);
@@ -423,52 +427,118 @@ export default async function JobPage({ params }: JobPageProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         {/* Breadcrumbs */}
         <Breadcrumbs items={breadcrumbItems} />
-        <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
+        <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-8">
           {/* Main Content */}
           <div>
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
-              <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight text-black">{job.title}</h1>
-                <p className="text-lg sm:text-xl text-gray-900 mb-3 font-medium">{job.employer}</p>
-
-                {/* Metadata Row */}
-                <div className="flex flex-wrap gap-3 sm:gap-4 text-gray-900 text-sm sm:text-base mb-3 font-medium">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={18} className="shrink-0 text-gray-700" />
-                    <span>{job.location}</span>
-                  </div>
-                  {job.jobType && (
-                    <div className="flex items-center gap-2">
-                      <Briefcase size={18} className="shrink-0 text-gray-700" />
-                      <span>{job.jobType}</span>
-                    </div>
-                  )}
-                  {job.mode && (
-                    <div className="flex items-center gap-2">
-                      <Monitor size={18} className="shrink-0 text-gray-700" />
-                      <span>{job.mode}</span>
-                    </div>
-                  )}
+              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative' }}>
+                {/* Report Button - Top Right */}
+                <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+                  <ReportJobButton jobId={job.id} jobTitle={job.title} />
                 </div>
+
+                {/* Badges Row - Top */}
+                {(job.isFeatured || job.isVerifiedEmployer) && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    {job.isFeatured && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                        background: 'linear-gradient(135deg, #f59e0b, #ea580c)', color: '#fff',
+                        letterSpacing: '0.02em',
+                      }}>
+                        ⭐ Featured
+                      </span>
+                    )}
+                    {job.isVerifiedEmployer && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                        background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
+                      }}>
+                        <CheckCircle size={13} /> Verified Employer
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '100px' }}>{job.title}</h1>
+                <p className="text-lg sm:text-xl mb-4 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
 
                 {/* Salary */}
                 {salary && (
-                  <p className="text-xl sm:text-2xl lg:text-3xl text-black font-bold mb-3">{salary}</p>
+                  <p style={{
+                    fontSize: 'clamp(20px, 4vw, 30px)', fontWeight: 800,
+                    color: 'var(--salary-color, #1d4ed8)',
+                    margin: '0 0 16px',
+                  }}>{salary}</p>
                 )}
 
-                {/* Badges Row */}
-                <div className="flex gap-2 flex-wrap">
-                  {job.isFeatured && (
-                    <span className="bg-primary-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
-                      Featured
-                    </span>
+                {/* Metadata Tags - Inline Compact */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {/* Location */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '8px 14px', borderRadius: '10px',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                  }}>
+                    <div style={{
+                      width: '30px', height: '30px', borderRadius: '8px',
+                      backgroundColor: 'var(--color-primary)', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <MapPin size={14} style={{ color: '#fff' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.location}</p>
+                    </div>
+                  </div>
+
+                  {/* Job Type */}
+                  {job.jobType && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '8px 14px', borderRadius: '10px',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '8px',
+                        backgroundColor: 'var(--color-primary)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Briefcase size={14} style={{ color: '#fff' }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Job Type</p>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.jobType}</p>
+                      </div>
+                    </div>
                   )}
-                  {job.isVerifiedEmployer && (
-                    <span className="bg-success-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1">
-                      <CheckCircle size={14} />
-                      Verified Employer
-                    </span>
+
+                  {/* Work Mode */}
+                  {job.mode && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '8px 14px', borderRadius: '10px',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '8px',
+                        backgroundColor: 'var(--color-primary)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Monitor size={14} style={{ color: '#fff' }} />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Work Mode</p>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.mode}</p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -478,13 +548,13 @@ export default async function JobPage({ params }: JobPageProps) {
 
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
-              <div className="bg-white shadow-md rounded-lg p-5 md:p-6 lg:p-8 mb-4 lg:mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4 text-black">About this role</h2>
+              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <h2 className="text-xl sm:text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>About this role</h2>
 
                 {/* Note for external jobs */}
                 {job.sourceType === 'external' && job.sourceProvider && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p className="text-sm text-blue-800">
+                  <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       <span className="font-semibold">Preview:</span> This is a summary from {job.sourceProvider}. Click <strong>&quot;Apply Now&quot;</strong> below to view the complete job description and application details.
                     </p>
                   </div>
@@ -501,8 +571,8 @@ export default async function JobPage({ params }: JobPageProps) {
                     if (paragraph.trim().startsWith('•')) {
                       return (
                         <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                          <span className="text-gray-900 mt-1 font-bold">•</span>
-                          <span className="text-black">{paragraph.trim().slice(1).trim()}</span>
+                          <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
+                          <span style={{ color: 'var(--text-primary)' }}>{paragraph.trim().slice(1).trim()}</span>
                         </div>
                       );
                     }
@@ -515,7 +585,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
                     if (isHeader || endsWithColon) {
                       return (
-                        <h3 key={index} className="text-lg font-bold text-black mt-6 mb-2">
+                        <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
                           {paragraph.trim()}
                         </h3>
                       );
@@ -523,7 +593,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
                     // Regular paragraph
                     return (
-                      <p key={index} className="text-black leading-relaxed mb-3">
+                      <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
                         {paragraph.trim()}
                       </p>
                     );
@@ -568,7 +638,7 @@ export default async function JobPage({ params }: JobPageProps) {
             </AnimatedContainer>
 
             {/* Footer Info */}
-            <div className="text-sm text-gray-500 px-1 mt-6">
+            <div className="text-sm px-1 mt-6" style={{ color: 'var(--text-tertiary)' }}>
               <p>{freshness}</p>
               {job.sourceType === 'external' && job.sourceProvider && (
                 <p className="mt-1">Posted via {job.sourceProvider}</p>
@@ -579,10 +649,10 @@ export default async function JobPage({ params }: JobPageProps) {
           {/* Sidebar - Desktop / Below content on mobile */}
           <AnimatedContainer animation="slide-in-right" delay={300}>
             <div className="mt-6 lg:mt-0">
-              <div className="hidden lg:block lg:sticky lg:top-24 bg-white rounded-lg shadow-md p-6">
+              <div className="hidden lg:block lg:sticky lg:top-24 rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 {/* Expiry Notice - Desktop */}
                 {!expiryStatus.isExpired && expiryStatus.text && (
-                  <div className={`flex items-center gap-2 mb-4 pb-4 border-b border-gray-200 ${expiryStatus.isUrgent ? 'text-orange-600' : 'text-gray-500'}`}>
+                  <div className={`flex items-center gap-2 mb-4 pb-4 ${expiryStatus.isUrgent ? 'text-orange-500' : ''}`} style={{ borderBottom: '1px solid var(--border-color)', color: expiryStatus.isUrgent ? undefined : 'var(--text-tertiary)' }}>
                     <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -595,11 +665,12 @@ export default async function JobPage({ params }: JobPageProps) {
                 <div className="space-y-3 mb-5">
                   <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
                   <SaveJobButton jobId={job.id} />
+
                 </div>
 
                 {/* Share Section - Desktop */}
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-500 mb-3">Share this job:</p>
+                <div className="pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Share this job:</p>
                   <div className="flex flex-wrap gap-2">
                     <ShareButtons
                       url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
@@ -611,8 +682,8 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
 
               {/* Mobile-only share section below content */}
-              <div className="lg:hidden bg-white rounded-lg shadow-md p-5 mb-4">
-                <p className="text-sm text-gray-500 mb-3">Share this job:</p>
+              <div className="lg:hidden rounded-2xl p-5 mb-4" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Share this job:</p>
                 <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                   <ShareButtons
                     url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
@@ -634,22 +705,11 @@ export default async function JobPage({ params }: JobPageProps) {
           />
         )}
 
-        {/* Report Job Section */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            See something wrong with this listing?{' '}
-            <a
-              href={`mailto:support@pmhnphiring.com?subject=Report Job: ${job.title}&body=Job ID: ${job.id}%0AJob Title: ${job.title}%0ACompany: ${job.employer}%0A%0AReason for report:%0A`}
-              className="text-red-600 hover:text-red-700 hover:underline"
-            >
-              Report this job
-            </a>
-          </p>
-        </div>
+
       </div>
 
       {/* Sticky Apply Button - Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-gray-200 shadow-lg safe-bottom">
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-3 pb-safe">
           <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
         </div>

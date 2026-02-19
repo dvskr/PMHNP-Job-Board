@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -21,7 +21,7 @@ export default function LoginForm() {
 
     try {
       const supabase = createClient()
-      
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -46,74 +46,97 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-600">{error}</p>
+        <div
+          className="rounded-lg p-3 flex items-start gap-3"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-500">{error}</p>
         </div>
       )}
 
+      {/* Email */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="login-email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
           Email address
         </label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="you@example.com"
-          />
-        </div>
+        <input
+          id="login-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          className="block w-full px-4 py-3 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
+          style={{
+            background: 'var(--bg-tertiary)',
+            color: 'var(--text-primary)',
+            WebkitTextFillColor: 'var(--text-primary)',
+            borderColor: 'var(--border-color-dark)',
+          }}
+          placeholder="you@example.com"
+        />
       </div>
 
+      {/* Password */}
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="login-password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
           Password
         </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
-            id="password"
+            id="login-password"
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="••••••••"
+            autoComplete="current-password"
+            className="block w-full px-4 py-3 pr-11 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
+            style={{
+              background: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)',
+              WebkitTextFillColor: 'var(--text-primary)',
+              borderColor: 'var(--border-color-dark)',
+            }}
+            placeholder="Enter your password"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
+            style={{ color: 'var(--text-tertiary)' }}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? (
-              <EyeOff className="w-5 h-5" />
-            ) : (
-              <Eye className="w-5 h-5" />
-            )}
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
+      {/* Remember / Forgot */}
       <div className="flex items-center justify-between">
-        <label className="flex items-center">
-          <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-          <span className="ml-2 text-sm text-gray-600">Remember me</span>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            className="w-4 h-4 rounded"
+            style={{ accentColor: 'var(--color-primary)' }}
+          />
+          <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Remember me</span>
         </label>
-        <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-medium hover:underline"
+          style={{ color: 'var(--color-primary)' }}
+        >
           Forgot password?
         </Link>
       </div>
 
+      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-3 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+        style={{ background: 'var(--color-primary)' }}
       >
         {loading ? (
           <>
@@ -121,17 +144,20 @@ export default function LoginForm() {
             Signing in...
           </>
         ) : (
-          'Sign in'
+          <>
+            Sign in
+            <ArrowRight className="w-4 h-4" />
+          </>
         )}
       </button>
 
-      <p className="text-center text-sm text-gray-600">
+      {/* Sign up link */}
+      <p className="text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
-          Sign up
+        <Link href="/signup" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+          Create one
         </Link>
       </p>
     </form>
   )
 }
-

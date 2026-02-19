@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { AlertTriangle } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | PMHNP Jobs',
-  description: 'Terms of Service for PMHNP Jobs job board platform.',
+  title: 'Terms of Service | PMHNP Hiring',
+  description: 'Read the Terms of Service for PMHNP Hiring. Understand your rights, responsibilities, and our policies for using the #1 PMHNP job board.',
   alternates: {
     canonical: 'https://pmhnphiring.com/terms',
   },
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Terms of Service', url: 'https://pmhnphiring.com/terms' },
+      ]} />
       <article className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 md:p-12">
         {/* Legal Disclaimer */}
         <div className="mb-8 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
@@ -236,10 +241,10 @@ export default function TermsPage() {
             </p>
             <ul className="list-none text-gray-700 space-y-2">
               <li><strong>Email:</strong> support@pmhnphiring.com</li>
-              <li><strong>Website:</strong> <Link href="/" className="text-blue-600 hover:text-blue-700 underline">pmhnphiring.com</Link></li>
+              <li><strong>Website:</strong> <Link href="/" className="text-teal-600 hover:text-teal-700 underline">pmhnphiring.com</Link></li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
-              For general inquiries or support, please visit our <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">FAQ page</Link> or <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">Contact page</Link>.
+              For general inquiries or support, please visit our <Link href="/faq" className="text-teal-600 hover:text-teal-700 underline">FAQ page</Link> or <Link href="/contact" className="text-teal-600 hover:text-teal-700 underline">Contact page</Link>.
             </p>
           </section>
         </div>
@@ -247,19 +252,19 @@ export default function TermsPage() {
         {/* Bottom Navigation */}
         <footer className="mt-12 pt-8 border-t border-gray-200">
           <div className="flex flex-wrap gap-4 justify-center text-sm">
-            <Link href="/privacy" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/privacy" className="text-teal-600 hover:text-teal-700 underline">
               Privacy Policy
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/faq" className="text-teal-600 hover:text-teal-700 underline">
               FAQ
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/about" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/about" className="text-teal-600 hover:text-teal-700 underline">
               About Us
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/contact" className="text-teal-600 hover:text-teal-700 underline">
               Contact
             </Link>
           </div>

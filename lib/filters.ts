@@ -42,9 +42,24 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
 
   // Job Type (OR within category)
   if (filters.jobType.length > 0) {
-    andConditions.push({
-      jobType: { in: filters.jobType },
-    });
+    const hasOther = filters.jobType.includes('Other');
+    const namedTypes = filters.jobType.filter(t => t !== 'Other');
+
+    if (hasOther && namedTypes.length > 0) {
+      // Match named types OR NULL
+      andConditions.push({
+        OR: [
+          { jobType: { in: namedTypes } },
+          { jobType: null },
+        ],
+      });
+    } else if (hasOther) {
+      // Only "Other" selected — match NULL
+      andConditions.push({ jobType: null });
+    } else {
+      // Only named types
+      andConditions.push({ jobType: { in: namedTypes } });
+    }
   }
 
   // Salary
@@ -60,34 +75,55 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   // Posted Within
   if (filters.postedWithin && filters.postedWithin !== 'all') {
     const now = new Date();
-    let cutoff: Date;
 
-    switch (filters.postedWithin) {
-      case '24h':
-        cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case '7d':
-        cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        cutoff = new Date(0);
+    if (filters.postedWithin === '24h') {
+      // "Past 24 hours" = ingested in last 24h OR originally posted within 48h.
+      // The 48h window covers one missed cron cycle (crons run every 12h).
+      const ingestCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const originalCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      andConditions.push({
+        OR: [
+          { createdAt: { gte: ingestCutoff } },
+          { originalPostedAt: { gte: originalCutoff } },
+        ]
+      });
+    } else if (filters.postedWithin === '3d') {
+      const cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      andConditions.push({
+        OR: [
+          { originalPostedAt: { gte: cutoff } },
+          {
+            AND: [
+              { originalPostedAt: null },
+              { createdAt: { gte: cutoff } },
+            ],
+          },
+        ]
+      });
+    } else {
+      let cutoff: Date;
+      switch (filters.postedWithin) {
+        case '7d':
+          cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoff = new Date(0);
+      }
+      andConditions.push({
+        OR: [
+          { originalPostedAt: { gte: cutoff } },
+          {
+            AND: [
+              { originalPostedAt: null },
+              { createdAt: { gte: cutoff } }
+            ]
+          }
+        ]
+      });
     }
-
-    // Use originalPostedAt if available, otherwise fallback to createdAt
-    andConditions.push({
-      OR: [
-        { originalPostedAt: { gte: cutoff } },
-        {
-          AND: [
-            { originalPostedAt: null },
-            { createdAt: { gte: cutoff } }
-          ]
-        }
-      ]
-    });
   }
 
   // Location
@@ -98,6 +134,46 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
         { city: { contains: filters.location, mode: 'insensitive' } },
       ],
     });
+  }
+
+  // Specialty (keyword-based, OR within category)
+  if (filters.specialty && filters.specialty.length > 0) {
+    const specialtyConditions: Prisma.JobWhereInput[] = [];
+
+    if (filters.specialty.includes('Telehealth')) {
+      specialtyConditions.push({
+        OR: [
+          { title: { contains: 'telehealth', mode: 'insensitive' } },
+          { title: { contains: 'telemedicine', mode: 'insensitive' } },
+          { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+          { description: { contains: 'telehealth', mode: 'insensitive' } },
+          { description: { contains: 'telemedicine', mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (filters.specialty.includes('Travel')) {
+      specialtyConditions.push({
+        OR: [
+          { title: { contains: 'travel', mode: 'insensitive' } },
+          { title: { contains: 'locum', mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (filters.specialty.includes('New Grad')) {
+      specialtyConditions.push({
+        OR: [
+          { title: { contains: 'new grad', mode: 'insensitive' } },
+          { title: { contains: 'new graduate', mode: 'insensitive' } },
+          { title: { contains: 'entry level', mode: 'insensitive' } },
+          { title: { contains: 'fellowship', mode: 'insensitive' } },
+          { title: { contains: 'residency', mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (specialtyConditions.length > 0) {
+      andConditions.push({ OR: specialtyConditions });
+    }
   }
 
   if (andConditions.length > 0) {
@@ -113,6 +189,7 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     search: searchParams.get('q') || '',
     workMode: searchParams.getAll('workMode'),
     jobType: searchParams.getAll('jobType'),
+    specialty: searchParams.getAll('specialty'),
     salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
@@ -126,6 +203,7 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   if (filters.search) params.set('q', filters.search);
   filters.workMode.forEach((wm: string) => params.append('workMode', wm));
   filters.jobType.forEach((jt: string) => params.append('jobType', jt));
+  if (filters.specialty) filters.specialty.forEach((s: string) => params.append('specialty', s));
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);

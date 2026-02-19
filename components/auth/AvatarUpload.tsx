@@ -121,7 +121,7 @@ export default function AvatarUpload({
       <div className="relative group">
         <div className="w-24 h-24 rounded-full border-2 border-gray-300 overflow-hidden bg-gray-100 flex items-center justify-center">
           {uploading ? (
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
           ) : displayUrl ? (
             <Image 
               src={displayUrl} 
@@ -131,8 +131,8 @@ export default function AvatarUpload({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-blue-100 flex items-center justify-center">
-              <User className="w-10 h-10 text-blue-600" />
+            <div className="w-full h-full bg-teal-100 flex items-center justify-center">
+              <User className="w-10 h-10 text-teal-600" />
             </div>
           )}
         </div>
@@ -165,7 +165,7 @@ export default function AvatarUpload({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading || removing}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Camera className="w-4 h-4" />
           {uploading ? 'Uploading...' : currentAvatarUrl ? 'Change' : 'Upload Photo'}

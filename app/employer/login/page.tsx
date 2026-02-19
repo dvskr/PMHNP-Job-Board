@@ -15,10 +15,10 @@ export default async function EmployerLoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center justify-center py-12 sm:px-6 lg:px-8" style={{ background: 'var(--bg-primary)', minHeight: 'calc(100vh - 80px)' }}>
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <Link href="/" className="flex justify-center">
-                    <span className="text-3xl font-bold text-blue-600">PMHNP Jobs</span>
+                    <span className="text-3xl font-bold text-teal-600">PMHNP Jobs</span>
                 </Link>
                 <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
                     Employer Login

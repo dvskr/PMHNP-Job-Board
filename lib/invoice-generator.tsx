@@ -9,7 +9,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 30,
-    borderBottom: '2px solid #3b82f6',
+    borderBottom: '2px solid #14B8A6',
     paddingBottom: 15,
   },
   companyName: {

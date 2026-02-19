@@ -1,0 +1,72 @@
+﻿[dotenv@17.2.3] injecting env (23) from .env.local -- tip: Γ£à audit secrets and track compliance: https://dotenvx.com/ops
+=== All ats-jobs-db apply link domains (70 unique links) ===
+
+
+--- GREENHOUSE (4 unique companies) ---
+  slug: firsthand (firsthand Health)
+  slug: guidelighthealth (Guidelight Health)
+  slug: solmentalhealth (Ignite Mental Health)
+  slug: sondermind (SonderMind Careers)
+
+--- LEVER (1 unique companies) ---
+  slug: lifestance (LifeStance Health)
+
+--- WORKDAY (18 unique companies) ---
+  slug: benefis, instance: 1, site: ? (Benefis Health System)
+  slug: bmc, instance: 1, site: ? (BMC Software)
+  slug: brightli, instance: 5, site: ? (BrightAI)
+  slug: brownhealth, instance: 12, site: ? (Brown Medicine)
+  slug: canopygrowth, instance: 3, site: ? (Canopy Growth Corporation)
+  slug: centerstone, instance: 5, site: ? (Centerstone)
+  slug: humana, instance: 5, site: ? (CenterWell)
+  slug: geodehealth, instance: 1, site: ? (Geode Health)
+  slug: premera, instance: 5, site: ? (Kinwell)
+  slug: lmh, instance: 1, site: ? (LMH Health)
+  slug: mainegeneral, instance: 5, site: ? (MaineGeneral Health System)
+  slug: meharrymedicalcollege, instance: 12, site: ? (Meharry Medical College)
+  slug: monarch, instance: 5, site: ? (MONARCH)
+  slug: multicare, instance: 1, site: ? (MultiCare Health System)
+  slug: communicarehealth, instance: 1, site: ? (NewVista Behavioral Health)
+  slug: saintlukes, instance: 1, site: ? (Saint Luke's Health System)
+  slug: seamar, instance: 12, site: ? (Sea Mar Community Health Centers)
+  slug: tuftsmedicine, instance: 1, site: ? (Tufts Medicine)
+
+--- SMARTRECRUITERS (4 unique companies) ---
+   (Compass Government Solutions, LLC) -> https://jobs.smartrecruiters.com/CompassGovernmentSolutionsLLC/744000096486192-nurse-practitioner?og
+   (International SOS Government Medical Services) -> https://jobs.smartrecruiters.com/InternationalSOSGovernmentMedicalServices/744000104309572-psychiatr
+   (Kittitas Valley Healthcare) -> https://jobs.smartrecruiters.com/KittitasValleyHealthcare/744000106361722-advanced-practice-clinicia
+   (Vericare) -> https://jobs.smartrecruiters.com/Vericare/82515680
+
+--- APPLICANTPRO (4 unique companies) ---
+  avenuesrecovery (Avenuesrecovery) -> https://avenuesrecovery.applicantpro.com/jobs/3974649
+  mcrhealthinfo (Mcrhealthinfo) -> https://mcrhealthinfo.applicantpro.com/jobs/3951814
+  midcityobgyn (Midcityobgyn) -> https://midcityobgyn.applicantpro.com/jobs/3329280
+  nobleheartshrconsulting (Nobleheartshrconsulting) -> https://nobleheartshrconsulting.applicantpro.com/jobs/3972860
+
+--- ISOLVED (6 unique companies) ---
+  atlasmedical (Atlasmedical) -> https://atlasmedical.isolvedhire.com/jobs/1678205
+  covenantfamilysolutions (Covenantfamilysolutions) -> https://covenantfamilysolutions.isolvedhire.com/jobs/1678018
+  mindfulcare (Mindfulcare) -> https://mindfulcare.isolvedhire.com/jobs/1460478
+  newcommunityclinic (Newcommunityclinic) -> https://newcommunityclinic.isolvedhire.com/jobs/1470501
+  stepsdetox (Stepsdetox) -> https://stepsdetox.isolvedhire.com/jobs/1576309
+  tonation-nsnhealthcare (Tonation-nsnhealthcare) -> https://tonation-nsnhealthcare.isolvedhire.com/jobs/1663553
+
+--- PAYCOM (5 unique companies) ---
+   (ADVANCED CORRECTIONAL HEALTHCARE) -> https://www.paycomonline.net/v4/ats/web.php/portal/6e2ccb3acc7c4b2d86dec8bc64d7e08c/jobs/354442
+   (COMPREHENSIVE HEALTHCARE) -> https://www.paycomonline.net/v4/ats/web.php/portal/19D9D2EBCE0A34CBC7B47FD6059715AF/jobs/456656
+   (CROSSROADS TURNING POINTS INC) -> https://www.paycomonline.net/v4/ats/web.php/portal/4B8DC511319FD77B856022121F202279/jobs/249081
+   (ODYSSEY BEHAVIORAL GROUP) -> https://www.paycomonline.net/v4/ats/web.php/portal/CF617674A912A5595A88C26DB8AE6325/jobs/269114
+   (SUN BEHAVIORAL HEALTH GROUP) -> https://www.paycomonline.net/v4/ats/web.php/portal/A1F3FCD9FA517BE2E96D958FF64A0D52/jobs/329712
+
+--- DAYFORCE (1 unique companies) ---
+   (Liberty Resources / Liberty POST) -> https://jobs.dayforcehcm.com/en-US/lri/92665/jobs/101867
+
+--- OTHER (8 unique companies) ---
+  aspenmedical.applytojob.com (Aspen Medical) -> https://aspenmedical.applytojob.com/apply/OQBuoXxUvs/Nurse-Practitioner
+  jobs.workable.com (Boca Recovery Center) -> https://jobs.workable.com/view/hQvHbT2CKD2AoUUCqdnQw1/advanced-practice-registered-nurse---fnp-%2F-p
+  familyconnections.applytojob.com (Family Connections, Inc.) -> https://familyconnections.applytojob.com/apply/1BtQ5yBMXn/PartTime-Advanced-Practice-Nurse-APN
+  mastercenterforaddictionmedicine.applytojob.com (Master Center for Addiction Medicine) -> https://mastercenterforaddictionmedicine.applytojob.com/apply/gz68IpHW8L/Psychiatric-Nurse-Practitio
+  medvidi.com (Medvidi) -> https://medvidi.com/careers/co/connecticut/33.367/telehealth-psychiatrist-remote-in-connecticut/all
+  midcolumbiacenterforliving.applytojob.com (Mid-Columbia Center for Living) -> https://midcolumbiacenterforliving.applytojob.com/apply/U3GwoYAf5k/Nurse-Practitioner-Mental-Health-
+  mindifywellnessandcare.applytojob.com (Mindify Wellness And Care) -> https://mindifywellnessandcare.applytojob.com/apply/oVLcHjdy6v/Bilingual-Psychiatric-Mental-Health-N
+  urrly.breezy.hr (Urrly) -> https://urrly.breezy.hr/p/9364b0abee61-neurologist-remote--dementia-cognitive-disorders

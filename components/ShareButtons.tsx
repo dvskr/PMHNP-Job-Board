@@ -5,7 +5,7 @@ import { Mail, Link2, Check } from 'lucide-react';
 
 // Custom SVG icons for brand accuracy
 const XIcon = ({ size = 20 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+  <svg width={size} height={size} viewBox="0 0 24 24" style={{ fill: 'var(--text-primary)' }}>
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
@@ -75,7 +75,8 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
       {/* LinkedIn */}
       <button
         onClick={() => openShareWindow(linkedInUrl)}
-        className="group relative p-2 rounded-lg text-gray-500 hover:text-[#0A66C2] hover:bg-blue-50 transition-colors"
+        className="group relative p-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors"
+        style={{ color: '#0A66C2' }}
         aria-label="Share on LinkedIn"
       >
         <LinkedInIcon size={20} />
@@ -87,7 +88,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
       {/* X (Twitter) */}
       <button
         onClick={() => openShareWindow(xUrl)}
-        className="group relative p-2 rounded-lg text-gray-500 hover:text-black hover:bg-gray-100 transition-colors"
+        className="group relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         aria-label="Share on X"
       >
         <XIcon size={20} />
@@ -101,7 +102,8 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         onClick={() => {
           window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), 'facebook-share', 'width=600,height=400,scrollbars=yes,resizable=yes');
         }}
-        className="group relative p-2 rounded-lg text-gray-500 hover:text-[#1877F2] hover:bg-blue-50 transition-colors"
+        className="group relative p-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-colors"
+        style={{ color: '#1877F2' }}
         aria-label="Share on Facebook"
       >
         <FacebookIcon size={20} />
@@ -113,7 +115,8 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
       {/* WhatsApp */}
       <button
         onClick={() => openShareWindow(whatsappUrl)}
-        className="group relative p-2 rounded-lg text-gray-500 hover:text-[#25D366] hover:bg-green-50 transition-colors"
+        className="group relative p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors"
+        style={{ color: '#25D366' }}
         aria-label="Share on WhatsApp"
       >
         <WhatsAppIcon size={20} />
@@ -125,7 +128,8 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
       {/* Email */}
       <a
         href={emailUrl}
-        className="group relative p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+        className="group relative p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+        style={{ color: '#ea4335' }}
         aria-label="Share via Email"
       >
         <Mail size={20} />
@@ -138,9 +142,10 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
       <button
         onClick={handleCopyLink}
         className={`group relative p-2 rounded-lg transition-colors ${copied
-          ? 'text-emerald-600 bg-emerald-50'
-          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+          ? 'bg-emerald-50 dark:bg-emerald-950/30'
+          : 'hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
+        style={{ color: copied ? '#059669' : 'var(--text-secondary)' }}
         aria-label={copied ? 'Copied!' : 'Copy link'}
       >
         {copied ? <Check size={20} /> : <Link2 size={20} />}
