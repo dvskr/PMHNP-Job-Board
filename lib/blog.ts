@@ -172,9 +172,19 @@ export async function createBlogPost(
 ): Promise<BlogPost> {
     const supabase = getSupabaseServiceClient();
 
+    // Build insert payload — only include image_url when provided
+    // (Supabase schema cache may not know about new columns immediately)
+    const insertData: Record<string, unknown> = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...data,
+    };
+    if (!insertData.image_url) delete insertData.image_url;
+
     const { data: post, error } = await supabase
         .from('blog_posts')
-        .insert({ id: crypto.randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...data })
+        .insert(insertData)
         .select()
         .single();
 
