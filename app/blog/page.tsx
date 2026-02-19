@@ -141,14 +141,26 @@ export default async function BlogIndexPage({
                                 className="group block h-full"
                             >
                                 <article className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-200 h-full flex flex-col">
-                                    {/* Header gradient */}
-                                    <div className="h-44 bg-gradient-to-br from-teal-500 to-teal-600 p-6 flex flex-col justify-between relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                                        <span className="relative bg-white/90 text-teal-900 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider w-fit">
-                                            {categoryLabels[post.category] || post.category}
-                                        </span>
-                                        <div className="relative text-white/80 text-sm">
-                                            {formatDate(post.publish_date || post.created_at)}
+                                    {/* Header — image or gradient fallback */}
+                                    <div className="h-44 relative overflow-hidden">
+                                        {post.image_url ? (
+                                            <img
+                                                src={post.image_url}
+                                                alt={post.title}
+                                                className="absolute inset-0 w-full h-full object-cover"
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-teal-600" />
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                                        <div className="relative h-full p-6 flex flex-col justify-between">
+                                            <span className="bg-white/90 text-teal-900 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider w-fit">
+                                                {categoryLabels[post.category] || post.category}
+                                            </span>
+                                            <div className="text-white/90 text-sm">
+                                                {formatDate(post.publish_date || post.created_at)}
+                                            </div>
                                         </div>
                                     </div>
 
