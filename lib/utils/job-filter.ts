@@ -67,9 +67,7 @@ const NEGATIVE_KEYWORDS = [
     'physical therapist',
     'speech therapist',
     'primary care',
-    'fnp',
-    'family nurse practitioner',
-    'family practice',
+    // NOTE: 'fnp' and 'family nurse practitioner' REMOVED — many dual-certified PMHNP/FNP postings exist
     'home based',
     'community care clinic',
     'emergency medicine',
@@ -88,12 +86,18 @@ const NEGATIVE_KEYWORDS = [
     'lecturer',
     'instructor',
     'technician',
-    'coordinator',
+    // NOTE: 'coordinator' narrowed — 'scheduling coordinator', 'intake coordinator' etc still blocked
+    'scheduling coordinator',
+    'intake coordinator',
+    'referral coordinator',
     'case manager',
     'program director',
-    'manager',
-    'associate',
-    'assistant',
+    // NOTE: 'manager' narrowed — clinical roles like 'Clinical Manager - PMHNP' now allowed
+    'office manager',
+    'facility manager',
+    'practice manager',
+    // NOTE: 'associate' REMOVED — blocks legitimate roles like 'Associate Clinical Director - PMHNP'
+    // NOTE: 'assistant' REMOVED — blocks dual-role 'Physician Assistant / PMHNP' postings
     'lcsw',
     'lmft',
     'licsw',
@@ -102,10 +106,13 @@ const NEGATIVE_KEYWORDS = [
     'psy d',
     'psychologist',
     'medical director',
-    'director of',
-    'graduate',
-    'child adolescent',
-    'outpatient position',
+    // NOTE: 'director of' narrowed — 'Director of Psychiatric Services' (with NP req) now allowed
+    'director of nursing',
+    'director of operations',
+    'director of finance',
+    // NOTE: 'graduate' REMOVED — blocks 'New Graduate PMHNP' positions
+    // NOTE: 'child adolescent' REMOVED — blocks 'Child & Adolescent PMHNP' subspecialty
+    // NOTE: 'outpatient position' REMOVED — blocks 'Outpatient PMHNP Position'
     // Gap closing: titles leaking from adzuna, jooble, lever, etc.
     'chiropractor',
     'hospitalist',
@@ -120,7 +127,7 @@ const NEGATIVE_KEYWORDS = [
     'anesthesia',
     'pain management',
     'advanced practice clinician',
-    'family medicine',
+    // NOTE: 'family medicine' REMOVED — some PMHNP roles coexist with family medicine depts
     'nocturnist',
     'pediatric icu',
     'collaborating psychiatrist',
@@ -167,7 +174,7 @@ const NEGATIVE_KEYWORDS = [
     ' pace ',
     'wound care',
     'palliative',
-    'hospice',
+    // NOTE: 'hospice' REMOVED — psychiatric hospice roles exist
     'nursing home',
     'long term care',
     'long-term care',
@@ -175,7 +182,7 @@ const NEGATIVE_KEYWORDS = [
     'infusion',
     'dialysis',
     'transplant',
-    'float',
+    // NOTE: 'float' REMOVED — 'Float PMHNP' is a common staffing model
     'medical np',
     'medical pa',
     'centralized nurse practioner', // Typo in Firsthand posting

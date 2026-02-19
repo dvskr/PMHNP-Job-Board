@@ -26,6 +26,14 @@ export async function runPreFillHooks(): Promise<void> {
 // ─── Expand repeatable sections (Experience, Education, etc.) ───
 
 async function expandRepeatableSections(): Promise<void> {
+    // Workday section expansion is handled by the Workday handler (expandWorkdaySections)
+    // which knows how many entries to create per section type.
+    const url = window.location.href.toLowerCase();
+    if (url.includes('myworkdayjobs.com') || url.includes('myworkday.com') || url.includes('workday.com')) {
+        log('[PMHNP-Hooks] Skipping generic Add expansion — Workday handler manages sections');
+        return;
+    }
+
     // Common patterns for "Add" buttons across job application sites
     const addButtonSelectors = [
         'button[data-test="add-section"]',
@@ -76,7 +84,7 @@ async function expandRepeatableSections(): Promise<void> {
             const text = btn.textContent?.trim() || '';
             log(`[PMHNP-Hooks] Clicking: "${text}"`);
             btn.click();
-            btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            // NOTE: Do NOT also dispatchEvent — that causes a double-click, creating 2 sections
             await sleep(300);
         } catch (err) {
             warn('[PMHNP-Hooks] Failed to click button:', err);

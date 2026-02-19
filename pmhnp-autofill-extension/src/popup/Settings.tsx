@@ -56,8 +56,8 @@ export default function Settings() {
                         key={section.key}
                         onClick={() => setActiveSection(section.key)}
                         className={`flex-1 py-3 px-2 text-xs font-medium transition-colors relative ${activeSection === section.key
-                                ? 'text-white'
-                                : 'text-text-muted hover:text-text-secondary'
+                            ? 'text-white'
+                            : 'text-text-muted hover:text-text-secondary'
                             }`}
                     >
                         <span className="mr-1">{section.icon}</span> {section.label}
@@ -95,6 +95,7 @@ export default function Settings() {
 
                 {activeSection === 'autofill' && (
                     <>
+                        <IndustryProfileSetting />
                         <SelectSetting
                             label="Fill speed"
                             description="How fast fields are filled"
@@ -190,6 +191,37 @@ export default function Settings() {
                 )}
             </div>
         </div>
+    );
+}
+
+// ─── Industry Profile Setting ───
+
+function IndustryProfileSetting() {
+    const [profile, setProfile] = useState('none');
+
+    useEffect(() => {
+        chrome.storage.sync.get('industryProfile').then((result) => {
+            if (result.industryProfile) setProfile(result.industryProfile);
+        });
+    }, []);
+
+    const handleChange = useCallback((value: string) => {
+        setProfile(value);
+        chrome.storage.sync.set({ industryProfile: value });
+    }, []);
+
+    return (
+        <SelectSetting
+            label="Industry profile"
+            description="Adds industry-specific fields (NPI, DEA, GitHub, etc.) to deterministic matching"
+            value={profile}
+            options={[
+                { value: 'none', label: 'Universal Only' },
+                { value: 'healthcare', label: 'Healthcare (NPI, DEA, licenses)' },
+                { value: 'tech', label: 'Tech (GitHub, portfolio, stack)' },
+            ]}
+            onChange={handleChange}
+        />
     );
 }
 

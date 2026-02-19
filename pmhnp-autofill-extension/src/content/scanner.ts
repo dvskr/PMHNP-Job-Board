@@ -50,9 +50,16 @@ export function scanAllFormFields(): ScannedField[] {
                         field.overlayElement = overlay;
                         overlayElements.add(overlay);
                         log(`[PMHNP-Scanner] Hidden <select> [${index}] "${field.label || field.name}" → overlay found (${overlay.className.substring(0, 50)})`);
+                    } else {
+                        log(`[PMHNP-Scanner] Hidden <select> [${index}] "${field.label || field.name}" id="${el.id}" → NO overlay found, including anyway`);
                     }
                     rawFields.push(field);
                     index++;
+                }
+            } else {
+                // Log invisible selects that aren't detected as hidden selects
+                if (el.tagName === 'SELECT') {
+                    log(`[PMHNP-Scanner] Invisible <select> skipped: id="${el.id}" (not hidden-select pattern)`);
                 }
             }
             continue;
@@ -103,13 +110,17 @@ export function scanAllFormFields(): ScannedField[] {
 
 function collectFormElements(root: Document | ShadowRoot | Element): HTMLElement[] {
     const elements: HTMLElement[] = [];
-    // Note: we do NOT include [role="combobox"] or [role="listbox"] here — those are overlays,
-    // not actual form elements. They get linked to hidden <select>s via overlayElement instead.
+    // Include [role="combobox"] and [role="listbox"] — Workday and other ATS use these for
+    // typeahead/autocomplete fields (e.g. School or University, Field of Study).
+    // Overlays linked to hidden selects are filtered out via the overlay dedup logic.
     const selectors = [
         'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"])',
         'select',
         'textarea',
         '[contenteditable="true"]',
+        '[role="combobox"]',
+        '[role="listbox"]',
+        '[aria-haspopup="listbox"]',
     ].join(', ');
 
     // Query in main DOM
@@ -154,6 +165,7 @@ function extractFieldMetadata(el: HTMLElement, index: number): ScannedField | nu
     else if (tagName === 'textarea') type = 'textarea';
     else if (el.getAttribute('role') === 'combobox') type = 'custom-dropdown';
     else if (el.getAttribute('role') === 'listbox') type = 'custom-dropdown';
+    else if (el.getAttribute('aria-haspopup') === 'listbox') type = 'custom-dropdown';
     else if (el.getAttribute('contenteditable') === 'true') type = 'textarea';
     else if (tagName === 'input') {
         const inputType = inputEl.type?.toLowerCase() || 'text';
@@ -197,7 +209,13 @@ function extractFieldMetadata(el: HTMLElement, index: number): ScannedField | nu
         name: inputEl.name || '',
         id: el.id || '',
         options,
-        isRequired: inputEl.required || el.getAttribute('aria-required') === 'true' || !!el.closest('[required]'),
+        isRequired: inputEl.required
+            || el.getAttribute('aria-required') === 'true'
+            || !!el.closest('[required]')
+            || /\*\s*$/.test(label)
+            || !!el.closest('[data-required="true"]')
+            || !!el.closest('.required')
+            || !!document.querySelector(`label[for="${CSS.escape(el.id || '__NONE__')}"] .required, label[for="${CSS.escape(el.id || '__NONE__')}"] abbr[title*="required"]`),
         currentValue: getCurrentValue(el, type),
         attributes,
         element: el,
@@ -217,6 +235,19 @@ function getLabel(el: HTMLElement): string {
     if (labelledBy) {
         const labelEl = document.getElementById(labelledBy);
         if (labelEl) return labelEl.textContent?.trim() || '';
+    }
+
+    // 2.5 aria-describedby — use description text as label if no other label found
+    const describedBy = el.getAttribute('aria-describedby');
+    if (describedBy) {
+        const descEl = document.getElementById(describedBy);
+        if (descEl) {
+            const descText = descEl.textContent?.trim();
+            // Only use if it looks like a label (short, not a help/error message)
+            if (descText && descText.length < 80 && !/error|invalid|required/i.test(descText)) {
+                return descText;
+            }
+        }
     }
 
     // 3. <label for="id">
@@ -333,6 +364,21 @@ function getLabel(el: HTMLElement): string {
             .replace(/input|field|element|spl[-_]?form/gi, '')
             .trim();
         if (humanized.length > 1) return humanized;
+    }
+
+    // 10.5 Prepend fieldset <legend> context for disambiguation
+    // e.g., "Education → Degree" vs just "Degree"
+    // This runs on whatever label we found (or empty), adding section context
+    const fieldset = el.closest('fieldset');
+    if (fieldset) {
+        const legend = fieldset.querySelector('legend');
+        if (legend) {
+            const legendText = legend.textContent?.trim();
+            if (legendText && legendText.length < 60) {
+                // Store legend context in the element's dataset for matcher use
+                el.dataset.sectionContext = legendText;
+            }
+        }
     }
 
     return '';

@@ -1,0 +1,125 @@
+<!--
+  Ashby ATS Application Form Fixture
+  Verified against: https://jobs.ashbyhq.com/haus/... and https://jobs.ashbyhq.com/notion/...
+  Verified date: 2026-02-18
+  System fields use stable ids (_systemfield_*), custom questions use UUID ids.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Ashby Application</title>
+</head>
+
+<body>
+    <div class="ashby-application-form-root">
+        <form>
+            <!-- System Fields -->
+            <div class="ashby-application-form-field-entry">
+                <label for="_systemfield_name" class="ashby-application-form-question-title">Full Name <span
+                        class="required">*</span></label>
+                <input type="text" id="_systemfield_name" name="name" required placeholder="Full Name">
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label for="_systemfield_email" class="ashby-application-form-question-title">Email <span
+                        class="required">*</span></label>
+                <input type="email" id="_systemfield_email" name="email" required placeholder="Email">
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label for="_systemfield_resume" class="ashby-application-form-question-title">Resume <span
+                        class="required">*</span></label>
+                <input type="file" id="_systemfield_resume" name="resume" accept=".pdf,.doc,.docx">
+            </div>
+
+            <!-- Custom Fields (UUID-based ids) -->
+            <div class="ashby-application-form-field-entry">
+                <label for="8039f8aa-1234-5678-9abc-def012345678"
+                    class="ashby-application-form-question-title">Phone</label>
+                <input type="tel" id="8039f8aa-1234-5678-9abc-def012345678" name="phone" placeholder="Phone Number">
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label for="dbb7e595-1234-5678-9abc-def012345678" class="ashby-application-form-question-title">LinkedIn
+                    Profile</label>
+                <input type="text" id="dbb7e595-1234-5678-9abc-def012345678" name="linkedin" placeholder="LinkedIn URL">
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label for="loc-field-uuid" class="ashby-application-form-question-title">Location</label>
+                <input type="text" id="loc-field-uuid" name="location" role="combobox" aria-autocomplete="list"
+                    placeholder="Type to search">
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label for="cover-letter-uuid" class="ashby-application-form-question-title">Cover Letter</label>
+                <textarea id="cover-letter-uuid" name="coverLetter" rows="5"
+                    placeholder="Add a cover letter..."></textarea>
+            </div>
+
+            <!-- Custom Questions -->
+            <div class="ashby-application-form-field-entry">
+                <label for="question-uuid-1" class="ashby-application-form-question-title">Are you authorized to work
+                    in the US?</label>
+                <select id="question-uuid-1" name="workAuth">
+                    <option value="">Select...</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label for="question-uuid-2" class="ashby-application-form-question-title">Do you require visa
+                    sponsorship?</label>
+                <select id="question-uuid-2" name="sponsorship">
+                    <option value="">Select...</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+
+            <!-- EEO Section -->
+            <div class="ashby-application-form-field-entry">
+                <label class="ashby-application-form-question-title">Gender</label>
+                <div>
+                    <input type="radio" id="__systemfield_eeoc_gender_male" name="eeoc_gender" value="Male">
+                    <label for="__systemfield_eeoc_gender_male">Male</label>
+                    <input type="radio" id="__systemfield_eeoc_gender_female" name="eeoc_gender" value="Female">
+                    <label for="__systemfield_eeoc_gender_female">Female</label>
+                    <input type="radio" id="__systemfield_eeoc_gender_decline" name="eeoc_gender"
+                        value="Decline to Self Identify">
+                    <label for="__systemfield_eeoc_gender_decline">Decline to Self Identify</label>
+                </div>
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label class="ashby-application-form-question-title">Race / Ethnicity</label>
+                <div>
+                    <input type="radio" id="__systemfield_eeoc_race_white" name="eeoc_race" value="White">
+                    <label for="__systemfield_eeoc_race_white">White</label>
+                    <input type="radio" id="__systemfield_eeoc_race_decline" name="eeoc_race"
+                        value="Decline to Self Identify">
+                    <label for="__systemfield_eeoc_race_decline">Decline to Self Identify</label>
+                </div>
+            </div>
+
+            <div class="ashby-application-form-field-entry">
+                <label class="ashby-application-form-question-title">Veteran Status</label>
+                <div>
+                    <input type="radio" id="__systemfield_eeoc_veteran_status_yes" name="eeoc_veteran"
+                        value="I am a protected veteran">
+                    <label for="__systemfield_eeoc_veteran_status_yes">I am a protected veteran</label>
+                    <input type="radio" id="__systemfield_eeoc_veteran_status_decline" name="eeoc_veteran"
+                        value="Decline to Self Identify">
+                    <label for="__systemfield_eeoc_veteran_status_decline">Decline to Self Identify</label>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="ashby-application-form-submit-button">Submit Application</button>
+        </form>
+    </div>
+</body>
+
+</html>

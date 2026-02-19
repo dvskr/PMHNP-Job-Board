@@ -13,6 +13,7 @@ export type AutofillState =
     | 'FILLING_SIMPLE'
     | 'FILLING_AI'
     | 'ATTACHING_FILES'
+    | 'ADVANCING_PAGE'
     | 'REVIEWING'
     | 'COMPLETE'
     | 'ERROR';
@@ -34,6 +35,8 @@ export interface StateContext {
     pageUrl: string;
     atsName: string | null;
     startedAt: number | null;
+    pageNumber: number;
+    totalPages: number | null;
 }
 
 export type StateTransition = {
@@ -52,11 +55,12 @@ const VALID_TRANSITIONS: Record<AutofillState, AutofillState[]> = {
     CHECKING_USAGE: ['LOADING_PROFILE', 'ERROR'],
     LOADING_PROFILE: ['ANALYZING', 'ERROR'],
     ANALYZING: ['FILLING_SIMPLE', 'ERROR'],
-    FILLING_SIMPLE: ['FILLING_AI', 'ATTACHING_FILES', 'REVIEWING', 'COMPLETE', 'ERROR'],
-    FILLING_AI: ['ATTACHING_FILES', 'REVIEWING', 'COMPLETE', 'ERROR'],
-    ATTACHING_FILES: ['REVIEWING', 'COMPLETE', 'ERROR'],
+    FILLING_SIMPLE: ['FILLING_AI', 'ATTACHING_FILES', 'ADVANCING_PAGE', 'REVIEWING', 'COMPLETE', 'ERROR'],
+    FILLING_AI: ['ATTACHING_FILES', 'ADVANCING_PAGE', 'REVIEWING', 'COMPLETE', 'ERROR'],
+    ATTACHING_FILES: ['ADVANCING_PAGE', 'REVIEWING', 'COMPLETE', 'ERROR'],
+    ADVANCING_PAGE: ['DETECTED', 'ANALYZING', 'COMPLETE', 'ERROR'],
     REVIEWING: ['COMPLETE', 'IDLE', 'ERROR'],
-    COMPLETE: ['IDLE', 'DETECTED'],
+    COMPLETE: ['IDLE', 'DETECTED', 'ADVANCING_PAGE'],
     ERROR: ['IDLE', 'DETECTED', 'CHECKING_USAGE'],
 };
 
@@ -84,6 +88,8 @@ export class AutofillStateMachine {
             pageUrl: '',
             atsName: null,
             startedAt: null,
+            pageNumber: 1,
+            totalPages: null,
         };
     }
 
@@ -179,7 +185,7 @@ export class AutofillStateMachine {
      * Check if the machine is currently processing.
      */
     isProcessing(): boolean {
-        return ['CHECKING_USAGE', 'LOADING_PROFILE', 'ANALYZING', 'FILLING_SIMPLE', 'FILLING_AI', 'ATTACHING_FILES'].includes(this.context.state);
+        return ['CHECKING_USAGE', 'LOADING_PROFILE', 'ANALYZING', 'FILLING_SIMPLE', 'FILLING_AI', 'ATTACHING_FILES', 'ADVANCING_PAGE'].includes(this.context.state);
     }
 
     /**
@@ -195,6 +201,7 @@ export class AutofillStateMachine {
             case 'FILLING_SIMPLE': return `Filling ${this.context.progress.current}/${this.context.progress.total}...`;
             case 'FILLING_AI': return 'Generating AI answers...';
             case 'ATTACHING_FILES': return 'Attaching documents...';
+            case 'ADVANCING_PAGE': return `Advancing to page ${this.context.pageNumber + 1}${this.context.totalPages ? '/' + this.context.totalPages : ''}...`;
             case 'REVIEWING': return 'Review needed';
             case 'COMPLETE': return `${this.context.fillResult?.filled || 0} fields filled`;
             case 'ERROR': return this.context.error || 'Something went wrong';

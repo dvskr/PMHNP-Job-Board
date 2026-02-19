@@ -70,16 +70,14 @@ const PAGE_SIZE = 25;
 const SEARCH_TERMS = [
     'PMHNP',
     'Psychiatric Nurse Practitioner',
-    // Additional terms if budget allows (comment out to conserve)
-    // 'Psychiatric Mental Health Nurse Practitioner',
-    // 'Psych NP',
-    // 'Behavioral Health Nurse Practitioner',
+    'Psychiatric Mental Health Nurse Practitioner',
+    'Psych NP',
+    'Behavioral Health Nurse Practitioner',
 ];
 
 // Max pages per search term (to stay within free tier budget)
-// PMHNP: 422 jobs / 25 per page = 17 pages
-// Psych NP: 2249 jobs / 25 = 90 pages (too many for free tier)
-const MAX_PAGES_PER_TERM = 20; // Cap at 500 jobs per term
+// 5 terms × 10 pages × 1 call/page = 50 calls/run — fits within 100/month with 2x/day
+const MAX_PAGES_PER_TERM = 10; // Cap at 250 jobs per term
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));

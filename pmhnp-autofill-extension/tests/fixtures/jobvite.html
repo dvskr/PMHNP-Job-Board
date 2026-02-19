@@ -1,0 +1,91 @@
+<!--
+  Jobvite ATS Application Form Fixture
+  Based on: Standard Jobvite application form patterns
+  Jobvite URL patterns: jobs.jobvite.com, app.jobvite.com
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Jobvite Application</title>
+</head>
+
+<body>
+    <div id="jobvite-app" class="jobvite-apply-form">
+        <form id="jv-application-form" method="post">
+            <div class="jv-field-group">
+                <label for="jv-first-name">First Name <span class="required">*</span></label>
+                <input type="text" id="jv-first-name" name="firstName" required>
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-last-name">Last Name <span class="required">*</span></label>
+                <input type="text" id="jv-last-name" name="lastName" required>
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-email">Email <span class="required">*</span></label>
+                <input type="email" id="jv-email" name="email" required>
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-phone">Phone</label>
+                <input type="tel" id="jv-phone" name="phone">
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-address">Address</label>
+                <input type="text" id="jv-address" name="address">
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-city">City</label>
+                <input type="text" id="jv-city" name="city">
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-state">State</label>
+                <select id="jv-state" name="state">
+                    <option value="">Select...</option>
+                    <option value="CA">California</option>
+                    <option value="NY">New York</option>
+                    <option value="TX">Texas</option>
+                </select>
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-zip">Zip Code</label>
+                <input type="text" id="jv-zip" name="zip">
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-linkedin">LinkedIn Profile URL</label>
+                <input type="url" id="jv-linkedin" name="linkedinUrl" placeholder="https://linkedin.com/in/...">
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-resume">Resume</label>
+                <input type="file" id="jv-resume" name="resume" accept=".pdf,.doc,.docx">
+            </div>
+
+            <div class="jv-field-group">
+                <label for="jv-cover-letter">Cover Letter</label>
+                <textarea id="jv-cover-letter" name="coverLetter" rows="5"></textarea>
+            </div>
+
+            <!-- Custom Questions -->
+            <div class="jv-field-group">
+                <label for="jv-q1">Are you legally authorized to work in the US?</label>
+                <select id="jv-q1" name="q_workAuth">
+                    <option value="">Select...</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+
+            <button type="submit" class="jv-btn-submit">Submit Application</button>
+        </form>
+    </div>
+</body>
+
+</html>
