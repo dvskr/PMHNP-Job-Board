@@ -77,10 +77,10 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     const now = new Date();
 
     if (filters.postedWithin === '24h') {
-      // "Past 24 hours" = ingested in last 24h OR originally posted within 3 days.
-      // This catches jobs posted recently on the source but ingested slightly later.
+      // "Past 24 hours" = ingested in last 24h OR originally posted within 48h.
+      // The 48h window covers one missed cron cycle (crons run every 12h).
       const ingestCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const originalCutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const originalCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
       andConditions.push({
         OR: [
           { createdAt: { gte: ingestCutoff } },
