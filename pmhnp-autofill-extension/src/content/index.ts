@@ -16,13 +16,20 @@ import { scanAllFormFields, serializeFields } from './scanner';
 import type { ScannedField } from './scanner';
 import { recordAutofilledUrl, getAutofilledUrls } from '@/shared/storage';
 import { fillTextInput, triggerReactChange, fillSelect, fillCustomDropdown, fillRadio, fillCheckbox, simulateTyping, verifyFill, sleep } from './filler';
+import { tryWorkdayFill, isWorkdayPage, setWorkdayRawProfile, expandWorkdaySections } from './ats/workday';
 import { deterministicMatch, toAutofillProfile } from './deterministic-matcher';
 import type { AutofillProfile } from './deterministic-matcher';
+import { recordFieldTelemetry } from '@/shared/telemetry';
+import type { FieldTelemetryEntry } from '@/shared/telemetry';
 import { runPreFillHooks } from './pre-fill-hooks';
 import { detectATS, isApplicationPage } from './detector';
 import { runSmartRecruitersSections, fixSmartRecruitersPage1 } from './ats/smartrecruiters';
 import { fillScreeningQuestions } from './screening-filler';
 import { log, warn } from '@/shared/logger';
+import { detectLoginPage } from './login-detector';
+import { findDropZones, injectFileToDropZone, base64ToFile } from './drag-drop-uploader';
+import { findNextButton, isLastPage, advancePage } from './multipage';
+import type { IndustryProfileId } from './profiles';
 
 // ─── State Machine ───
 
@@ -133,6 +140,9 @@ interface ClassifyResponse {
 
 // Track whether we're on a subsequent page (skip SmartRecruiters sections)
 let _isSubsequentPage = false;
+// Track multi-page recursion depth to prevent infinite loops
+let _pageRecursionDepth = 0;
+const MAX_PAGE_RECURSION = 10;
 
 /**
  * Enrich select/dropdown fields that have 0 options (lazy-loaded by custom dropdown libraries).
@@ -252,6 +262,7 @@ async function enrichFieldOptions(fields: ScannedField[]): Promise<void> {
 }
 
 async function performAutofill(): Promise<{ success: boolean; fieldsFilled: number; error?: string }> {
+    _isAutofilling = true;
     try {
         log('[PMHNP] ═══ Starting v3 hybrid autofill pipeline ═══');
 
@@ -273,6 +284,13 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
 
         // Step 2: Pre-fill hooks (expand +Add sections, trigger lazy load)
         sm.transition('LOADING_PROFILE');
+
+        // On Workday: pass raw profile to handler for section-aware expansion
+        if (isWorkdayPage()) {
+            setWorkdayRawProfile(profileResponse);
+            await expandWorkdaySections();
+        }
+
         await runPreFillHooks();
 
         // Step 3: Scan all form fields
@@ -288,10 +306,27 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
         // Step 3.5: Enrich options for select fields with 0 options (lazy-loaded dropdowns)
         await enrichFieldOptions(fields);
 
+        // Step 3.6: Read industry profile preference from storage
+        let industryProfile: IndustryProfileId = 'none';
+        try {
+            const stored = await chrome.storage.sync.get('industryProfile');
+            if (stored.industryProfile && ['healthcare', 'tech', 'none'].includes(stored.industryProfile)) {
+                industryProfile = stored.industryProfile as IndustryProfileId;
+                log(`[PMHNP] Industry profile: ${industryProfile}`);
+            }
+        } catch { /* default to 'none' */ }
+
         // Step 4: Deterministic matching (instant, free)
         sm.transition('ANALYZING');
-        const { matched, unmatched } = deterministicMatch(fields, profile);
+        const { matched, unmatched } = deterministicMatch(fields, profile, industryProfile);
         log(`[PMHNP] Deterministic: ${matched.length} matched, ${unmatched.length} unmatched`);
+        log(`[PMHNP] 📋 profile.resumeUrl = "${profile.resumeUrl?.substring(0, 60) || '(empty)'}"`);
+        const fileMatches = matched.filter(m => m.interaction === 'file');
+        log(`[PMHNP] 📎 File matches from deterministic: ${fileMatches.length}`);
+        fileMatches.forEach(fm => log(`[PMHNP]   file match [${fm.index}] id="${fm.field.id}" name="${fm.field.name}" label="${fm.field.label}"`));
+        const fileUnmatched = unmatched.filter(u => u.field.type === 'file');
+        log(`[PMHNP] 📎 File inputs in unmatched: ${fileUnmatched.length}`);
+        fileUnmatched.forEach(fu => log(`[PMHNP]   unmatched file [${fu.index}] id="${fu.field.id}" name="${fu.field.name}" label="${fu.field.label}"`));
 
         // Step 5: AI classification for unmatched fields only
         let aiInstructions: FillInstruction[] = [];
@@ -302,16 +337,33 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
             // native selects and should never be independently filled by the AI.
             // Also filter out search inputs which are internal to multiselect dropdowns.
             const aiCandidates = unmatched.filter(u => {
-                if (u.field.type === 'custom-dropdown') {
-                    log(`[PMHNP] ⏭️ Skipping [${u.index}] "${u.field.label}" — custom-dropdown overlay (handled via native select)`);
+                // Only skip custom-dropdown/search overlays — fields with no label
+                // are likely visual duplicates of hidden selects.
+                // Fields WITH labels (e.g. "School or University", "Field of Study")
+                // are real form fields and should be sent to AI.
+                if (u.field.type === 'custom-dropdown' && !u.field.label?.trim()) {
+                    log(`[PMHNP] ⏭️ Skipping [${u.index}] — custom-dropdown overlay with no label`);
                     return false;
                 }
-                if (u.field.type === 'search') {
-                    log(`[PMHNP] ⏭️ Skipping [${u.index}] "${u.field.label}" — internal search input`);
+                if (u.field.type === 'search' && !u.field.label?.trim()) {
+                    log(`[PMHNP] ⏭️ Skipping [${u.index}] — internal search input with no label`);
+                    return false;
+                }
+                if (u.field.type === 'file') {
+                    log(`[PMHNP] ⏭️ Skipping [${u.index}] "${u.field.label || u.field.id}" — file input (not a resume match, skipping)`);
+                    return false;
+                }
+                // Skip known navigation/chrome elements (settings buttons, menus, etc.)
+                const idLower = (u.field.id || '').toLowerCase();
+                const labelLower = (u.field.label || '').toLowerCase();
+                if (idLower.includes('settingsselector') || idLower.includes('nav-') ||
+                    labelLower.includes('careers') && u.field.type === 'custom-dropdown') {
+                    log(`[PMHNP] ⏭️ Skipping [${u.index}] "${u.field.label}" — navigation/settings element`);
                     return false;
                 }
                 return true;
             });
+
 
             if (aiCandidates.length > 0) {
                 log(`[PMHNP] Sending ${aiCandidates.length} unmatched fields to AI (filtered from ${unmatched.length})...`);
@@ -453,6 +505,22 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
                 if (success) {
                     filled++;
                     log(`[PMHNP]   ✅ File attached`);
+                } else {
+                    // Fallback: try drag-drop upload
+                    log(`[PMHNP]   ⚠️ Standard attachment failed — trying drag-drop fallback...`);
+                    const dropZones = findDropZones();
+                    if (dropZones.length > 0) {
+                        const file = base64ToFile(fileData.base64, fileData.fileName, fileData.mimeType);
+                        const dropSuccess = await injectFileToDropZone(dropZones[0], file);
+                        if (dropSuccess) {
+                            filled++;
+                            log(`[PMHNP]   ✅ File attached via drag-drop`);
+                        } else {
+                            log(`[PMHNP]   ❌ Drag-drop injection failed`);
+                        }
+                    } else {
+                        log(`[PMHNP]   ❌ No upload target found`);
+                    }
                 }
             } catch (err) {
                 console.error(`[PMHNP]   ❌ File upload error:`, err);
@@ -480,8 +548,7 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
                     warn('[PMHNP] SmartRecruiters sections failed (non-fatal):', err);
                 }
 
-                // Start watching for page changes (SPA navigation to page 2, 3, etc.)
-                startSmartRecruitersPageObserver();
+                // Page observer is started universally below (after fill)
             } else {
                 log('[PMHNP] Subsequent page — skipping SmartRecruiters sections (experience/education)');
             }
@@ -520,6 +587,78 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
             }).catch(() => { });
         } catch { /* ignore */ }
 
+        // Step 10.5: Collect telemetry for feedback loop
+        try {
+            const atsInfo = detectATS();
+            const pageDomain = new URL(currentUrl).hostname;
+            const ts = new Date().toISOString();
+            const telemetryEntries: FieldTelemetryEntry[] = [];
+
+            // Log deterministic matches
+            for (const m of matched) {
+                if (m.interaction === 'file') continue; // skip file uploads
+                telemetryEntries.push({
+                    timestamp: ts,
+                    atsName: atsInfo?.name || null,
+                    pageDomain,
+                    fieldName: m.field.name,
+                    fieldId: m.field.id,
+                    fieldLabel: (m.field.label || '').substring(0, 120),
+                    fieldType: m.field.type,
+                    matchMethod: 'deterministic',
+                    profileKey: m.profileKey,
+                    valueSample: (m.value || '').substring(0, 50),
+                    confidence: 1.0,
+                    filled: true,
+                });
+            }
+
+            // Log AI classifications
+            for (const ai of aiInstructions) {
+                const f = fields[ai.index];
+                if (!f) continue;
+                telemetryEntries.push({
+                    timestamp: ts,
+                    atsName: atsInfo?.name || null,
+                    pageDomain,
+                    fieldName: f.name,
+                    fieldId: f.id,
+                    fieldLabel: (f.label || '').substring(0, 120),
+                    fieldType: f.type,
+                    matchMethod: 'ai',
+                    profileKey: null,
+                    valueSample: (ai.value || '').substring(0, 50),
+                    confidence: ai.confidence,
+                    filled: ai.interaction !== 'skip' && !!ai.value,
+                });
+            }
+
+            // Log unmatched fields (not filled by deterministic or AI)
+            const aiFilledIndices = new Set(aiInstructions.map(a => a.index));
+            for (const u of unmatched) {
+                if (aiFilledIndices.has(u.index)) continue; // already logged as AI
+                telemetryEntries.push({
+                    timestamp: ts,
+                    atsName: atsInfo?.name || null,
+                    pageDomain,
+                    fieldName: u.field.name,
+                    fieldId: u.field.id,
+                    fieldLabel: (u.field.label || '').substring(0, 120),
+                    fieldType: u.field.type,
+                    matchMethod: 'unmatched',
+                    profileKey: null,
+                    valueSample: '',
+                    confidence: 0,
+                    filled: false,
+                });
+            }
+
+            await recordFieldTelemetry(telemetryEntries);
+        } catch (err) {
+            // Non-fatal — telemetry should never break autofill
+            warn('[PMHNP] Telemetry collection failed (non-fatal):', err);
+        }
+
         sm.transition('COMPLETE', {
             fillResult: {
                 total: fields.length,
@@ -532,11 +671,28 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
             },
         });
 
+        // Step 11: Start universal page observer for multi-page forms.
+        // The user navigates pages manually; the observer detects DOM changes
+        // (new fields appearing) and automatically re-runs autofill.
+        startPageChangeObserver();
+        log(`[PMHNP] 👁️ Page observer started — will auto-fill when user navigates to next page`);
+
         return { success: true, fieldsFilled: filled };
     } catch (err) {
         console.error('[PMHNP] Pipeline error:', err);
         sm.error(err instanceof Error ? err.message : 'Unknown error');
         return { success: false, fieldsFilled: 0, error: err instanceof Error ? err.message : 'Unknown error' };
+    } finally {
+        // Keep the autofilling flag on for 5 more seconds.
+        // The observer debounces at 2s, so DOM mutations from filling
+        // could trigger callbacks AFTER the fill completes. This cooldown
+        // ensures those stale callbacks are ignored.
+        _lastFieldSnapshot = getFieldSnapshotKey();
+        setTimeout(() => {
+            _lastFieldSnapshot = getFieldSnapshotKey(); // refresh again after DOM settles
+            _isAutofilling = false;
+            log('[PMHNP] 👁️ Page observer re-enabled after cooldown');
+        }, 5000);
     }
 }
 
@@ -545,9 +701,66 @@ async function performAutofill(): Promise<{ success: boolean; fieldsFilled: numb
 async function universalFill(field: ScannedField, value: string, interaction: string): Promise<boolean> {
     const el = field.element;
 
+    // ─── Workday-specific component handling ───
+    // Intercept combobox (School, Field of Study, Skills) and dropdown (Degree, Language)
+    // fields on Workday — these need click→search→select interaction, not plain text fill.
+    if (isWorkdayPage() && field.id) {
+        const handled = await tryWorkdayFill(field.id, el, value);
+        if (handled) return true;
+    }
+
     switch (interaction) {
         case 'text':
         case 'typeahead': {
+            // Check if this is a typeahead/autocomplete field that needs special handling
+            const inputEl = el as HTMLInputElement;
+            const isLeverLocation = (
+                window.location.hostname.includes('lever.co') &&
+                (inputEl.name === 'location' ||
+                    el.getAttribute('data-qa')?.includes('location') ||
+                    el.closest('[data-qa*="location"]') !== null)
+            );
+            const isGenericTypeahead = (
+                el.getAttribute('role') === 'combobox' ||
+                el.getAttribute('aria-autocomplete') === 'list' ||
+                el.getAttribute('aria-autocomplete') === 'both' ||
+                el.closest('[class*="typeahead"], [class*="autocomplete"], [class*="combobox"]') !== null
+            );
+
+            if (isLeverLocation || isGenericTypeahead) {
+                log(`[PMHNP]   Using fillTypeahead for "${(field.label || field.name).substring(0, 30)}"`);
+                const { fillTypeahead } = await import('./fields');
+
+                const typeaheadSelector = isLeverLocation
+                    ? '[data-qa="location-result"], .location-option, .autocomplete-dropdown-container li, .pac-item, [class*="location"] li, [role="option"], ul[class*="suggest"] li'
+                    : '[role="option"], [role="listbox"] li, .autocomplete-option, .typeahead-option, .suggestions li, ul[class*="suggest"] li';
+
+                const success = await fillTypeahead(el, value, {
+                    typingDelay: 150,
+                    dropdownTimeout: 4000,
+                    optionSelector: typeaheadSelector,
+                    clearFirst: true,
+                });
+
+                if (success) return true;
+
+                // Fallback: try city-only (e.g. "Austin" instead of "Austin, TX")
+                if (isLeverLocation && value.includes(',')) {
+                    const cityOnly = value.split(',')[0].trim();
+                    log(`[PMHNP]   Retrying typeahead with city-only: "${cityOnly}"`);
+                    const retrySuccess = await fillTypeahead(el, cityOnly, {
+                        typingDelay: 150,
+                        dropdownTimeout: 4000,
+                        optionSelector: typeaheadSelector,
+                        clearFirst: true,
+                    });
+                    if (retrySuccess) return true;
+                }
+
+                log(`[PMHNP]   Typeahead fallback — using plain text fill`);
+            }
+
+            // Standard text fill (non-typeahead or typeahead fallback)
             await fillTextInput(el, value);
             // Verify
             if (!verifyFill(el, value)) {
@@ -820,51 +1033,67 @@ function isElementVisible(el: HTMLElement): boolean {
 
 // ─── SmartRecruiters Multi-Page Observer ───
 
-let _srPageObserver: MutationObserver | null = null;
-let _srLastFieldSnapshot = '';
+let _pageObserver: MutationObserver | null = null;
+let _lastFieldSnapshot = '';
+let _isAutofilling = false;
 
-function startSmartRecruitersPageObserver() {
-    if (_srPageObserver) return; // Already watching
+function startPageChangeObserver() {
+    if (_pageObserver) return; // Already watching
 
-    log('[PMHNP] Starting SmartRecruiters page observer for subsequent pages...');
+    log('[PMHNP] 👁️ Starting universal page change observer...');
 
     // Take a snapshot of current form fields to detect changes
-    _srLastFieldSnapshot = getFieldSnapshotKey();
+    _lastFieldSnapshot = getFieldSnapshotKey();
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    let isProcessing = false;
 
-    _srPageObserver = new MutationObserver(() => {
-        if (isProcessing) return;
+    _pageObserver = new MutationObserver(() => {
+        // Ignore DOM changes while we are actively filling fields
+        if (_isAutofilling) return;
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(async () => {
+            if (_isAutofilling) return; // Double-check after debounce
             // Check if the form fields changed significantly (new page)
             const currentSnapshot = getFieldSnapshotKey();
-            if (currentSnapshot === _srLastFieldSnapshot) return;
+            if (currentSnapshot === _lastFieldSnapshot) return;
             if (currentSnapshot === '') return; // No fields = transition in progress
 
-            log('[PMHNP] 🔄 SmartRecruiters page change detected!');
-            log(`[PMHNP]   Previous snapshot: ${_srLastFieldSnapshot.substring(0, 80)}...`);
-            log(`[PMHNP]   Current snapshot:  ${currentSnapshot.substring(0, 80)}...`);
+            // Only treat as a real page change if the fields are substantially different.
+            // Conditional fields (e.g., answering "Yes" reveals 1-2 more fields) should NOT
+            // trigger a full re-fill. Use a threshold: >50% of fields must be different.
+            const prevFields = new Set(_lastFieldSnapshot.split('|'));
+            const currFields = currentSnapshot.split('|');
+            const newFields = currFields.filter(f => !prevFields.has(f));
+            const changeRatio = newFields.length / Math.max(currFields.length, 1);
 
-            _srLastFieldSnapshot = currentSnapshot;
-            isProcessing = true;
+            if (changeRatio < 0.5) {
+                log(`[PMHNP] 👁️ Minor field change detected (${newFields.length} new of ${currFields.length} total, ${(changeRatio * 100).toFixed(0)}%) — not a page change, updating snapshot`);
+                _lastFieldSnapshot = currentSnapshot;
+                return;
+            }
+
+            log('[PMHNP] 🔄 Page change detected — majority of fields are new!');
+            log(`[PMHNP]   ${newFields.length} new fields out of ${currFields.length} total (${(changeRatio * 100).toFixed(0)}% change)`);
+
+            _lastFieldSnapshot = currentSnapshot;
 
             try {
-                // Re-run the autofill pipeline for this new page
+                _isAutofilling = true;
                 _isSubsequentPage = true;
                 sm.reset();
-                log('[PMHNP] ═══ Auto-filling SmartRecruiters page 2+ ═══');
+                log('[PMHNP] ═══ Auto-filling next page ═══');
                 await performAutofill();
             } catch (err) {
                 warn('[PMHNP] Auto-fill on page change failed:', err);
             } finally {
-                isProcessing = false;
+                // Update snapshot AFTER fill to capture any new conditional fields
+                _lastFieldSnapshot = getFieldSnapshotKey();
+                _isAutofilling = false;
             }
         }, 2000); // Wait 2s for page to stabilize
     });
 
-    _srPageObserver.observe(document.body, {
+    _pageObserver.observe(document.body, {
         childList: true,
         subtree: true,
     });
@@ -880,6 +1109,14 @@ function getFieldSnapshotKey(): string {
 
 function init() {
     log('[PMHNP] Content script v3 loaded');
+
+    // Step 0: Check if this is a login/SSO page — skip autofill detection
+    const loginResult = detectLoginPage();
+    if (loginResult.isLoginPage) {
+        log(`[PMHNP] Login page detected (confidence: ${loginResult.confidence.toFixed(2)}, type: ${loginResult.type}) — skipping autofill`);
+        log(`[PMHNP] ${loginResult.message}`);
+        return;
+    }
 
     let detected = false;
 

@@ -261,21 +261,40 @@ export async function fillSelect(el: HTMLElement, value: string, overlayElement?
 
         if (options.length > 0) {
             // Native select has options — find matching one
-            const match = options.find(
-                (o) => {
+            // Scored matching: prefer exact > prefix > best scored substring
+            // This prevents e.g. "Asian" matching "Hispanic or Latino" when
+            // "Asian (Not Hispanic or Latino)" is the correct option
+            const v = value.toLowerCase();
+            let match: HTMLOptionElement | undefined;
+
+            // 1. Exact match on value or text
+            match = options.find(o => o.value.toLowerCase() === v || o.text.toLowerCase().trim() === v);
+
+            // 2. Prefix match (option text starts with value)
+            if (!match) {
+                match = options.find(o => o.text.toLowerCase().trim().startsWith(v));
+            }
+
+            // 3. Best scored substring match (highest overlap ratio)
+            if (!match && v.length > 0) {
+                let bestScore = 0;
+                for (const o of options) {
                     const oText = o.text.toLowerCase().trim();
-                    const oVal = o.value.toLowerCase();
-                    const v = value.toLowerCase();
-                    // Exact matches (safe even with empty strings)
-                    if (oVal === v) return true;
-                    if (oText === v) return true;
-                    // Substring matches — guard against empty strings
-                    // ("6".includes("") is true, so we must ensure the needle is non-empty)
-                    if (oText && oText.includes(v)) return true;
-                    if (oText && v.includes(oText)) return true;
-                    return false;
+                    if (!oText) continue;
+                    let score = 0;
+                    if (oText.includes(v)) {
+                        score = v.length / oText.length;
+                    } else if (v.includes(oText)) {
+                        score = oText.length / v.length;
+                    }
+                    if (score > bestScore) {
+                        bestScore = score;
+                        match = o;
+                    }
                 }
-            );
+                // Require at least 30% overlap
+                if (bestScore < 0.3) match = undefined;
+            }
 
             if (match) {
                 // Set the native select value

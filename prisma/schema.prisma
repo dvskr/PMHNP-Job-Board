@@ -304,6 +304,7 @@ model UserProfile {
 
   candidateReferences  CandidateReference[]
   autofillUsage        AutofillUsage[]
+  autofillTelemetry    AutofillTelemetry[]
 
   @@index([supabaseId])
   @@index([email])
@@ -527,4 +528,27 @@ model UserFeedback {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("user_feedback")
+}
+
+model AutofillTelemetry {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  timestamp    DateTime
+  atsDomain    String?  @map("ats_domain")
+  fieldName    String   @map("field_name")
+  fieldLabel   String   @map("field_label")
+  fieldType    String   @map("field_type")
+  matchMethod  String   @map("match_method")
+  profileKey   String?  @map("profile_key")
+  valueSample  String?  @map("value_sample")
+  confidence   Float    @default(0)
+  filled       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([matchMethod])
+  @@index([fieldName])
+  @@index([createdAt])
+  @@map("autofill_telemetry")
 }

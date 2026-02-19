@@ -1,4 +1,4 @@
-interface LeverPosting {
+﻿interface LeverPosting {
   id: string;
   text: string;
   hostedUrl: string;
@@ -34,179 +34,59 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
-  // === VERIFIED — Have PMHNP jobs ===
-  'lifestance',          // LifeStance Health — 100+ PMHNP jobs (BIGGEST SOURCE)
-  'talkiatry',           // Talkiatry — 59 PMHNP jobs
-  'includedhealth',      // Included Health — 6 PMHNP jobs
-  'lyrahealth',          // Lyra Health — 1 PMHNP job
+  // === VERIFIED â€” Have PMHNP jobs ===
+  'lifestance',          // LifeStance Health â€” 100+ PMHNP jobs (BIGGEST SOURCE)
+  'talkiatry',           // Talkiatry â€” 59 PMHNP jobs
+  'includedhealth',      // Included Health â€” 6 PMHNP jobs
+  'lyrahealth',          // Lyra Health â€” 1 PMHNP job
 
-  // === VERIFIED — Valid, monitoring for PMHNP ===
-  'carbonhealth',        // Carbon Health — 0 currently but valid endpoint
+  // === VERIFIED â€” Valid, monitoring for PMHNP ===
+  'carbonhealth',        // Carbon Health â€” 0 currently but valid endpoint
 
-  // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
-  'prosper',             // Prosper — 11 total jobs
+  // === ADDED 2026-02-13 â€” VALID, monitoring for PMHNP ===
+  'prosper',             // Prosper â€” 11 total jobs
 
-  // === ADDED 2026-02-13 — EXPANDED SCAN ===
-  'bighealth',           // Big Health — 7 total jobs
-  'genesis',             // Genesis — 4 total jobs
-  'sesame',              // Sesame — 1 total jobs
+  // === ADDED 2026-02-13 â€” EXPANDED SCAN ===
+  'bighealth',           // Big Health â€” 7 total jobs
+  'genesis',             // Genesis â€” 4 total jobs
+  'sesame',              // Sesame â€” 1 total jobs
 
-  // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
-  'mindful',             // Mindful Haven — 5 PMHNP (0 recent)
-  'athenapsych',         // AthenaPsych — 4 PMHNP (0 recent)
-  'seven-starling',      // Seven Starling — 3 PMHNP (3 recent)
-  'beckley-clinical',    // Beckley Clinical — 1 PMHNP
-  'synapticure',         // SynaptiCure — 1 PMHNP
-  'arundellodge',        // Arundel Lodge — 1 PMHNP
+  // === PROD DB MINING â€” 9,295 slugs from 3,602 employers ===
+  'mindful',             // Mindful Haven â€” 5 PMHNP (0 recent)
+  'athenapsych',         // AthenaPsych â€” 4 PMHNP (0 recent)
+  'seven-starling',      // Seven Starling â€” 3 PMHNP (3 recent)
+  'beckley-clinical',    // Beckley Clinical â€” 1 PMHNP
+  'synapticure',         // SynaptiCure â€” 1 PMHNP
+  'arundellodge',        // Arundel Lodge â€” 1 PMHNP
 
-  // === ADDED 2026-02-16 — Full ATS Discovery (189 companies scanned) ===
-  'ro',                  // Ro Health — 40 total jobs
-  'advocate',            // Advocate Health — 9 total jobs
-  'ucsf',                // UCSF Health — 1 total job
+  // === ADDED 2026-02-16 â€” Full ATS Discovery (189 companies scanned) ===
+  'ro',                  // Ro Health â€” 40 total jobs
+  'advocate',            // Advocate Health â€” 9 total jobs
+  'ucsf',                // UCSF Health â€” 1 total job
 
-  // === ADDED 2026-02-16 — CSV test: 6 new PMHNP-active slugs ===
-  'lunaphysicaltherapy', // Luna Physical Therapy — 108 PMHNP
-  'guidestareldercare',  // Guidestar Eldercare — 31 PMHNP
-  'next-health',         // Next Health — 4 PMHNP
-  'ekohealth',           // Eko Health — 1 PMHNP
-  'heartbeathealth',     // Heartbeat Health — 1 PMHNP
-  'swordhealth',         // Sword Health — 1 PMHNP
+  // === ADDED 2026-02-16 â€” CSV test: 6 new PMHNP-active slugs ===
+  'lunaphysicaltherapy', // Luna Physical Therapy â€” 108 PMHNP
+  'guidestareldercare',  // Guidestar Eldercare â€” 31 PMHNP
+  'next-health',         // Next Health â€” 4 PMHNP
+  'ekohealth',           // Eko Health â€” 1 PMHNP
+  'heartbeathealth',     // Heartbeat Health â€” 1 PMHNP
+  'swordhealth',         // Sword Health â€” 1 PMHNP
 
-  // === ADDED 2026-02-16 — All live healthcare slugs from CSV ===
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // === BULK ADD — All remaining CSV companies (115) ===
-  'airlinejobs.eu',
+  // === Additional healthcare companies ===
   'aledade',
-  'annette.care',
-  'apex.careers',
-  'arbitalhealth',
-  'arsenalbio',
-  'arvor-insurance',
-  'augustbioservices',
-  'autonomywork.com',
-  'avalerehealth',
-  'aviahealth',
-  'bulletinhealthcare.com',
-  'cardiosense',
-  'cardiosense.com',
-  'celaralabs',
-  'cellares',
   'clarifyhealth',
-  'clinicalhealthnetworkfortransformation',
-  'crescent-biopharma',
-  'crossfit',
-  'cscgeneration-2',
-  'delfidiagnostics',
-  'diversifiedradiology',
   'enter.health',
-  'ethenalabs',
-  'fatetherapeutics',
-  'fehrandpeers',
-  'fieldnation',
-  'fishawack.com',
-  'gatchealth',
-  'genbio',
-  'genedit',
-  'genefab',
-  'getlabs',
-  'getmylifeforce.com',
-  'gordian-bio',
-  'grailbio',
-  'h1',
-  'healthcare',
-  'heard-therapy.info',
   'heyjane.co',
-  'inductivehealth',
-  'jobradar.site',
   'journeyclinical',
-  'kimiatherapeutics',
   'koalahealth',
-  'kyverna',
-  'labelbox',
-  'landmarkbio.com',
-  'leolabs-2',
-  'limberhealth',
-  'lookflossy.com',
-  'lyciatx.com',
-  'lyracollective',
-  'machinalabs',
-  'mammothbiosci',
-  'medcarehouston.com',
-  'mediafly',
-  'mediagenix',
-  'micmos.com',
-  'moonsong-labs',
-  'multiplylabs',
   'myplacehealth',
-  'nekohealth',
   'nimblerx',
-  'npowermedicine',
-  'offchainlabs',
-  'okendo',
-  'ollie.com',
-  'onehot.io',
-  'optionb.org',
-  'orcabiosystems',
-  'outpacebio',
-  'outpacebio.com',
-  'paramedicservices',
-  'parcelvision',
-  'pattern-biosciences',
-  'peakped.com',
-  'piplabs',
   'pointclickcare',
   'pplacareers.org',
-  'procept-biorobotics',
-  'progression.fyi',
-  'project-healthy-minds',
-  'projecthealthyminds.com',
-  'qbio',
-  'quantum.jobs',
-  'quantumcareers.com',
-  'relayrobotics.com',
-  'remedyproductstudio',
-  'roshalhealth.com',
   'salvohealth',
-  'sequel-med-tech',
-  'seranbio',
-  'simulmedia',
   'sprinterhealth',
-  'tahoebio-ai',
-  'talentneuron',
-  'talentwerx',
-  'tendo',
-  'theattractiongame.online',
-  'torchdental',
-  'trivenibio',
-  'tryfi.com',
-  'umzim.com',
-  'vedatechlabs',
-  'veeva',
   'vivo-care',
-  'waddellgrp.com',
-  'waivercore.com',
-  'warblerlabs',
   'wepclinical',
-  'wilburlabs',
-  'workinbiotech.com',
   'zushealth',
 ];
 

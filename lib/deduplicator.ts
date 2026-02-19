@@ -40,9 +40,11 @@ function normalizeCompany(company: string): string {
   normalized = normalized.replace(/[^a-z0-9\s]/g, ' ');
 
   // Remove business suffixes
+  // NOTE: Only strip corporate entity suffixes. Do NOT strip healthcare-specific
+  // words like 'health', 'healthcare', 'medical', 'group', 'services' — these are
+  // identity-critical for healthcare companies (e.g. "Spring Health" ≠ "Spring").
   const suffixes = [
     'inc', 'llc', 'corp', 'corporation', 'company', 'co', 'ltd',
-    'health', 'healthcare', 'medical', 'group', 'services'
   ];
 
   const words = normalized.split(/\s+/).filter((word: string) =>
