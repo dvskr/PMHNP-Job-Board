@@ -358,6 +358,13 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
       alternates: {
         canonical: `https://pmhnphiring.com/jobs/state/${stateParam}`,
       },
+      // Prevent Google from indexing empty state pages (fixes soft 404s)
+      ...(stats.totalJobs === 0 && {
+        robots: {
+          index: false,
+          follow: true,
+        },
+      }),
     };
   } catch (error) {
     console.error('Error generating metadata:', error);

@@ -196,7 +196,7 @@ export function generateSlug(title: string): string {
 }
 
 export async function generateUniqueSlug(title: string): Promise<string> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const baseSlug = generateSlug(title);
 
     // Check if slug exists

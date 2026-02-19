@@ -87,6 +87,19 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
           { originalPostedAt: { gte: originalCutoff } },
         ]
       });
+    } else if (filters.postedWithin === '3d') {
+      const cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      andConditions.push({
+        OR: [
+          { originalPostedAt: { gte: cutoff } },
+          {
+            AND: [
+              { originalPostedAt: null },
+              { createdAt: { gte: cutoff } },
+            ],
+          },
+        ]
+      });
     } else {
       let cutoff: Date;
       switch (filters.postedWithin) {

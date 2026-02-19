@@ -59,6 +59,9 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
     description = `Find ${jobCountDisplay} ${titleParts.join(' ').toLowerCase()} psychiatric nurse practitioner positions. ${description}`;
   }
 
+  // Determine if this is a filtered/paginated view that should NOT be indexed
+  const hasFilters = Object.keys(params).length > 0;
+
   return {
     title: `${title} | PMHNP Hiring`,
     description,
@@ -75,6 +78,14 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
     alternates: {
       canonical: 'https://pmhnphiring.com/jobs',
     },
+    // Prevent Google from indexing filtered/paginated variants as separate pages
+    // This fixes the "Duplicate without user-selected canonical" GSC issue
+    ...(hasFilters && {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }),
   };
 }
 

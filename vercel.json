@@ -126,7 +126,7 @@
     },
     {
       "path": "/api/cron/check-dead-links",
-      "schedule": "0 3 * * 0"
+      "schedule": "0 3,11,19 * * *"
     },
     {
       "path": "/api/cron/cleanup-expired",
