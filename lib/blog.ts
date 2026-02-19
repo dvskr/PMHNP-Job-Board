@@ -173,7 +173,7 @@ export async function createBlogPost(
 
     const { data: post, error } = await supabase
         .from('blog_posts')
-        .insert(data)
+        .insert({ id: crypto.randomUUID(), ...data })
         .select()
         .single();
 
