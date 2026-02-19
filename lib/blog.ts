@@ -270,8 +270,19 @@ export function markdownToHtml(markdown: string): string {
     // Images
     html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />');
 
-    // Links
+    // Links (markdown syntax)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+    // Auto-link bare URLs (not already inside an <a> tag or href attribute)
+    html = html.replace(
+        /(?<!")(?<!href=")(?<!<a[^>]*>)(https?:\/\/[^\s<>"',;!)\]]+[^\s<>"',;!.)\]])/g,
+        (url) => {
+            const isInternal = url.includes('pmhnphiring.com');
+            return isInternal
+                ? `<a href="${url}">${url}</a>`
+                : `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        }
+    );
 
     // Blockquotes
     html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
