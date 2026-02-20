@@ -204,193 +204,170 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
             )}
 
-            {/* Content Area */}
-            <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    {/* Main Content */}
-                    <main className="lg:col-span-8">
-                        <article className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-                            <div
-                                className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-teal-600 dark:prose-a:text-teal-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-blockquote:border-l-teal-500 prose-blockquote:bg-teal-50 dark:prose-blockquote:bg-teal-950/30 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300 prose-blockquote:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-li:text-gray-700 dark:prose-li:text-gray-300"
-                                dangerouslySetInnerHTML={{ __html: contentHtml }}
-                            />
+            {/* Content Area — Full Width, No Sidebar */}
+            <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+                {/* Author Bar (compact inline) */}
+                <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200">
+                    <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-lg">
+                        P
+                    </div>
+                    <div>
+                        <span className="font-semibold text-gray-900 text-sm">PMHNP Hiring</span>
+                        <span className="text-gray-400 mx-2">·</span>
+                        <span className="text-sm text-gray-500">Editorial Team</span>
+                    </div>
+                </div>
 
-                            {/* Social Share (Bottom) */}
-                            <div className="mt-12 pt-8 border-t border-gray-100">
-                                <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">
-                                    Share this article
-                                </h3>
-                                <div className="flex gap-4">
-                                    <a
-                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(currentUrl)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-2.5 bg-gray-100 rounded-full hover:bg-[#1DA1F2] hover:text-white transition-colors"
-                                        aria-label="Share on Twitter"
-                                    >
-                                        <Twitter className="w-5 h-5" />
-                                    </a>
-                                    <a
-                                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-2.5 bg-gray-100 rounded-full hover:bg-[#0A66C2] hover:text-white transition-colors"
-                                        aria-label="Share on LinkedIn"
-                                    >
-                                        <Linkedin className="w-5 h-5" />
-                                    </a>
-                                    <a
-                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-2.5 bg-gray-100 rounded-full hover:bg-[#1877F2] hover:text-white transition-colors"
-                                        aria-label="Share on Facebook"
-                                    >
-                                        <Facebook className="w-5 h-5" />
-                                    </a>
-                                </div>
-                            </div>
-                        </article>
+                {/* Table of Contents (collapsible) */}
+                {headings.length > 0 && (
+                    <details className="mb-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <summary className="px-5 py-3 cursor-pointer font-semibold text-gray-900 text-sm hover:text-teal-600 transition-colors select-none">
+                            📑 Table of Contents
+                        </summary>
+                        <nav className="px-5 pb-4 pt-1 space-y-1.5">
+                            {headings.map((heading, idx) => (
+                                <a
+                                    key={idx}
+                                    href={`#${heading.id}`}
+                                    className={`block text-sm hover:text-teal-600 transition-colors ${heading.level === 3
+                                        ? 'pl-4 text-gray-500'
+                                        : 'text-gray-700 font-medium'
+                                        }`}
+                                >
+                                    {heading.text}
+                                </a>
+                            ))}
+                        </nav>
+                    </details>
+                )}
 
-                        {/* CTA Section */}
-                        <div className="mt-8 bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-8 text-white text-center">
-                            <h3 className="text-2xl font-bold mb-3">
-                                Ready to Find Your Next PMHNP Position?
-                            </h3>
-                            <p className="text-teal-100 mb-6 max-w-lg mx-auto">
-                                Browse hundreds of psychiatric mental health nurse practitioner
-                                jobs with salary transparency.
-                            </p>
-                            <Link
-                                href="/jobs"
-                                className="inline-flex items-center px-6 py-3 bg-white text-teal-700 font-bold rounded-lg hover:bg-teal-50 transition-colors shadow-lg"
+                {/* Article */}
+                <article className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+                    <div
+                        className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-teal-600 dark:prose-a:text-teal-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-blockquote:border-l-teal-500 prose-blockquote:bg-teal-50 dark:prose-blockquote:bg-teal-950/30 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300 prose-blockquote:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-li:text-gray-700 dark:prose-li:text-gray-300"
+                        dangerouslySetInnerHTML={{ __html: contentHtml }}
+                    />
+
+                    {/* Social Share */}
+                    <div className="mt-12 pt-8 border-t border-gray-100">
+                        <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">
+                            Share this article
+                        </h3>
+                        <div className="flex gap-4">
+                            <a
+                                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(currentUrl)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2.5 bg-gray-100 rounded-full hover:bg-[#1DA1F2] hover:text-white transition-colors"
+                                aria-label="Share on Twitter"
                             >
-                                Browse PMHNP Jobs →
-                            </Link>
+                                <Twitter className="w-5 h-5" />
+                            </a>
+                            <a
+                                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2.5 bg-gray-100 rounded-full hover:bg-[#0A66C2] hover:text-white transition-colors"
+                                aria-label="Share on LinkedIn"
+                            >
+                                <Linkedin className="w-5 h-5" />
+                            </a>
+                            <a
+                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2.5 bg-gray-100 rounded-full hover:bg-[#1877F2] hover:text-white transition-colors"
+                                aria-label="Share on Facebook"
+                            >
+                                <Facebook className="w-5 h-5" />
+                            </a>
                         </div>
+                    </div>
+                </article>
 
-                        {/* Related Posts */}
-                        {relatedPosts.length > 0 && (
-                            <div className="mt-12">
-                                <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                                    Related Articles
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {relatedPosts.map((relPost) => {
-                                        const relLabel =
-                                            BLOG_CATEGORIES.find((c) => c.id === relPost.category)
-                                                ?.label || relPost.category;
-                                        return (
-                                            <Link
-                                                key={relPost.slug}
-                                                href={`/blog/${relPost.slug}`}
-                                                className="block group"
-                                            >
-                                                <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-all">
-                                                    <div className="text-xs text-teal-600 font-bold uppercase mb-2">
-                                                        {relLabel}
-                                                    </div>
-                                                    <h4 className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors mb-2">
-                                                        {relPost.title}
-                                                    </h4>
-                                                    <p className="text-sm text-gray-500 line-clamp-2">
-                                                        {relPost.meta_description || ''}
-                                                    </p>
-                                                </div>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </main>
+                {/* CTA Section */}
+                <div className="mt-8 bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-8 text-white text-center">
+                    <h3 className="text-2xl font-bold mb-3">
+                        Ready to Find Your Next PMHNP Position?
+                    </h3>
+                    <p className="text-teal-100 mb-6 max-w-lg mx-auto">
+                        Browse hundreds of psychiatric mental health nurse practitioner
+                        jobs with salary transparency.
+                    </p>
+                    <Link
+                        href="/jobs"
+                        className="inline-flex items-center px-6 py-3 bg-white text-teal-700 font-bold rounded-lg hover:bg-teal-50 transition-colors shadow-lg"
+                    >
+                        Browse PMHNP Jobs →
+                    </Link>
+                </div>
 
-                    {/* Sidebar */}
-                    <aside className="lg:col-span-4 space-y-8">
-                        {/* Author Box */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-xl">
-                                    P
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">PMHNP Hiring</h3>
-                                    <p className="text-xs text-gray-500">Editorial Team</p>
-                                </div>
-                            </div>
-                            <p className="text-sm text-gray-600">
-                                Data-driven insights from analyzing 10,000+ PMHNP job postings
-                                across 3,000+ companies.
-                            </p>
+                {/* Related Posts */}
+                {relatedPosts.length > 0 && (
+                    <div className="mt-12">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                            Related Articles
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {relatedPosts.map((relPost) => {
+                                const relLabel =
+                                    BLOG_CATEGORIES.find((c) => c.id === relPost.category)
+                                        ?.label || relPost.category;
+                                return (
+                                    <Link
+                                        key={relPost.slug}
+                                        href={`/blog/${relPost.slug}`}
+                                        className="block group"
+                                    >
+                                        <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-all">
+                                            <div className="text-xs text-teal-600 font-bold uppercase mb-2">
+                                                {relLabel}
+                                            </div>
+                                            <h4 className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors mb-2">
+                                                {relPost.title}
+                                            </h4>
+                                            <p className="text-sm text-gray-500 line-clamp-2">
+                                                {relPost.meta_description || ''}
+                                            </p>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
                         </div>
+                    </div>
+                )}
 
-                        {/* Sticky Container for TOC and Resources */}
-                        <div className="sticky top-20 space-y-8 max-h-[calc(100vh-6rem)] overflow-y-auto">
-                            {/* Table of Contents */}
-                            {headings.length > 0 && (
-                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                                    <h3 className="font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">
-                                        Table of Contents
-                                    </h3>
-                                    <nav className="space-y-2">
-                                        {headings.map((heading, idx) => (
-                                            <a
-                                                key={idx}
-                                                href={`#${heading.id}`}
-                                                className={`block text-sm hover:text-teal-600 transition-colors ${heading.level === 3
-                                                    ? 'pl-4 text-gray-500'
-                                                    : 'text-gray-700 font-medium'
-                                                    }`}
-                                            >
-                                                {heading.text}
-                                            </a>
-                                        ))}
-                                    </nav>
-                                </div>
-                            )}
-
-                            {/* Cross Links */}
-                            <div className="bg-teal-50 p-6 rounded-xl border border-teal-100">
-                                <h3 className="font-bold text-teal-900 mb-4">
-                                    Popular Resources
-                                </h3>
-                                <ul className="space-y-3">
-                                    <li>
-                                        <Link
-                                            href="/salary-guide"
-                                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                                        >
-                                            <span className="mr-2">💰</span> 2026 Salary Guide
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link
-                                            href="/jobs"
-                                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                                        >
-                                            <span className="mr-2">🔍</span> Browse All Jobs
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link
-                                            href="/jobs/remote"
-                                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                                        >
-                                            <span className="mr-2">🏠</span> Remote Jobs
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link
-                                            href="/job-alerts"
-                                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                                        >
-                                            <span className="mr-2">🔔</span> Get Job Alerts
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </aside>
+                {/* Popular Resources — bottom of page */}
+                <div className="mt-12 bg-teal-50 p-6 rounded-xl border border-teal-100">
+                    <h3 className="font-bold text-teal-900 mb-4 text-center">
+                        Popular Resources
+                    </h3>
+                    <div className="flex flex-wrap justify-center gap-6">
+                        <Link
+                            href="/salary-guide"
+                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
+                        >
+                            <span className="mr-2">💰</span> 2026 Salary Guide
+                        </Link>
+                        <Link
+                            href="/jobs"
+                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
+                        >
+                            <span className="mr-2">🔍</span> Browse All Jobs
+                        </Link>
+                        <Link
+                            href="/jobs/remote"
+                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
+                        >
+                            <span className="mr-2">🏠</span> Remote Jobs
+                        </Link>
+                        <Link
+                            href="/job-alerts"
+                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
+                        >
+                            <span className="mr-2">🔔</span> Get Job Alerts
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
