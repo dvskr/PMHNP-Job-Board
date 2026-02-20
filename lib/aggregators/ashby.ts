@@ -99,6 +99,9 @@ const ASHBY_COMPANIES = [
     { slug: "dandelionhealth", name: "Dandelion Health" },
     { slug: "relationrx", name: "RelationRx" },
     { slug: "summerhealth", name: "Summer Health" },
+
+    // === ADDED 2026-02-20 — Production DB apply_link mining ===
+    { slug: "Fort Health", name: "Fort Health" },
 ];
 
 /**
