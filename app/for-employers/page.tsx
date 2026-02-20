@@ -4,6 +4,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import VideoJsonLd from '@/components/VideoJsonLd';
 
 import { config } from '@/lib/config';
 import {
@@ -25,6 +26,10 @@ import {
 export const metadata: Metadata = {
   title: 'For Employers | PMHNP Jobs',
   description: 'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post jobs for free. Reach thousands of PMHNPs.',
+  openGraph: {
+    images: [{ url: '/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions page showing job posting options and targeted recruitment for psychiatric nurse practitioners' }],
+  },
+  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-employer-hiring-solutions.webp'] },
   alternates: {
     canonical: 'https://pmhnphiring.com/for-employers',
   },
@@ -33,6 +38,7 @@ export const metadata: Metadata = {
 export default function ForEmployersPage() {
   return (
     <div className="min-h-screen bg-white">
+      <VideoJsonLd pathname="/for-employers" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'For Employers', url: 'https://pmhnphiring.com/for-employers' },

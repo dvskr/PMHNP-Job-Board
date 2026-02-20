@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import VideoJsonLd from '@/components/VideoJsonLd';
 import Link from 'next/link';
 import { DollarSign, TrendingUp, MapPin, Briefcase, Building2, GraduationCap, ArrowUpRight, Clock, Users, BarChart3, Shield, Award } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
@@ -122,7 +123,9 @@ export const metadata: Metadata = {
     description: 'Complete guide to PMHNP salaries. National average $155,000+, top 10% earn $210,000+. State-by-state breakdown and tips to maximize earnings.',
     type: 'website',
     url: `${BASE_URL}/salary-guide`,
+    images: [{ url: '/images/pages/pmhnp-salary-guide-2026.webp', width: 1280, height: 900, alt: 'PMHNP salary guide 2026 showing psychiatric nurse practitioner pay by state with interactive salary comparison table' }],
   },
+  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-salary-guide-2026.webp'] },
   alternates: {
     canonical: 'https://pmhnphiring.com/salary-guide',
   },
@@ -224,6 +227,7 @@ export default async function SalaryGuidePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary, #FFFFFF)' }}>
+      <VideoJsonLd pathname="/salary-guide" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }}
