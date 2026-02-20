@@ -118,7 +118,7 @@
     },
     {
       "path": "/api/cron/send-alerts",
-      "schedule": "0 14 * * *"
+      "schedule": "30 14 * * *"
     },
     {
       "path": "/api/cron/expiry-warnings",
