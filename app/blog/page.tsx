@@ -155,7 +155,7 @@ export default async function BlogIndexPage({
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                                         <div className="relative h-full p-6 flex flex-col justify-between">
-                                            <span className="bg-white/90 text-teal-900 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider w-fit">
+                                            <span className="bg-teal-600 text-white px-3 py-1 rounded text-xs font-bold uppercase tracking-wider w-fit shadow-md">
                                                 {categoryLabels[post.category] || post.category}
                                             </span>
                                             <div className="text-white/90 text-sm">

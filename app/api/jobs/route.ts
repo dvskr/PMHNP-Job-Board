@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
             normalizedMinSalary: true,
             normalizedMaxSalary: true,
             salaryPeriod: true,
+            salaryRange: true,
             description: true,
             descriptionSummary: true,
             createdAt: true,
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
           normalizedMinSalary: true,     // For filtering
           normalizedMaxSalary: true,     // For filtering
           salaryPeriod: true,            // For context
+          salaryRange: true,             // Fallback for display
           // Other fields
           description: true,
           descriptionSummary: true,      // For JobCard preview
