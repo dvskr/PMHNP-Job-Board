@@ -19,6 +19,25 @@ const C = {
   borderLight: '#1E293B', borderMed: '#334155',
 }
 
+// ─── State name → abbreviation map (for location matching) ────────────────────
+const STATE_TO_CODE: Record<string, string> = {
+  'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR',
+  'california': 'CA', 'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE',
+  'florida': 'FL', 'georgia': 'GA', 'hawaii': 'HI', 'idaho': 'ID',
+  'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA', 'kansas': 'KS',
+  'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+  'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN',
+  'mississippi': 'MS', 'missouri': 'MO', 'montana': 'MT', 'nebraska': 'NE',
+  'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC',
+  'north dakota': 'ND', 'ohio': 'OH', 'oklahoma': 'OK', 'oregon': 'OR',
+  'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+  'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT',
+  'vermont': 'VT', 'virginia': 'VA', 'washington': 'WA',
+  'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
+  'district of columbia': 'DC',
+}
+
 // ─── Build a single alert email HTML ──────────────────────────────────────────
 function buildAlertHtml(
   jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; mode?: string | null }>,
@@ -34,7 +53,9 @@ function buildAlertHtml(
   const jobListHtml = displayJobs.map((job, index) => {
     const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`
     const isLast = index === displayJobs.length - 1
-    const salaryText = job.minSalary ? `$${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? ` – $${(job.maxSalary / 1000).toFixed(0)}k` : '+'}` : ''
+    const minK = job.minSalary && job.minSalary > 0 ? Math.round(job.minSalary / 1000) : 0
+    const maxK = job.maxSalary && job.maxSalary > 0 ? Math.round(job.maxSalary / 1000) : 0
+    const salaryText = minK && maxK ? `$${minK}k – $${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : ''
     return `
       <tr>
         <td style="padding: 16px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
@@ -166,7 +187,20 @@ export async function sendJobAlerts(): Promise<{
           })
         }
         if (alert.location) {
-          whereClause.location = { contains: alert.location, mode: 'insensitive' }
+          // Check if user entered a full state name (e.g. "Florida") and expand to also match the code ("FL")
+          const stateCode = STATE_TO_CODE[alert.location.toLowerCase().trim()]
+          if (stateCode) {
+            // Match either the full state name OR the state code in the location field
+            ; (whereClause.AND as Prisma.JobWhereInput[]).push({
+              OR: [
+                { location: { contains: alert.location, mode: 'insensitive' } },
+                { location: { contains: `, ${stateCode}`, mode: 'insensitive' } },
+                { location: { contains: `${stateCode} `, mode: 'insensitive' } },
+              ]
+            })
+          } else {
+            whereClause.location = { contains: alert.location, mode: 'insensitive' }
+          }
         }
         if (alert.mode) {
           whereClause.mode = alert.mode
