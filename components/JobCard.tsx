@@ -45,7 +45,7 @@ function buildSalaryDisplay(job: Job): string | null {
   if (job.displaySalary) return job.displaySalary;
   const min = job.normalizedMinSalary;
   const max = job.normalizedMaxSalary;
-  if (!min && !max) return null;
+  if (!min && !max) return job.salaryRange || null;
   const fmt = (n: number) => {
     if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
     return `$${n.toLocaleString()}`;
