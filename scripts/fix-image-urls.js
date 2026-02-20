@@ -3,17 +3,23 @@ const { Pool } = require('pg');
 const pool = new Pool({ connectionString: process.env.PROD_DATABASE_URL });
 
 (async () => {
-    // Fix Google Drive viewer URLs to direct image URLs
-    const res = await pool.query(`
-    UPDATE blog_posts 
-    SET image_url = 'https://drive.google.com/uc?export=view&id=' || 
-      substring(image_url from 'drive\.google\.com/file/d/([^/]+)')
-    WHERE image_url LIKE '%drive.google.com/file/d/%'
-    RETURNING title, image_url
-  `);
+  // Telehealth vs In-Person blog
+  const r1 = await pool.query(
+    `UPDATE blog_posts SET image_url = $1 WHERE title ILIKE '%telehealth vs in-person%' RETURNING title`,
+    ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resource-companion/telehealth%20vs%20in%20person.jpg']
+  );
+  console.log('Updated:', r1.rows[0]?.title || 'NOT FOUND');
 
-    res.rows.forEach(r => console.log('Fixed:', r.title, '->', r.image_url));
-    console.log('Updated', res.rowCount, 'rows');
+  // Remote PMHNP blog
+  const r2 = await pool.query(
+    `UPDATE blog_posts SET image_url = $1 WHERE title ILIKE '%remote pmhnp%' RETURNING title`,
+    ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resource-companion/remote%20pmhnp.jpg']
+  );
+  console.log('Updated:', r2.rows[0]?.title || 'NOT FOUND');
 
-    await pool.end();
+  // Verify all
+  const all = await pool.query('SELECT title, image_url FROM blog_posts ORDER BY created_at');
+  all.rows.forEach(r => console.log(`  ${r.title} → ${r.image_url || '(none)'}`));
+
+  await pool.end();
 })();
