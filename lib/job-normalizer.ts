@@ -347,7 +347,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       if (rawJob.postedDate) {
         originalPostedAt = new Date(String(rawJob.postedDate));
       }
-    } else if (source === 'greenhouse' || source === 'lever' || source === 'ashby') {
+    } else if (source === 'greenhouse' || source === 'lever' || source === 'ashby' || source === 'smartrecruiters' || source === 'icims' || source === 'jazzhr') {
       title = String(rawJob.title || '');
       employer = String(rawJob.company || rawJob.employer || 'Company Not Listed');
       location = String(rawJob.location || 'United States');
@@ -383,7 +383,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
     // Skip for ATS sources (greenhouse, lever, ashby, bamboohr) — their APIs only
     // return currently open positions, so postedDate age is irrelevant.
     // originalPostedAt is still preserved for UI "Posted Within" filters.
-    const atsSources = ['greenhouse', 'lever', 'ashby', 'bamboohr'];
+    const atsSources = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'smartrecruiters', 'icims', 'jazzhr', 'workday'];
     if (!atsSources.includes(source) && originalPostedAt && !isNaN(originalPostedAt.getTime())) {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);

@@ -9,6 +9,9 @@ import { fetchAshbyJobs } from './aggregators/ashby';
 import { fetchWorkdayJobs } from './aggregators/workday';
 import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
 import { fetchBambooHRJobs } from './aggregators/bamboohr';
+import { fetchSmartRecruitersJobs } from './aggregators/smartrecruiters';
+import { fetchICIMSJobs } from './aggregators/icims';
+import { fetchJazzHRJobs } from './aggregators/jazzhr';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
@@ -19,11 +22,12 @@ import { collectEmployerEmails } from './employer-email-collector';
 import { pingAllSearchEnginesBatch, pingGoogle, pingIndexNow } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr' | 'smartrecruiters' | 'icims' | 'jazzhr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
 // REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db'];
+// ADDED smartrecruiters, icims, jazzhr 2026-02-20 — discovered via production DB mining
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db', 'smartrecruiters', 'icims', 'jazzhr'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -64,6 +68,12 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     case 'bamboohr':
       return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
+    case 'smartrecruiters':
+      return await fetchSmartRecruitersJobs() as unknown as Array<Record<string, unknown>>;
+    case 'icims':
+      return await fetchICIMSJobs() as unknown as Array<Record<string, unknown>>;
+    case 'jazzhr':
+      return await fetchJazzHRJobs() as unknown as Array<Record<string, unknown>>;
     default:
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
@@ -535,7 +545,7 @@ export async function cleanupExpiredJobs(): Promise<number> {
     });
 
     // Sweep 3: Check ATS job apply links for liveness (404 = unpublish)
-    const ATS_SOURCES = ['greenhouse', 'lever', 'ashby'];
+    const ATS_SOURCES = ['greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters', 'icims', 'jazzhr'];
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const atsJobs = await prisma.job.findMany({
       where: {
