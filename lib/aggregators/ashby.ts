@@ -94,16 +94,10 @@ const ASHBY_COMPANIES = [
     { slug: "versemedical", name: "Versemedical" },
 
     // === Additional healthcare companies ===
-    { slug: "alto", name: "Alto Pharmacy" },
-    { slug: "awellhealth", name: "Awell Health" },
+    // REMOVED 2026-02-20 — Dead endpoints (HTTP errors in audit):
+    // alto, awellhealth, elationhealth, fountainlife, hippocraticai, lumoshealth, oura, springhealth
     { slug: "dandelionhealth", name: "Dandelion Health" },
-    { slug: "elationhealth", name: "Elation Health" },
-    { slug: "fountainlife", name: "Fountain Life" },
-    { slug: "hippocraticai", name: "Hippocratic AI" },
-    { slug: "lumoshealth", name: "Lumos Health" },
-    { slug: "oura", name: "Oura" },
     { slug: "relationrx", name: "RelationRx" },
-    { slug: "springhealth", name: "Spring Health" },
     { slug: "summerhealth", name: "Summer Health" },
 ];
 
