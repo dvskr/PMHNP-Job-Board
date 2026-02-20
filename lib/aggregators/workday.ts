@@ -171,6 +171,13 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'centerstone', instance: 5, site: 'centerstonecareers', name: 'Centerstone' },            // 169 jobs
     { slug: 'meharrymedicalcollege', instance: 12, site: 'External', name: 'Meharry Medical College' }, // 91 jobs
     { slug: 'seamar', instance: 12, site: 'sea_mar', name: 'Sea Mar Community Health Centers' },      // 425 jobs
+
+    // === ADDED 2026-02-20 — Production DB apply_link mining ===
+    { slug: 'rogersbh', instance: 1, site: 'RBHCareer', name: 'Rogers Behavioral Health' },
+    { slug: 'tamus', instance: 1, site: 'TAMU_External', name: 'Texas A&M Health' },
+    { slug: 'saintlukes', instance: 1, site: 'saintlukeshealthcareers', name: "Saint Luke's Health System" },
+    { slug: 'brightli', instance: 5, site: 'BrightliTalent', name: 'Brightli' },
+    { slug: 'thriveworks', instance: 5, site: 'Thriveworks', name: 'Thriveworks' },
 ];
 
 function sleep(ms: number): Promise<void> {
