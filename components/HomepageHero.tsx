@@ -55,9 +55,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
         router.push(queryString ? `/jobs?${queryString}` : '/jobs');
     };
 
-    const pillText = jobCountDisplay
-        ? `${jobCountDisplay} PMHNP Jobs Updated Daily`
-        : 'Thousands of PMHNP Jobs Updated Daily';
+    const pillText = 'PMHNP Jobs Updated Daily';
 
     const css = `
         @keyframes heroPing {

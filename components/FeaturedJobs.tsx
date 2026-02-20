@@ -163,10 +163,10 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         fontSize: '32px', fontWeight: 800, letterSpacing: '-0.02em',
                         color: 'var(--text-primary)', margin: '16px 0 8px',
                     }}>
-                        Latest PMHNP Opportunities
+                        From Our Top Employers
                     </h2>
                     <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: 0 }}>
-                        Fresh positions added daily from top employers
+                        Latest psychiatric NP openings added daily
                     </p>
                 </motion.div>
 
