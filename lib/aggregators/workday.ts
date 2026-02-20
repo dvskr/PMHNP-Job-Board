@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Workday Direct Scraper
  * 
  * Scrapes Workday career sites directly via their hidden JSON API.
@@ -43,6 +43,7 @@ export interface WorkdayJobRaw {
 
 // === Verified Workday career sites ===
 // Discovered via scripts/discover-workday-sites.ts on 2026-02-13
+// AUDIT 2026-02-20: removed 28 dead slugs (HTTP 404/422/500)
 const WORKDAY_COMPANIES: WorkdayCompany[] = [
     // === ORIGINAL (pre-2026-02-16) ===
     { slug: 'trinityhealth', instance: 1, site: 'jobs', name: 'Trinity Health' },
@@ -51,15 +52,14 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'lifestance', instance: 5, site: 'Careers', name: 'LifeStance Health' },
     { slug: 'chghealthcare', instance: 1, site: 'External', name: 'CHG Healthcare' },
 
-    // === ADDED 2026-02-16 â€” ATS Discovery Script ===
+    // === ATS Discovery Script ===
     { slug: 'aah', instance: 5, site: 'External', name: 'Advocate Health' },
     { slug: 'ms', instance: 5, site: 'External', name: 'Mount Sinai' },
     { slug: 'carbonhealth', instance: 1, site: 'Careers', name: 'Carbon Health' },
     { slug: 'mc', instance: 1, site: 'External', name: 'Mayo Clinic' },
 
-    // === ADDED 2026-02-16 â€” Verified CSV (Hospitals & Health Systems) ===
+    // === Verified Hospitals & Health Systems ===
     { slug: 'adventhealth', instance: 12, site: 'AH_External_Career_Site', name: 'AdventHealth' },
-    { slug: 'allina', instance: 5, site: 'External', name: 'Allina Health' },
     { slug: 'archildrens', instance: 1, site: 'External_Career_Site', name: "Arkansas Children's" },
     { slug: 'bannerhealth', instance: 108, site: 'Careers', name: 'Banner Health' },
     { slug: 'baptistfirst', instance: 12, site: 'baptistfirst', name: 'Baptist Health (AL)' },
@@ -68,7 +68,6 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'bronsonhg', instance: 1, site: 'newhires', name: 'Bronson Healthcare' },
     { slug: 'carilionclinic', instance: 12, site: 'External_Careers', name: 'Carilion Clinic' },
     { slug: 'chaptershealth', instance: 5, site: 'jobs', name: 'Chapters Health System' },
-    { slug: 'choc', instance: 5, site: 'Careers', name: 'CHOC' },
     { slug: 'cincinnatichildrens', instance: 5, site: 'careersatcincinnatichildrens', name: "Cincinnati Children's" },
     { slug: 'ccf', instance: 1, site: 'ClevelandClinicCareers', name: 'Cleveland Clinic' },
     { slug: 'cookchildrens', instance: 1, site: 'Careers', name: "Cook Children's" },
@@ -97,12 +96,10 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'ssmh', instance: 5, site: 'ssmhealth', name: 'SSM Health' },
     { slug: 'stanfordhealthcare', instance: 5, site: 'SHC_External_Career_Site', name: 'Stanford Health Care' },
     { slug: 'sutterhealth', instance: 1, site: 'sh', name: 'Sutter Health' },
-    { slug: 'umassmemorial', instance: 1, site: 'Careers', name: 'UMass Memorial Health' },
     { slug: 'uvmhealth', instance: 1, site: 'CVPH', name: 'UVM Health Network' },
     { slug: 'vumc', instance: 1, site: 'vumccareers', name: 'Vanderbilt UMC' },
-    { slug: 'wvumedicine', instance: 1, site: 'WVUH', name: 'WVU Medicine' },
 
-    // === ADDED 2026-02-16 â€” Verified CSV (Health Insurance â€” hire psychiatric NPs) ===
+    // === Health Insurance ===
     { slug: 'elevancehealth', instance: 1, site: 'ANT', name: 'Elevance Health (Anthem)' },
     { slug: 'cigna', instance: 5, site: 'cignacareers', name: 'Cigna' },
     { slug: 'humana', instance: 5, site: 'Humana_External_Career_Site', name: 'Humana' },
@@ -110,76 +107,49 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'cvshealth', instance: 1, site: 'CVS_Health_Careers', name: 'CVS Health' },
     { slug: 'highmarkhealth', instance: 1, site: 'highmark', name: 'Highmark Health' },
 
-    // === Verified CSV (Healthcare IT â€” Teladoc uses WD for hiring) ===
+    // === Healthcare IT ===
     { slug: 'teladoc', instance: 503, site: 'teladochealth_is_hiring', name: 'Teladoc Health' },
     { slug: 'athenahealth', instance: 1, site: 'External', name: 'athenahealth' },
 
-    // === ADDED 2026-02-16 â€” CSV test: 9 new PMHNP-active ===
-    { slug: 'essentiahealth', instance: 1, site: 'essentia_health', name: 'Essentia Health' },  // 11 PMHNP
-    { slug: 'solutionhealth', instance: 1, site: 'careers', name: 'Solution Health' },            // 7 PMHNP
-    { slug: 'gundersenhealth', instance: 5, site: 'gundersen', name: 'Gundersen Health' },        // 2 PMHNP
-    { slug: 'benefis', instance: 1, site: 'External', name: 'Benefis Health System' },            // 2 PMHNP
-    { slug: 'mercycare', instance: 1, site: 'External', name: 'Mercy Cedar Rapids' },             // 2 PMHNP
-    { slug: 'southshorehealth', instance: 1, site: 'External', name: 'South Shore Health' },      // 2 PMHNP
-    { slug: 'verawholehealth', instance: 1, site: 'External', name: 'Vera Whole Health' },        // 2 PMHNP
-    { slug: 'bozemanhealth', instance: 1, site: 'bozemanhealthcareers', name: 'Bozeman Health' }, // 1 PMHNP
-    { slug: 'hollandhospital', instance: 1, site: 'external', name: 'Holland Hospital' },         // 1 PMHNP
-
-    // === ADDED 2026-02-16 â€” Additional verified healthcare systems ===
+    // === Additional verified systems ===
+    { slug: 'essentiahealth', instance: 1, site: 'essentia_health', name: 'Essentia Health' },
+    { slug: 'solutionhealth', instance: 1, site: 'careers', name: 'Solution Health' },
+    { slug: 'gundersenhealth', instance: 5, site: 'gundersen', name: 'Gundersen Health' },
+    { slug: 'verawholehealth', instance: 1, site: 'External', name: 'Vera Whole Health' },
+    { slug: 'bozemanhealth', instance: 1, site: 'bozemanhealthcareers', name: 'Bozeman Health' },
+    { slug: 'hollandhospital', instance: 1, site: 'external', name: 'Holland Hospital' },
     { slug: 'marshfieldclinichealthsystems', instance: 5, site: 'external', name: 'Marshfield Clinic Health System' },
-    { slug: 'pullmanregionalhospital', instance: 1, site: 'External', name: 'Pullman Regional Hospital' },
     { slug: 'adventisthealthcare', instance: 1, site: 'adventisthealthcarecareers', name: 'Adventist HealthCare' },
     { slug: 'agilonhealth', instance: 1, site: 'external', name: 'Agilon Health' },
     { slug: 'cambiahealth', instance: 1, site: 'external', name: 'Cambia Health Solutions' },
     { slug: 'caresource', instance: 1, site: 'caresource', name: 'CareSource' },
-    { slug: 'cmh', instance: 1, site: 'External', name: 'Central Maine Healthcare' },
-    { slug: 'corrohealth', instance: 1, site: 'External', name: 'CorroHealth' },
     { slug: 'crossoverhealth', instance: 1, site: 'careers', name: 'Crossover Health' },
     { slug: 'devoted', instance: 1, site: 'devoted', name: 'Devoted Health' },
     { slug: 'evolent', instance: 1, site: 'External', name: 'Evolent Health' },
-    { slug: 'ghc', instance: 1, site: 'External', name: 'Residential Home Health' },
-    { slug: 'goodrx', instance: 1, site: 'External', name: 'GoodRx' },
-    { slug: 'healthcatalyst', instance: 1, site: 'External', name: 'Health Catalyst' },
-    { slug: 'hhc', instance: 1, site: 'External', name: 'Houston Healthcare' },
-    { slug: 'huntingtonhospital', instance: 1, site: 'External', name: 'Huntington Health' },
     { slug: 'cwi', instance: 1, site: 'External', name: "Children's Wisconsin" },
-    { slug: 'methodisthealthsystem', instance: 1, site: 'External', name: 'Methodist Health System' },
-    { slug: 'mhc-tn.com', instance: 1, site: 'External', name: 'Mental Health Cooperative' },
-    { slug: 'mymarinhealth', instance: 1, site: 'External', name: 'MarinHealth Medical Center' },
-    { slug: 'ntst', instance: 1, site: 'External', name: 'Netsmart' },
-    { slug: 'owensborohealth', instance: 1, site: 'External', name: 'Owensboro Health' },
-    { slug: 'performant', instance: 1, site: 'External', name: 'Performant Healthcare' },
-    { slug: 'phoebehealth', instance: 1, site: 'External', name: 'Phoebe Putney Health System' },
-    { slug: 'phreesia', instance: 1, site: 'External', name: 'Phreesia' },
-    { slug: 'premera', instance: 1, site: 'External', name: 'Premera Blue Cross' },
-    { slug: 'primetherapeutics', instance: 1, site: 'External', name: 'Prime Therapeutics' },
-    { slug: 'rivhs', instance: 1, site: 'External', name: 'Riverside Health System' },
-    { slug: 'salinasvalleyhealth', instance: 1, site: 'External', name: 'Salinas Valley Health' },
     { slug: 'sharecare', instance: 1, site: 'sharecare_careers', name: 'Sharecare' },
     { slug: 'stjude', instance: 1, site: 'External', name: "St. Jude Children's Research Hospital" },
-    { slug: 'tempus', instance: 1, site: 'External', name: 'Tempus AI' },
     { slug: 'tuftsmedicine', instance: 1, site: 'jobs', name: 'Tufts Medicine' },
     { slug: 'umchealthsystem', instance: 1, site: 'External', name: 'UMC Health System (Lubbock)' },
 
-    // === ADDED 2026-02-19 — ats-jobs-db API discovery ===
-    { slug: 'geodehealth', instance: 1, site: 'geode', name: 'Geode Health' },                      // 108 jobs
-    { slug: 'lmh', instance: 1, site: 'lmhjobs', name: 'LMH Health' },                              // 96 jobs
-    { slug: 'mainegeneral', instance: 5, site: 'mainegeneralcareers', name: 'MaineGeneral Health' }, // 206 jobs
-    { slug: 'monarch', instance: 5, site: 'monarch', name: 'Monarch' },                              // 293 jobs
-    { slug: 'bmc', instance: 1, site: 'bmc', name: 'Boston Medical Center' },                        // 827 jobs
-    { slug: 'brownhealth', instance: 12, site: 'External_Careers', name: 'Brown Medicine' },          // 1675 jobs
-    { slug: 'centerstone', instance: 5, site: 'centerstonecareers', name: 'Centerstone' },            // 169 jobs
-    { slug: 'meharrymedicalcollege', instance: 12, site: 'External', name: 'Meharry Medical College' }, // 91 jobs
-    { slug: 'seamar', instance: 12, site: 'sea_mar', name: 'Sea Mar Community Health Centers' },      // 425 jobs
+    // === ADDED 2026-02-19 � ats-jobs-db API discovery ===
+    { slug: 'geodehealth', instance: 1, site: 'geode', name: 'Geode Health' },
+    { slug: 'lmh', instance: 1, site: 'lmhjobs', name: 'LMH Health' },
+    { slug: 'mainegeneral', instance: 5, site: 'mainegeneralcareers', name: 'MaineGeneral Health' },
+    { slug: 'monarch', instance: 5, site: 'monarch', name: 'Monarch' },
+    { slug: 'bmc', instance: 1, site: 'bmc', name: 'Boston Medical Center' },
+    { slug: 'brownhealth', instance: 12, site: 'External_Careers', name: 'Brown Medicine' },
+    { slug: 'centerstone', instance: 5, site: 'centerstonecareers', name: 'Centerstone' },
+    { slug: 'meharrymedicalcollege', instance: 12, site: 'External', name: 'Meharry Medical College' },
+    { slug: 'seamar', instance: 12, site: 'sea_mar', name: 'Sea Mar Community Health Centers' },
 
-    // === ADDED 2026-02-20 — Production DB apply_link mining ===
+    // === ADDED 2026-02-20 � Production DB apply_link mining ===
     { slug: 'rogersbh', instance: 1, site: 'RBHCareer', name: 'Rogers Behavioral Health' },
     { slug: 'tamus', instance: 1, site: 'TAMU_External', name: 'Texas A&M Health' },
     { slug: 'saintlukes', instance: 1, site: 'saintlukeshealthcareers', name: "Saint Luke's Health System" },
     { slug: 'brightli', instance: 5, site: 'BrightliTalent', name: 'Brightli' },
     { slug: 'thriveworks', instance: 5, site: 'Thriveworks', name: 'Thriveworks' },
 ];
-
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -217,7 +187,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
     const baseUrl = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/wday/cxs/${company.slug}/${company.site}/jobs`;
     const applyBase = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/en-US/${company.site}`;
 
-    // PMHNP search terms â€” cast a wide net, let isRelevantJob filter precisely
+    // PMHNP search terms — cast a wide net, let isRelevantJob filter precisely
     const searchTerms = [
         'Psychiatric Nurse Practitioner',
         'PMHNP',
