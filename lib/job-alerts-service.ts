@@ -130,15 +130,19 @@ export async function sendJobAlerts(): Promise<{
 
     console.log(`[Alerts] Processing ${alerts.length} job alerts`)
 
-    // Phase 1: Build all email payloads (no API calls yet)
+    // Phase 1: Build all email payloads in parallel (no API calls yet)
     const emailPayloads: Array<{
       alertId: string
       email: string
       payload: { from: string; to: string; subject: string; html: string }
     }> = []
 
-    for (const alert of alerts) {
-      try {
+    // Process alerts in parallel batches of 10 to avoid overwhelming the DB
+    const QUERY_BATCH = 10
+    for (let i = 0; i < alerts.length; i += QUERY_BATCH) {
+      const batch = alerts.slice(i, i + QUERY_BATCH)
+
+      const settled = await Promise.allSettled(batch.map(async (alert) => {
         const whereClause: Prisma.JobWhereInput = {
           isPublished: true,
           createdAt: { gt: alert.lastSentAt || alert.createdAt },
@@ -192,7 +196,7 @@ export async function sendJobAlerts(): Promise<{
 
           const html = buildAlertHtml(matchingJobs, alert.token, totalCount)
 
-          emailPayloads.push({
+          return {
             alertId: alert.id,
             email: alert.email,
             payload: {
@@ -201,12 +205,19 @@ export async function sendJobAlerts(): Promise<{
               subject: `🔔 ${totalCount} New PMHNP Job${totalCount > 1 ? 's' : ''} Match Your Alert`,
               html,
             },
-          })
-        } else {
-          results.skipped++
+          }
         }
-      } catch (alertError) {
-        results.errors.push(`Alert ${alert.id} (${alert.email}): ${alertError}`)
+        return null // no matching jobs
+      }))
+
+      for (const result of settled) {
+        if (result.status === 'fulfilled' && result.value) {
+          emailPayloads.push(result.value)
+        } else if (result.status === 'fulfilled' && !result.value) {
+          results.skipped++
+        } else if (result.status === 'rejected') {
+          results.errors.push(`Alert query failed: ${result.reason}`)
+        }
       }
     }
 

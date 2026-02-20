@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendJobAlerts } from '@/lib/job-alerts-service'
 import { logger } from '@/lib/logger'
 
+export const maxDuration = 60
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization')
