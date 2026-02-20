@@ -80,7 +80,7 @@ export default function EmployerMarquee({ companies }: EmployerMarqueeProps) {
                     className="text-[11px] font-bold tracking-[0.25em] uppercase"
                     style={{ color: 'var(--accent-teal)', opacity: 0.8 }}
                 >
-                    Trusted by Leading Healthcare Employers
+                    Our Top Employers
                 </p>
             </div>
 
