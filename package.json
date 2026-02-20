@@ -53,6 +53,7 @@
     "next-mdx-remote": "^6.0.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.16.3",
+    "playwright": "^1.58.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.67.0",

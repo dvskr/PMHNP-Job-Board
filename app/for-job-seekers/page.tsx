@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import VideoJsonLd from '@/components/VideoJsonLd';
 import {
   Search,
   Bookmark,
@@ -21,6 +22,10 @@ import {
 export const metadata: Metadata = {
   title: 'For Job Seekers | PMHNP Jobs',
   description: 'Find your next PMHNP opportunity. 200+ remote and in-person psychiatric nurse practitioner jobs with salary transparency.',
+  openGraph: {
+    images: [{ url: '/images/pages/pmhnp-job-seeker-career-resources.webp', width: 1280, height: 900, alt: 'PMHNP job seeker career resources page showing job search tools, salary data, and application features' }],
+  },
+  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-job-seeker-career-resources.webp'] },
   alternates: {
     canonical: 'https://pmhnphiring.com/for-job-seekers',
   },
@@ -29,6 +34,7 @@ export const metadata: Metadata = {
 export default function ForJobSeekersPage() {
   return (
     <div className="min-h-screen bg-white">
+      <VideoJsonLd pathname="/for-job-seekers" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'For Job Seekers', url: 'https://pmhnphiring.com/for-job-seekers' },

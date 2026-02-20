@@ -2,11 +2,26 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import VideoJsonLd from '@/components/VideoJsonLd';
 import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, Briefcase, MapPin, RefreshCw, Database, FileText, Shield, BarChart3 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'About Us | PMHNP Hiring - The #1 Job Board for Psychiatric NPs',
   description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. 10,000+ jobs from 3,000+ companies across 50 states.',
+  openGraph: {
+    images: [
+      {
+        url: '/images/pages/about-pmhnp-hiring-platform.webp',
+        width: 1280,
+        height: 900,
+        alt: 'About PMHNP Hiring platform showing mission, methodology, and data sources for psychiatric nurse practitioner job board',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/images/pages/about-pmhnp-hiring-platform.webp'],
+  },
   alternates: {
     canonical: 'https://pmhnphiring.com/about',
   },
@@ -15,6 +30,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <VideoJsonLd pathname="/about" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'About', url: 'https://pmhnphiring.com/about' },

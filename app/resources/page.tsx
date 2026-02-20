@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { BookOpen, DollarSign, Briefcase, Users, FileText, TrendingUp } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import VideoJsonLd from '@/components/VideoJsonLd';
 import ResourceDownloadGate from '@/components/ResourceDownloadGate';
 
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
@@ -16,6 +17,10 @@ export const metadata: Metadata = {
     'pmhnp interview tips',
     'pmhnp job search',
   ],
+  openGraph: {
+    images: [{ url: '/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides page with salary data, interview tips, and job search strategies' }],
+  },
+  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-career-resources-guides.webp'] },
   alternates: {
     canonical: 'https://pmhnphiring.com/resources',
   },
@@ -82,6 +87,7 @@ const resources = [
 export default function ResourcesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+      <VideoJsonLd pathname="/resources" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'Resources', url: 'https://pmhnphiring.com/resources' },

@@ -4,12 +4,17 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import FAQAccordion from '@/components/FAQAccordion';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import VideoJsonLd from '@/components/VideoJsonLd';
 import { Mail, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
   description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the #1 PMHNP job board.',
+  openGraph: {
+    images: [{ url: '/images/pages/pmhnp-hiring-frequently-asked-questions.webp', width: 1280, height: 900, alt: 'PMHNP Hiring FAQ page with answers about job posting, salary transparency, job alerts, and employer features' }],
+  },
+  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-hiring-frequently-asked-questions.webp'] },
   alternates: {
     canonical: 'https://pmhnphiring.com/faq',
   },
@@ -105,6 +110,7 @@ export default function FAQPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      <VideoJsonLd pathname="/faq" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'FAQ', url: 'https://pmhnphiring.com/faq' },

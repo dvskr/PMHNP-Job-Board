@@ -13,6 +13,7 @@ import BrowseByStateSection from '@/components/BrowseByStateSection';
 import Comparison from '@/components/Comparison';
 import ScrollReveal from '@/components/ScrollReveal';
 import HomepageHero from '@/components/HomepageHero';
+import VideoJsonLd from '@/components/VideoJsonLd';
 
 
 
@@ -51,6 +52,18 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
+      images: [
+        {
+          url: '/images/pages/pmhnp-job-board-homepage.webp',
+          width: 1280,
+          height: 900,
+          alt: 'PMHNP Hiring job board homepage showing 10,000 plus psychiatric nurse practitioner jobs from 3,000 plus companies across 50 states',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: ['/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
       canonical: 'https://pmhnphiring.com',
@@ -66,6 +79,7 @@ export default async function Home() {
 
   return (
     <div>
+      <VideoJsonLd pathname="/" />
       {/* 1. Hero Section — no scroll reveal (above the fold) */}
       <HomepageHero jobCountDisplay={jobCountDisplay} />
 
