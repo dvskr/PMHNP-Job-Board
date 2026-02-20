@@ -13,6 +13,7 @@ export interface BlogPost {
     category: BlogCategory;
     status: 'draft' | 'published';
     publish_date: string | null;
+    image_url: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -70,7 +71,7 @@ export async function getPublishedPosts(
 
     let query = supabase
         .from('blog_posts')
-        .select('id, title, slug, meta_description, category, publish_date, created_at')
+        .select('id, title, slug, meta_description, category, publish_date, created_at, image_url')
         .eq('status', 'published')
         .order('publish_date', { ascending: false, nullsFirst: false })
         .range(offset, offset + limit - 1);
@@ -171,9 +172,19 @@ export async function createBlogPost(
 ): Promise<BlogPost> {
     const supabase = getSupabaseServiceClient();
 
+    // Build insert payload — only include image_url when provided
+    // (Supabase schema cache may not know about new columns immediately)
+    const insertData: Record<string, unknown> = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...data,
+    };
+    if (!insertData.image_url) delete insertData.image_url;
+
     const { data: post, error } = await supabase
         .from('blog_posts')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 
@@ -196,7 +207,7 @@ export function generateSlug(title: string): string {
 }
 
 export async function generateUniqueSlug(title: string): Promise<string> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServiceClient();
     const baseSlug = generateSlug(title);
 
     // Check if slug exists
@@ -270,8 +281,19 @@ export function markdownToHtml(markdown: string): string {
     // Images
     html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />');
 
-    // Links
+    // Links (markdown syntax)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+    // Auto-link bare URLs (not already inside an <a> tag or href attribute)
+    html = html.replace(
+        /(?<!")(?<!href=")(?<!<a[^>]*>)(https?:\/\/[^\s<>"',;!)\]]+[^\s<>"',;!.)\]])/g,
+        (url) => {
+            const isInternal = url.includes('pmhnphiring.com');
+            return isInternal
+                ? `<a href="${url}">${url}</a>`
+                : `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        }
+    );
 
     // Blockquotes
     html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');

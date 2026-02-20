@@ -393,29 +393,31 @@ function HeroEmailCapture() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-2">
             <span className="text-sm" style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>📬 Get PMHNP Resources →</span>
-            <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="px-3 py-1.5 rounded-lg text-sm outline-none"
-                style={{
-                    backgroundColor: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    width: '180px',
-                }}
-            />
-            <button
-                type="submit"
-                disabled={status === 'loading'}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)' }}
-            >
-                {status === 'loading' ? '...' : 'Go'}
-            </button>
+            <div className="flex items-center gap-2">
+                <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="px-3 py-1.5 rounded-lg text-sm outline-none"
+                    style={{
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        width: '180px',
+                    }}
+                />
+                <button
+                    type="submit"
+                    disabled={status === 'loading'}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                    style={{ background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)' }}
+                >
+                    {status === 'loading' ? '...' : 'Go'}
+                </button>
+            </div>
         </form>
     );
 }

@@ -379,6 +379,12 @@ export default function LinkedInFilters() {
                 onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '24h' ? null : '24h')}
               />
               <CheckboxFilter
+                label="Past 3 days"
+                count={counts?.postedWithin['3d'] || 0}
+                checked={filters.postedWithin === '3d'}
+                onChange={() => setSingleFilter('postedWithin', filters.postedWithin === '3d' ? null : '3d')}
+              />
+              <CheckboxFilter
                 label="Past week"
                 count={counts?.postedWithin['7d'] || 0}
                 checked={filters.postedWithin === '7d'}

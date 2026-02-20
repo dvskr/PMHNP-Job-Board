@@ -9,15 +9,8 @@
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-}
-
-/* Sticky footer: grid layout pushes footer to bottom when content is short */
-.site-wrapper {
-  min-height: 100dvh !important;
-  display: grid !important;
-  grid-template-rows: auto 1fr auto !important;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Reset Tailwind v4 preflight that sets form inputs to background-color: field (white) */
@@ -506,6 +499,7 @@ body {
   font-feature-settings: "kern" 1;
   font-kerning: normal;
   font-optical-sizing: auto;
+
 }
 
 /* Apply antialiasing to all text elements */

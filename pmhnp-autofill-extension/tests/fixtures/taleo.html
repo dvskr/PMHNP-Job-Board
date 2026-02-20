@@ -1,0 +1,215 @@
+<!--
+  Oracle Taleo ATS Application Form Fixture
+  Based on: company.taleo.net standard application template
+  Fields: data-field-name attributes, multi-step pages, screening questions
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Taleo Application</title>
+</head>
+
+<body>
+    <div id="reqContainerDiv" class="mainContainerDiv">
+        <form id="submitReq" method="post" enctype="multipart/form-data">
+
+            <!-- Personal Information -->
+            <fieldset class="generalBlock" id="personalInfoBlock">
+                <legend class="blockTitle">Personal Information</legend>
+
+                <div class="formField" data-field-type="text">
+                    <label for="FirstName" class="preformPopulatedLabel">First Name <span
+                            class="mandatoryFieldStar">*</span></label>
+                    <input type="text" id="FirstName" name="FirstName" data-field-name="FirstName" class="formFieldText"
+                        required>
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="LastName" class="preformPopulatedLabel">Last Name <span
+                            class="mandatoryFieldStar">*</span></label>
+                    <input type="text" id="LastName" name="LastName" data-field-name="LastName" class="formFieldText"
+                        required>
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="EmailAddress" class="preformPopulatedLabel">Email Address <span
+                            class="mandatoryFieldStar">*</span></label>
+                    <input type="email" id="EmailAddress" name="EmailAddress" data-field-name="EmailAddress"
+                        class="formFieldText" required>
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="PhoneNumber" class="preformPopulatedLabel">Phone Number</label>
+                    <input type="tel" id="PhoneNumber" name="PhoneNumber" data-field-name="PhoneNumber"
+                        class="formFieldText">
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="Address1" class="preformPopulatedLabel">Street Address</label>
+                    <input type="text" id="Address1" name="Address1" data-field-name="Address1" class="formFieldText">
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="City" class="preformPopulatedLabel">City</label>
+                    <input type="text" id="City" name="City" data-field-name="City" class="formFieldText">
+                </div>
+
+                <div class="formField" data-field-type="select">
+                    <label for="StateProvince" class="preformPopulatedLabel">State / Province</label>
+                    <select id="StateProvince" name="StateProvince" data-field-name="StateProvince"
+                        class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="Alabama">Alabama</option>
+                        <option value="Alaska">Alaska</option>
+                        <option value="Arizona">Arizona</option>
+                        <option value="California">California</option>
+                        <option value="Colorado">Colorado</option>
+                        <option value="Texas">Texas</option>
+                        <option value="New York">New York</option>
+                    </select>
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="ZipPostalCode" class="preformPopulatedLabel">Zip / Postal Code</label>
+                    <input type="text" id="ZipPostalCode" name="ZipPostalCode" data-field-name="ZipPostalCode"
+                        class="formFieldText">
+                </div>
+
+                <div class="formField" data-field-type="select">
+                    <label for="Country" class="preformPopulatedLabel">Country</label>
+                    <select id="Country" name="Country" data-field-name="Country" class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="United States">United States</option>
+                        <option value="Canada">Canada</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- Resume Section -->
+            <fieldset class="generalBlock" id="resumeBlock">
+                <legend class="blockTitle">Resume</legend>
+                <div class="formField" data-field-type="file">
+                    <label for="ResumeAttachment" class="preformPopulatedLabel">Upload Resume <span
+                            class="mandatoryFieldStar">*</span></label>
+                    <input type="file" id="ResumeAttachment" name="ResumeAttachment" accept=".pdf,.doc,.docx,.txt,.rtf">
+                </div>
+            </fieldset>
+
+            <!-- LinkedIn / Links -->
+            <fieldset class="generalBlock" id="linksBlock">
+                <legend class="blockTitle">Links</legend>
+                <div class="formField" data-field-type="text">
+                    <label for="LinkedInURL" class="preformPopulatedLabel">LinkedIn URL</label>
+                    <input type="url" id="LinkedInURL" name="LinkedInURL" data-field-name="LinkedInURL"
+                        class="formFieldText" placeholder="https://linkedin.com/in/...">
+                </div>
+            </fieldset>
+
+            <!-- Experience -->
+            <fieldset class="generalBlock" id="experienceBlock">
+                <legend class="blockTitle">Experience</legend>
+                <div class="formField" data-field-type="text">
+                    <label for="currentJobTitle" class="preformPopulatedLabel">Current Job Title</label>
+                    <input type="text" id="currentJobTitle" name="currentJobTitle" data-field-name="currentJobTitle"
+                        class="formFieldText">
+                </div>
+                <div class="formField" data-field-type="text">
+                    <label for="currentEmployer" class="preformPopulatedLabel">Current Employer</label>
+                    <input type="text" id="currentEmployer" name="currentEmployer" data-field-name="currentEmployer"
+                        class="formFieldText">
+                </div>
+            </fieldset>
+
+            <!-- Screening Questions -->
+            <fieldset class="generalBlock" id="screeningBlock">
+                <legend class="blockTitle">Screening Questions</legend>
+
+                <div class="formField" data-field-type="select">
+                    <label for="workAuthQuestion" class="preformPopulatedLabel">Are you authorized to work in the United
+                        States?</label>
+                    <select id="workAuthQuestion" name="workAuthQuestion" class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="formField" data-field-type="select">
+                    <label for="sponsorshipQuestion" class="preformPopulatedLabel">Will you require sponsorship?</label>
+                    <select id="sponsorshipQuestion" name="sponsorshipQuestion" class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="formField" data-field-type="text">
+                    <label for="salary" class="preformPopulatedLabel">Desired Salary</label>
+                    <input type="text" id="salary" name="salary" data-field-name="salary" class="formFieldText">
+                </div>
+
+                <div class="formField" data-field-type="date">
+                    <label for="availableDate" class="preformPopulatedLabel">Available Start Date</label>
+                    <input type="date" id="availableDate" name="availableDate" data-field-name="availableDate"
+                        class="formFieldText">
+                </div>
+            </fieldset>
+
+            <!-- EEO Section -->
+            <fieldset class="generalBlock" id="eeoBlock">
+                <legend class="blockTitle">Voluntary Self-Identification</legend>
+
+                <div class="formField" data-field-type="select">
+                    <label for="gender" class="preformPopulatedLabel">Gender</label>
+                    <select id="gender" name="gender" data-field-name="gender" class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="formField" data-field-type="select">
+                    <label for="race" class="preformPopulatedLabel">Race / Ethnicity</label>
+                    <select id="race" name="race" data-field-name="race" class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="Hispanic or Latino">Hispanic or Latino</option>
+                        <option value="White">White</option>
+                        <option value="Black or African American">Black or African American</option>
+                        <option value="Asian">Asian</option>
+                        <option value="Two or More Races">Two or More Races</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="formField" data-field-type="select">
+                    <label for="veteranStatus" class="preformPopulatedLabel">Veteran Status</label>
+                    <select id="veteranStatus" name="veteranStatus" data-field-name="veteranStatus"
+                        class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="I am a protected veteran">I am a protected veteran</option>
+                        <option value="I am not a veteran">I am not a veteran</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="formField" data-field-type="select">
+                    <label for="disabilityStatus" class="preformPopulatedLabel">Disability Status</label>
+                    <select id="disabilityStatus" name="disabilityStatus" data-field-name="disabilityStatus"
+                        class="formFieldSelect">
+                        <option value="">-- Select --</option>
+                        <option value="Yes, I have a disability">Yes, I have a disability</option>
+                        <option value="No, I do not have a disability">No, I do not have a disability</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <button type="submit" class="submitButton">Submit Application</button>
+        </form>
+    </div>
+</body>
+
+</html>

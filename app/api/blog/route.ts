@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Validate required fields
-        const { title, content, meta_description, target_keyword, category, status, publish_date } =
+        const { title, content, meta_description, target_keyword, category, status, publish_date, format, image_url } =
             body;
 
         if (!title || !content) {
@@ -78,15 +78,28 @@ export async function POST(request: NextRequest) {
         const slug = await generateUniqueSlug(title);
 
         // Create the post
-        // Auto-format the markdown content for better readability
-        const formattedContent = formatBlogContent(content);
+        // Only auto-format if explicitly requested (format: true)
+        // OpenAI already produces clean markdown, so default is no formatting
+        const finalContent = format ? formatBlogContent(content) : content;
+
+        // Convert Google Drive viewer URLs to direct image URLs
+        let finalImageUrl: string | null = null;
+        if (image_url) {
+            const driveMatch = image_url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+            if (driveMatch) {
+                finalImageUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+            } else {
+                finalImageUrl = image_url;
+            }
+        }
 
         const post = await createBlogPost({
             title,
             slug,
-            content: formattedContent,
+            content: finalContent,
             meta_description: meta_description || null,
             target_keyword: target_keyword || null,
+            image_url: finalImageUrl,
             category,
             status: postStatus,
             publish_date: publish_date || (postStatus === 'published' ? new Date().toISOString() : null),
@@ -117,9 +130,10 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.error('[Blog API] Error creating post:', error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[Blog API] Error creating post:', message);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: `Failed to create blog post: ${message}` },
             { status: 500 }
         );
     }

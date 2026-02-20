@@ -119,6 +119,11 @@ export default function StayConnected() {
       @media (max-width: 700px) {
         .sc-grid { grid-template-columns: 1fr !important; }
         .sc-panel { padding: 28px 20px !important; }
+        .sc-panel form { flex-direction: column !important; }
+        .sc-panel form input, .sc-panel form button { width: 100% !important; }
+      }
+      @media (max-width: 400px) {
+        .sc-panel { padding: 24px 16px !important; }
       }
     `;
         document.head.appendChild(s);
@@ -130,6 +135,7 @@ export default function StayConnected() {
             padding: '80px 0',
             borderTop: '1px solid var(--border-color)',
             borderBottom: '1px solid var(--border-color)',
+            overflowX: 'hidden' as const,
         }}>
             <div style={{ maxWidth: '1020px', margin: '0 auto', padding: '0 20px' }}>
 
@@ -465,14 +471,7 @@ export default function StayConnected() {
                 </div>
             </div>
 
-            {/* Responsive */}
-            <style>{`
-        @media (max-width: 750px) {
-          section > div > div:last-child {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+
         </section>
     );
 }

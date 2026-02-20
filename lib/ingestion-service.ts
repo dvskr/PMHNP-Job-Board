@@ -1,13 +1,14 @@
 import { prisma } from './prisma';
 import { fetchAdzunaJobs } from './aggregators/adzuna';
 import { fetchUSAJobs } from './aggregators/usajobs';
-import { fetchGreenhouseJobs } from './aggregators/greenhouse';
+import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
 import { fetchJSearchJobs } from './aggregators/jsearch';
 import { fetchAshbyJobs } from './aggregators/ashby';
 import { fetchWorkdayJobs } from './aggregators/workday';
 import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
+import { fetchBambooHRJobs } from './aggregators/bamboohr';
 import { normalizeJob } from './job-normalizer';
 import { checkDuplicate } from './deduplicator';
 import { parseJobLocation } from './location-parser';
@@ -15,14 +16,13 @@ import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
-import { pingAllSearchEnginesBatch } from './search-indexing';
-import { validateApplyLink } from './utils/resolve-url';
+import { pingAllSearchEnginesBatch, pingGoogle, pingIndexNow } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db'];
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db', 'bamboohr'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -32,7 +32,11 @@ export interface IngestionResult {
   errors: number;
   duration: number;
   newJobUrls: string[];
+  newJobIds: string[];
 }
+
+// Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
+const MAX_INGESTION_MS = 240_000; // 240s (leave 60s buffer for post-processing)
 
 /**
  * Fetch raw jobs from a specific source
@@ -44,7 +48,7 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
     case 'usajobs':
       return await fetchUSAJobs() as unknown as Array<Record<string, unknown>>;
     case 'greenhouse':
-      return await fetchGreenhouseJobs() as unknown as Array<Record<string, unknown>>;
+      return await fetchGreenhouseJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'lever':
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
     case 'jooble':
@@ -54,9 +58,11 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
     case 'ashby':
       return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
     case 'workday':
-      return await fetchWorkdayJobs() as unknown as Array<Record<string, unknown>>;
+      return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'ats-jobs-db':
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
+    case 'bamboohr':
+      return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
     default:
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
@@ -73,6 +79,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
   let duplicates = 0; // "Renewed" jobs are counted as duplicates for now to maintain stats semantics
   let errors = 0;
   const newJobUrls: string[] = [];
+  const newJobIds: string[] = [];
 
   try {
     console.log(`\n[${source.toUpperCase()}] Starting ingestion...`);
@@ -83,8 +90,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
 
     console.log(`[${source.toUpperCase()}] Fetched ${fetched} jobs`);
 
+    // Buffer for rejected jobs (batch-inserted at end)
+    const rejectedJobs: Array<{
+      title: string;
+      employer: string | null;
+      location: string | null;
+      applyLink: string | null;
+      externalId: string | null;
+      sourceProvider: string;
+      rejectionReason: string;
+      rawData: object;
+    }> = [];
+
     if (fetched === 0) {
-      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls };
+      return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
     }
 
     // Optimized: Load all existing externalIds for this source once
@@ -135,8 +154,16 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       }
     };
 
-    // Process each job
+    // Process each job — with time budget
+    let stoppedEarly = false;
     for (let i = 0; i < rawJobs.length; i++) {
+      // Check time budget — stop before hitting Vercel's 300s limit
+      if (Date.now() - startTime > MAX_INGESTION_MS) {
+        console.warn(`[${source.toUpperCase()}] ⏰ Time budget exceeded at job ${i + 1}/${rawJobs.length} — stopping gracefully after ${((Date.now() - startTime) / 1000).toFixed(0)}s`);
+        stoppedEarly = true;
+        break;
+      }
+
       const rawJob = rawJobs[i];
 
       try {
@@ -144,15 +171,34 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
         const normalizedJob = normalizeJob(rawJob, source);
 
         if (!normalizedJob) {
-          // If normalizer returns null, it was either an error OR a filtered/stale job
-          // Normalizer already logs skips (stale/missing fields)
+          // Track normalizer rejections for accuracy analysis
+          rejectedJobs.push({
+            title: String(rawJob.title || rawJob.jobOpeningName || rawJob.job_title || 'Unknown'),
+            employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
+            location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
+            applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
+            externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
+            sourceProvider: source,
+            rejectionReason: 'normalizer',
+            rawData: rawJob as object,
+          });
           continue;
         }
 
         // Apply Strict Relevance Filter to Aggregator Sources
         // We skip this for employer postings (sourceProvider: null) to avoid false negatives on paid roles
         if (source !== null && !isRelevantJob(normalizedJob.title, normalizedJob.description)) {
-          // console.log(`[${source.toUpperCase()}] Skipping irrelevant job: ${normalizedJob.title}`);
+          // Track relevance filter rejections for accuracy analysis
+          rejectedJobs.push({
+            title: normalizedJob.title,
+            employer: normalizedJob.employer || null,
+            location: normalizedJob.location || null,
+            applyLink: normalizedJob.applyLink || null,
+            externalId: normalizedJob.externalId || null,
+            sourceProvider: source,
+            rejectionReason: 'relevance_filter',
+            rawData: rawJob as object,
+          });
           continue;
         }
 
@@ -196,6 +242,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           data: normalizedJob as any,
         });
         added++;
+        newJobIds.push(savedJob.id);
 
         // Generate and update slug
         const slug = `${normalizedJob.title
@@ -227,27 +274,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           console.error(`Failed to link company for job ${savedJob.id}:`, companyError);
         }
 
-        // Validate and resolve apply link — reject dead/unresolvable tracking URLs
-        try {
-          const validation = await validateApplyLink(normalizedJob.applyLink);
-          if (!validation.cleanUrl || validation.isDead) {
-            // Dead or unresolvable — unpublish immediately
-            await prisma.job.update({
-              where: { id: savedJob.id },
-              data: { isPublished: false },
-            });
-            added--; // Don't count dead-on-arrival jobs
-            continue;
-          }
-          if (validation.cleanUrl !== normalizedJob.applyLink) {
-            await prisma.job.update({
-              where: { id: savedJob.id },
-              data: { applyLink: validation.cleanUrl },
-            });
-          }
-        } catch (urlError) {
-          // URL validation failure is non-fatal — keep original link
-        }
+        // NOTE: Link validation (validateApplyLink) is skipped during ingestion
+        // to avoid HTTP timeout overhead. It runs separately via check-dead-links cron.
 
         // Compute quality score based on final resolved link and job data
         try {
@@ -304,12 +332,25 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       console.error(`Failed to record stats for ${source}:`, statsError);
     }
 
-    return { source, fetched, added, duplicates, errors, duration, newJobUrls };
+    // Batch-insert rejected jobs for accuracy analysis
+    if (rejectedJobs.length > 0) {
+      try {
+        await prisma.rejectedJob.createMany({
+          data: rejectedJobs,
+          skipDuplicates: true,
+        });
+        console.log(`[${source.toUpperCase()}] Logged ${rejectedJobs.length} rejected jobs for analysis`);
+      } catch (rejErr) {
+        console.error(`[${source.toUpperCase()}] Failed to log rejected jobs:`, rejErr);
+      }
+    }
+
+    return { source, fetched, added, duplicates, errors, duration, newJobUrls, newJobIds };
 
   } catch (error) {
     console.error(`[${source.toUpperCase()}] Fatal error during ingestion:`, error);
     const duration = Date.now() - startTime;
-    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [] };
+    return { source, fetched, added, duplicates, errors: fetched, duration, newJobUrls: [], newJobIds: [] };
   }
 }
 
@@ -332,7 +373,8 @@ export async function ingestJobs(
 
   // Process each source sequentially
   for (const source of sources) {
-    const result = await ingestFromSource(source, source === 'jsearch' ? options : undefined);
+    const useChunk = source === 'jsearch' || source === 'workday' || source === 'greenhouse';
+    const result = await ingestFromSource(source, useChunk ? options : undefined);
     results.push(result);
   }
 
@@ -373,6 +415,40 @@ export async function ingestJobs(
   if (totals.added > 0) {
     const { cleanAllJobDescriptions } = await import('./description-cleaner');
     await cleanAllJobDescriptions();
+
+    // Recompute quality scores for newly added jobs after description cleaning
+    // This ensures scores reflect cleaned descriptions (description quality points)
+    const allNewJobIds = results.flatMap(r => r.newJobIds);
+    if (allNewJobIds.length > 0) {
+      console.log(`[Quality] Recomputing scores for ${allNewJobIds.length} newly added jobs...`);
+      let recomputed = 0;
+      for (const jobId of allNewJobIds) {
+        try {
+          const job = await prisma.job.findUnique({
+            where: { id: jobId },
+            select: { applyLink: true, displaySalary: true, normalizedMinSalary: true, normalizedMaxSalary: true, descriptionSummary: true, description: true, city: true, state: true },
+          });
+          if (job) {
+            const qScore = computeQualityScore({
+              applyLink: job.applyLink,
+              displaySalary: job.displaySalary,
+              normalizedMinSalary: job.normalizedMinSalary,
+              normalizedMaxSalary: job.normalizedMaxSalary,
+              descriptionSummary: job.descriptionSummary,
+              description: job.description,
+              city: job.city,
+              state: job.state,
+              isEmployerPosted: false,
+            });
+            await prisma.job.update({ where: { id: jobId }, data: { qualityScore: qScore } });
+            recomputed++;
+          }
+        } catch (e) {
+          // Non-fatal — keep existing score
+        }
+      }
+      console.log(`[Quality] Recomputed ${recomputed}/${allNewJobIds.length} quality scores`);
+    }
   }
 
   // Auto-collect employer emails into leads
@@ -407,6 +483,27 @@ export async function ingestJobs(
 export async function cleanupExpiredJobs(): Promise<number> {
   try {
     const now = new Date();
+    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
+
+    // First, find the jobs we're about to expire so we can build URLs for de-indexing
+    const jobsToExpire = await prisma.job.findMany({
+      where: {
+        isPublished: true,
+        OR: [
+          { expiresAt: { lt: now } },
+          {
+            originalPostedAt: { lt: maxAgeDate },
+            sourceProvider: { not: null },
+          },
+        ],
+      },
+      select: { id: true, title: true },
+    });
+
+    if (jobsToExpire.length === 0) {
+      console.log('[Cleanup] No expired jobs found');
+      return 0;
+    }
 
     // Sweep 1: Unpublish jobs past their expiresAt date
     const expiredResult = await prisma.job.updateMany({
@@ -422,7 +519,6 @@ export async function cleanupExpiredJobs(): Promise<number> {
     });
 
     // Sweep 2: Unpublish jobs older than 120 days (max lifetime cap)
-    const maxAgeDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
     const agedOutResult = await prisma.job.updateMany({
       where: {
         originalPostedAt: {
@@ -437,8 +533,106 @@ export async function cleanupExpiredJobs(): Promise<number> {
       },
     });
 
-    const total = expiredResult.count + agedOutResult.count;
-    console.log(`[Cleanup] Cleaned up ${expiredResult.count} expired + ${agedOutResult.count} aged-out (>120d) = ${total} total`);
+    // Sweep 3: Check ATS job apply links for liveness (404 = unpublish)
+    const ATS_SOURCES = ['greenhouse', 'lever', 'ashby'];
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const atsJobs = await prisma.job.findMany({
+      where: {
+        isPublished: true,
+        sourceProvider: { in: ATS_SOURCES },
+        applyLink: { not: '' },
+        // Only check jobs older than 7 days to avoid false positives on freshly posted
+        originalPostedAt: { lt: sevenDaysAgo },
+      },
+      select: { id: true, title: true, applyLink: true, sourceProvider: true },
+    });
+
+    let deadLinks = 0;
+    const deadJobIds: string[] = [];
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < atsJobs.length; i += BATCH_SIZE) {
+      const batch = atsJobs.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (job) => {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const response = await fetch(job.applyLink!, {
+              method: 'HEAD',
+              redirect: 'follow',
+              signal: controller.signal,
+              headers: { 'User-Agent': 'PMHNPHiring-LinkChecker/1.0' },
+            });
+            clearTimeout(timeout);
+            // 404 or 410 = job removed
+            if (response.status === 404 || response.status === 410) {
+              return { dead: true, job };
+            }
+            return { dead: false, job };
+          } catch {
+            // Network errors, timeouts = don't unpublish (could be temporary)
+            return { dead: false, job };
+          }
+        })
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.dead) {
+          deadLinks++;
+          deadJobIds.push(result.value.job.id);
+          console.log(`[Cleanup] Dead link: [${result.value.job.sourceProvider}] "${result.value.job.title}"`);
+        }
+      }
+
+      // Rate limit: 200ms between batches
+      if (i + BATCH_SIZE < atsJobs.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+
+    if (deadJobIds.length > 0) {
+      await prisma.job.updateMany({
+        where: { id: { in: deadJobIds } },
+        data: { isPublished: false },
+      });
+    }
+    console.log(`[Cleanup] Checked ${atsJobs.length} ATS links, found ${deadLinks} dead`);
+
+    const total = expiredResult.count + agedOutResult.count + deadLinks;
+    console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out + ${deadLinks} dead links = ${total}`);
+
+    // Notify search engines to de-index expired job URLs
+    const allExpiredJobs = [...jobsToExpire, ...atsJobs.filter(j => deadJobIds.includes(j.id as string))];
+    if (allExpiredJobs.length > 0) {
+      try {
+        const { slugify } = await import('./utils');
+        const expiredUrls = allExpiredJobs.map(job => {
+          const slug = slugify(job.title, job.id);
+          return `https://pmhnphiring.com/jobs/${slug}`;
+        });
+
+        console.log(`[Cleanup] Sending URL_DELETED for ${expiredUrls.length} expired jobs...`);
+
+        // Send URL_DELETED to Google (individual, capped at 200/day)
+        const GOOGLE_CAP = 200;
+        const googleUrls = expiredUrls.slice(0, GOOGLE_CAP);
+        let googleOk = 0;
+        for (const url of googleUrls) {
+          const result = await pingGoogle(url, 'URL_DELETED');
+          if (result.success) googleOk++;
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // IndexNow for batch de-indexing (Bing, Yandex, etc.)
+        const indexNowResults = await pingIndexNow(expiredUrls);
+        const indexNowOk = indexNowResults.filter(r => r.success).length;
+
+        console.log(`[Cleanup] De-index results: Google ${googleOk}/${googleUrls.length}, IndexNow ${indexNowOk}/${expiredUrls.length}`);
+      } catch (indexError) {
+        console.error('[Cleanup] Failed to notify search engines about expired jobs:', indexError);
+      }
+    }
 
     return total;
   } catch (error) {

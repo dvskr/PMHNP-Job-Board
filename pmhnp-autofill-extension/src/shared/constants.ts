@@ -44,6 +44,7 @@ export const STORAGE_KEYS = {
     DISMISSED_URLS: 'pmhnp_dismissed_urls',
     AUTOFILLED_URLS: 'pmhnp_autofilled_urls',
     ERROR_LOG: 'pmhnp_error_log',
+    FIELD_TELEMETRY: 'pmhnp_field_telemetry',
 } as const;
 
 export const ALARM_NAMES = {

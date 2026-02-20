@@ -8,7 +8,10 @@
         "build": "tsc --noEmit && vite build",
         "build:prod": "cross-env NODE_ENV=production vite build",
         "build:zip": "npm run build:prod && node scripts/zip.js",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage"
     },
     "dependencies": {
         "react": "^19.0.0",

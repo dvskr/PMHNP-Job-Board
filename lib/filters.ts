@@ -75,34 +75,55 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   // Posted Within
   if (filters.postedWithin && filters.postedWithin !== 'all') {
     const now = new Date();
-    let cutoff: Date;
 
-    switch (filters.postedWithin) {
-      case '24h':
-        cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case '7d':
-        cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        cutoff = new Date(0);
+    if (filters.postedWithin === '24h') {
+      // "Past 24 hours" = ingested in last 24h OR originally posted within 48h.
+      // The 48h window covers one missed cron cycle (crons run every 12h).
+      const ingestCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const originalCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      andConditions.push({
+        OR: [
+          { createdAt: { gte: ingestCutoff } },
+          { originalPostedAt: { gte: originalCutoff } },
+        ]
+      });
+    } else if (filters.postedWithin === '3d') {
+      const cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      andConditions.push({
+        OR: [
+          { originalPostedAt: { gte: cutoff } },
+          {
+            AND: [
+              { originalPostedAt: null },
+              { createdAt: { gte: cutoff } },
+            ],
+          },
+        ]
+      });
+    } else {
+      let cutoff: Date;
+      switch (filters.postedWithin) {
+        case '7d':
+          cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoff = new Date(0);
+      }
+      andConditions.push({
+        OR: [
+          { originalPostedAt: { gte: cutoff } },
+          {
+            AND: [
+              { originalPostedAt: null },
+              { createdAt: { gte: cutoff } }
+            ]
+          }
+        ]
+      });
     }
-
-    // Use originalPostedAt if available, otherwise fallback to createdAt
-    andConditions.push({
-      OR: [
-        { originalPostedAt: { gte: cutoff } },
-        {
-          AND: [
-            { originalPostedAt: null },
-            { createdAt: { gte: cutoff } }
-          ]
-        }
-      ]
-    });
   }
 
   // Location

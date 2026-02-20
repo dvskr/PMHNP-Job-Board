@@ -358,6 +358,13 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
       alternates: {
         canonical: `https://pmhnphiring.com/jobs/state/${stateParam}`,
       },
+      // Prevent Google from indexing empty state pages (fixes soft 404s)
+      ...(stats.totalJobs === 0 && {
+        robots: {
+          index: false,
+          follow: true,
+        },
+      }),
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -403,7 +410,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
   const stateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Breadcrumb Schema */}
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
@@ -455,7 +462,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
         <div className="max-w-7xl mx-auto">
           {/* Intro */}
           <div className="mb-8 md:mb-12">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+            <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 About PMHNP Jobs in {stateName}
               </h2>
@@ -474,7 +481,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
           {/* Practice Authority Section */}
           {practiceAuthority && (
             <div className="mb-8 md:mb-12">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+              <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <Shield className="h-6 w-6 text-teal-600" />
                   <h2 className="text-2xl font-bold text-gray-900">
@@ -488,14 +495,14 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                   </div>
                 )}
 
-                <p className="text-gray-700 leading-relaxed mb-4">
+                <p className="text-gray-700 dark:text-[var(--text-secondary)] leading-relaxed mb-4">
                   {practiceAuthority.details}
                 </p>
 
-                <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">What This Means for Your Practice:</h4>
+                <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">What This Means for Your Practice:</h4>
                   {practiceAuthority.authority === 'full' && (
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <ul className="text-sm text-gray-600 dark:text-[var(--text-secondary)] space-y-1">
                       <li>• Practice independently without physician oversight</li>
                       <li>• Prescribe medications including controlled substances</li>
                       <li>• Greater autonomy in patient care decisions</li>
@@ -503,7 +510,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                     </ul>
                   )}
                   {practiceAuthority.authority === 'reduced' && (
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <ul className="text-sm text-gray-600 dark:text-[var(--text-secondary)] space-y-1">
                       <li>• Requires a collaborative agreement with a physician</li>
                       <li>• Physician does not need to be on-site</li>
                       <li>• Can still practice with significant autonomy</li>
@@ -511,7 +518,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                     </ul>
                   )}
                   {practiceAuthority.authority === 'restricted' && (
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <ul className="text-sm text-gray-600 dark:text-[var(--text-secondary)] space-y-1">
                       <li>• Requires physician supervision for practice</li>
                       <li>• May need protocol or supervisory agreement</li>
                       <li>• Supervision requirements vary by employer</li>
@@ -526,7 +533,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
           {/* Cities in State */}
           {citiesWithJobs.length > 0 && (
             <div className="mb-8 md:mb-12">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+              <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <MapPinned className="h-6 w-6 text-teal-600" />
                   <h2 className="text-2xl font-bold text-gray-900">
@@ -538,9 +545,9 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                     <Link
                       key={city.slug}
                       href={`/jobs/city/${city.slug}`}
-                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-teal-50 rounded-lg border border-gray-200 hover:border-teal-300 transition-colors"
+                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-teal-50 dark:bg-[var(--bg-tertiary)] dark:hover:bg-[rgba(20,184,166,0.1)] rounded-lg border border-gray-200 dark:border-[var(--border-color)] hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] transition-colors"
                     >
-                      <span className="text-sm font-medium text-gray-900 truncate">{city.name}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)] truncate">{city.name}</span>
                       <span className="text-xs text-teal-600 font-semibold ml-2">
                         {city.count}
                       </span>
@@ -555,7 +562,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
             {/* Main Content */}
             <div className="lg:col-span-3">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-[var(--text-primary)]">
                   All Jobs ({stats.totalJobs})
                 </h2>
                 <Link
@@ -567,7 +574,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
               </div>
 
               {jobs.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-8">
+                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl border border-gray-200 dark:border-[var(--border-color)] p-8">
                   <div className="text-center mb-8">
                     <MapPin className="h-12 w-12 text-teal-500 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -591,9 +598,9 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                           <Link
                             key={state.code}
                             href={`/jobs/state/${state.slug}`}
-                            className="flex items-center justify-between p-4 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 transition-colors"
+                            className="flex items-center justify-between p-4 bg-teal-50 hover:bg-teal-100 dark:bg-[rgba(20,184,166,0.08)] dark:hover:bg-[rgba(20,184,166,0.15)] rounded-lg border border-teal-200 dark:border-[rgba(20,184,166,0.25)] transition-colors"
                           >
-                            <span className="font-medium text-gray-900">{state.name}</span>
+                            <span className="font-medium text-gray-900 dark:text-[var(--text-primary)]">{state.name}</span>
                             <span className="text-sm text-teal-600 font-semibold">
                               {state.count} {state.count === 1 ? 'job' : 'jobs'}
                             </span>
@@ -607,17 +614,17 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Link
                       href="/jobs/remote"
-                      className="flex flex-col p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors"
+                      className="flex flex-col p-4 bg-purple-50 hover:bg-purple-100 dark:bg-[rgba(147,51,234,0.08)] dark:hover:bg-[rgba(147,51,234,0.15)] rounded-lg border border-purple-200 dark:border-[rgba(147,51,234,0.25)] transition-colors"
                     >
-                      <span className="font-semibold text-purple-900">🏠 Remote PMHNP Jobs</span>
-                      <span className="text-sm text-purple-700 mt-1">Work from anywhere with telehealth positions</span>
+                      <span className="font-semibold text-purple-900 dark:text-purple-300">🏠 Remote PMHNP Jobs</span>
+                      <span className="text-sm text-purple-700 dark:text-purple-400 mt-1">Work from anywhere with telehealth positions</span>
                     </Link>
                     <Link
                       href={`/job-alerts?location=${encodeURIComponent(stateName)}`}
-                      className="flex flex-col p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors"
+                      className="flex flex-col p-4 bg-green-50 hover:bg-green-100 dark:bg-[rgba(16,185,129,0.08)] dark:hover:bg-[rgba(16,185,129,0.15)] rounded-lg border border-green-200 dark:border-[rgba(16,185,129,0.25)] transition-colors"
                     >
-                      <span className="font-semibold text-green-900">🔔 Set Up Job Alerts</span>
-                      <span className="text-sm text-green-700 mt-1">Get notified when {stateName} jobs are posted</span>
+                      <span className="font-semibold text-green-900 dark:text-emerald-300">🔔 Set Up Job Alerts</span>
+                      <span className="text-sm text-green-700 dark:text-emerald-400 mt-1">Get notified when {stateName} jobs are posted</span>
                     </Link>
                   </div>
 
@@ -660,7 +667,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
 
               {/* Top Employers */}
               {stats.topEmployers.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 mb-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Building2 className="h-5 w-5 text-teal-600" />
                     <h3 className="font-bold text-gray-900">Top Employers</h3>
@@ -682,7 +689,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
 
               {/* Salary Guide */}
               {stats.avgSalary > 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="h-5 w-5 text-green-600" />
                     <h3 className="font-bold text-gray-900">Salary Insights</h3>
@@ -708,27 +715,27 @@ export default async function StateJobsPage({ params }: StatePageProps) {
 
           {/* Related Resources */}
           <section className="mt-12 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Explore More PMHNP Opportunities</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-4">Explore More PMHNP Opportunities</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link href="/salary-guide" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">💰 2026 PMHNP Salary Guide</h3>
-                <p className="text-sm text-gray-600 mt-1">See how {stateName} compares to other states. Includes cost-of-living adjustments and negotiation tips.</p>
+              <Link href="/salary-guide" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">💰 2026 PMHNP Salary Guide</h3>
+                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">See how {stateName} compares to other states. Includes cost-of-living adjustments and negotiation tips.</p>
               </Link>
 
-              <Link href="/jobs/remote" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">🏠 Remote PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 mt-1">Work from anywhere with telehealth and remote psychiatric NP positions.</p>
+              <Link href="/jobs/remote" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">🏠 Remote PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Work from anywhere with telehealth and remote psychiatric NP positions.</p>
               </Link>
 
-              <Link href="/jobs/travel" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">✈️ Travel PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 mt-1">Locum tenens and travel positions with premium pay and housing stipends.</p>
+              <Link href="/jobs/travel" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">✈️ Travel PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Locum tenens and travel positions with premium pay and housing stipends.</p>
               </Link>
 
-              <Link href="/jobs/new-grad" className="block p-4 bg-white border border-gray-200 rounded-lg hover:border-teal-300 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600">🎓 New Grad PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 mt-1">Entry-level positions for newly certified psychiatric nurse practitioners.</p>
+              <Link href="/jobs/new-grad" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
+                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">🎓 New Grad PMHNP Jobs</h3>
+                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Entry-level positions for newly certified psychiatric nurse practitioners.</p>
               </Link>
             </div>
           </section>
@@ -736,7 +743,7 @@ export default async function StateJobsPage({ params }: StatePageProps) {
           {/* Nearby States - Also show for states WITH jobs */}
           {nearbyStates.length > 0 && stats.totalJobs > 0 && (
             <section className="mt-8 mb-8">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+              <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-4">
                   <Navigation className="h-6 w-6 text-teal-600" />
                   <h2 className="text-xl font-bold text-gray-900">
@@ -751,9 +758,9 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                     <Link
                       key={state.code}
                       href={`/jobs/state/${state.slug}`}
-                      className="flex items-center justify-between p-3 bg-teal-50 hover:bg-teal-100 rounded-lg border border-teal-200 transition-colors"
+                      className="flex items-center justify-between p-3 bg-teal-50 hover:bg-teal-100 dark:bg-[rgba(20,184,166,0.08)] dark:hover:bg-[rgba(20,184,166,0.15)] rounded-lg border border-teal-200 dark:border-[rgba(20,184,166,0.25)] transition-colors"
                     >
-                      <span className="text-sm font-medium text-gray-900">{state.name}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">{state.name}</span>
                       <span className="text-xs text-teal-600 font-semibold">
                         {state.count}
                       </span>

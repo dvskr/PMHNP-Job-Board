@@ -5,12 +5,15 @@
 
 import type { ScannedField } from './scanner';
 import { log, warn } from '@/shared/logger';
+import { getActiveFieldPatterns } from './profiles';
+import type { IndustryProfileId } from './profiles';
 
 // ─── Slim profile shape (only what the extension fills directly) ───
 
 export interface AutofillProfile {
     firstName: string;
     lastName: string;
+    fullName: string;       // composite: firstName + " " + lastName
     email: string;
     phone: string;
     city: string;
@@ -19,7 +22,9 @@ export interface AutofillProfile {
     country: string;
     addressLine1: string;
     addressLine2: string;
+    location: string;       // composite: city + ", " + state
     linkedinUrl: string;
+    websiteUrl: string;
     headline: string;
 
     // Credentials
@@ -38,6 +43,8 @@ export interface AutofillProfile {
     degreeType: string;
     fieldOfStudy: string;
     graduationDate: string;
+    educationStartYear: string;
+    educationEndYear: string;
 
     // Work (current/most recent)
     currentJobTitle: string;
@@ -45,6 +52,11 @@ export interface AutofillProfile {
     currentEmployerCity: string;
     currentEmployerState: string;
     yearsExperience: string;
+    workStartMonth: string;
+    workStartYear: string;
+    workEndMonth: string;
+    workEndYear: string;
+    currentlyWorkHere: string;
 
     // EEO
     workAuthorized: string;
@@ -88,98 +100,67 @@ export interface UnmatchedField {
     field: ScannedField;
 }
 
-// ─── Field ID/name patterns → profile keys ───
-// Each entry: [regex pattern, profile key]
-
-// Standard patterns — matched against id + name + label + placeholder
-const FIELD_MAP: [RegExp, keyof AutofillProfile][] = [
-    // Personal
-    [/first[-_\s]?name/i, 'firstName'],
-    [/last[-_\s]?name/i, 'lastName'],
-    [/confirm.*email|email.*confirm|verify.*email/i, 'email'],
-    [/e[-_]?mail(?!.*confirm)/i, 'email'],
-    [/phone|mobile|tel(?:ephone)?/i, 'phone'],
-    [/city/i, 'city'],
-    [/state|province/i, 'state'],
-    [/zip|postal/i, 'zip'],
-    [/country/i, 'country'],
-    [/address[-_]?(?:line)?[-_]?1|street[-_]?address/i, 'addressLine1'],
-    [/address[-_]?(?:line)?[-_]?2|\bapt\b|\bsuite\b|\bunit\b/i, 'addressLine2'],
-    [/linkedin/i, 'linkedinUrl'],
-
-    // Credentials
-    [/npi/i, 'npiNumber'],
-    [/dea[-_]?(?:number|#|no)/i, 'deaNumber'],
-    [/license[-_\s]?type/i, 'licenseType'],
-    [/license[-_]?(?:number|#|no)/i, 'licenseNumber'],
-    [/license[-_]?state|state[-_]?of[-_]?licensure/i, 'licenseState'],
-    [/cert(?:ification)?[-_]?(?:number|#|no)/i, 'certificationNumber'],
-
-    // Clinical
-    [/(?:primary[-_\s]?)?specialty|specialization/i, 'primarySpecialty'],
-
-    // Education
-    [/school|university|institution|college/i, 'schoolName'],
-    [/degree/i, 'degreeType'],
-    [/field[-_]?of[-_]?study|major/i, 'fieldOfStudy'],
-    [/graduation|grad[-_]?date/i, 'graduationDate'],
-
-    // Experience
-    [/years?[-_\s]?(?:of[-_\s]?)?experience|work[-_\s]?experience|total[-_\s]?experience/i, 'yearsExperience'],
-
-    // EEO
-    [/(?:work[-_]?)?auth/i, 'workAuthorized'],
-    [/sponsor/i, 'requiresSponsorship'],
-    [/veteran/i, 'veteranStatus'],
-    [/disab/i, 'disabilityStatus'],
-    [/gender|sex/i, 'gender'],
-    [/race|ethnicity/i, 'raceEthnicity'],
-
-    // Preferences
-    [/salary|compensation|pay/i, 'desiredSalary'],
-    [/available|start[-_]?date|earliest/i, 'availableDate'],
-
-    // Screening (yes/no checkboxes)
-    [/felony/i, 'felonyConviction'],
-    [/revoked|suspended.*license/i, 'licenseRevoked'],
-    [/background[-_]?check|consent.*background/i, 'backgroundCheck'],
-    [/drug[-_]?(?:screen|test)/i, 'drugScreen'],
-];
-
-// Strict patterns — only matched against id + name (NOT label text)
-// These are prone to false positives in labels (e.g. "Let the company know...")
-const STRICT_FIELD_MAP: [RegExp, keyof AutofillProfile][] = [
-    [/(?:job[-_]?)title|current[-_]?position/i, 'currentJobTitle'],
-    [/employer|company(?:[-_]?name)?|organization/i, 'currentEmployer'],
-    [/headline|professional[-_]?summary/i, 'headline'],
-];
+// ─── Field patterns are now loaded from the profile registry ───
+// See: src/content/profiles/ (core.ts, healthcare.ts, tech.ts)
+// Patterns are resolved at match-time via getActiveFieldPatterns(industry).
 
 // ─── Main matcher function ───
 
 export function deterministicMatch(
     fields: ScannedField[],
     profile: AutofillProfile,
+    industryProfile: IndustryProfileId = 'none',
 ): MatchResult {
     const matched: MatchedField[] = [];
     const unmatched: UnmatchedField[] = [];
+    const usedOnceKeys = new Set<string>(); // Track experience/education keys to prevent duplicates
+
+    // Resolve patterns from profile registry (cast string map values to profile keys)
+    const patterns = getActiveFieldPatterns(industryProfile);
+    const FIELD_MAP = patterns.fieldMap as [RegExp, keyof AutofillProfile][];
+    const STRICT_FIELD_MAP = patterns.strictFieldMap as [RegExp, keyof AutofillProfile][];
+    const DATA_AUTOMATION_MAP = patterns.dataAutomationMap as Record<string, keyof AutofillProfile>;
+    const NAME_ATTR_MAP = patterns.exactNameMap as Record<string, keyof AutofillProfile>;
 
     for (let i = 0; i < fields.length; i++) {
         const field = fields[i];
 
         // Skip file inputs — handled separately via FETCH_FILE
         if (field.type === 'file') {
-            // Auto-match file inputs to resumeUrl
             if (profile.resumeUrl) {
-                matched.push({
-                    index: i,
-                    field,
-                    profileKey: 'resumeUrl',
-                    value: '__FILE_UPLOAD__',
-                    interaction: 'file',
-                });
+                const fieldHint = [
+                    field.id,
+                    field.name,
+                    field.label,
+                    field.placeholder,
+                    field.attributes?.['aria-label'] || '',
+                ].join(' ').toLowerCase();
+
+                // Blocklist: do NOT upload resume to these specific non-resume file fields
+                const isCoverLetter = /cover.?letter|covering.?letter/i.test(fieldHint);
+                const isProfilePhoto = /profile.?photo|avatar|headshot|photo/i.test(fieldHint);
+                const isAdditionalDoc = /additional.?doc|supporting.?doc|other.?doc/i.test(fieldHint);
+
+                if (isCoverLetter || isProfilePhoto || isAdditionalDoc) {
+                    // Known non-resume field — skip it
+                    unmatched.push({ index: i, field });
+                } else {
+                    // Default: treat as resume upload
+                    matched.push({
+                        index: i,
+                        field,
+                        profileKey: 'resumeUrl',
+                        value: '__FILE_UPLOAD__',
+                        interaction: 'file',
+                    });
+                }
+            } else {
+                unmatched.push({ index: i, field });
             }
             continue;
         }
+
+
 
         // Skip textareas for deterministic matching — they're usually open-ended
         // (e.g. "Let the company know about your interest", cover letter, etc.)
@@ -199,16 +180,39 @@ export function deterministicMatch(
             field.attributes['data-automation-id'] || '',
         ].join(' ');
 
-        // Try strict patterns first (id/name only — avoids false positives)
+        // Step 0: Try exact name-attribute map first (highest priority)
         let profileKey: keyof AutofillProfile | null = null;
-        for (const [pattern, key] of STRICT_FIELD_MAP) {
-            if (pattern.test(idNameStr)) {
-                profileKey = key;
-                break;
+        if (field.name) {
+            const nameKey = NAME_ATTR_MAP[field.name.toLowerCase()];
+            if (nameKey) {
+                profileKey = nameKey;
+                log(`[PMHNP-Match] NAME_ATTR_MAP hit: name="${field.name}" → ${nameKey}`);
             }
         }
 
-        // Then try broad patterns (id + name + label + placeholder)
+        // Step 0.5: Try data-automation-id exact map (Workday-specific)
+        if (!profileKey) {
+            const automationId = field.attributes['data-automation-id'];
+            if (automationId) {
+                const autoKey = DATA_AUTOMATION_MAP[automationId];
+                if (autoKey) {
+                    profileKey = autoKey;
+                    log(`[PMHNP-Match] DATA_AUTOMATION_MAP hit: data-automation-id="${automationId}" → ${autoKey}`);
+                }
+            }
+        }
+
+        // Step 1: Try strict patterns (id/name only — avoids false positives)
+        if (!profileKey) {
+            for (const [pattern, key] of STRICT_FIELD_MAP) {
+                if (pattern.test(idNameStr)) {
+                    profileKey = key;
+                    break;
+                }
+            }
+        }
+
+        // Step 2: Try broad patterns (id + name + label + placeholder)
         if (!profileKey) {
             for (const [pattern, key] of FIELD_MAP) {
                 if (pattern.test(fullSearchStr)) {
@@ -216,6 +220,23 @@ export function deterministicMatch(
                     break;
                 }
             }
+        }
+
+        // ─── Deduplication for repeated sections ───
+        // Profile stores only ONE work experience and ONE education entry.
+        // Workday (and others) may show multiple sections (Work Experience 1, 2, Education 1, 2).
+        // Only fill the FIRST matching section to avoid duplicates.
+        const ONCE_ONLY_KEYS: Set<string> = new Set([
+            'currentJobTitle', 'currentEmployer', 'currentEmployerCity', 'currentEmployerState',
+            'workStartMonth', 'workStartYear', 'workEndMonth', 'workEndYear', 'currentlyWorkHere',
+            'schoolName', 'degreeType', 'fieldOfStudy', 'graduationDate',
+            'educationStartYear', 'educationEndYear',
+        ]);
+
+        if (profileKey && ONCE_ONLY_KEYS.has(profileKey) && usedOnceKeys.has(profileKey)) {
+            log(`[PMHNP-Match] Skipping duplicate: [${i}] "${field.label?.substring(0, 30)}" key=${profileKey} (already filled in first section)`);
+            unmatched.push({ index: i, field });
+            continue;
         }
 
         if (profileKey && profile[profileKey]) {
@@ -232,6 +253,7 @@ export function deterministicMatch(
                     log(`[PMHNP-Match]   → bestOption="${bestOption}"`);
                     if (bestOption) {
                         matched.push({ index: i, field, profileKey, value: bestOption, interaction });
+                        usedOnceKeys.add(profileKey);
                     } else {
                         // Value doesn't match any option — let AI handle it
                         log(`[PMHNP-Match]   → No matching option — sending to AI`);
@@ -240,11 +262,14 @@ export function deterministicMatch(
                 } else {
                     // Select/dropdown with 0 options captured — likely lazy-loaded.
                     // Send to AI; it will see the options at fill-time or handle via custom dropdown.
+                    // Still mark the key as used so duplicates (Education 2, etc.) don't double-fill
                     log(`[PMHNP-Match] Select field [${i}] "${field.label.substring(0, 30)}" has 0 options — sending to AI`);
+                    if (ONCE_ONLY_KEYS.has(profileKey)) usedOnceKeys.add(profileKey);
                     unmatched.push({ index: i, field });
                 }
             } else {
                 matched.push({ index: i, field, profileKey, value, interaction });
+                usedOnceKeys.add(profileKey);
             }
         } else {
             unmatched.push({ index: i, field });
@@ -305,11 +330,11 @@ function findBestOption(options: string[], value: string): string | null {
     // Filter out placeholder options
     const real = options.filter(o => !/^(select|choose|--|$)/i.test(o.trim()));
 
-    // Exact match
+    // 1. Exact match (case-insensitive)
     const exact = real.find(o => o.toLowerCase() === lower);
     if (exact) return exact;
 
-    // License type alias expansion (APRN → Nurse Practitioner (NP), etc.)
+    // 2. License type alias expansion (APRN → Nurse Practitioner (NP), etc.)
     const aliases = LICENSE_ALIASES[value.toUpperCase()];
     if (aliases) {
         for (const alias of aliases) {
@@ -322,7 +347,7 @@ function findBestOption(options: string[], value: string): string | null {
         }
     }
 
-    // State abbreviation expansion (TX → Texas, CA → California, etc.)
+    // 3. State abbreviation expansion (TX → Texas, CA → California, etc.)
     if (lower.length === 2) {
         const expanded = STATE_ABBR[value.toUpperCase()];
         if (expanded) {
@@ -335,13 +360,36 @@ function findBestOption(options: string[], value: string): string | null {
         }
     }
 
-    // Contains match
-    const contains = real.find(o =>
-        o.toLowerCase().includes(lower) || lower.includes(o.toLowerCase())
-    );
-    if (contains) return contains;
+    // 4. Prefix match — option starts with value OR value starts with option
+    const prefix = real.find(o => o.toLowerCase().startsWith(lower));
+    if (prefix) return prefix;
 
-    // For yes/no values
+    // 5. Scored substring match — pick the BEST match, not the first
+    //    This prevents "Asian" from matching "Hispanic or Latino" when
+    //    "Asian (Not Hispanic or Latino)" is available.
+    {
+        let bestScore = 0;
+        let bestMatch: string | null = null;
+        for (const o of real) {
+            const oLower = o.toLowerCase();
+            let score = 0;
+            if (oLower.includes(lower)) {
+                // Option contains the value — score by how much of the option is the value
+                score = lower.length / oLower.length;
+            } else if (lower.includes(oLower)) {
+                // Value contains the option — score by how much of the value is the option
+                score = oLower.length / lower.length;
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = o;
+            }
+        }
+        // Require at least 30% overlap to avoid false matches
+        if (bestMatch && bestScore >= 0.3) return bestMatch;
+    }
+
+    // 6. For yes/no values
     if (['yes', 'true', '1'].includes(lower)) {
         const yesOption = real.find(o => /^yes/i.test(o));
         if (yesOption) return yesOption;
@@ -351,8 +399,8 @@ function findBestOption(options: string[], value: string): string | null {
         if (noOption) return noOption;
     }
 
-    // Word-overlap scoring — handles variations like
-    // value="I am a protected veteran" vs option="I am a veteran"
+    // 7. Word-overlap scoring — handles variations like
+    //    value="I am a protected veteran" vs option="I am a veteran"
     const STOP = new Set(['i', 'a', 'am', 'an', 'the', 'to', 'of', 'or', 'and', 'in', 'for', 'my', 'do', 'self']);
     const valueWords = lower.split(/[\s-]+/).filter(w => w.length > 1 && !STOP.has(w));
     if (valueWords.length > 0) {
@@ -384,6 +432,7 @@ const VETERAN_MAP: Record<string, string> = {
 const DISABILITY_MAP: Record<string, string> = {
     yes: 'Yes, I have a disability',
     no: 'No, I do not have a disability',
+    no_disability: 'No, I do not have a disability',
     decline: 'I decline to self-identify',
 };
 
@@ -426,18 +475,26 @@ export function toAutofillProfile(full: any): AutofillProfile {
     // Debug: log EEO values for troubleshooting
     log('[PMHNP-Match] EEO raw:', JSON.stringify(eeo));
 
+    const firstName = p.firstName || '';
+    const lastName = p.lastName || '';
+    const city = p.address?.city || p.city || '';
+    const state = p.address?.state || p.state || '';
+
     const result: AutofillProfile = {
-        firstName: p.firstName || '',
-        lastName: p.lastName || '',
+        firstName,
+        lastName,
+        fullName: [firstName, lastName].filter(Boolean).join(' '),
         email: p.email || '',
         phone: p.phone || '',
-        city: p.address?.city || p.city || '',
-        state: p.address?.state || p.state || '',
+        city,
+        state,
         zip: p.address?.zip || p.zip || '',
         country: p.address?.country || p.country || '',
         addressLine1: p.address?.line1 || p.addressLine1 || '',
         addressLine2: p.address?.line2 || p.addressLine2 || '',
+        location: [city, state].filter(Boolean).join(', '),
         linkedinUrl: p.linkedinUrl || '',
+        websiteUrl: p.websiteUrl || '',
         headline: p.headline || '',
 
         npiNumber: creds.npiNumber || '',
@@ -453,12 +510,19 @@ export function toAutofillProfile(full: any): AutofillProfile {
         degreeType: edu.degreeType || '',
         fieldOfStudy: edu.fieldOfStudy || '',
         graduationDate: edu.graduationDate || '',
+        educationStartYear: edu.startDate ? new Date(edu.startDate).getFullYear().toString() : '',
+        educationEndYear: edu.graduationDate ? new Date(edu.graduationDate).getFullYear().toString() : '',
 
         currentJobTitle: work.jobTitle || '',
         currentEmployer: work.employerName || '',
         currentEmployerCity: work.employerCity || '',
         currentEmployerState: work.employerState || '',
         yearsExperience: p.yearsExperience ? String(p.yearsExperience) : '',
+        workStartMonth: work.startDate ? (new Date(work.startDate).getMonth() + 1).toString() : '',
+        workStartYear: work.startDate ? new Date(work.startDate).getFullYear().toString() : '',
+        workEndMonth: work.isCurrent ? '' : (work.endDate ? (new Date(work.endDate).getMonth() + 1).toString() : ''),
+        workEndYear: work.isCurrent ? '' : (work.endDate ? new Date(work.endDate).getFullYear().toString() : ''),
+        currentlyWorkHere: work.isCurrent ? 'true' : '',
 
         workAuthorized: eeo.workAuthorized != null ? (eeo.workAuthorized ? 'Yes' : 'No') : '',
         requiresSponsorship: eeo.requiresSponsorship != null ? (eeo.requiresSponsorship ? 'Yes' : 'No') : '',

@@ -7,14 +7,9 @@ export const revalidate = 60;
 /**
  * FeaturedJobsSection (Server Component)
  *
- * Fetches 6 jobs for the homepage with priority:
- * 1. Employer featured posts (isFeatured = true) — most recent first
- * 2. Direct employer posts (has employerJobs relation) — most recent first
- * 3. High-salary jobs (mixed types) — highest salary, then most recent
- * 4. Fallback: newest jobs if above tiers don't fill 6 slots
- *
- * Constraints:
- * - Only jobs from the last 3 days
+ * Fetches 6 jobs for the homepage:
+ * - Only jobs posted within the last 3 days (originalPostedAt or createdAt)
+ * - Sorted by qualityScore descending (best quality first)
  * - Max 2 jobs per employer for variety
  * - Excludes expired jobs
  */
@@ -27,16 +22,6 @@ export default async function FeaturedJobsSection() {
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
     const now = new Date();
-
-    // Shared filters: published, last 3 days, not expired
-    const baseWhere = {
-        isPublished: true,
-        createdAt: { gte: threeDaysAgo },
-        OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: now } },
-        ],
-    };
 
     const selectFields = {
         id: true,
@@ -75,87 +60,43 @@ export default async function FeaturedJobsSection() {
     }[] = [];
 
     try {
-        const seenIds = new Set<string>();
-        const employerCount = new Map<string, number>();
-        const collected: RawJob[] = [];
+        // Fetch recent high-quality jobs — get extra to allow employer-cap filtering
+        const candidates = await prisma.job.findMany({
+            where: {
+                isPublished: true,
+                OR: [
+                    { originalPostedAt: { gte: threeDaysAgo } },
+                    { originalPostedAt: null, createdAt: { gte: threeDaysAgo } },
+                ],
+                AND: [
+                    {
+                        OR: [
+                            { expiresAt: null },
+                            { expiresAt: { gt: now } },
+                        ],
+                    },
+                ],
+            },
+            orderBy: [
+                { qualityScore: 'desc' },
+                { originalPostedAt: { sort: 'desc', nulls: 'last' } },
+                { createdAt: 'desc' },
+            ],
+            take: TARGET * 5,
+            select: selectFields,
+        });
 
-        /** Add a job only if we haven't hit the per-employer cap */
-        function tryAdd(j: RawJob): boolean {
-            if (seenIds.has(j.id)) return false;
+        // Apply max-per-employer cap
+        const collected: RawJob[] = [];
+        const employerCount = new Map<string, number>();
+
+        for (const j of candidates) {
+            if (collected.length >= TARGET) break;
             const key = j.employer.toLowerCase().trim();
             const count = employerCount.get(key) ?? 0;
-            if (count >= MAX_PER_EMPLOYER) return false;
-            seenIds.add(j.id);
+            if (count >= MAX_PER_EMPLOYER) continue;
             employerCount.set(key, count + 1);
             collected.push(j);
-            return true;
-        }
-
-        // ── Priority 1: Employer featured posts ──
-        if (collected.length < TARGET) {
-            const featured = await prisma.job.findMany({
-                where: { ...baseWhere, isFeatured: true },
-                orderBy: { createdAt: 'desc' },
-                take: TARGET * 3, // fetch extra to allow employer-cap filtering
-                select: selectFields,
-            });
-            for (const j of featured) {
-                if (collected.length >= TARGET) break;
-                tryAdd(j);
-            }
-        }
-
-        // ── Priority 2: Direct employer posts ──
-        if (collected.length < TARGET) {
-            const employerPosts = await prisma.job.findMany({
-                where: {
-                    ...baseWhere,
-                    employerJobs: { isNot: null },
-                    id: { notIn: Array.from(seenIds) },
-                },
-                orderBy: { createdAt: 'desc' },
-                take: TARGET * 3,
-                select: selectFields,
-            });
-            for (const j of employerPosts) {
-                if (collected.length >= TARGET) break;
-                tryAdd(j);
-            }
-        }
-
-        // ── Priority 3: High-salary jobs (mixed types) ──
-        if (collected.length < TARGET) {
-            const highSalary = await prisma.job.findMany({
-                where: {
-                    ...baseWhere,
-                    normalizedMaxSalary: { not: null },
-                    id: { notIn: Array.from(seenIds) },
-                },
-                orderBy: [{ normalizedMaxSalary: 'desc' }, { createdAt: 'desc' }],
-                take: TARGET * 3,
-                select: selectFields,
-            });
-            for (const j of highSalary) {
-                if (collected.length >= TARGET) break;
-                tryAdd(j);
-            }
-        }
-
-        // ── Fallback: newest jobs if still under target ──
-        if (collected.length < TARGET) {
-            const newest = await prisma.job.findMany({
-                where: {
-                    ...baseWhere,
-                    id: { notIn: Array.from(seenIds) },
-                },
-                orderBy: { createdAt: 'desc' },
-                take: TARGET * 3,
-                select: selectFields,
-            });
-            for (const j of newest) {
-                if (collected.length >= TARGET) break;
-                tryAdd(j);
-            }
         }
 
         jobs = collected.map((j) => ({
@@ -172,3 +113,4 @@ export default async function FeaturedJobsSection() {
 
     return <FeaturedJobs jobs={jobs} />;
 }
+

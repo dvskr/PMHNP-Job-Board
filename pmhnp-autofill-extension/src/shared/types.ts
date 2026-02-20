@@ -339,6 +339,7 @@ export type MessageType =
     | 'CLASSIFY_AND_MAP'
     | 'EXTRACT_RESUME_SECTIONS'
     | 'FETCH_FILE'
+    | 'FLUSH_TELEMETRY'
     | 'RECORD_AUTOFILL';
 
 export interface ExtensionMessage<T = unknown> {

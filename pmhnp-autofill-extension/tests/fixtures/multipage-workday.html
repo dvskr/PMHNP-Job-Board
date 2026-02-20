@@ -1,0 +1,165 @@
+<!--
+  Multi-Page Workday Application Fixture
+  Simulates a multi-step application with Next/Continue/Submit buttons,
+  step indicators, and page transitions.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Workday - Apply</title>
+</head>
+
+<body>
+    <div class="wd-application">
+
+        <!-- Step indicator -->
+        <div class="step-indicator" data-automation-id="progressBar">
+            <span class="current-step">Step 1 of 5</span>
+        </div>
+
+        <!-- Page 1: Personal Info -->
+        <div id="page-1" class="wd-page active">
+            <h2>My Information</h2>
+
+            <div class="wd-field">
+                <label for="legal-first">First Name</label>
+                <input type="text" id="legal-first" data-automation-id="legalNameSection_firstName" required>
+            </div>
+
+            <div class="wd-field">
+                <label for="legal-last">Last Name</label>
+                <input type="text" id="legal-last" data-automation-id="legalNameSection_lastName" required>
+            </div>
+
+            <div class="wd-field">
+                <label for="email-1">Email Address</label>
+                <input type="email" id="email-1" data-automation-id="email" required>
+            </div>
+
+            <div class="wd-field">
+                <label for="phone-1">Phone Number</label>
+                <input type="tel" id="phone-1" data-automation-id="phone-number">
+            </div>
+
+            <!-- Navigation -->
+            <div class="wd-navigation" data-automation-id="bottom-navigation">
+                <button data-automation-id="bottom-navigation-next-button" type="button">Next</button>
+            </div>
+        </div>
+
+        <!-- Page 2: Experience (hidden initially) -->
+        <div id="page-2" class="wd-page" style="display:none">
+            <h2>My Experience</h2>
+
+            <div class="wd-field">
+                <label for="job-title-1">Job Title</label>
+                <input type="text" id="job-title-1" data-automation-id="jobTitle">
+            </div>
+
+            <div class="wd-field">
+                <label for="company-1">Company</label>
+                <input type="text" id="company-1" data-automation-id="company">
+            </div>
+
+            <div class="wd-navigation">
+                <button class="btn-prev" type="button">Previous</button>
+                <button type="button">Save & Continue</button>
+            </div>
+        </div>
+
+        <!-- Page 3: Education -->
+        <div id="page-3" class="wd-page" style="display:none">
+            <h2>Education</h2>
+
+            <div class="wd-field">
+                <label for="school-1">School</label>
+                <input type="text" id="school-1" data-automation-id="school">
+            </div>
+
+            <div class="wd-field">
+                <label for="degree-1">Degree</label>
+                <select id="degree-1" data-automation-id="degree">
+                    <option value="">Select...</option>
+                    <option value="bach">Bachelor's</option>
+                    <option value="mast">Master's</option>
+                </select>
+            </div>
+
+            <div class="wd-navigation">
+                <button class="btn-prev" type="button">Previous</button>
+                <button type="button">Continue</button>
+            </div>
+        </div>
+
+        <!-- Page 4: EEO -->
+        <div id="page-4" class="wd-page" style="display:none">
+            <h2>Voluntary Disclosures</h2>
+
+            <div class="wd-field">
+                <label for="gender-1">Gender</label>
+                <select id="gender-1" data-automation-id="gender">
+                    <option value="">Select...</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+
+            <div class="wd-field">
+                <label for="veteran-1">Veteran Status</label>
+                <select id="veteran-1" data-automation-id="veteranStatus">
+                    <option value="">Select...</option>
+                    <option value="yes">I am a veteran</option>
+                    <option value="no">I am not a veteran</option>
+                </select>
+            </div>
+
+            <div class="wd-navigation">
+                <button class="btn-prev" type="button">Previous</button>
+                <button type="button">Proceed</button>
+            </div>
+        </div>
+
+        <!-- Page 5: Review & Submit -->
+        <div id="page-5" class="wd-page" style="display:none">
+            <h2>Review & Submit</h2>
+            <p>Please review your application before submitting.</p>
+
+            <div class="step-indicator">
+                <span class="current-step">Step 5 of 5</span>
+            </div>
+
+            <div class="wd-navigation">
+                <button class="btn-prev" type="button">Previous</button>
+                <button data-automation-id="bottom-navigation-submit-button" type="submit">Submit Application</button>
+            </div>
+        </div>
+
+        <!-- Hidden Generic buttons for text-matching tests -->
+        <div id="generic-buttons" style="display:none">
+            <button id="btn-next">Next</button>
+            <button id="btn-continue">Continue</button>
+            <button id="btn-save-continue">Save & Continue</button>
+            <button id="btn-save-and-continue">Save and Continue</button>
+            <button id="btn-proceed">Proceed</button>
+            <button id="btn-next-step">Next Step</button>
+            <button id="btn-submit">Submit Application</button>
+            <button id="btn-apply">Apply Now</button>
+            <button id="btn-finish">Finish</button>
+            <button id="btn-review-submit">Review and Submit</button>
+            <button id="btn-disabled" disabled>Next</button>
+            <button id="btn-aria-disabled" aria-disabled="true">Continue</button>
+        </div>
+
+        <!-- Drag-drop upload zone -->
+        <div id="upload-section" style="display:none">
+            <div class="dropzone resume-upload" data-automation-id="attachments-upload">
+                <p>Drag and drop your resume here</p>
+                <input type="file" name="resume" style="display:none" accept=".pdf,.doc,.docx">
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>

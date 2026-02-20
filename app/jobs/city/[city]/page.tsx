@@ -207,6 +207,11 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
       return {
         title: `PMHNP Jobs in ${cityName}`,
         description: `Find psychiatric mental health nurse practitioner jobs in ${cityName}. Browse PMHNP positions including telehealth, inpatient, and outpatient roles updated daily.`,
+        // Prevent Google from indexing empty city pages (fixes soft 404s)
+        robots: {
+          index: false,
+          follow: true,
+        },
       };
     }
 
@@ -257,7 +262,12 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     getCityStats(cityName),
   ]);
 
-  // Note: We no longer 404 on zero jobs - we show helpful content instead
+  // If city has 0 jobs AND was never in our database (no state association),
+  // return a proper 404 instead of a thin page that Google flags as soft 404
+  if (stats.totalJobs === 0 && !stats.state) {
+    notFound();
+  }
+
   const location = stats.state ? `${cityName}, ${stats.stateCode || stats.state}` : cityName;
 
   // Build breadcrumb items

@@ -1,4 +1,4 @@
-interface LeverPosting {
+﻿interface LeverPosting {
   id: string;
   text: string;
   hostedUrl: string;
@@ -34,30 +34,60 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
-  // === VERIFIED — Have PMHNP jobs ===
-  'lifestance',          // LifeStance Health — 100+ PMHNP jobs (BIGGEST SOURCE)
-  'talkiatry',           // Talkiatry — 59 PMHNP jobs
-  'includedhealth',      // Included Health — 6 PMHNP jobs
-  'lyrahealth',          // Lyra Health — 1 PMHNP job
+  // === VERIFIED â€” Have PMHNP jobs ===
+  'lifestance',          // LifeStance Health â€” 100+ PMHNP jobs (BIGGEST SOURCE)
+  'talkiatry',           // Talkiatry â€” 59 PMHNP jobs
+  'includedhealth',      // Included Health â€” 6 PMHNP jobs
+  'lyrahealth',          // Lyra Health â€” 1 PMHNP job
 
-  // === VERIFIED — Valid, monitoring for PMHNP ===
-  'carbonhealth',        // Carbon Health — 0 currently but valid endpoint
+  // === VERIFIED â€” Valid, monitoring for PMHNP ===
+  'carbonhealth',        // Carbon Health â€” 0 currently but valid endpoint
 
-  // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
-  'prosper',             // Prosper — 11 total jobs
+  // === ADDED 2026-02-13 â€” VALID, monitoring for PMHNP ===
+  'prosper',             // Prosper â€” 11 total jobs
 
-  // === ADDED 2026-02-13 — EXPANDED SCAN ===
-  'bighealth',           // Big Health — 7 total jobs
-  'genesis',             // Genesis — 4 total jobs
-  'sesame',              // Sesame — 1 total jobs
+  // === ADDED 2026-02-13 â€” EXPANDED SCAN ===
+  'bighealth',           // Big Health â€” 7 total jobs
+  'genesis',             // Genesis â€” 4 total jobs
+  'sesame',              // Sesame â€” 1 total jobs
 
-  // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
-  'mindful',             // Mindful Haven — 5 PMHNP (0 recent)
-  'athenapsych',         // AthenaPsych — 4 PMHNP (0 recent)
-  'seven-starling',      // Seven Starling — 3 PMHNP (3 recent)
-  'beckley-clinical',    // Beckley Clinical — 1 PMHNP
-  'synapticure',         // SynaptiCure — 1 PMHNP
-  'arundellodge',        // Arundel Lodge — 1 PMHNP
+  // === PROD DB MINING â€” 9,295 slugs from 3,602 employers ===
+  'mindful',             // Mindful Haven â€” 5 PMHNP (0 recent)
+  'athenapsych',         // AthenaPsych â€” 4 PMHNP (0 recent)
+  'seven-starling',      // Seven Starling â€” 3 PMHNP (3 recent)
+  'beckley-clinical',    // Beckley Clinical â€” 1 PMHNP
+  'synapticure',         // SynaptiCure â€” 1 PMHNP
+  'arundellodge',        // Arundel Lodge â€” 1 PMHNP
+
+  // === ADDED 2026-02-16 â€” Full ATS Discovery (189 companies scanned) ===
+  'ro',                  // Ro Health â€” 40 total jobs
+  'advocate',            // Advocate Health â€” 9 total jobs
+  'ucsf',                // UCSF Health â€” 1 total job
+
+  // === ADDED 2026-02-16 â€” CSV test: 6 new PMHNP-active slugs ===
+  'lunaphysicaltherapy', // Luna Physical Therapy â€” 108 PMHNP
+  'guidestareldercare',  // Guidestar Eldercare â€” 31 PMHNP
+  'next-health',         // Next Health â€” 4 PMHNP
+  'ekohealth',           // Eko Health â€” 1 PMHNP
+  'heartbeathealth',     // Heartbeat Health â€” 1 PMHNP
+  'swordhealth',         // Sword Health â€” 1 PMHNP
+
+  // === Additional healthcare companies ===
+  'aledade',
+  'clarifyhealth',
+  'enter.health',
+  'heyjane.co',
+  'journeyclinical',
+  'koalahealth',
+  'myplacehealth',
+  'nimblerx',
+  'pointclickcare',
+  'pplacareers.org',
+  'salvohealth',
+  'sprinterhealth',
+  'vivo-care',
+  'wepclinical',
+  'zushealth',
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -79,6 +109,32 @@ const COMPANY_NAMES: Record<string, string> = {
   'beckley-clinical': 'Beckley Clinical',
   'synapticure': 'SynaptiCure',
   'arundellodge': 'Arundel Lodge',
+
+  // Added 2026-02-16 (ATS discovery)
+  'ro': 'Ro Health',
+  'advocate': 'Advocate Health',
+  'ucsf': 'UCSF Health',
+
+  // Added 2026-02-16 (CSV test)
+  'lunaphysicaltherapy': 'Luna Physical Therapy',
+  'guidestareldercare': 'GuideStar Eldercare',
+  'next-health': 'Next Health',
+  'ekohealth': 'Eko Health',
+  'heartbeathealth': 'Heartbeat Health',
+  'swordhealth': 'Sword Health',
+
+  // Bulk-added CSV companies
+  'cardiosense.com': 'Cardiosense',
+  'enter.health': 'ENTER',
+  'fishawack.com': 'Avalere Health',
+  'h1': 'H1',
+  'landmarkbio.com': 'Landmark Bio',
+  'medcarehouston.com': 'MedCare Pediatric Group',
+  'ollie.com': 'Ollie',
+  'outpacebio.com': 'Outpace Bio',
+  'peakped.com': 'Peak Pediatric Therapies',
+  'simulmedia': 'Simulmedia',
+  'theattractiongame.online': 'Furum Jobs',
 };
 
 function formatCompanyName(slug: string): string {
@@ -150,18 +206,28 @@ export async function fetchLeverJobs(): Promise<LeverJobRaw[]> {
 
   const allJobs: LeverJobRaw[] = [];
   const failedCompanies: string[] = [];
+  const BATCH_SIZE = 10;
 
   try {
-    for (const companySlug of LEVER_COMPANIES) {
-      try {
-        const jobs = await fetchCompanyPostings(companySlug);
-        allJobs.push(...jobs);
+    for (let i = 0; i < LEVER_COMPANIES.length; i += BATCH_SIZE) {
+      const batch = LEVER_COMPANIES.slice(i, i + BATCH_SIZE);
 
-        // Rate limiting: 500ms delay between companies
-        await sleep(500);
-      } catch {
-        failedCompanies.push(companySlug);
-        console.error(`[Lever] Failed to fetch from ${companySlug}`);
+      const results = await Promise.allSettled(
+        batch.map(companySlug => fetchCompanyPostings(companySlug))
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        if (result.status === 'fulfilled') {
+          allJobs.push(...result.value);
+        } else {
+          failedCompanies.push(batch[j]);
+          console.error(`[Lever] Failed to fetch from ${batch[j]}`);
+        }
+      }
+
+      if (i + BATCH_SIZE < LEVER_COMPANIES.length) {
+        await sleep(200);
       }
     }
 

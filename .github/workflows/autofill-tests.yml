@@ -1,0 +1,35 @@
+name: Autofill Extension Tests
+
+on:
+  push:
+    paths:
+      - 'pmhnp-autofill-extension/**'
+  pull_request:
+    paths:
+      - 'pmhnp-autofill-extension/**'
+
+jobs:
+  test:
+    name: Run Tests & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pmhnp-autofill-extension
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: pmhnp-autofill-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build extension
+        run: npm run build

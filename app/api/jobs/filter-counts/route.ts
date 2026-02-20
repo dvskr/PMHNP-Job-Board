@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       remoteCount, hybridCount, onsiteCount,
       jobTypeCounts,
       anySalary, over100k, over150k, over200k,
-      day, week, month,
+      day, threeDays, week, month,
       total
     ] = await Promise.all([
       // Work Mode
@@ -104,21 +104,30 @@ export async function POST(request: NextRequest) {
         },
       }),
 
-      // Posted Within
-      // Note: Using createdAt field (Job model doesn't have postedAt)
+      // Posted Within — 24h uses broader window to catch recently ingested jobs
+      // "Past 24 hours" = ingested in last 24h OR originally posted within 3 days
       prisma.job.count({
         where: {
           AND: [
             postedBase,
             {
               OR: [
-                { originalPostedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-                {
-                  AND: [
-                    { originalPostedAt: null },
-                    { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-                  ],
-                },
+                { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+                { originalPostedAt: { gte: new Date(now.getTime() - 48 * 60 * 60 * 1000) } },
+              ],
+            },
+          ],
+        },
+      }),
+      // Past 3 days
+      prisma.job.count({
+        where: {
+          AND: [
+            postedBase,
+            {
+              OR: [
+                { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+                { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
               ],
             },
           ],
@@ -238,6 +247,7 @@ export async function POST(request: NextRequest) {
       },
       postedWithin: {
         '24h': day,
+        '3d': threeDays,
         '7d': week,
         '30d': month,
       },

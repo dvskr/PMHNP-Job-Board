@@ -1,9 +1,10 @@
 ﻿import { initiateLogin, logout, getAuthState, refreshTokenIfNeeded } from '@/shared/auth';
 import { fetchProfile, getProfileReadiness, fetchUsage, classifyFields, extractResumeSections, recordAutofill } from '@/shared/api';
 import { captureError } from '@/shared/errorHandler';
-import { ALARM_NAMES, TOKEN_REFRESH_INTERVAL, PROFILE_REFRESH_INTERVAL } from '@/shared/constants';
+import { ALARM_NAMES, TOKEN_REFRESH_INTERVAL, PROFILE_REFRESH_INTERVAL, API_BASE_URL } from '@/shared/constants';
 import type { ExtensionMessage } from '@/shared/types';
 import { log, warn } from '@/shared/logger';
+import { flushTelemetryToServer, getFieldTelemetry, analyzePatterns } from '@/shared/telemetry';
 
 // ─── Install / Startup ───
 
@@ -13,6 +14,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Set up alarms
     chrome.alarms.create(ALARM_NAMES.TOKEN_REFRESH, { periodInMinutes: TOKEN_REFRESH_INTERVAL });
     chrome.alarms.create(ALARM_NAMES.PROFILE_REFRESH, { periodInMinutes: PROFILE_REFRESH_INTERVAL });
+    chrome.alarms.create('pmhnp-telemetry-flush', { periodInMinutes: 360 }); // Every 6 hours
 
     // Fetch profile if already logged in
     try {
@@ -37,6 +39,24 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
                 await fetchProfile(true);
                 // Broadcast to content scripts
                 broadcastToContentScripts({ type: 'PROFILE_UPDATED' });
+            }
+        } else if (alarm.name === 'pmhnp-telemetry-flush') {
+            // Periodically flush telemetry to server
+            try {
+                const auth = await getAuthState();
+                if (auth.isLoggedIn && auth.token) {
+                    const result = await flushTelemetryToServer(API_BASE_URL, auth.token);
+                    if (result.sent > 0) {
+                        log(`[PMHNP-BG] Telemetry flush: sent ${result.sent} entries`);
+                    }
+                    // Log any auto-promotable patterns
+                    const patterns = await analyzePatterns();
+                    if (patterns.length > 0) {
+                        log(`[PMHNP-BG] Promotable patterns: ${patterns.map(p => `${p.fieldName}→${p.profileKey} (${p.count}x)`).join(', ')}`);
+                    }
+                }
+            } catch (err) {
+                warn('[PMHNP-BG] Telemetry flush failed:', err);
             }
         }
     } catch (err) {
@@ -188,7 +208,7 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
 
                 // 5. Map results to fill instructions
                 const mappings = result.classified
-                    .filter((c: { confidence: number; value: string }) => c.confidence >= 0.2 && c.value)
+                    .filter((c: { confidence: number; value: string }) => c.confidence >= 0.1 && c.value)
                     .map((c: { index: number; value: string; confidence: number }) => {
                         const f = fields[c.index];
                         let interaction: string = 'text';
@@ -277,6 +297,19 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
                 return { success: true };
             } catch (err) {
                 return { success: false, error: err instanceof Error ? err.message : 'Record failed' };
+            }
+        }
+
+        case 'FLUSH_TELEMETRY': {
+            try {
+                const auth = await getAuthState();
+                if (!auth.isLoggedIn || !auth.token) {
+                    return { sent: 0, error: 'Not logged in' };
+                }
+                const result = await flushTelemetryToServer(API_BASE_URL, auth.token);
+                return result;
+            } catch (err) {
+                return { sent: 0, error: err instanceof Error ? err.message : 'Flush failed' };
             }
         }
 

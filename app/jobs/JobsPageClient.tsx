@@ -301,9 +301,9 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                     }} />
                   </div>
 
-                  {/* View Mode Toggle */}
-                  <div style={{
-                    display: 'flex', gap: '2px',
+                  {/* View Mode Toggle — hidden on mobile, grid is default */}
+                  <div className="hidden sm:flex" style={{
+                    gap: '2px',
                     backgroundColor: 'var(--bg-tertiary)',
                     borderRadius: '8px', padding: '3px',
                   }}>
@@ -375,7 +375,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
               <>
                 <div style={
                   viewMode === 'grid'
-                    ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px', alignItems: 'start' }
+                    ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: '16px', alignItems: 'start' }
                     : { display: 'flex', flexDirection: 'column' as const, gap: '12px' }
                 }>
                   {jobs.map((job: Job, index: number) => (

@@ -240,8 +240,10 @@ async function extractResumeText(resumeUrl: string | null | undefined): Promise<
         const buffer = Buffer.from(await response.arrayBuffer());
 
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
+        const pdfParseModule = require('pdf-parse');
+        const pdfParse = pdfParseModule.default || pdfParseModule;
         const data = await pdfParse(buffer);
+
 
         // Cap at 4000 chars to avoid token limits
         return data.text?.substring(0, 4000) || '';

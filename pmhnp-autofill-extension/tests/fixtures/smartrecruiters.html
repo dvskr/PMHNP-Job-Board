@@ -1,0 +1,219 @@
+<!--
+  SmartRecruiters ATS Application Form Fixture
+  Based on: jobs.smartrecruiters.com standard application template
+  Fields: Angular-based with h-* prefixed classes, file uploads, custom dropdowns
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SmartRecruiters Application</title>
+</head>
+
+<body>
+    <div id="st-apply">
+        <form id="st-apply-form" class="application-form" method="post" enctype="multipart/form-data">
+
+            <!-- Personal Information -->
+            <section class="section-personal-info">
+                <h3>Personal Information</h3>
+
+                <div class="field-group">
+                    <label for="firstName">First name <span class="required">*</span></label>
+                    <input type="text" id="firstName" name="firstName" class="h-name" required
+                        autocomplete="given-name">
+                </div>
+
+                <div class="field-group">
+                    <label for="lastName">Last name <span class="required">*</span></label>
+                    <input type="text" id="lastName" name="lastName" class="h-name" required autocomplete="family-name">
+                </div>
+
+                <div class="field-group">
+                    <label for="emailAddress">Email <span class="required">*</span></label>
+                    <input type="email" id="emailAddress" name="emailAddress" class="h-email" required
+                        autocomplete="email">
+                </div>
+
+                <div class="field-group">
+                    <label for="phoneNumber">Phone number <span class="required">*</span></label>
+                    <input type="tel" id="phoneNumber" name="phoneNumber" class="h-phone" required autocomplete="tel">
+                </div>
+
+                <div class="field-group">
+                    <label for="location">Location <span class="required">*</span></label>
+                    <input type="text" id="location" name="location" class="h-location"
+                        placeholder="Start typing a city..." autocomplete="off" role="combobox"
+                        aria-autocomplete="list">
+                </div>
+            </section>
+
+            <!-- Resume Section -->
+            <section class="section-resume">
+                <h3>Resume</h3>
+                <div class="field-group">
+                    <label for="profilePhoto">Profile Photo</label>
+                    <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*">
+                </div>
+                <div class="field-group">
+                    <label for="resume">Resume <span class="required">*</span></label>
+                    <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx,.txt,.rtf" required>
+                </div>
+                <div class="field-group">
+                    <label for="additionalDocs">Additional Documents</label>
+                    <input type="file" id="additionalDocs" name="additionalDocs" accept=".pdf,.doc,.docx">
+                </div>
+            </section>
+
+            <!-- Links Section -->
+            <section class="section-links">
+                <h3>Web & Social</h3>
+                <div class="field-group">
+                    <label for="linkedin">LinkedIn</label>
+                    <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/...">
+                </div>
+            </section>
+
+            <!-- Education -->
+            <section class="section-education">
+                <h3>Education</h3>
+                <div class="field-group">
+                    <label for="school">School / University</label>
+                    <input type="text" id="school" name="school">
+                </div>
+                <div class="field-group">
+                    <label for="degree">Degree</label>
+                    <select id="degree" name="degree">
+                        <option value="">Select...</option>
+                        <option value="Associate's">Associate's</option>
+                        <option value="Bachelor's">Bachelor's</option>
+                        <option value="Master's">Master's</option>
+                        <option value="Master of Science in Nursing">Master of Science in Nursing</option>
+                        <option value="Doctorate">Doctorate</option>
+                        <option value="Doctor of Nursing Practice">Doctor of Nursing Practice</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="major">Major / Field of Study</label>
+                    <input type="text" id="major" name="major">
+                </div>
+            </section>
+
+            <!-- Experience -->
+            <section class="section-experience">
+                <h3>Experience</h3>
+                <div class="field-group">
+                    <label for="currentTitle">Current Job Title</label>
+                    <input type="text" id="currentTitle" name="currentTitle">
+                </div>
+                <div class="field-group">
+                    <label for="currentCompany">Current Company</label>
+                    <input type="text" id="currentCompany" name="currentCompany">
+                </div>
+                <div class="field-group">
+                    <label for="yearsExperience">Total Years of Experience</label>
+                    <select id="yearsExperience" name="yearsExperience">
+                        <option value="">Select...</option>
+                        <option value="0-2">0-2</option>
+                        <option value="3-5">3-5</option>
+                        <option value="6-10">6-10</option>
+                        <option value="10+">10+</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Screening Questions -->
+            <section class="section-screening">
+                <h3>Screening Questions</h3>
+
+                <div class="field-group">
+                    <label for="workAuthorization">Are you legally authorized to work in the US?</label>
+                    <div class="radio-group">
+                        <input type="radio" id="workAuth_yes" name="workAuthorization" value="Yes">
+                        <label for="workAuth_yes">Yes</label>
+                        <input type="radio" id="workAuth_no" name="workAuthorization" value="No">
+                        <label for="workAuth_no">No</label>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label for="sponsorship_q">Will you require sponsorship for employment?</label>
+                    <div class="radio-group">
+                        <input type="radio" id="sponsor_yes" name="sponsorship_q" value="Yes">
+                        <label for="sponsor_yes">Yes</label>
+                        <input type="radio" id="sponsor_no" name="sponsorship_q" value="No">
+                        <label for="sponsor_no">No</label>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label for="salaryExpectation">What are your salary expectations?</label>
+                    <input type="text" id="salaryExpectation" name="salaryExpectation">
+                </div>
+
+                <div class="field-group">
+                    <label for="availableStartDate">Earliest available start date</label>
+                    <input type="date" id="availableStartDate" name="availableStartDate">
+                </div>
+
+                <div class="field-group">
+                    <label for="whyInterested">Why are you interested in this position?</label>
+                    <textarea id="whyInterested" name="whyInterested" rows="4"></textarea>
+                </div>
+            </section>
+
+            <!-- EEO Section -->
+            <section class="section-eeo">
+                <h3>Voluntary Self-Identification</h3>
+
+                <div class="field-group">
+                    <label for="sr-gender">Gender</label>
+                    <select id="sr-gender" name="sr-gender">
+                        <option value="">Select...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Non-Binary">Non-Binary</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="sr-ethnicity">Race / Ethnicity</label>
+                    <select id="sr-ethnicity" name="sr-ethnicity">
+                        <option value="">Select...</option>
+                        <option value="Hispanic or Latino">Hispanic or Latino</option>
+                        <option value="White">White</option>
+                        <option value="Black or African American">Black or African American</option>
+                        <option value="Asian">Asian</option>
+                        <option value="Two or More Races">Two or More Races</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="sr-veteran">Veteran Status</label>
+                    <select id="sr-veteran" name="sr-veteran">
+                        <option value="">Select...</option>
+                        <option value="I am a protected veteran">I am a protected veteran</option>
+                        <option value="I am not a veteran">I am not a veteran</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="sr-disability">Disability Status</label>
+                    <select id="sr-disability" name="sr-disability">
+                        <option value="">Select...</option>
+                        <option value="Yes, I have a disability">Yes, I have a disability</option>
+                        <option value="No, I don't have a disability">No, I don't have a disability</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+            </section>
+
+            <button type="submit" class="btn-submit">Submit Application</button>
+        </form>
+    </div>
+</body>
+
+</html>

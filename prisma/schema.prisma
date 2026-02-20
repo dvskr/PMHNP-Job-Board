@@ -50,6 +50,7 @@ model Job {
   originalPostedAt    DateTime?    @map("original_posted_at")
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
+  jobReports          JobReport[]
   employerJobs        EmployerJob?
   company             Company?     @relation(fields: [companyId], references: [id])
 
@@ -303,6 +304,7 @@ model UserProfile {
 
   candidateReferences  CandidateReference[]
   autofillUsage        AutofillUsage[]
+  autofillTelemetry    AutofillTelemetry[]
 
   @@index([supabaseId])
   @@index([email])
@@ -347,6 +349,7 @@ model BlogPost {
   category        String
   status          String   @default("draft")
   publishDate     DateTime? @map("publish_date")
+  imageUrl        String?  @map("image_url")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -503,4 +506,68 @@ model AutofillUsage {
   @@index([userId])
   @@index([userId, createdAt])
   @@map("autofill_usage")
+}
+
+model JobReport {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  reason    String
+  details   String?
+  ipHash    String?  @map("ip_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_reports")
+}
+
+model UserFeedback {
+  id        String   @id @default(cuid())
+  rating    Int
+  message   String?
+  page      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("user_feedback")
+}
+
+model AutofillTelemetry {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  timestamp    DateTime
+  atsDomain    String?  @map("ats_domain")
+  fieldName    String   @map("field_name")
+  fieldLabel   String   @map("field_label")
+  fieldType    String   @map("field_type")
+  matchMethod  String   @map("match_method")
+  profileKey   String?  @map("profile_key")
+  valueSample  String?  @map("value_sample")
+  confidence   Float    @default(0)
+  filled       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([matchMethod])
+  @@index([fieldName])
+  @@index([createdAt])
+  @@map("autofill_telemetry")
+}
+
+model RejectedJob {
+  id              String   @id @default(uuid())
+  title           String
+  employer        String?
+  location        String?
+  applyLink       String?  @map("apply_link")
+  externalId      String?  @map("external_id")
+  sourceProvider  String   @map("source_provider")
+  rejectionReason String   @map("rejection_reason")
+  rawData         Json?    @map("raw_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([sourceProvider])
+  @@index([rejectionReason])
+  @@index([createdAt])
+  @@map("rejected_jobs")
 }

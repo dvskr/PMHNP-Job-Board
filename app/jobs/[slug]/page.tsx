@@ -3,6 +3,7 @@ import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
+import ReportJobButton from '@/components/ReportJobButton';
 
 import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
@@ -431,7 +432,12 @@ export default async function JobPage({ params }: JobPageProps) {
           <div>
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
-              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative' }}>
+                {/* Report Button - Top Right */}
+                <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+                  <ReportJobButton jobId={job.id} jobTitle={job.title} />
+                </div>
+
                 {/* Badges Row - Top */}
                 {(job.isFeatured || job.isVerifiedEmployer) && (
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
@@ -457,7 +463,7 @@ export default async function JobPage({ params }: JobPageProps) {
                   </div>
                 )}
 
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)' }}>{job.title}</h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '100px' }}>{job.title}</h1>
                 <p className="text-lg sm:text-xl mb-4 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
 
                 {/* Salary */}
@@ -699,18 +705,7 @@ export default async function JobPage({ params }: JobPageProps) {
           />
         )}
 
-        {/* Report Job Section */}
-        <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
-          <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            See something wrong with this listing?{' '}
-            <a
-              href={`mailto:support@pmhnphiring.com?subject=Report Job: ${job.title}&body=Job ID: ${job.id}%0AJob Title: ${job.title}%0ACompany: ${job.employer}%0A%0AReason for report:%0A`}
-              className="text-red-500 hover:text-red-400 hover:underline"
-            >
-              Report this job
-            </a>
-          </p>
-        </div>
+
       </div>
 
       {/* Sticky Apply Button - Mobile Only */}

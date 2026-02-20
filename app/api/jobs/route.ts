@@ -59,8 +59,7 @@ export async function GET(request: NextRequest) {
     ];
     if (sort === 'newest') {
       orderBy = [
-        { isFeatured: 'desc' },
-        { originalPostedAt: 'desc' },
+        { originalPostedAt: { sort: 'desc', nulls: 'last' } },
         { createdAt: 'desc' },
       ];
     } else if (sort === 'salary') {

@@ -537,12 +537,22 @@ export function isApplicationPage(): boolean {
     // On known ATS with no fields yet (SPA loading), still return true
     if (isKnownATS) return true;
 
-    // Generic detection: need at least 3 fields with personal info
-    if (fields.length < 3) return false;
+    // URL path heuristic: lower threshold for pages with application-like URLs
+    const path = window.location.pathname.toLowerCase();
+    const isApplicationURL = /\/(apply|careers|jobs|application|job-application|hiring|openings|vacancies|recruit|talent)(\/|$|\?)/.test(path);
+
+    // Generic detection: on application URLs, 2 fields suffice; otherwise 3
+    const minFields = isApplicationURL ? 2 : 3;
+    if (fields.length < minFields) return false;
+
     const hasPersonal = fields.some(
         (f) => f.fieldCategory === 'personal' && f.confidence > 0.5
     );
-    const hasMultipleFields = fields.filter((f) => f.confidence > 0.3).length >= 3;
+    const confidentFields = fields.filter((f) => f.confidence > 0.3).length;
+    const hasMultipleFields = confidentFields >= minFields;
+
+    // On application URLs, be more lenient — just need multiple fields
+    if (isApplicationURL && confidentFields >= 2) return true;
 
     return hasPersonal && hasMultipleFields;
 }
