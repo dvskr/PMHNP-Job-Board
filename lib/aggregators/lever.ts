@@ -75,16 +75,13 @@ const LEVER_COMPANIES = [
   // === Additional healthcare companies ===
   'aledade',
   'clarifyhealth',
-  'enter.health',
-  'heyjane.co',
-  'journeyclinical',
+  // REMOVED 2026-02-20 — Dead endpoints (HTTP errors in audit):
+  // 'enter.health', 'heyjane.co', 'journeyclinical',
+  // 'myplacehealth', 'pplacareers.org', 'sprinterhealth'
   'koalahealth',
-  'myplacehealth',
   'nimblerx',
   'pointclickcare',
-  'pplacareers.org',
   'salvohealth',
-  'sprinterhealth',
   'vivo-care',
   'wepclinical',
   'zushealth',

@@ -22,7 +22,8 @@ import { computeQualityScore } from './utils/quality-score';
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db', 'bamboohr'];
+// REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db'];
 
 export interface IngestionResult {
   source: JobSource;
