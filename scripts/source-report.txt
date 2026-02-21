@@ -1,0 +1,74 @@
+TOTAL ACTIVE JOBS: 6645
+
+=== JOBS BY SOURCE PROVIDER (all active) ===
+  jsearch                  4897 jobs  (73.7%)
+  adzuna                    787 jobs  (11.8%)
+  jooble                    373 jobs  (5.6%)
+  lever                     285 jobs  (4.3%)
+  greenhouse                162 jobs  (2.4%)
+  workday                    55 jobs  (0.8%)
+  ats-jobs-db                50 jobs  (0.8%)
+  ashby                      25 jobs  (0.4%)
+  usajobs                     9 jobs  (0.1%)
+  null                        2 jobs  (0.0%)
+
+=== JOBS ADDED LAST 7 DAYS (1050 total) ===
+  jsearch                   545 jobs  (51.9%)
+  adzuna                    138 jobs  (13.1%)
+  greenhouse                109 jobs  (10.4%)
+  jooble                    106 jobs  (10.1%)
+  workday                    55 jobs  (5.2%)
+  ats-jobs-db                50 jobs  (4.8%)
+  lever                      25 jobs  (2.4%)
+  ashby                      22 jobs  (2.1%)
+
+=== JOBS ADDED LAST 24 HOURS (70 total) ===
+  adzuna                     24 jobs  (34.3%)
+  jooble                     16 jobs  (22.9%)
+  workday                    13 jobs  (18.6%)
+  lever                      11 jobs  (15.7%)
+  greenhouse                  6 jobs  (8.6%)
+
+=== TOP 30 EMPLOYERS (last 7 days) ===
+  Talkspace Psychiatry                     50 jobs  via greenhouse
+  LifeStance Health                        40 jobs  via jsearch
+  Fcs Co                                   20 jobs  via jooble
+  SonderMind                               19 jobs  via ashby
+  Headway                                  14 jobs  via jsearch
+  Lifestance                               13 jobs  via lever
+  LifeStance Health                        13 jobs  via jooble
+  GO Staffing                              11 jobs  via jsearch
+  DocCafe                                  11 jobs  via adzuna
+  Talkiatry                                10 jobs  via lever
+  COMPASS Pathways                         10 jobs  via greenhouse
+  Fcs Co                                    9 jobs  via jsearch
+  MultiCare Health                          8 jobs  via workday
+  Serenity Healthcare                       8 jobs  via jsearch
+  Geode Health                              7 jobs  via workday
+  Blueskypsychiatrists                      7 jobs  via jsearch
+  Serenity Health Care                      6 jobs  via jsearch
+  Solution Health                           6 jobs  via workday
+  LifeStance Health                         6 jobs  via adzuna
+  PsychPlus                                 6 jobs  via jsearch
+  Geode Health                              6 jobs  via ats-jobs-db
+  beBeeMentalHealth                         5 jobs  via jsearch
+  MPLT Healthcare                           5 jobs  via adzuna
+  Advocate Health                           5 jobs  via workday
+  Talkspace                                 5 jobs  via jsearch
+  Therapymatch Inc. (DBA Headway)           5 jobs  via jsearch
+  Boca Recovery Center                      4 jobs  via jsearch
+  Seasoned Recruitment                      4 jobs  via jsearch
+  SonderMind                                4 jobs  via jsearch
+  One Medical                               4 jobs  via greenhouse
+
+=== UNIQUE EMPLOYERS PER SOURCE ===
+  jsearch                 1818 employers    4897 jobs
+  adzuna                   473 employers     787 jobs
+  jooble                   215 employers     373 jobs
+  lever                      4 employers     285 jobs
+  greenhouse                30 employers     162 jobs
+  workday                   21 employers      55 jobs
+  ats-jobs-db               34 employers      50 jobs
+  ashby                      5 employers      25 jobs
+  usajobs                    2 employers       9 jobs
+  null                       2 employers       2 jobs
