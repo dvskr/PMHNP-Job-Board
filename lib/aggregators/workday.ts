@@ -132,7 +132,7 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'tuftsmedicine', instance: 1, site: 'jobs', name: 'Tufts Medicine' },
     { slug: 'umchealthsystem', instance: 1, site: 'External', name: 'UMC Health System (Lubbock)' },
 
-    // === ADDED 2026-02-19 — ats-jobs-db API discovery ===
+    // === ADDED 2026-02-19 - ats-jobs-db API discovery ===
     { slug: 'geodehealth', instance: 1, site: 'geode', name: 'Geode Health' },
     { slug: 'lmh', instance: 1, site: 'lmhjobs', name: 'LMH Health' },
     { slug: 'mainegeneral', instance: 5, site: 'mainegeneralcareers', name: 'MaineGeneral Health' },
@@ -143,7 +143,7 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'meharrymedicalcollege', instance: 12, site: 'External', name: 'Meharry Medical College' },
     { slug: 'seamar', instance: 12, site: 'sea_mar', name: 'Sea Mar Community Health Centers' },
 
-    // === ADDED 2026-02-20 — Production DB apply_link mining ===
+    // === ADDED 2026-02-20 - Production DB apply_link mining ===
     { slug: 'rogersbh', instance: 1, site: 'RBHCareer', name: 'Rogers Behavioral Health' },
     { slug: 'tamus', instance: 1, site: 'TAMU_External', name: 'Texas A&M Health' },
     { slug: 'saintlukes', instance: 1, site: 'saintlukeshealthcareers', name: "Saint Luke's Health System" },
@@ -187,7 +187,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
     const baseUrl = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/wday/cxs/${company.slug}/${company.site}/jobs`;
     const applyBase = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/en-US/${company.site}`;
 
-    // PMHNP search terms â€” cast a wide net, let isRelevantJob filter precisely
+    // PMHNP search terms - cast a wide net, let isRelevantJob filter precisely
     const searchTerms = [
         'Psychiatric Nurse Practitioner',
         'PMHNP',

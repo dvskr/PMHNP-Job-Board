@@ -1,0 +1,51 @@
+﻿
+=== careers2-universalhealthservices ===
+Status: 200
+HTML length: 55428
+  iCIMS_JobTitle: 0 matches
+  class="title": 0 matches
+  data-job-id: 0 matches
+  class="row": 17 matches
+  "position": 0 matches
+  \/jobs\/\d+: 16 matches
+  searchResults: 1 matches
+  totalResults: 0 matches
+  landingpage: 0 matches
+  class="iCIMS: 184 matches
+  First 500 chars:                                    <!doctype html><html lang="en-US" >
+ <head>
+ <script type="text/javascript"> function icims_stripIFrameParameter(url) { url = url.replace(/\?in_iframe=1\&?/, '?'); url = url.replace(/\&in_iframe=1\&?/, '&'); url = url.replace(/(\?|&)$/, ''); return url; }  document.cookie = "i18next=;SameSite=None;Secure"; var icimsWindow = false; try { icimsWindow = window.top.location.href.indexOf('') >= 0; } catch (e) {}  if (icimsWindow) { try {  if (window.history.replaceS
+
+=== facilityjobs-acadiahealthcare ===
+Status: 200
+HTML length: 44495
+  iCIMS_JobTitle: 0 matches
+  class="title": 0 matches
+  data-job-id: 0 matches
+  class="row": 11 matches
+  "position": 0 matches
+  \/jobs\/\d+: 10 matches
+  searchResults: 1 matches
+  totalResults: 0 matches
+  landingpage: 0 matches
+  class="iCIMS: 112 matches
+  First 500 chars:                                    <!doctype html><html lang="en-US" >
+ <head>
+ <script type="text/javascript"> function icims_stripIFrameParameter(url) { url = url.replace(/\?in_iframe=1\&?/, '?'); url = url.replace(/\&in_iframe=1\&?/, '&'); url = url.replace(/(\?|&)$/, ''); return url; }  document.cookie = "i18next=;SameSite=None;Secure"; var icimsWindow = false; try { icimsWindow = window.top.location.href.indexOf('') >= 0; } catch (e) {}  if (icimsWindow) { try {  if (window.history.replaceS
+
+=== careers-vhchealth ===
+Status: 200
+HTML length: 25072
+  iCIMS_JobTitle: 0 matches
+  class="title": 0 matches
+  data-job-id: 0 matches
+  class="row": 0 matches
+  "position": 0 matches
+  \/jobs\/\d+: 0 matches
+  searchResults: 0 matches
+  totalResults: 0 matches
+  landingpage: 0 matches
+  class="iCIMS: 39 matches
+  First 500 chars:                                    <!doctype html><html lang="en-US" >
+ <head>
+ <script type="text/javascript"> function icims_stripIFrameParameter(url) { url = url.replace(/\?in_iframe=1\&?/, '?'); url = url.replace(/\&in_iframe=1\&?/, '&'); url = url.replace(/(\?|&)$/, ''); return url; }  document.cookie = "i18next=;SameSite=None;Secure"; var icimsWindow = false; try { icimsWindow = window.top.location.href.indexOf('') >= 0; } catch (e) {}  if (icimsWindow) { try {  if (window.history.replaceS

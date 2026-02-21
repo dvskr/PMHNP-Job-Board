@@ -1,0 +1,103 @@
+ATS SLUG AUDIT - 2026-02-20T16:00
+============================================================
+
+=== LEVER (39 slugs) ===
+  Alive: 28/39 | With any jobs: 27 | With PMHNP: 8 | Total PMHNP jobs: 119
+  Dead/Error: 11
+  Dead slugs: lifestance(timeout), lyrahealth(timeout), bighealth(timeout), synapticure(timeout), ekohealth(timeout), enter.health(error), heyjane.co(error), journeyclinical(error), myplacehealth(error), pplacareers.org(error), sprinterhealth(error)
+
+  PMHNP-active employers:
+    talkiatry                      59 PMHNP / 176 total
+    guidestareldercare             39 PMHNP / 63 total
+    mindful                        9 PMHNP / 9 total
+    athenapsych                    4 PMHNP / 15 total
+    includedhealth                 3 PMHNP / 39 total
+    seven-starling                 3 PMHNP / 7 total
+    beckley-clinical               1 PMHNP / 5 total
+    arundellodge                   1 PMHNP / 22 total
+
+  Alive but 0 PMHNP (19):
+    prosper                        0 PMHNP / 11 total
+    genesis                        0 PMHNP / 4 total
+    sesame                         0 PMHNP / 1 total
+    ro                             0 PMHNP / 41 total
+    advocate                       0 PMHNP / 9 total
+    ucsf                           0 PMHNP / 1 total
+    lunaphysicaltherapy            0 PMHNP / 97 total
+    next-health                    0 PMHNP / 24 total
+    heartbeathealth                0 PMHNP / 22 total
+    swordhealth                    0 PMHNP / 63 total
+    aledade                        0 PMHNP / 78 total
+    clarifyhealth                  0 PMHNP / 3 total
+    koalahealth                    0 PMHNP / 6 total
+    nimblerx                       0 PMHNP / 16 total
+    pointclickcare                 0 PMHNP / 70 total
+    ... and 4 more
+
+=== ASHBY (45 slugs) ===
+  Alive: 37/45 | With any jobs: 35 | With PMHNP: 9 | Total PMHNP jobs: 77
+  Dead/Error: 8
+  Dead slugs: springhealth(error), alto(error), awellhealth(error), elationhealth(error), fountainlife(error), hippocraticai(error), lumoshealth(error), oura(error)
+
+  PMHNP-active employers:
+    sondermind                     49 PMHNP / 152 total
+    legionhealth                   6 PMHNP / 10 total
+    array-behavioral-care          6 PMHNP / 23 total
+    equip                          4 PMHNP / 35 total
+    ReklameHealth                  4 PMHNP / 5 total
+    bravehealth                    4 PMHNP / 31 total
+    blossom-health                 2 PMHNP / 7 total
+    claritypediatrics              1 PMHNP / 9 total
+    tandem-health                  1 PMHNP / 43 total
+
+  Alive but 0 PMHNP (26):
+    hims-and-hers                  0 PMHNP / 99 total
+    rula                           0 PMHNP / 18 total
+    tavahealth                     0 PMHNP / 9 total
+    sesame                         0 PMHNP / 29 total
+    wheel                          0 PMHNP / 8 total
+    oh                             0 PMHNP / 5 total
+    prime                          0 PMHNP / 3 total
+    foresight                      0 PMHNP / 3 total
+    visanahealth                   0 PMHNP / 14 total
+    finni-health                   0 PMHNP / 158 total
+    annaautismcare                 0 PMHNP / 15 total
+    nest-health                    0 PMHNP / 32 total
+    cylinderhealth                 0 PMHNP / 6 total
+    virtahealth                    0 PMHNP / 21 total
+    abridge                        0 PMHNP / 50 total
+    ... and 11 more
+
+=== BAMBOOHR (31 slugs) ===
+  Alive: 17/31 | With any jobs: 15 | With PMHNP: 0 | Total PMHNP jobs: 0
+  Dead/Error: 14
+  Dead slugs: integratedmedicalservices(timeout), wellkept(timeout), mapleheightsbehavioralhealth(timeout), cbhccolorado(timeout), mindfulhealthsolutions(timeout), axishealthsystem(timeout), tetrahealth(timeout), geisheker(timeout), sagerecovery(timeout), spiritcommunityhealth(timeout), tulsaboyshome(timeout), ivincihealth(timeout), mosesbhcare(timeout), woundcareadvantage(timeout)
+
+
+  Alive but 0 PMHNP (15):
+    benchmarktherapy               0 PMHNP / 24 total
+    employhealth                   0 PMHNP / 15 total
+    minneolahealth                 0 PMHNP / 17 total
+    21stcenturyrehab               0 PMHNP / 2 total
+    clinicaromero                  0 PMHNP / 28 total
+    jsashealthcare                 0 PMHNP / 1 total
+    monroehealthcenter             0 PMHNP / 3 total
+    privatemedical                 0 PMHNP / 10 total
+    saferidehealth                 0 PMHNP / 5 total
+    salinahealth                   0 PMHNP / 3 total
+    spirithealth                   0 PMHNP / 1 total
+    therapeuticsinc                0 PMHNP / 4 total
+    truecareny                     0 PMHNP / 10 total
+    vuehealth                      0 PMHNP / 4 total
+    wildernessmedicalstaffing      0 PMHNP / 1 total
+
+=== GREENHOUSE (sample 30) (30 slugs) ===
+  Alive: 2/30 | With any jobs: 2 | With PMHNP: 1 | Total PMHNP jobs: 1
+  Dead/Error: 28
+  Dead slugs: lifestancehealth(error), talkiatry(error), includedhealth(error), geodehealth(error), mindpathhealth(error), refreshmentalhealth(error), thriveworks(error), acadiahealthcare(error), eleanorhealth(error), brightspringhealth(error), centene(error), guidewellsourcecareers(error), compasshealthbrands(error), cvshealthcareers(error), uhg(error), onemedicalprimarycare(error), villagemd(error), iristelehealth(error), carbyne(error), nuvancehealth(error), amnhealthcare(error), geisingerfoundation(error), elliemental(error), hopescalescareers(error), unitedhealthgroup(error), kaiserp(error), summithealth(error), oakstreethealth(error)
+
+  PMHNP-active employers:
+    bicyclehealth                  1 PMHNP / 31 total
+
+  Alive but 0 PMHNP (1):
+    signifyhealth                  0 PMHNP / 25 total

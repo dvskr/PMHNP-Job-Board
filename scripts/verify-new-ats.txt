@@ -1,0 +1,31 @@
+=== SMARTRECRUITERS ===
+  karecruitinginc: 200 OK — 60 total jobs, 7 PMHNP in sample
+  oleskyassociates: 200 OK — 299 total jobs, 7 PMHNP in sample
+  newyorkpsychotherapyandcounselingcenter: 200 OK — 11 total jobs, 6 PMHNP in sample
+  internationalsosgovernmentmedicalservices: 200 OK — 598 total jobs, 0 PMHNP in sample
+  kittitasvalleyhealthcare: 200 OK — 63 total jobs, 0 PMHNP in sample
+  mascmedicalrecruitmentfirm: 200 OK — 82 total jobs, 0 PMHNP in sample
+
+=== ICIMS ===
+  careers2-universalhealthservices: HTTP 200 — ALIVE (Universal Health Services)
+    → 0 job titles found in HTML
+  facilityjobs-acadiahealthcare: HTTP 200 — ALIVE (Acadia Healthcare)
+    → 0 job titles found in HTML
+  careers-vhchealth: HTTP 200 — ALIVE (VHC Health)
+    → 0 job titles found in HTML
+
+=== JAZZ HR ===
+  applewoodcenters: HTTP 200 — ALIVE (Applewood Centers)
+    → 42 job titles found in HTML
+    → PMHNP content: YES
+  mastercenterforaddictionmedicine: HTTP 200 — ALIVE (Master Center for Addiction Medicine)
+    → 27 job titles found in HTML
+    → PMHNP content: YES
+
+  --- Jazz HR JSON API test ---
+  applewoodcenters (API): HTTP 200
+    → Response length: 2684 chars
+    → Not JSON
+  mastercenterforaddictionmedicine (API): HTTP 200
+    → Response length: 2684 chars
+    → Not JSON

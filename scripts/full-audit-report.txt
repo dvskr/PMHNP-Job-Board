@@ -1,0 +1,319 @@
+FULL LIVE SLUG AUDIT — 2026-02-20T17:13:06.964Z
+============================================================
+
+=== LEVER (39 slugs) ===
+  ⏰ lifestance: TIMEOUT
+  ✅ talkiatry: 177 jobs, 60 PMHNP
+  ✅ includedhealth: 39 jobs, 7 PMHNP
+  ✅ lyrahealth: 244 jobs, 3 PMHNP
+  ✅ carbonhealth: 0 jobs, 0 PMHNP
+  ✅ prosper: 11 jobs, 0 PMHNP
+  ✅ bighealth: 7 jobs, 0 PMHNP
+  ✅ genesis: 4 jobs, 0 PMHNP
+  ✅ sesame: 1 jobs, 0 PMHNP
+  ✅ mindful: 10 jobs, 10 PMHNP
+  ✅ athenapsych: 15 jobs, 4 PMHNP
+  ✅ seven-starling: 6 jobs, 2 PMHNP
+  ✅ beckley-clinical: 5 jobs, 1 PMHNP
+  ✅ synapticure: 17 jobs, 0 PMHNP
+  ✅ arundellodge: 22 jobs, 1 PMHNP
+  ✅ ro: 41 jobs, 0 PMHNP
+  ✅ advocate: 9 jobs, 0 PMHNP
+  ✅ ucsf: 1 jobs, 0 PMHNP
+  ✅ lunaphysicaltherapy: 97 jobs, 0 PMHNP
+  ✅ guidestareldercare: 64 jobs, 39 PMHNP
+  ✅ next-health: 24 jobs, 0 PMHNP
+  ✅ ekohealth: 13 jobs, 0 PMHNP
+  ✅ heartbeathealth: 22 jobs, 0 PMHNP
+  ✅ swordhealth: 63 jobs, 0 PMHNP
+  ✅ aledade: 78 jobs, 0 PMHNP
+  ✅ clarifyhealth: 3 jobs, 0 PMHNP
+  ❌ enter.health: HTTP 404
+  ❌ heyjane.co: HTTP 404
+  ❌ journeyclinical: HTTP 404
+  ❌ myplacehealth: HTTP 404
+  ❌ pplacareers.org: HTTP 404
+  ❌ sprinterhealth: HTTP 404
+  ✅ koalahealth: 6 jobs, 0 PMHNP
+  ✅ nimblerx: 16 jobs, 0 PMHNP
+  ✅ pointclickcare: 70 jobs, 0 PMHNP
+  ✅ salvohealth: 4 jobs, 0 PMHNP
+  ✅ vivo-care: 7 jobs, 0 PMHNP
+  ✅ wepclinical: 15 jobs, 0 PMHNP
+  ✅ zushealth: 8 jobs, 0 PMHNP
+
+=== ASHBY (49 slugs) ===
+  ✅ equip: 35 jobs, 4 PMHNP
+  ✅ ReklameHealth: 5 jobs, 4 PMHNP
+  ✅ legionhealth: 10 jobs, 6 PMHNP
+  ✅ array-behavioral-care: 22 jobs, 6 PMHNP
+  ✅ blossom-health: 7 jobs, 2 PMHNP
+  ✅ sondermind: 152 jobs, 49 PMHNP
+  ✅ hims-and-hers: 98 jobs, 0 PMHNP
+  ✅ rula: 17 jobs, 0 PMHNP
+  ✅ tavahealth: 9 jobs, 0 PMHNP
+  ✅ sesame: 29 jobs, 0 PMHNP
+  ✅ wheel: 8 jobs, 0 PMHNP
+  ✅ oh: 5 jobs, 0 PMHNP
+  ✅ prime: 3 jobs, 0 PMHNP
+  ✅ foresight: 3 jobs, 0 PMHNP
+  ✅ bravehealth: 31 jobs, 4 PMHNP
+  ✅ visanahealth: 14 jobs, 0 PMHNP
+  ✅ finni-health: 158 jobs, 0 PMHNP
+  ✅ annaautismcare: 15 jobs, 0 PMHNP
+  ✅ claritypediatrics: 11 jobs, 1 PMHNP
+  ✅ nest-health: 32 jobs, 0 PMHNP
+  ✅ cylinderhealth: 6 jobs, 0 PMHNP
+  ✅ tandem-health: 43 jobs, 1 PMHNP
+  ✅ virtahealth: 22 jobs, 0 PMHNP
+  ✅ abridge: 50 jobs, 0 PMHNP
+  ✅ akasa: 15 jobs, 0 PMHNP
+  ✅ ambiencehealthcare: 21 jobs, 0 PMHNP
+  ✅ anterior: 1 jobs, 0 PMHNP
+  ✅ august-health: 8 jobs, 0 PMHNP
+  ✅ bjakcareer: 201 jobs, 0 PMHNP
+  ✅ candidhealth: 35 jobs, 0 PMHNP
+  ✅ chainalysis-careers: 39 jobs, 0 PMHNP
+  ✅ commure: 71 jobs, 0 PMHNP
+  ✅ coursecareers: 8 jobs, 0 PMHNP
+  ✅ definelycareers: 10 jobs, 0 PMHNP
+  ✅ foundationhealthcareers: 16 jobs, 0 PMHNP
+  ✅ frontcareers: 27 jobs, 0 PMHNP
+  ✅ hike-medical: 9 jobs, 0 PMHNP
+  ✅ iambic-therapeutics: 7 jobs, 0 PMHNP
+  ✅ lindushealth: 16 jobs, 0 PMHNP
+  ✅ myedspacecareers: 26 jobs, 0 PMHNP
+  ✅ nabla: 15 jobs, 0 PMHNP
+  ✅ pearlhealth: 19 jobs, 0 PMHNP
+  ✅ radai: 10 jobs, 0 PMHNP
+  ✅ valeriehealth: 9 jobs, 0 PMHNP
+  ✅ versemedical: 25 jobs, 0 PMHNP
+  ✅ dandelionhealth: 0 jobs, 0 PMHNP
+  ✅ relationrx: 14 jobs, 0 PMHNP
+  ✅ summerhealth: 0 jobs, 0 PMHNP
+  ✅ Fort Health: 9 jobs, 8 PMHNP
+
+=== SMARTRECRUITERS (6 slugs) ===
+  ✅ karecruitinginc: 60 total jobs, 0 PMHNP in sample
+  ✅ oleskyassociates: 299 total jobs, 4 PMHNP in sample
+  ✅ newyorkpsychotherapyandcounselingcenter: 11 total jobs, 1 PMHNP in sample
+  ✅ internationalsosgovernmentmedicalservices: 598 total jobs, 0 PMHNP in sample
+  ✅ kittitasvalleyhealthcare: 63 total jobs, 0 PMHNP in sample
+  ✅ mascmedicalrecruitmentfirm: 82 total jobs, 0 PMHNP in sample
+
+=== ICIMS (3 slugs) ===
+  ✅ careers2-universalhealthservices: 16 job links found
+  ✅ facilityjobs-acadiahealthcare: 10 job links found
+  ✅ careers-vhchealth: 0 job links found
+
+=== JAZZHR (2 slugs) ===
+  ✅ applewoodcenters: 253 job entries, PMHNP: YES
+  ✅ mastercenterforaddictionmedicine: 163 job entries, PMHNP: YES
+
+=== WORKDAY (109 slugs) ===
+  ✅ trinityhealth: 2000 total jobs
+  ✅ memorialhermann: 607 total jobs
+  ✅ sharp: 160 total jobs
+  ✅ lifestance: 115 total jobs
+  ✅ chghealthcare: 31 total jobs
+  ✅ aah: 2000 total jobs
+  ✅ ms: 1557 total jobs
+  ✅ carbonhealth: 210 total jobs
+  ✅ mc: 26 total jobs
+  ✅ adventhealth: 2000 total jobs
+  ❌ allina (wd5/External): HTTP 500
+  ✅ bannerhealth: 1101 total jobs
+  ✅ baptistfirst: 513 total jobs
+  ✅ bhs: 1225 total jobs
+  ✅ easyservice: 1091 total jobs
+  ✅ bronsonhg: 401 total jobs
+  ✅ carilionclinic: 879 total jobs
+  ✅ chaptershealth: 183 total jobs
+  ❌ choc (wd5/Careers): HTTP 422
+  ✅ ccf: 2099 total jobs
+  ✅ spectrumhealth: 1825 total jobs
+  ✅ coxhealth: 457 total jobs
+  ✅ davita: 3168 total jobs
+  ✅ denverhealth: 340 total jobs
+  ✅ nshs: 1108 total jobs
+  ✅ gbmc: 320 total jobs
+  ✅ geisinger: 1502 total jobs
+  ✅ gohealthuc: 341 total jobs
+  ✅ halifaxhealth: 356 total jobs
+  ✅ hshs: 566 total jobs
+  ✅ imh: 1125 total jobs
+  ✅ jeffersonhealth: 1197 total jobs
+  ✅ massgeneralbrigham: 2000 total jobs
+  ✅ memorialhealthcare: 609 total jobs
+  ✅ multicare: 1549 total jobs
+  ✅ ochsner: 1870 total jobs
+  ✅ oumedicine: 401 total jobs
+  ✅ rrhs: 1326 total jobs
+  ✅ sanford: 2000 total jobs
+  ✅ sentara: 2000 total jobs
+  ✅ ssmh: 1771 total jobs
+  ✅ stanfordhealthcare: 332 total jobs
+  ✅ sutterhealth: 1083 total jobs
+  ❌ umassmemorial (wd1/Careers): HTTP 422
+  ✅ uvmhealth: 51 total jobs
+  ✅ vumc: 648 total jobs
+  ❌ wvumedicine (wd1/WVUH): HTTP 500
+  ✅ elevancehealth: 375 total jobs
+  ✅ cigna: 585 total jobs
+  ✅ humana: 347 total jobs
+  ✅ centene: 328 total jobs
+  ✅ cvshealth: 15001 total jobs
+  ✅ highmarkhealth: 1828 total jobs
+  ✅ teladoc: 43 total jobs
+  ✅ athenahealth: 153 total jobs
+  ✅ essentiahealth: 816 total jobs
+  ✅ solutionhealth: 461 total jobs
+  ✅ gundersenhealth: 379 total jobs
+  ❌ benefis (wd1/External): HTTP 404
+  ❌ mercycare (wd1/External): HTTP 422
+  ❌ southshorehealth (wd1/External): HTTP 422
+  ✅ verawholehealth: 93 total jobs
+  ✅ bozemanhealth: 220 total jobs
+  ✅ hollandhospital: 64 total jobs
+  ✅ marshfieldclinichealthsystems: 834 total jobs
+  ❌ pullmanregionalhospital (wd1/External): HTTP 404
+  ✅ adventisthealthcare: 317 total jobs
+  ✅ agilonhealth: 21 total jobs
+  ✅ cambiahealth: 33 total jobs
+  ✅ caresource: 106 total jobs
+  ❌ cmh (wd1/External): HTTP 404
+  ❌ corrohealth (wd1/External): HTTP 404
+  ✅ crossoverhealth: 83 total jobs
+  ✅ devoted: 41 total jobs
+  ✅ evolent: 40 total jobs
+  ❌ ghc (wd1/External): HTTP 404
+  ❌ goodrx (wd1/External): HTTP 404
+  ❌ healthcatalyst (wd1/External): HTTP 422
+  ❌ hhc (wd1/External): HTTP 422
+  ❌ huntingtonhospital (wd1/External): HTTP 422
+  ❌ methodisthealthsystem (wd1/External): HTTP 404
+  ⏰ mhc-tn.com: fetch failed
+  ❌ mymarinhealth (wd1/External): HTTP 422
+  ❌ ntst (wd1/External): HTTP 404
+  ❌ owensborohealth (wd1/External): HTTP 404
+  ❌ performant (wd1/External): HTTP 404
+  ❌ phoebehealth (wd1/External): HTTP 422
+  ❌ phreesia (wd1/External): HTTP 404
+  ❌ premera (wd1/External): HTTP 422
+  ❌ primetherapeutics (wd1/External): HTTP 404
+  ❌ rivhs (wd1/External): HTTP 404
+  ❌ salinasvalleyhealth (wd1/External): HTTP 422
+  ✅ sharecare: 24 total jobs
+  ❌ tempus (wd1/External): HTTP 422
+  ✅ tuftsmedicine: 480 total jobs
+  ✅ umchealthsystem: 125 total jobs
+  ✅ geodehealth: 107 total jobs
+  ✅ lmh: 94 total jobs
+  ✅ mainegeneral: 208 total jobs
+  ✅ monarch: 294 total jobs
+  ✅ bmc: 840 total jobs
+  ✅ brownhealth: 1701 total jobs
+  ✅ centerstone: 171 total jobs
+  ✅ meharrymedicalcollege: 91 total jobs
+  ✅ seamar: 422 total jobs
+  ✅ rogersbh: 145 total jobs
+  ✅ tamus: 122 total jobs
+  ✅ brightli: 461 total jobs
+  ✅ thriveworks: 695 total jobs
+
+=== GREENHOUSE (sample 60 of 772 slugs) ===
+  ✅ sondermind: 139 jobs, 49 PMHNP ⭐
+  ✅ headway: 81 jobs, 1 PMHNP ⭐
+  ✅ modernhealth: 10 jobs, 0 PMHNP
+  ✅ mantrahealth: 26 jobs, 0 PMHNP
+  ✅ cerebral: 3 jobs, 1 PMHNP ⭐
+  ✅ twochairs: 51 jobs, 11 PMHNP ⭐
+  ✅ talkspace: 14 jobs, 2 PMHNP ⭐
+  ✅ ayahealthcare: 54 jobs, 0 PMHNP
+  ✅ amwell: 11 jobs, 0 PMHNP
+  ✅ octave: 34 jobs, 0 PMHNP
+  ✅ growtherapy: 36 jobs, 0 PMHNP
+  ✅ blueskytelepsych: 922 jobs, 922 PMHNP ⭐
+  ✅ bicyclehealth: 31 jobs, 26 PMHNP ⭐
+  ✅ signifyhealth: 25 jobs, 0 PMHNP
+  ✅ valerahealth: 4 jobs, 1 PMHNP ⭐
+  ✅ charliehealth: 282 jobs, 20 PMHNP ⭐
+  ✅ blackbirdhealth: 69 jobs, 20 PMHNP ⭐
+  ✅ ophelia: 17 jobs, 0 PMHNP
+  ✅ springhealth66: 105 jobs, 0 PMHNP
+  ✅ omadahealth: 26 jobs, 0 PMHNP
+  ✅ veterinarypracticepartners: 226 jobs, 0 PMHNP
+  ✅ vicarioussurgical: 1 jobs, 0 PMHNP
+  ✅ virbiotechnologyinc: 9 jobs, 0 PMHNP
+  ❌ virtahealth: HTTP 404
+  ❌ virtasant: HTTP 404
+  ✅ vitalfarmsinternalcrew: 12 jobs, 0 PMHNP
+  ✅ voxmedia: 24 jobs, 0 PMHNP
+  ❌ vytalizehealth: HTTP 404
+  ✅ walleyecapital-external-students: 2 jobs, 0 PMHNP
+  ✅ watchmakergenomics: 13 jobs, 0 PMHNP
+  ✅ wehrtyou: 65 jobs, 0 PMHNP
+  ✅ wellsaidlabs: 0 jobs, 0 PMHNP
+  ✅ wikimedia: 45 jobs, 0 PMHNP
+  ✅ windfallbio: 0 jobs, 0 PMHNP
+  ✅ wppmedia: 1142 jobs, 0 PMHNP
+  ✅ wyndlabs: 11 jobs, 0 PMHNP
+  ✅ yarrowbiotechnology: 0 jobs, 0 PMHNP
+  ❌ yugalabs: HTTP 404
+  ✅ zafinlabsamericasinc: 18 jobs, 0 PMHNP
+  ✅ zennioptical: 23 jobs, 0 PMHNP
+  ✅ affirmedrxpbc: 5 jobs, 0 PMHNP
+  ✅ mcghealth: 17 jobs, 0 PMHNP
+  ✅ manifoldbio: 5 jobs, 0 PMHNP
+  ✅ teravision: 6 jobs, 0 PMHNP
+  ✅ strandtherapeutics: 2 jobs, 0 PMHNP
+  ✅ onepath: 0 jobs, 0 PMHNP
+  ✅ lifeedittherapeutics: 0 jobs, 0 PMHNP
+  ✅ plootocareers: 1 jobs, 0 PMHNP
+  ✅ florencehealthcare: 5 jobs, 0 PMHNP
+  ✅ isccareers: 19 jobs, 0 PMHNP
+  ✅ noomgrowth: 9 jobs, 0 PMHNP
+  ✅ pokemoncareers: 27 jobs, 0 PMHNP
+  ✅ privategdcareers: 2 jobs, 0 PMHNP
+  ❌ titelmedia: HTTP 404
+  ❌ portagecareers: HTTP 404
+  ✅ nextinsurance66: 17 jobs, 0 PMHNP
+  ❌ medarrive: HTTP 404
+  ✅ renewedvision: 14 jobs, 0 PMHNP
+  ✅ springsworkstherapeutics: 10 jobs, 0 PMHNP
+  ✅ toastmastersinternational: 1 jobs, 0 PMHNP
+
+============================================================
+SUMMARY
+============================================================
+
+LEVER (39 tested):
+  ✅ Alive: 32
+  ❌ Dead: 6 → enter.health, heyjane.co, journeyclinical, myplacehealth, pplacareers.org, sprinterhealth
+  ⏰ Timeout: 1 → lifestance
+  ⭐ With PMHNP jobs: 9 → talkiatry(60), includedhealth(7), lyrahealth(3), mindful(10), athenapsych(4), seven-starling(2), beckley-clinical(1), arundellodge(1), guidestareldercare(39)
+
+ASHBY (49 tested):
+  ✅ Alive: 49
+  ⭐ With PMHNP jobs: 10 → equip(4), ReklameHealth(4), legionhealth(6), array-behavioral-care(6), blossom-health(2), sondermind(49), bravehealth(4), claritypediatrics(1), tandem-health(1), Fort Health(8)
+
+SMARTRECRUITERS (6 tested):
+  ✅ Alive: 6
+  ⭐ With PMHNP jobs: 2 → oleskyassociates(4), newyorkpsychotherapyandcounselingcenter(1)
+
+ICIMS (3 tested):
+  ✅ Alive: 3
+
+JAZZHR (2 tested):
+  ✅ Alive: 2
+  ⭐ With PMHNP jobs: 2 → applewoodcenters(1), mastercenterforaddictionmedicine(1)
+
+WORKDAY (109 tested):
+  ✅ Alive: 81
+  ❌ Dead: 27 → allina, choc, umassmemorial, wvumedicine, benefis, mercycare, southshorehealth, pullmanregionalhospital, cmh, corrohealth, ghc, goodrx, healthcatalyst, hhc, huntingtonhospital, methodisthealthsystem, mymarinhealth, ntst, owensborohealth, performant, phoebehealth, phreesia, premera, primetherapeutics, rivhs, salinasvalleyhealth, tempus
+  💥 Error: 1 → mhc-tn.com
+
+GREENHOUSE (60 tested):
+  ✅ Alive: 53
+  ❌ Dead: 7 → virtahealth, virtasant, vytalizehealth, yugalabs, titelmedia, portagecareers, medarrive
+  ⭐ With PMHNP jobs: 10 → sondermind(49), headway(1), cerebral(1), twochairs(11), talkspace(2), blueskytelepsych(922), bicyclehealth(26), valerahealth(1), charliehealth(20), blackbirdhealth(20)

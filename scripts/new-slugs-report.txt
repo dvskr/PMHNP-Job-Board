@@ -1,0 +1,131 @@
+TOTAL JOBS WITH APPLY LINKS: 6646
+
+URLS MATCHED TO ATS: 577
+
+=== LEVER (7 unique slugs) ===
+  lifestance                                 2 employers  (Lifestance, LifeStance Health)
+  talkiatry                                  1 employers  (Talkiatry)
+  athenapsych                                1 employers  (Athena)
+  guidestareldercare                         1 employers  (GuideStar Eldercare)
+  beckley-clinical                           1 employers  (Beckley Clinical)
+  mindful                                    1 employers  (Mindful)
+  seven-starling                             1 employers  (Seven Starling)
+
+=== SMARTRECRUITERS (6 unique slugs) ===
+  karecruitinginc                            1 employers  (K.A. Recruiting, Inc.)
+  oleskyassociates                           1 employers  (Olesky Associates)
+  newyorkpsychotherapyandcounselingcenter    1 employers  (New York Psychotherapy and Counseling Center)
+  internationalsosgovernmentmedicalservices   1 employers  (International SOS Government Medical Services)
+  kittitasvalleyhealthcare                   1 employers  (Kittitas Valley Healthcare)
+  mascmedicalrecruitmentfirm                 1 employers  (MASC Medical Recruitment Firm)
+
+=== WORKDAY (31 unique slugs) ===
+  multicare                                  2 employers  (MultiCare Health, MultiCare Health System)
+  monarch                                    2 employers  (MONARCH, Monarch)
+  benefis                                    2 employers  (Benefis Health System, CO_07 Benefis Medical Group, Inc.)
+  geodehealth                                1 employers  (Geode Health)
+  carilionclinic                             1 employers  (Carilion Clinic)
+  hshs                                       1 employers  (Hospital Sisters Health)
+  gundersenhealth                            1 employers  (Gundersen Health)
+  denverhealth                               1 employers  (Denver Health)
+  lmh                                        1 employers  (LMH Health)
+  cvshealth                                  1 employers  (CVS Health)
+  memorialhermann                            1 employers  (Memorial Hermann)
+  rogersbh                                   1 employers  (101 Rogers Memorial Hospital, Inc.)
+  tamus                                      1 employers  (Texas A&M University Health Science Center)
+  saintlukes                                 1 employers  (Saint Luke's Health System)
+  tuftsmedicine                              1 employers  (Tufts Medicine)
+  bmc                                        1 employers  (BMC Software)
+  seamar                                     1 employers  (Sea Mar Community Health Centers)
+  hollandhospital                            1 employers  (Holland Hospital)
+  teladoc                                    1 employers  (Teladoc Health)
+  aah                                        1 employers  (Advocate Health)
+  geisinger                                  1 employers  (Geisinger)
+  rrhs                                       1 employers  (Rochester Regional Health)
+  elevancehealth                             1 employers  (Elevance Health (Anthem))
+  cincinnatichildrens                        1 employers  (Cincinnati Children's)
+  davita                                     1 employers  (DaVita)
+  solutionhealth                             1 employers  (Solution Health)
+  mainegeneral                               1 employers  (MaineGeneral Health System)
+  brightli                                   1 employers  (BrightAI)
+  humana                                     1 employers  (Humana)
+  thriveworks                                1 employers  (Thriveworks Clinical - Oregon, LLC)
+  sentara                                    1 employers  (Sentara Healthcare)
+
+=== GREENHOUSE (23 unique slugs) ===
+  sondermind                                 2 employers  (SonderMind, SonderMind Careers)
+  firsthand                                  2 employers  (Firsthand, firsthand Health)
+  solmentalhealth                            2 employers  (Sol Mental Health, Ignite Mental Health)
+  valerahealth                               1 employers  (Valerahealth)
+  nursing                                    1 employers  (Nursing Wellness Center)
+  guidelighthealth                           1 employers  (Guidelight Health)
+  moodhealth                                 1 employers  (Moodhealth)
+  hellobackpack                              1 employers  (Backpack Healthcare)
+  cloverhealth                               1 employers  (Clover Health)
+  talkspacepsychiatry                        1 employers  (Talkspace Psychiatry)
+  strivehealth                               1 employers  (Strive Health)
+  seniordoc                                  1 employers  (Senior Doc)
+  blackbirdhealth                            1 employers  (Blackbirdhealth)
+  ennoblecare                                1 employers  (Ennoble Care)
+  cartwheelcare                              1 employers  (Cartwheel Care)
+  aspirehealthalliance                       1 employers  (Aspire Health Alliance)
+  khealthcareers                             1 employers  (K Health)
+  akidolabs                                  1 employers  (Akidolabs)
+  tia                                        1 employers  (Tia)
+  meditelecare                               1 employers  (MediTelecare)
+  headway                                    1 employers  (Headway)
+  blueskytelepsych                           1 employers  (Blue Sky Telepsych)
+  northpointrecoveryholdingsllc              1 employers  (Northpoint Recovery)
+
+=== ASHBY (6 unique slugs) ===
+  sondermind                                 1 employers  (SonderMind)
+  equip                                      1 employers  (Equip Health)
+  reklamehealth                              1 employers  (Reklame Health)
+  fort                                       1 employers  (Fort Health)
+  nest-health                                1 employers  (Nest Health)
+  bravehealth                                1 employers  (Bravehealth)
+
+=== JAZZ (2 unique slugs) ===
+  applewoodcenters                           1 employers  (Applewood Centers)
+  mastercenterforaddictionmedicine           1 employers  (Master Center for Addiction Medicine)
+
+=== ICIMS (3 unique slugs) ===
+  careers2-universalhealthservices           3 employers  (Brynn Marr Hospital, Arrowhead Behavioral Health, Roxbury Treatment Center)
+  facilityjobs-acadiahealthcare              1 employers  (Vantage Point Behavioral Health)
+  careers-vhchealth                          1 employers  (VHC Health)
+
+
+============================================================
+CROSS-REFERENCE: New slugs NOT in current handlers
+============================================================
+
+### NEW GREENHOUSE SLUGS (0 found, 789 already tracked) ###
+
+### NEW LEVER SLUGS (0 found, 54 already tracked) ###
+
+### NEW ASHBY SLUGS (1 found, 48 already tracked) ###
+  fort                                       1 employers  (Fort Health)
+
+### NEW WORKDAY SLUGS (5 found, 111 already tracked) ###
+  rogersbh                                   1 employers  (101 Rogers Memorial Hospital, Inc.)
+  tamus                                      1 employers  (Texas A&M University Health Science Center)
+  saintlukes                                 1 employers  (Saint Luke's Health System)
+  brightli                                   1 employers  (BrightAI)
+  thriveworks                                1 employers  (Thriveworks Clinical - Oregon, LLC)
+
+### ICIMS — NOT CURRENTLY SCRAPED (3 slugs found) ###
+  careers2-universalhealthservices           3 employers  (Brynn Marr Hospital, Arrowhead Behavioral Health, Roxbury Treatment Center)
+  facilityjobs-acadiahealthcare              1 employers  (Vantage Point Behavioral Health)
+  careers-vhchealth                          1 employers  (VHC Health)
+
+### SMARTRECRUITERS — NOT CURRENTLY SCRAPED (6 slugs found) ###
+  karecruitinginc                            1 employers  (K.A. Recruiting, Inc.)
+  oleskyassociates                           1 employers  (Olesky Associates)
+  newyorkpsychotherapyandcounselingcenter    1 employers  (New York Psychotherapy and Counseling Center)
+  internationalsosgovernmentmedicalservices   1 employers  (International SOS Government Medical Services)
+  kittitasvalleyhealthcare                   1 employers  (Kittitas Valley Healthcare)
+  mascmedicalrecruitmentfirm                 1 employers  (MASC Medical Recruitment Firm)
+
+### JAZZ — NOT CURRENTLY SCRAPED (2 slugs found) ###
+  applewoodcenters                           1 employers  (Applewood Centers)
+  mastercenterforaddictionmedicine           1 employers  (Master Center for Addiction Medicine)
