@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import { syncToBeehiiv } from '@/lib/beehiiv'
 
 /**
  * POST /api/newsletter — Capture email for newsletter
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
                     newsletterOptIn: true,
                 },
             })
+
+            // Sync to Beehiiv newsletter (fire-and-forget)
+            syncToBeehiiv(normalizedEmail, { utmSource: source || 'newsletter' })
         } else {
             // Unsubscribe: set false if exists (don't create)
             await prisma.emailLead.update({

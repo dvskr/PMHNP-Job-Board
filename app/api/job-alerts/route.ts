@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobAlert } from '@/lib/sanitize';
+import { syncToBeehiiv } from '@/lib/beehiiv';
 import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -184,6 +185,9 @@ export async function POST(request: NextRequest) {
         newsletterOptIn,
       },
     });
+
+    // Sync to Beehiiv newsletter (fire-and-forget)
+    syncToBeehiiv(normalizedEmail, { utmSource: 'job_alert' });
 
     // Dedup: check if an alert with the same criteria already exists for this email
     let jobAlert;

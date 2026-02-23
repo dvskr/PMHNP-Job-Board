@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { syncToBeehiiv } from '@/lib/beehiiv'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -54,6 +55,9 @@ export async function GET(request: Request) {
             avatarUrl: avatarUrl,
           }
         })
+
+        // Sync new user to Beehiiv newsletter (fire-and-forget)
+        syncToBeehiiv(data.user.email, { utmSource: 'google_signup' })
 
         // Auto-create daily job alert for job seekers (only if none exists)
         if ((metadata.role || 'job_seeker') === 'job_seeker') {
