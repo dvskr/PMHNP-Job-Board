@@ -1,0 +1,24 @@
+﻿node : Error: PrismaClientConstructorValidationError: Unknown property 
+datasources provided to PrismaClient constructor.
+At line:1 char:1
++ node preview-social-post.js 2> preview-error.log
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: PrismaCl...nt constructor.: 
+   String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Read more at https://pris.ly/d/client-constructor
+    at al (C:\Users\sathish.kumar\PMHNP-Job-Board\node_modules\@prisma\client\ru
+ntime\client.js:66:3832)
+    at new t (C:\Users\sathish.kumar\PMHNP-Job-Board\node_modules\@prisma\client
+\runtime\client.js:70:1241)
+    at main 
+(C:\Users\sathish.kumar\PMHNP-Job-Board\preview-social-post.js:10:20)
+    at Object.<anonymous> 
+(C:\Users\sathish.kumar\PMHNP-Job-Board\preview-social-post.js:175:1)
+    at Module._compile (node:internal/modules/cjs/loader:1761:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1481:32)
+    at Module._load (node:internal/modules/cjs/loader:1300:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)

@@ -7,11 +7,14 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig: NextConfig = {
   // Webpack is used by default (Turbopack is opt-in in Next.js 16)
   // This ensures compatibility with @react-pdf/renderer
-  
+
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  
+
+  // Native/WASM packages that must not be bundled by Turbopack
+  serverExternalPackages: ['@resvg/resvg-js'],
+
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -26,17 +29,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  
+
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  
+
   // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
-  
+
   // Headers for caching and security
   async headers() {
     return [
