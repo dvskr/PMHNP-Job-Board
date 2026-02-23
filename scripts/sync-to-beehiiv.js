@@ -8,6 +8,10 @@
  * Requires env vars: BEEHIIV_API, BEEHIIV_PUBLICATION_ID, PROD_DATABASE_URL
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const { Pool } = require('pg');
 
 const BEEHIIV_API_KEY = process.env.BEEHIIV_API || process.env.BEEHIIV_API_KEY;
