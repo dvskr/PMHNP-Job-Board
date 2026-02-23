@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import {
   emailShell,
   headerBlock,
@@ -524,6 +525,9 @@ const templates: Record<string, TemplateEntry> = {
 // ─── GET Handler ──────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
+  const authError = await requireApiAdmin(request);
+  if (authError) return authError;
+
   const { searchParams } = new URL(request.url);
   const template = searchParams.get('template');
 
