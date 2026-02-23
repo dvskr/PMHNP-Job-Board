@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push && next build",
+    "prebuild": "node -e \"process.env.TEMP=process.env.USERPROFILE+'\\\\AppData\\\\Local\\\\Temp';process.env.TMP=process.env.TEMP\"",
+    "build": "set TEMP=%USERPROFILE%\\AppData\\Local\\Temp&& prisma generate && prisma db push && next build",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
