@@ -3,7 +3,7 @@
  * GET /api/preview-social
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
     fetchTopJobsForSocial,
     buildFacebookCaption,
@@ -13,7 +13,12 @@ import {
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const jobs = await fetchTopJobsForSocial();
 

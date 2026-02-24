@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { sanitizeText, sanitizeEmail, sanitizeUrl } from '@/lib/sanitize';
+import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 import {
   suggestTargetCompanies,
   getLeadsByStatus,
@@ -11,6 +12,8 @@ import {
 } from '@/lib/outreach-service';
 
 export async function GET(request: NextRequest) {
+  const authError = await requireApiAdmin(request);
+  if (authError) return authError;
   try {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
@@ -51,6 +54,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireApiAdmin(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { action } = body;

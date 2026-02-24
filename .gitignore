@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# data exports and sensitive files
+*.csv
+/data/
+/tmp/
+/scripts/export-*.js
