@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { rateLimit } from '@/lib/rate-limit';
+import { verifyCsrf } from '@/lib/csrf';
 
 const ALLOWED_TYPES = [
     'application/pdf',
@@ -10,7 +12,36 @@ const ALLOWED_TYPES = [
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
+/** Magic byte signatures for document validation */
+const DOC_MAGIC: Record<string, number[][]> = {
+    'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
+    'application/msword': [
+        [0xD0, 0xCF, 0x11, 0xE0], // Legacy DOC
+        [0x50, 0x4B, 0x03, 0x04], // Some .doc are actually DOCX
+    ],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+        [0x50, 0x4B, 0x03, 0x04], // PK (ZIP/DOCX)
+        [0x50, 0x4B, 0x05, 0x06], // PK empty archive
+    ],
+};
+
+function verifyDocMagicBytes(buffer: Buffer, fileType: string): boolean {
+    const sigs = DOC_MAGIC[fileType];
+    if (!sigs) return false;
+    return sigs.some(sig =>
+        sig.every((byte, i) => buffer.length > i && buffer[i] === byte)
+    );
+}
+
 export async function POST(req: NextRequest) {
+    // Rate limiting — 10 attachments per minute
+    const rateLimitResult = await rateLimit(req, 'message-attachment', { limit: 10, windowSeconds: 60 });
+    if (rateLimitResult) return rateLimitResult;
+
+    // CSRF protection
+    const csrfResult = verifyCsrf(req);
+    if (csrfResult) return csrfResult;
+
     try {
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -37,10 +68,17 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const ext = file.name.split('.').pop() || 'pdf';
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const fileName = `${user.id}/${Date.now()}_${sanitizedName}`;
         const buffer = Buffer.from(await file.arrayBuffer());
+
+        // Verify magic bytes to prevent MIME type spoofing
+        if (!verifyDocMagicBytes(buffer, file.type)) {
+            return NextResponse.json(
+                { error: 'File content does not match declared file type' },
+                { status: 400 },
+            );
+        }
 
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!serviceRoleKey) {
@@ -60,7 +98,7 @@ export async function POST(req: NextRequest) {
         const { data: buckets } = await adminClient.storage.listBuckets();
         if (!buckets?.find(b => b.name === 'message-attachments')) {
             await adminClient.storage.createBucket('message-attachments', {
-                public: true,
+                public: false,
                 fileSizeLimit: MAX_SIZE,
                 allowedMimeTypes: ALLOWED_TYPES,
             });
@@ -77,17 +115,27 @@ export async function POST(req: NextRequest) {
         if (error) {
             console.error('Attachment upload error:', error);
             return NextResponse.json(
-                { error: `Upload failed: ${error.message}` },
+                { error: 'Upload failed' },
                 { status: 500 },
             );
         }
 
-        const { data: urlData } = adminClient.storage
+        // Generate a signed URL (1 hour expiry) instead of public URL
+        const { data: signedData, error: signedError } = await adminClient.storage
             .from('message-attachments')
-            .getPublicUrl(data.path);
+            .createSignedUrl(data.path, 3600); // 1 hour
+
+        if (signedError || !signedData?.signedUrl) {
+            console.error('Signed URL error:', signedError);
+            return NextResponse.json(
+                { error: 'Failed to generate download URL' },
+                { status: 500 },
+            );
+        }
 
         return NextResponse.json({
-            url: urlData.publicUrl,
+            path: data.path,   // Store THIS in the DB — permanent storage path
+            url: signedData.signedUrl, // Use for immediate display — expires in 1 hour
             name: file.name,
             size: file.size,
             type: file.type,

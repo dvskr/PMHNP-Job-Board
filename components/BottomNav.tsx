@@ -25,11 +25,6 @@ const navItems = [
     href: '/messages',
     icon: Mail,
   },
-  {
-    label: 'Alerts',
-    href: '/job-alerts/manage',
-    icon: Bell,
-  },
 ];
 
 export default function BottomNav() {

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 import { sendEmployerMessageNotification } from '@/lib/email-service';
+import { sanitizeText } from '@/lib/sanitize';
+import { verifyCsrf } from '@/lib/csrf';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * GET /api/conversations/[id]
@@ -119,9 +123,29 @@ export async function GET(
                     initials,
                 },
             },
-            messages: messages.map(m => {
-                // Check if sender deleted this message (show "deleted" placeholder to recipient)
+            messages: await Promise.all(messages.map(async (m) => {
+                // Check if sender deleted this message
                 const isSenderDeleted = m.senderId !== profile.id && m.deletedBySender;
+
+                // Generate fresh signed URL for attachments stored as paths
+                let resolvedAttachmentUrl = isSenderDeleted ? null : (m.attachmentUrl || null);
+                if (resolvedAttachmentUrl && !resolvedAttachmentUrl.startsWith('http')) {
+                    try {
+                        const admin = createAdminClient(
+                            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                            process.env.SUPABASE_SERVICE_ROLE_KEY!
+                        );
+                        const { data: signedData } = await admin.storage
+                            .from('message-attachments')
+                            .createSignedUrl(resolvedAttachmentUrl, 3600); // 1 hour
+                        if (signedData?.signedUrl) {
+                            resolvedAttachmentUrl = signedData.signedUrl;
+                        }
+                    } catch {
+                        // If signing fails, keep the raw path — better than nothing
+                    }
+                }
+
                 return {
                     id: m.id,
                     body: isSenderDeleted ? '' : m.body,
@@ -129,11 +153,11 @@ export async function GET(
                     isFromMe: m.senderId === profile.id,
                     readAt: m.readAt?.toISOString() || null,
                     editedAt: m.editedAt?.toISOString() || null,
-                    attachmentUrl: isSenderDeleted ? null : (m.attachmentUrl || null),
+                    attachmentUrl: resolvedAttachmentUrl,
                     attachmentName: isSenderDeleted ? null : (m.attachmentName || null),
                     isDeleted: isSenderDeleted,
                 };
-            }),
+            })),
             myProfileId: profile.id,
         });
     } catch (error) {
@@ -151,6 +175,14 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params;
+
+    // CSRF protection
+    const csrfError = verifyCsrf(req);
+    if (csrfError) return csrfError;
+
+    // Rate limiting — 20 messages/min
+    const rateLimitResult = await rateLimit(req, 'message-send', { limit: 20, windowSeconds: 60 });
+    if (rateLimitResult) return rateLimitResult;
 
     try {
         const supabase = await createClient();
@@ -208,7 +240,7 @@ export async function POST(
                 recipientId: recipientProfile.id,
                 conversationId: id,
                 subject: conversation.subject,
-                body: (messageBody || '').trim(),
+                body: sanitizeText((messageBody || '').trim(), 2000),
                 ...(attachmentUrl && { attachmentUrl }),
                 ...(attachmentName && { attachmentName }),
                 ...(conversation.jobId && { jobId: conversation.jobId }),
@@ -225,18 +257,50 @@ export async function POST(
             },
         });
 
-        // Send email notification (non-blocking)
+        // Send email notification only if recipient has NO existing unread messages
+        // in this conversation (prevents spam when sender sends multiple messages in a row)
         const senderName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'A user';
         if (recipientProfile.email) {
-            sendEmployerMessageNotification(
-                recipientProfile.email,
-                recipientProfile.firstName,
-                senderName,
-                profile.company,
-                conversation.subject,
-                (messageBody || '').trim() || (attachmentName ? `📎 ${attachmentName}` : ''),
-                null, // jobTitle not critical for reply notifications
-            ).catch(err => console.error('Email notification error:', err));
+            const existingUnread = await prisma.employerMessage.count({
+                where: {
+                    conversationId: id,
+                    senderId: profile.id,
+                    recipientId: recipientProfile.id,
+                    readAt: null,
+                    id: { not: message.id }, // exclude the message we just created
+                },
+            });
+
+            if (existingUnread === 0) {
+                sendEmployerMessageNotification(
+                    recipientProfile.email,
+                    recipientProfile.firstName,
+                    senderName,
+                    profile.company,
+                    conversation.subject,
+                    (messageBody || '').trim() || (attachmentName ? `📎 ${attachmentName}` : ''),
+                    null,
+                ).catch(err => console.error('Email notification error:', err));
+            }
+        }
+
+        // Generate a signed URL for the attachment if it's a storage path
+        let resolvedAttachmentUrl = message.attachmentUrl || null;
+        if (resolvedAttachmentUrl && !resolvedAttachmentUrl.startsWith('http')) {
+            try {
+                const admin = createAdminClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                    process.env.SUPABASE_SERVICE_ROLE_KEY!
+                );
+                const { data: signedData } = await admin.storage
+                    .from('message-attachments')
+                    .createSignedUrl(resolvedAttachmentUrl, 3600);
+                if (signedData?.signedUrl) {
+                    resolvedAttachmentUrl = signedData.signedUrl;
+                }
+            } catch {
+                // Keep raw path as fallback
+            }
         }
 
         return NextResponse.json({
@@ -246,7 +310,7 @@ export async function POST(
                 body: message.body,
                 sentAt: message.sentAt.toISOString(),
                 isFromMe: true,
-                attachmentUrl: message.attachmentUrl || null,
+                attachmentUrl: resolvedAttachmentUrl,
                 attachmentName: message.attachmentName || null,
             },
         });

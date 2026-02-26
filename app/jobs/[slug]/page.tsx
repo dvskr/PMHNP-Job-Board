@@ -18,6 +18,7 @@ import InternalLinks from '@/components/InternalLinks';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/blog';
+import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
@@ -365,7 +366,7 @@ export default async function JobPage({ params }: JobPageProps) {
   }
 
   // Fetch all additional data in parallel for content enrichment
-  const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary] = await Promise.all([
+  const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary, currentUser] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
       employer: job.employer,
@@ -377,7 +378,9 @@ export default async function JobPage({ params }: JobPageProps) {
     getCompanyInfo(job.companyId, job.employer),
     getEmployerJobCount(job.employer, job.id),
     getStateSalaryAverage(job.state, job.stateCode),
+    getCurrentUser(),
   ]);
+  const isAuthenticated = !!currentUser;
 
   // Get relevant blog posts (async - fetches from Supabase)
   const relevantBlogPosts = await getRelevantBlogPosts(job);
@@ -671,7 +674,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div className="space-y-3 mb-5">
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
                   <SaveJobButton jobId={job.id} />
 
                 </div>
@@ -719,7 +722,7 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-3 pb-safe">
-          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
+          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
         </div>
       </div>
     </>

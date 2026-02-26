@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
+
+/**
+ * Generate a fresh signed URL for a resume stored as a storage path.
+ * Handles both legacy full URLs and new storage paths.
+ */
+async function generateResumeUrl(resumeUrl: string | null): Promise<string | null> {
+    if (!resumeUrl) return null;
+
+    // If it's already a full URL (legacy data), return as-is
+    if (resumeUrl.startsWith('http')) return resumeUrl;
+
+    // It's a storage path — generate a fresh signed URL
+    try {
+        const admin = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data } = await admin.storage
+            .from('resumes')
+            .createSignedUrl(resumeUrl, 3600); // 1 hour
+        return data?.signedUrl || null;
+    } catch {
+        return null;
+    }
+}
 
 /**
  * Check whether an employer has at least one active, paid FEATURED job posting.
@@ -41,8 +67,8 @@ export async function GET(
         select: { role: true },
     })
 
-    if (!viewerProfile || !['employer', 'admin'].includes(viewerProfile.role)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!viewerProfile || (viewerProfile.role !== 'employer' && viewerProfile.role !== 'admin')) {
+        return NextResponse.json({ error: 'Forbidden — employer or admin only' }, { status: 403 })
     }
 
     // Determine access level: admin always gets full access,
@@ -103,6 +129,9 @@ export async function GET(
         }
     }
 
+    // Resume + contact details — ONLY available with an active paid featured job post
+    const freshResumeUrl = hasFullAccess ? await generateResumeUrl(candidate.resumeUrl) : null;
+
     return NextResponse.json({
         id: candidate.supabaseId,
         displayName,
@@ -121,10 +150,10 @@ export async function GET(
         hasResume: !!candidate.resumeUrl,
         joinedAt: candidate.createdAt.toISOString(),
 
-        // Access-gated fields — only available with an active paid job post
+        // Paid access only — resume, email, LinkedIn
         hasFullAccess,
+        resumeUrl: freshResumeUrl,
         contactEmail: hasFullAccess ? candidate.email : null,
-        resumeUrl: hasFullAccess ? candidate.resumeUrl : null,
         linkedinUrl: hasFullAccess ? candidate.linkedinUrl : null,
     })
 }

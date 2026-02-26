@@ -139,8 +139,8 @@ export default function MessagesPage() {
     const threadEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Attachment state
-    const [pendingAttachment, setPendingAttachment] = useState<{ url: string; name: string } | null>(null);
+    // Attachment state (path = storage path for DB, url = temp signed URL for preview)
+    const [pendingAttachment, setPendingAttachment] = useState<{ path: string; url: string; name: string } | null>(null);
     const [uploading, setUploading] = useState(false);
 
     // Delete state
@@ -254,7 +254,7 @@ export default function MessagesPage() {
                 return;
             }
             const data = await res.json();
-            setPendingAttachment({ url: data.url, name: data.name });
+            setPendingAttachment({ path: data.path, url: data.url, name: data.name });
         } catch (err) {
             console.error('File upload error:', err);
             alert('Upload failed. Please try again.');
@@ -271,7 +271,7 @@ export default function MessagesPage() {
             const payload: Record<string, string> = {};
             if (replyText.trim()) payload.body = replyText.trim();
             if (pendingAttachment) {
-                payload.attachmentUrl = pendingAttachment.url;
+                payload.attachmentUrl = pendingAttachment.path; // Store storage path, not signed URL
                 payload.attachmentName = pendingAttachment.name;
             }
 
@@ -405,9 +405,9 @@ export default function MessagesPage() {
     const showMobileThread = activeConvId !== null;
 
     return (
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 16px' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <div className="msg-page-container">
+            {/* Header — hidden on mobile, shown on desktop */}
+            <div className="msg-page-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                     Messaging
                 </h1>
@@ -440,24 +440,21 @@ export default function MessagesPage() {
                     </p>
                 </div>
             ) : (
-                <div style={{
+                <div className="msg-grid" style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(260px, 340px) 1fr',
+                    gridTemplateColumns: '1fr',
                     gap: '0',
-                    border: borderVal,
-                    borderRadius: '12px',
                     overflow: 'hidden',
-                    height: 'calc(100vh - 180px)',
-                    minHeight: '500px',
-                    maxHeight: 'calc(100vh - 180px)',
                     backgroundColor: cardBg,
+                    flex: 1,
+                    minHeight: 0,
                 }}>
                     {/* ═══ Left Panel: Conversation List (LinkedIn-style) ═══ */}
                     <div style={{
                         borderRight: borderVal,
                         overflowY: 'auto',
                         display: showMobileThread ? 'none' : 'block',
-                    }} className="messages-list-panel">
+                    }} className="messages-list-panel hide-scrollbar">
                         {conversations.map(conv => (
                             <div key={conv.id} style={{ position: 'relative' }}
                                 onMouseEnter={(e) => { const btn = e.currentTarget.querySelector('.conv-menu-btn') as HTMLElement; if (btn) btn.style.opacity = '1'; }}
@@ -666,10 +663,10 @@ export default function MessagesPage() {
                                 </div>
 
                                 {/* Thread Messages — Clean chat style */}
-                                <div style={{
+                                <div className="hide-scrollbar" style={{
                                     flex: 1, overflowY: 'auto',
-                                    padding: '20px 24px',
-                                    display: 'flex', flexDirection: 'column', gap: '16px',
+                                    padding: '16px',
+                                    display: 'flex', flexDirection: 'column', gap: '12px',
                                 }}>
                                     {/* Subject header — shown once at top */}
                                     {convDetail.subject && (
@@ -904,7 +901,7 @@ export default function MessagesPage() {
                                 </div>
 
                                 {/* Reply Input — LinkedIn style "Write a message..." */}
-                                <div style={{
+                                <div className="msg-composer" style={{
                                     padding: '16px 20px',
                                     borderTop: borderVal,
                                     backgroundColor: cardBg,
@@ -1119,22 +1116,65 @@ export default function MessagesPage() {
                 </div>
             )}
 
-            {/* Responsive CSS */}
             <style>{`
                 @media (min-width: 768px) {
                     .messages-list-panel { display: block !important; }
                     .messages-thread-panel { display: flex !important; }
                     .thread-back-btn { display: none !important; }
+                    .msg-page-container {
+                        max-width: 1100px;
+                        margin: 0 auto;
+                        padding: 24px 16px 80px;
+                    }
+                    .msg-page-header { display: flex !important; }
+                    .msg-grid {
+                        grid-template-columns: minmax(260px, 340px) 1fr !important;
+                        border-radius: 12px !important;
+                        border: 1px solid var(--border-color) !important;
+                        height: calc(100vh - 180px) !important;
+                        max-height: calc(100vh - 180px) !important;
+                    }
                 }
                 @media (max-width: 767px) {
                     .messages-list-panel { border-right: none !important; }
+                    .msg-page-container {
+                        position: fixed;
+                        top: 94px;
+                        left: 0;
+                        right: 0;
+                        bottom: 80px;
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
+                        background: var(--bg-primary);
+                        z-index: 30;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    .msg-page-header { display: none !important; }
+                    .msg-grid {
+                        border: none !important;
+                        border-radius: 0 !important;
+                        flex: 1 !important;
+                        min-height: 0 !important;
+                        height: 100% !important;
+                    }
+                    .msg-composer {
+                        padding: 8px 12px 4px !important;
+                    }
                 }
                 @keyframes slideUp {
                     from { transform: translateX(-50%) translateY(20px); opacity: 0; }
                     to { transform: translateX(-50%) translateY(0); opacity: 1; }
                 }
-            `}
-            </style>
-        </div >
+                .hide-scrollbar {
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+                .hide-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
+        </div>
     );
 }

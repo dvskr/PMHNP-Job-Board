@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Bookmark, Briefcase, Sun, Moon, Mail } from 'lucide-react';
+import { Menu, X, Bookmark, Briefcase, Sun, Moon, Mail, Bell } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -34,6 +34,11 @@ export default function Header() {
     document.body.style.overflow = isMenuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isMenuOpen]);
+
+  // Auto-close mobile menu on route change
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
 
   // Clear any stale overflow lock when navigating between pages
   useEffect(() => {
@@ -148,7 +153,7 @@ export default function Header() {
         >
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            height: '78px',
+            height: '78px', gap: '8px',
           }}>
 
             {/* ═══ Left: Logo ═══ */}
@@ -184,16 +189,16 @@ export default function Header() {
             </Link>
 
             {/* ═══ Center: Nav links ═══ */}
-            <nav className="hidden lg:flex items-center gap-1" style={{
-              position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+            <nav className="hidden lg:flex items-center" style={{
+              gap: 'clamp(2px, 0.5vw, 8px)',
             }}>
               <Link
                 href="/jobs"
                 className={`nav-link ${isActive('/jobs') ? 'active' : ''}`}
                 style={{
-                  padding: '8px 18px', borderRadius: '10px',
-                  fontSize: '14px', fontWeight: 600,
-                  textDecoration: 'none',
+                  padding: '8px clamp(10px, 1.2vw, 18px)', borderRadius: '10px',
+                  fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
+                  textDecoration: 'none', whiteSpace: 'nowrap',
                 }}
               >
                 Find Jobs
@@ -203,9 +208,9 @@ export default function Header() {
                   href="/saved"
                   className={`nav-link ${isActive('/saved') ? 'active' : ''}`}
                   style={{
-                    padding: '8px 18px', borderRadius: '10px',
-                    fontSize: '14px', fontWeight: 600,
-                    textDecoration: 'none',
+                    padding: '8px clamp(10px, 1.2vw, 18px)', borderRadius: '10px',
+                    fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
+                    textDecoration: 'none', whiteSpace: 'nowrap',
                     display: 'inline-flex', alignItems: 'center', gap: '5px',
                   }}
                 >
@@ -216,9 +221,9 @@ export default function Header() {
                 href="/messages"
                 className={`nav-link ${isActive('/messages') ? 'active' : ''}`}
                 style={{
-                  padding: '8px 18px', borderRadius: '10px',
-                  fontSize: '14px', fontWeight: 600,
-                  textDecoration: 'none',
+                  padding: '8px clamp(10px, 1.2vw, 18px)', borderRadius: '10px',
+                  fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
+                  textDecoration: 'none', whiteSpace: 'nowrap',
                   display: 'inline-flex', alignItems: 'center', gap: '5px',
                 }}
               >
@@ -229,9 +234,9 @@ export default function Header() {
                   href="/post-job"
                   className="hdr-post-link"
                   style={{
-                    padding: '7px 16px', borderRadius: '10px',
-                    fontSize: '13px', fontWeight: 600,
-                    textDecoration: 'none',
+                    padding: '7px clamp(10px, 1vw, 16px)', borderRadius: '10px',
+                    fontSize: 'clamp(12px, 1vw, 13px)', fontWeight: 600,
+                    textDecoration: 'none', whiteSpace: 'nowrap',
                     marginLeft: '6px',
                   }}
                 >
@@ -241,7 +246,7 @@ export default function Header() {
             </nav>
 
             {/* ═══ Right: Theme + Auth ═══ */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3" style={{ flexShrink: 0 }}>
               <button
                 onClick={toggleTheme}
                 className="hdr-theme-btn"
@@ -299,7 +304,7 @@ export default function Header() {
           {isMenuOpen && (
             <>
               <motion.div
-                className="fixed inset-0 z-40 lg:hidden"
+                className="fixed inset-0 z-[70] lg:hidden"
                 onClick={() => setIsMenuOpen(false)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -309,77 +314,100 @@ export default function Header() {
                 style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)' }}
               />
               <motion.div
-                className="fixed inset-y-0 right-0 w-full sm:w-80 z-50 lg:hidden shadow-2xl"
-                style={{ backgroundColor: 'var(--mobile-menu-bg)', opacity: 1 }}
+                className="fixed inset-y-0 right-0 w-full sm:w-80 z-[90] lg:hidden shadow-2xl"
+                style={{ backgroundColor: 'var(--bg-primary)' }}
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', stiffness: 350, damping: 35 }}
               >
-                <div
-                  className="flex items-center justify-between p-4"
-                  style={{ borderBottom: '1px solid var(--border-color)' }}
-                >
-                  <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Menu</span>
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className="transition-colors duration-200 p-2 -mr-2 touch-manipulation"
-                    style={{ color: 'var(--text-secondary)', minWidth: '44px', minHeight: '44px' }}
-                    aria-label="Close menu"
+                <div className="h-full w-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                  <div
+                    className="flex items-center justify-between p-4"
+                    style={{ borderBottom: '1px solid var(--border-color)' }}
                   >
-                    <X size={24} />
-                  </button>
-                </div>
-                <nav className="flex flex-col p-4 overflow-y-auto h-[calc(100vh-73px)]">
-                  <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={setUserRole} />
+                    <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Menu</span>
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className="transition-colors duration-200 p-2 -mr-2 touch-manipulation"
+                      style={{ color: 'var(--text-secondary)', minWidth: '44px', minHeight: '44px' }}
+                      aria-label="Close menu"
+                    >
+                      <X size={24} />
+                    </button>
                   </div>
-                  {userRole !== 'job_seeker' && (
-                    <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
-                        <Button variant="primary" size="lg" className="w-full">
-                          <Briefcase size={20} />
-                          Post a Job
-                        </Button>
+                  <nav className="flex flex-col items-center p-4 overflow-y-auto h-[calc(100vh-73px)]" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                    <div className="mb-6 pb-6 w-full" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={setUserRole} />
+                    </div>
+                    {userRole !== 'job_seeker' && (
+                      <div className="mb-4 pb-4 w-full" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
+                          <Button variant="primary" size="lg" className="w-full">
+                            <Briefcase size={20} />
+                            Post a Job
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                    <div className="space-y-1 w-full flex flex-col items-center">
+                      <Link
+                        href="/jobs"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Briefcase size={20} />
+                        <span className="font-semibold">Browse Jobs</span>
+                      </Link>
+                      <Link
+                        href="/saved"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Bookmark size={20} />
+                        <span className="font-semibold">Saved Jobs</span>
+                      </Link>
+                      <Link
+                        href="/job-alerts"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Bell size={20} />
+                        <span className="font-semibold">Job Alerts</span>
+                      </Link>
+                      <Link
+                        href="/messages"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Mail size={20} />
+                        <span className="font-semibold">Messages</span>
                       </Link>
                     </div>
-                  )}
-                  <Link
-                    href="/jobs"
-                    className="hover:text-primary-600 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3"
-                    style={{ color: 'var(--text-primary)' }}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Browse Jobs
-                  </Link>
-                  <Link
-                    href="/saved"
-                    className="hover:text-primary-600 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3 flex items-center gap-2"
-                    style={{ color: 'var(--text-primary)' }}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Bookmark size={18} />
-                    Saved Jobs
-                  </Link>
-                  <div className="mt-auto pt-6 space-y-2" style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <Link
-                      href="/faq"
-                      className="text-sm hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
-                      style={{ color: 'var(--text-primary)' }}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      FAQ
-                    </Link>
-                    <Link
-                      href="/contact"
-                      className="text-sm hover:text-primary-600 transition-colors duration-200 block py-2 font-medium"
-                      style={{ color: 'var(--text-primary)' }}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Contact Us
-                    </Link>
-                  </div>
-                </nav>
+                    <div className="mt-auto pt-6 space-y-1 w-full flex flex-col items-center" style={{ borderTop: '1px solid var(--border-color)' }}>
+                      <Link
+                        href="/faq"
+                        className="text-sm transition-colors duration-200 block py-2 px-3 font-medium rounded-lg text-center"
+                        style={{ color: 'var(--text-secondary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        FAQ
+                      </Link>
+                      <Link
+                        href="/contact"
+                        className="text-sm transition-colors duration-200 block py-2 px-3 font-medium rounded-lg"
+                        style={{ color: 'var(--text-secondary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Contact Us
+                      </Link>
+                    </div>
+                  </nav>
+                </div>
               </motion.div>
             </>
           )}

@@ -72,7 +72,14 @@ export function sanitizeUrl(url: string): string {
  * Sanitize email address
  */
 export function sanitizeEmail(email: string): string {
-    return email.toLowerCase().trim().slice(0, 254);
+    // Strip any HTML tags, trim, lowercase, and limit length
+    const cleaned = email
+        .replace(/<[^>]+>/g, '')
+        .replace(/[<>"'`;]/g, '')
+        .toLowerCase()
+        .trim()
+        .slice(0, 254);
+    return cleaned;
 }
 
 /**

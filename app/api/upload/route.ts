@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
     if (uploadType === 'resume') {
       result = await uploadResume(buffer, file.name, file.type, user.id);
 
-      // Update user profile with resume URL
+      // Store the permanent storage path (not the signed URL which expires)
       await prisma.userProfile.update({
         where: { supabaseId: user.id },
-        data: { resumeUrl: result.url },
+        data: { resumeUrl: result.path },
       });
     } else {
       result = await uploadAvatar(buffer, file.name, file.type, user.id);
@@ -82,9 +82,8 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Error uploading file', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
     return NextResponse.json(
-      { error: errorMessage },
+      { error: 'Failed to upload file' },
       { status: 500 }
     );
   }

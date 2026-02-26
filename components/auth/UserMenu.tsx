@@ -130,14 +130,14 @@ export default function UserMenu({ user, profileCompleteness = 100 }: UserMenuPr
 
       {isOpen && (
         <div style={{
-          position: 'absolute', right: 0, marginTop: '8px',
-          width: '240px',
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: '8px',
+          width: '260px',
           backgroundColor: 'var(--bg-secondary)',
           border: '1px solid var(--border-color)',
           borderRadius: '14px',
           boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
           overflow: 'hidden',
-          zIndex: 50,
+          zIndex: 100,
         }}>
           {/* User info header */}
           <div style={{

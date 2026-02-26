@@ -656,6 +656,234 @@ function SettingsPageInner() {
           )}
 
           {/* ═════════════════════════════════════════════
+          SECTION — Personal Info
+         ═════════════════════════════════════════════ */}
+          <div id="section-contact" style={{ ...cardStyle, marginTop: '24px' }}>
+            <h3 style={cardTitle}>
+              <User size={20} style={{ color: '#818CF8' }} />
+              Personal Info
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={labelStyle}>First Name</label>
+                <input
+                  type="text"
+                  value={profile.firstName || ''}
+                  onChange={(e) => updateProfile({ firstName: e.target.value })}
+                  placeholder="First name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Last Name</label>
+                <input
+                  type="text"
+                  value={profile.lastName || ''}
+                  onChange={(e) => updateProfile({ lastName: e.target.value })}
+                  placeholder="Last name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="tel"
+                    value={profile.phone || ''}
+                    onChange={(e) => updateProfile({ phone: e.target.value })}
+                    placeholder="555-1234"
+                    style={{ ...inputStyle, paddingLeft: '36px' }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="email"
+                    value={profile.email}
+                    disabled
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: '36px',
+                      opacity: 0.6,
+                      cursor: 'not-allowed',
+                    }}
+                  />
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed</p>
+              </div>
+
+              {/* Company (only for employers) */}
+              {profile.role === 'employer' && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Company</label>
+                  <div style={{ position: 'relative' }}>
+                    <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                      type="text"
+                      value={profile.company || ''}
+                      onChange={(e) => updateProfile({ company: e.target.value })}
+                      placeholder="Your company name"
+                      style={{ ...inputStyle, paddingLeft: '36px' }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ═════════════════════════════════════════════
+          SECTION — Address (job seekers only)
+         ═════════════════════════════════════════════ */}
+          {profile.role !== 'employer' && (
+            <div id="section-address" style={cardStyle}>
+              <h3 style={cardTitle}>
+                <MapPin size={20} style={{ color: '#F59E0B' }} />
+                Address
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Street Address */}
+                <div>
+                  <label style={labelStyle}>Street Address</label>
+                  <input
+                    type="text"
+                    value={profile.addressLine1 || ''}
+                    onChange={(e) => updateProfile({ addressLine1: e.target.value })}
+                    placeholder="123 Main St"
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Address Line 2 */}
+                <div>
+                  <label style={labelStyle}>Apt, Suite, Unit <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
+                  <input
+                    type="text"
+                    value={profile.addressLine2 || ''}
+                    onChange={(e) => updateProfile({ addressLine2: e.target.value })}
+                    placeholder="Apt 4B"
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* City + State row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>City</label>
+                    <input
+                      type="text"
+                      value={profile.city || ''}
+                      onChange={(e) => updateProfile({ city: e.target.value })}
+                      placeholder="City"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>State</label>
+                    <select
+                      value={profile.state || ''}
+                      onChange={(e) => updateProfile({ state: e.target.value || null })}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                    >
+                      <option value="">Select state</option>
+                      {US_STATES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Zip + Country row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>ZIP Code</label>
+                    <input
+                      type="text"
+                      value={profile.zipCode || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^\d-]/g, '').slice(0, 10)
+                        updateProfile({ zipCode: val })
+                      }}
+                      placeholder="12345"
+                      maxLength={10}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Country</label>
+                    <input
+                      type="text"
+                      value={profile.country || 'United States'}
+                      disabled
+                      style={{
+                        ...inputStyle,
+                        opacity: 0.6,
+                        cursor: 'not-allowed',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Save Address button */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button
+                    onClick={async () => {
+                      setSavingAddress(true)
+                      try {
+                        const res = await fetch('/api/profile/address', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            addressLine1: profile.addressLine1,
+                            addressLine2: profile.addressLine2,
+                            city: profile.city,
+                            state: profile.state,
+                            zipCode: profile.zipCode,
+                            country: profile.country || 'US',
+                          }),
+                        })
+                        if (!res.ok) throw new Error('Failed to save')
+                        const updated = await res.json()
+                        setProfile(updated)
+                        showMsg('success', 'Address saved!')
+                      } catch {
+                        showMsg('error', 'Failed to save address.')
+                      } finally {
+                        setSavingAddress(false)
+                      }
+                    }}
+                    disabled={savingAddress}
+                    style={{
+                      padding: '10px 28px',
+                      borderRadius: '10px',
+                      background: savingAddress
+                        ? 'rgba(45,212,191,0.3)'
+                        : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                      color: '#fff',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: savingAddress ? 'not-allowed' : 'pointer',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    {savingAddress ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {savingAddress ? 'Saving...' : 'Save Address'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════
           SECTION 2 — Professional Info (job seekers only)
          ═════════════════════════════════════════════ */}
           {profile.role !== 'employer' && (
@@ -880,235 +1108,6 @@ function SettingsPageInner() {
               </div>
             </div>
           )}
-
-          {/* ═════════════════════════════════════════════
-          SECTION 4 — Personal Info
-         ═════════════════════════════════════════════ */}
-          <div id="section-contact" style={{ ...cardStyle, marginTop: '24px' }}>
-            <h3 style={cardTitle}>
-              <User size={20} style={{ color: '#818CF8' }} />
-              Personal Info
-            </h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div>
-                <label style={labelStyle}>First Name</label>
-                <input
-                  type="text"
-                  value={profile.firstName || ''}
-                  onChange={(e) => updateProfile({ firstName: e.target.value })}
-                  placeholder="First name"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Last Name</label>
-                <input
-                  type="text"
-                  value={profile.lastName || ''}
-                  onChange={(e) => updateProfile({ lastName: e.target.value })}
-                  placeholder="Last name"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Phone <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
-                <div style={{ position: 'relative' }}>
-                  <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input
-                    type="tel"
-                    value={profile.phone || ''}
-                    onChange={(e) => updateProfile({ phone: e.target.value })}
-                    placeholder="555-1234"
-                    style={{ ...inputStyle, paddingLeft: '36px' }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label style={labelStyle}>Email</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input
-                    type="email"
-                    value={profile.email}
-                    disabled
-                    style={{
-                      ...inputStyle,
-                      paddingLeft: '36px',
-                      opacity: 0.6,
-                      cursor: 'not-allowed',
-                    }}
-                  />
-                </div>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Email cannot be changed</p>
-              </div>
-
-              {/* Company (only for employers) */}
-              {profile.role === 'employer' && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Company</label>
-                  <div style={{ position: 'relative' }}>
-                    <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      type="text"
-                      value={profile.company || ''}
-                      onChange={(e) => updateProfile({ company: e.target.value })}
-                      placeholder="Your company name"
-                      style={{ ...inputStyle, paddingLeft: '36px' }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ═════════════════════════════════════════════
-          SECTION 4b — Address (job seekers only)
-         ═════════════════════════════════════════════ */}
-          {profile.role !== 'employer' && (
-            <div id="section-address" style={cardStyle}>
-              <h3 style={cardTitle}>
-                <MapPin size={20} style={{ color: '#F59E0B' }} />
-                Address
-              </h3>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Street Address */}
-                <div>
-                  <label style={labelStyle}>Street Address</label>
-                  <input
-                    type="text"
-                    value={profile.addressLine1 || ''}
-                    onChange={(e) => updateProfile({ addressLine1: e.target.value })}
-                    placeholder="123 Main St"
-                    style={inputStyle}
-                  />
-                </div>
-
-                {/* Address Line 2 */}
-                <div>
-                  <label style={labelStyle}>Apt, Suite, Unit <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(optional)</span></label>
-                  <input
-                    type="text"
-                    value={profile.addressLine2 || ''}
-                    onChange={(e) => updateProfile({ addressLine2: e.target.value })}
-                    placeholder="Apt 4B"
-                    style={inputStyle}
-                  />
-                </div>
-
-                {/* City + State row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={labelStyle}>City</label>
-                    <input
-                      type="text"
-                      value={profile.city || ''}
-                      onChange={(e) => updateProfile({ city: e.target.value })}
-                      placeholder="City"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>State</label>
-                    <select
-                      value={profile.state || ''}
-                      onChange={(e) => updateProfile({ state: e.target.value || null })}
-                      style={{ ...inputStyle, cursor: 'pointer' }}
-                    >
-                      <option value="">Select state</option>
-                      {US_STATES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Zip + Country row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={labelStyle}>ZIP Code</label>
-                    <input
-                      type="text"
-                      value={profile.zipCode || ''}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^\d-]/g, '').slice(0, 10)
-                        updateProfile({ zipCode: val })
-                      }}
-                      placeholder="12345"
-                      maxLength={10}
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Country</label>
-                    <input
-                      type="text"
-                      value={profile.country || 'United States'}
-                      disabled
-                      style={{
-                        ...inputStyle,
-                        opacity: 0.6,
-                        cursor: 'not-allowed',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Save Address button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                  <button
-                    onClick={async () => {
-                      setSavingAddress(true)
-                      try {
-                        const res = await fetch('/api/profile/address', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            addressLine1: profile.addressLine1,
-                            addressLine2: profile.addressLine2,
-                            city: profile.city,
-                            state: profile.state,
-                            zipCode: profile.zipCode,
-                            country: profile.country || 'US',
-                          }),
-                        })
-                        if (!res.ok) throw new Error('Failed to save')
-                        const updated = await res.json()
-                        setProfile(updated)
-                        showMsg('success', 'Address saved!')
-                      } catch {
-                        showMsg('error', 'Failed to save address.')
-                      } finally {
-                        setSavingAddress(false)
-                      }
-                    }}
-                    disabled={savingAddress}
-                    style={{
-                      padding: '10px 28px',
-                      borderRadius: '10px',
-                      background: savingAddress
-                        ? 'rgba(45,212,191,0.3)'
-                        : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-                      color: '#fff',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: savingAddress ? 'not-allowed' : 'pointer',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      transition: 'all 0.3s',
-                    }}
-                  >
-                    {savingAddress ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    {savingAddress ? 'Saving...' : 'Save Address'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
 
 
           {/* ═════════════════════════════════════════════

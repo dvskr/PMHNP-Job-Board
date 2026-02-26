@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import { AlertTriangle } from 'lucide-react';
+
 
 export const metadata: Metadata = {
   title: 'Terms of Service | PMHNP Hiring',
@@ -23,15 +23,6 @@ export default function TermsPage() {
         { name: 'Terms of Service', url: 'https://pmhnphiring.com/terms' },
       ]} />
       <article className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 md:p-12">
-        {/* Legal Disclaimer */}
-        <div className="mb-8 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
-          <div className="flex items-start">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
-            <p className="text-sm text-amber-900">
-              <strong>Legal Disclaimer:</strong> This is a template. Consult a legal professional for advice specific to your situation.
-            </p>
-          </div>
-        </div>
 
         {/* Header */}
         <header className="mb-12 pb-6 border-b border-gray-200">

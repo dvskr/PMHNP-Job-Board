@@ -136,7 +136,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
       )
     }
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-center gap-4 w-full">
         <Link
           href="/dashboard"
           className="nav-link"

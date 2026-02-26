@@ -150,7 +150,9 @@ export function headerBlock(title: string, subtitle: string = ''): string {
   return `
           <tr>
             <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; margin: 0 auto 14px;" />
+              <div style="width: 64px; height: 64px; margin: 0 auto 14px; background-color: #FFFFFF; border-radius: 50%; padding: 2px;">
+                <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; border-radius: 50%;" />
+              </div>
               <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
                 ${title}
               </h1>
@@ -163,7 +165,9 @@ function amberHeader(title: string, subtitle: string = ''): string {
   return `
           <tr>
             <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; margin: 0 auto 14px;" />
+              <div style="width: 64px; height: 64px; margin: 0 auto 14px; background-color: #FFFFFF; border-radius: 50%; padding: 2px;">
+                <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; border-radius: 50%;" />
+              </div>
               <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
                 ${title}
               </h1>

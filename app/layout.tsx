@@ -10,6 +10,7 @@ const FloatingSocial = dynamic(() => import('@/components/FloatingSocial'));
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutShell from '@/components/LayoutShell';
 import MainContent from '@/components/MainContent';
+import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 const StickyEmailBar = dynamic(() => import('@/components/StickyEmailBar'));
@@ -217,11 +218,13 @@ export default function RootLayout({
             </LayoutShell>
             <MainContent>{children}</MainContent>
             <LayoutShell>
-              <Footer />
-              <FloatingSocial />
-              <FeedbackWidget />
+              <MobileHideOnAppRoutes>
+                <Footer />
+                <FloatingSocial />
+                <FeedbackWidget />
+                <StickyEmailBar />
+              </MobileHideOnAppRoutes>
               <BottomNav />
-              <StickyEmailBar />
             </LayoutShell>
           </div>
         </ThemeProvider>

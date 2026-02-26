@@ -20,7 +20,7 @@ const linkColumns = [
     links: [
       { label: 'Post a Job', href: '/post-job' },
       { label: 'Employer Login', href: '/employer/login' },
-      { label: 'Pricing', href: '/post-job' },
+      { label: 'Employer Dashboard', href: '/employer/dashboard' },
       { label: 'Why PMHNP Hiring', href: '/for-employers' },
     ],
   },

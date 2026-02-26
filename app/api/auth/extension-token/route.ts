@@ -3,7 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { SignJWT } from 'jose';
 import { prisma } from '@/lib/prisma';
 
-const JWT_SECRET = process.env.EXTENSION_JWT_SECRET || process.env.NEXTAUTH_SECRET || '';
+const JWT_SECRET = process.env.EXTENSION_JWT_SECRET || process.env.NEXTAUTH_SECRET;
+
+if (!JWT_SECRET) {
+    console.error('CRITICAL: Neither EXTENSION_JWT_SECRET nor NEXTAUTH_SECRET is set. Extension tokens will not work.');
+}
 
 export async function GET() {
     try {
@@ -33,6 +37,9 @@ export async function GET() {
         }
 
         // Generate a JWT for the extension
+        if (!JWT_SECRET) {
+            return NextResponse.json({ error: 'Extension auth not configured' }, { status: 503 });
+        }
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         const secret = new TextEncoder().encode(JWT_SECRET);
 

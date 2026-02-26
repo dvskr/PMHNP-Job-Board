@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   FileText, Loader2, Eye, Trash2, CheckCircle,
   AlertCircle, RefreshCw, Shield, X
@@ -147,47 +146,34 @@ export default function ResumeUpload({
     if (file) processFile(file)
   }, [processFile])
 
-  /* view resume (signed URL) */
+  /* view resume (server-side signed URL generation) */
   const handleView = async () => {
     if (!currentResumeUrl) return
     setViewing(true)
     try {
-      const urlParts = currentResumeUrl.split('/')
-      const storagePath = urlParts[urlParts.length - 1]?.split('?')[0]
-      if (!storagePath) throw new Error('Invalid URL')
-
-      const supabase = createClient()
-      const { data, error: urlErr } = await supabase.storage
-        .from('resumes')
-        .createSignedUrl(storagePath, 3600)
-
-      if (urlErr) throw urlErr
-      if (!data?.signedUrl) throw new Error('Could not generate link')
-      window.open(data.signedUrl, '_blank')
-    } catch {
-      /* fallback: try opening the stored URL directly */
+      // Use the stored URL directly — it already has a valid signed URL
+      // The server generates fresh 1-hour signed URLs on upload
       window.open(currentResumeUrl, '_blank')
     } finally {
       setViewing(false)
     }
   }
 
-  /* delete */
+  /* delete — uses server-side API instead of client-side storage access */
   const handleDelete = async () => {
     if (!currentResumeUrl || !onRemove) return
     setRemoving(true)
     try {
-      const supabase = createClient()
-      const urlParts = currentResumeUrl.split('/')
-      const storagePath = urlParts[urlParts.length - 1]?.split('?')[0]
-      if (storagePath && currentResumeUrl.includes('supabase')) {
-        await supabase.storage.from('resumes').remove([storagePath])
+      const res = await fetch('/api/profile/resume', { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to delete resume')
       }
       setLocalMeta(null)
       setConfirmDelete(false)
       onRemove()
-    } catch {
-      setError('Failed to delete resume. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete resume. Please try again.')
     } finally {
       setRemoving(false)
     }
