@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
             data: {
               expiresAt: newExpiresAt,
               isPublished: true,
+              isVerifiedEmployer: true,
               ...(tier === 'featured' && { isFeatured: true }),
             },
           });
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
             where: { id: jobId },
             data: {
               isFeatured: true,
+              isVerifiedEmployer: true,
               expiresAt: newExpiresAt,
             },
           });
@@ -190,7 +192,7 @@ export async function POST(request: NextRequest) {
           // Update job to published
           const job = await prisma.job.update({
             where: { id: jobId },
-            data: { isPublished: true },
+            data: { isPublished: true, isVerifiedEmployer: true },
           });
 
           // Update employer job payment status and get the record

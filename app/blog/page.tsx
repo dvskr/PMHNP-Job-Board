@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
     title: 'PMHNP Career Blog | Expert Guides & Insights',
     description:
-        'Expert PMHNP career guides, salary negotiation tips, state spotlights, and job market insights for psychiatric mental health nurse practitioners.',
+        'PMHNP career guides, salary insights, and job market trends from the #1 psychiatric NP job board.',
     openGraph: {
         images: [{ url: '/images/pages/pmhnp-career-insights-blog.webp', width: 1280, height: 900, alt: 'PMHNP career blog with expert guides on salary negotiation, state spotlights, and job market insights' }],
     },

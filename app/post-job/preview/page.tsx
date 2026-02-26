@@ -15,12 +15,16 @@ interface JobFormData {
   mode?: string;
   jobType?: string;
   description: string;
-  minSalary?: number;
-  maxSalary?: number;
+  salaryMin?: number;
+  salaryMax?: number;
   salaryPeriod?: string;
-  applyLink: string;
+  applyUrl: string;
   contactEmail: string;
-  tier: 'standard' | 'featured';
+  pricingTier: 'standard' | 'featured';
+  benefits?: string[];
+  setting?: string;
+  population?: string;
+  companyLogoUrl?: string;
 }
 
 export default function PreviewPage() {
@@ -77,13 +81,17 @@ export default function PreviewPage() {
             mode: formData.mode,
             jobType: formData.jobType,
             description: formData.description,
-            applyLink: formData.applyLink,
+            applyLink: formData.applyUrl,
             contactEmail: formData.contactEmail,
-            minSalary: formData.minSalary,
-            maxSalary: formData.maxSalary,
+            minSalary: formData.salaryMin,
+            maxSalary: formData.salaryMax,
             salaryPeriod: formData.salaryPeriod || 'annual',
             companyWebsite: formData.companyWebsite,
-            pricing: formData.tier,
+            pricing: formData.pricingTier,
+            benefits: formData.benefits,
+            setting: formData.setting,
+            population: formData.population,
+            companyLogoUrl: formData.companyLogoUrl,
           }),
         });
 
@@ -113,9 +121,9 @@ export default function PreviewPage() {
     );
   }
 
-  const salary = formatSalary(formData.minSalary, formData.maxSalary, formData.salaryPeriod);
+  const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
   const price = config.isPaidPostingEnabled
-    ? (formData.tier === 'featured' ? 199 : 99)
+    ? (formData.pricingTier === 'featured' ? 199 : 99)
     : 0;
   const priceLabel = price === 0 ? 'FREE' : `$${price}`;
 
@@ -136,7 +144,7 @@ export default function PreviewPage() {
           </div>
 
           {/* Job Card Preview */}
-          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4">
+          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 overflow-hidden">
             <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-3">
               {/* Title and Badges Row */}
               <div className="flex items-start justify-between gap-2">
@@ -144,7 +152,7 @@ export default function PreviewPage() {
                   {formData.title}
                 </h3>
                 <div className="flex gap-1 flex-wrap">
-                  {formData.tier === 'featured' && (
+                  {formData.pricingTier === 'featured' && (
                     <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       Featured
                     </span>
@@ -152,8 +160,17 @@ export default function PreviewPage() {
                 </div>
               </div>
 
-              {/* Company Name */}
-              <p className="text-gray-600">{formData.companyName}</p>
+              {/* Company Name & Logo */}
+              <div className="flex items-center gap-3">
+                {formData.companyLogoUrl && (
+                  <img
+                    src={formData.companyLogoUrl}
+                    alt={`${formData.companyName} logo`}
+                    className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                  />
+                )}
+                <p className="text-gray-600">{formData.companyName}</p>
+              </div>
 
               {/* Location */}
               <div className="flex items-center gap-1 text-gray-500 text-sm">
@@ -180,6 +197,22 @@ export default function PreviewPage() {
                 <p className="text-green-600 font-semibold">{salary}</p>
               )}
 
+              {/* Clinical Details */}
+              {(formData.setting || formData.population) && (
+                <div className="flex gap-2 flex-wrap">
+                  {formData.setting && (
+                    <span className="inline-flex px-2 py-1 rounded bg-purple-100 text-purple-700 text-xs">
+                      {formData.setting}
+                    </span>
+                  )}
+                  {formData.population && (
+                    <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                      {formData.population}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Posted Date */}
               <p className="text-gray-400 text-sm">Just posted</p>
             </div>
@@ -193,8 +226,8 @@ export default function PreviewPage() {
             <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
           </div>
 
-          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4">
-            <div className="bg-white rounded-lg p-6">
+          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 overflow-hidden">
+            <div className="bg-white rounded-lg p-6 overflow-hidden">
               {/* Title and Company */}
               <h1 className="text-2xl md:text-3xl font-bold mb-2">{formData.title}</h1>
               <p className="text-xl text-gray-600 mb-4">{formData.companyName}</p>
@@ -232,20 +265,38 @@ export default function PreviewPage() {
               {/* Description */}
               <div className="mt-6">
                 <h2 className="text-xl font-bold mb-3">About this role</h2>
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm">
-                  {formData.description}
-                </div>
+                <div
+                  className="text-gray-700 leading-relaxed text-sm prose prose-sm max-w-none break-words overflow-hidden"
+                  dangerouslySetInnerHTML={{ __html: formData.description }}
+                />
               </div>
+
+              {/* Benefits */}
+              {formData.benefits && formData.benefits.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="text-xl font-bold mb-3">Benefits & Perks</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.benefits.map((b) => (
+                      <span key={b} className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-medium">
+                        ✓ {b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Apply Button (Disabled) */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <button
-                  disabled
-                  className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed"
+                <a
+                  href={formData.applyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
                 >
                   Apply Now
                   <ExternalLink size={20} />
-                </button>
+                </a>
+                <p className="mt-2 text-xs text-gray-500">Opens in a new tab — verify your apply link works correctly.</p>
               </div>
             </div>
           </div>
@@ -258,10 +309,10 @@ export default function PreviewPage() {
           <div className="flex items-center justify-between mb-4 pb-4 border-b">
             <div>
               <p className="font-semibold text-gray-900">
-                {formData.tier === 'featured' ? 'Featured Job Post' : 'Standard Job Post'}
+                {formData.pricingTier === 'featured' ? 'Featured Job Post' : 'Standard Job Post'}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {formData.tier === 'featured'
+                {formData.pricingTier === 'featured'
                   ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
                   : '✓ 30 days active ✓ Email to subscribers'
                 }

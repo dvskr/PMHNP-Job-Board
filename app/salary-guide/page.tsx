@@ -116,7 +116,7 @@ async function getOverallStats() {
 
 export const metadata: Metadata = {
   title: 'PMHNP Salary Guide 2026 | $155,000+ Average | Psychiatric NP Pay by State',
-  description: 'Complete PMHNP salary guide for 2026. National average $155,000+, top 10% earn $210,000+. See psychiatric nurse practitioner salaries by state, experience level, and specialty.',
+  description: '2026 PMHNP Salary Guide. State-by-state psychiatric NP salary data, trends, and negotiation tips.',
   keywords: ['pmhnp salary', 'psychiatric nurse practitioner salary', 'pmhnp salary by state', 'how much do pmhnps make', 'pmhnp pay', 'pmhnp salary 2026'],
   openGraph: {
     title: 'PMHNP Salary Guide 2026 | $155,000+ Average',
@@ -146,10 +146,10 @@ export default async function SalaryGuidePage() {
     mainEntity: [
       {
         '@type': 'Question',
-        name: 'How much do PMHNPs make in 2026?',
+        name: 'What is the average PMHNP salary in 2026?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'The national average PMHNP salary is $155,000+ per year in 2026, based on data from BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, and CompHealth. The top 10% earn $210,000 or more. New graduates start at $115,000-$145,000, while experienced PMHNPs earn $180,000-$210,000.',
+          text: 'The average PMHNP salary in 2026 ranges from $140,000 to $175,000 annually, depending on state, experience, and practice setting. Top earners in states like California and New York can exceed $200,000.',
         },
       },
       {
@@ -157,31 +157,31 @@ export default async function SalaryGuidePage() {
         name: 'Which state pays PMHNPs the most?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Idaho offers the highest PMHNP salary at $205,080 per year, followed by New Jersey ($182,022), California ($181,670), Rhode Island ($175,530), and Washington ($173,331). When adjusted for cost of living, Idaho, Louisiana, Pennsylvania, Arkansas, and Missouri offer the best value.',
+          text: 'California pays PMHNPs the highest average salary at $175,000+, followed by New York, New Jersey, and Massachusetts. However, cost of living should be factored in when comparing states.',
         },
       },
       {
         '@type': 'Question',
-        name: 'Do telehealth PMHNPs make less than in-person?',
+        name: 'Do telehealth PMHNPs make more than in-person?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Telehealth PMHNPs earn $130,000 to $175,000, while in-person PMHNPs earn $145,000 to $185,000. However, telehealth offers excellent flexibility and some companies like Talkiatry pay $180,000-$215,000+ for experienced PMHNPs with multi-state licenses.',
+          text: 'Telehealth PMHNP salaries are competitive with in-person roles, often ranging from $130,000 to $180,000 annually. Some telehealth positions offer higher hourly rates due to flexible scheduling, while in-person roles may include better benefits packages.',
         },
       },
       {
         '@type': 'Question',
-        name: 'How can I increase my PMHNP salary?',
+        name: 'How much do new grad PMHNPs make?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Top strategies include: specializing in high-demand areas like addiction psychiatry (+15-20% premium) or forensic psychiatry (+15-25%), practicing in Full Practice Authority states (+12-15% premium), considering private practice ownership ($180,000-$300,000+), working in rural/underserved areas for loan repayment incentives, and always negotiating total compensation including sign-on bonuses ($5,000-$30,000), CME allowance, and PTO.',
+          text: 'New graduate PMHNPs typically start between $115,000 and $140,000 annually. Salaries increase significantly with 2-3 years of experience, often reaching $155,000+ within the first few years.',
         },
       },
       {
         '@type': 'Question',
-        name: 'How much do travel PMHNPs make?',
+        name: 'Are PMHNP salaries increasing?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Travel and locum tenens PMHNPs typically earn 20-50% more than permanent positions, with compensation ranging from $150,000 to $250,000+ including housing stipends and travel allowances.',
+          text: 'Yes. PMHNP salaries have increased approximately 12% over the past two years, driven by the mental health provider shortage. With 123 million Americans living in designated shortage areas, demand for PMHNPs continues to outpace supply.',
         },
       },
     ],

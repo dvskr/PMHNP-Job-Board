@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Briefcase, Bookmark, Bell } from 'lucide-react';
+import { Home, Briefcase, Bookmark, Bell, Mail } from 'lucide-react';
 
 const navItems = [
   {
@@ -19,6 +19,11 @@ const navItems = [
     label: 'Saved',
     href: '/saved',
     icon: Bookmark,
+  },
+  {
+    label: 'Messages',
+    href: '/messages',
+    icon: Mail,
   },
   {
     label: 'Alerts',

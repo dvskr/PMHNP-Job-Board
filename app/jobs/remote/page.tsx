@@ -113,7 +113,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: 'Remote PMHNP Jobs - Telehealth Psychiatric NP Positions',
-    description: `Find remote PMHNP jobs and telehealth psychiatric nurse practitioner positions. Work from home with flexible schedules. ${stats.totalJobs} remote positions available.`,
+    description: `Find remote PMHNP jobs. Browse telehealth and work-from-home psychiatric NP positions with salary transparency.`,
     openGraph: {
       title: `${stats.totalJobs} Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',

@@ -140,7 +140,7 @@ export default function ForEmployersPage() {
               <div className="bg-white p-6 rounded-xl shadow-md border-2 border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Standard Post</h3>
                 <p className="text-3xl font-bold text-gray-900 my-2">
-                  <span className="line-through text-gray-400 text-lg">$99</span> FREE
+                  <span className="line-through text-gray-400 text-lg">$199</span> FREE
                 </p>
                 <ul className="text-left text-gray-600 space-y-2 mt-4">
                   <li>✓ 30-day listing</li>
@@ -153,7 +153,7 @@ export default function ForEmployersPage() {
                 <div className="text-teal-600 text-sm font-semibold mb-1">RECOMMENDED</div>
                 <h3 className="text-lg font-semibold text-gray-900">Featured Post</h3>
                 <p className="text-3xl font-bold text-gray-900 my-2">
-                  <span className="line-through text-gray-400 text-lg">$199</span> FREE
+                  <span className="line-through text-gray-400 text-lg">$299</span> FREE
                 </p>
                 <ul className="text-left text-gray-600 space-y-2 mt-4">
                   <li>✓ Everything in Standard</li>
@@ -191,7 +191,7 @@ export default function ForEmployersPage() {
                     Standard Post
                   </h3>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-gray-900">$99</span>
+                    <span className="text-4xl font-bold text-gray-900">$199</span>
                     <span className="text-gray-600">per posting</span>
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export default function ForEmployersPage() {
                     <Sparkles className="w-6 h-6 text-accent-500" />
                   </h3>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-gray-900">$199</span>
+                    <span className="text-4xl font-bold text-gray-900">$299</span>
                     <span className="text-gray-600">per posting</span>
                   </div>
                 </div>

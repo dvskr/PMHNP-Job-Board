@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
     User, Award, GraduationCap, Briefcase,
-    ShieldCheck, MessageSquare, Users, Lock, Settings
+    ShieldCheck, MessageSquare, Users, Lock, Settings,
+    Building, CreditCard, Bell
 } from 'lucide-react'
 
-const TABS = [
+const JOB_SEEKER_TABS = [
     { key: 'personal', label: 'Personal', icon: User },
     { key: 'credentials', label: 'Credentials', icon: Award },
     { key: 'education', label: 'Education', icon: GraduationCap },
@@ -18,7 +19,16 @@ const TABS = [
     { key: 'account', label: 'Account', icon: Lock },
 ] as const
 
-export type TabKey = typeof TABS[number]['key']
+const EMPLOYER_TABS = [
+    { key: 'personal', label: 'Personal', icon: User },
+    { key: 'company', label: 'Company', icon: Building },
+    { key: 'billing', label: 'Billing', icon: CreditCard },
+    { key: 'alerts', label: 'Alerts', icon: Bell },
+    { key: 'account', label: 'Account', icon: Lock },
+] as const
+
+// Union of all possible tab keys
+export type TabKey = typeof JOB_SEEKER_TABS[number]['key'] | typeof EMPLOYER_TABS[number]['key']
 
 interface Props {
     activeTab: TabKey
@@ -26,10 +36,12 @@ interface Props {
     isJobSeeker: boolean
 }
 
-export { TABS }
+export { JOB_SEEKER_TABS, EMPLOYER_TABS }
+// Keep TABS export for backward compat
+export const TABS = JOB_SEEKER_TABS
 
 export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Props) {
-    const visibleTabs = isJobSeeker ? TABS : TABS.filter(t => t.key === 'personal' || t.key === 'account')
+    const visibleTabs = isJobSeeker ? JOB_SEEKER_TABS : EMPLOYER_TABS
 
     return (
         <div style={{ position: 'relative', marginBottom: '24px' }}>

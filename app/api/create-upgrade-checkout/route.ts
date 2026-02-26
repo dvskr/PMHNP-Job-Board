@@ -71,31 +71,31 @@ export async function POST(request: NextRequest) {
     // Check if free mode is enabled
     if (config.isPaidPostingEnabled) {
       // PAID MODE: Existing Stripe checkout flow
-      
+
       // Create Stripe Checkout session for upgrade
       const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Upgrade to Featured Job',
-              description: `${job.title} - ${job.employer}`,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Upgrade to Featured Job',
+                description: `${job.title} - ${job.employer}`,
+              },
+              unit_amount: 10000, // $100 (difference between $299 and $199)
             },
-            unit_amount: 10000, // $100 (difference between $199 and $99)
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        mode: 'payment',
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard/${dashboardToken}`,
+        metadata: {
+          jobId: job.id,
+          type: 'upgrade',
         },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard/${dashboardToken}`,
-      metadata: {
-        jobId: job.id,
-        type: 'upgrade',
-      },
-    });
+      });
 
       return NextResponse.json({
         sessionId: session.id,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // FREE MODE: Upgrade directly without payment
-      
+
       // Update job to featured
       await prisma.job.update({
         where: { id: jobId },
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
           isFeatured: true,
         },
       });
-      
+
       // Update employer job record
       await prisma.employerJob.update({
         where: { jobId },
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
           paymentStatus: 'free_upgraded',
         },
       });
-      
+
       return NextResponse.json({
         success: true,
         message: 'Job upgraded to Featured! It will now appear at the top of search results.',

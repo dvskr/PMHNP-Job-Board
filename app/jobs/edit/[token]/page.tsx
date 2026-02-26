@@ -271,25 +271,21 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
       {/* Expiry Warning & Renew Section */}
       {shouldShowRenew() && job && (
-        <div className={`rounded-lg border-2 p-6 mb-6 ${
-          isExpired() 
-            ? 'bg-red-50 border-red-300' 
+        <div className={`rounded-lg border-2 p-6 mb-6 ${isExpired()
+            ? 'bg-red-50 border-red-300'
             : 'bg-orange-50 border-orange-300'
-        }`}>
+          }`}>
           <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className={`flex-shrink-0 ${
-              isExpired() ? 'text-red-600' : 'text-orange-600'
-            }`} size={24} />
+            <AlertTriangle className={`flex-shrink-0 ${isExpired() ? 'text-red-600' : 'text-orange-600'
+              }`} size={24} />
             <div className="flex-1">
-              <h3 className={`font-bold text-lg mb-1 ${
-                isExpired() ? 'text-red-900' : 'text-orange-900'
-              }`}>
+              <h3 className={`font-bold text-lg mb-1 ${isExpired() ? 'text-red-900' : 'text-orange-900'
+                }`}>
                 {isExpired() ? 'This job has expired' : 'This job expires soon'}
               </h3>
-              <p className={`text-sm mb-4 ${
-                isExpired() ? 'text-red-700' : 'text-orange-700'
-              }`}>
-                {isExpired() 
+              <p className={`text-sm mb-4 ${isExpired() ? 'text-red-700' : 'text-orange-700'
+                }`}>
+                {isExpired()
                   ? `This job expired on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} and is no longer visible to candidates.`
                   : `This job expires on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Renew now to keep it visible.`
                 }
@@ -313,7 +309,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
         {/* Job Details Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-6">Job Details</h2>
-          
+
           <div className="space-y-6">
             {/* Job Title */}
             <div>
@@ -324,9 +320,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="text"
                 id="title"
                 {...register('title')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
@@ -343,9 +338,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="location"
                 placeholder="e.g. Remote, New York NY"
                 {...register('location')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                  errors.location ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.location && (
                 <p className="mt-1 text-sm text-red-500">{errors.location.message}</p>
@@ -432,9 +426,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="description"
                 rows={8}
                 {...register('description')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.description && (
                 <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
@@ -450,9 +443,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="url"
                 id="applyUrl"
                 {...register('applyUrl')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                  errors.applyUrl ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.applyUrl ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.applyUrl && (
                 <p className="mt-1 text-sm text-red-500">{errors.applyUrl.message}</p>
@@ -468,9 +460,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="email"
                 id="contactEmail"
                 {...register('contactEmail')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                  errors.contactEmail ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.contactEmail ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.contactEmail && (
                 <p className="mt-1 text-sm text-red-500">{errors.contactEmail.message}</p>
@@ -486,9 +477,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="url"
                 id="companyWebsite"
                 {...register('companyWebsite')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                  errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.companyWebsite && (
                 <p className="mt-1 text-sm text-red-500">{errors.companyWebsite.message}</p>
@@ -566,7 +556,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-gray-900 group-hover:text-teal-700">Standard Renewal</span>
-                  <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">$99</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">$199</span>
                 </div>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>✓ 30 days of visibility</li>
@@ -585,7 +575,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 </div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-teal-900">Featured Renewal</span>
-                  <span className="text-2xl font-bold text-teal-900">$199</span>
+                  <span className="text-2xl font-bold text-teal-900">$299</span>
                 </div>
                 <ul className="text-sm text-teal-800 space-y-1">
                   <li>✓ 60 days of visibility</li>

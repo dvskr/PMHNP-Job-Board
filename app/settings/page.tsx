@@ -7,7 +7,8 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema'
 import {
   User, Mail, Phone, Building, Save, Loader2, Lock, CheckCircle,
   AlertTriangle, X, Eye, EyeOff, Briefcase, Award, MapPin, Linkedin,
-  Calendar, DollarSign, FileText, Shield, HelpCircle, ClipboardList
+  Calendar, DollarSign, FileText, Shield, HelpCircle, ClipboardList,
+  CreditCard, Bell, Globe
 } from 'lucide-react'
 import AvatarUpload from '@/components/auth/AvatarUpload'
 import ResumeUpload from '@/components/auth/ResumeUpload'
@@ -94,6 +95,38 @@ interface Profile {
   deaExpirationDate: string | null
 }
 
+// ── Employer types ──
+interface CompanyInfo {
+  name: string
+  logoUrl: string | null
+  description: string | null
+  website: string | null
+  contactEmail: string
+}
+interface Payment {
+  id: string
+  jobTitle: string
+  tier: string
+  status: string
+  date: string
+  expiresAt: string | null
+  isActive: boolean
+}
+interface AlertPrefs {
+  specialties: string[]
+  states: string[]
+  minExperience: number | null
+  workMode: string
+  isActive: boolean
+}
+
+const ALERT_WORK_MODES = ['Remote', 'On-site', 'Hybrid', 'Telehealth', 'Any']
+const ALERT_SPECIALTY_PRESETS = [
+  'ADHD', 'Anxiety/Depression', 'PTSD', 'Addiction',
+  'Child & Adolescent', 'Geriatric', 'Eating Disorders',
+  'OCD', 'Bipolar', 'Schizophrenia', 'General Adult',
+]
+
 // ── Shared card styles ──
 const cardStyle: React.CSSProperties = {
   background: 'var(--bg-secondary)',
@@ -158,6 +191,13 @@ function SettingsPageInner() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [availabilityMode, setAvailabilityMode] = useState('Immediately')
 
+  // ── Employer-specific state ──
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null)
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [alertPrefs, setAlertPrefs] = useState<AlertPrefs>({ specialties: [], states: [], minExperience: null, workMode: '', isActive: false })
+  const [savingCompany, setSavingCompany] = useState(false)
+  const [savingAlerts, setSavingAlerts] = useState(false)
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -186,6 +226,30 @@ function SettingsPageInner() {
       }
     }
     fetchProfile()
+
+    // Fetch employer-specific data
+    const fetchEmployerData = async () => {
+      try {
+        const [settingsRes, billingRes, alertsRes] = await Promise.all([
+          fetch('/api/employer/settings'),
+          fetch('/api/employer/billing'),
+          fetch('/api/employer/candidate-alerts'),
+        ])
+        if (settingsRes.ok) {
+          const d = await settingsRes.json()
+          setCompanyInfo(d.companyInfo)
+        }
+        if (billingRes.ok) {
+          const d = await billingRes.json()
+          setPayments(d.payments || [])
+        }
+        if (alertsRes.ok) {
+          const d = await alertsRes.json()
+          if (d.alert) setAlertPrefs(d.alert)
+        }
+      } catch { /* employer data not available for job seekers */ }
+    }
+    fetchEmployerData()
   }, [router])
 
   // ── Handlers ──
@@ -344,6 +408,50 @@ function SettingsPageInner() {
   const showMsg = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
     setTimeout(() => setMessage(null), 4000)
+  }
+
+  // ── Employer save handlers ──
+  const handleSaveCompany = async () => {
+    if (!profile) return
+    setSavingCompany(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/employer/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          phone: profile.phone,
+          company: profile.company,
+          companyInfo: companyInfo,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      showMsg('success', 'Company info saved!')
+    } catch {
+      showMsg('error', 'Failed to save company info.')
+    } finally {
+      setSavingCompany(false)
+    }
+  }
+
+  const handleSaveAlerts = async () => {
+    setSavingAlerts(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/employer/candidate-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(alertPrefs),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      showMsg('success', 'Alert preferences saved!')
+    } catch {
+      showMsg('error', 'Failed to save alert preferences.')
+    } finally {
+      setSavingAlerts(false)
+    }
   }
 
   const updateProfile = (patch: Partial<Profile>) => {
@@ -1495,6 +1603,315 @@ function SettingsPageInner() {
           </div>
         </div>)}
 
+        {/* ═══ TAB: Company (employer only) ═══ */}
+        {activeTab === 'company' && profile.role === 'employer' && (<div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>
+              <Building size={20} style={{ color: '#2DD4BF' }} />
+              Company Information
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div>
+                <label style={labelStyle}>Company Name</label>
+                <input
+                  type="text"
+                  value={profile.company || ''}
+                  onChange={(e) => updateProfile({ company: e.target.value })}
+                  placeholder="Your company name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Company Website</label>
+                <div style={{ position: 'relative' }}>
+                  <Globe size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="url"
+                    value={companyInfo?.website || ''}
+                    onChange={(e) => setCompanyInfo(prev => prev ? { ...prev, website: e.target.value } : { name: '', logoUrl: null, description: null, website: e.target.value, contactEmail: profile.email })}
+                    placeholder="https://yourcompany.com"
+                    style={{ ...inputStyle, paddingLeft: '36px' }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Company Logo URL</label>
+                <input
+                  type="url"
+                  value={companyInfo?.logoUrl || ''}
+                  onChange={(e) => setCompanyInfo(prev => prev ? { ...prev, logoUrl: e.target.value } : { name: '', logoUrl: e.target.value, description: null, website: null, contactEmail: profile.email })}
+                  placeholder="https://yourcompany.com/logo.png"
+                  style={inputStyle}
+                />
+                {companyInfo?.logoUrl && (
+                  <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img
+                      src={companyInfo.logoUrl}
+                      alt="Company logo preview"
+                      style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Logo preview</span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Company Description</label>
+                <textarea
+                  value={companyInfo?.description || ''}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 1000) {
+                      setCompanyInfo(prev => prev ? { ...prev, description: e.target.value } : { name: '', logoUrl: null, description: e.target.value, website: null, contactEmail: profile.email })
+                    }
+                  }}
+                  placeholder="Tell candidates about your company, culture, and mission..."
+                  rows={4}
+                  style={{ ...inputStyle, resize: 'vertical' as const, minHeight: '100px' }}
+                />
+                <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  {(companyInfo?.description || '').length}/1000
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>
+              <User size={20} style={{ color: '#818CF8' }} />
+              Contact Information
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={labelStyle}>First Name</label>
+                <input
+                  type="text"
+                  value={profile.firstName || ''}
+                  onChange={(e) => updateProfile({ firstName: e.target.value })}
+                  placeholder="First name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Last Name</label>
+                <input
+                  type="text"
+                  value={profile.lastName || ''}
+                  onChange={(e) => updateProfile({ lastName: e.target.value })}
+                  placeholder="Last name"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input type="email" value={profile.email} disabled style={{ ...inputStyle, paddingLeft: '36px', opacity: 0.6, cursor: 'not-allowed' }} />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Phone</label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="tel"
+                    value={profile.phone || ''}
+                    onChange={(e) => updateProfile({ phone: e.target.value })}
+                    placeholder="(555) 555-5555"
+                    style={{ ...inputStyle, paddingLeft: '36px' }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveCompany}
+            disabled={savingCompany}
+            style={{
+              padding: '12px 28px', borderRadius: '12px',
+              background: savingCompany ? 'rgba(45,212,191,0.3)' : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+              color: '#fff', fontSize: '14px', fontWeight: 600,
+              cursor: savingCompany ? 'not-allowed' : 'pointer',
+              border: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
+              boxShadow: '0 2px 12px rgba(45,212,191,0.25)', alignSelf: 'flex-start',
+            }}
+          >
+            {savingCompany ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {savingCompany ? 'Saving...' : 'Save Company Info'}
+          </button>
+        </div>)}
+
+        {/* ═══ TAB: Billing (employer only) ═══ */}
+        {activeTab === 'billing' && profile.role === 'employer' && (
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>
+              <CreditCard size={20} style={{ color: '#F59E0B' }} />
+              Payment History
+            </h3>
+            {payments.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <FileText size={36} style={{ color: 'var(--text-tertiary)', margin: '0 auto 12px' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                  No payment history yet. Post your first job to get started!
+                </p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <th style={{ textAlign: 'left', padding: '10px 8px', color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Job</th>
+                      <th style={{ textAlign: 'left', padding: '10px 8px', color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Tier</th>
+                      <th style={{ textAlign: 'left', padding: '10px 8px', color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: '10px 8px', color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map(p => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '12px 8px', color: 'var(--text-primary)', fontWeight: 500 }}>{p.jobTitle}</td>
+                        <td style={{ padding: '12px 8px' }}>
+                          <span style={{
+                            fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '6px',
+                            backgroundColor: p.tier.includes('Featured') ? 'rgba(245,158,11,0.12)' : 'rgba(45,212,191,0.12)',
+                            color: p.tier.includes('Featured') ? '#F59E0B' : '#2DD4BF',
+                          }}>{p.tier}</span>
+                        </td>
+                        <td style={{ padding: '12px 8px' }}>
+                          <span style={{
+                            fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '6px',
+                            backgroundColor: p.isActive ? 'rgba(16,185,129,0.12)' : 'rgba(107,114,128,0.12)',
+                            color: p.isActive ? '#10B981' : '#6B7280',
+                          }}>{p.isActive ? 'Active' : 'Expired'}</span>
+                        </td>
+                        <td style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                          {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ TAB: Alerts (employer only) ═══ */}
+        {activeTab === 'alerts' && profile.role === 'employer' && (
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ ...cardTitle, marginBottom: 0 }}>
+                <Bell size={20} style={{ color: '#F59E0B' }} />
+                New Candidate Alerts
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={alertPrefs.isActive}
+                    onChange={(e) => setAlertPrefs(prev => ({ ...prev, isActive: e.target.checked }))}
+                    style={{ accentColor: '#2DD4BF', width: '16px', height: '16px' }}
+                  />
+                  Enabled
+                </label>
+                <button
+                  onClick={handleSaveAlerts}
+                  disabled={savingAlerts}
+                  style={{
+                    padding: '8px 18px', borderRadius: '10px',
+                    background: savingAlerts ? 'rgba(45,212,191,0.3)' : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                    color: '#fff', fontSize: '13px', fontWeight: 600, border: 'none',
+                    cursor: savingAlerts ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  }}
+                >
+                  {savingAlerts ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Save
+                </button>
+              </div>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
+              Get notified when new PMHNP candidates match your criteria.
+            </p>
+
+            {/* Specialties */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ ...labelStyle, textTransform: 'uppercase', fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>Specialties</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {ALERT_SPECIALTY_PRESETS.map(s => {
+                  const selected = alertPrefs.specialties.includes(s)
+                  return (
+                    <button key={s} onClick={() => setAlertPrefs(prev => ({
+                      ...prev,
+                      specialties: selected ? prev.specialties.filter(x => x !== s) : [...prev.specialties, s],
+                    }))} style={{
+                      fontSize: '12px', padding: '5px 10px', borderRadius: '8px',
+                      border: `1px solid ${selected ? '#A78BFA' : 'var(--border-color)'}`,
+                      backgroundColor: selected ? 'rgba(139,92,246,0.15)' : 'transparent',
+                      color: selected ? '#A78BFA' : 'var(--text-secondary)',
+                      cursor: 'pointer', fontWeight: selected ? 600 : 400,
+                    }}>{s}</button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* States */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ ...labelStyle, textTransform: 'uppercase', fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>
+                Licensed States {alertPrefs.states.length > 0 && `(${alertPrefs.states.length})`}
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {US_STATES.map(st => {
+                  const selected = alertPrefs.states.includes(st)
+                  return (
+                    <button key={st} onClick={() => setAlertPrefs(prev => ({
+                      ...prev,
+                      states: selected ? prev.states.filter(x => x !== st) : [...prev.states, st],
+                    }))} style={{
+                      fontSize: '11px', padding: '4px 7px', borderRadius: '6px',
+                      border: `1px solid ${selected ? '#2DD4BF' : 'var(--border-color)'}`,
+                      backgroundColor: selected ? 'rgba(45,212,191,0.15)' : 'transparent',
+                      color: selected ? '#2DD4BF' : 'var(--text-secondary)',
+                      cursor: 'pointer', fontWeight: selected ? 600 : 400, minWidth: '36px', textAlign: 'center' as const,
+                    }}>{st}</button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Experience + Work Mode */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ ...labelStyle, textTransform: 'uppercase', fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>Min Experience</label>
+                <select
+                  value={alertPrefs.minExperience ?? ''}
+                  onChange={e => setAlertPrefs(prev => ({ ...prev, minExperience: e.target.value ? Number(e.target.value) : null }))}
+                  style={inputStyle}
+                >
+                  <option value="">Any</option>
+                  <option value="0">New Grad</option>
+                  <option value="1">1+ years</option>
+                  <option value="3">3+ years</option>
+                  <option value="5">5+ years</option>
+                  <option value="10">10+ years</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ ...labelStyle, textTransform: 'uppercase', fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>Work Mode</label>
+                <select
+                  value={alertPrefs.workMode}
+                  onChange={e => setAlertPrefs(prev => ({ ...prev, workMode: e.target.value }))}
+                  style={inputStyle}
+                >
+                  <option value="">Any</option>
+                  {ALERT_WORK_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
 
         {/* ── Delete Confirmation Modal ── */}

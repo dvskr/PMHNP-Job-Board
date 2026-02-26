@@ -5,8 +5,8 @@ import { logger } from '@/lib/logger';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Always use production URL for email links
-const BASE_URL = 'https://pmhnphiring.com';
+// Use env var for email links (falls back to production)
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 
@@ -123,7 +123,7 @@ export function emailShell(content: string, footerContent: string = '', preheade
                 <tr>
                   <td style="padding: 0 8px;"><a href="https://x.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">𝕏</a></td>
                   <td style="padding: 0 8px;"><a href="https://www.facebook.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">Facebook</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.linkedin.com/company/pmhnp-hiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">LinkedIn</a></td>
+                  <td style="padding: 0 8px;"><a href="https://www.linkedin.com/company/pmhnpjobs" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">LinkedIn</a></td>
                   <td style="padding: 0 8px;"><a href="https://www.instagram.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">Instagram</a></td>
                 </tr>
               </table>
@@ -667,7 +667,7 @@ export async function sendExpiryWarningEmail(
 
               <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
                 ${config.isPaidPostingEnabled
-        ? 'Renew for just $99 to keep it active for another 30 days.'
+        ? 'Renew for just $199 to keep it active for another 30 days.'
         : 'Renew now to keep it active — <strong style="color: ' + C.emerald + ';">FREE during our launch period!</strong>'}
               </p>
 
@@ -942,4 +942,149 @@ export function buildSalaryGuideHtml(pdfUrl: string, unsubscribeToken: string): 
     unsubscribeFooter(unsubscribeToken),
     `Your ${currentYear} PMHNP Salary Guide is ready — download now!`
   );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 11. EMPLOYER MESSAGE NOTIFICATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function sendEmployerMessageNotification(
+  recipientEmail: string,
+  recipientFirstName: string | null,
+  senderName: string,
+  senderCompany: string | null,
+  subject: string,
+  messageBody: string,
+  jobTitle: string | null
+): Promise<EmailResult> {
+  try {
+    const greeting = recipientFirstName ? `Hi ${recipientFirstName},` : 'Hi there,';
+    const fromLine = senderCompany ? `${senderName} from ${senderCompany}` : senderName;
+    const preview = messageBody.length > 200 ? messageBody.substring(0, 200) + '…' : messageBody;
+
+    const html = emailShell(`
+          ${headerBlock('New Message from an Employer', fromLine)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                ${greeting} you have a new message about a potential opportunity.
+              </p>
+
+              ${jobTitle ? infoCard(`
+                    ${sectionLabel('Regarding')}
+                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${jobTitle}</p>
+              `, C.tealDarker) : ''}
+
+              ${infoCard(`
+                    ${sectionLabel('Subject')}
+                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${subject}</p>
+                    ${sectionLabel('Message')}
+                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${preview}</p>
+              `, C.tealDarker)}
+
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 24px 0 0;">
+                <tr>
+                  <td>
+                    ${primaryButton('View Full Message →', `${BASE_URL}/messages`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+      </p>`,
+      `${fromLine} sent you a message${jobTitle ? ` about "${jobTitle}"` : ''} — view it now!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: recipientEmail,
+      subject: `📩 New message from ${fromLine}${jobTitle ? ` — ${jobTitle}` : ''}`,
+      html,
+    });
+
+    logger.info('Employer message notification sent', { recipientEmail, senderName });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending employer message notification', error, { recipientEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send message notification',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEW CANDIDATE ALERT (DIGEST)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface CandidateDigest {
+  name: string;
+  headline: string | null;
+  profileUrl: string;
+  specialties: string[];
+  states: string[];
+  experience: number | null;
+}
+
+export async function sendNewCandidateAlertEmail(
+  recipientEmail: string,
+  employerName: string,
+  candidates: CandidateDigest[]
+): Promise<EmailResult> {
+  try {
+    const candidateRows = candidates.slice(0, 10).map(c => `
+      <tr>
+        <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight};">
+          <div style="font-family: ${F};">
+            <div style="font-size: 15px; font-weight: 600; color: ${C.textPrimary}; margin-bottom: 4px;">
+              ${c.name}
+            </div>
+            ${c.headline ? `<div style="font-size: 13px; color: ${C.textMuted}; margin-bottom: 6px;">${c.headline}</div>` : ''}
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              ${c.specialties.slice(0, 3).map(s => badge(s, 'rgba(139,92,246,0.15)', '#A78BFA', 'rgba(139,92,246,0.3)')).join(' ')}
+              ${c.states.slice(0, 3).map(s => badge(s)).join(' ')}
+              ${c.experience !== null ? badge(`${c.experience}+ yrs`, 'rgba(45,212,191,0.15)', '#2DD4BF', 'rgba(45,212,191,0.3)') : ''}
+            </div>
+          </div>
+        </td>
+        <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight}; vertical-align: middle;">
+          ${primaryButton('View →', c.profileUrl)}
+        </td>
+      </tr>
+    `).join('');
+
+    const html = emailShell(
+      `${amberHeader('🔔 New Matching Candidates', `${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`)}
+       ${infoCard(`
+         <table width="100%" style="border-collapse: collapse;">
+           ${candidateRows}
+         </table>
+       `)}
+       <div style="text-align: center; margin: 24px 0;">
+         ${primaryButton('View All Candidates', `${SITE_URL}/employer/candidates`)}
+       </div>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+         To stop these alerts, update your preferences in <a href="${SITE_URL}/employer/settings" style="color: ${C.textFaded}; text-decoration: none;">Employer Settings</a>.
+       </p>`,
+      `${candidates.length} new PMHNP candidates match your criteria — view them now!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: recipientEmail,
+      subject: `🔔 ${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
+      html,
+    });
+
+    logger.info('New candidate alert sent', { recipientEmail, count: candidates.length });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending new candidate alert', error, { recipientEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send candidate alert',
+    };
+  }
 }

@@ -770,3 +770,73 @@ select:focus {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ===== JOB DESCRIPTION HTML (Quill editor output) ===== */
+.job-description-html {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.job-description-html h1,
+.job-description-html h2,
+.job-description-html h3,
+.job-description-html h4 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.job-description-html h1 {
+  font-size: 1.5em;
+}
+
+.job-description-html h2 {
+  font-size: 1.25em;
+}
+
+.job-description-html h3 {
+  font-size: 1.125em;
+}
+
+.job-description-html p {
+  margin-bottom: 0.75em;
+  line-height: 1.7;
+}
+
+.job-description-html ul,
+.job-description-html ol {
+  margin: 0.75em 0;
+  padding-left: 1.5em;
+}
+
+.job-description-html ul {
+  list-style-type: disc;
+}
+
+.job-description-html ol {
+  list-style-type: decimal;
+}
+
+.job-description-html li {
+  margin-bottom: 0.25em;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.job-description-html strong,
+.job-description-html b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.job-description-html a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+footer {
+  padding-bottom: 20px;
+}

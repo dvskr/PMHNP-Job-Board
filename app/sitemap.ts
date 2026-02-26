@@ -213,10 +213,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Get top cities with jobs (cities with most job postings)
     const topCities = await prisma.job.groupBy({
-      by: ['city'],
+      by: ['city', 'state'],
       where: {
         isPublished: true,
         city: {
+          not: null,
+        },
+        state: {
           not: null,
         },
       },
@@ -228,17 +231,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           city: 'desc',
         },
       },
-      take: 100, // Top 100 cities
+      take: 200, // Top 200 city+state combos
     })
 
+    // State name-to-code lookup for slug generation
+    const stateNameToCode: Record<string, string> = {
+      'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
+      'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
+      'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+      'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
+      'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+      'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+      'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
+      'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+      'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
+      'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+      'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
+      'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
+      'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
+    }
+
     const cityPages = topCities
-      .filter(city => city.city) // Filter out nulls
-      .map(city => ({
-        url: `${baseUrl}/jobs/city/${city.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      }))
+      .filter(c => c.city && c.state)
+      .map(c => {
+        // Resolve state code: check if state field is already a code (2 chars) or a full name
+        const stateVal = c.state!.trim();
+        const code = stateVal.length === 2
+          ? stateVal.toUpperCase()
+          : stateNameToCode[stateVal] || null;
+        if (!code) return null;
+        const slug = `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${code.toLowerCase()}`;
+        return {
+          url: `${baseUrl}/jobs/city/${slug}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.7,
+        };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null)
 
     return [
       ...staticPages,

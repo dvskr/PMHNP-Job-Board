@@ -123,6 +123,74 @@ export default async function BlogPostPage({ params }: Props) {
         url: currentUrl,
     };
 
+    // Slug-specific FAQ schemas for Google rich results
+    const blogFaqData: Record<string, Array<{ name: string; text: string }>> = {
+        'how-to-become-a-pmhnp': [
+            {
+                name: 'How long does it take to become a PMHNP?',
+                text: 'It typically takes 6-8 years total: 4 years for a BSN, 1-2 years of RN experience, and 2-3 years for an MSN or DNP with PMHNP specialization.',
+            },
+            {
+                name: 'What degree do you need to be a PMHNP?',
+                text: 'You need a Master of Science in Nursing (MSN) or Doctor of Nursing Practice (DNP) with a Psychiatric Mental Health Nurse Practitioner specialization from an accredited program. You must also pass the PMHNP certification exam through ANCC.',
+            },
+            {
+                name: 'Can a PMHNP prescribe medication?',
+                text: 'Yes. PMHNPs can prescribe psychiatric medications including antidepressants, antipsychotics, mood stabilizers, and controlled substances. Prescribing authority varies by state, with some states granting full practice authority and others requiring physician collaboration.',
+            },
+            {
+                name: 'What is the difference between a PMHNP and a psychiatrist?',
+                text: 'Both can diagnose and treat mental health conditions and prescribe medications. Psychiatrists complete medical school (MD/DO) plus a 4-year residency. PMHNPs complete nursing school plus a master\'s or doctoral nursing program. PMHNPs typically spend more time on therapy and holistic care, while psychiatrists often focus on medication management.',
+            },
+            {
+                name: 'Is PMHNP a good career?',
+                text: 'Yes. PMHNPs are among the most in-demand healthcare providers in the US. Average salaries range from $140,000-$175,000, job growth is projected at 40%+ through 2031, and there are 10,000+ open positions nationwide. The mental health provider shortage ensures strong demand for years to come.',
+            },
+        ],
+        'new-grad-pmhnp-first-job': [
+            {
+                name: 'Can new grad PMHNPs get hired without experience?',
+                text: 'Yes. Due to the mental health provider shortage, many employers actively hire new grad PMHNPs. Telehealth companies, community mental health centers, and large health systems commonly offer new grad PMHNP positions with mentorship and supervision.',
+            },
+            {
+                name: 'What is the best setting for a new grad PMHNP?',
+                text: 'Community mental health centers and outpatient clinics are often recommended for new grads because they offer diverse patient populations, structured supervision, and exposure to a wide range of diagnoses. Inpatient settings and telehealth are also options depending on comfort level.',
+            },
+            {
+                name: 'How many jobs are available for new grad PMHNPs?',
+                text: 'There are hundreds of new grad-friendly PMHNP positions available at any given time. PMHNP Hiring lists new grad-specific roles that can be filtered at pmhnphiring.com/jobs/new-grad.',
+            },
+        ],
+        'pmhnp-vs-psychiatrist': [
+            {
+                name: 'Can a PMHNP do everything a psychiatrist can?',
+                text: 'PMHNPs can diagnose mental health conditions, prescribe medications including controlled substances, and provide therapy. The main differences are in training path and, in some states, practice authority requirements. In full practice authority states, PMHNPs operate independently.',
+            },
+            {
+                name: 'Do PMHNPs make as much as psychiatrists?',
+                text: 'No. Psychiatrists earn $250,000-$400,000+ annually while PMHNPs earn $140,000-$175,000 on average. However, PMHNPs require significantly less training time and student debt, often resulting in a better return on investment earlier in their career.',
+            },
+            {
+                name: 'Should I become a PMHNP or psychiatrist?',
+                text: 'It depends on your goals. If you want a faster path to practice (6-8 years vs 12+ years), lower student debt, and a holistic nursing approach, PMHNP is the better fit. If you want the highest salary ceiling and full medical training, psychiatry may be preferred.',
+            },
+        ],
+    };
+
+    const faqQuestions = blogFaqData[slug];
+    const faqSchema = faqQuestions ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqQuestions.map((q) => ({
+            '@type': 'Question',
+            name: q.name,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: q.text,
+            },
+        })),
+    } : null;
+
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
             {/* BlogPosting Schema */}
@@ -130,6 +198,13 @@ export default async function BlogPostPage({ params }: Props) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
+            {/* FAQ Schema (only for posts with FAQ data) */}
+            {faqSchema && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                />
+            )}
             {/* Breadcrumb Schema */}
             <script
                 type="application/ld+json"

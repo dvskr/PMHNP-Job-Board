@@ -39,7 +39,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
 
   // Build dynamic title and description based on filters
   let title = `Browse ${jobCountDisplay} PMHNP Jobs`;
-  let description = `Search ${jobCountDisplay} PMHNP jobs. Find remote, full-time, part-time, and contract psychiatric nurse practitioner positions updated daily.`;
+  let description = `Search ${jobCountDisplay} psychiatric NP jobs by state, salary, and type. Remote, telehealth, in-person, travel, and per diem PMHNP positions updated daily.`;
 
   // Customize based on active filters
   const titleParts: string[] = [];

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Bookmark, Briefcase, Sun, Moon } from 'lucide-react';
+import { Menu, X, Bookmark, Briefcase, Sun, Moon, Mail } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -13,6 +13,7 @@ import { useTheme } from '@/components/ThemeProvider';
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
@@ -157,7 +158,7 @@ export default function Header() {
             }}>
               <Image
                 src="/logo.png"
-                alt="PMHNP Hiring"
+                alt="PMHNP Hiring - Psychiatric NP Job Board"
                 width={200}
                 height={200}
                 priority
@@ -197,9 +198,23 @@ export default function Header() {
               >
                 Find Jobs
               </Link>
+              {userRole !== 'employer' && (
+                <Link
+                  href="/saved"
+                  className={`nav-link ${isActive('/saved') ? 'active' : ''}`}
+                  style={{
+                    padding: '8px 18px', borderRadius: '10px',
+                    fontSize: '14px', fontWeight: 600,
+                    textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  }}
+                >
+                  <Bookmark size={14} /> Saved
+                </Link>
+              )}
               <Link
-                href="/saved"
-                className={`nav-link ${isActive('/saved') ? 'active' : ''}`}
+                href="/messages"
+                className={`nav-link ${isActive('/messages') ? 'active' : ''}`}
                 style={{
                   padding: '8px 18px', borderRadius: '10px',
                   fontSize: '14px', fontWeight: 600,
@@ -207,20 +222,22 @@ export default function Header() {
                   display: 'inline-flex', alignItems: 'center', gap: '5px',
                 }}
               >
-                <Bookmark size={14} /> Saved
+                <Mail size={14} /> Messages
               </Link>
-              <Link
-                href="/post-job"
-                className="hdr-post-link"
-                style={{
-                  padding: '7px 16px', borderRadius: '10px',
-                  fontSize: '13px', fontWeight: 600,
-                  textDecoration: 'none',
-                  marginLeft: '6px',
-                }}
-              >
-                Post a Job
-              </Link>
+              {userRole !== 'job_seeker' && (
+                <Link
+                  href="/post-job"
+                  className="hdr-post-link"
+                  style={{
+                    padding: '7px 16px', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: 600,
+                    textDecoration: 'none',
+                    marginLeft: '6px',
+                  }}
+                >
+                  Post a Job
+                </Link>
+              )}
             </nav>
 
             {/* ═══ Right: Theme + Auth ═══ */}
@@ -243,7 +260,7 @@ export default function Header() {
                 backgroundColor: 'var(--border-color)',
                 opacity: 0.5,
               }} />
-              <HeaderAuth />
+              <HeaderAuth onRoleChange={setUserRole} />
             </div>
 
             {/* ═══ Mobile: Theme + Hamburger ═══ */}
@@ -315,16 +332,18 @@ export default function Header() {
                 </div>
                 <nav className="flex flex-col p-4 overflow-y-auto h-[calc(100vh-73px)]">
                   <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
+                    <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={setUserRole} />
                   </div>
-                  <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
-                      <Button variant="primary" size="lg" className="w-full">
-                        <Briefcase size={20} />
-                        Post a Job
-                      </Button>
-                    </Link>
-                  </div>
+                  {userRole !== 'job_seeker' && (
+                    <div className="mb-6 pb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <Link href="/post-job" onClick={() => setIsMenuOpen(false)}>
+                        <Button variant="primary" size="lg" className="w-full">
+                          <Briefcase size={20} />
+                          Post a Job
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                   <Link
                     href="/jobs"
                     className="hover:text-primary-600 transition-colors duration-200 font-bold py-4 px-3 rounded-lg -mx-3"

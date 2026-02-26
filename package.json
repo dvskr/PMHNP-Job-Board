@@ -59,6 +59,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.67.0",
+    "react-quill-new": "^3.8.3",
     "resend": "^6.5.2",
     "sanitize-html": "^2.17.0",
     "satori": "^0.19.2",

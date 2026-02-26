@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 
-const BARE_ROUTES = ['/admin', '/employer/dashboard'];
+const BARE_ROUTES = ['/admin', '/employer/dashboard', '/messages'];
 
 export default function MainContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();

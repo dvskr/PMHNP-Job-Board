@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 
+/**
+ * Check whether an employer has at least one active, paid FEATURED job posting.
+ * Only featured posts ($299 tier) unlock full candidate profile access.
+ * "paid" means paymentStatus === 'paid' (not 'free', 'free_renewed', etc.)
+ * "active" means the related Job.expiresAt > now.
+ */
+async function hasActivePaidPost(supabaseId: string): Promise<boolean> {
+    const count = await prisma.employerJob.count({
+        where: {
+            userId: supabaseId,
+            paymentStatus: 'paid',
+            job: {
+                isFeatured: true,
+                expiresAt: { gt: new Date() },
+            },
+        },
+    })
+    return count > 0
+}
+
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -24,6 +44,11 @@ export async function GET(
     if (!viewerProfile || !['employer', 'admin'].includes(viewerProfile.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    // Determine access level: admin always gets full access,
+    // employers need an active paid job post for full candidate info
+    const isAdmin = viewerProfile.role === 'admin'
+    const hasFullAccess = isAdmin || await hasActivePaidPost(user.id)
 
     // Fetch candidate (privacy check: must be visible + open to offers)
     const candidate = await prisma.userProfile.findFirst({
@@ -94,11 +119,12 @@ export async function GET(
         availableDate: candidate.availableDate?.toISOString() || null,
         salaryRange,
         hasResume: !!candidate.resumeUrl,
-        linkedinUrl: candidate.linkedinUrl,
         joinedAt: candidate.createdAt.toISOString(),
 
-        // TODO: Gate behind paid plan — these fields should be hidden for free-tier employers
-        contactEmail: candidate.email,
-        resumeUrl: candidate.resumeUrl,
+        // Access-gated fields — only available with an active paid job post
+        hasFullAccess,
+        contactEmail: hasFullAccess ? candidate.email : null,
+        resumeUrl: hasFullAccess ? candidate.resumeUrl : null,
+        linkedinUrl: hasFullAccess ? candidate.linkedinUrl : null,
     })
 }

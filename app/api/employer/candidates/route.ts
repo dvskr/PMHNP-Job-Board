@@ -20,6 +20,25 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Determine access level: admin always gets full access,
+    // employers need an active paid job post for full candidate info
+    const isAdmin = profile.role === 'admin'
+    let hasFullAccess = isAdmin
+    if (!isAdmin) {
+        const paidCount = await prisma.employerJob.count({
+            where: {
+                userId: user.id,
+                paymentStatus: 'paid',
+                job: {
+                    isFeatured: true,
+                    expiresAt: { gt: new Date() },
+                },
+            },
+        })
+        hasFullAccess = paidCount > 0
+    }
+
+
     // Parse query params
     const { searchParams } = new URL(req.url)
     const q = searchParams.get('q')?.trim() || ''
@@ -153,5 +172,6 @@ export async function GET(req: NextRequest) {
         totalCount,
         page,
         totalPages: Math.ceil(totalCount / limit),
+        hasFullAccess,
     })
 }
