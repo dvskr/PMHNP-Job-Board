@@ -58,9 +58,6 @@ export async function DELETE(request: NextRequest) {
             where: { supabaseId: user.id },
             data: {
                 resumeUrl: null,
-                resumeFileName: null,
-                resumeFileSize: null,
-                resumeUploadedAt: null,
             },
         });
 
