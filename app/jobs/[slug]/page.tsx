@@ -18,6 +18,7 @@ import InternalLinks from '@/components/InternalLinks';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/blog';
+import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
@@ -365,7 +366,7 @@ export default async function JobPage({ params }: JobPageProps) {
   }
 
   // Fetch all additional data in parallel for content enrichment
-  const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary] = await Promise.all([
+  const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary, currentUser] = await Promise.all([
     getRelatedJobs({
       currentJobId: job.id,
       employer: job.employer,
@@ -377,7 +378,9 @@ export default async function JobPage({ params }: JobPageProps) {
     getCompanyInfo(job.companyId, job.employer),
     getEmployerJobCount(job.employer, job.id),
     getStateSalaryAverage(job.state, job.stateCode),
+    getCurrentUser(),
   ]);
+  const isAuthenticated = !!currentUser;
 
   // Get relevant blog posts (async - fetches from Supabase)
   const relevantBlogPosts = await getRelevantBlogPosts(job);
@@ -429,10 +432,10 @@ export default async function JobPage({ params }: JobPageProps) {
         <Breadcrumbs items={breadcrumbItems} />
         <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-8">
           {/* Main Content */}
-          <div>
+          <div className="min-w-0">
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
-              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative' }}>
+              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative' }}>
                 {/* Report Button - Top Right */}
                 <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
                   <ReportJobButton jobId={job.id} jobTitle={job.title} />
@@ -464,7 +467,13 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '100px' }}>{job.title}</h1>
-                <p className="text-lg sm:text-xl mb-4 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
+                {companyInfo ? (
+                  <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl mb-4 font-medium inline-block hover:text-teal-600 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                    {job.employer}
+                  </Link>
+                ) : (
+                  <p className="text-lg sm:text-xl mb-4 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
+                )}
 
                 {/* Salary */}
                 {salary && (
@@ -548,7 +557,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
-              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <h2 className="text-xl sm:text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>About this role</h2>
 
                 {/* Note for external jobs */}
@@ -561,43 +570,45 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div className="prose prose-gray max-w-none">
-                  {job.description.split('\n').map((paragraph: string, index: number) => {
-                    // Empty line = spacing
-                    if (!paragraph.trim()) {
-                      return <div key={index} className="h-4" />;
-                    }
-
-                    // Bullet point line
-                    if (paragraph.trim().startsWith('•')) {
+                  {/* Check if description contains HTML tags (from Quill editor) */}
+                  {/<[a-z][\s\S]*>/i.test(job.description) ? (
+                    <div
+                      className="job-description-html"
+                      style={{ color: 'var(--text-secondary)' }}
+                      dangerouslySetInnerHTML={{ __html: job.description }}
+                    />
+                  ) : (
+                    // Plain text fallback for external/aggregated jobs
+                    job.description.split('\n').map((paragraph: string, index: number) => {
+                      if (!paragraph.trim()) {
+                        return <div key={index} className="h-4" />;
+                      }
+                      if (paragraph.trim().startsWith('•')) {
+                        return (
+                          <div key={index} className="flex items-start gap-2 ml-4 my-1">
+                            <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{paragraph.trim().slice(1).trim()}</span>
+                          </div>
+                        );
+                      }
+                      const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
+                        paragraph.trim().length < 50 &&
+                        paragraph.trim().length > 2;
+                      const endsWithColon = paragraph.trim().endsWith(':');
+                      if (isHeader || endsWithColon) {
+                        return (
+                          <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
+                            {paragraph.trim()}
+                          </h3>
+                        );
+                      }
                       return (
-                        <div key={index} className="flex items-start gap-2 ml-4 my-1">
-                          <span className="mt-1 font-bold" style={{ color: 'var(--color-primary)' }}>•</span>
-                          <span style={{ color: 'var(--text-primary)' }}>{paragraph.trim().slice(1).trim()}</span>
-                        </div>
-                      );
-                    }
-
-                    // Check if it looks like a header (ALL CAPS or ends with colon)
-                    const isHeader = paragraph.trim() === paragraph.trim().toUpperCase() &&
-                      paragraph.trim().length < 50 &&
-                      paragraph.trim().length > 2;
-                    const endsWithColon = paragraph.trim().endsWith(':');
-
-                    if (isHeader || endsWithColon) {
-                      return (
-                        <h3 key={index} className="text-lg font-bold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
+                        <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
                           {paragraph.trim()}
-                        </h3>
+                        </p>
                       );
-                    }
-
-                    // Regular paragraph
-                    return (
-                      <p key={index} className="leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
-                        {paragraph.trim()}
-                      </p>
-                    );
-                  })}
+                    })
+                  )}
                 </div>
               </div>
             </AnimatedContainer>
@@ -663,7 +674,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div className="space-y-3 mb-5">
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
                   <SaveJobButton jobId={job.id} />
 
                 </div>
@@ -711,7 +722,7 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-3 pb-safe">
-          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} />
+          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
         </div>
       </div>
     </>

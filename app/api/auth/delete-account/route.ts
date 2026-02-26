@@ -1,10 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
+import { verifyCsrf } from '@/lib/csrf'
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  // Rate limiting — 3 deletions per hour per IP
+  const rateLimitResult = await rateLimit(request, 'delete-account', { limit: 3, windowSeconds: 3600 });
+  if (rateLimitResult) return rateLimitResult;
+
+  // CSRF protection
+  const csrfResult = verifyCsrf(request);
+  if (csrfResult) return csrfResult;
+
   try {
     // Get authenticated user
     const supabase = await createClient()

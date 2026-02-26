@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, MapPin, Briefcase, Award, Calendar, DollarSign,
-    FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin,
+    FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock,
 } from 'lucide-react';
+import ComposeMessageModal from './ComposeMessageModal';
 
 interface CandidateProfile {
     id: string;
@@ -25,8 +26,8 @@ interface CandidateProfile {
     hasResume: boolean;
     linkedinUrl: string | null;
     joinedAt: string;
-    // TODO: Gate behind paid plan
-    contactEmail: string;
+    hasFullAccess: boolean;
+    contactEmail: string | null;
     resumeUrl: string | null;
 }
 
@@ -54,6 +55,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showContact, setShowContact] = useState(false);
+    const [showCompose, setShowCompose] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -201,6 +203,16 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                             </span>
                         )}
                     </div>
+                    {/* Contact Candidate Button */}
+                    {candidate.hasFullAccess && (
+                        <button
+                            onClick={() => setShowCompose(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all mt-3"
+                            style={{ background: 'linear-gradient(135deg, #14B8A6, #0D9488)', boxShadow: '0 2px 8px rgba(20,184,166,0.3)' }}
+                        >
+                            <Mail size={16} /> Contact Candidate
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -315,119 +327,219 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                 </div>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{
-                ...sectionStyle,
-                display: 'flex',
-                gap: '12px',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-            }}>
-                {/* TODO: Gate behind paid plan — Contact Candidate */}
-                {!showContact ? (
-                    <button
-                        onClick={() => setShowContact(true)}
-                        style={{
+            {/* Action Buttons — gated behind active paid job post */}
+            {candidate.hasFullAccess ? (
+                <div style={{
+                    ...sectionStyle,
+                    display: 'flex',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                }}>
+                    {/* Contact Candidate */}
+                    {!showContact ? (
+                        <button
+                            onClick={() => setShowContact(true)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                paddingTop: '12px',
+                                paddingRight: '24px',
+                                paddingBottom: '12px',
+                                paddingLeft: '24px',
+                                borderRadius: '12px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                                color: '#fff',
+                                fontWeight: 700,
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <Mail size={16} /> Contact Candidate
+                        </button>
+                    ) : (
+                        <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
+                            gap: '10px',
                             paddingTop: '12px',
-                            paddingRight: '24px',
+                            paddingRight: '20px',
                             paddingBottom: '12px',
-                            paddingLeft: '24px',
+                            paddingLeft: '20px',
                             borderRadius: '12px',
-                            border: 'none',
+                            backgroundColor: 'rgba(45,212,191,0.08)',
+                            border: '1px solid rgba(45,212,191,0.2)',
+                        }}>
+                            <Mail size={16} style={{ color: '#2DD4BF' }} />
+                            <a
+                                href={`mailto:${candidate.contactEmail}`}
+                                style={{ color: '#2DD4BF', fontWeight: 600, fontSize: '14px' }}
+                            >
+                                {candidate.contactEmail}
+                            </a>
+                        </div>
+                    )}
+
+                    {/* Download Resume */}
+                    {candidate.hasResume && candidate.resumeUrl && (
+                        <a
+                            href={candidate.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                paddingTop: '12px',
+                                paddingRight: '24px',
+                                paddingBottom: '12px',
+                                paddingLeft: '24px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                fontWeight: 600,
+                                fontSize: '14px',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <FileText size={16} /> Download Resume
+                        </a>
+                    )}
+
+                    {/* LinkedIn */}
+                    {candidate.linkedinUrl && (
+                        <a
+                            href={candidate.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                paddingTop: '12px',
+                                paddingRight: '24px',
+                                paddingBottom: '12px',
+                                paddingLeft: '24px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: '#0A66C2',
+                                fontWeight: 600,
+                                fontSize: '14px',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <Linkedin size={16} /> LinkedIn Profile
+                        </a>
+                    )}
+                </div>
+            ) : (
+                /* Upgrade CTA — employer has no active featured post */
+                <div style={{
+                    ...sectionStyle,
+                    background: 'linear-gradient(135deg, rgba(45,212,191,0.06) 0%, rgba(139,92,246,0.06) 100%)',
+                    border: '1px solid rgba(45,212,191,0.25)',
+                    textAlign: 'center',
+                    paddingTop: '32px',
+                    paddingBottom: '32px',
+                }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '16px',
+                        background: 'linear-gradient(135deg, rgba(45,212,191,0.15), rgba(139,92,246,0.15))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px',
+                    }}>
+                        <Lock size={24} style={{ color: '#2DD4BF' }} />
+                    </div>
+                    <h3 style={{
+                        fontSize: '18px',
+                        fontWeight: 800,
+                        color: 'var(--text-primary)',
+                        margin: '0 0 8px',
+                    }}>
+                        Unlock Full Candidate Access
+                    </h3>
+                    <p style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        margin: '0 0 6px',
+                        lineHeight: 1.6,
+                    }}>
+                        To protect candidate privacy, contact info, resume, and LinkedIn
+                        access is exclusively available to employers with an active{' '}
+                        <strong>Featured</strong> job posting.
+                    </p>
+                    <p style={{
+                        fontSize: '13px',
+                        color: 'var(--text-tertiary)',
+                        margin: '0 0 16px',
+                        lineHeight: 1.5,
+                    }}>
+                        Free job postings do not include candidate unlocking.
+                    </p>
+                    <div style={{
+                        display: 'flex',
+                        gap: '16px',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                        marginBottom: '20px',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                            <Mail size={14} style={{ color: '#2DD4BF' }} /> Direct email
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                            <FileText size={14} style={{ color: '#60A5FA' }} /> Resume download
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                            <Linkedin size={14} style={{ color: '#0A66C2' }} /> LinkedIn profile
+                        </div>
+                    </div>
+                    <a
+                        href="/post-job"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            paddingTop: '14px',
+                            paddingRight: '28px',
+                            paddingBottom: '14px',
+                            paddingLeft: '28px',
+                            borderRadius: '12px',
                             background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
                             color: '#fff',
                             fontWeight: 700,
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <Mail size={16} /> Contact Candidate
-                    </button>
-                ) : (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        paddingTop: '12px',
-                        paddingRight: '20px',
-                        paddingBottom: '12px',
-                        paddingLeft: '20px',
-                        borderRadius: '12px',
-                        backgroundColor: 'rgba(45,212,191,0.08)',
-                        border: '1px solid rgba(45,212,191,0.2)',
-                    }}>
-                        <Mail size={16} style={{ color: '#2DD4BF' }} />
-                        <a
-                            href={`mailto:${candidate.contactEmail}`}
-                            style={{ color: '#2DD4BF', fontWeight: 600, fontSize: '14px' }}
-                        >
-                            {candidate.contactEmail}
-                        </a>
-                    </div>
-                )}
-
-                {/* TODO: Gate behind paid plan — Download Resume */}
-                {candidate.hasResume && candidate.resumeUrl && (
-                    <a
-                        href={candidate.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            paddingTop: '12px',
-                            paddingRight: '24px',
-                            paddingBottom: '12px',
-                            paddingLeft: '24px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)',
-                            fontWeight: 600,
-                            fontSize: '14px',
+                            fontSize: '15px',
                             textDecoration: 'none',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            boxShadow: '0 4px 15px rgba(45,212,191,0.3)',
                         }}
                     >
-                        <FileText size={16} /> Download Resume
+                        Post a Featured Job to Unlock →
                     </a>
-                )}
-
-                {/* LinkedIn */}
-                {candidate.linkedinUrl && (
-                    <a
-                        href={candidate.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            paddingTop: '12px',
-                            paddingRight: '24px',
-                            paddingBottom: '12px',
-                            paddingLeft: '24px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-secondary)',
-                            color: '#0A66C2',
-                            fontWeight: 600,
-                            fontSize: '14px',
-                            textDecoration: 'none',
-                        }}
-                    >
-                        <Linkedin size={16} /> LinkedIn Profile
-                    </a>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Member since */}
             <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
                 Member since {new Date(candidate.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
+
+            {/* Compose Message Modal */}
+            {showCompose && (
+                <ComposeMessageModal
+                    recipientId={candidate.id}
+                    recipientName={candidate.displayName}
+                    onClose={() => setShowCompose(false)}
+                    onSent={() => setShowCompose(false)}
+                />
+            )}
         </div>
     );
 }

@@ -20,7 +20,7 @@ const linkColumns = [
     links: [
       { label: 'Post a Job', href: '/post-job' },
       { label: 'Employer Login', href: '/employer/login' },
-      { label: 'Pricing', href: '/post-job' },
+      { label: 'Employer Dashboard', href: '/employer/dashboard' },
       { label: 'Why PMHNP Hiring', href: '/for-employers' },
     ],
   },
@@ -158,7 +158,7 @@ export default function Footer() {
             <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
               <Image
                 src="/logo.png"
-                alt="PMHNP Hiring"
+                alt="PMHNP Hiring - Psychiatric NP Job Board"
                 width={32}
                 height={32}
                 style={{ width: '32px', height: '32px', filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' }}

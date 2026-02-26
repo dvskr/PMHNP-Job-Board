@@ -11,6 +11,7 @@ import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
+import { parseLocation } from '@/lib/location-parser';
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for job posting
@@ -44,10 +45,27 @@ export async function POST(request: NextRequest) {
       salaryPeriod,
       companyWebsite,
       pricing,
+      benefits,
+      setting,
+      population,
+      companyLogoUrl,
     } = body;
 
-    if (!title || !employer || !location || !mode || !jobType || !description || !applyLink || !contactEmail) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const missingFields = [];
+    if (!title) missingFields.push('title');
+    if (!employer) missingFields.push('company name');
+    if (!location) missingFields.push('location');
+    if (!mode) missingFields.push('work mode');
+    if (!jobType) missingFields.push('job type');
+    if (!description) missingFields.push('description');
+    if (!applyLink) missingFields.push('apply URL');
+    if (!contactEmail) missingFields.push('contact email');
+
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      );
     }
 
     // Sanitize all inputs
@@ -204,6 +222,9 @@ export async function POST(request: NextRequest) {
       isEmployerPosted: true,
     });
 
+    // Parse location into structured fields
+    const parsedLoc = parseLocation(sanitized.location);
+
     // Create job with Prisma
     const job = await prisma.job.create({
       data: {
@@ -223,11 +244,20 @@ export async function POST(request: NextRequest) {
         salaryIsEstimated: normalizedSalary.salaryIsEstimated,
         salaryConfidence: normalizedSalary.salaryConfidence,
         displaySalary,
+        city: parsedLoc.city,
+        state: parsedLoc.state,
+        stateCode: parsedLoc.stateCode,
+        isRemote: parsedLoc.isRemote,
+        isHybrid: parsedLoc.isHybrid,
         isFeatured: pricing === 'featured',
         isPublished: true,
+        isVerifiedEmployer: true,
         sourceType: 'employer',
         expiresAt,
         qualityScore,
+        benefits: Array.isArray(benefits) ? benefits : [],
+        setting: setting || null,
+        population: population || null,
       },
     });
 
@@ -250,11 +280,12 @@ export async function POST(request: NextRequest) {
         employerName: sanitized.employer,
         contactEmail: sanitized.contactEmail,
         companyWebsite: sanitized.companyWebsite || null,
+        companyLogoUrl: companyLogoUrl || null,
         jobId: job.id,
         editToken,
         dashboardToken,
         paymentStatus: 'free',
-        userId: userId, // Link to user if authenticated
+        userId: userId,
       },
     });
 
@@ -287,11 +318,16 @@ export async function POST(request: NextRequest) {
       employer: sanitized.employer
     });
 
-    // Ping search engines for indexing (fire-and-forget)
-    const jobUrl = `https://pmhnphiring.com/jobs/${slug}`;
-    pingAllSearchEngines(jobUrl).catch((err) =>
-      logger.error('[Post-Free] Background indexing ping failed', err)
-    );
+    // Ping search engines for indexing (production only, fire-and-forget)
+    const isProduction = process.env.VERCEL_ENV === 'production' || (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_BASE_URL?.includes('localhost'));
+    if (isProduction) {
+      const jobUrl = `https://pmhnphiring.com/jobs/${slug}`;
+      pingAllSearchEngines(jobUrl).catch((err) =>
+        logger.error('[Post-Free] Background indexing ping failed', err)
+      );
+    } else {
+      logger.info('[Post-Free] Skipping indexing ping (non-production environment)');
+    }
 
     // Return success response
     return NextResponse.json({

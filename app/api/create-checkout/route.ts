@@ -103,9 +103,9 @@ export async function POST(request: NextRequest) {
     // Calculate price in cents
     let price: number;
     if (pricing === 'standard') {
-      price = 9900; // $99
-    } else if (pricing === 'featured') {
       price = 19900; // $199
+    } else if (pricing === 'featured') {
+      price = 29900; // $299
     } else {
       return NextResponse.json(
         { error: 'Invalid pricing tier' },

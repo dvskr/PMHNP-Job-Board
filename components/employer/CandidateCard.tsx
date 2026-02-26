@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {
-    MapPin, Briefcase, FileText, Calendar, Clock,
+    MapPin, Briefcase, FileText, Calendar, Bookmark,
 } from 'lucide-react';
 
 interface CandidateCardProps {
@@ -18,6 +18,8 @@ interface CandidateCardProps {
     preferredWorkMode: string | null;
     availableDate: string | null;
     hasResume: boolean;
+    isSaved?: boolean;
+    onToggleSave?: (id: string) => void;
 }
 
 const EXPERIENCE_LABELS: Record<number, string> = {
@@ -64,6 +66,7 @@ export default function CandidateCard({
     id, displayName, initials, avatarUrl, headline,
     yearsExperience, certifications, licenseStates,
     specialties, preferredWorkMode, availableDate, hasResume,
+    isSaved, onToggleSave,
 }: CandidateCardProps) {
     const expLabel = getExperienceLabel(yearsExperience);
     const availLabel = formatAvailableDate(availableDate);
@@ -98,6 +101,27 @@ export default function CandidateCard({
                 (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
             }}
         >
+            {/* Bookmark button */}
+            {onToggleSave && (
+                <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(id); }}
+                    style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        borderRadius: '6px',
+                        transition: 'all 0.2s',
+                        color: isSaved ? '#F59E0B' : 'var(--text-tertiary)',
+                    }}
+                    title={isSaved ? 'Remove from saved' : 'Save candidate'}
+                >
+                    <Bookmark size={18} fill={isSaved ? '#F59E0B' : 'none'} />
+                </button>
+            )}
             {/* Header: Avatar + Name + Headline */}
             <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
                 {/* Avatar */}

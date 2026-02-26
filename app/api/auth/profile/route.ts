@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
+import { verifyCsrf } from '@/lib/csrf'
 
 // Shared include for _count used by completeness scoring
 const profileInclude = {
@@ -236,6 +237,10 @@ export async function POST(request: NextRequest) {
 
 // PATCH - Update profile fields
 export async function PATCH(request: NextRequest) {
+  // CSRF protection
+  const csrfError = verifyCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()

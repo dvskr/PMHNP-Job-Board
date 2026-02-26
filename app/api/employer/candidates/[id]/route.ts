@@ -1,6 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
+
+/**
+ * Generate a fresh signed URL for a resume stored as a storage path.
+ * Handles both legacy full URLs and new storage paths.
+ */
+async function generateResumeUrl(resumeUrl: string | null): Promise<string | null> {
+    if (!resumeUrl) return null;
+
+    // If it's already a full URL (legacy data), return as-is
+    if (resumeUrl.startsWith('http')) return resumeUrl;
+
+    // It's a storage path — generate a fresh signed URL
+    try {
+        const admin = createAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data } = await admin.storage
+            .from('resumes')
+            .createSignedUrl(resumeUrl, 3600); // 1 hour
+        return data?.signedUrl || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Check whether an employer has at least one active, paid FEATURED job posting.
+ * Only featured posts ($299 tier) unlock full candidate profile access.
+ * "paid" means paymentStatus === 'paid' (not 'free', 'free_renewed', etc.)
+ * "active" means the related Job.expiresAt > now.
+ */
+async function hasActivePaidPost(supabaseId: string): Promise<boolean> {
+    const count = await prisma.employerJob.count({
+        where: {
+            userId: supabaseId,
+            paymentStatus: 'paid',
+            job: {
+                isFeatured: true,
+                expiresAt: { gt: new Date() },
+            },
+        },
+    })
+    return count > 0
+}
 
 export async function GET(
     req: NextRequest,
@@ -21,9 +67,14 @@ export async function GET(
         select: { role: true },
     })
 
-    if (!viewerProfile || !['employer', 'admin'].includes(viewerProfile.role)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!viewerProfile || (viewerProfile.role !== 'employer' && viewerProfile.role !== 'admin')) {
+        return NextResponse.json({ error: 'Forbidden — employer or admin only' }, { status: 403 })
     }
+
+    // Determine access level: admin always gets full access,
+    // employers need an active paid job post for full candidate info
+    const isAdmin = viewerProfile.role === 'admin'
+    const hasFullAccess = isAdmin || await hasActivePaidPost(user.id)
 
     // Fetch candidate (privacy check: must be visible + open to offers)
     const candidate = await prisma.userProfile.findFirst({
@@ -78,6 +129,9 @@ export async function GET(
         }
     }
 
+    // Resume + contact details — ONLY available with an active paid featured job post
+    const freshResumeUrl = hasFullAccess ? await generateResumeUrl(candidate.resumeUrl) : null;
+
     return NextResponse.json({
         id: candidate.supabaseId,
         displayName,
@@ -94,11 +148,12 @@ export async function GET(
         availableDate: candidate.availableDate?.toISOString() || null,
         salaryRange,
         hasResume: !!candidate.resumeUrl,
-        linkedinUrl: candidate.linkedinUrl,
         joinedAt: candidate.createdAt.toISOString(),
 
-        // TODO: Gate behind paid plan — these fields should be hidden for free-tier employers
-        contactEmail: candidate.email,
-        resumeUrl: candidate.resumeUrl,
+        // Paid access only — resume, email, LinkedIn
+        hasFullAccess,
+        resumeUrl: freshResumeUrl,
+        contactEmail: hasFullAccess ? candidate.email : null,
+        linkedinUrl: hasFullAccess ? candidate.linkedinUrl : null,
     })
 }

@@ -46,6 +46,7 @@ export default function CandidateSearchClient() {
     const [totalPages, setTotalPages] = useState(1);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
+    const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
     const fetchCandidates = useCallback(async () => {
         setLoading(true);
@@ -76,6 +77,51 @@ export default function CandidateSearchClient() {
         const timer = setTimeout(fetchCandidates, 300);
         return () => clearTimeout(timer);
     }, [fetchCandidates]);
+
+    // Fetch saved candidate IDs
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch('/api/employer/saved-candidates');
+                if (res.ok) {
+                    const data = await res.json();
+                    setSavedIds(new Set(data.savedCandidates.map((s: { candidate: { id: string } }) => s.candidate.id)));
+                }
+            } catch { /* silent */ }
+        })();
+    }, []);
+
+    const toggleSave = async (candidateId: string) => {
+        const wasSaved = savedIds.has(candidateId);
+        // Optimistic update
+        setSavedIds(prev => {
+            const next = new Set(prev);
+            if (wasSaved) next.delete(candidateId); else next.add(candidateId);
+            return next;
+        });
+        try {
+            if (wasSaved) {
+                await fetch('/api/employer/saved-candidates', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ candidateId }),
+                });
+            } else {
+                await fetch('/api/employer/saved-candidates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ candidateId }),
+                });
+            }
+        } catch {
+            // Revert on error
+            setSavedIds(prev => {
+                const next = new Set(prev);
+                if (wasSaved) next.add(candidateId); else next.delete(candidateId);
+                return next;
+            });
+        }
+    };
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -424,7 +470,12 @@ export default function CandidateSearchClient() {
                         }}
                     >
                         {candidates.map((c: Candidate) => (
-                            <CandidateCard key={c.id} {...c} />
+                            <CandidateCard
+                                key={c.id}
+                                {...c}
+                                isSaved={savedIds.has(c.id)}
+                                onToggleSave={toggleSave}
+                            />
                         ))}
                     </div>
 

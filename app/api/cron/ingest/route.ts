@@ -19,10 +19,6 @@ function verifyCronSecret(request: NextRequest): boolean {
     return false;
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-
   return authHeader === `Bearer ${cronSecret}`;
 }
 
@@ -166,7 +162,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Cron job failed',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

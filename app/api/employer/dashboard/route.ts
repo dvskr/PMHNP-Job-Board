@@ -8,6 +8,7 @@ type EmployerJobWithJob = {
   job: {
     id: string;
     title: string;
+    slug: string | null;
     isPublished: boolean;
     isFeatured: boolean;
     viewCount: number;
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             title: true,
+            slug: true,
             isPublished: true,
             isFeatured: true,
             viewCount: true,
@@ -78,6 +80,7 @@ export async function GET(request: NextRequest) {
     const jobs = allEmployerJobs.map((ej: EmployerJobWithJob) => ({
       id: ej.job.id,
       title: ej.job.title,
+      slug: ej.job.slug,
       isPublished: ej.job.isPublished,
       isFeatured: ej.job.isFeatured,
       viewCount: ej.job.viewCount,

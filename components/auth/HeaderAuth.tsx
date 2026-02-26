@@ -17,9 +17,10 @@ interface UserProfile {
 
 interface HeaderAuthProps {
   onNavigate?: () => void;
+  onRoleChange?: (role: string | null) => void;
 }
 
-export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
+export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileCompleteness, setProfileCompleteness] = useState(100)
@@ -44,6 +45,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
               lastName: profileData.lastName,
               avatarUrl: profileData.avatarUrl,
             })
+            onRoleChange?.(profileData.role)
             if (profileData.role === 'job_seeker') {
               setProfileCompleteness(calculateCompleteness(profileData as ProfileData).percentage)
             }
@@ -74,6 +76,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
                 lastName: profileData.lastName,
                 avatarUrl: profileData.avatarUrl,
               })
+              onRoleChange?.(profileData.role)
               if (profileData.role === 'job_seeker') {
                 setProfileCompleteness(calculateCompleteness(profileData as ProfileData).percentage)
               }
@@ -83,6 +86,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
           }
         } else {
           setProfile(null)
+          onRoleChange?.(null)
         }
       }
     )
@@ -132,7 +136,7 @@ export default function HeaderAuth({ onNavigate }: HeaderAuthProps) {
       )
     }
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-center gap-4 w-full">
         <Link
           href="/dashboard"
           className="nav-link"

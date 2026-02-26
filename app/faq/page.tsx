@@ -52,7 +52,7 @@ export default function FAQPage() {
     {
       question: "How much does it cost to post a job?",
       answer: config.isPaidPostingEnabled
-        ? "We offer two posting options: Standard ($99) for a 30-day listing with full features, and Featured ($199) which includes priority placement, a featured badge, and highlighted inclusion in our email digest."
+        ? "We offer two posting options: Standard ($199) for a 30-day listing with full features, and Featured ($299) which includes priority placement, a featured badge, and highlighted inclusion in our email digest."
         : "During our launch period, job postings are completely FREE! This includes both Standard and Featured listings. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
     },
     {

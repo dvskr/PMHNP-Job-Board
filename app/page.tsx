@@ -47,8 +47,8 @@ export async function generateMetadata(): Promise<Metadata> {
     : '10,000+';
 
   return {
-    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board`,
-    description: `Find ${jobCountDisplay} PMHNP jobs across the United States. The #1 job board for psychiatric mental health nurse practitioners. Remote and in-person positions updated daily.`,
+    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board | PMHNP Hiring`,
+    description: `Browse ${jobCountDisplay} PMHNP jobs updated daily. Find remote, telehealth, and in-person psychiatric NP positions with salary transparency across all 50 states. Free for job seekers.`,
     openGraph: {
       title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,

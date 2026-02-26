@@ -9,10 +9,18 @@ export const metadata = {
   description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications. Access your personalized dashboard.',
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirectTo?: string }>
+}) {
   const currentUser = await getCurrentUser()
+  const params = await searchParams
+  const redirectTo = params.redirectTo || '/dashboard'
+  // Only allow relative redirects to prevent open redirect attacks
+  const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
   if (currentUser) {
-    redirect('/dashboard')
+    redirect(safeRedirect)
   }
 
   return (

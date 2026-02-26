@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
 import {
     getPublishedPosts,
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
     title: 'PMHNP Career Blog | Expert Guides & Insights',
     description:
-        'Expert PMHNP career guides, salary negotiation tips, state spotlights, and job market insights for psychiatric mental health nurse practitioners.',
+        'PMHNP career guides, salary insights, and job market trends from the #1 psychiatric NP job board.',
     openGraph: {
         images: [{ url: '/images/pages/pmhnp-career-insights-blog.webp', width: 1280, height: 900, alt: 'PMHNP career blog with expert guides on salary negotiation, state spotlights, and job market insights' }],
     },
@@ -150,11 +151,13 @@ export default async function BlogIndexPage({
                                     {/* Header — image or gradient fallback */}
                                     <div className="h-44 relative overflow-hidden">
                                         {post.image_url ? (
-                                            <img
+                                            <Image
                                                 src={post.image_url}
                                                 alt={post.title}
-                                                className="absolute inset-0 w-full h-full object-cover"
-                                                loading="lazy"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
+                                                quality={85}
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-teal-600" />

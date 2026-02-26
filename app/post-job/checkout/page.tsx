@@ -36,7 +36,7 @@ export default function CheckoutPage() {
 
     // Read jobFormData from localStorage
     const storedData = localStorage.getItem('jobFormData');
-    
+
     if (!storedData) {
       // No data, redirect to post-job
       router.push('/post-job');
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
       }
 
       const { url } = await response.json();
-      
+
       if (url) {
         window.location.href = url;
       } else {
@@ -87,7 +87,7 @@ export default function CheckoutPage() {
   };
 
   const getPrice = () => {
-    return jobData?.pricingTier === 'featured' ? '$199' : '$99';
+    return jobData?.pricingTier === 'featured' ? '$299' : '$199';
   };
 
   const getPlanName = () => {
@@ -132,7 +132,7 @@ export default function CheckoutPage() {
       {/* Job Summary Card */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Job Posting Summary</h2>
-        
+
         <div className="space-y-4">
           {/* Title and Company */}
           <div className="border-b pb-4">
@@ -193,8 +193,8 @@ export default function CheckoutPage() {
           <div>
             <h3 className="text-lg font-semibold">{getPlanName()}</h3>
             <p className="text-sm text-gray-500">
-              {jobData.pricingTier === 'featured' 
-                ? '60-day listing • Featured badge • Pinned to top' 
+              {jobData.pricingTier === 'featured'
+                ? '60-day listing • Featured badge • Pinned to top'
                 : '30-day listing • Shown in job feed'}
             </p>
           </div>

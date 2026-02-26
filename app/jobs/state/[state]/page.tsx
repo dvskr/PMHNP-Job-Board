@@ -314,7 +314,7 @@ async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<
     .map(c => ({
       name: c.city as string,
       count: c._count.city,
-      slug: (c.city as string).toLowerCase().replace(/\s+/g, '-'),
+      slug: `${(c.city as string).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stateCode.toLowerCase()}`,
     }));
 }
 

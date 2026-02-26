@@ -65,10 +65,10 @@ export async function uploadResume(
     throw new Error(`Failed to upload resume: ${error.message}`);
   }
 
-  // Get signed URL (valid for 1 year for resumes - private)
+  // Get signed URL (valid for 1 hour for resumes — short-lived to protect PII)
   const { data: urlData, error: urlError } = await supabase.storage
     .from(RESUME_BUCKET)
-    .createSignedUrl(data.path, 31536000); // 1 year in seconds
+    .createSignedUrl(data.path, 3600); // 1 hour in seconds
 
   if (urlError) {
     throw new Error(`Failed to generate URL: ${urlError.message}`);
@@ -133,7 +133,7 @@ export async function uploadAvatar(
  */
 export async function deleteFile(path: string, fileType: 'resume' | 'avatar'): Promise<void> {
   const bucket = fileType === 'resume' ? RESUME_BUCKET : AVATAR_BUCKET;
-  
+
   const { error } = await supabase.storage
     .from(bucket)
     .remove([path]);
@@ -178,13 +178,50 @@ export function getPathFromUrl(url: string): string | null {
     // For signed URLs (resumes): https://xxx.supabase.co/storage/v1/object/sign/resumes/path?token=...
     const signMatch = url.match(/\/storage\/v1\/object\/sign\/[^/]+\/(.+?)(?:\?|$)/);
     if (signMatch) return signMatch[1];
-    
+
     // For public URLs (avatars): https://xxx.supabase.co/storage/v1/object/public/avatars/path
     const publicMatch = url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
     return publicMatch ? publicMatch[1] : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Magic byte signatures for file type verification.
+ * Prevents attackers from uploading malicious files with spoofed MIME types.
+ */
+const MAGIC_BYTES: Record<string, { offset: number; bytes: number[] }[]> = {
+  // PDF: starts with %PDF
+  'application/pdf': [{ offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] }],
+  // DOCX/XLSX/PPTX (ZIP-based): starts with PK
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+    { offset: 0, bytes: [0x50, 0x4B, 0x03, 0x04] },
+    { offset: 0, bytes: [0x50, 0x4B, 0x05, 0x06] },
+  ],
+  // Legacy DOC: starts with D0 CF 11 E0
+  'application/msword': [
+    { offset: 0, bytes: [0xD0, 0xCF, 0x11, 0xE0] },
+    // Some .doc files are actually DOCX (PK signature)
+    { offset: 0, bytes: [0x50, 0x4B, 0x03, 0x04] },
+  ],
+  // JPEG: starts with FF D8 FF
+  'image/jpeg': [{ offset: 0, bytes: [0xFF, 0xD8, 0xFF] }],
+  'image/jpg': [{ offset: 0, bytes: [0xFF, 0xD8, 0xFF] }],
+  // PNG: starts with 89 50 4E 47
+  'image/png': [{ offset: 0, bytes: [0x89, 0x50, 0x4E, 0x47] }],
+  // WebP: starts with RIFF....WEBP
+  'image/webp': [{ offset: 0, bytes: [0x52, 0x49, 0x46, 0x46] }],
+};
+
+function verifyMagicBytes(buffer: Buffer, fileType: string): boolean {
+  const signatures = MAGIC_BYTES[fileType];
+  if (!signatures) return true; // Unknown type — skip magic byte check
+
+  return signatures.some(sig => {
+    if (buffer.length < sig.offset + sig.bytes.length) return false;
+    return sig.bytes.every((byte, i) => buffer[sig.offset + i] === byte);
+  });
 }
 
 /**
@@ -210,6 +247,14 @@ export function validateFile(
     return {
       valid: false,
       error: `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`,
+    };
+  }
+
+  // Verify magic bytes to prevent MIME type spoofing
+  if (!verifyMagicBytes(buffer, fileType)) {
+    return {
+      valid: false,
+      error: 'File content does not match declared file type',
     };
   }
 

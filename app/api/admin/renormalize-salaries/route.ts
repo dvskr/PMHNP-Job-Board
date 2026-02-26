@@ -4,7 +4,8 @@
  * This endpoint re-processes all existing jobs to apply the updated
  * salary normalization logic.
  * 
- * Usage: GET /api/admin/renormalize-salaries?secret=YOUR_CRON_SECRET
+ * Usage: GET /api/admin/renormalize-salaries
+ * Auth: Authorization: Bearer YOUR_CRON_SECRET
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -34,9 +35,9 @@ interface SourceBreakdown {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify secret
-    const secret = request.nextUrl.searchParams.get('secret');
-    if (secret !== process.env.CRON_SECRET) {
+    // Verify secret via Authorization header (not query string — prevents log leakage)
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

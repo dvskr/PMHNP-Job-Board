@@ -30,11 +30,14 @@ function stripHtml(html: string | null | undefined): string {
   if (!html) return '';
   // Decode entities first
   const decoded = html
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#160;/g, ' ')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&[a-zA-Z]+;/g, ' ');
 
   // Then strip tags
   return decoded.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();

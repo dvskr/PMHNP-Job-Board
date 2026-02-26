@@ -1,10 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
+import { requireEmployer } from '@/lib/auth/protect';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerDashboardClient from '@/components/employer/EmployerDashboardClient';
 
 export default async function EmployerDashboardPage() {
+    // Require employer or admin role — redirects to /unauthorized otherwise
+    await requireEmployer();
+
     const supabase = await createClient();
 
     // 1. Check Authentication

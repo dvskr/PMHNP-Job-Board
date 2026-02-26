@@ -12,10 +12,10 @@ interface AvatarUploadProps {
   onRemove?: () => void
 }
 
-export default function AvatarUpload({ 
-  currentAvatarUrl, 
+export default function AvatarUpload({
+  currentAvatarUrl,
   onUploadComplete,
-  onRemove 
+  onRemove
 }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [removing, setRemoving] = useState(false)
@@ -31,7 +31,7 @@ export default function AvatarUpload({
 
     try {
       const supabase = createClient()
-      
+
       // Extract filename from URL
       const urlParts = currentAvatarUrl.split('/')
       const fileName = urlParts[urlParts.length - 1]
@@ -96,7 +96,7 @@ export default function AvatarUpload({
 
       // Call callback with new URL
       onUploadComplete(url)
-      
+
       // Clean up preview
       URL.revokeObjectURL(previewUrl)
       setPreview(null)
@@ -123,9 +123,9 @@ export default function AvatarUpload({
           {uploading ? (
             <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
           ) : displayUrl ? (
-            <Image 
-              src={displayUrl} 
-              alt="Profile" 
+            <Image
+              src={displayUrl}
+              alt="Profile avatar"
               width={128}
               height={128}
               className="w-full h-full object-cover"

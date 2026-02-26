@@ -1,5 +1,4 @@
 import { Job } from '@/lib/types';
-import { useMemo } from 'react';
 
 interface JobStructuredDataProps {
   job: Job;
@@ -11,55 +10,42 @@ function mapJobType(jobType: string | null): string {
     'Part-Time': 'PART_TIME',
     'Contract': 'CONTRACTOR',
     'Per Diem': 'PER_DIEM',
+    'Travel': 'TEMPORARY',
     'Temporary': 'TEMPORARY',
     'Internship': 'INTERN',
   };
   return mapping[jobType || ''] || 'FULL_TIME';
 }
 
-function createJobLocation(job: Job): object {
-  if (job.isRemote) {
-    return {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressCountry": "US"
-      }
-    };
-  }
-  return {
-    "@type": "Place",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": job.city || undefined,
-      "addressRegion": job.stateCode || job.state || undefined,
-      "addressCountry": "US"
+/**
+ * Remove all keys with undefined values from an object (shallow + nested).
+ */
+function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      result[key] = stripUndefined(value as Record<string, unknown>);
+    } else {
+      result[key] = value;
     }
-  };
+  }
+  return result;
 }
 
 export default function JobStructuredData({ job }: JobStructuredDataProps) {
-  // Get current date once per render (memoized)
-  const thirtyDaysFromNow = useMemo(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 30);
-    return date;
-  }, []);
-
   // Use originalPostedAt (real source date) with createdAt fallback for SEO accuracy
-  const datePosted = useMemo(() => {
-    const rawDate = job.originalPostedAt || job.createdAt;
-    return rawDate instanceof Date ? rawDate : new Date(rawDate as string);
-  }, [job.originalPostedAt, job.createdAt]);
+  const rawDate = job.originalPostedAt || job.createdAt;
+  const datePosted = rawDate instanceof Date ? rawDate : new Date(rawDate as string);
 
-  const validThrough = useMemo(() =>
-    job.expiresAt
-      ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
-      : thirtyDaysFromNow,
-    [job.expiresAt, thirtyDaysFromNow]
-  );
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-  const structuredData = {
+  const validThrough = job.expiresAt
+    ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
+    : thirtyDaysFromNow;
+
+  const structuredData = stripUndefined({
     "@context": "https://schema.org",
     "@type": "JobPosting",
     "title": job.title,
@@ -71,7 +57,22 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
       "@type": "Organization",
       "name": job.employer,
     },
-    "jobLocation": createJobLocation(job),
+    "jobLocation": {
+      "@type": "Place",
+      "address": stripUndefined({
+        "@type": "PostalAddress",
+        "addressLocality": job.isRemote ? undefined : (job.city || undefined),
+        "addressRegion": job.isRemote ? undefined : (job.stateCode || job.state || undefined),
+        "addressCountry": "US",
+      }),
+    },
+    // Remote-specific fields
+    "jobLocationType": job.isRemote ? "TELECOMMUTE" : undefined,
+    "applicantLocationRequirements": job.isRemote ? {
+      "@type": "Country",
+      "name": "US",
+    } : undefined,
+    // Salary
     "baseSalary": job.normalizedMinSalary ? {
       "@type": "MonetaryAmount",
       "currency": "USD",
@@ -79,16 +80,19 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
         "@type": "QuantitativeValue",
         "minValue": job.normalizedMinSalary,
         "maxValue": job.normalizedMaxSalary || job.normalizedMinSalary,
-        "unitText": "YEAR"
-      }
+        "unitText": "YEAR",
+      },
     } : undefined,
+    // Healthcare-specific
+    "industry": "Healthcare",
+    "occupationalCategory": "29-1171.00",
     "directApply": true,
     "identifier": {
       "@type": "PropertyValue",
       "name": "PMHNP Hiring",
-      "value": job.id
-    }
-  };
+      "value": job.id,
+    },
+  });
 
   return (
     <script
@@ -97,4 +101,3 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     />
   );
 }
-

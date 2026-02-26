@@ -3,16 +3,18 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import BottomNav from '@/components/BottomNav';
+import dynamic from 'next/dynamic';
 import ProfileNudgeBanner from '@/components/profile/ProfileNudgeWrapper';
-import FloatingSocial from '@/components/FloatingSocial';
+const BottomNav = dynamic(() => import('@/components/BottomNav'));
+const FloatingSocial = dynamic(() => import('@/components/FloatingSocial'));
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutShell from '@/components/LayoutShell';
 import MainContent from '@/components/MainContent';
+import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-import StickyEmailBar from '@/components/StickyEmailBar';
-import FeedbackWidget from '@/components/FeedbackWidget';
+const StickyEmailBar = dynamic(() => import('@/components/StickyEmailBar'));
+const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +36,7 @@ export const metadata: Metadata = {
     template: '%s | PMHNP Hiring',
   },
 
-  description: 'The #1 job board for Psychiatric Mental Health Nurse Practitioners. 10,000+ PMHNP jobs from 3,000+ companies across 50 states. Remote and in-person positions with salary transparency, updated daily.',
+  description: 'Browse 10,000+ PMHNP jobs updated daily. Find remote, telehealth, and in-person psychiatric NP positions with salary transparency across all 50 states. Free for job seekers.',
 
   keywords: [
     'PMHNP jobs',
@@ -132,12 +134,14 @@ export default function RootLayout({
         {/* Theme init script — runs before React hydrates to prevent FOUC */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)||(!t&&!window.matchMedia);var h=document.documentElement;var s=h.style;if(d){h.classList.add('dark');h.classList.remove('light');s.backgroundColor='#060E18';s.color='#F1F5F9';s.colorScheme='dark';s.setProperty('--bg-primary','#060E18');s.setProperty('--bg-secondary','#0F1923');s.setProperty('--bg-secondary-rgb','15,25,35');s.setProperty('--bg-tertiary','#162231');s.setProperty('--text-primary','#F1F5F9');s.setProperty('--text-primary-rgb','241,245,249');s.setProperty('--text-secondary','#E2E8F0');s.setProperty('--text-tertiary','#CBD5E1');s.setProperty('--text-muted','#94A3B8');s.setProperty('--border-color','#334155');s.setProperty('--border-color-dark','#475569');s.setProperty('--shadow-color','rgba(0,0,0,0.3)');s.setProperty('--header-bg','#0F1923');s.setProperty('--mobile-menu-bg','#0F1923');s.setProperty('--nav-btn-bg','#1E293B');s.setProperty('--nav-btn-text','#F1F5F9');s.setProperty('--nav-btn-hover-bg','#334155');s.setProperty('--input-text','#F1F5F9');s.setProperty('--input-placeholder','#64748B');s.setProperty('--color-primary','#2DD4BF');s.setProperty('--color-primary-dark','#14B8A6');s.setProperty('--color-primary-light','#5EEAD4');s.setProperty('--salary-color','#2DD4BF');s.setProperty('--shimmer-from','#162231');s.setProperty('--shimmer-via','#1E293B')}else{h.classList.add('light');h.classList.remove('dark');s.backgroundColor='#FFFFFF';s.color='#111827';var st=document.createElement('style');st.textContent='html,body{background-color:#FFFFFF!important;color:#111827!important}body{opacity:1!important}';document.head.appendChild(st);s.setProperty('--bg-primary','#FFFFFF');s.setProperty('--bg-secondary','#F9FAFB');s.setProperty('--bg-secondary-rgb','249,250,251');s.setProperty('--bg-tertiary','#F3F4F6');s.setProperty('--text-primary','#111827');s.setProperty('--text-primary-rgb','17,24,39');s.setProperty('--text-secondary','#374151');s.setProperty('--text-tertiary','#6B7280');s.setProperty('--border-color','#E5E7EB');s.setProperty('--border-color-dark','#D1D5DB');s.setProperty('--shadow-color','rgba(0,0,0,0.1)');s.setProperty('--header-bg','#FFFFFF');s.setProperty('--mobile-menu-bg','#FFFFFF');s.setProperty('--nav-btn-bg','#F3F4F6');s.setProperty('--nav-btn-text','#111827');s.setProperty('--nav-btn-hover-bg','#E5E7EB');s.setProperty('--input-text','#111827');s.setProperty('--input-placeholder','#6B7280');s.setProperty('--selection-bg','#CCFBF1');s.setProperty('--selection-text','#134E4A');s.setProperty('--shimmer-from','#f0f0f0');s.setProperty('--shimmer-via','#e0e0e0');s.setProperty('--color-primary','#0D9488');s.setProperty('--color-primary-dark','#0F766E');s.setProperty('--color-primary-light','#14B8A6');s.setProperty('--salary-color','#1d4ed8')}}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.backgroundColor='#060E18';document.documentElement.style.color='#F1F5F9'}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)||(!t&&!window.matchMedia);var h=document.documentElement;var s=h.style;if(d){h.classList.add('dark');h.classList.remove('light');s.backgroundColor='#060E18';s.color='#F1F5F9';s.colorScheme='dark';s.setProperty('--bg-primary','#060E18');s.setProperty('--bg-secondary','#0F1923');s.setProperty('--bg-secondary-rgb','15,25,35');s.setProperty('--bg-tertiary','#162231');s.setProperty('--text-primary','#F1F5F9');s.setProperty('--text-primary-rgb','241,245,249');s.setProperty('--text-secondary','#E2E8F0');s.setProperty('--text-tertiary','#CBD5E1');s.setProperty('--text-muted','#94A3B8');s.setProperty('--border-color','#334155');s.setProperty('--border-color-dark','#475569');s.setProperty('--shadow-color','rgba(0,0,0,0.3)');s.setProperty('--header-bg','#0F1923');s.setProperty('--mobile-menu-bg','#0F1923');s.setProperty('--nav-btn-bg','#1E293B');s.setProperty('--nav-btn-text','#F1F5F9');s.setProperty('--nav-btn-hover-bg','#334155');s.setProperty('--input-text','#F1F5F9');s.setProperty('--input-placeholder','#64748B');s.setProperty('--color-primary','#2DD4BF');s.setProperty('--color-primary-dark','#14B8A6');s.setProperty('--color-primary-light','#5EEAD4');s.setProperty('--salary-color','#2DD4BF');s.setProperty('--shimmer-from','#162231');s.setProperty('--shimmer-via','#1E293B')}else{h.classList.add('light');h.classList.remove('dark');s.backgroundColor='#FFFFFF';s.color='#111827';var st=document.createElement('style');st.textContent='html{background-color:#F9FAFB!important}body{background-color:#FFFFFF!important;color:#111827!important;opacity:1!important}';document.head.appendChild(st);s.setProperty('--bg-primary','#FFFFFF');s.setProperty('--bg-secondary','#F9FAFB');s.setProperty('--bg-secondary-rgb','249,250,251');s.setProperty('--bg-tertiary','#F3F4F6');s.setProperty('--text-primary','#111827');s.setProperty('--text-primary-rgb','17,24,39');s.setProperty('--text-secondary','#374151');s.setProperty('--text-tertiary','#6B7280');s.setProperty('--border-color','#E5E7EB');s.setProperty('--border-color-dark','#D1D5DB');s.setProperty('--shadow-color','rgba(0,0,0,0.1)');s.setProperty('--header-bg','#FFFFFF');s.setProperty('--mobile-menu-bg','#FFFFFF');s.setProperty('--nav-btn-bg','#F3F4F6');s.setProperty('--nav-btn-text','#111827');s.setProperty('--nav-btn-hover-bg','#E5E7EB');s.setProperty('--input-text','#111827');s.setProperty('--input-placeholder','#6B7280');s.setProperty('--selection-bg','#CCFBF1');s.setProperty('--selection-text','#134E4A');s.setProperty('--shimmer-from','#f0f0f0');s.setProperty('--shimmer-via','#e0e0e0');s.setProperty('--color-primary','#0D9488');s.setProperty('--color-primary-dark','#0F766E');s.setProperty('--color-primary-light','#14B8A6');s.setProperty('--salary-color','#1d4ed8')}}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.backgroundColor='#060E18';document.documentElement.style.color='#F1F5F9'}})();`,
           }}
         />
         {/* Performance: Preconnect to external domains */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* Organization and WebSite Schema Markup */}
         <meta property="fb:app_id" content="940556045303701" />
         <script
@@ -152,20 +156,27 @@ export default function RootLayout({
                   "name": "PMHNP Hiring",
                   "alternateName": "PMHNP Jobs",
                   "url": "https://pmhnphiring.com",
-                  "logo": {
-                    "@type": "ImageObject",
-                    "url": "https://pmhnphiring.com/pmhnp_logo.png"
-                  },
+                  "logo": "https://pmhnphiring.com/logo.png",
                   "image": "https://pmhnphiring.com/pmhnp_logo.png",
-                  "description": "The #1 job board for psychiatric mental health nurse practitioners. Browse 10,000+ PMHNP jobs with salary data.",
-                  "foundingDate": "2024",
+                  "description": "The #1 job board for Psychiatric Mental Health Nurse Practitioners",
+                  "foundingDate": "2026",
+                  "founder": {
+                    "@type": "Person",
+                    "name": "Pavan Kumar Reddy Daggula"
+                  },
                   "sameAs": [
-                    "https://x.com/pmhnphiring",
-                    "https://www.facebook.com/profile.php?id=61585484949012",
-                    "https://www.instagram.com/pmhnphiring",
-                    "https://www.linkedin.com/company/pmhnp-hiring",
-                    "https://www.youtube.com/@pmhnphiring"
-                  ]
+                    "https://www.linkedin.com/company/pmhnpjobs",
+                    "https://www.facebook.com/pmhnphiring",
+                    "https://www.crunchbase.com/organization/pmhnp-hiring",
+                    "https://wellfound.com/company/pmhnp-hiring",
+                    "https://www.producthunt.com/products/pmhnp-jobs",
+                    "https://www.saashub.com/10000-pmhnp-jobs"
+                  ],
+                  "contactPoint": {
+                    "@type": "ContactPoint",
+                    "email": "contact@pmhnphiring.com",
+                    "contactType": "customer service"
+                  }
                 },
                 {
                   "@type": "WebSite",
@@ -207,11 +218,13 @@ export default function RootLayout({
             </LayoutShell>
             <MainContent>{children}</MainContent>
             <LayoutShell>
-              <Footer />
-              <FloatingSocial />
-              <FeedbackWidget />
+              <MobileHideOnAppRoutes>
+                <Footer />
+                <FloatingSocial />
+                <FeedbackWidget />
+                <StickyEmailBar />
+              </MobileHideOnAppRoutes>
               <BottomNav />
-              <StickyEmailBar />
             </LayoutShell>
           </div>
         </ThemeProvider>

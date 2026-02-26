@@ -143,7 +143,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     return {
         title: 'New Grad PMHNP Jobs - Entry Level Psychiatric NP Positions',
-        description: `Find new graduate PMHNP jobs and entry-level psychiatric nurse practitioner positions. Fellowships, residencies, and new grad friendly employers. ${stats.totalJobs} positions available.`,
+        description: `New grad PMHNP jobs. Entry-level psychiatric NP positions that welcome recent graduates. Updated daily.`,
         keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
         openGraph: {
             title: `${stats.totalJobs} New Grad PMHNP Jobs - Entry Level Positions`,

@@ -36,6 +36,9 @@ model Job {
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
+  benefits            String[]     @default([])
+  setting             String?      @map("clinical_setting")
+  population          String?      @map("patient_population")
   sourceType          String?      @map("source_type")
   sourceProvider      String?      @map("source_provider")
   sourceSite          String?      @map("source_site")
@@ -51,7 +54,10 @@ model Job {
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
   jobReports          JobReport[]
+  jobViewEvents       JobViewEvent[]
   employerJobs        EmployerJob?
+  employerMessages    EmployerMessage[]
+  conversations       Conversation[]
   company             Company?     @relation(fields: [companyId], references: [id])
 
   @@index([isPublished])
@@ -305,6 +311,13 @@ model UserProfile {
   candidateReferences  CandidateReference[]
   autofillUsage        AutofillUsage[]
   autofillTelemetry    AutofillTelemetry[]
+  sentMessages         EmployerMessage[]    @relation("SenderMessages")
+  receivedMessages     EmployerMessage[]    @relation("RecipientMessages")
+  conversationsA       Conversation[]       @relation("ConversationParticipantA")
+  conversationsB       Conversation[]       @relation("ConversationParticipantB")
+  savedByEmployers     SavedCandidate[]     @relation("SavedAsCandidate")
+  savedCandidates      SavedCandidate[]     @relation("SavedByEmployer")
+  candidateAlerts      EmployerCandidateAlert[]
 
   @@index([supabaseId])
   @@index([email])
@@ -313,18 +326,86 @@ model UserProfile {
 }
 
 model JobApplication {
-  id        String      @id @default(cuid())
-  userId    String      @map("user_id")
-  jobId     String      @map("job_id")
-  sourceUrl String?     @map("source_url")
-  appliedAt DateTime    @default(now()) @map("applied_at")
-  user      UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
-  job       Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id              String      @id @default(cuid())
+  userId          String      @map("user_id")
+  jobId           String      @map("job_id")
+  sourceUrl       String?     @map("source_url")
+  appliedAt       DateTime    @default(now()) @map("applied_at")
+  status          String      @default("applied") // applied, screening, interview, offered, hired, rejected
+  notes           String?     // Private employer notes
+  statusUpdatedAt DateTime?   @map("status_updated_at")
+  user            UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
+  job             Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jobId])
   @@index([userId])
   @@index([jobId])
+  @@index([status])
   @@map("job_applications")
+}
+
+model JobViewEvent {
+  id        String   @id @default(uuid())
+  jobId     String   @map("job_id")
+  timestamp DateTime @default(now())
+  sessionId String?  @map("session_id")
+  referrer  String?
+  userAgent String?  @map("user_agent")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([timestamp])
+  @@index([jobId, timestamp])
+  @@map("job_view_events")
+}
+
+model Conversation {
+  id             String            @id @default(cuid())
+  participantA   String            @map("participant_a")
+  participantB   String            @map("participant_b")
+  jobId          String?           @map("job_id")
+  subject        String
+  lastMessageAt  DateTime          @default(now()) @map("last_message_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  deletedByA     Boolean           @default(false) @map("deleted_by_a")
+  deletedByB     Boolean           @default(false) @map("deleted_by_b")
+
+  userA          UserProfile       @relation("ConversationParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
+  userB          UserProfile       @relation("ConversationParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
+  job            Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  messages       EmployerMessage[]
+
+  @@unique([participantA, participantB, jobId])
+  @@index([participantA, lastMessageAt(sort: Desc)])
+  @@index([participantB, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model EmployerMessage {
+  id              String        @id @default(cuid())
+  senderId        String        @map("sender_id")
+  recipientId     String        @map("recipient_id")
+  conversationId  String?       @map("conversation_id")
+  jobId           String?       @map("job_id")
+  subject         String
+  body            String
+  attachmentUrl   String?       @map("attachment_url")
+  attachmentName  String?       @map("attachment_name")
+  deletedBySender    Boolean    @default(false) @map("deleted_by_sender")
+  deletedByRecipient Boolean    @default(false) @map("deleted_by_recipient")
+  sentAt          DateTime      @default(now()) @map("sent_at")
+  readAt          DateTime?     @map("read_at")
+  editedAt        DateTime?     @map("edited_at")
+  sender          UserProfile   @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient       UserProfile   @relation("RecipientMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  job             Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([conversationId])
+  @@index([jobId])
+  @@map("employer_messages")
 }
 
 model ProfileView {
@@ -570,4 +651,35 @@ model RejectedJob {
   @@index([rejectionReason])
   @@index([createdAt])
   @@map("rejected_jobs")
+}
+
+model SavedCandidate {
+  id          String      @id @default(cuid())
+  employerId  String      @map("employer_id")
+  candidateId String      @map("candidate_id")
+  note        String?
+  savedAt     DateTime    @default(now()) @map("saved_at")
+  employer    UserProfile @relation("SavedByEmployer", fields: [employerId], references: [id], onDelete: Cascade)
+  candidate   UserProfile @relation("SavedAsCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([employerId, candidateId])
+  @@index([employerId])
+  @@map("saved_candidates")
+}
+
+model EmployerCandidateAlert {
+  id            String    @id @default(cuid())
+  employerId    String    @map("employer_id")
+  specialties   String?
+  states        String?
+  minExperience Int?      @map("min_experience")
+  workMode      String?   @map("work_mode")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastSentAt    DateTime? @map("last_sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  employer      UserProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId])
+  @@index([isActive])
+  @@map("employer_candidate_alerts")
 }

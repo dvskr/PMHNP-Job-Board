@@ -14,7 +14,7 @@ const envSchema = z.object({
     // Supabase (required for auth)
     NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
-    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
 
     // App URL (required)
     NEXT_PUBLIC_APP_URL: z.string().url().optional().default('http://localhost:3000'),
@@ -32,8 +32,8 @@ const envSchema = z.object({
     // Feature flags
     ENABLE_PAID_POSTING: z.string().optional().default('false'),
 
-    // Cron security
-    CRON_SECRET: z.string().optional(),
+    // Cron security (required — protects all cron endpoints)
+    CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters'),
 
     // Job aggregator APIs (all optional)
     ADZUNA_APP_ID: z.string().optional(),

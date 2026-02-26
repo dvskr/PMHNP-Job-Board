@@ -1,28 +1,75 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { config } from '@/lib/config';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import 'react-quill-new/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
+
+const FREE_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'mail.com', 'protonmail.com', 'ymail.com', 'live.com', 'msn.com', 'googlemail.com'];
 
 const jobPostingSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
   companyName: z.string().min(1, 'Company name is required'),
   companyWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  contactEmail: z.string().email('Must be a valid email address'),
+  contactEmail: z.string().email('Must be a valid email address').refine(
+    (email) => {
+      const domain = email.toLowerCase().split('@')[1];
+      return !FREE_EMAIL_DOMAINS.includes(domain);
+    },
+    { message: 'Please use your company email (not Gmail, Yahoo, etc.)' }
+  ),
   location: z.string().min(1, 'Location is required'),
   mode: z.enum(['Remote', 'Hybrid', 'In-Person']),
   jobType: z.enum(['Full-Time', 'Part-Time', 'Contract', 'Per Diem']),
   salaryPeriod: z.enum(['hourly', 'weekly', 'monthly', 'annual']).optional(),
-  salaryMin: z.number().positive().optional().nullable(),
-  salaryMax: z.number().positive().optional().nullable(),
+  salaryMin: z.number().positive('Minimum salary must be a positive number').optional().nullable(),
+  salaryMax: z.number().positive('Maximum salary must be a positive number').optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
   description: z.string().min(200, 'Job description must be at least 200 characters'),
   applyUrl: z.string().url('Must be a valid URL'),
   pricingTier: z.enum(['standard', 'featured']),
+  benefits: z.array(z.string()).optional(),
+  setting: z.string().optional(),
+  population: z.string().optional(),
+  companyLogoUrl: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (!data.salaryCompetitive) {
+    if (!data.salaryPeriod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select a pay period',
+        path: ['salaryPeriod'],
+      });
+    }
+    if (!data.salaryMin || data.salaryMin <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Minimum salary is required',
+        path: ['salaryMin'],
+      });
+    }
+    if (!data.salaryMax || data.salaryMax <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Maximum salary is required',
+        path: ['salaryMax'],
+      });
+    }
+    if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Minimum salary cannot be greater than maximum',
+        path: ['salaryMin'],
+      });
+    }
+  }
 });
 
 type JobPostingFormData = z.infer<typeof jobPostingSchema>;
@@ -34,6 +81,24 @@ const salaryPeriods = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'annual', label: 'Annual' },
+] as const;
+
+const BENEFIT_OPTIONS = [
+  'Health Insurance', 'Dental & Vision', 'PTO / Vacation',
+  'CME Allowance', 'Malpractice Coverage', '401k / Retirement',
+  'Loan Repayment', 'Flexible Schedule', 'Sign-on Bonus',
+  'Relocation Assistance', 'Tuition Reimbursement', 'Life Insurance',
+] as const;
+
+const SETTING_OPTIONS = [
+  'Outpatient', 'Inpatient', 'Community Health', 'Telehealth',
+  'Private Practice', 'Corrections', 'VA / Military', 'Academic',
+  'Emergency / Crisis', 'Residential',
+] as const;
+
+const POPULATION_OPTIONS = [
+  'Adults', 'Child & Adolescent', 'Geriatric', 'All Ages',
+  'Substance Use / Dual Diagnosis', 'Forensic',
 ] as const;
 
 
@@ -55,14 +120,16 @@ function PostJobContent() {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaveMessage, setDraftSaveMessage] = useState<string | null>(null);
-  const [emailWarning, setEmailWarning] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     setValue,
     watch,
@@ -72,6 +139,7 @@ function PostJobContent() {
       pricingTier: 'standard',
       salaryCompetitive: false,
       salaryPeriod: 'annual',
+      benefits: [],
     },
   });
 
@@ -98,6 +166,12 @@ function PostJobContent() {
             .single();
 
           setUserRole(profile?.role || null);
+
+          // Redirect job seekers away from post-job page
+          if (profile?.role === 'job_seeker') {
+            router.push('/jobs');
+            return;
+          }
 
           // Auto-fill email if not already set by draft/localstorage
           if (user.email) {
@@ -140,6 +214,10 @@ function PostJobContent() {
               setSalaryCompetitive(true);
             }
 
+            // Restore logo preview
+            if (formData.companyLogoUrl) {
+              setLogoPreview(formData.companyLogoUrl);
+            }
             setDraftLoaded(true);
           } else {
             console.error('Failed to load draft:', result.error);
@@ -165,6 +243,11 @@ function PostJobContent() {
             if (parsedData.salaryCompetitive) {
               setSalaryCompetitive(true);
             }
+
+            // Restore logo preview
+            if (parsedData.companyLogoUrl) {
+              setLogoPreview(parsedData.companyLogoUrl);
+            }
           } catch (err) {
             console.error('Error loading saved form data:', err);
           }
@@ -177,49 +260,63 @@ function PostJobContent() {
     loadFormData();
   }, [setValue, searchParams]);
 
-  const onSubmit = async (data: JobPostingFormData) => {
-    if (!config.isPaidPostingEnabled) {
-      // Free posting mode - submit directly
-      try {
-        const response = await fetch('/api/jobs/post-free', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: data.title,
-            employer: data.companyName,
-            location: data.location,
-            mode: data.mode,
-            jobType: data.jobType,
-            description: data.description,
-            applyLink: data.applyUrl,
-            contactEmail: data.contactEmail,
-            minSalary: data.salaryMin,
-            maxSalary: data.salaryMax,
-            salaryPeriod: data.salaryPeriod || 'annual',
-            companyWebsite: data.companyWebsite,
-            pricing: data.pricingTier,
-          }),
-        });
+  const quillModules = useMemo(() => ({
+    toolbar: [
+      [{ 'header': [2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      ['link'],
+      ['clean'],
+    ],
+  }), []);
 
-        const result = await response.json();
+  const quillFormats = useMemo(() => [
+    'header', 'bold', 'italic', 'underline', 'list', 'link',
+  ], []);
 
-        if (response.ok && result.success) {
-          // Clear form data
-          localStorage.removeItem('jobFormData');
-          // Redirect to success page
-          router.push('/success?free=true');
-        } else {
-          alert(result.error || 'Failed to post job. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error posting job:', error);
-        alert('Failed to post job. Please try again.');
-      }
-    } else {
-      // Paid posting mode - store and navigate to preview
-      localStorage.setItem('jobFormData', JSON.stringify(data));
-      router.push('/post-job/preview');
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logo must be under 2MB');
+      return;
     }
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload/company-logo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Upload failed');
+      }
+
+      const { url } = await res.json();
+      setValue('companyLogoUrl', url);
+      setLogoPreview(url);
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      // Fallback: use local object URL so upload isn't blocking
+      setLogoPreview(URL.createObjectURL(file));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const onSubmit = async (data: JobPostingFormData) => {
+    // Always go through preview
+    localStorage.setItem('jobFormData', JSON.stringify(data));
+    router.push('/post-job/preview');
   };
 
   const handleSaveDraft = async () => {
@@ -436,25 +533,12 @@ function PostJobContent() {
                   id="contactEmail"
                   placeholder="hiring@yourcompany.com"
                   {...register('contactEmail')}
-                  onBlur={(e) => {
-                    const FREE_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'live.com', 'msn.com'];
-                    const email = e.target.value.toLowerCase();
-                    const emailDomain = email.split('@')[1];
-                    if (emailDomain && FREE_EMAIL_DOMAINS.includes(emailDomain)) {
-                      setEmailWarning('Please use your company email address (not Gmail, Yahoo, etc.)');
-                    } else {
-                      setEmailWarning(null);
-                    }
-                  }}
-                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${errors.contactEmail || emailWarning ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${errors.contactEmail ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
                     }`}
                   style={{ minHeight: '44px' }}
                 />
                 {errors.contactEmail && (
                   <p className="mt-2 text-sm font-medium text-red-600">{errors.contactEmail.message}</p>
-                )}
-                {emailWarning && !errors.contactEmail && (
-                  <p className="mt-2 text-sm font-medium text-red-600">{emailWarning}</p>
                 )}
               </div>
 
@@ -526,7 +610,7 @@ function PostJobContent() {
               {/* Salary Range */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Salary Range
+                  Salary Range {!salaryCompetitive && <span className="text-red-500">*</span>}
                 </label>
 
                 {/* Salary Period Selector */}
@@ -560,7 +644,7 @@ function PostJobContent() {
                 </div>
 
                 {/* Min and Max Salary Inputs */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-1">
                   <div className="flex-1">
                     <input
                       type="number"
@@ -568,10 +652,13 @@ function PostJobContent() {
                       placeholder={`Min ${salaryPeriod === 'hourly' ? '$/hr' : salaryPeriod === 'weekly' ? '$/week' : salaryPeriod === 'monthly' ? '$/month' : '$ annual'}`}
                       disabled={salaryCompetitive}
                       {...register('salaryMin', { valueAsNumber: true })}
-                      className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
+                      className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : errors.salaryMin ? 'border-red-500' : 'border-gray-300'
                         }`}
                       style={{ minHeight: '44px' }}
                     />
+                    {errors.salaryMin && (
+                      <p className="mt-1 text-sm font-medium text-red-600">{errors.salaryMin.message}</p>
+                    )}
                   </div>
                   <div className="flex-1">
                     <input
@@ -580,12 +667,18 @@ function PostJobContent() {
                       placeholder={`Max ${salaryPeriod === 'hourly' ? '$/hr' : salaryPeriod === 'weekly' ? '$/week' : salaryPeriod === 'monthly' ? '$/month' : '$ annual'}`}
                       disabled={salaryCompetitive}
                       {...register('salaryMax', { valueAsNumber: true })}
-                      className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
+                      className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${salaryCompetitive ? 'bg-gray-100 cursor-not-allowed' : errors.salaryMax ? 'border-red-500' : 'border-gray-300'
                         }`}
                       style={{ minHeight: '44px' }}
                     />
+                    {errors.salaryMax && (
+                      <p className="mt-1 text-sm font-medium text-red-600">{errors.salaryMax.message}</p>
+                    )}
                   </div>
                 </div>
+                {errors.salaryPeriod && !salaryCompetitive && (
+                  <p className="mt-1 mb-2 text-sm font-medium text-red-600">{errors.salaryPeriod.message}</p>
+                )}
                 <label className="flex items-center cursor-pointer touch-manipulation py-2">
                   <input
                     type="checkbox"
@@ -595,25 +688,51 @@ function PostJobContent() {
                   />
                   <span className="ml-3 text-sm sm:text-base text-gray-700">Competitive salary (don&apos;t display range)</span>
                 </label>
+
+                {/* Nudge: encourage salary transparency */}
+                {salaryCompetitive && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+                    <span className="text-amber-500 text-lg leading-none mt-0.5">💡</span>
+                    <p className="text-sm text-amber-800">
+                      <strong>Pro tip:</strong> Job posts with a visible salary range get <strong>3× more views</strong> and <strong>2× more applications</strong>. Candidates prefer transparency — even a broad range helps!
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Job Description */}
+              {/* Job Description — Rich Text */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Job Description <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  id="description"
-                  rows={8}
-                  placeholder="Describe the role, responsibilities, requirements, benefits..."
-                  {...register('description')}
-                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.description ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
+                <style>{`.ql-editor { min-height: 400px !important; }`}</style>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <ReactQuill
+                      theme="snow"
+                      value={field.value || ''}
+                      onChange={(content: string) => {
+                        const text = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                        field.onChange(text.length > 0 ? content : '');
+                      }}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      placeholder="Describe the role, responsibilities, requirements, benefits..."
+                    />
+                  )}
                 />
                 {errors.description && (
                   <p className="mt-2 text-sm font-medium text-red-600">{errors.description.message}</p>
                 )}
-                <p className="mt-2 text-xs text-gray-500">Minimum 200 characters</p>
+                <p className="mt-2 text-xs text-gray-500">Minimum 200 characters. Use the toolbar to format your description.</p>
+                <div className="mt-2 flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+                  <span className="text-blue-500 text-lg leading-none mt-0.5">💡</span>
+                  <p className="text-sm text-blue-800">
+                    <strong>Writing tip:</strong> Structured posts perform best. Include sections for <em>About the Role</em>, <em>Responsibilities</em>, <em>Requirements</em>, and <em>Why Join Us</em> to attract top PMHNP talent.
+                  </p>
+                </div>
               </div>
 
               {/* Apply URL */}
@@ -634,6 +753,107 @@ function PostJobContent() {
                 {errors.applyUrl && (
                   <p className="mt-2 text-sm font-medium text-red-600">{errors.applyUrl.message}</p>
                 )}
+                <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+                  <span className="text-amber-500 text-lg leading-none mt-0.5">💡</span>
+                  <p className="text-sm text-amber-800">
+                    This should be a direct link to your application page — <strong>not your company homepage</strong>. Candidates will click &quot;Apply Now&quot; and be taken directly to this URL.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Clinical Details Section */}
+          <div className="rounded-lg shadow-md p-5 md:p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h2 className="text-lg sm:text-xl font-semibold mb-5 lg:mb-6">Clinical Details <span className="text-sm font-normal text-gray-500">(Optional)</span></h2>
+
+            <div className="space-y-5 lg:space-y-6">
+              {/* Clinical Setting */}
+              <div>
+                <label htmlFor="setting" className="block text-sm font-medium text-gray-700 mb-2">
+                  Clinical Setting
+                </label>
+                <select
+                  id="setting"
+                  {...register('setting')}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white"
+                  style={{ minHeight: '44px' }}
+                  defaultValue=""
+                >
+                  <option value="">Select a setting...</option>
+                  {SETTING_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Patient Population */}
+              <div>
+                <label htmlFor="population" className="block text-sm font-medium text-gray-700 mb-2">
+                  Patient Population
+                </label>
+                <select
+                  id="population"
+                  {...register('population')}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white"
+                  style={{ minHeight: '44px' }}
+                  defaultValue=""
+                >
+                  <option value="">Select a population...</option>
+                  {POPULATION_OPTIONS.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Benefits & Perks
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {BENEFIT_OPTIONS.map((benefit) => (
+                    <label key={benefit} className="flex items-center gap-2 cursor-pointer touch-manipulation py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        value={benefit}
+                        {...register('benefits')}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700">{benefit}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Company Logo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Logo
+                </label>
+                <div className="flex items-center gap-4">
+                  {logoPreview && (
+                    <img
+                      src={logoPreview}
+                      alt="Company logo preview"
+                      className="w-14 h-14 rounded-lg object-cover border border-gray-200"
+                    />
+                  )}
+                  <label className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 touch-manipulation">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    {uploadingLogo ? 'Uploading...' : logoPreview ? 'Change Logo' : 'Upload Logo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="sr-only"
+                      disabled={uploadingLogo}
+                    />
+                  </label>
+                  <span className="text-xs text-gray-500">PNG or JPG, max 2MB</span>
+                </div>
               </div>
             </div>
           </div>
@@ -739,9 +959,7 @@ function PostJobContent() {
             >
               {isSubmitting
                 ? 'Processing...'
-                : !config.isPaidPostingEnabled
-                  ? 'Post Job - Free'
-                  : 'Continue to Payment →'}
+                : 'Continue to Preview →'}
             </button>
           </div>
 
@@ -761,9 +979,7 @@ function PostJobContent() {
             >
               {isSubmitting
                 ? 'Processing...'
-                : !config.isPaidPostingEnabled
-                  ? 'Post Job - Free'
-                  : 'Continue to Payment →'}
+                : 'Continue to Preview →'}
             </button>
             <button
               type="button"
