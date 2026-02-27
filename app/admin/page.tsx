@@ -2,94 +2,145 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Briefcase, Target, TrendingUp, ArrowRight, Users, Mail, Bell } from 'lucide-react';
+import {
+  Briefcase, Target, TrendingUp, ArrowRight, Users, BarChart3,
+  Eye, MousePointerClick, FileCheck, Zap, UserPlus, Mail, Bell, Activity,
+} from 'lucide-react';
+
+/* ─── Types ─── */
+interface Summary {
+  totalViews: number; totalClicks: number; totalApplications: number;
+  views24h: number; views7d: number; clicks24h: number; clicks7d: number;
+  apps24h: number; apps7d: number;
+  totalUsers: number; newUsers7d: number; totalSubscribers: number;
+  conversionRates: { viewToClick: number; clickToApply: number; viewToApply: number };
+}
+interface SparklinePoint { date: string; count: number }
+interface TopJob {
+  id: string; title: string; employer: string;
+  views: number; clicks: number; applications: number;
+  viewToClickRate: number; source: string | null;
+}
+interface RecentApp {
+  id: string; appliedAt: string; status: string;
+  user: { email: string; firstName: string | null; lastName: string | null };
+  job: { title: string; employer: string };
+}
+interface RecentUser {
+  id: string; email: string; firstName: string | null; lastName: string | null;
+  role: string; createdAt: string;
+}
+interface RecentSub {
+  id: string; email: string; source: string | null; createdAt: string;
+}
+interface AnalyticsData {
+  summary: Summary;
+  sparklines: { views: SparklinePoint[]; clicks: SparklinePoint[]; applications: SparklinePoint[] };
+  topJobs: TopJob[];
+  recentActivity: { applications: RecentApp[]; newUsers: RecentUser[]; newSubscribers: RecentSub[] };
+  autofill: { totalUsage: number; uniqueUsers: number };
+}
+
+/* ─── Shared styles ─── */
+const card: React.CSSProperties = {
+  backgroundColor: 'var(--bg-secondary)',
+  border: '1px solid var(--border-color)',
+  borderRadius: '14px',
+  padding: '24px',
+  transition: 'border-color 0.2s',
+};
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
+const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
+const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
+
+/* ─── Mini sparkline component (pure CSS bars) ─── */
+function Sparkline({ data, color }: { data: SparklinePoint[]; color: string }) {
+  if (!data.length) return <span style={muted}>No data</span>;
+  const max = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '36px' }}>
+      {data.slice(-7).map((d, i) => (
+        <div
+          key={i}
+          title={`${d.date}: ${d.count}`}
+          style={{
+            width: '8px',
+            borderRadius: '2px',
+            backgroundColor: color,
+            opacity: 0.3 + (d.count / max) * 0.7,
+            height: `${Math.max(4, (d.count / max) * 36)}px`,
+            transition: 'height 0.3s ease',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Funnel step ─── */
+function FunnelStep({
+  icon, label, value, rate, color, isLast,
+}: {
+  icon: React.ReactNode; label: string; value: number; rate?: number; color: string; isLast?: boolean;
+}) {
+  return (
+    <div style={{ flex: 1, textAlign: 'center', position: 'relative' }}>
+      <div style={{
+        width: '44px', height: '44px', borderRadius: '12px',
+        background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 10px',
+      }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' }}>
+        {value.toLocaleString()}
+      </div>
+      <div style={muted}>{label}</div>
+      {rate !== undefined && (
+        <div style={{
+          marginTop: '6px', fontSize: '12px', fontWeight: 600,
+          color: rate >= 5 ? '#22C55E' : rate >= 2 ? '#F59E0B' : '#EF4444',
+        }}>
+          {rate}%
+        </div>
+      )}
+      {!isLast && (
+        <div style={{
+          position: 'absolute', top: '24px', right: '-16px',
+          color: 'var(--text-tertiary)', fontSize: '18px',
+        }}>
+          →
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalJobs: 0,
-    publishedJobs: 0,
-    featuredJobs: 0,
-    totalLeads: 0,
-    prospects: 0,
-    converted: 0,
-    totalUsers: 0,
-    totalSubscribers: 0,
-    totalAlerts: 0,
-    newsletterOptIns: 0,
-  });
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  useEffect(() => { fetchAnalytics(); }, []);
 
-  const fetchStats = async () => {
+  const fetchAnalytics = async () => {
     try {
-      const jobsRes = await fetch('/api/jobs?limit=1000');
-      const jobsData = await jobsRes.json();
-
-      const outreachRes = await fetch('/api/outreach');
-      const outreachData = await outreachRes.json();
-
-      if (jobsData.success) {
-        const jobs = jobsData.jobs || [];
-        setStats(prev => ({
-          ...prev,
-          totalJobs: jobs.length,
-          publishedJobs: jobs.filter((j: { isPublished: boolean }) => j.isPublished).length,
-          featuredJobs: jobs.filter((j: { isFeatured: boolean }) => j.isFeatured).length,
-        }));
-      }
-
-      // Fetch user/subscriber stats
-      try {
-        const usersRes = await fetch('/api/admin/users');
-        const usersData = await usersRes.json();
-        if (usersData.success && usersData.summary) {
-          setStats(prev => ({
-            ...prev,
-            totalUsers: usersData.summary.totalUsers,
-            totalSubscribers: usersData.summary.activeSubscribers,
-            totalAlerts: usersData.summary.activeAlerts,
-            newsletterOptIns: usersData.summary.newsletterOptIns,
-          }));
-        }
-      } catch (e) {
-        console.error('Error fetching user stats:', e);
-      }
-
-      if (outreachData.success) {
-        const leads = outreachData.data || [];
-        setStats(prev => ({
-          ...prev,
-          totalLeads: leads.length,
-          prospects: leads.filter((l: { status: string }) => l.status === 'prospect').length,
-          converted: leads.filter((l: { status: string }) => l.status === 'converted').length,
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      setLoading(true);
+      setError(null);
+      const res = await fetch('/api/admin/analytics?days=30');
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      const data = await res.json();
+      setAnalytics(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
-  /* ─── Shared styles ─── */
-  const card: React.CSSProperties = {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '14px',
-    padding: '24px',
-    transition: 'border-color 0.2s',
-  };
-
-  const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
-  const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
-  const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
-
   if (loading) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
         <div style={{ textAlign: 'center', paddingTop: '80px' }}>
           <div
             style={{
@@ -104,232 +155,287 @@ export default function AdminDashboard() {
     );
   }
 
-  const convRate = stats.totalLeads > 0 ? Math.round((stats.converted / stats.totalLeads) * 100) : 0;
+  if (error) {
+    return (
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
+        <div style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: '12px', padding: '24px',
+        }}>
+          <h2 style={{ color: '#EF4444', fontWeight: 700, marginBottom: '8px' }}>Error</h2>
+          <p style={{ color: '#F87171', fontSize: '14px' }}>{error}</p>
+          <button onClick={fetchAnalytics}
+            style={{
+              marginTop: '12px', padding: '10px 20px',
+              background: '#EF4444', color: '#fff', border: 'none',
+              borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+            }}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analytics) return null;
+
+  const { summary: s, sparklines, topJobs, recentActivity, autofill } = analytics;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
       {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ ...heading, fontSize: '28px', marginBottom: '4px' }}>Dashboard</h1>
-        <p style={sub}>Welcome to your PMHNP Hiring admin panel</p>
+      <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 style={{ ...heading, fontSize: '28px', marginBottom: '4px' }}>Dashboard</h1>
+          <p style={sub}>PMHNP Hiring — Admin Overview (Last 30 days)</p>
+        </div>
+        <button onClick={fetchAnalytics} style={{
+          padding: '10px 20px', borderRadius: '10px', cursor: 'pointer',
+          backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none',
+          fontWeight: 700, fontSize: '13px',
+        }}>Refresh</button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{ marginBottom: '32px' }}>
-        {/* Jobs */}
-        <div style={card}>
-          <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
-            <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(45, 212, 191, 0.12)' }}>
-              <Briefcase size={22} style={{ color: '#2DD4BF' }} />
-            </div>
-            <span style={muted}>Jobs</span>
-          </div>
-          <div style={{ fontSize: '32px', ...heading }}>{stats.totalJobs}</div>
-          <div style={sub}>Total Jobs</div>
-          <div
-            style={{
-              display: 'flex', gap: '24px', marginTop: '14px', paddingTop: '14px',
-              borderTop: '1px solid var(--border-color)', fontSize: '13px',
-            }}
-          >
-            <div>
-              <div style={{ ...heading, fontSize: '15px' }}>{stats.publishedJobs}</div>
-              <div style={muted}>Published</div>
-            </div>
-            <div>
-              <div style={{ ...heading, fontSize: '15px' }}>{stats.featuredJobs}</div>
-              <div style={muted}>Featured</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Outreach */}
-        <div style={card}>
-          <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
-            <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(168, 85, 247, 0.12)' }}>
-              <Target size={22} style={{ color: '#A855F7' }} />
-            </div>
-            <span style={muted}>Outreach</span>
-          </div>
-          <div style={{ fontSize: '32px', ...heading }}>{stats.totalLeads}</div>
-          <div style={sub}>Total Leads</div>
-          <div
-            style={{
-              display: 'flex', gap: '24px', marginTop: '14px', paddingTop: '14px',
-              borderTop: '1px solid var(--border-color)', fontSize: '13px',
-            }}
-          >
-            <div>
-              <div style={{ ...heading, fontSize: '15px' }}>{stats.prospects}</div>
-              <div style={muted}>Prospects</div>
-            </div>
-            <div>
-              <div style={{ ...heading, fontSize: '15px', color: '#2DD4BF' }}>{stats.converted}</div>
-              <div style={muted}>Converted</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Conversion */}
-        <div style={card}>
-          <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
-            <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(34, 197, 94, 0.12)' }}>
-              <TrendingUp size={22} style={{ color: '#22C55E' }} />
-            </div>
-            <span style={muted}>Performance</span>
-          </div>
-          <div style={{ fontSize: '32px', ...heading }}>{convRate}%</div>
-          <div style={sub}>Conversion Rate</div>
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              marginTop: '14px', paddingTop: '14px',
-              borderTop: '1px solid var(--border-color)', fontSize: '13px',
-              color: '#22C55E',
-            }}
-          >
-            <TrendingUp size={14} />
-            <span>Lead to Customer</span>
-          </div>
-        </div>
-
-        {/* Users & Subscribers */}
-        <div style={card}>
-          <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
-            <div style={{ padding: '10px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)' }}>
-              <Users size={22} style={{ color: '#3B82F6' }} />
-            </div>
-            <span style={muted}>Users</span>
-          </div>
-          <div style={{ fontSize: '32px', ...heading }}>{stats.totalUsers}</div>
-          <div style={sub}>Registered Users</div>
-          <div
-            style={{
-              display: 'flex', gap: '24px', marginTop: '14px', paddingTop: '14px',
-              borderTop: '1px solid var(--border-color)', fontSize: '13px',
-            }}
-          >
-            <div>
-              <div style={{ ...heading, fontSize: '15px' }}>{stats.totalSubscribers}</div>
-              <div style={muted}>Subscribers</div>
-            </div>
-            <div>
-              <div style={{ ...heading, fontSize: '15px', color: '#F59E0B' }}>{stats.totalAlerts}</div>
-              <div style={muted}>Active Alerts</div>
-            </div>
-          </div>
+      {/* ─── Engagement Funnel ─── */}
+      <div style={{ ...card, marginBottom: '24px' }}>
+        <h2 style={{ ...heading, fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Activity size={20} style={{ color: '#2DD4BF' }} />
+          Engagement Funnel (30 days)
+        </h2>
+        <div className="flex flex-col sm:flex-row items-center" style={{ gap: '16px', justifyContent: 'space-around' }}>
+          <FunnelStep icon={<Eye size={22} style={{ color: '#3B82F6' }} />} label="Job Views" value={s.totalViews} color="#3B82F6" />
+          <FunnelStep icon={<MousePointerClick size={22} style={{ color: '#A855F7' }} />} label="Apply Clicks" value={s.totalClicks} rate={s.conversionRates.viewToClick} color="#A855F7" />
+          <FunnelStep icon={<FileCheck size={22} style={{ color: '#22C55E' }} />} label="Applications" value={s.totalApplications} rate={s.conversionRates.clickToApply} color="#22C55E" isLast />
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div style={card}>
-          <div className="flex items-center gap-3" style={{ marginBottom: '14px' }}>
-            <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(45, 212, 191, 0.12)' }}>
-              <Briefcase size={18} style={{ color: '#2DD4BF' }} />
+      {/* ─── Quick Stat Cards ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" style={{ marginBottom: '24px' }}>
+        {[
+          { icon: <Eye size={18} />, label: 'Views (24h)', value: s.views24h, color: '#3B82F6', sparkData: sparklines.views, sparkColor: '#3B82F6' },
+          { icon: <MousePointerClick size={18} />, label: 'Clicks (24h)', value: s.clicks24h, color: '#A855F7', sparkData: sparklines.clicks, sparkColor: '#A855F7' },
+          { icon: <FileCheck size={18} />, label: 'Apps (24h)', value: s.apps24h, color: '#22C55E', sparkData: sparklines.applications, sparkColor: '#22C55E' },
+          { icon: <Users size={18} />, label: 'Total Users', value: s.totalUsers, color: '#2DD4BF', note: `+${s.newUsers7d} this week` },
+          { icon: <Mail size={18} />, label: 'Subscribers', value: s.totalSubscribers, color: '#F59E0B' },
+          { icon: <Zap size={18} />, label: 'Autofill Uses', value: autofill.totalUsage, color: '#EC4899', note: `${autofill.uniqueUsers} users` },
+        ].map((c) => (
+          <div key={c.label} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <div style={{ color: c.color }}>{c.icon}</div>
+              {c.sparkData && <Sparkline data={c.sparkData} color={c.sparkColor!} />}
             </div>
-            <h2 style={{ ...heading, fontSize: '18px' }}>Jobs Management</h2>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{c.value.toLocaleString()}</div>
+            <div style={muted}>{c.label}</div>
+            {c.note && <div style={{ marginTop: '4px', fontSize: '11px', color: c.color, fontWeight: 600 }}>{c.note}</div>}
           </div>
-          <p style={{ ...sub, marginBottom: '16px' }}>
-            Manage job postings, approve submissions, and update job statuses.
-          </p>
-          <Link href="/admin/jobs" style={{ textDecoration: 'none' }}>
-            <button
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 20px', borderRadius: '10px', cursor: 'pointer',
-                backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)', fontWeight: 600, fontSize: '14px',
-                transition: 'all 0.2s',
-              }}
-            >
-              Go to Jobs
-              <ArrowRight size={18} />
-            </button>
-          </Link>
-        </div>
-
-        <div style={card}>
-          <div className="flex items-center gap-3" style={{ marginBottom: '14px' }}>
-            <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.12)' }}>
-              <Users size={18} style={{ color: '#3B82F6' }} />
-            </div>
-            <h2 style={{ ...heading, fontSize: '18px' }}>Users & Subscribers</h2>
-          </div>
-          <p style={{ ...sub, marginBottom: '16px' }}>
-            View user profiles, email subscribers, newsletters, and job alerts.
-          </p>
-          <Link href="/admin/users" style={{ textDecoration: 'none' }}>
-            <button
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 20px', borderRadius: '10px', cursor: 'pointer',
-                backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)', fontWeight: 600, fontSize: '14px',
-                transition: 'all 0.2s',
-              }}
-            >
-              Go to Users
-              <ArrowRight size={18} />
-            </button>
-          </Link>
-        </div>
-
-        <div style={card}>
-          <div className="flex items-center gap-3" style={{ marginBottom: '14px' }}>
-            <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.12)' }}>
-              <Target size={18} style={{ color: '#A855F7' }} />
-            </div>
-            <h2 style={{ ...heading, fontSize: '18px' }}>Employer Outreach</h2>
-          </div>
-          <p style={{ ...sub, marginBottom: '16px' }}>
-            Track leads, send outreach emails, and manage your employer pipeline.
-          </p>
-          <Link href="/admin/outreach" style={{ textDecoration: 'none' }}>
-            <button
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 20px', borderRadius: '10px', cursor: 'pointer',
-                backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)', fontWeight: 600, fontSize: '14px',
-                transition: 'all 0.2s',
-              }}
-            >
-              Go to Outreach
-              <ArrowRight size={18} />
-            </button>
-          </Link>
-        </div>
+        ))}
       </div>
 
-      {/* Quick Stats */}
-      <div style={{ ...card, marginTop: '24px' }}>
-        <h2 style={{ ...heading, fontSize: '18px', marginBottom: '16px' }}>Quick Stats</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Active Jobs', value: stats.publishedJobs },
-            { label: 'Featured', value: stats.featuredJobs },
-            { label: 'Users', value: stats.totalUsers },
-            { label: 'Subscribers', value: stats.totalSubscribers },
-            { label: 'Alerts', value: stats.totalAlerts, accent: true },
-            { label: 'Newsletter', value: stats.newsletterOptIns },
-            { label: 'New Prospects', value: stats.prospects },
-            { label: 'Customers', value: stats.converted, accent: true },
-          ].map((s) => (
-            <div
-              key={s.label}
-              style={{
-                textAlign: 'center', padding: '16px',
-                backgroundColor: 'var(--bg-tertiary)', borderRadius: '10px',
-              }}
-            >
-              <div style={{ fontSize: '22px', fontWeight: 700, color: s.accent ? '#2DD4BF' : 'var(--text-primary)' }}>
-                {s.value}
+      {/* ─── 7-Day Sparklines Overview ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: '24px' }}>
+        {[
+          { label: 'Views (7 days)', data: sparklines.views, color: '#3B82F6', total: s.views7d },
+          { label: 'Clicks (7 days)', data: sparklines.clicks, color: '#A855F7', total: s.clicks7d },
+          { label: 'Applications (7 days)', data: sparklines.applications, color: '#22C55E', total: s.apps7d },
+        ].map((c) => {
+          const max = Math.max(...(c.data || []).map(d => d.count), 1);
+          return (
+            <div key={c.label} style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ ...heading, fontSize: '14px' }}>{c.label}</span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: c.color }}>{c.total.toLocaleString()}</span>
               </div>
-              <div style={muted}>{s.label}</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '48px' }}>
+                {(c.data || []).slice(-7).map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      title={`${d.date}: ${d.count}`}
+                      style={{
+                        width: '100%', maxWidth: '32px', borderRadius: '4px',
+                        backgroundColor: c.color,
+                        opacity: 0.25 + (d.count / max) * 0.75,
+                        height: `${Math.max(4, (d.count / max) * 48)}px`,
+                        transition: 'height 0.3s ease',
+                      }}
+                    />
+                    <span style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>
+                      {d.date.slice(5)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          );
+        })}
+      </div>
+
+      {/* ─── Top Performing Jobs ─── */}
+      <div style={{ ...card, marginBottom: '24px', padding: 0 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ ...heading, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={20} style={{ color: '#22C55E' }} /> Top Performing Jobs
+          </h2>
+          <Link href="/admin/analytics" style={{ fontSize: '13px', color: '#2DD4BF', textDecoration: 'none', fontWeight: 600 }}>
+            View All →
+          </Link>
         </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                {['Job Title', 'Employer', 'Views', 'Clicks', 'Apps', 'View→Click', 'Source'].map(h => (
+                  <th key={h} style={{
+                    padding: '12px 16px', textAlign: h === 'Job Title' || h === 'Employer' || h === 'Source' ? 'left' : 'right',
+                    fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.05em', color: 'var(--text-tertiary)',
+                    backgroundColor: 'var(--bg-tertiary)',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {topJobs.slice(0, 8).map((job) => (
+                <tr key={job.id}>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {job.title}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+                    {job.employer}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                    {job.views.toLocaleString()}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                    {job.clicks.toLocaleString()}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                    {job.applications}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                      backgroundColor: job.viewToClickRate >= 5 ? 'rgba(34,197,94,0.12)' : job.viewToClickRate >= 2 ? 'rgba(234,179,8,0.12)' : 'rgba(148,163,184,0.12)',
+                      color: job.viewToClickRate >= 5 ? '#22C55E' : job.viewToClickRate >= 2 ? '#EAB308' : '#94A3B8',
+                    }}>
+                      {job.viewToClickRate}%
+                    </span>
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-color)', textTransform: 'capitalize' }}>
+                    {job.source || '—'}
+                  </td>
+                </tr>
+              ))}
+              {topJobs.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', ...sub }}>No engagement data yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ─── Recent Activity ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ marginBottom: '24px' }}>
+        {/* Recent Applications */}
+        <div style={card}>
+          <h3 style={{ ...heading, fontSize: '15px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FileCheck size={16} style={{ color: '#22C55E' }} /> Recent Applications
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {recentActivity.applications.map(app => (
+              <div key={app.id} style={{
+                padding: '10px 14px', borderRadius: '10px',
+                backgroundColor: 'var(--bg-tertiary)',
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {app.user.firstName ? `${app.user.firstName} ${app.user.lastName || ''}` : app.user.email}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  Applied to <strong>{app.job.title}</strong>
+                </div>
+                <div style={muted}>{new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+              </div>
+            ))}
+            {recentActivity.applications.length === 0 && <p style={sub}>No recent applications</p>}
+          </div>
+        </div>
+
+        {/* New Users */}
+        <div style={card}>
+          <h3 style={{ ...heading, fontSize: '15px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UserPlus size={16} style={{ color: '#3B82F6' }} /> New Users
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {recentActivity.newUsers.map(u => (
+              <div key={u.id} style={{
+                padding: '10px 14px', borderRadius: '10px',
+                backgroundColor: 'var(--bg-tertiary)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email}
+                  </div>
+                  <div style={muted}>{new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                </div>
+                <span style={{
+                  padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                  backgroundColor: u.role === 'employer' ? 'rgba(168,85,247,0.12)' : 'rgba(59,130,246,0.12)',
+                  color: u.role === 'employer' ? '#A855F7' : '#3B82F6',
+                  textTransform: 'capitalize',
+                }}>
+                  {u.role === 'job_seeker' ? 'Seeker' : u.role}
+                </span>
+              </div>
+            ))}
+            {recentActivity.newUsers.length === 0 && <p style={sub}>No recent users</p>}
+          </div>
+        </div>
+
+        {/* New Subscribers */}
+        <div style={card}>
+          <h3 style={{ ...heading, fontSize: '15px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Bell size={16} style={{ color: '#F59E0B' }} /> New Subscribers
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {recentActivity.newSubscribers.map(s => (
+              <div key={s.id} style={{
+                padding: '10px 14px', borderRadius: '10px',
+                backgroundColor: 'var(--bg-tertiary)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{s.email}</div>
+                  <div style={muted}>{new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                </div>
+                {s.source && (
+                  <span style={{ ...muted, fontWeight: 600, textTransform: 'capitalize' }}>{s.source}</span>
+                )}
+              </div>
+            ))}
+            {recentActivity.newSubscribers.length === 0 && <p style={sub}>No recent subscribers</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Quick Actions ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { icon: <Briefcase size={18} style={{ color: '#2DD4BF' }} />, title: 'Jobs', desc: 'Manage job postings & CRUD', href: '/admin/jobs', color: '#2DD4BF' },
+          { icon: <BarChart3 size={18} style={{ color: '#3B82F6' }} />, title: 'Analytics', desc: 'Deep-dive engagement data', href: '/admin/analytics', color: '#3B82F6' },
+          { icon: <Users size={18} style={{ color: '#A855F7' }} />, title: 'Users', desc: 'Manage users & subscribers', href: '/admin/users', color: '#A855F7' },
+          { icon: <Target size={18} style={{ color: '#F59E0B' }} />, title: 'Outreach', desc: 'Employer lead pipeline', href: '/admin/outreach', color: '#F59E0B' },
+        ].map((a) => (
+          <Link key={a.href} href={a.href} style={{ textDecoration: 'none' }}>
+            <div style={{ ...card, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ padding: '10px', borderRadius: '10px', background: `${a.color}18` }}>
+                {a.icon}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ ...heading, fontSize: '15px' }}>{a.title}</div>
+                <div style={muted}>{a.desc}</div>
+              </div>
+              <ArrowRight size={16} style={{ color: 'var(--text-tertiary)' }} />
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );

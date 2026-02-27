@@ -1,17 +1,17 @@
 /**
- * Daily Social Media Posting Cron — Facebook
+ * Daily Instagram Carousel Cron
  *
- * Vercel Cron: 0 15 * * *  (3 PM UTC = 9 AM CST)
+ * Vercel Cron: 5 15 * * *  (3:05 PM UTC = 9:05 AM CST)
  *
- * Posts the top PMHNP jobs to Facebook Page.
+ * Posts a carousel of branded job card images to Instagram.
+ * Runs 5 minutes after the Facebook cron to avoid any race conditions.
  * Supports ?dry=true for preview-only mode.
- * Supports ?platform=all to post to both platforms.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { runSocialPostPipeline, type SocialPlatform } from '@/lib/social-post-generator';
+import { runSocialPostPipeline } from '@/lib/social-post-generator';
 
-// Allow enough time for image generation + upload
+// Instagram needs time: generate 10 PNGs + upload 10 images + post carousel
 export const maxDuration = 120; // 2 minutes
 
 function verifyCronSecret(request: NextRequest): boolean {
@@ -19,7 +19,7 @@ function verifyCronSecret(request: NextRequest): boolean {
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret) {
-        console.error('[SOCIAL-CRON] CRON_SECRET not configured');
+        console.error('[INSTA-CRON] CRON_SECRET not configured');
         return false;
     }
 
@@ -37,26 +37,26 @@ export async function GET(request: NextRequest) {
         }
 
         const dryRun = request.nextUrl.searchParams.get('dry') === 'true';
-        const platform = (request.nextUrl.searchParams.get('platform') || 'facebook') as SocialPlatform;
 
         console.log('\n' + '='.repeat(60));
-        console.log(`[SOCIAL-CRON] DAILY SOCIAL POST — ${platform.toUpperCase()} ${dryRun ? '(DRY RUN)' : ''}`);
+        console.log(`[INSTA-CRON] DAILY INSTAGRAM CAROUSEL ${dryRun ? '(DRY RUN)' : ''}`);
         console.log('='.repeat(60));
 
         const startTime = Date.now();
-        const result = await runSocialPostPipeline(dryRun, platform);
+        const result = await runSocialPostPipeline(dryRun, 'instagram');
         const duration = Date.now() - startTime;
 
-        console.log(`[SOCIAL-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
-        console.log('[SOCIAL-CRON] Result:', JSON.stringify(result, null, 2));
+        console.log(`[INSTA-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
+        console.log('[INSTA-CRON] Result:', JSON.stringify(result, null, 2));
 
         return NextResponse.json({
             ...result,
+            platform: 'instagram',
             timestamp: new Date().toISOString(),
             duration,
         });
     } catch (error) {
-        console.error('[SOCIAL-CRON] Fatal error:', error);
+        console.error('[INSTA-CRON] Fatal error:', error);
         return NextResponse.json(
             {
                 success: false,

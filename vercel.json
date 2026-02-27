@@ -143,6 +143,10 @@
     {
       "path": "/api/cron/social-post",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/instagram-post",
+      "schedule": "5 15 * * *"
     }
   ],
   "headers": [

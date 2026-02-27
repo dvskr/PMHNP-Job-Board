@@ -209,10 +209,13 @@ export interface SocialPostResult {
     caption?: string;
 }
 
+export type SocialPlatform = 'facebook' | 'instagram' | 'all';
+
 export async function runSocialPostPipeline(
     dryRun = false,
+    platform: SocialPlatform = 'all',
 ): Promise<SocialPostResult> {
-    console.log('[SOCIAL] Fetching top jobs for social media...');
+    console.log(`[SOCIAL] Fetching top jobs for social media (platform: ${platform})...`);
     const jobs = await fetchTopJobsForSocial();
 
     if (jobs.length === 0) {
@@ -222,84 +225,86 @@ export async function runSocialPostPipeline(
 
     console.log(`[SOCIAL] Found ${jobs.length} jobs`);
 
-    // Build captions
-    const fbCaption = buildFacebookCaption(jobs);
-    const igCaption = buildInstagramCaption(jobs);
-
-    console.log('[SOCIAL] Facebook caption:\n', fbCaption);
-    console.log('[SOCIAL] Instagram caption:\n', igCaption);
-
-    if (dryRun) {
-        return {
-            success: true,
-            jobCount: jobs.length,
-            dryRun: true,
-            caption: fbCaption,
-        };
-    }
-
     const result: SocialPostResult = {
         success: true,
         jobCount: jobs.length,
         dryRun: false,
     };
 
+    // Build captions
+    const fbCaption = (platform === 'facebook' || platform === 'all') ? buildFacebookCaption(jobs) : '';
+    const igCaption = (platform === 'instagram' || platform === 'all') ? buildInstagramCaption(jobs) : '';
+
+    if (dryRun) {
+        return {
+            success: true,
+            jobCount: jobs.length,
+            dryRun: true,
+            caption: fbCaption || igCaption,
+        };
+    }
+
     // ── Facebook — generate summary image + post ──
-    const fbId = process.env.POSTIZ_FB_INTEGRATION_ID;
-    if (fbId) {
-        try {
-            console.log('[SOCIAL] Generating FB summary image...');
-            const fbSummaryPng = await generateFBSummaryPng(
-                jobs.map((j) => ({
-                    title: j.title,
-                    employer: j.employer,
-                    location: j.location,
-                    salary: j.displaySalary,
-                    isRemote: j.isRemote,
-                })),
-            );
+    if (platform === 'facebook' || platform === 'all') {
+        const fbId = process.env.POSTIZ_FB_INTEGRATION_ID;
+        if (fbId) {
+            try {
+                console.log('[SOCIAL] Generating FB summary image...');
+                const fbSummaryPng = await generateFBSummaryPng(
+                    jobs.map((j) => ({
+                        title: j.title,
+                        employer: j.employer,
+                        location: j.location,
+                        salary: j.displaySalary,
+                        isRemote: j.isRemote,
+                    })),
+                );
 
-            console.log('[SOCIAL] Uploading FB summary image...');
-            const fbUpload = await uploadImage(fbSummaryPng, 'fb-summary.png');
+                console.log('[SOCIAL] Uploading FB summary image...');
+                const fbUpload = await uploadImage(fbSummaryPng, 'fb-summary.png');
 
-            console.log('[SOCIAL] Posting to Facebook...');
-            await postToFacebook(fbId, fbCaption, { id: fbUpload.id, path: fbUpload.path });
-            result.facebook = { posted: true };
-            console.log('[SOCIAL] Facebook post successful');
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.error('[SOCIAL] Facebook post failed:', msg);
-            result.facebook = { posted: false, error: msg };
-            result.success = false;
+                console.log('[SOCIAL] Posting to Facebook...');
+                await postToFacebook(fbId, fbCaption, { id: fbUpload.id, path: fbUpload.path });
+                result.facebook = { posted: true };
+                console.log('[SOCIAL] Facebook post successful');
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error('[SOCIAL] Facebook post failed:', msg);
+                result.facebook = { posted: false, error: msg };
+                result.success = false;
+            }
+        } else {
+            console.warn('[SOCIAL] POSTIZ_FB_INTEGRATION_ID not set — skipping FB');
+            result.facebook = { posted: false, error: 'Integration ID not configured' };
         }
-    } else {
-        console.warn('[SOCIAL] POSTIZ_FB_INTEGRATION_ID not set — skipping FB');
-        result.facebook = { posted: false, error: 'Integration ID not configured' };
     }
 
     // ── Instagram carousel ──
-    const igId = process.env.POSTIZ_INSTAGRAM_INTEGRATION_ID;
-    if (igId) {
-        try {
-            console.log('[SOCIAL] Generating carousel images...');
-            const imageBuffers = await generateCarouselImages(jobs);
+    if (platform === 'instagram' || platform === 'all') {
+        const igId = process.env.POSTIZ_INSTAGRAM_INTEGRATION_ID;
+        if (igId) {
+            try {
+                console.log('[SOCIAL] Generating carousel images...');
+                const imageBuffers = await generateCarouselImages(jobs);
 
-            console.log('[SOCIAL] Uploading images to Postiz...');
-            const uploadedImages = await uploadCarouselImages(imageBuffers);
+                console.log(`[SOCIAL] Generated ${imageBuffers.length} carousel images`);
+                console.log('[SOCIAL] Uploading images to Postiz...');
+                const uploadedImages = await uploadCarouselImages(imageBuffers);
 
-            console.log('[SOCIAL] Posting Instagram carousel...');
-            await postToInstagramCarousel(igId, igCaption, uploadedImages);
-            result.instagram = { posted: true };
-            console.log('[SOCIAL] Instagram carousel posted successfully');
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.error('[SOCIAL] Instagram post failed:', msg);
-            result.instagram = { posted: false, error: msg };
-            result.success = false;
+                console.log(`[SOCIAL] Uploaded ${uploadedImages.length} images. Posting Instagram carousel...`);
+                await postToInstagramCarousel(igId, igCaption, uploadedImages);
+                result.instagram = { posted: true };
+                console.log('[SOCIAL] Instagram carousel posted successfully');
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error('[SOCIAL] Instagram post failed:', msg);
+                result.instagram = { posted: false, error: msg };
+                result.success = false;
+            }
+        } else {
+            console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set — skipping IG');
+            result.instagram = { posted: false, error: 'Integration ID not configured' };
         }
-    } else {
-        console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set — skipping IG');
-        result.instagram = { posted: false, error: 'Integration ID not configured' };
     }
 
     return result;

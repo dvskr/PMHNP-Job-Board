@@ -1,651 +1,475 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Search, Filter, ChevronLeft, ChevronRight, Eye, MousePointerClick,
+  FileCheck, MoreHorizontal, Trash2, Star, StarOff, Globe, GlobeLock,
+  RefreshCw, X, Check, Pencil, Plus,
+} from 'lucide-react';
 
-interface Stats {
-  totalActive: number;
-  addedLast24h: number;
-  bySource: Record<string, number>;
-  jobsByDay: Record<string, number>;
-  topEmployers: Array<{ employer: string; count: number }>;
-  additionalMetrics?: {
-    totalJobs: number;
-    publishedJobs: number;
-    unpublishedJobs: number;
-    featuredJobs: number;
-    jobTypeDistribution: Record<string, number>;
-    modeDistribution: Record<string, number>;
-  };
-  lastUpdated: string;
+/* ─── Types ─── */
+interface AdminJob {
+  id: string; title: string; slug: string | null; employer: string;
+  location: string; city: string | null; state: string | null;
+  jobType: string | null; mode: string | null;
+  displaySalary: string | null; sourceProvider: string | null;
+  isPublished: boolean; isFeatured: boolean; isVerifiedEmployer: boolean;
+  viewCount: number; applyClickCount: number; applications: number;
+  qualityScore: number; createdAt: string; updatedAt: string;
+  expiresAt: string | null; applyLink: string;
 }
+interface SourceOption { source: string; count: number }
 
-interface SourcePerformance {
-  source: string;
-  totalJobs: number;
-  jobsLast7Days: number;
-  jobsLast30Days: number;
-  avgQualityScore: number;
-  totalViews: number;
-  totalApplyClicks: number;
-  clickThroughRate: number;
-  duplicateRate: number;
-  costPerJob: number | null;
-}
-
-interface ClickAnalytics {
-  summary: {
-    totalClicks: number;
-    uniqueJobs: number;
-    avgClicksPerJob: number;
-  };
-  bySource: Array<{
-    source: string;
-    clicks: number;
-    jobs: number;
-    avgPerJob: number;
-  }>;
-  byDay: Array<{
-    date: string;
-    clicks: number;
-  }>;
-  topJobs: Array<{
-    jobId: string;
-    title: string;
-    employer: string;
-    clicks: number;
-  }>;
-}
-
-/* ─── Shared inline style objects ─── */
+/* ─── Shared styles ─── */
 const s = {
   card: {
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: '14px',
-    overflow: 'hidden' as const,
+    backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
+    borderRadius: '14px', overflow: 'hidden' as const,
   },
-  cardBody: { padding: '24px' },
   heading: { color: 'var(--text-primary)', fontWeight: 700 as const },
   sub: { color: 'var(--text-secondary)', fontSize: '14px' },
   muted: { color: 'var(--text-tertiary)', fontSize: '12px' },
   th: {
-    padding: '12px 16px',
-    textAlign: 'left' as const,
-    fontSize: '11px',
-    fontWeight: 600 as const,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-    color: 'var(--text-tertiary)',
-    backgroundColor: 'var(--bg-tertiary)',
+    padding: '12px 14px', textAlign: 'left' as const, fontSize: '11px',
+    fontWeight: 600 as const, textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em', color: 'var(--text-tertiary)',
+    backgroundColor: 'var(--bg-tertiary)', whiteSpace: 'nowrap' as const,
   },
   td: {
-    padding: '14px 16px',
-    fontSize: '13px',
-    color: 'var(--text-secondary)',
-    whiteSpace: 'nowrap' as const,
-    borderBottom: '1px solid var(--border-color)',
+    padding: '12px 14px', fontSize: '13px', color: 'var(--text-secondary)',
+    borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' as const,
   },
   tdBold: {
-    padding: '14px 16px',
-    fontSize: '13px',
-    color: 'var(--text-primary)',
-    fontWeight: 600 as const,
-    whiteSpace: 'nowrap' as const,
-    borderBottom: '1px solid var(--border-color)',
+    padding: '12px 14px', fontSize: '13px', color: 'var(--text-primary)',
+    fontWeight: 600 as const, borderBottom: '1px solid var(--border-color)',
   },
 };
 
-export default function AdminJobsPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [sourceAnalytics, setSourceAnalytics] = useState<SourcePerformance[] | null>(null);
-  const [clickAnalytics, setClickAnalytics] = useState<ClickAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionResult, setActionResult] = useState<string | null>(null);
-  const [selectedSource, setSelectedSource] = useState<string>('all');
+const inputStyle: React.CSSProperties = {
+  padding: '9px 14px', borderRadius: '10px', fontSize: '13px',
+  backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
+  color: 'var(--text-primary)', outline: 'none',
+};
 
-  const fetchStats = async () => {
+function badge(text: string, color: string, bg: string) {
+  return (
+    <span style={{
+      padding: '3px 10px', borderRadius: '20px', fontSize: '11px',
+      fontWeight: 600, backgroundColor: bg, color, whiteSpace: 'nowrap',
+    }}>{text}</span>
+  );
+}
+
+export default function AdminJobsPage() {
+  const [jobs, setJobs] = useState<AdminJob[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sources, setSources] = useState<SourceOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [publishedFilter, setPublishedFilter] = useState('');
+  const [featuredFilter, setFeaturedFilter] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+
+  // Selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Edit modal
+  const [editingJob, setEditingJob] = useState<AdminJob | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Action feedback
+  const [actionMsg, setActionMsg] = useState<{ text: string; isError: boolean } | null>(null);
+
+  const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      const response = await fetch('/api/admin/stats');
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      setStats(await response.json());
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', '25');
+      params.set('sort', sortBy);
+      if (search) params.set('search', search);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
+      if (publishedFilter) params.set('published', publishedFilter);
+      if (featuredFilter) params.set('featured', featuredFilter);
+
+      const res = await fetch(`/api/admin/jobs?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setJobs(data.jobs);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+        if (data.sources) setSources(data.sources);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error fetching jobs:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, search, sourceFilter, publishedFilter, featuredFilter, sortBy]);
 
-  const fetchSourceAnalytics = async () => {
-    try {
-      const response = await fetch('/api/analytics/sources');
-      if (!response.ok) return;
-      const data = await response.json();
-      setSourceAnalytics(data.sources || []);
-    } catch (err) {
-      console.error('Error fetching source analytics:', err);
-    }
-  };
+  useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
-  const fetchClickAnalytics = async () => {
-    try {
-      const response = await fetch('/api/analytics/clicks?days=30');
-      if (!response.ok) return;
-      setClickAnalytics(await response.json());
-    } catch (err) {
-      console.error('Error fetching click analytics:', err);
-    }
-  };
-
+  // Debounced search
+  const [searchInput, setSearchInput] = useState('');
   useEffect(() => {
-    fetchStats();
-    fetchSourceAnalytics();
-    fetchClickAnalytics();
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchSourceAnalytics();
-      fetchClickAnalytics();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    const timeout = setTimeout(() => { setSearch(searchInput); setPage(1); }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
 
-  const handleTriggerIngestion = async () => {
+  // Toggle helpers
+  const toggleField = async (jobId: string, field: string, value: boolean) => {
     try {
-      setActionLoading(true);
-      setActionResult(null);
-      const response = await fetch('/api/admin/trigger-ingestion', {
+      const res = await fetch(`/api/admin/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (res.ok) {
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, [field]: value } : j));
+        showMsg(`${field === 'isPublished' ? (value ? 'Published' : 'Unpublished') : (value ? 'Featured' : 'Unfeatured')}`, false);
+      }
+    } catch { showMsg('Failed to update', true); }
+  };
+
+  const deleteJob = async (jobId: string, hard = false) => {
+    if (!confirm(hard ? 'Permanently delete this job? This cannot be undone.' : 'Unpublish this job?')) return;
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}?hard=${hard}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (hard) setJobs(prev => prev.filter(j => j.id !== jobId));
+        else setJobs(prev => prev.map(j => j.id === jobId ? { ...j, isPublished: false } : j));
+        showMsg(hard ? 'Job permanently deleted' : 'Job unpublished', false);
+      }
+    } catch { showMsg('Failed to delete', true); }
+  };
+
+  // Bulk actions
+  const handleBulk = async (action: string) => {
+    if (selected.size === 0) return;
+    const label = action === 'hard_delete' ? 'permanently delete' : action;
+    if (action.includes('delete') && !confirm(`${label} ${selected.size} job(s)?`)) return;
+
+    try {
+      setBulkLoading(true);
+      const res = await fetch('/api/admin/jobs/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: selectedSource === 'all' ? undefined : selectedSource,
-        }),
+        body: JSON.stringify({ action, jobIds: Array.from(selected) }),
       });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Ingestion failed');
+      const data = await res.json();
+      if (data.success) {
+        showMsg(`${data.action}: ${data.affected} job(s)`, false);
+        setSelected(new Set());
+        fetchJobs();
       }
-      const result = await response.json();
-      const totalAdded = result.ingestion?.summary?.totalAdded || 0;
-      const totalFetched = result.ingestion?.summary?.totalFetched || 0;
-      const totalDuplicates = result.ingestion?.summary?.totalDuplicates || 0;
-      setActionResult(
-        `Success! Fetched ${totalFetched} jobs, added ${totalAdded} new, ${totalDuplicates} duplicates`
-      );
-      setTimeout(fetchStats, 2000);
-    } catch (err) {
-      setActionResult(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setActionLoading(false);
-    }
+    } catch { showMsg('Bulk action failed', true); }
+    finally { setBulkLoading(false); }
   };
 
-  /* ─── Loading / Error ─── */
-  if (loading && !stats) {
-    return (
-      <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '80px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px', textAlign: 'center' }}>
-        <div
-          style={{
-            width: 48, height: 48, border: '3px solid var(--border-color)',
-            borderTop: '3px solid #2DD4BF', borderRadius: '50%',
-            margin: '0 auto', animation: 'spin 0.8s linear infinite',
-          }}
-        />
-        <p style={{ marginTop: '16px', ...s.sub }}>Loading statistics…</p>
-      </div>
-    );
-  }
+  // Edit modal
+  const openEdit = (job: AdminJob) => {
+    setEditingJob(job);
+    setEditForm({
+      title: job.title,
+      employer: job.employer,
+      location: job.location,
+      displaySalary: job.displaySalary || '',
+      jobType: job.jobType || '',
+      mode: job.mode || '',
+      applyLink: job.applyLink,
+    });
+  };
 
-  if (error) {
-    return (
-      <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
-        <div
-          style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)',
-            borderRadius: '12px', padding: '24px',
-          }}
-        >
-          <h2 style={{ color: '#EF4444', fontWeight: 700, marginBottom: '8px' }}>Error</h2>
-          <p style={{ color: '#F87171', fontSize: '14px' }}>{error}</p>
-          <button
-            onClick={fetchStats}
-            style={{
-              marginTop: '12px', padding: '10px 20px',
-              background: '#EF4444', color: '#fff', border: 'none',
-              borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-            }}
-          >
-            Retry
+  const saveEdit = async () => {
+    if (!editingJob) return;
+    try {
+      setEditLoading(true);
+      const res = await fetch(`/api/admin/jobs/${editingJob.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        showMsg('Job updated', false);
+        setEditingJob(null);
+        fetchJobs();
+      }
+    } catch { showMsg('Failed to update', true); }
+    finally { setEditLoading(false); }
+  };
+
+  const showMsg = (text: string, isError: boolean) => {
+    setActionMsg({ text, isError });
+    setTimeout(() => setActionMsg(null), 3000);
+  };
+
+  const selectAll = () => {
+    if (selected.size === jobs.length) setSelected(new Set());
+    else setSelected(new Set(jobs.map(j => j.id)));
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ ...s.heading, fontSize: '26px' }}>Jobs Management</h1>
+          <p style={s.muted}>{total.toLocaleString()} total jobs</p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={fetchJobs} style={{ ...inputStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <RefreshCw size={14} /> Refresh
           </button>
         </div>
       </div>
-    );
-  }
 
-  if (!stats) return null;
+      {/* Action message */}
+      {actionMsg && (
+        <div style={{
+          marginBottom: '16px', padding: '12px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+          backgroundColor: actionMsg.isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+          color: actionMsg.isError ? '#F87171' : '#22C55E',
+        }}>{actionMsg.text}</div>
+      )}
 
-  const avgDailyNew = Object.keys(stats.jobsByDay).length > 0
-    ? Math.round(Object.values(stats.jobsByDay).reduce((a: number, b: number) => a + b, 0) / Object.keys(stats.jobsByDay).length)
-    : 0;
-  const totalBySource = Object.values(stats.bySource).reduce((a: number, b: number) => a + b, 0);
-  const sortedDays = Object.entries(stats.jobsByDay).sort(([a]: [string, number], [b]: [string, number]) => a.localeCompare(b));
-  const trend = sortedDays.length >= 2
-    ? (sortedDays[sortedDays.length - 1]?.[1] ?? 0) > (sortedDays[sortedDays.length - 2]?.[1] ?? 0)
-    : null;
-
-  /* ─── Color-coded badge helper ─── */
-  const badge = (value: string, color: 'green' | 'yellow' | 'red' | 'gray') => {
-    const colors = {
-      green: { bg: 'rgba(34,197,94,0.12)', fg: '#22C55E' },
-      yellow: { bg: 'rgba(234,179,8,0.12)', fg: '#EAB308' },
-      red: { bg: 'rgba(239,68,68,0.12)', fg: '#EF4444' },
-      gray: { bg: 'var(--bg-tertiary)', fg: 'var(--text-secondary)' },
-    };
-    const c = colors[color];
-    return (
-      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, backgroundColor: c.bg, color: c.fg }}>
-        {value}
-      </span>
-    );
-  };
-
-  /* ─── Highlight card helper ─── */
-  const highlightCard = (
-    emoji: string,
-    label: string,
-    accent: string,
-    name: string,
-    detail: string,
-  ) => (
-    <div
-      style={{
-        ...s.card,
-        padding: '20px 24px',
-        borderColor: accent + '30',
-        background: `linear-gradient(135deg, ${accent}08, ${accent}05)`,
-      }}
-    >
-      <h3 style={{ fontSize: '12px', fontWeight: 600, color: accent, marginBottom: '12px' }}>
-        {emoji} {label}
-      </h3>
-      <p style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{name}</p>
-      <p style={{ fontSize: '13px', color: accent, marginTop: '4px' }}>{detail}</p>
-    </div>
-  );
-
-  return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', paddingTop: '32px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px' }}>
-      {/* ─── Header ─── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '28px' }}>
-        <div>
-          <h1 style={{ ...s.heading, fontSize: '26px' }}>Job Aggregation Dashboard</h1>
-          <p style={{ ...s.muted, marginTop: '4px' }}>
-            Last updated: {new Date(stats.lastUpdated).toLocaleString()}
-          </p>
+      {/* Filters */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 240px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+          <input
+            type="text"
+            placeholder="Search title or employer..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            style={{ ...inputStyle, width: '100%', paddingLeft: '36px' }}
+          />
         </div>
-        <button
-          onClick={fetchStats}
-          disabled={loading}
-          style={{
-            padding: '10px 22px', borderRadius: '10px', cursor: 'pointer',
-            backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none',
-            fontWeight: 700, fontSize: '13px', transition: 'opacity 0.2s',
-            opacity: loading ? 0.5 : 1,
-          }}
-        >
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <select value={sourceFilter} onChange={e => { setSourceFilter(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="all">All Sources</option>
+          {sources.map(s => (
+            <option key={s.source} value={s.source}>{s.source} ({s.count})</option>
+          ))}
+        </select>
+        <select value={publishedFilter} onChange={e => { setPublishedFilter(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">All Status</option>
+          <option value="true">Published</option>
+          <option value="false">Unpublished</option>
+        </select>
+        <select value={featuredFilter} onChange={e => { setFeaturedFilter(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">All Featured</option>
+          <option value="true">Featured</option>
+          <option value="false">Not Featured</option>
+        </select>
+        <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="views">Most Views</option>
+          <option value="clicks">Most Clicks</option>
+          <option value="title">Title A-Z</option>
+        </select>
       </div>
 
-      {/* ─── Stats Cards ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" style={{ marginBottom: '28px' }}>
-        {[
-          { label: 'Total Active Jobs', value: stats.totalActive, color: 'var(--text-primary)' },
-          { label: 'Added Last 24h', value: stats.addedLast24h, color: '#22C55E' },
-          { label: 'Active Sources', value: Object.keys(stats.bySource).length, color: '#2DD4BF' },
-          { label: 'Avg Daily New', value: avgDailyNew, color: '#A855F7' },
-        ].map((c) => (
-          <div key={c.label} style={{ ...s.card, padding: '20px 24px' }}>
-            <h3 style={{ ...s.muted, marginBottom: '8px' }}>{c.label}</h3>
-            <p style={{ fontSize: '30px', fontWeight: 800, color: c.color }}>{c.value.toLocaleString()}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ─── Top Sources Highlights ─── */}
-      {sourceAnalytics && sourceAnalytics.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5" style={{ marginBottom: '28px' }}>
-          {(() => {
-            const bestVolume = [...sourceAnalytics].sort((a, b) => b.totalJobs - a.totalJobs)[0];
-            const bestQuality = [...sourceAnalytics].sort((a, b) => b.avgQualityScore - a.avgQualityScore)[0];
-            const bestClicks = [...sourceAnalytics].sort((a, b) => b.clickThroughRate - a.clickThroughRate)[0];
-            return (
-              <>
-                {bestVolume && highlightCard('🏆', 'Best for Volume', '#2DD4BF', bestVolume.source, `${bestVolume.totalJobs.toLocaleString()} active jobs`)}
-                {bestQuality && highlightCard('⭐', 'Best for Quality', '#22C55E', bestQuality.source, `${(bestQuality.avgQualityScore * 100).toFixed(0)}% quality score`)}
-                {bestClicks && highlightCard('🎯', 'Best for Clicks', '#A855F7', bestClicks.source, `${(bestClicks.clickThroughRate * 100).toFixed(1)}% CTR`)}
-              </>
-            );
-          })()}
+      {/* Bulk actions */}
+      {selected.size > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px',
+          padding: '12px 18px', borderRadius: '10px',
+          backgroundColor: 'rgba(45, 212, 191, 0.08)', border: '1px solid rgba(45, 212, 191, 0.2)',
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>{selected.size} selected</span>
+          {[
+            { label: 'Publish', action: 'publish', color: '#22C55E' },
+            { label: 'Unpublish', action: 'unpublish', color: '#F59E0B' },
+            { label: 'Feature', action: 'feature', color: '#A855F7' },
+            { label: 'Unfeature', action: 'unfeature', color: '#94A3B8' },
+            { label: 'Delete', action: 'delete', color: '#EF4444' },
+          ].map(b => (
+            <button key={b.action} onClick={() => handleBulk(b.action)} disabled={bulkLoading}
+              style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, backgroundColor: `${b.color}15`, color: b.color }}>
+              {b.label}
+            </button>
+          ))}
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {/* ─── Jobs by Source ─── */}
-      <div style={{ ...s.card, marginBottom: '28px' }}>
-        <div style={s.cardBody}>
-          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Jobs by Source</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={s.th}>Source</th>
-                  <th style={s.th}>Count</th>
-                  <th style={s.th}>Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(stats.bySource)
-                  .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
-                  .map(([source, count]: [string, number]) => (
-                    <tr key={source}>
-                      <td style={{ ...s.tdBold, textTransform: 'capitalize' }}>{source}</td>
-                      <td style={s.td}>{count.toLocaleString()}</td>
-                      <td style={s.td}>{((count / totalBySource) * 100).toFixed(1)}%</td>
-                    </tr>
-                  ))}
-                <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <td style={{ ...s.tdBold, borderBottom: 'none' }}>Total</td>
-                  <td style={{ ...s.tdBold, borderBottom: 'none' }}>{totalBySource.toLocaleString()}</td>
-                  <td style={{ ...s.tdBold, borderBottom: 'none' }}>100%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Jobs Added Per Day ─── */}
-      <div style={{ ...s.card, marginBottom: '28px' }}>
-        <div style={s.cardBody}>
-          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>
-            Jobs Added Per Day (Last 7 Days)
-            {trend !== null && (
-              <span style={{ marginLeft: '12px', fontSize: '13px', color: trend ? '#22C55E' : '#EF4444' }}>
-                {trend ? '↑ Trending Up' : '↓ Trending Down'}
-              </span>
-            )}
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {sortedDays.length > 0 ? (
-              sortedDays.map(([date, count]: [string, number]) => (
-                <div key={date} style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{ width: '110px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0 }}>{date}</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        background: 'linear-gradient(90deg, #2DD4BF, #14B8A6)',
-                        height: '28px', borderRadius: '6px',
-                        width: `${(count / Math.max(...Object.values(stats.jobsByDay))) * 100}%`,
-                        minWidth: '24px',
-                      }}
-                    />
-                    <span style={{ marginLeft: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{count}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p style={s.sub}>No data available</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Top Employers ─── */}
-      <div style={{ ...s.card, marginBottom: '28px' }}>
-        <div style={s.cardBody}>
-          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Top Employers</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={s.th}>Rank</th>
-                  <th style={s.th}>Employer</th>
-                  <th style={s.th}>Job Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.topEmployers.map((emp, i) => (
-                  <tr key={emp.employer}>
-                    <td style={s.td}>#{i + 1}</td>
-                    <td style={s.tdBold}>{emp.employer}</td>
-                    <td style={s.td}>{emp.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Source Performance ─── */}
-      {sourceAnalytics && sourceAnalytics.length > 0 && (
-        <div style={{ ...s.card, marginBottom: '28px' }}>
-          <div style={s.cardBody}>
-            <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Source Performance</h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    {['Source', 'Active Jobs', '7-Day Adds', 'Quality', 'Views', 'Clicks', 'CTR', 'Dup Rate'].map((h) => (
-                      <th key={h} style={{ ...s.th, textAlign: h === 'Source' ? 'left' : 'right' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sourceAnalytics.map((src) => {
-                    const q = src.avgQualityScore * 100;
-                    const ctr = src.clickThroughRate * 100;
-                    const dup = src.duplicateRate * 100;
-                    const qColor = q >= 75 ? 'green' : q >= 50 ? 'yellow' : 'red';
-                    const ctrColor = ctr >= 5 ? 'green' : ctr >= 2 ? 'yellow' : 'gray';
-                    const dupColor = dup >= 50 ? 'red' : dup >= 30 ? 'yellow' : 'green';
-
-                    return (
-                      <tr key={src.source}>
-                        <td style={{ ...s.tdBold, textTransform: 'capitalize' }}>{src.source}</td>
-                        <td style={{ ...s.tdBold, textAlign: 'right' }}>{src.totalJobs.toLocaleString()}</td>
-                        <td style={{ ...s.td, textAlign: 'right' }}>{src.jobsLast7Days.toLocaleString()}</td>
-                        <td style={{ ...s.td, textAlign: 'right' }}>{badge(`${q.toFixed(0)}`, qColor as 'green' | 'yellow' | 'red')}</td>
-                        <td style={{ ...s.td, textAlign: 'right' }}>{src.totalViews.toLocaleString()}</td>
-                        <td style={{ ...s.td, textAlign: 'right' }}>{src.totalApplyClicks.toLocaleString()}</td>
-                        <td style={{ ...s.td, textAlign: 'right' }}>{badge(`${ctr.toFixed(1)}%`, ctrColor as 'green' | 'yellow' | 'red' | 'gray')}</td>
-                        <td style={{ ...s.td, textAlign: 'right' }}>{badge(`${dup.toFixed(0)}%`, dupColor as 'green' | 'yellow' | 'red')}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '14px', ...s.muted }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#22C55E', display: 'inline-block' }} /> Good
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#EAB308', display: 'inline-block' }} /> Average
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#EF4444', display: 'inline-block' }} /> Needs improvement
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Apply Click Analytics ─── */}
-      {clickAnalytics && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', marginBottom: '28px' }}>
-          <div style={s.card}>
-            <div style={s.cardBody}>
-              <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '24px' }}>Apply Click Analytics (Last 30 Days)</h2>
-
-              {/* Summary cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5" style={{ marginBottom: '28px' }}>
-                {[
-                  { label: 'Total Clicks', value: clickAnalytics.summary.totalClicks.toLocaleString(), detail: `${clickAnalytics.summary.uniqueJobs} unique jobs`, accent: '#818CF8' },
-                  { label: 'Avg Clicks per Job', value: clickAnalytics.summary.avgClicksPerJob.toFixed(2), detail: 'Engagement rate', accent: '#2DD4BF' },
-                  {
-                    label: 'Best Converting Source',
-                    value: clickAnalytics.bySource[0]?.source || 'N/A',
-                    detail: clickAnalytics.bySource[0] ? `${clickAnalytics.bySource[0].clicks} clicks (${clickAnalytics.bySource[0].avgPerJob.toFixed(2)} per job)` : 'No data',
-                    accent: '#F59E0B',
-                  },
-                ].map((c) => (
-                  <div
-                    key={c.label}
-                    style={{
-                      ...s.card, padding: '20px 24px',
-                      borderColor: c.accent + '30',
-                      background: `linear-gradient(135deg, ${c.accent}08, ${c.accent}05)`,
-                    }}
-                  >
-                    <h3 style={{ fontSize: '12px', fontWeight: 600, color: c.accent, marginBottom: '8px' }}>{c.label}</h3>
-                    <p style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{c.value}</p>
-                    <p style={{ fontSize: '12px', color: c.accent, marginTop: '4px' }}>{c.detail}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Clicks by Source */}
-              {clickAnalytics.bySource.length > 0 && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h3 style={{ ...s.heading, fontSize: '16px', marginBottom: '14px' }}>Clicks by Source</h3>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          {['Source', 'Total Clicks', 'Jobs Clicked', 'Avg per Job', 'Performance'].map((h) => (
-                            <th key={h} style={{ ...s.th, textAlign: h === 'Source' ? 'left' : 'right' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clickAnalytics.bySource.map((src) => {
-                          const perf = src.avgPerJob;
-                          const perfLabel = perf >= 0.5 ? '🔥 Hot' : perf >= 0.3 ? '👍 Good' : '📊 Low';
-                          const perfColor = perf >= 0.5 ? 'green' : perf >= 0.3 ? 'yellow' : 'red';
-                          return (
-                            <tr key={src.source}>
-                              <td style={{ ...s.tdBold, textTransform: 'capitalize' }}>{src.source}</td>
-                              <td style={{ ...s.tdBold, textAlign: 'right' }}>{src.clicks.toLocaleString()}</td>
-                              <td style={{ ...s.td, textAlign: 'right' }}>{src.jobs.toLocaleString()}</td>
-                              <td style={{ ...s.td, textAlign: 'right' }}>{src.avgPerJob.toFixed(2)}</td>
-                              <td style={{ ...s.td, textAlign: 'right' }}>{badge(perfLabel, perfColor as 'green' | 'yellow' | 'red')}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Top 10 Most Clicked Jobs */}
-              {clickAnalytics.topJobs.length > 0 && (
-                <div>
-                  <h3 style={{ ...s.heading, fontSize: '16px', marginBottom: '14px' }}>Top 10 Most Clicked Jobs</h3>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          <th style={s.th}>Rank</th>
-                          <th style={s.th}>Job Title</th>
-                          <th style={s.th}>Employer</th>
-                          <th style={{ ...s.th, textAlign: 'right' }}>Clicks</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clickAnalytics.topJobs.map((job, i) => (
-                          <tr key={job.jobId}>
-                            <td style={s.td}>
-                              <span style={{ fontWeight: 700, color: i === 0 ? '#F59E0B' : i === 1 ? '#94A3B8' : i === 2 ? '#CD7F32' : 'var(--text-tertiary)' }}>
-                                #{i + 1}
-                              </span>
-                            </td>
-                            <td style={s.tdBold}>{job.title}</td>
-                            <td style={s.td}>{job.employer}</td>
-                            <td style={{ ...s.td, textAlign: 'right' }}>
-                              {badge(`${job.clicks} clicks`, 'gray')}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Actions ─── */}
+      {/* Jobs Table */}
       <div style={s.card}>
-        <div style={s.cardBody}>
-          <h2 style={{ ...s.heading, fontSize: '18px', marginBottom: '16px' }}>Actions</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div className="flex flex-col sm:flex-row" style={{ gap: '12px' }}>
-              <select
-                value={selectedSource}
-                onChange={(e) => setSelectedSource(e.target.value)}
-                style={{
-                  flex: 1, padding: '10px 16px', borderRadius: '10px',
-                  backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)', fontSize: '14px',
-                  outline: 'none',
-                }}
-              >
-                <option value="all">All Sources</option>
-                <option value="adzuna">Adzuna</option>
-                <option value="jooble">Jooble</option>
-                <option value="greenhouse">Greenhouse</option>
-                <option value="lever">Lever</option>
-                <option value="usajobs">USAJobs</option>
-                <option value="jsearch">JSearch</option>
-              </select>
-              <button
-                onClick={handleTriggerIngestion}
-                disabled={actionLoading}
-                style={{
-                  padding: '10px 24px', borderRadius: '10px', cursor: 'pointer',
-                  backgroundColor: '#22C55E', color: '#0F172A', border: 'none',
-                  fontWeight: 700, fontSize: '13px', transition: 'opacity 0.2s',
-                  opacity: actionLoading ? 0.5 : 1, whiteSpace: 'nowrap',
-                }}
-              >
-                {actionLoading ? 'Running…' : 'Trigger Ingestion'}
+        {loading && jobs.length === 0 ? (
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, border: '3px solid var(--border-color)', borderTop: '3px solid #2DD4BF', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ ...s.sub, marginTop: '12px' }}>Loading jobs…</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ ...s.th, width: '36px' }}>
+                    <input type="checkbox" checked={selected.size === jobs.length && jobs.length > 0} onChange={selectAll} style={{ cursor: 'pointer' }} />
+                  </th>
+                  <th style={s.th}>Title</th>
+                  <th style={s.th}>Employer</th>
+                  <th style={s.th}>Source</th>
+                  <th style={{ ...s.th, textAlign: 'center' }}>Status</th>
+                  <th style={{ ...s.th, textAlign: 'center' }}>Featured</th>
+                  <th style={{ ...s.th, textAlign: 'right' }}><Eye size={13} /></th>
+                  <th style={{ ...s.th, textAlign: 'right' }}><MousePointerClick size={13} /></th>
+                  <th style={{ ...s.th, textAlign: 'right' }}><FileCheck size={13} /></th>
+                  <th style={s.th}>Created</th>
+                  <th style={{ ...s.th, textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map(job => (
+                  <tr key={job.id} style={{ backgroundColor: selected.has(job.id) ? 'rgba(45,212,191,0.04)' : undefined }}>
+                    <td style={s.td}>
+                      <input type="checkbox" checked={selected.has(job.id)} onChange={() => toggleSelect(job.id)} style={{ cursor: 'pointer' }} />
+                    </td>
+                    <td style={{ ...s.tdBold, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.title}>
+                      {job.title}
+                    </td>
+                    <td style={s.td}>{job.employer}</td>
+                    <td style={s.td}>
+                      <span style={{ textTransform: 'capitalize' }}>{job.sourceProvider || '—'}</span>
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'center' }}>
+                      <button onClick={() => toggleField(job.id, 'isPublished', !job.isPublished)}
+                        title={job.isPublished ? 'Click to unpublish' : 'Click to publish'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                        {job.isPublished
+                          ? <Globe size={16} style={{ color: '#22C55E' }} />
+                          : <GlobeLock size={16} style={{ color: '#94A3B8' }} />}
+                      </button>
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'center' }}>
+                      <button onClick={() => toggleField(job.id, 'isFeatured', !job.isFeatured)}
+                        title={job.isFeatured ? 'Click to unfeature' : 'Click to feature'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                        {job.isFeatured
+                          ? <Star size={16} style={{ color: '#F59E0B', fill: '#F59E0B' }} />
+                          : <StarOff size={16} style={{ color: '#94A3B8' }} />}
+                      </button>
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.viewCount.toLocaleString()}</td>
+                    <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.applyClickCount.toLocaleString()}</td>
+                    <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.applications}</td>
+                    <td style={s.td}>
+                      {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button onClick={() => openEdit(job)} title="Edit"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3B82F6' }}>
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => deleteJob(job.id)} title="Unpublish"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#EF4444' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {jobs.length === 0 && (
+                  <tr><td colSpan={11} style={{ ...s.td, textAlign: 'center', padding: '40px' }}>No jobs found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 20px', borderTop: '1px solid var(--border-color)',
+          }}>
+            <span style={s.muted}>Page {page} of {totalPages} · {total.toLocaleString()} jobs</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ ...inputStyle, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ChevronLeft size={14} /> Prev
+              </button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ ...inputStyle, cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {editingJob && (
+        <>
+          <div onClick={() => setEditingJob(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 50 }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 51, width: '90%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto',
+            backgroundColor: 'var(--bg-secondary)', borderRadius: '16px',
+            border: '1px solid var(--border-color)', padding: '28px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ ...s.heading, fontSize: '20px' }}>Edit Job</h2>
+              <button onClick={() => setEditingJob(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+                <X size={20} />
               </button>
             </div>
 
-            {actionResult && (
-              <div
-                style={{
-                  padding: '14px 18px', borderRadius: '10px', fontSize: '13px',
-                  backgroundColor: actionResult.includes('Error') ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
-                  color: actionResult.includes('Error') ? '#F87171' : '#22C55E',
-                }}
-              >
-                {actionResult}
-              </div>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {[
+                { key: 'title', label: 'Title' },
+                { key: 'employer', label: 'Employer' },
+                { key: 'location', label: 'Location' },
+                { key: 'displaySalary', label: 'Salary Display' },
+                { key: 'jobType', label: 'Job Type' },
+                { key: 'mode', label: 'Mode (remote/onsite/hybrid)' },
+                { key: 'applyLink', label: 'Apply Link' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: 'block', ...s.muted, fontWeight: 600, marginBottom: '6px' }}>{f.label}</label>
+                  <input
+                    type="text"
+                    value={editForm[f.key] || ''}
+                    onChange={e => setEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    style={{ ...inputStyle, width: '100%' }}
+                  />
+                </div>
+              ))}
+            </div>
 
-            <p style={s.muted}>
-              ⚠️ Note: Full ingestion can take 40+ seconds. The page will refresh automatically when complete.
-            </p>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingJob(null)}
+                style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px' }}>
+                Cancel
+              </button>
+              <button onClick={saveEdit} disabled={editLoading}
+                style={{ padding: '10px 24px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none', fontWeight: 700, fontSize: '13px', opacity: editLoading ? 0.5 : 1 }}>
+                {editLoading ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

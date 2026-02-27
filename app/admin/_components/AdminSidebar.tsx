@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, Target, Users, Menu, X, ArrowLeft, Home } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings } from 'lucide-react';
 
 const navItems = [
   {
@@ -17,6 +17,11 @@ const navItems = [
     icon: Briefcase,
   },
   {
+    name: 'Analytics',
+    href: '/admin/analytics',
+    icon: BarChart3,
+  },
+  {
     name: 'Users & Subscribers',
     href: '/admin/users',
     icon: Users,
@@ -25,6 +30,16 @@ const navItems = [
     name: 'Employer Outreach',
     href: '/admin/outreach',
     icon: Target,
+  },
+  {
+    name: 'Blog',
+    href: '/admin/blog',
+    icon: FileText,
+  },
+  {
+    name: 'Settings',
+    href: '/admin/settings',
+    icon: Settings,
   },
 ];
 
