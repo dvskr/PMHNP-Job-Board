@@ -47,3 +47,39 @@ next-env.d.ts
 /data/
 /tmp/
 /scripts/export-*.js
+
+# Archive of old files
+/_archive/
+
+# Screenshots & recordings (marketing assets, not code)
+/screenshots/
+/recordings/
+
+# One-off root scripts & output
+output.html
+post-social-now.js
+preview-social-post.*
+check-jobs.js
+convert-images.mjs
+copy-videos.mjs
+take-screenshots.mjs
+take-videos.mjs
+*.log
+*.pdf
+tmp-all-domains.txt
+
+# Script output files (generated reports/data)
+/scripts/*.txt
+/scripts/alert-report.md
+/scripts/sample-resume.html
+/scripts/alert-users.json
+/scripts/ats-companies.json
+/scripts/ats-test-results.json
+/scripts/fix-blog-content-body.json
+
+# SQL one-offs
+/sql/
+supabase_dashboard_queries.sql
+
+# Docs
+/docs/
