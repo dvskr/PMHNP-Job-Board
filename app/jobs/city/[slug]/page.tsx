@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, TrendingUp, Building2, Bell, MapPinned } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
@@ -66,6 +66,35 @@ function parseCitySlug(slug: string): { cityName: string; stateName: string; sta
  */
 function buildCitySlug(cityName: string, stateCode: string): string {
     return `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stateCode.toLowerCase()}`;
+}
+
+/**
+ * When a slug has no state code suffix (e.g. "virginia-beach" instead of "virginia-beach-va"),
+ * look up the DB for any city that matches and return the canonical slug.
+ */
+async function resolveAmbiguousSlug(slug: string): Promise<string | null> {
+    const normalized = slug.toLowerCase().trim();
+    const cityName = normalized
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+    // Find the first published job in a city matching this name
+    const match = await prisma.job.findFirst({
+        where: {
+            isPublished: true,
+            city: { equals: cityName, mode: 'insensitive' },
+            stateCode: { not: null },
+        },
+        select: { city: true, stateCode: true },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    if (match?.city && match?.stateCode) {
+        return buildCitySlug(match.city, match.stateCode);
+    }
+
+    return null;
 }
 
 // ─── Data fetching ──────────────────────────────────────────────────────────
@@ -228,10 +257,13 @@ interface CityPageProps {
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
     try {
         const { slug } = await params;
-        const parsed = parseCitySlug(slug);
+        let parsed = parseCitySlug(slug);
 
         if (!parsed) {
-            return { title: 'City Not Found' };
+            // Try resolving slug without state code
+            const canonical = await resolveAmbiguousSlug(slug);
+            if (canonical) parsed = parseCitySlug(canonical);
+            if (!parsed) return { title: 'City Not Found' };
         }
 
         const { cityName, stateName, stateCode } = parsed;
@@ -279,9 +311,14 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 
 export default async function CityJobsPage({ params }: CityPageProps) {
     const { slug } = await params;
-    const parsed = parseCitySlug(slug);
+    let parsed = parseCitySlug(slug);
 
     if (!parsed) {
+        // Try resolving slug without state code → redirect to canonical URL
+        const canonical = await resolveAmbiguousSlug(slug);
+        if (canonical) {
+            redirect(`/jobs/city/${canonical}`);
+        }
         notFound();
     }
 

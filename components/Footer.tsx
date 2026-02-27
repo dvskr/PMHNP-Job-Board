@@ -55,9 +55,9 @@ const linkColumns = [
 
 const socialLinks = [
   { icon: Twitter, href: 'https://x.com/pmhnphiring', label: 'X' },
-  { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61586136316931', label: 'Facebook' },
+  { icon: Facebook, href: 'https://www.facebook.com/pmhnphiring', label: 'Facebook' },
   { icon: Instagram, href: 'https://www.instagram.com/pmhnphiring', label: 'Instagram' },
-  { icon: Linkedin, href: 'https://www.linkedin.com/company/pmhnp-hiring', label: 'LinkedIn' },
+  { icon: Linkedin, href: 'https://www.linkedin.com/company/pmhnpjobs', label: 'LinkedIn' },
   { icon: Youtube, href: 'https://www.youtube.com/@pmhnphiring', label: 'YouTube' },
 ];
 

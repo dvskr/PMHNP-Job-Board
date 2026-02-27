@@ -7,6 +7,9 @@ import {
   type JobSource
 } from '@/lib/ingestion-service';
 
+// Allow maximum execution time for Vercel Pro plan
+export const maxDuration = 300; // 5 minutes
+
 /**
  * Verify the cron secret from the request headers
  */

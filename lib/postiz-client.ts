@@ -160,7 +160,7 @@ export async function postToInstagramCarousel(
                 value: [{ content, image: images }],
                 settings: {
                     __type: 'instagram',
-                    post_type: 'post',
+                    post_type: 'carousel',
                     is_trial_reel: false,
                     collaborators: [],
                 },
