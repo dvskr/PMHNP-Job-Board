@@ -2,6 +2,24 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
+    // ── UTM Parameter Stripping ──────────────────────────────────────
+    // Google Jobs appends ?utm_source=google_jobs_apply&utm_campaign=...
+    // to job URLs, creating ~800+ duplicate pages in GSC.
+    // Strip all utm_* params and 301 redirect to the clean URL.
+    const url = request.nextUrl.clone();
+    const paramsToRemove: string[] = [];
+
+    url.searchParams.forEach((_value, key) => {
+        if (key.toLowerCase().startsWith('utm_')) {
+            paramsToRemove.push(key);
+        }
+    });
+
+    if (paramsToRemove.length > 0) {
+        paramsToRemove.forEach(key => url.searchParams.delete(key));
+        return NextResponse.redirect(url, 301);
+    }
+
     // Refresh the Supabase session (keeps auth cookies alive)
     const response = await updateSession(request);
 

@@ -108,8 +108,9 @@ async function getRemoteStats() {
 /**
  * Generate metadata for SEO
  */
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getRemoteStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getRemoteStats(), searchParams]);
+  const page = parseInt(params.page || '1');
 
   return {
     title: 'Remote PMHNP Jobs - Telehealth Psychiatric NP Positions',
@@ -128,6 +129,14 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: 'https://pmhnphiring.com/jobs/remote',
     },
+    // Prevent Google from indexing paginated variants as separate pages
+    // Fixes "Duplicate without user-selected canonical" GSC issue
+    ...(page > 1 && {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }),
   };
 }
 

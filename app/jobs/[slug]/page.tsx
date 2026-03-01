@@ -408,11 +408,18 @@ export default async function JobPage({ params }: JobPageProps) {
     });
   }
 
-  // Add city if available
-  if (job.city) {
+  // Add city if available (with state code for proper routing)
+  if (job.city && job.stateCode) {
+    const citySlug = `${job.city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}-${job.stateCode.toLowerCase()}`;
     breadcrumbItems.push({
       label: job.city,
-      href: `/jobs/city/${job.city.toLowerCase().replace(/\s+/g, '-')}`,
+      href: `/jobs/city/${citySlug}`,
+    });
+  } else if (job.city) {
+    // Fallback: no state code, use resolveAmbiguousSlug-compatible format
+    breadcrumbItems.push({
+      label: job.city,
+      href: `/jobs/city/${job.city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`,
     });
   }
 

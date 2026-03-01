@@ -158,8 +158,9 @@ async function getPerDiemStats() {
 /**
  * Generate metadata for SEO
  */
-export async function generateMetadata(): Promise<Metadata> {
-    const stats = await getPerDiemStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+    const [stats, params] = await Promise.all([getPerDiemStats(), searchParams]);
+    const page = parseInt(params.page || '1');
 
     return {
         title: 'Per Diem PMHNP Jobs - PRN & Part-Time Psychiatric NP Positions',
@@ -179,6 +180,13 @@ export async function generateMetadata(): Promise<Metadata> {
         alternates: {
             canonical: 'https://pmhnphiring.com/jobs/per-diem',
         },
+        // Prevent Google from indexing paginated variants as separate pages
+        ...(page > 1 && {
+            robots: {
+                index: false,
+                follow: true,
+            },
+        }),
     };
 }
 

@@ -101,15 +101,15 @@ async function getLocationStats() {
       slug: s.state!.toLowerCase().replace(/\s+/g, '-'),
     }));
 
-  // Process cities with explicit typing
+  // Process cities with explicit typing — include state code in slug for proper routing
   const processedCities = topCities
-    .filter((c: CityGroupResult) => c.city !== null && c.state !== null)
+    .filter((c: CityGroupResult) => c.city !== null && c.state !== null && c.stateCode !== null)
     .map((c: CityGroupResult) => ({
       name: c.city!,
       state: c.state!,
       stateCode: c.stateCode || '',
       count: c._count.city,
-      slug: c.city!.toLowerCase().replace(/\s+/g, '-'),
+      slug: `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}-${(c.stateCode || '').toLowerCase()}`,
     }));
 
   return {

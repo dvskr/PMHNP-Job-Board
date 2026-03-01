@@ -120,8 +120,9 @@ async function getTravelStats() {
 /**
  * Generate metadata for SEO
  */
-export async function generateMetadata(): Promise<Metadata> {
-  const stats = await getTravelStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const [stats, params] = await Promise.all([getTravelStats(), searchParams]);
+  const page = parseInt(params.page || '1');
 
   return {
     title: 'Travel PMHNP Jobs - Locum Tenens Psychiatric NP Positions',
@@ -140,6 +141,13 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: 'https://pmhnphiring.com/jobs/travel',
     },
+    // Prevent Google from indexing paginated variants as separate pages
+    ...(page > 1 && {
+      robots: {
+        index: false,
+        follow: true,
+      },
+    }),
   };
 }
 

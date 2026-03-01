@@ -138,8 +138,9 @@ async function getNewGradStats() {
 /**
  * Generate metadata for SEO
  */
-export async function generateMetadata(): Promise<Metadata> {
-    const stats = await getNewGradStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+    const [stats, params] = await Promise.all([getNewGradStats(), searchParams]);
+    const page = parseInt(params.page || '1');
 
     return {
         title: 'New Grad PMHNP Jobs - Entry Level Psychiatric NP Positions',
@@ -159,6 +160,13 @@ export async function generateMetadata(): Promise<Metadata> {
         alternates: {
             canonical: 'https://pmhnphiring.com/jobs/new-grad',
         },
+        // Prevent Google from indexing paginated variants as separate pages
+        ...(page > 1 && {
+            robots: {
+                index: false,
+                follow: true,
+            },
+        }),
     };
 }
 
