@@ -136,8 +136,9 @@ async function getTelehealthStats() {
 /**
  * Generate metadata for SEO
  */
-export async function generateMetadata(): Promise<Metadata> {
-    const stats = await getTelehealthStats();
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+    const [stats, params] = await Promise.all([getTelehealthStats(), searchParams]);
+    const page = parseInt(params.page || '1');
 
     return {
         title: 'Telehealth PMHNP Jobs - Telepsychiatry Nurse Practitioner Positions',
@@ -157,6 +158,13 @@ export async function generateMetadata(): Promise<Metadata> {
         alternates: {
             canonical: 'https://pmhnphiring.com/jobs/telehealth',
         },
+        // Prevent Google from indexing paginated variants as separate pages
+        ...(page > 1 && {
+            robots: {
+                index: false,
+                follow: true,
+            },
+        }),
     };
 }
 

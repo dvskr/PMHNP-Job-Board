@@ -290,8 +290,8 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
             alternates: {
                 canonical: `https://pmhnphiring.com/jobs/city/${slug}`,
             },
-            // Noindex for thin pages with fewer than 10 jobs
-            ...(stats.totalJobs < 10 && {
+            // Noindex for empty city pages with zero jobs
+            ...(stats.totalJobs === 0 && {
                 robots: {
                     index: false,
                     follow: true,

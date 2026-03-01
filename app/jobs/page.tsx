@@ -38,8 +38,8 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
     : '10,000+';
 
   // Build dynamic title and description based on filters
-  let title = `Browse ${jobCountDisplay} PMHNP Jobs`;
-  let description = `Search ${jobCountDisplay} psychiatric NP jobs by state, salary, and type. Remote, telehealth, in-person, travel, and per diem PMHNP positions updated daily.`;
+  let title = `Browse ${jobCountDisplay} PMHNP & Psych NP Jobs`;
+  let description = `Search ${jobCountDisplay} PMHNP & psych NP jobs by state, salary, and type. Remote, telehealth, in-person, travel, and per diem psychiatric nurse practitioner positions updated daily.`;
 
   // Customize based on active filters
   const titleParts: string[] = [];
