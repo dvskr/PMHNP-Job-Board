@@ -272,9 +272,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           opacity: viewed ? 0.75 : 1,
         }}
       >
-        {/* Title row: title + salary + actions */}
+        {/* Title row: title + actions */}
         <div className="jc-title-row" style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px',
         }}>
           <h3 style={{
             fontSize: '16px', fontWeight: 700,
@@ -287,11 +287,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             {job.title}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            {salaryDisplay && (
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#2DD4BF', whiteSpace: 'nowrap' }}>
-                {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
-              </span>
-            )}
             <button
               onClick={handleSaveClick}
               className="jc-save-btn"
@@ -321,6 +316,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             </button>
           </div>
         </div>
+
+        {/* Salary - own row */}
+        {salaryDisplay && (
+          <span style={{ fontSize: '14px', fontWeight: 700, color: '#2DD4BF' }}>
+            {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+          </span>
+        )}
 
         {/* Badges */}
         {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer) && (

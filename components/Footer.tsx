@@ -13,33 +13,41 @@ const linkColumns = [
       { label: 'Saved Jobs', href: '/saved' },
       { label: 'Job Alerts', href: '/job-alerts' },
       { label: 'Resources', href: '/resources' },
+      { label: 'Salary Guide', href: '/salary-guide' },
     ],
   },
   {
-    title: 'For Employers',
+    title: 'Job Categories',
     links: [
-      { label: 'Post a Job', href: '/post-job' },
-      { label: 'Employer Login', href: '/employer/login' },
-      { label: 'Employer Dashboard', href: '/employer/dashboard' },
-      { label: 'Why PMHNP Hiring', href: '/for-employers' },
+      { label: 'Remote Jobs', href: '/jobs/remote' },
+      { label: 'Telehealth', href: '/jobs/telehealth' },
+      { label: 'Inpatient', href: '/jobs/inpatient' },
+      { label: 'Outpatient', href: '/jobs/outpatient' },
+      { label: 'Travel Jobs', href: '/jobs/travel' },
+      { label: 'New Grad', href: '/jobs/new-grad' },
+      { label: 'Per Diem', href: '/jobs/per-diem' },
+      { label: 'Addiction', href: '/jobs/substance-abuse' },
+      { label: 'Child/Adolescent', href: '/jobs/child-adolescent' },
+    ],
+  },
+  {
+    title: 'Popular States',
+    links: [
+      { label: 'Massachusetts', href: '/jobs/state/massachusetts' },
+      { label: 'New York', href: '/jobs/state/new-york' },
+      { label: 'California', href: '/jobs/state/california' },
+      { label: 'Florida', href: '/jobs/state/florida' },
+      { label: 'Texas', href: '/jobs/state/texas' },
+      { label: 'All States', href: '/jobs/locations' },
     ],
   },
   {
     title: 'Resources',
     links: [
       { label: 'Blog', href: '/blog' },
-      { label: 'Salary Guide', href: '/salary-guide' },
+      { label: 'For Employers', href: '/for-employers' },
+      { label: 'Post a Job', href: '/post-job' },
       { label: 'FAQ', href: '/faq' },
-    ],
-  },
-  {
-    title: 'Quick Links',
-    links: [
-      { label: 'Remote Jobs', href: '/jobs/remote' },
-      { label: 'Telehealth', href: '/jobs/telehealth' },
-      { label: 'Travel Jobs', href: '/jobs/travel' },
-      { label: 'New Grad', href: '/jobs/new-grad' },
-      { label: 'Per Diem', href: '/jobs/per-diem' },
     ],
   },
   {
@@ -68,7 +76,7 @@ export default function Footer() {
   const socialRowClass = isHomepage ? 'footer-social-homepage' : '';
 
   return (
-    <footer style={{
+    <footer aria-label="Site footer" style={{
       backgroundColor: 'var(--bg-secondary)',
       borderTop: '1px solid var(--border-color)',
     }}>

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
@@ -125,8 +126,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: 'Travel PMHNP Jobs - Locum Tenens Psychiatric NP Positions',
-    description: `Find travel PMHNP jobs and locum tenens psychiatric nurse practitioner positions. Higher pay, flexible assignments, explore new places. ${stats.totalJobs} travel positions available.`,
+    title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens Psych NP | $80-150/hr`,
+    description: `Find ${stats.totalJobs} travel PMHNP and locum tenens psychiatric nurse practitioner jobs paying $80-150/hr. Housing stipends, flexible nationwide assignments, and premium pay. Browse travel psych NP positions updated daily.`,
     openGraph: {
       title: `${stats.totalJobs} Travel PMHNP Jobs - Locum Tenens Positions`,
       description: 'Browse travel and locum tenens psychiatric mental health nurse practitioner positions. Higher pay, flexible assignments, nationwide opportunities.',
@@ -555,6 +556,9 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
           </Link>
         </div>
       </section>
+
+      {/* FAQ Section with structured data */}
+      <CategoryFAQ category="travel" totalJobs={stats.totalJobs} />
     </div>
   );
 }

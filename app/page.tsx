@@ -47,8 +47,8 @@ export async function generateMetadata(): Promise<Metadata> {
     : '10,000+';
 
   return {
-    title: `${jobCountDisplay} PMHNP Jobs | Psychiatric Nurse Practitioner Job Board | PMHNP Hiring`,
-    description: `Browse ${jobCountDisplay} PMHNP & Psych NP jobs updated daily. Find remote, telehealth, and in-person psychiatric nurse practitioner positions with salary transparency across all 50 states. Free for job seekers.`,
+    title: `${jobCountDisplay} PMHNP Jobs Near Me | Psych NP & Psychiatric Nurse Practitioner Job Board`,
+    description: `Browse ${jobCountDisplay} PMHNP & Psych NP jobs near me, updated daily. Find remote, telehealth, and in-person psychiatric nurse practitioner positions with salary transparency across all 50 states. Free for job seekers.`,
     openGraph: {
       title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
@@ -80,6 +80,58 @@ export default async function Home() {
   return (
     <div>
       <VideoJsonLd pathname="/" />
+      {/* Homepage FAQ Schema for featured snippets */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "What is a PMHNP?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "A PMHNP (Psychiatric Mental Health Nurse Practitioner) is an advanced practice registered nurse (APRN) who specializes in mental health care. PMHNPs can diagnose and treat mental health conditions, prescribe medications, and provide psychotherapy. They hold a Master's or Doctoral degree in psychiatric nursing and are certified by the ANCC.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "How much do PMHNPs make?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "PMHNPs earn an average salary of $155,000-$165,000 per year in 2026. Salaries range from $120,000 for new graduates to $200,000+ for experienced PMHNPs in high-demand areas. Remote and telehealth positions pay $130,000-$200,000, while private practice PMHNPs can earn $200,000-$300,000+.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "What is the PMHNP job outlook?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "The PMHNP job outlook is exceptional, with the Bureau of Labor Statistics projecting 40%+ growth through 2031 — much faster than average. The mental health provider shortage, expanded telehealth access, and growing awareness of mental health needs drive sustained demand nationwide.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "How long does it take to become a PMHNP?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Becoming a PMHNP typically takes 6-8 years total: 4 years for a BSN, 1-2 years of RN experience (recommended), and 2-3 years for a MSN or DNP with PMHNP specialization. Accelerated BSN-to-DNP programs can shorten this timeline. After graduation, you must pass the ANCC PMHNP-BC certification exam.",
+                },
+              },
+              {
+                "@type": "Question",
+                name: "Can PMHNPs prescribe medication?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Yes, PMHNPs can prescribe medications including controlled substances in all 50 states. In states with full practice authority (28 states plus DC), PMHNPs prescribe independently. In reduced or restricted practice states, a collaborative agreement with a physician may be required. PMHNPs commonly prescribe antidepressants, anxiolytics, antipsychotics, mood stabilizers, and stimulants.",
+                },
+              },
+            ],
+          }),
+        }}
+      />
       {/* 1. Hero Section — no scroll reveal (above the fold) */}
       <HomepageHero jobCountDisplay={jobCountDisplay} />
 

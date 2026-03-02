@@ -16,9 +16,10 @@ interface UserMenuProps {
     avatarUrl?: string | null
   }
   profileCompleteness?: number
+  isMobile?: boolean
 }
 
-export default function UserMenu({ user, profileCompleteness = 100 }: UserMenuProps) {
+export default function UserMenu({ user, profileCompleteness = 100, isMobile = false }: UserMenuProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null)
@@ -74,7 +75,7 @@ export default function UserMenu({ user, profileCompleteness = 100 }: UserMenuPr
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className={`relative ${isMobile ? 'flex justify-center w-full' : ''}`} ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
@@ -129,124 +130,150 @@ export default function UserMenu({ user, profileCompleteness = 100 }: UserMenuPr
       </button>
 
       {isOpen && (
-        <div style={{
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: '8px',
-          width: '260px',
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '14px',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-          overflow: 'hidden',
-          zIndex: 100,
-        }}>
-          {/* User info header */}
-          <div style={{
-            padding: '16px',
-            borderBottom: '1px solid var(--border-color)',
-          }}>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-              {displayName}
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
-              {user.email}
-            </p>
-            <span style={{
-              display: 'inline-block', marginTop: '6px',
-              padding: '2px 10px', borderRadius: '12px',
-              fontSize: '11px', fontWeight: 600,
-              background: 'rgba(45,212,191,0.12)', color: '#2DD4BF',
-              textTransform: 'capitalize',
-            }}>
-              {user.role.replace('_', ' ')}
-            </span>
-          </div>
-
-          {/* Profile completeness indicator */}
-          {user.role !== 'employer' && user.role !== 'admin' && profileCompleteness < 100 && (
-            <Link
-              href="/settings"
-              onClick={() => setIsOpen(false)}
+        <>
+          {/* Backdrop overlay - mobile only */}
+          {isMobile && (
+            <div
               style={{
-                display: 'block', padding: '10px 16px',
-                borderBottom: '1px solid var(--border-color)',
-                textDecoration: 'none',
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                zIndex: 999,
               }}
-            >
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginBottom: '6px',
-              }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Profile
-                </span>
-                <span style={{
-                  fontSize: '12px', fontWeight: 700,
-                  color: profileCompleteness <= 30 ? '#EF4444' : profileCompleteness <= 60 ? '#F59E0B' : '#22C55E',
-                }}>
-                  {profileCompleteness}% complete
-                </span>
-              </div>
-              <div style={{
-                width: '100%', height: '4px', borderRadius: '2px',
-                background: 'var(--bg-tertiary)',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  width: `${profileCompleteness}%`, height: '100%', borderRadius: '2px',
-                  background: profileCompleteness <= 30 ? '#EF4444' : profileCompleteness <= 60 ? '#F59E0B' : '#22C55E',
-                  transition: 'width 0.4s ease',
-                }} />
-              </div>
-            </Link>
+              onClick={() => setIsOpen(false)}
+            />
           )}
+          <div style={isMobile ? {
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '280px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '14px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
+            zIndex: 1000,
+          } : {
+            position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: '8px',
+            width: '260px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '14px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+            overflow: 'hidden',
+            zIndex: 100,
+          }}>
+            {/* User info header */}
+            <div style={{
+              padding: '16px',
+              borderBottom: '1px solid var(--border-color)',
+            }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                {displayName}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+                {user.email}
+              </p>
+              <span style={{
+                display: 'inline-block', marginTop: '6px',
+                padding: '2px 10px', borderRadius: '12px',
+                fontSize: '11px', fontWeight: 600,
+                background: 'rgba(45,212,191,0.12)', color: '#2DD4BF',
+                textTransform: 'capitalize',
+              }}>
+                {user.role.replace('_', ' ')}
+              </span>
+            </div>
 
-          {/* Menu items */}
-          <div style={{ padding: '4px 0' }}>
-            <Link
-              href="/dashboard"
-              onClick={() => setIsOpen(false)}
-              className="um-menu-item"
-              style={menuItemStyle}
-            >
-              <LayoutDashboard style={{ width: '16px', height: '16px' }} />
-              Dashboard
-            </Link>
-
-            <Link
-              href="/settings"
-              onClick={() => setIsOpen(false)}
-              className="um-menu-item"
-              style={menuItemStyle}
-            >
-              <Settings style={{ width: '16px', height: '16px' }} />
-              Settings
-            </Link>
-
-            {user.role === 'admin' && (
+            {/* Profile completeness indicator */}
+            {user.role !== 'employer' && user.role !== 'admin' && profileCompleteness < 100 && (
               <Link
-                href="/admin/jobs"
+                href="/settings"
+                onClick={() => setIsOpen(false)}
+                style={{
+                  display: 'block', padding: '10px 16px',
+                  borderBottom: '1px solid var(--border-color)',
+                  textDecoration: 'none',
+                }}
+              >
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  marginBottom: '6px',
+                }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Profile
+                  </span>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 700,
+                    color: profileCompleteness <= 30 ? '#EF4444' : profileCompleteness <= 60 ? '#F59E0B' : '#22C55E',
+                  }}>
+                    {profileCompleteness}% complete
+                  </span>
+                </div>
+                <div style={{
+                  width: '100%', height: '4px', borderRadius: '2px',
+                  background: 'var(--bg-tertiary)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: `${profileCompleteness}%`, height: '100%', borderRadius: '2px',
+                    background: profileCompleteness <= 30 ? '#EF4444' : profileCompleteness <= 60 ? '#F59E0B' : '#22C55E',
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+              </Link>
+            )}
+
+            {/* Menu items */}
+            <div style={{ padding: '4px 0' }}>
+              <Link
+                href="/dashboard"
                 onClick={() => setIsOpen(false)}
                 className="um-menu-item"
                 style={menuItemStyle}
               >
-                <Shield style={{ width: '16px', height: '16px' }} />
-                Admin Panel
+                <LayoutDashboard style={{ width: '16px', height: '16px' }} />
+                Dashboard
               </Link>
-            )}
-          </div>
 
-          {/* Sign out */}
-          <div style={{ borderTop: '1px solid var(--border-color)', padding: '4px 0' }}>
-            <button
-              onClick={handleSignOut}
-              className="um-menu-item"
-              style={{ ...menuItemStyle, color: '#EF4444' }}
-            >
-              <LogOut style={{ width: '16px', height: '16px' }} />
-              Sign out
-            </button>
+              <Link
+                href="/settings"
+                onClick={() => setIsOpen(false)}
+                className="um-menu-item"
+                style={menuItemStyle}
+              >
+                <Settings style={{ width: '16px', height: '16px' }} />
+                Settings
+              </Link>
+
+              {user.role === 'admin' && (
+                <Link
+                  href="/admin/jobs"
+                  onClick={() => setIsOpen(false)}
+                  className="um-menu-item"
+                  style={menuItemStyle}
+                >
+                  <Shield style={{ width: '16px', height: '16px' }} />
+                  Admin Panel
+                </Link>
+              )}
+            </div>
+
+            {/* Sign out */}
+            <div style={{ borderTop: '1px solid var(--border-color)', padding: '4px 0' }}>
+              <button
+                onClick={handleSignOut}
+                className="um-menu-item"
+                style={{ ...menuItemStyle, color: '#EF4444' }}
+              >
+                <LogOut style={{ width: '16px', height: '16px' }} />
+                Sign out
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <style>{`

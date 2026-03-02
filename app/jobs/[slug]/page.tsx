@@ -1,5 +1,5 @@
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
-import { MapPin, Briefcase, Monitor, CheckCircle } from 'lucide-react';
+import { MapPin, Briefcase, Monitor, CheckCircle, ArrowRight, Search } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
@@ -27,31 +27,42 @@ interface JobPageProps {
   params: { slug: string };
 }
 
-async function getJob(id: string): Promise<Job | null> {
+type JobResult =
+  | { status: 'found'; job: Job }
+  | { status: 'expired'; employer?: string; title?: string }
+  | { status: 'not_found' };
+
+async function getJob(id: string): Promise<JobResult> {
   try {
-    // Query database directly instead of HTTP fetch to avoid Vercel deployment protection issues
-    // Only return published jobs - unpublished/expired jobs should return 404
-    const job = await prisma.job.findFirst({
-      where: {
-        id,
-        isPublished: true,
-      },
+    // First check if job exists at all (any status)
+    const anyJob = await prisma.job.findUnique({
+      where: { id },
+      select: { id: true, isPublished: true, employer: true, title: true },
     });
 
-    if (!job) {
-      return null;
+    if (!anyJob) {
+      return { status: 'not_found' };
     }
 
-    // Increment view count
-    await prisma.job.update({
+    // Job exists but is unpublished/expired → 410 Gone
+    if (!anyJob.isPublished) {
+      return { status: 'expired', employer: anyJob.employer, title: anyJob.title };
+    }
+
+    // Job is published — fetch full data
+    const job = await prisma.job.findUnique({ where: { id } });
+    if (!job) return { status: 'not_found' };
+
+    // Increment view count (fire-and-forget)
+    prisma.job.update({
       where: { id },
       data: { viewCount: { increment: 1 } },
-    });
+    }).catch(() => { });
 
-    return job as Job;
+    return { status: 'found', job: job as Job };
   } catch (error) {
     console.error('Error fetching job:', error);
-    return null;
+    return { status: 'not_found' };
   }
 }
 
@@ -258,11 +269,13 @@ export async function generateMetadata({ params }: JobPageProps) {
     notFound();
   }
 
-  const job = await getJob(id);
+  const result = await getJob(id);
 
-  if (!job) {
+  if (result.status !== 'found') {
     notFound();
   }
+
+  const job = result.job;
 
   const description = job.descriptionSummary || job.description.slice(0, 160);
 
@@ -359,11 +372,76 @@ export default async function JobPage({ params }: JobPageProps) {
     notFound();
   }
 
-  const job = await getJob(id);
+  const result = await getJob(id);
 
-  if (!job) {
+  // Job never existed → 404
+  if (result.status === 'not_found') {
     notFound();
   }
+
+  // Job exists but expired/unpublished → show expired page (soft 410)
+  if (result.status === 'expired') {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+          <div
+            className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+          >
+            <Briefcase className="w-10 h-10" style={{ color: 'var(--text-tertiary)' }} />
+          </div>
+          <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+            This Job Has Been Filled or Removed
+          </h1>
+          <p className="text-lg mb-8 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+            {result.title ? `"${result.title}"` : 'This position'}
+            {result.employer ? ` at ${result.employer}` : ''} is no longer available.
+            Don&apos;t worry — we have thousands of similar PMHNP jobs!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link
+              href="/jobs"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-colors"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              <Search className="w-5 h-5" />
+              Browse All PMHNP Jobs
+            </Link>
+            <Link
+              href="/jobs/remote"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors"
+              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+            >
+              Remote Positions <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <p className="font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Explore by Category</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                { label: 'Telehealth', href: '/jobs/telehealth' },
+                { label: 'New Grad', href: '/jobs/new-grad' },
+                { label: 'Per Diem', href: '/jobs/per-diem' },
+                { label: 'Travel', href: '/jobs/travel' },
+                { label: 'Salary Guide', href: '/salary-guide' },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
+                  style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--color-primary)' }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const job = result.job;
 
   // Fetch all additional data in parallel for content enrichment
   const [relatedJobs, companyInfo, employerJobCount, stateAvgSalary, currentUser] = await Promise.all([

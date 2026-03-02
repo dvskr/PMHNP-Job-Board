@@ -24,6 +24,12 @@ export default function VideoJsonLd({ pathname }: VideoJsonLdProps) {
         uploadDate: video.uploadDate,
         duration: `PT${video.duration}S`,
         embedUrl: `${BASE_URL}${video.video}`,
+        inLanguage: 'en',
+        isFamilyFriendly: true,
+        potentialAction: {
+            '@type': 'WatchAction',
+            target: `${BASE_URL}${pathname}`,
+        },
         publisher: {
             '@type': 'Organization',
             name: 'PMHNP Hiring',
