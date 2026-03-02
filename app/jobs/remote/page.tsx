@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
@@ -113,8 +114,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: 'Remote PMHNP Jobs - Telehealth Psychiatric NP Positions',
-    description: `Find remote PMHNP jobs. Browse telehealth and work-from-home psychiatric NP positions with salary transparency.`,
+    title: `${stats.totalJobs} Remote PMHNP Jobs — Work From Home Psych NP ($130K-200K)`,
+    description: `Find ${stats.totalJobs} remote PMHNP jobs paying $130K-$200K+. Work from home psychiatric nurse practitioner positions — telehealth, flexible schedules, no commute. Browse remote psych NP jobs updated daily.`,
     openGraph: {
       title: `${stats.totalJobs} Remote PMHNP Jobs - Work From Home`,
       description: 'Browse telehealth and remote psychiatric mental health nurse practitioner positions. Flexible schedules, competitive pay.',
@@ -544,6 +545,9 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
           </Link>
         </div>
       </section>
+
+      {/* FAQ Section with structured data */}
+      <CategoryFAQ category="remote" totalJobs={stats.totalJobs} />
     </div>
   );
 }

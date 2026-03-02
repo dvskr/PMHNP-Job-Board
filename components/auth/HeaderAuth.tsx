@@ -112,7 +112,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
           >
             Admin
           </Link>
-          <UserMenu user={profile} />
+          <UserMenu user={profile} isMobile={!!onNavigate} />
         </div>
       )
     }
@@ -131,7 +131,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
           >
             Candidates
           </Link>
-          <UserMenu user={profile} />
+          <UserMenu user={profile} isMobile={!!onNavigate} />
         </div>
       )
     }
@@ -150,7 +150,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
         >
           Dashboard
         </Link>
-        <UserMenu user={profile} profileCompleteness={profileCompleteness} />
+        <UserMenu user={profile} profileCompleteness={profileCompleteness} isMobile={!!onNavigate} />
       </div>
     )
   }

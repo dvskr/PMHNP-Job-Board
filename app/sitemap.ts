@@ -27,152 +27,187 @@ const US_STATES = [
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
 
-  // Static pages
+  // Get the latest job update timestamp for dynamic pages
+  // This gives Google an accurate lastmod instead of always "now"
+  let latestJobDate = new Date('2026-03-01');
+  try {
+    const latestJob = await prisma.job.findFirst({
+      where: { isPublished: true },
+      orderBy: { updatedAt: 'desc' },
+      select: { updatedAt: true },
+    });
+    if (latestJob) latestJobDate = latestJob.updatedAt;
+  } catch { /* fallback to default */ }
+
+  // Fixed dates for truly static pages (update these when content actually changes)
+  const STATIC_CONTENT_DATE = new Date('2026-02-20');
+
+  // Static pages — use fixed dates for rarely-changing content
   const staticPages = [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: latestJobDate, // Homepage shows latest jobs
       changeFrequency: 'daily' as const,
       priority: 1.0,
     },
     {
       url: `${baseUrl}/jobs`,
-      lastModified: new Date(),
+      lastModified: latestJobDate, // Job listing changes with new jobs
       changeFrequency: 'hourly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/blog`,
-      lastModified: new Date(),
+      lastModified: latestJobDate, // Updated when new posts are added
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/post-job`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
       url: `${baseUrl}/for-employers`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     },
     {
       url: `${baseUrl}/for-job-seekers`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     },
     {
       url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'monthly' as const,
       priority: 0.5,
     },
     {
       url: `${baseUrl}/faq`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'monthly' as const,
       priority: 0.5,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'monthly' as const,
       priority: 0.4,
     },
     {
       url: `${baseUrl}/job-alerts`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'yearly' as const,
       priority: 0.3,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_DATE,
       changeFrequency: 'yearly' as const,
       priority: 0.3,
     },
   ]
 
-  // SEO Landing Pages
+  // SEO Landing Pages — use latestJobDate since content changes with new jobs
 
-  // Remote jobs page
   const remoteJobsPage = {
     url: `${baseUrl}/jobs/remote`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'daily' as const,
     priority: 0.9,
   }
 
-  // Travel/Locum jobs page
   const travelJobsPage = {
     url: `${baseUrl}/jobs/travel`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'daily' as const,
     priority: 0.9,
   }
 
-  // Telehealth jobs page
   const telehealthJobsPage = {
     url: `${baseUrl}/jobs/telehealth`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'daily' as const,
     priority: 0.9,
   }
 
-  // New Grad jobs page
   const newGradJobsPage = {
     url: `${baseUrl}/jobs/new-grad`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'daily' as const,
     priority: 0.9,
   }
 
-  // Per Diem jobs page
   const perDiemJobsPage = {
     url: `${baseUrl}/jobs/per-diem`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'daily' as const,
     priority: 0.9,
   }
 
-  // Salary guide page
   const salaryGuidePage = {
     url: `${baseUrl}/salary-guide`,
-    lastModified: new Date(),
+    lastModified: STATIC_CONTENT_DATE,
     changeFrequency: 'weekly' as const,
     priority: 0.9,
   }
 
-  // Resources page
   const resourcesPage = {
     url: `${baseUrl}/resources`,
-    lastModified: new Date(),
+    lastModified: STATIC_CONTENT_DATE,
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }
 
-  // Locations hub page
   const locationsPage = {
     url: `${baseUrl}/jobs/locations`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }
 
-  // All US state pages
+  const inpatientJobsPage = {
+    url: `${baseUrl}/jobs/inpatient`,
+    lastModified: latestJobDate,
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  const outpatientJobsPage = {
+    url: `${baseUrl}/jobs/outpatient`,
+    lastModified: latestJobDate,
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  const substanceAbuseJobsPage = {
+    url: `${baseUrl}/jobs/substance-abuse`,
+    lastModified: latestJobDate,
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  const childAdolescentJobsPage = {
+    url: `${baseUrl}/jobs/child-adolescent`,
+    lastModified: latestJobDate,
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }
+
+  // All US state pages — use latest job date
   const statePages = US_STATES.map(state => ({
     url: `${baseUrl}/jobs/state/${state}`,
-    lastModified: new Date(),
+    lastModified: latestJobDate,
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }))
@@ -197,7 +232,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         updatedAt: true,
       },
       orderBy: { createdAt: 'desc' },
-      take: 1000, // Limit to most recent 1000 jobs
+      take: 5000, // Increased from 1000 to cover more indexed pages
     })
 
     const jobPages = jobs.map((job: JobSitemapData) => {
@@ -263,7 +298,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const slug = `${c.city!.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${code.toLowerCase()}`;
         return {
           url: `${baseUrl}/jobs/city/${slug}`,
-          lastModified: new Date(),
+          lastModified: latestJobDate,
           changeFrequency: 'weekly' as const,
           priority: 0.7,
         };
@@ -280,6 +315,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       salaryGuidePage,
       resourcesPage,
       locationsPage,
+      inpatientJobsPage,
+      outpatientJobsPage,
+      substanceAbuseJobsPage,
+      childAdolescentJobsPage,
       ...statePages,
       ...cityPages,
       ...jobPages,
@@ -298,6 +337,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       salaryGuidePage,
       resourcesPage,
       locationsPage,
+      inpatientJobsPage,
+      outpatientJobsPage,
+      substanceAbuseJobsPage,
+      childAdolescentJobsPage,
       ...statePages,
     ]
   }

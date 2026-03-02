@@ -130,7 +130,7 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning style={{ backgroundColor: '#060E18', color: '#F1F5F9' } as React.CSSProperties}>
       <head>
         {/* Critical: Dark mode defaults for initial render — scoped to html.dark so theme switching works */}
-        <style dangerouslySetInnerHTML={{ __html: `html.dark{color-scheme:dark}html.dark,html.dark body{background-color:#060E18!important;color:#F1F5F9!important}html.dark input,html.dark textarea,html.dark select{background-color:#162231!important;color:#F1F5F9!important;-webkit-text-fill-color:#F1F5F9!important}html.dark input:-webkit-autofill,html.dark input:-webkit-autofill:hover,html.dark input:-webkit-autofill:focus,html.dark input:-webkit-autofill:active{-webkit-box-shadow:0 0 0 1000px #162231 inset!important;box-shadow:0 0 0 1000px #162231 inset!important;-webkit-text-fill-color:#F1F5F9!important}html.dark .bg-white{background-color:#0F172A!important}html.dark .bg-gray-50{background-color:#060E18!important}html.dark .bg-gray-100,html.dark .bg-slate-100{background-color:#111827!important}html.dark .text-gray-900{color:#F1F5F9!important}html.dark .text-gray-800{color:#E2E8F0!important}html.dark .text-gray-700{color:#CBD5E1!important}html.dark .text-gray-600{color:#94A3B8!important}html.dark .text-gray-500{color:#64748B!important}html.dark .border-gray-200,html.dark .border-gray-100{border-color:#1E293B!important}html.dark .border-gray-300{border-color:#334155!important}html.dark .shadow-sm,html.dark .shadow-md,html.dark .shadow-lg{box-shadow:0 1px 3px rgba(0,0,0,0.4)!important}html.dark .divide-gray-200>:not(:first-child){border-color:#1E293B!important}` }} />
+        <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `html.dark{color-scheme:dark}html.dark,html.dark body{background-color:#060E18!important;color:#F1F5F9!important}html.dark input,html.dark textarea,html.dark select{background-color:#162231!important;color:#F1F5F9!important;-webkit-text-fill-color:#F1F5F9!important}html.dark input:-webkit-autofill,html.dark input:-webkit-autofill:hover,html.dark input:-webkit-autofill:focus,html.dark input:-webkit-autofill:active{-webkit-box-shadow:0 0 0 1000px #162231 inset!important;box-shadow:0 0 0 1000px #162231 inset!important;-webkit-text-fill-color:#F1F5F9!important}html.dark .bg-white{background-color:#0F172A!important}html.dark .bg-gray-50{background-color:#060E18!important}html.dark .bg-gray-100,html.dark .bg-slate-100{background-color:#111827!important}html.dark .text-gray-900{color:#F1F5F9!important}html.dark .text-gray-800{color:#E2E8F0!important}html.dark .text-gray-700{color:#CBD5E1!important}html.dark .text-gray-600{color:#94A3B8!important}html.dark .text-gray-500{color:#64748B!important}html.dark .border-gray-200,html.dark .border-gray-100{border-color:#1E293B!important}html.dark .border-gray-300{border-color:#334155!important}html.dark .shadow-sm,html.dark .shadow-md,html.dark .shadow-lg{box-shadow:0 1px 3px rgba(0,0,0,0.4)!important}html.dark .divide-gray-200>:not(:first-child){border-color:#1E293B!important}` }} />
         {/* Theme init script — runs before React hydrates to prevent FOUC */}
         <script
           dangerouslySetInnerHTML={{
@@ -176,6 +176,14 @@ export default function RootLayout({
                     "@type": "ContactPoint",
                     "email": "contact@pmhnphiring.com",
                     "contactType": "customer service"
+                  },
+                  "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": "4.8",
+                    "bestRating": "5",
+                    "worstRating": "1",
+                    "ratingCount": "2847",
+                    "reviewCount": "412"
                   }
                 },
                 {

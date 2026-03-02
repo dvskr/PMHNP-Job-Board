@@ -189,7 +189,7 @@ export default function Header() {
             </Link>
 
             {/* ═══ Center: Nav links ═══ */}
-            <nav className="hidden lg:flex items-center" style={{
+            <nav aria-label="Main navigation" className="hidden lg:flex items-center" style={{
               gap: 'clamp(2px, 0.5vw, 8px)',
             }}>
               <Link

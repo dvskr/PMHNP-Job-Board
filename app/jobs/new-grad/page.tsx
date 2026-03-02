@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
@@ -143,8 +144,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: 'New Grad PMHNP Jobs - Entry Level Psychiatric NP Positions',
-        description: `New grad PMHNP jobs. Entry-level psychiatric NP positions that welcome recent graduates. Updated daily.`,
+        title: `${stats.totalJobs} New Grad PMHNP Jobs — Entry-Level Psych NP ($120K-160K)`,
+        description: `Find ${stats.totalJobs} new grad PMHNP jobs starting at $120K+. Entry-level psychiatric nurse practitioner positions with mentorship, fellowships, and residency programs. No experience required — start your PMHNP career today.`,
         keywords: ['new grad pmhnp', 'entry level pmhnp', 'pmhnp fellowship', 'new graduate psychiatric nurse practitioner', 'pmhnp residency'],
         openGraph: {
             title: `${stats.totalJobs} New Grad PMHNP Jobs - Entry Level Positions`,
@@ -574,6 +575,9 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                     </Link>
                 </div>
             </section>
+
+            {/* FAQ Section with structured data */}
+            <CategoryFAQ category="new-grad" totalJobs={stats.totalJobs} />
         </div>
     );
 }

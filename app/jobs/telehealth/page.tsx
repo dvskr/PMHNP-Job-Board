@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryFAQ from '@/components/CategoryFAQ';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
@@ -141,8 +142,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     const page = parseInt(params.page || '1');
 
     return {
-        title: 'Telehealth PMHNP Jobs - Telepsychiatry Nurse Practitioner Positions',
-        description: `Find telehealth PMHNP jobs and telepsychiatry positions. Provide virtual psychiatric care from home. Video visit psychiatric NP roles. ${stats.totalJobs} positions available.`,
+        title: `${stats.totalJobs} Telehealth PMHNP Jobs — Virtual Psych NP Positions ($130K-200K)`,
+        description: `Find ${stats.totalJobs} telehealth PMHNP and telepsychiatry jobs paying $130K-$200K+. Work from home as a psychiatric nurse practitioner — flexible hours, no commute, video-visit roles from top employers. Updated daily.`,
         keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner'],
         openGraph: {
             title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
@@ -568,6 +569,9 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                     </Link>
                 </div>
             </section>
+
+            {/* FAQ Section with structured data */}
+            <CategoryFAQ category="telehealth" totalJobs={stats.totalJobs} />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Calendar, Clock, DollarSign, Heart, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Plane, GraduationCap } from 'lucide-react';
+import { Building, Briefcase, DollarSign, Clock, Shield, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, GraduationCap, Calendar, Plane } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -24,29 +24,24 @@ interface ProcessedEmployer {
 }
 
 /**
- * Fetch per diem/PRN jobs with pagination
+ * Fetch inpatient PMHNP jobs with pagination
  */
-async function getPerDiemJobs(skip: number = 0, take: number = 20) {
+async function getInpatientJobs(skip: number = 0, take: number = 20) {
     const jobs = await prisma.job.findMany({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'per diem', mode: 'insensitive' } },
-                { title: { contains: 'per-diem', mode: 'insensitive' } },
-                { title: { contains: 'prn', mode: 'insensitive' } },
-                { title: { contains: 'part-time', mode: 'insensitive' } },
-                { title: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'per diem', mode: 'insensitive' } },
-                { jobType: { contains: 'part-time', mode: 'insensitive' } },
-                { jobType: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'inpatient', mode: 'insensitive' } },
+                { title: { contains: 'in-patient', mode: 'insensitive' } },
+                { title: { contains: 'acute care', mode: 'insensitive' } },
+                { title: { contains: 'hospital', mode: 'insensitive' } },
+                { description: { contains: 'inpatient', mode: 'insensitive' } },
             ],
-            NOT: {
-                jobType: { equals: 'Full-Time', mode: 'insensitive' },
-            },
         },
         orderBy: [
             { isFeatured: 'desc' },
+            { qualityScore: 'desc' },
+            { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ],
         skip,
@@ -57,48 +52,34 @@ async function getPerDiemJobs(skip: number = 0, take: number = 20) {
 }
 
 /**
- * Fetch per diem job statistics
+ * Fetch inpatient job statistics
  */
-async function getPerDiemStats() {
-    // Total per diem/PRN jobs
+async function getInpatientStats() {
+    // Total inpatient jobs
     const totalJobs = await prisma.job.count({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'per diem', mode: 'insensitive' } },
-                { title: { contains: 'per-diem', mode: 'insensitive' } },
-                { title: { contains: 'prn', mode: 'insensitive' } },
-                { title: { contains: 'part-time', mode: 'insensitive' } },
-                { title: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'per diem', mode: 'insensitive' } },
-                { jobType: { contains: 'part-time', mode: 'insensitive' } },
-                { jobType: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'inpatient', mode: 'insensitive' } },
+                { title: { contains: 'in-patient', mode: 'insensitive' } },
+                { title: { contains: 'acute care', mode: 'insensitive' } },
+                { title: { contains: 'hospital', mode: 'insensitive' } },
+                { description: { contains: 'inpatient', mode: 'insensitive' } },
             ],
-            NOT: {
-                jobType: { equals: 'Full-Time', mode: 'insensitive' },
-            },
         },
     });
 
-    // Average salary for per diem positions
+    // Average salary for inpatient positions
     const salaryData = await prisma.job.aggregate({
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'per diem', mode: 'insensitive' } },
-                { title: { contains: 'per-diem', mode: 'insensitive' } },
-                { title: { contains: 'prn', mode: 'insensitive' } },
-                { title: { contains: 'part-time', mode: 'insensitive' } },
-                { title: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'per diem', mode: 'insensitive' } },
-                { jobType: { contains: 'part-time', mode: 'insensitive' } },
-                { jobType: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'inpatient', mode: 'insensitive' } },
+                { title: { contains: 'in-patient', mode: 'insensitive' } },
+                { title: { contains: 'acute care', mode: 'insensitive' } },
+                { title: { contains: 'hospital', mode: 'insensitive' } },
+                { description: { contains: 'inpatient', mode: 'insensitive' } },
             ],
-            NOT: {
-                jobType: { equals: 'Full-Time', mode: 'insensitive' },
-            },
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
@@ -112,25 +93,18 @@ async function getPerDiemStats() {
     const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
     const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
 
-    // Companies hiring for per diem positions
+    // Top employers hiring for inpatient positions
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
         where: {
             isPublished: true,
             OR: [
-                { title: { contains: 'per diem', mode: 'insensitive' } },
-                { title: { contains: 'per-diem', mode: 'insensitive' } },
-                { title: { contains: 'prn', mode: 'insensitive' } },
-                { title: { contains: 'part-time', mode: 'insensitive' } },
-                { title: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'per diem', mode: 'insensitive' } },
-                { jobType: { contains: 'part-time', mode: 'insensitive' } },
-                { jobType: { contains: 'part time', mode: 'insensitive' } },
-                { jobType: { contains: 'prn', mode: 'insensitive' } },
+                { title: { contains: 'inpatient', mode: 'insensitive' } },
+                { title: { contains: 'in-patient', mode: 'insensitive' } },
+                { title: { contains: 'acute care', mode: 'insensitive' } },
+                { title: { contains: 'hospital', mode: 'insensitive' } },
+                { description: { contains: 'inpatient', mode: 'insensitive' } },
             ],
-            NOT: {
-                jobType: { equals: 'Full-Time', mode: 'insensitive' },
-            },
         },
         _count: {
             employer: true,
@@ -160,26 +134,26 @@ async function getPerDiemStats() {
  * Generate metadata for SEO
  */
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-    const [stats, params] = await Promise.all([getPerDiemStats(), searchParams]);
+    const [stats, params] = await Promise.all([getInpatientStats(), searchParams]);
     const page = parseInt(params.page || '1');
 
     return {
-        title: `${stats.totalJobs} Per Diem PMHNP Jobs — PRN & Part-Time Psych NP ($70-120/hr)`,
-        description: `Find ${stats.totalJobs} per diem, PRN, and part-time PMHNP jobs paying $70-120/hr. Set your own schedule as a psychiatric nurse practitioner — flexible shifts, no long-term commitments. Browse psych NP positions updated daily.`,
-        keywords: ['per diem pmhnp', 'prn pmhnp jobs', 'part time pmhnp', 'flexible pmhnp positions', 'casual pmhnp work'],
+        title: `${stats.totalJobs} Inpatient PMHNP Jobs — Hospital & Acute Care Psych NP ($140K-200K)`,
+        description: `Find ${stats.totalJobs} inpatient PMHNP jobs paying $140K-$200K+. Hospital-based psychiatric nurse practitioner positions in acute care, crisis stabilization, and psychiatric units. Apply to inpatient psych NP jobs today.`,
+        keywords: ['inpatient pmhnp', 'inpatient pmhnp jobs', 'hospital pmhnp', 'acute care pmhnp', 'psychiatric hospital nurse practitioner'],
         openGraph: {
-            title: `${stats.totalJobs} Per Diem PMHNP Jobs - PRN & Part-Time Positions`,
-            description: 'Browse per diem and PRN psychiatric mental health nurse practitioner positions. Flexible schedules, higher hourly rates.',
+            title: `${stats.totalJobs} Inpatient PMHNP Jobs — Hospital Psych NP`,
+            description: 'Browse inpatient psychiatric mental health nurse practitioner positions. Hospital-based, acute care, and crisis stabilization roles.',
             type: 'website',
             images: [{
-                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Per Diem PMHNP Jobs`)}&subtitle=${encodeURIComponent('PRN & part-time psychiatric NP positions')}`,
+                url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Inpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Hospital & acute care psychiatric NP positions')}`,
                 width: 1200,
                 height: 630,
-                alt: 'Per Diem PMHNP Jobs',
+                alt: 'Inpatient PMHNP Jobs',
             }],
         },
         alternates: {
-            canonical: 'https://pmhnphiring.com/jobs/per-diem',
+            canonical: 'https://pmhnphiring.com/jobs/inpatient',
         },
         // Prevent Google from indexing paginated variants as separate pages
         ...(page > 1 && {
@@ -196,17 +170,17 @@ interface PageProps {
 }
 
 /**
- * Per diem jobs page
+ * Inpatient PMHNP jobs page
  */
-export default async function PerDiemJobsPage({ searchParams }: PageProps) {
+export default async function InpatientJobsPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const page = Math.max(1, parseInt(params.page || '1'));
     const limit = 10;
     const skip = (page - 1) * limit;
 
     const [jobs, stats] = await Promise.all([
-        getPerDiemJobs(skip, limit),
-        getPerDiemStats(),
+        getInpatientJobs(skip, limit),
+        getInpatientStats(),
     ]);
 
     const totalPages = Math.ceil(stats.totalJobs / limit);
@@ -217,31 +191,32 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
             <BreadcrumbSchema items={[
                 { name: "Home", url: "https://pmhnphiring.com" },
                 { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
-                { name: "Per Diem", url: "https://pmhnphiring.com/jobs/per-diem" }
+                { name: "Inpatient", url: "https://pmhnphiring.com/jobs/inpatient" }
             ]} />
+
             {/* Hero Section */}
             <section className="bg-teal-600 text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="flex items-center justify-center gap-2 mb-4">
-                            <Calendar className="h-8 w-8" />
-                            <Clock className="h-8 w-8" />
+                            <Building className="h-8 w-8" />
+                            <Shield className="h-8 w-8" />
                         </div>
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            Per Diem PMHNP Jobs
+                            Inpatient PMHNP Jobs
                         </h1>
                         <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-                            Last Updated: February 2026 | Per diem PMHNP positions
+                            Last Updated: March 2026 | Hospital & acute care PMHNP positions
                         </p>
                         <p className="text-lg md:text-xl text-teal-100 mb-6">
-                            Discover {stats.totalJobs} per diem, PRN, and part-time psychiatric nurse practitioner positions
+                            Discover {stats.totalJobs} inpatient psychiatric nurse practitioner positions in hospitals and acute care settings
                         </p>
 
                         {/* Stats Bar */}
                         <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
                             <div className="text-center">
                                 <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                                <div className="text-sm text-teal-100">Flexible Positions</div>
+                                <div className="text-sm text-teal-100">Inpatient Positions</div>
                             </div>
                             {stats.avgSalary > 0 && (
                                 <div className="text-center">
@@ -251,7 +226,7 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                             )}
                             <div className="text-center">
                                 <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                                <div className="text-sm text-teal-100">Hiring Employers</div>
+                                <div className="text-sm text-teal-100">Hiring Organizations</div>
                             </div>
                         </div>
                     </div>
@@ -264,22 +239,9 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                     <div className="mb-8 md:mb-12">
                         <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                             <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                                Why Choose Per Diem/PRN Work?
+                                Why Work as an Inpatient PMHNP?
                             </h2>
                             <div className="grid md:grid-cols-3 gap-6">
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <Calendar className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Flexible Schedule</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Choose when you work. Pick up shifts that fit your lifestyle, whether that&apos;s weekends, evenings, or just a few days a month.
-                                        </p>
-                                    </div>
-                                </div>
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
@@ -287,22 +249,35 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Higher Hourly Rates</h3>
+                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Higher Base Pay</h3>
                                         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Per diem positions often pay 15-30% more per hour than salaried roles to compensate for the lack of benefits.
+                                            Inpatient PMHNPs typically earn $140K-$200K+ annually due to the demanding nature and critical skills required for acute psychiatric care.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="flex-shrink-0">
                                         <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <Heart className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
+                                            <Shield className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Work-Life Balance</h3>
+                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Structured Environment</h3>
                                         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Perfect for semi-retirement, parents, or those pursuing other interests. Control your hours without sacrificing your career.
+                                            Hospital settings offer built-in support teams, established protocols, and access to multidisciplinary care teams including psychiatrists and social workers.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                            <Clock className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Defined Schedules</h3>
+                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                            Many inpatient roles offer predictable shift-based schedules (7-on/7-off, 3x12s) with no after-hours patient calls compared to outpatient settings.
                                         </p>
                                     </div>
                                 </div>
@@ -315,7 +290,7 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                         <div className="lg:col-span-3">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                    All Per Diem Positions ({stats.totalJobs})
+                                    All Inpatient Positions ({stats.totalJobs})
                                 </h2>
                                 <Link
                                     href="/jobs"
@@ -328,12 +303,12 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
 
                             {jobs.length === 0 ? (
                                 <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <Calendar className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
+                                    <Building className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
                                     <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        No per diem positions available
+                                        No inpatient jobs available
                                     </h3>
                                     <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                                        We don&apos;t have any active per diem PMHNP positions right now. Check back soon!
+                                        We don&apos;t have any active inpatient PMHNP positions right now. Check back soon!
                                     </p>
                                     <Link
                                         href="/jobs"
@@ -356,7 +331,7 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                                         <div className="mt-8 flex items-center justify-center gap-4">
                                             {page > 1 ? (
                                                 <Link
-                                                    href={`/jobs/per-diem?page=${page - 1}`}
+                                                    href={`/jobs/inpatient?page=${page - 1}`}
                                                     className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
                                                     style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                                                 >
@@ -374,7 +349,7 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
 
                                             {page < totalPages ? (
                                                 <Link
-                                                    href={`/jobs/per-diem?page=${page + 1}`}
+                                                    href={`/jobs/inpatient?page=${page + 1}`}
                                                     className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
                                                     style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                                                 >
@@ -397,10 +372,10 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                             <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
                                 <Bell className="h-8 w-8 mb-3" />
                                 <h3 className="text-lg font-bold mb-2">
-                                    Get Per Diem Job Alerts
+                                    Get Inpatient Job Alerts
                                 </h3>
                                 <p className="text-sm text-teal-100 mb-4">
-                                    Be the first to know about new per diem and PRN PMHNP positions.
+                                    Be the first to know about new inpatient and hospital-based PMHNP positions.
                                 </p>
                                 <Link
                                     href="/job-alerts"
@@ -410,7 +385,7 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                                 </Link>
                             </div>
 
-                            {/* Companies Hiring Per Diem */}
+                            {/* Top Employers */}
                             {stats.topEmployers.length > 0 && (
                                 <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                                     <div className="flex items-center gap-2 mb-4">
@@ -444,41 +419,41 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                                             ${stats.avgSalary}k
                                         </div>
                                         <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Average annual equivalent
+                                            Average annual salary
                                         </div>
                                     </div>
                                     <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                        Per diem rates often translate to higher annualized pay when worked consistently. Hourly rates typically range from $65-$125/hr.
+                                        Based on inpatient PMHNP positions with salary data. Hospital roles often include benefits, shift differentials, and sign-on bonuses.
                                     </p>
                                 </div>
                             )}
 
-                            {/* Per Diem Tips */}
+                            {/* Inpatient Tips */}
                             <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                                 <div className="flex items-center gap-2 mb-4">
                                     <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Per Diem Tips</h3>
+                                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Inpatient Tips</h3>
                                 </div>
                                 <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                                     <li className="flex gap-2">
                                         <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Register with multiple facilities for more shifts</span>
+                                        <span>Get comfortable with crisis intervention and de-escalation</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Keep your credentials current and accessible</span>
+                                        <span>Build strong rapport with multidisciplinary teams</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Consider your own malpractice insurance</span>
+                                        <span>Stay current on psychopharmacology for acute conditions</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Track hours for tax purposes (1099 income)</span>
+                                        <span>Negotiate shift differentials for nights and weekends</span>
                                     </li>
                                     <li className="flex gap-2">
                                         <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Build relationships for priority shift offers</span>
+                                        <span>Consider inpatient fellowships for specialized training</span>
                                     </li>
                                 </ul>
                             </div>
@@ -488,48 +463,53 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                     {/* Additional Resources Section */}
                     <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                         <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                            Per Diem vs Full-Time: What&apos;s Right for You?
+                            Inpatient PMHNP Career Resources
                         </h2>
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Per Diem Benefits
+                                    Common Settings
                                 </h3>
                                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    Higher hourly rates, complete schedule flexibility, no mandatory overtime,
-                                    and the ability to work at multiple facilities. Ideal for those who value autonomy.
+                                    Inpatient PMHNPs work in psychiatric hospitals, medical center psych units, crisis stabilization units,
+                                    state psychiatric facilities, and residential treatment centers. Each setting has unique patient populations
+                                    and treatment approaches.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Considerations
+                                    Typical Responsibilities
                                 </h3>
                                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    Per diem typically means no benefits (health insurance, PTO, retirement).
-                                    You&apos;ll need to plan for taxes, insurance, and irregular income.
+                                    Inpatient PMHNPs perform psychiatric evaluations, manage medication regimens for acute conditions,
+                                    conduct risk assessments, collaborate with treatment teams, and develop discharge plans. Caseloads
+                                    typically range from 12-20 patients.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Who It&apos;s Best For
+                                    Schedule & Lifestyle
                                 </h3>
                                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    PMHNPs who have benefits through a spouse, those semi-retired, parents wanting
-                                    flexible schedules, or those testing different practice settings.
+                                    Many inpatient positions offer shift-based schedules like 7-on/7-off or 4x10s. Night and weekend shifts
+                                    often come with significant pay differentials. Unlike outpatient, there are no after-hours patient calls
+                                    — when your shift ends, you&apos;re off.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Getting Started
+                                    Career Growth
                                 </h3>
                                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    Many per diem positions require at least 1 year of experience. Start by
-                                    registering with staffing agencies and local hospitals&apos; PRN pools.
+                                    Inpatient experience is highly valued and opens doors to leadership roles, medical director positions,
+                                    and consultation-liaison psychiatry. It also provides excellent training for crisis work and complex
+                                    psychopharmacology.
                                 </p>
                             </div>
                         </div>
                     </div>
 
+                    {/* Explore Other Job Types */}
                     <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
                         <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Explore Other Job Types</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -548,56 +528,26 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                                 <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Virtual care</div>
                             </Link>
                             <Link href="/jobs/travel" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Plane className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-orange-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <Plane className="h-5 w-5 text-orange-500 group-hover:text-white transition-colors" />
                                 </div>
                                 <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Travel Jobs</div>
                                 <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Locum tenens</div>
                             </Link>
-                            <Link href="/jobs/new-grad" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <GraduationCap className="h-5 w-5 text-indigo-500 group-hover:text-white transition-colors" />
+                            <Link href="/jobs/per-diem" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <Calendar className="h-5 w-5 text-green-500 group-hover:text-white transition-colors" />
                                 </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>New Grad Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Entry level</div>
+                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Per Diem Jobs</div>
+                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Flexible shifts</div>
                             </Link>
                         </div>
                     </div>
                 </div>
-                <section className="mt-12 mb-8 container mx-auto px-4">
-                    <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Resources</h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Link href="/salary-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 2026 Salary Guide</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Average PMHNP salary is $155,000+. See pay by state, experience, and setting.</p>
-                        </Link>
-
-                        <Link href="/jobs/locations" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 Jobs by Location</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse PMHNP positions by state and city.</p>
-                        </Link>
-
-                        <Link href="/jobs/remote" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏠 Remote Jobs</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Telehealth and work-from-home PMHNP positions.</p>
-                        </Link>
-
-                        <Link href="/jobs/travel" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>✈️ Travel Jobs</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Locum tenens positions with premium pay.</p>
-                        </Link>
-
-                        <Link href="/jobs/telehealth" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💻 Telehealth Jobs</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care positions.</p>
-                        </Link>
-                    </div>
-                </section>
-
-                {/* FAQ Section with structured data */}
-                <CategoryFAQ category="per-diem" totalJobs={stats.totalJobs} />
             </div>
+
+            {/* FAQ Section */}
+            <CategoryFAQ category="inpatient" totalJobs={stats.totalJobs} />
         </div>
     );
 }

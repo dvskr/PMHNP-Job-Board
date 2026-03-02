@@ -8,7 +8,16 @@ export default function robots(): MetadataRoute.Robots {
       // Main crawlers
       {
         userAgent: '*',
-        allow: ['/', '/api/og'],
+        allow: [
+          '/',
+          '/api/og',
+          '/jobs/',
+          '/blog/',
+          '/salary-guide',
+          '/for-job-seekers',
+          '/for-employers',
+          '/faq',
+        ],
         disallow: [
           '/api/',
           '/_next/',

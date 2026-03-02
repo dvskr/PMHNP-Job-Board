@@ -368,9 +368,10 @@ export default function AdminDashboard() {
                 padding: '10px 14px', borderRadius: '10px',
                 backgroundColor: 'var(--bg-tertiary)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                gap: '8px', overflow: 'hidden',
               }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email}
                   </div>
                   <div style={muted}>{new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
@@ -400,13 +401,14 @@ export default function AdminDashboard() {
                 padding: '10px 14px', borderRadius: '10px',
                 backgroundColor: 'var(--bg-tertiary)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                gap: '8px', overflow: 'hidden',
               }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{s.email}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.email}</div>
                   <div style={muted}>{new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                 </div>
                 {s.source && (
-                  <span style={{ ...muted, fontWeight: 600, textTransform: 'capitalize' }}>{s.source}</span>
+                  <span style={{ ...muted, fontWeight: 600, textTransform: 'capitalize', whiteSpace: 'nowrap', flexShrink: 0 }}>{s.source}</span>
                 )}
               </div>
             ))}

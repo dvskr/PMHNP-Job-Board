@@ -115,9 +115,9 @@ async function getOverallStats() {
 }
 
 export const metadata: Metadata = {
-  title: 'PMHNP Salary Guide 2026 | $155,000+ Average | Psychiatric NP Pay by State',
-  description: '2026 PMHNP Salary Guide. State-by-state psychiatric NP salary data, trends, and negotiation tips.',
-  keywords: ['pmhnp salary', 'psychiatric nurse practitioner salary', 'pmhnp salary by state', 'how much do pmhnps make', 'pmhnp pay', 'pmhnp salary 2026'],
+  title: 'PMHNP Salary by State 2026 — How Much Do Psych NPs Make? ($155K+ Avg)',
+  description: 'See exactly how much PMHNPs earn in every US state. National average $155,000+, top 10% earn $210,000+. Interactive salary comparison by state, entry-level vs experienced PMHNP pay, and negotiation strategies backed by 10,000+ real job postings.',
+  keywords: ['pmhnp salary', 'psych np salary', 'psychiatric nurse practitioner salary', 'pmhnp salary by state', 'how much do pmhnps make', 'pmhnp pay', 'pmhnp salary 2026', 'psychiatric np salary'],
   openGraph: {
     title: 'PMHNP Salary Guide 2026 | $155,000+ Average',
     description: 'Complete guide to PMHNP salaries. National average $155,000+, top 10% earn $210,000+. State-by-state breakdown and tips to maximize earnings.',

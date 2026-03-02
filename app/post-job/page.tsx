@@ -425,7 +425,7 @@ function PostJobContent() {
 
   return (
     <>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-32 lg:pb-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-48 lg:pb-8">
 
         {/* Draft Loaded Message */}
         {draftLoaded && (
@@ -968,7 +968,7 @@ function PostJobContent() {
         </form>
 
         {/* Sticky Submit Buttons - Mobile Only */}
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-lg safe-bottom" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+        <div className="lg:hidden fixed inset-x-0 z-40 border-t shadow-lg" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)', bottom: '76px' }}>
           <div className="px-4 py-3 pb-safe flex flex-col gap-2">
             <button
               type="submit"
