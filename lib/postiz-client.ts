@@ -168,3 +168,50 @@ export async function postToInstagramCarousel(
         ],
     });
 }
+
+/**
+ * Convenience: post a carousel of images to LinkedIn.
+ * Each image must have been uploaded first via `uploadImage()`.
+ */
+export async function postToLinkedIn(
+    integrationId: string,
+    content: string,
+    images: PostizImage[],
+): Promise<unknown> {
+    return createPost({
+        type: 'now',
+        date: new Date().toISOString(),
+        shortLink: false,
+        tags: [],
+        posts: [
+            {
+                integration: { id: integrationId },
+                value: [{ content, image: images }],
+                settings: { __type: 'linkedin' },
+            },
+        ],
+    });
+}
+
+/**
+ * Convenience: post text + image to X (Twitter).
+ */
+export async function postToX(
+    integrationId: string,
+    content: string,
+    image?: PostizImage,
+): Promise<unknown> {
+    return createPost({
+        type: 'now',
+        date: new Date().toISOString(),
+        shortLink: false,
+        tags: [],
+        posts: [
+            {
+                integration: { id: integrationId },
+                value: [{ content, image: image ? [image] : [] }],
+                settings: { __type: 'x' },
+            },
+        ],
+    });
+}

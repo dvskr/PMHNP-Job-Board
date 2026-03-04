@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
         POSTIZ_API_KEY_length: process.env.POSTIZ_API_KEY?.length ?? 0,
         POSTIZ_FB_INTEGRATION_ID: process.env.POSTIZ_FB_INTEGRATION_ID ?? '(not set)',
         POSTIZ_INSTAGRAM_INTEGRATION_ID: process.env.POSTIZ_INSTAGRAM_INTEGRATION_ID ?? '(not set)',
+        POSTIZ_LINKEDIN_INTEGRATION_ID: process.env.POSTIZ_LINKEDIN_INTEGRATION_ID ?? '(not set)',
+        POSTIZ_X_INTEGRATION_ID: process.env.POSTIZ_X_INTEGRATION_ID ?? '(not set)',
         CRON_SECRET: !!process.env.CRON_SECRET,
     };
 
@@ -55,6 +57,10 @@ export async function GET(request: NextRequest) {
     if (envChecks.POSTIZ_INSTAGRAM_INTEGRATION_ID === '') issues.push('POSTIZ_INSTAGRAM_INTEGRATION_ID is set but EMPTY');
     if (envChecks.POSTIZ_FB_INTEGRATION_ID === '(not set)') issues.push('POSTIZ_FB_INTEGRATION_ID is not set');
     if (envChecks.POSTIZ_FB_INTEGRATION_ID === '') issues.push('POSTIZ_FB_INTEGRATION_ID is set but EMPTY');
+    if (envChecks.POSTIZ_LINKEDIN_INTEGRATION_ID === '(not set)') issues.push('POSTIZ_LINKEDIN_INTEGRATION_ID is not set');
+    if (envChecks.POSTIZ_LINKEDIN_INTEGRATION_ID === '') issues.push('POSTIZ_LINKEDIN_INTEGRATION_ID is set but EMPTY');
+    if (envChecks.POSTIZ_X_INTEGRATION_ID === '(not set)') issues.push('POSTIZ_X_INTEGRATION_ID is not set');
+    if (envChecks.POSTIZ_X_INTEGRATION_ID === '') issues.push('POSTIZ_X_INTEGRATION_ID is set but EMPTY');
     if (jobQuery.count === 0 && !jobQuery.error) issues.push('No qualifying jobs found in last 24 hours (query returned 0 results)');
     if (jobQuery.error) issues.push(`Job query failed: ${jobQuery.error}`);
 

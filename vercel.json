@@ -151,6 +151,14 @@
     {
       "path": "/api/cron/candidate-alerts",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/linkedin-post",
+      "schedule": "10 15 * * *"
+    },
+    {
+      "path": "/api/cron/x-post",
+      "schedule": "15 15 * * *"
     }
   ],
   "headers": [

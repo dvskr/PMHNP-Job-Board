@@ -2,8 +2,8 @@
  * Social Post Generator
  *
  * Queries the production DB for top jobs with a mix of categories,
- * then generates formatted captions for Facebook and Instagram,
- * plus carousel images for Instagram.
+ * then generates formatted captions for Facebook, Instagram, LinkedIn, and X,
+ * plus carousel images for Instagram and LinkedIn.
  */
 
 import { prisma } from '@/lib/prisma';
@@ -12,6 +12,8 @@ import {
     uploadImage,
     postToFacebook,
     postToInstagramCarousel,
+    postToLinkedIn,
+    postToX,
     type PostizImage,
 } from '@/lib/postiz-client';
 
@@ -197,6 +199,52 @@ export async function uploadCarouselImages(
 }
 
 // ---------------------------------------------------------------------------
+// LinkedIn caption
+// ---------------------------------------------------------------------------
+
+export function buildLinkedInCaption(jobs: SocialJob[]): string {
+    const lines = [
+        '🔥 Today\'s Top PMHNP Opportunities\n',
+        'We\'re seeing strong demand for Psychiatric Mental Health Nurse Practitioners. Here are today\'s top openings:\n',
+    ];
+
+    jobs.forEach((job, i) => {
+        const emoji = JOB_EMOJIS[i] ?? `${i + 1}.`;
+        const salary = job.displaySalary ? ` | ${job.displaySalary}` : '';
+        const loc = job.isRemote ? 'Remote' : job.location;
+        lines.push(`${emoji} ${job.title}`);
+        lines.push(`   🏢 ${job.employer} · 📍 ${loc}${salary}`);
+        lines.push('');
+    });
+
+    lines.push(`👉 Browse all openings: ${BASE_URL}`);
+    lines.push(`\n${HASHTAGS} #LinkedIn #PMHNPJobs`);
+
+    return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// X (Twitter) caption — concise due to character limit
+// ---------------------------------------------------------------------------
+
+export function buildXCaption(jobs: SocialJob[]): string {
+    const topJobs = jobs.slice(0, 5); // Keep it short for X
+    const lines = ['🔥 Top PMHNP Jobs Today:\n'];
+
+    topJobs.forEach((job, i) => {
+        const salary = job.displaySalary ? ` — ${job.displaySalary}` : '';
+        const loc = job.isRemote ? '🌐 Remote' : `📍 ${job.location}`;
+        lines.push(`${i + 1}. ${job.title}${salary}`);
+        lines.push(`   ${loc} | ${job.employer}`);
+    });
+
+    lines.push(`\n👉 ${BASE_URL}`);
+    lines.push('#PMHNP #NurseJobs #MentalHealth #Hiring');
+
+    return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
 // Orchestrator — run the full pipeline
 // ---------------------------------------------------------------------------
 
@@ -206,11 +254,13 @@ export interface SocialPostResult {
     reason?: string;
     facebook?: { posted: boolean; error?: string };
     instagram?: { posted: boolean; error?: string };
+    linkedin?: { posted: boolean; error?: string };
+    x?: { posted: boolean; error?: string };
     dryRun: boolean;
     caption?: string;
 }
 
-export type SocialPlatform = 'facebook' | 'instagram' | 'all';
+export type SocialPlatform = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'all';
 
 export async function runSocialPostPipeline(
     dryRun = false,
@@ -235,13 +285,15 @@ export async function runSocialPostPipeline(
     // Build captions
     const fbCaption = (platform === 'facebook' || platform === 'all') ? buildFacebookCaption(jobs) : '';
     const igCaption = (platform === 'instagram' || platform === 'all') ? buildInstagramCaption(jobs) : '';
+    const liCaption = (platform === 'linkedin' || platform === 'all') ? buildLinkedInCaption(jobs) : '';
+    const xCaption = (platform === 'x' || platform === 'all') ? buildXCaption(jobs) : '';
 
     if (dryRun) {
         return {
             success: true,
             jobCount: jobs.length,
             dryRun: true,
-            caption: fbCaption || igCaption,
+            caption: fbCaption || igCaption || liCaption || xCaption,
         };
     }
 
@@ -307,6 +359,77 @@ export async function runSocialPostPipeline(
             console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set — skipping IG');
             result.instagram = { posted: false, error: 'Integration ID not configured' };
             result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_INSTAGRAM_INTEGRATION_ID not set';
+        }
+    }
+
+    // ── LinkedIn carousel ──
+    if (platform === 'linkedin' || platform === 'all') {
+        const liId = process.env.POSTIZ_LINKEDIN_INTEGRATION_ID;
+        if (liId) {
+            try {
+                console.log('[SOCIAL] Generating LinkedIn carousel images...');
+                // Reuse Instagram carousel images if already generated, otherwise generate
+                let imageBuffers: Buffer[];
+                if (result.instagram?.posted || platform === 'all') {
+                    // Images were already generated for Instagram, regenerate for LinkedIn
+                    imageBuffers = await generateCarouselImages(jobs);
+                } else {
+                    imageBuffers = await generateCarouselImages(jobs);
+                }
+
+                console.log(`[SOCIAL] Uploading ${imageBuffers.length} images for LinkedIn...`);
+                const uploadedImages = await uploadCarouselImages(imageBuffers);
+
+                console.log('[SOCIAL] Posting to LinkedIn...');
+                await postToLinkedIn(liId, liCaption, uploadedImages);
+                result.linkedin = { posted: true };
+                console.log('[SOCIAL] LinkedIn post successful');
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error('[SOCIAL] LinkedIn post failed:', msg);
+                result.linkedin = { posted: false, error: msg };
+                result.success = false;
+            }
+        } else {
+            console.warn('[SOCIAL] POSTIZ_LINKEDIN_INTEGRATION_ID not set — skipping LinkedIn');
+            result.linkedin = { posted: false, error: 'Integration ID not configured' };
+            result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_LINKEDIN_INTEGRATION_ID not set';
+        }
+    }
+
+    // ── X (Twitter) — single summary image ──
+    if (platform === 'x' || platform === 'all') {
+        const xId = process.env.POSTIZ_X_INTEGRATION_ID;
+        if (xId) {
+            try {
+                console.log('[SOCIAL] Generating X summary image...');
+                const xSummaryPng = await generateFBSummaryPng(
+                    jobs.map((j) => ({
+                        title: j.title,
+                        employer: j.employer,
+                        location: j.location,
+                        salary: j.displaySalary,
+                        isRemote: j.isRemote,
+                    })),
+                );
+
+                console.log('[SOCIAL] Uploading X summary image...');
+                const xUpload = await uploadImage(xSummaryPng, 'x-summary.png');
+
+                console.log('[SOCIAL] Posting to X...');
+                await postToX(xId, xCaption, { id: xUpload.id, path: xUpload.path });
+                result.x = { posted: true };
+                console.log('[SOCIAL] X post successful');
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.error('[SOCIAL] X post failed:', msg);
+                result.x = { posted: false, error: msg };
+                result.success = false;
+            }
+        } else {
+            console.warn('[SOCIAL] POSTIZ_X_INTEGRATION_ID not set — skipping X');
+            result.x = { posted: false, error: 'Integration ID not configured' };
+            result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_X_INTEGRATION_ID not set';
         }
     }
 
