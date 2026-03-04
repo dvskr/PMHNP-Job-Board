@@ -24,6 +24,11 @@ const linkColumns = [
       { label: 'Inpatient', href: '/jobs/inpatient' },
       { label: 'Outpatient', href: '/jobs/outpatient' },
       { label: 'Travel Jobs', href: '/jobs/travel' },
+    ],
+  },
+  {
+    title: 'More Categories',
+    links: [
       { label: 'New Grad', href: '/jobs/new-grad' },
       { label: 'Per Diem', href: '/jobs/per-diem' },
       { label: 'Addiction', href: '/jobs/substance-abuse' },
@@ -80,12 +85,12 @@ export default function Footer() {
       backgroundColor: 'var(--bg-secondary)',
       borderTop: '1px solid var(--border-color)',
     }}>
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '32px 24px 0' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px 0' }}>
 
         {/* Link columns */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gridTemplateColumns: 'repeat(6, 1fr)',
           gap: '24px',
           marginBottom: '28px',
         }}>
@@ -197,6 +202,11 @@ export default function Footer() {
         .footer-social-icon:hover {
           color: var(--color-primary) !important;
           transform: translateY(-2px);
+        }
+        @media (max-width: 1024px) {
+          footer > div > div:first-child {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
         }
         @media (max-width: 768px) {
           footer > div > div:first-child {

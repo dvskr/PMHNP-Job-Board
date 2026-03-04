@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Target, Users, Menu, X, Home, BarChart3, FileText, Settings, Mail } from 'lucide-react';
 
 const navItems = [
   {
@@ -30,6 +30,11 @@ const navItems = [
     name: 'Employer Outreach',
     href: '/admin/outreach',
     icon: Target,
+  },
+  {
+    name: 'Email Broadcasts',
+    href: '/admin/email',
+    icon: Mail,
   },
   {
     name: 'Blog',

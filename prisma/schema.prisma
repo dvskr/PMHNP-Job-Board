@@ -683,3 +683,59 @@ model EmployerCandidateAlert {
   @@index([isActive])
   @@map("employer_candidate_alerts")
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Email Broadcasting — Admin broadcast campaigns
+// ═══════════════════════════════════════════════════════════════
+
+model EmailBroadcast {
+  id            String    @id @default(cuid())
+  subject       String
+  body          String
+  audience      String    // all | job_seekers | employers | subscribers | newsletter | custom
+  audienceCount Int       @default(0) @map("audience_count")
+  status        String    @default("draft") // draft | scheduled | sending | sent | failed
+  scheduledFor  DateTime? @map("scheduled_for")
+  sentAt        DateTime? @map("sent_at")
+  sentCount     Int       @default(0) @map("sent_count")
+  failedCount   Int       @default(0) @map("failed_count")
+  templateId    String?   @map("template_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  recipients EmailBroadcastRecipient[]
+  template   EmailTemplate?            @relation(fields: [templateId], references: [id])
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("email_broadcasts")
+}
+
+model EmailBroadcastRecipient {
+  id          String    @id @default(cuid())
+  broadcastId String    @map("broadcast_id")
+  email       String
+  firstName   String?   @map("first_name")
+  status      String    @default("pending") // pending | sent | failed | bounced
+  sentAt      DateTime? @map("sent_at")
+  error       String?
+
+  broadcast EmailBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@index([broadcastId])
+  @@index([status])
+  @@map("email_broadcast_recipients")
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  broadcasts EmailBroadcast[]
+
+  @@map("email_templates")
+}

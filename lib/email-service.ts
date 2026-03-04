@@ -1092,3 +1092,53 @@ export async function sendNewCandidateAlertEmail(
     };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN BROADCAST EMAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function buildBroadcastHtml(body: string, preheaderText: string = ''): string {
+  return emailShell(`
+          ${headerBlock('PMHNP Hiring', 'A message from the team')}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <div style="font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.8;">
+                ${body}
+              </div>
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 28px 0 0;">
+                <tr>
+                  <td>
+                    ${primaryButton('Visit PMHNP Hiring →', `${BASE_URL}`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+    `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        <a href="${BASE_URL}/unsubscribe" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">Contact us</a>
+      </p>`,
+    preheaderText || 'A message from PMHNP Hiring'
+  );
+}
+
+export async function sendBroadcastEmail(
+  to: string,
+  subject: string,
+  htmlBody: string
+): Promise<EmailResult> {
+  try {
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to,
+      subject,
+      html: htmlBody,
+    });
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Failed to send broadcast';
+    return { success: false, error: msg };
+  }
+}
+
