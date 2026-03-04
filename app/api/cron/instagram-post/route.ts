@@ -49,12 +49,20 @@ export async function GET(request: NextRequest) {
         console.log(`[INSTA-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
         console.log('[INSTA-CRON] Result:', JSON.stringify(result, null, 2));
 
-        return NextResponse.json({
+        const responseBody = {
             ...result,
             platform: 'instagram',
             timestamp: new Date().toISOString(),
             duration,
-        });
+        };
+
+        // Return 500 if the pipeline didn't actually post (so Vercel flags it as an error)
+        if (!result.success || result.instagram?.posted === false) {
+            console.error('[INSTA-CRON] Failed:', result.reason ?? 'Unknown reason');
+            return NextResponse.json(responseBody, { status: 500 });
+        }
+
+        return NextResponse.json(responseBody);
     } catch (error) {
         console.error('[INSTA-CRON] Fatal error:', error);
         return NextResponse.json(
