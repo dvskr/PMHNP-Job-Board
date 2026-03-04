@@ -179,6 +179,8 @@ export async function generateJobCardPng(
                                 type: 'div',
                                 props: {
                                     style: {
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         fontSize: '30px',
                                         color: 'rgba(255,255,255,0.8)',
                                     },
@@ -207,6 +209,8 @@ export async function generateJobCardPng(
                                 type: 'div',
                                 props: {
                                     style: {
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         fontSize: '28px',
                                         color: 'rgba(255,255,255,0.7)',
                                     },
