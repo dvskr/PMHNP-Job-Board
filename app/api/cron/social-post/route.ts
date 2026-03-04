@@ -50,11 +50,19 @@ export async function GET(request: NextRequest) {
         console.log(`[SOCIAL-CRON] Completed in ${(duration / 1000).toFixed(1)}s`);
         console.log('[SOCIAL-CRON] Result:', JSON.stringify(result, null, 2));
 
-        return NextResponse.json({
+        const responseBody = {
             ...result,
             timestamp: new Date().toISOString(),
             duration,
-        });
+        };
+
+        // Return 500 if the pipeline didn't actually post (so Vercel flags it as an error)
+        if (!result.success) {
+            console.error('[SOCIAL-CRON] Failed:', result.reason ?? 'Unknown reason');
+            return NextResponse.json(responseBody, { status: 500 });
+        }
+
+        return NextResponse.json(responseBody);
     } catch (error) {
         console.error('[SOCIAL-CRON] Fatal error:', error);
         return NextResponse.json(

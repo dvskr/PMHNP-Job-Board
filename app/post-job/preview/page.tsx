@@ -123,9 +123,9 @@ export default function PreviewPage() {
 
   const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
   const price = config.isPaidPostingEnabled
-    ? (formData.pricingTier === 'featured' ? 199 : 99)
+    ? config.getPostingPrice(formData.pricingTier)
     : 0;
-  const priceLabel = price === 0 ? 'FREE' : `$${price}`;
+  const priceLabel = config.formatPrice(price);
 
   return (
     <div className="min-h-screen bg-white py-8 px-4">

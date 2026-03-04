@@ -423,6 +423,7 @@ export default function AdminDashboard() {
           { icon: <Briefcase size={18} style={{ color: '#2DD4BF' }} />, title: 'Jobs', desc: 'Manage job postings & CRUD', href: '/admin/jobs', color: '#2DD4BF' },
           { icon: <BarChart3 size={18} style={{ color: '#3B82F6' }} />, title: 'Analytics', desc: 'Deep-dive engagement data', href: '/admin/analytics', color: '#3B82F6' },
           { icon: <Users size={18} style={{ color: '#A855F7' }} />, title: 'Users', desc: 'Manage users & subscribers', href: '/admin/users', color: '#A855F7' },
+          { icon: <Mail size={18} style={{ color: '#EC4899' }} />, title: 'Email Broadcasts', desc: 'Send personalized emails', href: '/admin/email', color: '#EC4899' },
           { icon: <Target size={18} style={{ color: '#F59E0B' }} />, title: 'Outreach', desc: 'Employer lead pipeline', href: '/admin/outreach', color: '#F59E0B' },
         ].map((a) => (
           <Link key={a.href} href={a.href} style={{ textDecoration: 'none' }}>

@@ -203,6 +203,7 @@ export async function uploadCarouselImages(
 export interface SocialPostResult {
     success: boolean;
     jobCount: number;
+    reason?: string;
     facebook?: { posted: boolean; error?: string };
     instagram?: { posted: boolean; error?: string };
     dryRun: boolean;
@@ -220,7 +221,7 @@ export async function runSocialPostPipeline(
 
     if (jobs.length === 0) {
         console.warn('[SOCIAL] No jobs found to post!');
-        return { success: false, jobCount: 0, dryRun };
+        return { success: false, jobCount: 0, dryRun, reason: 'No qualifying jobs found in last 24 hours' };
     }
 
     console.log(`[SOCIAL] Found ${jobs.length} jobs`);
@@ -276,6 +277,7 @@ export async function runSocialPostPipeline(
         } else {
             console.warn('[SOCIAL] POSTIZ_FB_INTEGRATION_ID not set — skipping FB');
             result.facebook = { posted: false, error: 'Integration ID not configured' };
+            result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_FB_INTEGRATION_ID not set';
         }
     }
 
@@ -304,6 +306,7 @@ export async function runSocialPostPipeline(
         } else {
             console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set — skipping IG');
             result.instagram = { posted: false, error: 'Integration ID not configured' };
+            result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_INSTAGRAM_INTEGRATION_ID not set';
         }
     }
 

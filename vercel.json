@@ -147,6 +147,10 @@
     {
       "path": "/api/cron/instagram-post",
       "schedule": "5 15 * * *"
+    },
+    {
+      "path": "/api/cron/candidate-alerts",
+      "schedule": "0 14 * * *"
     }
   ],
   "headers": [
