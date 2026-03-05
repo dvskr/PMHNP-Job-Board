@@ -17,6 +17,10 @@ const VALID_CATEGORIES: BlogCategory[] = [
     'industry_awareness',
     'product_lead_gen',
     'success_stories',
+    'mental_health_trends',
+    'policy_industry',
+    'career_opportunities',
+    'tech_tools',
 ];
 
 const VALID_STATUSES = ['draft', 'published'] as const;

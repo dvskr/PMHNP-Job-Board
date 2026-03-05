@@ -27,7 +27,11 @@ export type BlogCategory =
     | 'community_lifestyle'
     | 'industry_awareness'
     | 'product_lead_gen'
-    | 'success_stories';
+    | 'success_stories'
+    | 'mental_health_trends'
+    | 'policy_industry'
+    | 'career_opportunities'
+    | 'tech_tools';
 
 export const BLOG_CATEGORIES: { id: BlogCategory; label: string }[] = [
     { id: 'job_seeker_attraction', label: 'Job Seeker Tips' },
@@ -39,6 +43,10 @@ export const BLOG_CATEGORIES: { id: BlogCategory; label: string }[] = [
     { id: 'industry_awareness', label: 'Industry Awareness' },
     { id: 'product_lead_gen', label: 'Product & Resources' },
     { id: 'success_stories', label: 'Success Stories' },
+    { id: 'mental_health_trends', label: 'Mental Health Trends' },
+    { id: 'policy_industry', label: 'Policy & Industry' },
+    { id: 'career_opportunities', label: 'Career Opportunities' },
+    { id: 'tech_tools', label: 'Tech & Tools' },
 ];
 
 // ─── Supabase Client ─────────────────────────────────────────────────────────
