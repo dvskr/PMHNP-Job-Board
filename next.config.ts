@@ -110,6 +110,29 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // SEO: 301 redirects to consolidate cannibalized pages
+  async redirects() {
+    return [
+      // Consolidate salary content — 3 pages were splitting 708 impressions
+      {
+        source: '/blog/pmhnp-salary-guide-2026',
+        destination: '/salary-guide',
+        permanent: true,
+      },
+      {
+        source: '/blog/average-pmhnp-salary-by-state-2026-real-numbers',
+        destination: '/salary-guide',
+        permanent: true,
+      },
+      // Part-time queries → per-diem page (already queries for part-time jobs)
+      {
+        source: '/jobs/part-time',
+        destination: '/jobs/per-diem',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withBundleAnalyzer(nextConfig);

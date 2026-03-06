@@ -65,7 +65,9 @@ function parseCitySlug(slug: string): { cityName: string; stateName: string; sta
  * Build a city slug from city name and state code
  */
 function buildCitySlug(cityName: string, stateCode: string): string {
-    return `${cityName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stateCode.toLowerCase()}`;
+    const sanitizedCity = cityName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!sanitizedCity) return '';
+    return `${sanitizedCity}-${stateCode.toLowerCase()}`;
 }
 
 /**

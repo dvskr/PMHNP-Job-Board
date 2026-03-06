@@ -311,11 +311,15 @@ async function getCitiesWithJobs(stateName: string, stateCode: string): Promise<
 
   return cityData
     .filter(c => c.city && c.city.trim().length > 0)
-    .map(c => ({
-      name: c.city as string,
-      count: c._count.city,
-      slug: `${(c.city as string).toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${stateCode.toLowerCase()}`,
-    }));
+    .map(c => {
+      const sanitizedCity = (c.city as string).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      return {
+        name: c.city as string,
+        count: c._count.city,
+        slug: sanitizedCity ? `${sanitizedCity}-${stateCode.toLowerCase()}` : '',
+      };
+    })
+    .filter(c => c.slug.length > 0);
 }
 
 /**
@@ -471,13 +475,18 @@ export default async function StateJobsPage({ params }: StatePageProps) {
                 About PMHNP Jobs in {stateName}
               </h2>
               <p className="text-gray-600 leading-relaxed mb-4">
-                {stateName} offers diverse opportunities for psychiatric mental health nurse practitioners
-                across various healthcare settings. Whether you&apos;re interested in telepsychiatry, outpatient
-                clinics, hospitals, or private practice, you&apos;ll find positions that match your career goals.
+                {stateName} is {practiceAuthority ? (
+                  practiceAuthority.authority === 'full' ? 'a Full Practice Authority state, meaning PMHNPs can practice independently without physician oversight — ' :
+                    practiceAuthority.authority === 'reduced' ? 'a Reduced Practice state requiring a collaborative agreement with a physician — ' :
+                      'a Restricted Practice state requiring physician supervision — '
+                ) : ''}currently offering <strong>{stats.totalJobs} psychiatric nurse practitioner (psych NP) positions</strong>
+                {stats.avgSalary > 0 ? <> with an average salary of <strong>${stats.avgSalary}K/year</strong></> : ''}.
+                {stats.topEmployers.length > 0 && <> Top employers hiring in {stateName} include {stats.topEmployers.slice(0, 3).map((e: ProcessedEmployer) => e.name).join(', ')}.</>}
               </p>
               <p className="text-gray-600 leading-relaxed">
-                Browse {stats.totalJobs} current PMHNP openings in {stateName} below, featuring both
-                remote and in-person positions with competitive compensation packages.
+                Browse {stats.totalJobs} current PMHNP openings in {stateName} below, including
+                remote telehealth positions, outpatient clinics, inpatient facilities, and private practice opportunities.
+                New psych NP jobs are added daily.
               </p>
             </div>
           </div>

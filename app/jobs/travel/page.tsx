@@ -192,7 +192,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
               Travel PMHNP Jobs - Locum Tenens
             </h1>
             <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-              Last Updated: February 2026 | Travel & locum tenens PMHNP positions
+              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Travel & locum tenens PMHNP positions
             </p>
             <p className="text-lg md:text-xl text-teal-100 mb-6">
               Discover {stats.totalJobs} travel and locum psychiatric nurse practitioner positions
@@ -487,6 +487,70 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                   Start by gaining 1-2 years of experience in a permanent role. Then partner with 2-3 staffing
                   agencies to find the best opportunities. Keep your CV and credentials always up to date.
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Compensation Breakdown */}
+          <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Travel PMHNP Compensation Breakdown
+            </h2>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+              Travel psychiatric nurse practitioner pay is structured differently from permanent positions. Your total compensation package typically includes multiple components:
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$80–$150/hr</div>
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Base Hourly Rate</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Varies by location, acuity, and urgency of need</div>
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$2,000–$4,000/mo</div>
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Housing Stipend</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Tax-free if you maintain a tax home</div>
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$500–$1,200</div>
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Travel Reimbursement</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Per assignment — flights, mileage, or lump sum</div>
+              </div>
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$3,000–$10,000</div>
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Completion Bonus</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Paid after finishing your contract term</div>
+              </div>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              Total annual compensation for travel psych NPs can exceed <strong>$200K–$250K</strong> when factoring in tax-free stipends. See our <Link href="/salary-guide" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>2026 PMHNP Salary Guide</Link> for permanent position comparisons.
+            </p>
+          </div>
+
+          {/* Travel vs Permanent */}
+          <div className="mt-8 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Travel vs Permanent PMHNP Positions
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>✈️ Travel / Locum Tenens</h3>
+                <ul className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <li>• Higher total compensation ($200K+)</li>
+                  <li>• Tax-free housing and travel stipends</li>
+                  <li>• Flexibility to take breaks between assignments</li>
+                  <li>• Exposure to different practice settings</li>
+                  <li>• No office politics — you&apos;re temporary</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>🏠 Permanent Positions</h3>
+                <ul className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <li>• Stable income and benefits (health, retirement)</li>
+                  <li>• Build long-term patient relationships</li>
+                  <li>• CME budget and paid conference time</li>
+                  <li>• No re-credentialing every 3–6 months</li>
+                  <li>• Opportunity for advancement and leadership</li>
+                </ul>
               </div>
             </div>
           </div>

@@ -211,7 +211,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                             New Grad PMHNP Jobs
                         </h1>
                         <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-                            Last Updated: February 2026 | Entry-level PMHNP opportunities
+                            Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Entry-level PMHNP opportunities
                         </p>
                         <p className="text-lg md:text-xl text-teal-100 mb-6">
                             Discover {stats.totalJobs} entry-level and new graduate psychiatric nurse practitioner positions
@@ -506,6 +506,76 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                                     Consider your comfort level: outpatient offers predictability, while inpatient provides
                                     more acute experience. Community mental health centers often welcome new grads.
                                 </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Salary Expectations */}
+                    <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+                            New Grad PMHNP Salary Expectations
+                        </h2>
+                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                            What can you realistically expect to earn in your first psychiatric nurse practitioner role? Salaries vary by setting, location, and whether you&apos;re in a Full Practice Authority state.
+                        </p>
+                        <div className="grid md:grid-cols-3 gap-4 mb-4">
+                            <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$115K–$135K</div>
+                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Community Mental Health</div>
+                                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Often qualifies for HRSA loan repayment ($50K+)</div>
+                            </div>
+                            <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$130K–$155K</div>
+                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Outpatient / Private Practice</div>
+                                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Higher if productivity-based compensation</div>
+                            </div>
+                            <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$125K–$145K</div>
+                                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Inpatient / Hospital</div>
+                                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Often includes shift differentials and benefits</div>
+                            </div>
+                        </div>
+                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            See our full <Link href="/salary-guide" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>2026 PMHNP Salary Guide</Link> for state-by-state and experience-level breakdowns.
+                        </p>
+                    </div>
+
+                    {/* Red Flags for New Grads */}
+                    <div className="mt-8 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+                            🚩 Red Flags to Watch For as a New Grad Psych NP
+                        </h2>
+                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                            Not every job is a good fit for a newly certified psychiatric nurse practitioner. Watch for these warning signs during the interview process:
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="flex gap-3">
+                                <span className="text-red-500 font-bold flex-shrink-0">⚠️</span>
+                                <div>
+                                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Full caseload from day one</div>
+                                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Quality employers ramp up over 3–6 months</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <span className="text-red-500 font-bold flex-shrink-0">⚠️</span>
+                                <div>
+                                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>No mentorship or supervision offered</div>
+                                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Even in FPA states, new grads benefit from guidance</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <span className="text-red-500 font-bold flex-shrink-0">⚠️</span>
+                                <div>
+                                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>20+ patients/day expectation</div>
+                                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Unrealistic for psych; 8–12/day is typical for new grads</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <span className="text-red-500 font-bold flex-shrink-0">⚠️</span>
+                                <div>
+                                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Non-compete clause &gt; 1 year</div>
+                                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Limits future career moves in your area</div>
+                                </div>
                             </div>
                         </div>
                     </div>
