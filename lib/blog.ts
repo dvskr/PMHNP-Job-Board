@@ -308,6 +308,55 @@ export function markdownToHtml(markdown: string): string {
     // Merge consecutive blockquotes
     html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
 
+    // GFM Tables
+    html = html.replace(
+        /^(\|.+\|)\r?\n(\|[\s:|-]+\|)\r?\n((?:\|.+\|\r?\n?)+)/gm,
+        (match, headerRow, separatorRow, bodyRows) => {
+            // Parse alignment from separator row
+            const alignments = separatorRow
+                .split('|')
+                .filter((c: string) => c.trim())
+                .map((c: string) => {
+                    const trimmed = c.trim();
+                    if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+                    if (trimmed.endsWith(':')) return 'right';
+                    return 'left';
+                });
+
+            // Parse header
+            const headers = headerRow
+                .split('|')
+                .filter((c: string) => c.trim() !== '')
+                .map((c: string) => c.trim());
+
+            let tableHtml =
+                '<div class="table-wrapper" style="overflow-x:auto;"><table><thead><tr>';
+            headers.forEach((h: string, i: number) => {
+                const align = alignments[i] || 'left';
+                tableHtml += `<th style="text-align:${align}">${h}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            // Parse body rows
+            const rows = bodyRows.trim().split('\n');
+            rows.forEach((row: string) => {
+                const cells = row
+                    .split('|')
+                    .filter((c: string) => c.trim() !== '')
+                    .map((c: string) => c.trim());
+                tableHtml += '<tr>';
+                cells.forEach((cell: string, i: number) => {
+                    const align = alignments[i] || 'left';
+                    tableHtml += `<td style="text-align:${align}">${cell}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</tbody></table></div>';
+            return tableHtml;
+        }
+    );
+
     // Horizontal rules
     html = html.replace(/^---+$/gm, '<hr />');
 
@@ -351,10 +400,11 @@ export function markdownToHtml(markdown: string): string {
     html = sanitizeHtml(html, {
         allowedTags: sanitizeHtml.defaults.allowedTags.concat([
             'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'code', 'hr',
+            'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div',
         ]),
         allowedAttributes: {
             ...sanitizeHtml.defaults.allowedAttributes,
-            '*': ['id', 'class'],
+            '*': ['id', 'class', 'style'],
             'img': ['src', 'alt', 'loading', 'width', 'height'],
             'a': ['href', 'target', 'rel'],
         },
