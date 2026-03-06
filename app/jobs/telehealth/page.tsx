@@ -209,7 +209,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                             Telehealth PMHNP Jobs
                         </h1>
                         <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-                            Last Updated: February 2026 | Telehealth PMHNP positions
+                            Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Telehealth PMHNP positions
                         </p>
                         <p className="text-lg md:text-xl text-teal-100 mb-6">
                             Discover {stats.totalJobs} telehealth and telepsychiatry psychiatric nurse practitioner positions
@@ -499,6 +499,63 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                                 </h3>
                                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
                                     While most psychiatric assessments adapt well to telehealth, some situations may require in-person evaluation. Emergency protocols differ in virtual settings.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Telehealth Industry Stats */}
+                    <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+                            Telehealth Psych NP Industry Growth
+                        </h2>
+                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                            Telepsychiatry is one of the fastest-growing segments in mental healthcare. Since the pandemic, telehealth has become a permanent fixture — not a stopgap.
+                        </p>
+                        <div className="grid md:grid-cols-3 gap-4 mb-4">
+                            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>40%</div>
+                                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>of psychiatric visits are now conducted via telehealth</div>
+                            </div>
+                            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>160M+</div>
+                                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Americans live in mental health provider shortage areas</div>
+                            </div>
+                            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$130K-200K</div>
+                                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Typical telehealth PMHNP salary range</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Position Types */}
+                    <div className="mt-8 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+                            Types of Telehealth PMHNP Positions
+                        </h2>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Platform-Based (W2)</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Companies like Cerebral, Talkiatry, and Done provide patients, EHR, and billing. You focus on clinical care. Salary-based with benefits, typically $130K-$170K.
+                                </p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Health System Telehealth (W2)</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Hospital systems and CMHCs expanding virtual care. Often a mix of in-person and telehealth patients. Benefits included, $140K-$180K.
+                                </p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Private Practice Telehealth (1099)</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Run your own virtual practice using SimplePractice or Headway. Higher earning potential ($180K-$250K+) but you handle marketing and credentialing.
+                                </p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Contract / Per Diem Telehealth</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                    Pick up shifts through staffing platforms for flexible income. Great for supplementing a primary position. Rates of $75-$125/hr.
                                 </p>
                             </div>
                         </div>

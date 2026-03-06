@@ -231,7 +231,7 @@ export default async function PerDiemJobsPage({ searchParams }: PageProps) {
                             Per Diem PMHNP Jobs
                         </h1>
                         <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-                            Last Updated: February 2026 | Per diem PMHNP positions
+                            Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Per diem PMHNP positions
                         </p>
                         <p className="text-lg md:text-xl text-teal-100 mb-6">
                             Discover {stats.totalJobs} per diem, PRN, and part-time psychiatric nurse practitioner positions

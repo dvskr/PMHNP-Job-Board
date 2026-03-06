@@ -181,7 +181,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
               Remote PMHNP Jobs - Work From Home
             </h1>
             <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-              Last Updated: February 2026 | {stats.totalJobs} remote PMHNP jobs available
+              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | {stats.totalJobs} remote PMHNP jobs available
             </p>
             <p className="text-lg md:text-xl text-teal-100 mb-6">
               Discover {stats.totalJobs} telehealth and remote psychiatric nurse practitioner positions
@@ -475,6 +475,30 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
                   Maintain a professional, private space for patient consultations. Consider background
                   noise, lighting, and HIPAA compliance when setting up your home office.
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Remote vs Telehealth Differentiation */}
+          <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Remote vs Telehealth PMHNP Jobs: What&apos;s the Difference?
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>
+                  🏠 Remote PMHNP Jobs (This Page)
+                </h3>
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  Remote positions are any PMHNP job you can do from home — including telehealth patient care, chart reviews, utilization review, clinical documentation, peer consulting, and administrative roles. <strong>Not all remote jobs involve direct patient care.</strong>
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                  💻 <Link href="/jobs/telehealth" className="hover:underline" style={{ color: 'var(--color-primary)' }}>Telehealth PMHNP Jobs →</Link>
+                </h3>
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  Telehealth positions specifically involve <strong>providing psychiatric care to patients via video or phone</strong>. All telehealth jobs are remote, but not all remote jobs are telehealth. If you want to see patients virtually, browse our <Link href="/jobs/telehealth" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>telehealth listings</Link>.
                 </p>
               </div>
             </div>

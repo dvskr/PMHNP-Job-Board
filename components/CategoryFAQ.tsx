@@ -9,7 +9,7 @@ interface FAQItem {
 }
 
 interface CategoryFAQProps {
-    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent';
+    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction';
     totalJobs: number;
     avgSalary?: number;
 }
@@ -185,6 +185,7 @@ const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
             answer: 'Yes — school-based PMHNP positions are growing rapidly as districts address the youth mental health crisis. These roles typically follow the school calendar with summers off, offer competitive salaries, and provide a rewarding opportunity to serve children where they spend most of their day.',
         },
     ],
+    addiction: (props) => CATEGORY_FAQS['substance-abuse'](props),
 };
 
 export default function CategoryFAQ({ category, totalJobs, avgSalary }: CategoryFAQProps) {
@@ -203,6 +204,7 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary }: Category
         outpatient: 'Outpatient',
         'substance-abuse': 'Substance Abuse',
         'child-adolescent': 'Child & Adolescent',
+        addiction: 'Addiction',
     };
 
     // FAQ Schema for structured data (FAQPage)
