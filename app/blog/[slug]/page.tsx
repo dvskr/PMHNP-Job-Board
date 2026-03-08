@@ -123,6 +123,19 @@ export default async function BlogPostPage({ params }: Props) {
         url: currentUrl,
     };
 
+    // VideoObject schema when a YouTube video is associated
+    const videoSchema = post.youtube_video_id ? {
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: post.title,
+        description: post.meta_description || post.title,
+        thumbnailUrl: `https://img.youtube.com/vi/${post.youtube_video_id}/maxresdefault.jpg`,
+        uploadDate: post.publish_date || post.created_at,
+        contentUrl: `https://www.youtube.com/watch?v=${post.youtube_video_id}`,
+        embedUrl: `https://www.youtube.com/embed/${post.youtube_video_id}`,
+        publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
+    } : null;
+
     // Slug-specific FAQ schemas for Google rich results
     const blogFaqData: Record<string, Array<{ name: string; text: string }>> = {
         'how-to-become-a-pmhnp': [
@@ -177,6 +190,27 @@ export default async function BlogPostPage({ params }: Props) {
         ],
     };
 
+    // Dynamic FAQ generation for state license posts
+    const stateSlugMatch = slug.match(/^how-to-get-your-pmhnp-license-in-(.+)-2026/);
+    if (stateSlugMatch && !blogFaqData[slug]) {
+        const stateNameRaw = stateSlugMatch[1].replace(/-/g, ' ');
+        const stateName = stateNameRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        blogFaqData[slug] = [
+            {
+                name: `How long does it take to get a PMHNP license in ${stateName}?`,
+                text: `The timeline to obtain your PMHNP license in ${stateName} typically takes 2-4 weeks after submitting a complete application, assuming you have already earned your MSN/DNP, passed the ANCC PMHNP-BC certification exam, and hold an active RN license. Processing times vary based on ${stateName}'s Board of Nursing workload.`,
+            },
+            {
+                name: `What are the requirements to become a PMHNP in ${stateName}?`,
+                text: `To practice as a PMHNP in ${stateName}, you need: (1) an active RN license, (2) a Master's or Doctoral degree in nursing with PMHNP specialization from an accredited program, (3) national certification as a PMHNP-BC from ANCC, and (4) an APRN license from ${stateName}'s Board of Nursing. Prescriptive authority may require additional applications.`,
+            },
+            {
+                name: `What is the average PMHNP salary in ${stateName}?`,
+                text: `PMHNP salaries in ${stateName} vary by setting and experience. Refer to the salary section in our detailed ${stateName} licensing guide above for the latest data, including comparisons between inpatient, outpatient, and telehealth settings.`,
+            },
+        ];
+    }
+
     const faqQuestions = blogFaqData[slug];
     const faqSchema = faqQuestions ? {
         '@context': 'https://schema.org',
@@ -203,6 +237,13 @@ export default async function BlogPostPage({ params }: Props) {
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                />
+            )}
+            {/* VideoObject Schema (when YouTube video is present) */}
+            {videoSchema && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
                 />
             )}
             {/* Breadcrumb Schema */}
@@ -276,6 +317,25 @@ export default async function BlogPostPage({ params }: Props) {
                         className="w-full h-auto max-h-[480px] object-cover rounded-xl shadow-md"
                         loading="eager"
                     />
+                </div>
+            )}
+
+            {/* YouTube Video Embed */}
+            {post.youtube_video_id && (
+                <div className="max-w-4xl mx-auto px-4 mt-8">
+                    <div className="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-md bg-gray-900">
+                        <iframe
+                            src={`https://www.youtube.com/embed/${post.youtube_video_id}?rel=0`}
+                            title={post.title}
+                            loading="lazy"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute top-0 left-0 w-full h-full"
+                        />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2 text-center">
+                        ▶ Watch our complete video walkthrough
+                    </p>
                 </div>
             )}
 

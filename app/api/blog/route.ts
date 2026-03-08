@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Validate required fields
-        const { title, content, meta_description, target_keyword, category, status, publish_date, format, image_url } =
+        const { title, content, meta_description, target_keyword, category, status, publish_date, format, image_url, youtube_video_id } =
             body;
 
         if (!title || !content) {
@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
             meta_description: meta_description || null,
             target_keyword: target_keyword || null,
             image_url: finalImageUrl,
+            youtube_video_id: youtube_video_id || null,
             category,
             status: postStatus,
             publish_date: publish_date || (postStatus === 'published' ? new Date().toISOString() : null),
@@ -140,5 +141,48 @@ export async function POST(request: NextRequest) {
             { error: `Failed to create blog post: ${message}` },
             { status: 500 }
         );
+    }
+}
+
+// ─── PATCH /api/blog ─────────────────────────────────────────────────────────
+
+export async function PATCH(request: NextRequest) {
+    const authHeader = request.headers.get('Authorization');
+    const apiKey = process.env.BLOG_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'BLOG_API_KEY not configured' }, { status: 500 });
+    const providedKey = authHeader?.replace('Bearer ', '');
+    if (!providedKey || providedKey !== apiKey) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    try {
+        const body = await request.json();
+        const { slug, youtube_video_id, image_url } = body;
+        if (!slug) return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const updates: Record<string, string | null> = {};
+        if (youtube_video_id !== undefined) updates.youtube_video_id = youtube_video_id;
+        if (image_url !== undefined) updates.image_url = image_url;
+
+        if (Object.keys(updates).length === 0) {
+            return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+        }
+
+        const { data, error } = await supabase
+            .from('blog_posts')
+            .update(updates)
+            .eq('slug', slug)
+            .select('id, slug, youtube_video_id, image_url')
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json({ success: true, post: data });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
