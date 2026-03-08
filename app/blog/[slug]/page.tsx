@@ -211,6 +211,30 @@ export default async function BlogPostPage({ params }: Props) {
         ];
     }
 
+    // HowTo schema for state license guides (Google shows numbered steps in search)
+    const howToSchema = stateSlugMatch ? (() => {
+        const stateNameRaw = stateSlugMatch[1].replace(/-/g, ' ');
+        const sn = stateNameRaw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        return {
+            '@context': 'https://schema.org',
+            '@type': 'HowTo',
+            name: `How to Get Your PMHNP License in ${sn}`,
+            description: `Step-by-step guide to obtaining your Psychiatric-Mental Health Nurse Practitioner license in ${sn}.`,
+            totalTime: 'P60D',
+            estimatedCost: { '@type': 'MonetaryCost', currency: 'USD', value: '500-1500' },
+            image: post.image_url || undefined,
+            step: [
+                { '@type': 'HowToStep', position: 1, name: 'Complete MSN or DNP', text: `Earn a Master of Science in Nursing (MSN) or Doctor of Nursing Practice (DNP) degree with a Psychiatric-Mental Health Nurse Practitioner specialization from an CCNE or ACEN accredited program.` },
+                { '@type': 'HowToStep', position: 2, name: 'Pass the ANCC PMHNP-BC Exam', text: 'Pass the American Nurses Credentialing Center (ANCC) Psychiatric-Mental Health Nurse Practitioner Board Certification (PMHNP-BC) examination.' },
+                { '@type': 'HowToStep', position: 3, name: `Apply for ${sn} RN License`, text: `Obtain or verify your Registered Nurse (RN) license with the ${sn} Board of Nursing. If licensed in another state, apply for licensure by endorsement.` },
+                { '@type': 'HowToStep', position: 4, name: `Apply for ${sn} APRN License`, text: `Submit your Advanced Practice Registered Nurse (APRN) application to the ${sn} Board of Nursing, including proof of education, national certification, and any required fees.` },
+                { '@type': 'HowToStep', position: 5, name: 'Apply for Prescriptive Authority', text: `Apply for prescriptive authority through ${sn}'s Board of Nursing or Board of Pharmacy, which allows you to prescribe medications including controlled substances.` },
+                { '@type': 'HowToStep', position: 6, name: 'Register with DEA', text: 'Register with the Drug Enforcement Administration (DEA) to obtain a DEA number, required for prescribing controlled substances.' },
+                { '@type': 'HowToStep', position: 7, name: 'Apply for NPI Number', text: 'Apply for a National Provider Identifier (NPI) number through the National Plan and Provider Enumeration System (NPPES), required for billing and insurance purposes.' },
+            ],
+        };
+    })() : null;
+
     const faqQuestions = blogFaqData[slug];
     const faqSchema = faqQuestions ? {
         '@context': 'https://schema.org',
@@ -244,6 +268,13 @@ export default async function BlogPostPage({ params }: Props) {
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
+                />
+            )}
+            {/* HowTo Schema (state license guides) */}
+            {howToSchema && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
                 />
             )}
             {/* Breadcrumb Schema */}
