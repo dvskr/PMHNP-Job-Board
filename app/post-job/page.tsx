@@ -33,7 +33,8 @@ const jobPostingSchema = z.object({
   salaryMax: z.number().positive('Maximum salary must be a positive number').optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
   description: z.string().min(200, 'Job description must be at least 200 characters'),
-  applyUrl: z.string().url('Must be a valid URL'),
+  applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  applyOnPlatform: z.boolean().optional(),
   pricingTier: z.enum(['standard', 'featured']),
   benefits: z.array(z.string()).optional(),
   setting: z.string().optional(),
@@ -69,6 +70,15 @@ const jobPostingSchema = z.object({
         path: ['salaryMin'],
       });
     }
+  }
+
+  // Validate applyUrl is required when NOT using platform apply
+  if (!data.applyOnPlatform && (!data.applyUrl || data.applyUrl.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Apply URL is required when not using platform applications',
+      path: ['applyUrl'],
+    });
   }
 });
 
@@ -140,6 +150,7 @@ function PostJobContent() {
       salaryCompetitive: false,
       salaryPeriod: 'annual',
       benefits: [],
+      applyOnPlatform: false,
     },
   });
 
@@ -735,30 +746,93 @@ function PostJobContent() {
                 </div>
               </div>
 
-              {/* Apply URL */}
+              {/* How Should Candidates Apply */}
               <div>
-                <label htmlFor="applyUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                  How to Apply URL <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  How should candidates apply? <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="url"
-                  inputMode="url"
-                  id="applyUrl"
-                  placeholder="https://www.example.com/careers/apply"
-                  {...register('applyUrl')}
-                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.applyUrl ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                    }`}
-                  style={{ minHeight: '44px' }}
-                />
-                {errors.applyUrl && (
-                  <p className="mt-2 text-sm font-medium text-red-600">{errors.applyUrl.message}</p>
-                )}
-                <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-                  <span className="text-amber-500 text-lg leading-none mt-0.5">💡</span>
-                  <p className="text-sm text-amber-800">
-                    This should be a direct link to your application page — <strong>not your company homepage</strong>. Candidates will click &quot;Apply Now&quot; and be taken directly to this URL.
-                  </p>
+                <div className="space-y-3">
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${!watch('applyOnPlatform')
+                        ? 'border-teal-500 bg-teal-50/50'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      checked={!watch('applyOnPlatform')}
+                      onChange={() => setValue('applyOnPlatform', false)}
+                      className="w-5 h-5 text-teal-600 border-gray-300 focus:ring-teal-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-base font-medium text-gray-900">External Application URL</span>
+                      <p className="text-sm text-gray-500 mt-0.5">Candidates will be redirected to your website or ATS to apply</p>
+                    </div>
+                  </label>
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${watch('applyOnPlatform')
+                        ? 'border-teal-500 bg-teal-50/50'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      checked={watch('applyOnPlatform') === true}
+                      onChange={() => {
+                        setValue('applyOnPlatform', true);
+                        setValue('applyUrl', '');
+                      }}
+                      className="w-5 h-5 text-teal-600 border-gray-300 focus:ring-teal-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-base font-medium text-gray-900">Receive applications on PMHNP Hiring</span>
+                      <p className="text-sm text-gray-500 mt-0.5">Candidates apply directly on our platform — no website needed. You&apos;ll receive applications in your employer dashboard.</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">✓ Resume collection</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">✓ Cover letter</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">✓ Email notifications</span>
+                      </div>
+                    </div>
+                  </label>
                 </div>
+
+                {/* External Apply URL — only shown when NOT using platform */}
+                {!watch('applyOnPlatform') && (
+                  <div className="mt-4">
+                    <label htmlFor="applyUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                      Application URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      inputMode="url"
+                      id="applyUrl"
+                      placeholder="https://www.example.com/careers/apply"
+                      {...register('applyUrl')}
+                      className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.applyUrl ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                        }`}
+                      style={{ minHeight: '44px' }}
+                    />
+                    {errors.applyUrl && (
+                      <p className="mt-2 text-sm font-medium text-red-600">{errors.applyUrl.message}</p>
+                    )}
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+                      <span className="text-amber-500 text-lg leading-none mt-0.5">💡</span>
+                      <p className="text-sm text-amber-800">
+                        This should be a direct link to your application page — <strong>not your company homepage</strong>. Candidates will click &quot;Apply Now&quot; and be taken directly to this URL.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Platform apply info */}
+                {watch('applyOnPlatform') && (
+                  <div className="mt-4 flex items-start gap-2 rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
+                    <span className="text-teal-500 text-lg leading-none mt-0.5">✅</span>
+                    <p className="text-sm text-teal-800">
+                      <strong>Great choice!</strong> Candidates will apply directly on this platform. You&apos;ll receive email notifications for each new application and can manage all applicants from your employer dashboard.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

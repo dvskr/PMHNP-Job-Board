@@ -18,7 +18,8 @@ interface JobFormData {
   salaryMin?: number;
   salaryMax?: number;
   salaryPeriod?: string;
-  applyUrl: string;
+  applyUrl?: string;
+  applyOnPlatform?: boolean;
   contactEmail: string;
   pricingTier: 'standard' | 'featured';
   benefits?: string[];
@@ -81,7 +82,8 @@ export default function PreviewPage() {
             mode: formData.mode,
             jobType: formData.jobType,
             description: formData.description,
-            applyLink: formData.applyUrl,
+            applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
+            applyOnPlatform: formData.applyOnPlatform || false,
             contactEmail: formData.contactEmail,
             minSalary: formData.salaryMin,
             maxSalary: formData.salaryMax,
@@ -285,18 +287,34 @@ export default function PreviewPage() {
                 </div>
               )}
 
-              {/* Apply Button (Disabled) */}
+              {/* Apply Button / Platform Info */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <a
-                  href={formData.applyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
-                >
-                  Apply Now
-                  <ExternalLink size={20} />
-                </a>
-                <p className="mt-2 text-xs text-gray-500">Opens in a new tab — verify your apply link works correctly.</p>
+                {formData.applyOnPlatform ? (
+                  <div>
+                    <div className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold">
+                      Apply Now
+                    </div>
+                    <div className="mt-3 flex items-start gap-2 rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
+                      <span className="text-teal-500 text-base leading-none mt-0.5">✅</span>
+                      <p className="text-sm text-teal-800">
+                        Candidates will apply directly on this platform. Applications will be delivered to your employer dashboard and via email.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <a
+                      href={formData.applyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+                    >
+                      Apply Now
+                      <ExternalLink size={20} />
+                    </a>
+                    <p className="mt-2 text-xs text-gray-500">Opens in a new tab — verify your apply link works correctly.</p>
+                  </>
+                )}
               </div>
             </div>
           </div>

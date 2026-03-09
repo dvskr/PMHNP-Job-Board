@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, BellOff } from 'lucide-react';
 import { config } from '@/lib/config';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
@@ -53,6 +53,25 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
             .then(d => { setNewsletterOptIn(d.optIn ?? false); setNewsletterChecked(true); })
             .catch(() => setNewsletterChecked(true));
     }, [employerEmail, isTokenAccess]);
+
+    // Notification preferences (only for logged-in users)
+    interface NotifPref {
+        employerJobId: string;
+        jobId: string;
+        jobTitle: string;
+        notifyOnApplication: boolean;
+        notifyDigest: string;
+    }
+    const [notifPrefs, setNotifPrefs] = useState<NotifPref[]>([]);
+    const [notifLoading, setNotifLoading] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isTokenAccess) return;
+        fetch('/api/employer/settings/notifications')
+            .then(r => r.json())
+            .then(d => setNotifPrefs(d.preferences || []))
+            .catch(() => { });
+    }, [isTokenAccess]);
 
     const handleNewsletterToggle = async () => {
         setNewsletterLoading(true);
@@ -514,6 +533,98 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                                     }} />
                                 </button>
+                            </div>
+                        )}
+
+                        {/* Notification Preferences — session access only */}
+                        {!isTokenAccess && notifPrefs.length > 0 && (
+                            <div
+                                className="mt-4 rounded-lg p-6"
+                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div
+                                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'rgba(20,184,166,0.1)' }}
+                                    >
+                                        <Bell size={20} style={{ color: '#14B8A6' }} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                                            Application Notifications
+                                        </h3>
+                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                            Get notified when candidates apply to your jobs
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    {notifPrefs.map(pref => (
+                                        <div
+                                            key={pref.employerJobId}
+                                            className="flex items-center justify-between gap-4 p-3 rounded-lg"
+                                            style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                                    {pref.jobTitle}
+                                                </p>
+                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                                    {pref.notifyOnApplication ? 'Email on each application' : 'Notifications off'}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    setNotifLoading(pref.employerJobId);
+                                                    const newState = !pref.notifyOnApplication;
+                                                    setNotifPrefs(prev => prev.map(p =>
+                                                        p.employerJobId === pref.employerJobId
+                                                            ? { ...p, notifyOnApplication: newState }
+                                                            : p
+                                                    ));
+                                                    try {
+                                                        await fetch('/api/employer/settings/notifications', {
+                                                            method: 'PATCH',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                employerJobId: pref.employerJobId,
+                                                                notifyOnApplication: newState,
+                                                            }),
+                                                        });
+                                                    } catch {
+                                                        setNotifPrefs(prev => prev.map(p =>
+                                                            p.employerJobId === pref.employerJobId
+                                                                ? { ...p, notifyOnApplication: !newState }
+                                                                : p
+                                                        ));
+                                                    } finally {
+                                                        setNotifLoading(null);
+                                                    }
+                                                }}
+                                                disabled={notifLoading === pref.employerJobId}
+                                                style={{
+                                                    position: 'relative',
+                                                    width: '44px', height: '24px',
+                                                    borderRadius: '12px',
+                                                    background: pref.notifyOnApplication ? '#14B8A6' : 'var(--bg-tertiary)',
+                                                    border: '1px solid',
+                                                    borderColor: pref.notifyOnApplication ? '#14B8A6' : 'var(--border-color)',
+                                                    cursor: 'pointer', transition: 'all 0.2s',
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: 'absolute', top: '2px',
+                                                    left: pref.notifyOnApplication ? '22px' : '2px',
+                                                    width: '18px', height: '18px', borderRadius: '50%',
+                                                    background: '#fff',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                }} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
 

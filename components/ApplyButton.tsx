@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { ExternalLink, LogIn } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
+import InPlatformApplyForm from '@/components/InPlatformApplyForm';
 
 interface ApplyButtonProps {
   jobId: string;
-  applyLink: string;
+  applyLink: string | null;
   jobTitle: string;
   isAuthenticated?: boolean;
+  applyOnPlatform?: boolean;
 }
 
 function formatAppliedDate(date: Date): string {
@@ -19,10 +21,11 @@ function formatAppliedDate(date: Date): string {
   });
 }
 
-export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false }: ApplyButtonProps) {
+export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPlatformApply, setShowPlatformApply] = useState(false);
 
   const applied = isApplied(jobId);
   const appliedDate = getAppliedDate(jobId);
@@ -34,19 +37,28 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       return;
     }
 
-    // Track apply click (fire and forget)
-    try {
-      fetch(`/api/jobs/${jobId}/track-apply`, {
-        method: 'POST',
-      }).catch(() => { });
-    } catch { }
+    // Platform apply: show inline form
+    if (applyOnPlatform) {
+      setShowPlatformApply(true);
+      return;
+    }
 
-    // Open apply link in new tab
-    window.open(applyLink, '_blank', 'noopener,noreferrer');
+    // External apply: open link in new tab
+    if (applyLink) {
+      // Track apply click (fire and forget)
+      try {
+        fetch(`/api/jobs/${jobId}/track-apply`, {
+          method: 'POST',
+        }).catch(() => { });
+      } catch { }
 
-    // Show confirmation modal only if not already applied
-    if (!isApplied(jobId)) {
-      setShowConfirmModal(true);
+      // Open apply link in new tab
+      window.open(applyLink, '_blank', 'noopener,noreferrer');
+
+      // Show confirmation modal only if not already applied
+      if (!isApplied(jobId)) {
+        setShowConfirmModal(true);
+      }
     }
   };
 
@@ -68,6 +80,11 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     setShowConfirmModal(false);
   };
 
+  const handlePlatformApplySuccess = () => {
+    markApplied(jobId);
+    setShowPlatformApply(false);
+  };
+
   const handleSignIn = () => {
     const returnUrl = window.location.pathname;
     window.location.href = `/login?redirectTo=${encodeURIComponent(returnUrl)}`;
@@ -80,8 +97,16 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
 
   return (
     <div className="flex flex-col w-full">
-      {/* Inline Auth Gate — replaces button area when triggered */}
-      {showAuthModal ? (
+      {/* In-Platform Apply Form */}
+      {showPlatformApply ? (
+        <InPlatformApplyForm
+          jobId={jobId}
+          jobTitle={jobTitle}
+          onClose={() => setShowPlatformApply(false)}
+          onSuccess={handlePlatformApplySuccess}
+        />
+      ) : showAuthModal ? (
+        /* Inline Auth Gate — replaces button area when triggered */
         <div className="w-full">
           {/* Title */}
           <div className="flex items-center gap-2 mb-3">
@@ -165,7 +190,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
               }}
             >
               {applied ? 'Apply Again' : 'Apply Now'}
-              <ExternalLink size={20} />
+              {!applyOnPlatform && <ExternalLink size={20} />}
             </button>
 
             {applied && (
@@ -228,3 +253,4 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     </div>
   );
 }
+

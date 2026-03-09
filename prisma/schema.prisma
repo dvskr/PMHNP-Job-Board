@@ -32,7 +32,8 @@ model Job {
   salaryIsEstimated   Boolean      @default(false) @map("salary_is_estimated")
   salaryConfidence    Float?       @map("salary_confidence")
   displaySalary       String?      @map("display_salary")
-  applyLink           String       @map("apply_link")
+  applyLink           String?      @map("apply_link")
+  applyOnPlatform     Boolean      @default(false) @map("apply_on_platform")
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
@@ -129,6 +130,8 @@ model EmployerJob {
   createdAt           DateTime     @default(now()) @map("created_at")
   updatedAt           DateTime     @updatedAt @map("updated_at")
   expiryWarningSentAt DateTime?    @map("expiry_warning_sent_at")
+  notifyOnApplication Boolean      @default(true) @map("notify_on_application")
+  notifyDigest        String       @default("instant") @map("notify_digest") // instant, daily, off
   userId              String?      @map("user_id")
   job                 Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user                UserProfile? @relation(fields: [userId], references: [supabaseId])
@@ -330,10 +333,15 @@ model JobApplication {
   userId          String      @map("user_id")
   jobId           String      @map("job_id")
   sourceUrl       String?     @map("source_url")
+  coverLetter     String?     @map("cover_letter")
+  resumeUrl       String?     @map("resume_url")
   appliedAt       DateTime    @default(now()) @map("applied_at")
   status          String      @default("applied") // applied, screening, interview, offered, hired, rejected
   notes           String?     // Private employer notes
   statusUpdatedAt DateTime?   @map("status_updated_at")
+  consentGiven    Boolean     @default(false) @map("consent_given")
+  consentGivenAt  DateTime?   @map("consent_given_at")
+  withdrawnAt     DateTime?   @map("withdrawn_at")
   user            UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
   job             Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
@@ -431,6 +439,7 @@ model BlogPost {
   status          String   @default("draft")
   publishDate     DateTime? @map("publish_date")
   imageUrl        String?  @map("image_url")
+  youtubeVideoId  String?  @map("youtube_video_id")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -438,6 +447,38 @@ model BlogPost {
   @@index([slug])
   @@index([category])
   @@map("blog_posts")
+}
+
+model YouTubeVideo {
+  id                String    @id @default(uuid())
+  stateKey          String    @unique @map("state_key")
+  stateName         String    @map("state_name")
+  blogSlug          String    @unique @map("blog_slug")
+
+  // YouTube metadata
+  ytTitle           String    @map("yt_title")
+  ytDescription     String    @map("yt_description")
+  ytTags            String[]  @default([]) @map("yt_tags")
+  seoKeywords       String[]  @default([]) @map("seo_keywords")
+  hashtags          String[]  @default([]) @map("hashtags")
+
+  // Storage URLs (Supabase Storage public URLs)
+  thumbnailUrl      String?   @map("thumbnail_url")
+  videoUrl          String?   @map("video_url")
+
+  // Upload & publish tracking
+  youtubeVideoId    String?   @map("youtube_video_id")
+  postizPostId      String?   @map("postiz_post_id")
+  status            String    @default("pending")
+  scheduledDate     DateTime? @map("scheduled_date")
+  publishedDate     DateTime? @map("published_date")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([stateKey])
+  @@map("youtube_videos")
 }
 
 // ═══════════════════════════════════════════════════════════════

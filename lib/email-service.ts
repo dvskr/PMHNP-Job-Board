@@ -1142,3 +1142,87 @@ export async function sendBroadcastEmail(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEW APPLICATION NOTIFICATION (Employer — Platform Apply)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface NewApplicationEmailParams {
+  employerEmail: string;
+  employerName: string;
+  jobTitle: string;
+  candidateName: string;
+  candidateHeadline?: string;
+  candidateExperience?: number | null;
+  hasResume: boolean;
+  hasCoverLetter: boolean;
+}
+
+export async function sendNewApplicationEmail(params: NewApplicationEmailParams): Promise<EmailResult> {
+  const {
+    employerEmail,
+    employerName,
+    jobTitle,
+    candidateName,
+    candidateHeadline,
+    candidateExperience,
+    hasResume,
+    hasCoverLetter,
+  } = params;
+
+  try {
+    const greeting = employerName ? `Hi ${employerName.split(' ')[0]},` : 'Hi there,';
+
+    const html = emailShell(`
+          ${headerBlock('New Application Received!', jobTitle)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                ${greeting} a candidate has applied for your job posting on PMHNP Hiring.
+              </p>
+
+              ${infoCard(`
+                    ${sectionLabel('Candidate')}
+                    <p style="margin: 0 0 4px; font-family: ${F}; font-size: 17px; font-weight: bold; color: ${C.textPrimary};">${candidateName}</p>
+                    ${candidateHeadline ? `<p style="margin: 0 0 4px; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateHeadline}</p>` : ''}
+                    ${candidateExperience ? `<p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateExperience}+ years experience</p>` : ''}
+              `, C.tealDarker)}
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                ${featureRow(hasResume ? '✅' : '❌', 'Resume', hasResume ? 'Resume attached' : 'No resume submitted')}
+                ${featureRow(hasCoverLetter ? '✅' : '—', 'Cover Letter', hasCoverLetter ? 'Cover letter included' : 'No cover letter')}
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    ${primaryButton('View Applicant →', `${BASE_URL}/employer/dashboard`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+      </p>`,
+      `${candidateName} applied for "${jobTitle}" — view their application now!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: employerEmail,
+      subject: `📋 New application for "${jobTitle}" — ${candidateName}`,
+      html,
+    });
+
+    logger.info('New application notification sent', { employerEmail, jobTitle, candidateName });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending new application notification', error, { employerEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send application notification',
+    };
+  }
+}
+
+

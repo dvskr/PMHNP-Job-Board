@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       jobType,
       description,
       applyLink,
+      applyOnPlatform,
       contactEmail,
       minSalary,
       maxSalary,
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (!mode) missingFields.push('work mode');
     if (!jobType) missingFields.push('job type');
     if (!description) missingFields.push('description');
-    if (!applyLink) missingFields.push('apply URL');
+    if (!applyOnPlatform && !applyLink) missingFields.push('apply URL');
     if (!contactEmail) missingFields.push('contact email');
 
     if (missingFields.length > 0) {
@@ -102,8 +103,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate sanitized URL
-    if (!sanitized.applyLink) {
+    // Validate sanitized URL (only for external apply)
+    if (!applyOnPlatform && !sanitized.applyLink) {
       return NextResponse.json(
         { error: 'Invalid apply link URL' },
         { status: 400 }
@@ -235,7 +236,8 @@ export async function POST(request: NextRequest) {
         mode: sanitized.mode || null,
         description: sanitized.description,
         descriptionSummary: sanitized.description.slice(0, 300),
-        applyLink: sanitized.applyLink,
+        applyLink: applyOnPlatform ? null : sanitized.applyLink,
+        applyOnPlatform: applyOnPlatform || false,
         minSalary: parsedMinSalary,
         maxSalary: parsedMaxSalary,
         salaryPeriod: parsedSalaryPeriod,

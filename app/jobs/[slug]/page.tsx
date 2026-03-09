@@ -759,7 +759,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div className="space-y-3 mb-5">
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
                   <SaveJobButton jobId={job.id} />
 
                 </div>
@@ -807,7 +807,7 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-3 pb-safe">
-          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
+          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
         </div>
       </div>
     </>

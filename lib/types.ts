@@ -29,7 +29,8 @@ export interface Job {
   salaryIsEstimated: boolean;
   salaryConfidence: number | null;
   displaySalary: string | null;
-  applyLink: string;
+  applyLink: string | null;
+  applyOnPlatform: boolean;
   isFeatured: boolean;
   isPublished: boolean;
   isVerifiedEmployer: boolean;

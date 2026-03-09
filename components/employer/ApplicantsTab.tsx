@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronDown, User, Clock, FileText, X, Mail } from 'lucide-react';
+import { ChevronDown, User, Clock, FileText, X, Mail, Download, Eye, EyeOff } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import ComposeMessageModal from './ComposeMessageModal';
 
@@ -13,12 +13,15 @@ const STATUSES = [
     { value: 'offered', label: 'Offered', color: '#7C3AED', bg: '#EDE9FE' },
     { value: 'hired', label: 'Hired', color: '#059669', bg: '#D1FAE5' },
     { value: 'rejected', label: 'Rejected', color: '#DC2626', bg: '#FEE2E2' },
+    { value: 'withdrawn', label: 'Withdrawn', color: '#9CA3AF', bg: '#F3F4F6' },
 ] as const;
 
 interface Applicant {
     id: string;
     status: string;
     notes: string | null;
+    coverLetter: string | null;
+    resumeUrl: string | null;
     appliedAt: string;
     statusUpdatedAt: string | null;
     candidate: {
@@ -52,6 +55,7 @@ export default function ApplicantsTab() {
     const [editingNotes, setEditingNotes] = useState<string | null>(null);
     const [notesValue, setNotesValue] = useState('');
     const [messagingApplicant, setMessagingApplicant] = useState<Applicant | null>(null);
+    const [expandedCoverLetter, setExpandedCoverLetter] = useState<string | null>(null);
 
     const fetchApplicants = useCallback(async () => {
         setLoading(true);
@@ -300,6 +304,64 @@ export default function ApplicantsTab() {
                                                 )}
                                             </div>
                                         </div>
+
+                                        {/* Resume & Cover Letter Section */}
+                                        {(app.resumeUrl || app.coverLetter) && (
+                                            <div
+                                                className="mt-3 pt-3 flex flex-wrap items-center gap-2"
+                                                style={{ borderTop: '1px solid var(--border-color)' }}
+                                            >
+                                                {app.resumeUrl && (
+                                                    <a
+                                                        href={app.resumeUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-teal-50"
+                                                        style={{
+                                                            backgroundColor: 'rgba(13,148,136,0.08)',
+                                                            color: '#0d9488',
+                                                            border: '1px solid rgba(13,148,136,0.2)',
+                                                        }}
+                                                    >
+                                                        <Download size={12} />
+                                                        View Resume
+                                                    </a>
+                                                )}
+                                                {app.coverLetter && (
+                                                    <button
+                                                        onClick={() => setExpandedCoverLetter(
+                                                            expandedCoverLetter === app.id ? null : app.id
+                                                        )}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
+                                                        style={{
+                                                            backgroundColor: 'rgba(37,99,235,0.08)',
+                                                            color: '#2563EB',
+                                                            border: '1px solid rgba(37,99,235,0.2)',
+                                                        }}
+                                                    >
+                                                        {expandedCoverLetter === app.id ? <EyeOff size={12} /> : <Eye size={12} />}
+                                                        {expandedCoverLetter === app.id ? 'Hide' : 'View'} Cover Letter
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Expanded Cover Letter */}
+                                        {expandedCoverLetter === app.id && app.coverLetter && (
+                                            <div
+                                                className="mt-3 p-4 rounded-lg text-sm whitespace-pre-wrap"
+                                                style={{
+                                                    backgroundColor: 'var(--bg-tertiary)',
+                                                    color: 'var(--text-secondary)',
+                                                    border: '1px solid var(--border-color)',
+                                                    maxHeight: '200px',
+                                                    overflowY: 'auto',
+                                                    lineHeight: '1.6',
+                                                }}
+                                            >
+                                                {app.coverLetter}
+                                            </div>
+                                        )}
 
                                         {/* Actions */}
                                         <div className="flex items-center gap-2 flex-shrink-0">

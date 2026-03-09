@@ -491,6 +491,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
       isRemote: isRemote,
       isHybrid: isHybrid,
       applyLink,
+      applyOnPlatform: false,
       isFeatured: false,
       isPublished: true,
       isVerifiedEmployer: false,

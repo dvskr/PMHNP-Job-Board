@@ -84,6 +84,8 @@ export async function GET(req: NextRequest) {
         id: app.id,
         status: app.status,
         notes: app.notes,
+        coverLetter: app.coverLetter || null,
+        resumeUrl: app.resumeUrl || null,
         appliedAt: app.appliedAt.toISOString(),
         statusUpdatedAt: app.statusUpdatedAt?.toISOString() || null,
         candidate: {
@@ -157,7 +159,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Validate status
-    const validStatuses = ['applied', 'screening', 'interview', 'offered', 'hired', 'rejected'];
+    const validStatuses = ['applied', 'screening', 'interview', 'offered', 'hired', 'rejected', 'withdrawn'];
     if (status && !validStatuses.includes(status)) {
         return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, { status: 400 });
     }
