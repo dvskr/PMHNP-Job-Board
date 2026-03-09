@@ -113,7 +113,7 @@ export interface JobPostingInput {
     employer: string;
     location: string;
     description: string;
-    applyLink: string;
+    applyLink: string | null;
     contactEmail: string;
     mode?: string;
     jobType?: string;
@@ -129,7 +129,7 @@ export function sanitizeJobPosting(input: JobPostingInput): JobPostingInput {
         employer: sanitizeText(input.employer, 200),
         location: sanitizeText(input.location, 200),
         description: sanitizeText(input.description, 50000),
-        applyLink: sanitizeUrl(input.applyLink),
+        applyLink: input.applyLink ? sanitizeUrl(input.applyLink) : null,
         contactEmail: sanitizeEmail(input.contactEmail),
         mode: input.mode ? sanitizeText(input.mode, 50) : undefined,
         jobType: input.jobType ? sanitizeText(input.jobType, 50) : undefined,
