@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanAllJobDescriptions } from '@/lib/description-cleaner';
 
+export const maxDuration = 300; // 5 minutes — cleans all job descriptions
+
 export async function POST(request: NextRequest) {
   try {
     // Verify authorization
@@ -23,17 +25,17 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[CLEANUP API] Starting description cleanup...');
-    
+
     const result = await cleanAllJobDescriptions();
-    
+
     const response = {
       success: true,
       ...result,
       timestamp: new Date().toISOString(),
     };
-    
+
     console.log('[CLEANUP API] Complete:', response);
-    
+
     return NextResponse.json(response);
   } catch (error) {
     console.error('[CLEANUP API] Error:', error);

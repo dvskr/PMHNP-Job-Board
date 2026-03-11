@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { pingAllSearchEnginesBatch } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 
+export const maxDuration = 300; // 5 minutes — submits 200+ URLs to search engines
+
 const BASE_URL = 'https://pmhnphiring.com';
 
 /**

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, CheckCircle, Eye, Bookmark } from 'lucide-react';
+import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
@@ -60,6 +60,18 @@ function buildSalaryDisplay(job: Job): string | null {
   return null;
 }
 
+// Check if a job link goes directly to an employer's ATS career page
+const ATS_PATTERNS = [
+  /\.myworkdayjobs\.com/i, /greenhouse\.io/i, /lever\.co/i,
+  /jobs\.ashbyhq\.com/i, /smartrecruiters\.com/i, /icims\.com/i,
+  /jazz\.co/i, /bamboohr\.com/i, /usajobs\.gov/i,
+  /apply\.workable\.com/i, /careers\./i, /jobs\./i,
+];
+function isDirectApply(url: string | null): boolean {
+  if (!url) return false;
+  return ATS_PATTERNS.some(p => p.test(url));
+}
+
 function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
   const { isSaved, saveJob, removeJob } = useSavedJobs();
@@ -75,6 +87,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);
+  const directApply = isDirectApply(job.applyLink);
 
   // Clean summary for display
   const cleanSummary = stripHtml(job.descriptionSummary);
@@ -163,6 +176,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                     {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
                     {job.isVerifiedEmployer && (
                       <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
+                    )}
+                    {directApply && (
+                      <Badge variant="primary" size="sm"><ExternalLink size={11} /> Direct Apply</Badge>
                     )}
                   </div>
                 </div>
@@ -325,7 +341,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         )}
 
         {/* Badges */}
-        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer) && (
+        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer || directApply) && (
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
             {isNew && <Badge variant="warning" size="sm">New</Badge>}
             {viewed && !applied && (
@@ -342,6 +358,9 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
             {job.isVerifiedEmployer && (
               <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
+            )}
+            {directApply && (
+              <Badge variant="primary" size="sm"><ExternalLink size={11} /> Direct Apply</Badge>
             )}
           </div>
         )}

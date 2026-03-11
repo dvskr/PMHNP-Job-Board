@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { sendNewCandidateAlertEmail } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
 
+export const maxDuration = 120; // 2 minutes — email sends to multiple employers
+
 /**
  * GET /api/cron/candidate-alerts
  * Matches new candidates against employer alert preferences and sends digest emails.

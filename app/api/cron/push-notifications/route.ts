@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import webpush from 'web-push'
 
+export const maxDuration = 120 // 2 minutes — push notifications to subscribers
+
 // Set VAPID details (must set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY env vars)
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ''
