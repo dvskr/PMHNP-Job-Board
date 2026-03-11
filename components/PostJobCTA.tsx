@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 /**
- * B10: "Post a Job — First One Free" CTA banner
+ * "Post a Job — First One Free" CTA banner
  * Standalone section for the homepage between WhyUs and Testimonials.
+ * Theme-aware — works in both dark and light mode.
  */
 export default function PostJobCTA() {
     return (
@@ -15,8 +16,8 @@ export default function PostJobCTA() {
                     href="/post-job"
                     className="post-job-cta-block block rounded-2xl p-8 sm:p-10 text-center transition-all duration-300"
                     style={{
-                        background: 'linear-gradient(135deg, #060E18 0%, #0c1929 50%, #060E18 100%)',
-                        border: '1px solid rgba(45,212,191,0.15)',
+                        background: 'var(--postjob-cta-bg)',
+                        border: '1px solid var(--postjob-cta-border)',
                         textDecoration: 'none',
                         position: 'relative',
                         overflow: 'hidden',
@@ -35,11 +36,11 @@ export default function PostJobCTA() {
                             For Employers
                         </span>
 
-                        <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+                        <h3 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
                             Post a Job — First One Free
                         </h3>
 
-                        <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.6)', maxWidth: '400px', margin: '0 auto 24px' }}>
+                        <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto 24px' }}>
                             Reach thousands of qualified PMHNPs. No credit card required for your first listing.
                         </p>
 
@@ -57,6 +58,16 @@ export default function PostJobCTA() {
             </div>
 
             <style>{`
+                /* Dark mode (default) */
+                :root, html.dark {
+                    --postjob-cta-bg: linear-gradient(135deg, #060E18 0%, #0c1929 50%, #060E18 100%);
+                    --postjob-cta-border: rgba(45,212,191,0.15);
+                }
+                /* Light mode */
+                html.light {
+                    --postjob-cta-bg: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 50%, #F0FDFA 100%);
+                    --postjob-cta-border: rgba(13,148,136,0.2);
+                }
                 .post-job-cta-block:hover {
                     transform: translateY(-3px);
                     border-color: rgba(45,212,191,0.3) !important;
