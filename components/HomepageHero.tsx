@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, MapPin, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import LiveVisitorBadge from '@/components/LiveVisitorBadge';
 
 interface HomepageHeroProps {
     jobCountDisplay: string;
@@ -107,62 +108,6 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
         >
             <style>{css}</style>
 
-            {/* ── Ambient orbs ── */}
-            <motion.div
-                className="pointer-events-none absolute"
-                style={{
-                    width: '600px', height: '600px', borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(45,212,191,0.12) 0%, transparent 70%)',
-                    top: '-200px', right: '-100px',
-                    filter: 'blur(60px)',
-                }}
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 2, ease: 'easeOut' }}
-                aria-hidden="true"
-            />
-            <motion.div
-                className="pointer-events-none absolute"
-                style={{
-                    width: '500px', height: '500px', borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(232,108,44,0.08) 0%, transparent 70%)',
-                    bottom: '-150px', left: '-100px',
-                    filter: 'blur(80px)',
-                }}
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 2, ease: 'easeOut', delay: 0.3 }}
-                aria-hidden="true"
-            />
-
-            {/* ── Floating geometric shapes ── */}
-            <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-                <div style={{
-                    position: 'absolute', top: '15%', left: '8%',
-                    width: '6px', height: '6px', borderRadius: '50%',
-                    background: '#2DD4BF', opacity: 0.3,
-                    animation: 'float 6s ease-in-out infinite',
-                }} />
-                <div style={{
-                    position: 'absolute', top: '25%', right: '12%',
-                    width: '4px', height: '4px', borderRadius: '50%',
-                    background: '#E86C2C', opacity: 0.4,
-                    animation: 'float 8s ease-in-out infinite 1s',
-                }} />
-                <div style={{
-                    position: 'absolute', bottom: '20%', left: '15%',
-                    width: '40px', height: '40px', borderRadius: '12px',
-                    border: '1px solid rgba(45,212,191,0.1)',
-                    animation: 'float 7s ease-in-out infinite 0.5s',
-                    transform: 'rotate(45deg)',
-                }} />
-                <div style={{
-                    position: 'absolute', top: '35%', right: '8%',
-                    width: '60px', height: '60px', borderRadius: '50%',
-                    border: '1px solid rgba(232,108,44,0.08)',
-                    animation: 'orbitSlow 20s linear infinite',
-                }} />
-            </div>
 
             <motion.div
                 className="relative z-10 max-w-4xl mx-auto px-4 pt-4 pb-14 text-center"
@@ -205,7 +150,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 800 }}
                 >
                     <span style={{ color: 'var(--text-primary)' }}>
-                        The Job Board
+                        Find Your Next PMHNP Role
                     </span>
                     <br />
                     <span
@@ -218,7 +163,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             animation: 'heroGradient 4s linear infinite',
                         }}
                     >
-                        Built for PMHNPs
+                        In Minutes, Not Months
                     </span>
                 </motion.h1>
 
@@ -240,7 +185,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 <motion.form
                     variants={scaleIn}
                     onSubmit={handleSubmit}
-                    className="max-w-2xl mx-auto mb-8"
+                    className="max-w-3xl mx-auto mb-8"
                 >
                     {/* Outer glow ring */}
                     <div
@@ -263,8 +208,8 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             }}
                         >
                             {/* Keyword input */}
-                            <div className="flex items-center flex-1 px-5 py-4 gap-3">
-                                <Search size={18} className="flex-shrink-0" style={{ color: '#2DD4BF', opacity: 0.8 }} />
+                            <div className="flex items-center flex-1 px-5 py-5 gap-3">
+                                <Search size={20} className="flex-shrink-0" style={{ color: '#2DD4BF', opacity: 0.8 }} />
                                 <input
                                     type="text"
                                     placeholder="Job title or keyword"
@@ -272,7 +217,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onFocus={() => setIsFocused(true)}
                                     onBlur={() => setIsFocused(false)}
-                                    className="hero-input w-full bg-transparent text-[15px] font-medium border-none outline-none shadow-none ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="hero-input w-full bg-transparent text-[17px] font-medium border-none outline-none shadow-none ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                             </div>
 
@@ -283,8 +228,8 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             <div className="sm:hidden mx-5" style={{ borderBottom: '1px solid var(--border-color)' }} />
 
                             {/* Location input */}
-                            <div className="flex items-center flex-1 px-5 py-4 gap-3">
-                                <MapPin size={18} className="flex-shrink-0" style={{ color: '#E86C2C', opacity: 0.8 }} />
+                            <div className="flex items-center flex-1 px-5 py-5 gap-3">
+                                <MapPin size={20} className="flex-shrink-0" style={{ color: '#E86C2C', opacity: 0.8 }} />
                                 <input
                                     type="text"
                                     placeholder="City, state, or 'Remote'"
@@ -292,7 +237,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                     onChange={(e) => setLocationQuery(e.target.value)}
                                     onFocus={() => setIsFocused(true)}
                                     onBlur={() => setIsFocused(false)}
-                                    className="hero-input w-full bg-transparent text-[15px] font-medium border-none outline-none shadow-none ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="hero-input w-full bg-transparent text-[17px] font-medium border-none outline-none shadow-none ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                             </div>
 
@@ -350,12 +295,21 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     ))}
                 </motion.div>
 
-                {/* ── Email capture row ── */}
+                {/* ── Browse All Jobs button ── */}
                 <motion.div
                     variants={chipPop}
-                    className="flex justify-center pt-3"
+                    className="flex justify-center pt-16"
                 >
-                    <HeroEmailCapture />
+                    <Link
+                        href="/jobs"
+                        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-[15px] font-bold text-white transition-all duration-300"
+                        style={{
+                            background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
+                            boxShadow: '0 4px 15px rgba(45,212,191,0.25)',
+                        }}
+                    >
+                        Browse All Jobs <ArrowRight size={18} />
+                    </Link>
                 </motion.div>
             </motion.div>
         </section>

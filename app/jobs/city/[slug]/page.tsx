@@ -585,8 +585,8 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                                     <p className="text-xs text-gray-500">
                                         Based on PMHNP positions in {cityName}, {stateCode} with salary data.
                                     </p>
-                                    <Link href="/salary-guide" className="text-sm text-teal-600 hover:text-teal-700 mt-2 inline-block">
-                                        View full 2026 Salary Guide →
+                                    <Link href={`/salary-guide/${stateSlug}`} className="text-sm text-teal-600 hover:text-teal-700 mt-2 inline-block">
+                                        View {stateName} Salary Data →
                                     </Link>
                                 </div>
                             )}
@@ -611,8 +611,13 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                                         </Link>
                                     </li>
                                     <li>
+                                        <Link href={`/salary-guide/${stateSlug}`} className="text-teal-600 hover:text-teal-700">
+                                            {stateName} Salary Guide →
+                                        </Link>
+                                    </li>
+                                    <li>
                                         <Link href="/salary-guide" className="text-teal-600 hover:text-teal-700">
-                                            2026 Salary Guide →
+                                            National Salary Guide →
                                         </Link>
                                     </li>
                                 </ul>
@@ -630,9 +635,9 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                                 <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Browse all PMHNP positions across {stateName}.</p>
                             </Link>
 
-                            <Link href="/salary-guide" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">💰 2026 PMHNP Salary Guide</h3>
-                                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">See how {cityName} compares to other cities and states.</p>
+                            <Link href={`/salary-guide/${stateSlug}`} className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
+                                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">💰 {stateName} PMHNP Salary Data</h3>
+                                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">See salary averages, top employers, and market data for {stateName}.</p>
                             </Link>
 
                             <Link href="/jobs/remote" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">

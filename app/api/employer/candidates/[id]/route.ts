@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
+import { canUnlockCandidate, getEmployerTier } from '@/lib/tier-limits'
+import { PricingTier } from '@/lib/config'
 
 /**
  * Generate a fresh signed URL for a resume stored as a storage path.
@@ -29,18 +31,18 @@ async function generateResumeUrl(resumeUrl: string | null): Promise<string | nul
 }
 
 /**
- * Check whether an employer has at least one active, paid FEATURED job posting.
- * Only featured posts ($299 tier) unlock full candidate profile access.
- * "paid" means paymentStatus === 'paid' (not 'free', 'free_renewed', etc.)
+ * Check whether an employer has at least one active FEATURED job posting.
+ * Featured posts unlock full candidate profile access (contact, resume, LinkedIn).
+ * Works for both paid and free-mode featured posts.
  * "active" means the related Job.expiresAt > now.
  */
-async function hasActivePaidPost(supabaseId: string): Promise<boolean> {
+async function hasActiveFeaturedPost(supabaseId: string): Promise<boolean> {
     const count = await prisma.employerJob.count({
         where: {
             userId: supabaseId,
-            paymentStatus: 'paid',
             job: {
                 isFeatured: true,
+                isPublished: true,
                 expiresAt: { gt: new Date() },
             },
         },
@@ -74,7 +76,7 @@ export async function GET(
     // Determine access level: admin always gets full access,
     // employers need an active paid job post for full candidate info
     const isAdmin = viewerProfile.role === 'admin'
-    const hasFullAccess = isAdmin || await hasActivePaidPost(user.id)
+    const hasFullAccess = isAdmin || await hasActiveFeaturedPost(user.id)
 
     // Fetch candidate (privacy check: must be visible + open to offers)
     const candidate = await prisma.userProfile.findFirst({
@@ -91,6 +93,31 @@ export async function GET(
     }
 
     // Track profile view (upsert — one record per viewer+candidate pair)
+    // Check if this is a NEW unlock (not a re-view of an already-unlocked candidate)
+    const existingView = await prisma.profileView.findUnique({
+        where: {
+            viewerId_candidateId: {
+                viewerId: user.id,
+                candidateId: id,
+            },
+        },
+    })
+
+    if (!existingView && !isAdmin) {
+        // This is a new unlock — check monthly limit
+        const tier = await getEmployerTier(user.id)
+        const unlockCheck = await canUnlockCandidate(user.id, tier)
+        if (!unlockCheck.allowed) {
+            return NextResponse.json({
+                error: 'Monthly candidate unlock limit reached',
+                used: unlockCheck.used,
+                limit: unlockCheck.limit,
+                tier,
+                upgradeRequired: true,
+            }, { status: 403 })
+        }
+    }
+
     try {
         await prisma.profileView.upsert({
             where: {

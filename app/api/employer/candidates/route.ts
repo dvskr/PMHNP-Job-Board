@@ -21,21 +21,21 @@ export async function GET(req: NextRequest) {
     }
 
     // Determine access level: admin always gets full access,
-    // employers need an active paid job post for full candidate info
+    // employers need an active featured job post for full candidate info
     const isAdmin = profile.role === 'admin'
     let hasFullAccess = isAdmin
     if (!isAdmin) {
-        const paidCount = await prisma.employerJob.count({
+        const featuredCount = await prisma.employerJob.count({
             where: {
                 userId: user.id,
-                paymentStatus: 'paid',
                 job: {
                     isFeatured: true,
+                    isPublished: true,
                     expiresAt: { gt: new Date() },
                 },
             },
         })
-        hasFullAccess = paidCount > 0
+        hasFullAccess = featuredCount > 0
     }
 
 

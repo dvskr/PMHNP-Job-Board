@@ -15,6 +15,7 @@ type EmployerJobWithJob = {
     applyClickCount: number;
     createdAt: Date;
     expiresAt: Date | null;
+    _count: { jobApplications: number };
   };
 };
 
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest) {
             applyClickCount: true,
             createdAt: true,
             expiresAt: true,
+            _count: { select: { jobApplications: true } },
           },
         },
       },
@@ -85,6 +87,7 @@ export async function GET(request: NextRequest) {
       isFeatured: ej.job.isFeatured,
       viewCount: ej.job.viewCount,
       applyClickCount: ej.job.applyClickCount,
+      applicantCount: ej.job._count.jobApplications,
       createdAt: ej.job.createdAt,
       expiresAt: ej.job.expiresAt,
       editToken: ej.editToken,

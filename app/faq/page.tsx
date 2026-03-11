@@ -52,8 +52,8 @@ export default function FAQPage() {
     {
       question: "How much does it cost to post a job?",
       answer: config.isPaidPostingEnabled
-        ? "We offer two posting options: Standard ($199) for a 30-day listing with full features, and Featured ($299) which includes priority placement, a featured badge, and highlighted inclusion in our email digest."
-        : "During our launch period, job postings are completely FREE! This includes both Standard and Featured listings. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
+        ? "We offer three posting tiers: Starter ($199) for a 30-day listing, Growth ($299) with featured placement and 25 candidate unlocks/mo, and Premium ($399) with 90-day listing, unlimited unlocks, and social media promotion."
+        : "During our launch period, job postings are completely FREE! This includes all tiers. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
     },
     {
       question: "Is there a free trial?",
@@ -62,15 +62,15 @@ export default function FAQPage() {
         : "Even better - we're currently offering FREE job postings during our launch period! No credit card required. Simply create your listing and it goes live immediately."
     },
     {
-      question: "What's the difference between Standard and Featured?",
+      question: "What are the differences between tiers?",
       answer: config.isPaidPostingEnabled
-        ? "Featured jobs appear at the top of search results, are highlighted in job alerts with special formatting, display a prominent 'Featured' badge, and last for 60 days instead of 30. Featured postings typically receive 3-5x more views and applications."
-        : "Featured jobs appear at the top of search results, are highlighted in job alerts with special formatting, and display a prominent 'Featured' badge. During our free launch period, both options are free - we recommend choosing Featured for maximum visibility!"
+        ? "Starter gets you a 30-day listing with basic analytics and 5 candidate unlocks/mo. Growth adds a featured badge, top search placement, 25 candidate unlocks/mo, and 25 InMails/mo for 60 days. Premium extends to 90 days with unlimited unlocks, unlimited InMails, social media promotion, and dedicated support."
+        : "Growth jobs appear at the top of search results, are highlighted in job alerts, and display a prominent 'Featured' badge. During our free launch period, all tiers are free - we recommend choosing Growth for maximum visibility!"
     },
     {
       question: "How long do job postings last?",
       answer: config.isPaidPostingEnabled
-        ? "Standard postings are active for 30 days. Featured postings are active for 60 days. You can renew your posting at any time from your employer dashboard before or after it expires."
+        ? "Starter postings are active for 30 days. Growth postings are active for 60 days. Premium postings are active for 90 days. You can renew your posting at any time from your employer dashboard before or after it expires."
         : "All postings are active for 30 days. You can renew your posting at any time from your employer dashboard before or after it expires - completely free during our launch period!"
     },
     {

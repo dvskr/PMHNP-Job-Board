@@ -38,6 +38,7 @@ interface SocialJob {
     mode: string | null;
     displaySalary: string | null;
     isRemote: boolean;
+    isFeatured: boolean;
     slug: string | null;
     qualityScore: number;
     state: string | null;
@@ -48,12 +49,12 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
     // Use a raw query to get a diverse mix via ROW_NUMBER partitioned by job_type
     const jobs = await prisma.$queryRaw<SocialJob[]>`
     WITH employer_posts AS (
-      -- Employer posts always included, regardless of quality score
+      -- Employer posts always included first, regardless of quality score
       SELECT
         title, employer, location,
         job_type AS "jobType", mode,
         display_salary AS "displaySalary",
-        is_remote AS "isRemote", slug,
+        is_remote AS "isRemote", is_featured AS "isFeatured", slug,
         quality_score AS "qualityScore", state, city,
         1 AS priority
       FROM jobs
@@ -63,21 +64,38 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
         AND created_at > NOW() - INTERVAL '24 hours'
         AND source_type = 'employer'
     ),
-    external_ranked AS (
-      -- External jobs ranked by quality with category diversity
+    featured_posts AS (
+      -- Featured/paid jobs get priority 2 (after employer, before regular)
       SELECT
         title, employer, location,
         job_type AS "jobType", mode,
         display_salary AS "displaySalary",
-        is_remote AS "isRemote", slug,
+        is_remote AS "isRemote", is_featured AS "isFeatured", slug,
         quality_score AS "qualityScore", state, city,
-        2 AS priority,
+        2 AS priority
+      FROM jobs
+      WHERE is_published = true
+        AND is_featured = true
+        AND (expires_at IS NULL OR expires_at > NOW())
+        AND slug IS NOT NULL
+        AND source_type != 'employer'
+    ),
+    external_ranked AS (
+      -- External non-featured jobs ranked by quality with category diversity
+      SELECT
+        title, employer, location,
+        job_type AS "jobType", mode,
+        display_salary AS "displaySalary",
+        is_remote AS "isRemote", is_featured AS "isFeatured", slug,
+        quality_score AS "qualityScore", state, city,
+        3 AS priority,
         ROW_NUMBER() OVER (
           PARTITION BY COALESCE(job_type, 'General')
           ORDER BY quality_score DESC, created_at DESC
         ) AS rn
       FROM jobs
       WHERE is_published = true
+        AND is_featured = false
         AND (expires_at IS NULL OR expires_at > NOW())
         AND slug IS NOT NULL
         AND created_at > NOW() - INTERVAL '24 hours'
@@ -86,16 +104,20 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
     ),
     combined AS (
       SELECT title, employer, location, "jobType", mode, "displaySalary",
-             "isRemote", slug, "qualityScore", state, city, priority
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority
       FROM employer_posts
       UNION ALL
       SELECT title, employer, location, "jobType", mode, "displaySalary",
-             "isRemote", slug, "qualityScore", state, city, priority
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority
+      FROM featured_posts
+      UNION ALL
+      SELECT title, employer, location, "jobType", mode, "displaySalary",
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority
       FROM external_ranked
       WHERE rn <= 3
     )
     SELECT title, employer, location, "jobType", mode, "displaySalary",
-           "isRemote", slug, "qualityScore", state, city
+           "isRemote", "isFeatured", slug, "qualityScore", state, city
     FROM combined
     ORDER BY priority ASC, "qualityScore" DESC
     LIMIT ${JOBS_PER_POST}
@@ -115,13 +137,14 @@ export function buildFacebookCaption(jobs: SocialJob[]): string {
 
     jobs.forEach((job, i) => {
         const emoji = JOB_EMOJIS[i] ?? `${i + 1}.`;
+        const featured = job.isFeatured ? ' ⭐ FEATURED' : '';
         const salary = job.displaySalary ? ` — ${job.displaySalary} 💰` : '';
         const loc = job.isRemote ? 'Remote' : job.location;
         const type = job.jobType ? ` | ${job.jobType}` : '';
         const link = `${BASE_URL}/jobs/${job.slug}`;
 
         lines.push(
-            `${emoji} ${job.title}${salary}`,
+            `${emoji} ${job.title}${featured}${salary}`,
             `   📍 ${loc}${type}`,
             `   🏢 ${job.employer}`,
             `   👉 ${link}`,
@@ -210,9 +233,10 @@ export function buildLinkedInCaption(jobs: SocialJob[]): string {
 
     jobs.forEach((job, i) => {
         const emoji = JOB_EMOJIS[i] ?? `${i + 1}.`;
+        const featured = job.isFeatured ? ' ⭐' : '';
         const salary = job.displaySalary ? ` | ${job.displaySalary}` : '';
         const loc = job.isRemote ? 'Remote' : job.location;
-        lines.push(`${emoji} ${job.title}`);
+        lines.push(`${emoji} ${job.title}${featured}`);
         lines.push(`   🏢 ${job.employer} · 📍 ${loc}${salary}`);
         lines.push('');
     });

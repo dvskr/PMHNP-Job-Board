@@ -7,7 +7,7 @@ import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, 
 
 export const metadata: Metadata = {
   title: 'About Us | PMHNP Hiring - The #1 Job Board for Psychiatric NPs',
-  description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. 10,000+ jobs from 3,000+ companies across 50 states.',
+  description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. Thousands of jobs from thousands of companies across all 50 states.',
   openGraph: {
     images: [
       {
@@ -52,21 +52,21 @@ export default function AboutPage() {
             <div>
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Briefcase className="w-5 h-5 text-emerald-600" />
-                <span className="text-2xl md:text-3xl font-bold text-emerald-600">10,000+</span>
+                <span className="text-2xl md:text-3xl font-bold text-emerald-600">Thousands</span>
               </div>
               <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Active Jobs</div>
             </div>
             <div>
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Users className="w-5 h-5 text-teal-600" />
-                <span className="text-2xl md:text-3xl font-bold text-teal-600">3,000+</span>
+                <span className="text-2xl md:text-3xl font-bold text-teal-600">2,500+</span>
               </div>
               <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Companies</div>
             </div>
             <div>
               <div className="flex items-center justify-center gap-2 mb-1">
                 <MapPin className="w-5 h-5 text-purple-600" />
-                <span className="text-2xl md:text-3xl font-bold text-purple-600">51</span>
+                <span className="text-2xl md:text-3xl font-bold text-purple-600">50+</span>
               </div>
               <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>States Covered</div>
             </div>
@@ -121,7 +121,7 @@ export default function AboutPage() {
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-success-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>10,000+ Job Listings</p>
+                    <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Thousands of Job Listings</p>
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Aggregated from multiple sources, updated daily</p>
                   </div>
                 </li>
@@ -307,7 +307,7 @@ export default function AboutPage() {
               </p>
               <p className="font-medium border-l-4 border-emerald-500 pl-4 py-3 rounded-r-lg" style={{ color: 'var(--text-primary)', background: 'rgba(16,185,129,0.1)' }}>
                 Today, PMHNP Hiring is the largest dedicated job board for psychiatric mental health nurse
-                practitioners, with over 10,000+ active positions from 3,000+ companies across 50 states.
+                practitioners, with thousands of active positions from 2,500+ companies across all 50 states.
                 We&apos;re committed to providing the most comprehensive, accurate, and transparent PMHNP
                 career resource available.
               </p>

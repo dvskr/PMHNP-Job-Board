@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
         // 2. Parse & validate body
         const body = await request.json();
-        const { jobId, coverLetter, resumeUrl, consent } = body;
+        const { jobId, coverLetter, coverLetterUrl, resumeUrl, consent } = body;
 
         if (!jobId || typeof jobId !== 'string') {
             return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
@@ -93,6 +93,12 @@ export async function POST(request: NextRequest) {
                 );
             }
             validResumeUrl = resumeUrl;
+        }
+
+        // Validate cover letter URL (if uploaded as PDF)
+        let validCoverLetterUrl: string | null = null;
+        if (coverLetterUrl && typeof coverLetterUrl === 'string') {
+            validCoverLetterUrl = coverLetterUrl; // same storage as resumes
         }
 
         // 3. Verify the job exists and accepts platform applications
@@ -168,6 +174,7 @@ export async function POST(request: NextRequest) {
             },
             update: {
                 coverLetter: sanitizedCoverLetter,
+                coverLetterUrl: validCoverLetterUrl,
                 resumeUrl: applicationResumeUrl,
                 consentGiven: true,
                 consentGivenAt: new Date(),
@@ -177,6 +184,7 @@ export async function POST(request: NextRequest) {
                 userId: user.id,
                 jobId,
                 coverLetter: sanitizedCoverLetter,
+                coverLetterUrl: validCoverLetterUrl,
                 resumeUrl: applicationResumeUrl,
                 sourceUrl: 'platform',
                 consentGiven: true,
@@ -211,6 +219,23 @@ export async function POST(request: NextRequest) {
             jobId,
             userId: user.id,
         });
+
+        // 7. Send confirmation email to the CANDIDATE (fire-and-forget)
+        if (profile.email) {
+            try {
+                const { sendApplicationConfirmationEmail } = await import('@/lib/email-service');
+                await sendApplicationConfirmationEmail({
+                    candidateEmail: profile.email,
+                    candidateName: [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'there',
+                    jobTitle: job.title,
+                    employerName: job.employerJobs?.employerName || job.employer,
+                    hasResume: !!applicationResumeUrl,
+                    hasCoverLetter: !!sanitizedCoverLetter,
+                });
+            } catch (confirmError) {
+                logger.error('Failed to send application confirmation to candidate', confirmError);
+            }
+        }
 
         return NextResponse.json({
             success: true,

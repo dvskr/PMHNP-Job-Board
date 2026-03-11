@@ -127,6 +127,7 @@ model EmployerJob {
   editToken           String       @unique @map("edit_token")
   dashboardToken      String       @unique @default(cuid()) @map("dashboard_token")
   paymentStatus       String       @map("payment_status")
+  pricingTier         String       @default("starter") @map("pricing_tier")
   createdAt           DateTime     @default(now()) @map("created_at")
   updatedAt           DateTime     @updatedAt @map("updated_at")
   expiryWarningSentAt DateTime?    @map("expiry_warning_sent_at")
@@ -334,6 +335,7 @@ model JobApplication {
   jobId           String      @map("job_id")
   sourceUrl       String?     @map("source_url")
   coverLetter     String?     @map("cover_letter")
+  coverLetterUrl  String?     @map("cover_letter_url")
   resumeUrl       String?     @map("resume_url")
   appliedAt       DateTime    @default(now()) @map("applied_at")
   status          String      @default("applied") // applied, screening, interview, offered, hired, rejected
@@ -779,4 +781,28 @@ model EmailTemplate {
   broadcasts EmailBroadcast[]
 
   @@map("email_templates")
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  jobId     String   @map("job_id")
+  savedAt   DateTime @default(now()) @map("saved_at")
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("saved_jobs")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

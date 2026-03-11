@@ -37,7 +37,7 @@ function UpgradeSuccessContent() {
 
           {/* Benefits List */}
           <div className="bg-gradient-to-r from-teal-50 to-purple-50 rounded-lg p-4 mb-6 mt-6">
-            <p className="text-sm font-semibold text-gray-900 mb-2">What you get with Featured:</p>
+            <p className="text-sm font-semibold text-gray-900 mb-2">What you get with Growth:</p>
             <ul className="text-sm text-gray-700 space-y-1 text-left">
               <li className="flex items-start gap-2">
                 <span className="text-teal-600 font-bold">✓</span>

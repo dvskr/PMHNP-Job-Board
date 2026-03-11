@@ -23,6 +23,13 @@ interface Summary {
     views24h: number; views7d: number; clicks24h: number; clicks7d: number;
     apps24h: number; apps7d: number;
     totalUsers: number; newUsers7d: number; totalSubscribers: number;
+    newsletterOptIns: number;
+    activeAlerts: number; dailyAlerts: number; weeklyAlerts: number;
+    activeJobs: number; employerPostedJobs: number;
+    totalEmployerLeads: number;
+    roleBreakdown: Record<string, number>;
+    jobSourceBreakdown: Record<string, number>;
+    employerLeadStatuses: Record<string, number>;
     conversionRates: { viewToClick: number; clickToApply: number; viewToApply: number };
 }
 interface UserGrowthData { users: DayPoint[]; subscribers: DayPoint[] }
@@ -204,7 +211,95 @@ export default function AnalyticsPage() {
                         </div>
                     </div>
 
-                    {/* Quick Stats */}
+                    {/* Platform Health + Audience */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" style={{ marginBottom: 24 }}>
+                        {/* Platform Health */}
+                        <div style={{ ...card, padding: 24 }}>
+                            <h3 style={{ ...heading, fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <BarChart3 size={18} style={{ color: '#2DD4BF' }} /> Platform Health
+                            </h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                                <div style={{ padding: '14px 16px', borderRadius: 10, backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>{s.activeJobs.toLocaleString()}</div>
+                                    <div style={muted}>Active Jobs</div>
+                                </div>
+                                <div style={{ padding: '14px 16px', borderRadius: 10, backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>{s.employerPostedJobs}</div>
+                                    <div style={muted}>Employer-Posted</div>
+                                </div>
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Jobs by Source</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {Object.entries(s.jobSourceBreakdown || {})
+                                    .sort(([, a], [, b]) => b - a)
+                                    .slice(0, 6)
+                                    .map(([source, count]) => {
+                                        const pct = s.activeJobs > 0 ? (count / s.activeJobs * 100) : 0;
+                                        return (
+                                            <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <span style={{ fontSize: 12, color: 'var(--text-secondary)', width: 90, textTransform: 'capitalize', flexShrink: 0 }}>{source}</span>
+                                                <div style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+                                                    <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#2DD4BF', borderRadius: 4 }} />
+                                                </div>
+                                                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', width: 40, textAlign: 'right' }}>{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+
+                        {/* Audience */}
+                        <div style={{ ...card, padding: 24 }}>
+                            <h3 style={{ ...heading, fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Users size={18} style={{ color: '#3B82F6' }} /> Audience
+                            </h3>
+                            {/* Role breakdown */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+                                {[
+                                    { label: 'Job Seekers', value: s.roleBreakdown?.job_seeker || 0, color: '#3B82F6' },
+                                    { label: 'Employers', value: s.roleBreakdown?.employer || 0, color: '#A855F7' },
+                                    { label: 'Admins', value: s.roleBreakdown?.admin || 0, color: '#F59E0B' },
+                                ].map(r => (
+                                    <div key={r.label} style={{ padding: '12px', borderRadius: 10, backgroundColor: 'var(--bg-tertiary)', textAlign: 'center' }}>
+                                        <div style={{ fontSize: 20, fontWeight: 800, color: r.color }}>{r.value}</div>
+                                        <div style={{ ...muted, fontSize: 11 }}>{r.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Newsletter + Alerts */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                <div style={{ padding: '14px 16px', borderRadius: 10, backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <div style={{ fontSize: 20, fontWeight: 800, color: '#F59E0B' }}>{s.newsletterOptIns}</div>
+                                    <div style={muted}>Newsletter Opt-ins</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{s.totalSubscribers} total leads</div>
+                                </div>
+                                <div style={{ padding: '14px 16px', borderRadius: 10, backgroundColor: 'var(--bg-tertiary)' }}>
+                                    <div style={{ fontSize: 20, fontWeight: 800, color: '#22C55E' }}>{s.activeAlerts}</div>
+                                    <div style={muted}>Active Alerts</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{s.dailyAlerts} daily · {s.weeklyAlerts} weekly</div>
+                                </div>
+                            </div>
+                            {/* Employer leads */}
+                            {s.totalEmployerLeads > 0 && (
+                                <div style={{ marginTop: 12, padding: '12px 16px', borderRadius: 10, backgroundColor: 'var(--bg-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontSize: 16, fontWeight: 700, color: '#A855F7' }}>{s.totalEmployerLeads}</div>
+                                        <div style={muted}>Employer Leads</div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        {Object.entries(s.employerLeadStatuses || {}).map(([status, count]) => (
+                                            <div key={status} style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{count}</div>
+                                                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>{status}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Engagement Quick Stats */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ marginBottom: 24 }}>
                         {[
                             { icon: <Eye size={18} />, label: 'Views (24h)', value: s.views24h, delta: `${s.views7d} / week`, color: '#3B82F6' },

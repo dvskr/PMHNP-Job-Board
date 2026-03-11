@@ -115,7 +115,7 @@ export default function TermsPage() {
               <li>We are not responsible for screening employers or verifying the accuracy of job listings</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              Job postings expire after the stated duration (30 days for Standard, 60 days for Featured). Renewal options may be available through the employer dashboard.
+              Job postings expire after the stated duration (30 days for Starter, 60 days for Growth, 90 days for Premium). Renewal options may be available through the employer dashboard.
             </p>
           </section>
 

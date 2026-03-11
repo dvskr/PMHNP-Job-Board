@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { config } from '@/lib/config';
+import { config, PricingTier } from '@/lib/config';
 import { sendRenewalConfirmationEmail } from '@/lib/email-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -9,7 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 interface RenewalCheckoutBody {
   jobId: string;
   editToken: string;
-  tier: 'standard' | 'featured';
+  tier: PricingTier;
 }
 
 export async function POST(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate tier
-    if (tier !== 'standard' && tier !== 'featured') {
+    if (tier !== 'starter' && tier !== 'growth' && tier !== 'premium') {
       return NextResponse.json(
         { error: 'Invalid pricing tier' },
         { status: 400 }
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
     if (config.isPaidPostingEnabled) {
       // PAID MODE: Existing Stripe checkout flow
 
-      // Determine price in cents
-      const price = tier === 'featured' ? 29900 : 19900; // $299 or $199
+      // Determine renewal price in cents from config (20% discount)
+      const price = config.getStripeRenewalPriceInCents(tier);
 
       // Create Stripe Checkout session
       const session = await stripe.checkout.sessions.create({
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
               currency: 'usd',
               product_data: {
                 name: `Job Renewal - ${employerJob.job.title}`,
-                description: `${tier === 'featured' ? 'Featured' : 'Standard'} renewal - ${employerJob.job.employer}`,
+                description: `${config.getTierLabel(tier)} renewal (Save 20%) - ${employerJob.job.employer}`,
               },
               unit_amount: price,
             },
@@ -99,9 +99,10 @@ export async function POST(request: NextRequest) {
     } else {
       // FREE MODE: Renew directly without payment
 
-      // Calculate new expiry (30 days from now)
+      // Calculate new expiry based on tier duration
+      const durationDays = config.getDurationDays(tier);
       const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + 30);
+      newExpiresAt.setDate(newExpiresAt.getDate() + durationDays);
 
       // Update job
       await prisma.job.update({
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
         data: {
           expiresAt: newExpiresAt,
           isPublished: true,
+          isFeatured: config.isFeaturedTier(tier),
         },
       });
 
@@ -117,6 +119,7 @@ export async function POST(request: NextRequest) {
         where: { jobId },
         data: {
           paymentStatus: 'free_renewed',
+          pricingTier: tier,
         },
       });
 

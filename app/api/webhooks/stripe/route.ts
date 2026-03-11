@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
+import { config, PricingTier } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
@@ -49,10 +50,10 @@ export async function POST(request: NextRequest) {
       // Handle renewal payment
       if (type === 'renewal') {
         try {
-          // Calculate new expiry date
+          // Calculate new expiry date from config
           const newExpiresAt = new Date();
-          const daysToAdd = tier === 'featured' ? 60 : 30;
-          newExpiresAt.setDate(newExpiresAt.getDate() + daysToAdd);
+          const renewalTier = (tier || 'starter') as PricingTier;
+          newExpiresAt.setDate(newExpiresAt.getDate() + config.getDurationDays(renewalTier));
 
           // Update job
           const job = await prisma.job.update({
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
               expiresAt: newExpiresAt,
               isPublished: true,
               isVerifiedEmployer: true,
-              ...(tier === 'featured' && { isFeatured: true }),
+              ...(config.isFeaturedTier(renewalTier) && { isFeatured: true }),
             },
           });
 
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
           if (employerJob) {
             await prisma.employerJob.update({
               where: { id: employerJob.id },
-              data: { paymentStatus: 'paid' },
+              data: { paymentStatus: 'paid', pricingTier: renewalTier },
             });
 
             // Get or create email lead for unsubscribe token
@@ -118,33 +119,48 @@ export async function POST(request: NextRequest) {
           );
         }
       } else if (type === 'upgrade') {
-        // Handle upgrade to featured
+        // Handle upgrade to higher tier
         try {
-          // Calculate new expiry date (add 30 days to current expiry since featured gets 60 days total)
+          const upgradeTier = (tier || 'growth') as PricingTier;
+
+          // Get current job to determine new expiry
           const currentJob = await prisma.job.findUnique({
             where: { id: jobId },
             select: { expiresAt: true },
           });
 
-          const newExpiresAt = currentJob?.expiresAt ? new Date(currentJob.expiresAt) : new Date();
-          newExpiresAt.setDate(newExpiresAt.getDate() + 30); // Add 30 days (60 total for featured vs 30 for standard)
+          // Find the employer's current tier to calculate extra days
+          const employerJobForTier = await prisma.employerJob.findFirst({
+            where: { jobId },
+            select: { pricingTier: true },
+          });
+          const fromTier = (employerJobForTier?.pricingTier || 'starter') as PricingTier;
 
-          // Update job to featured
+          const newExpiresAt = currentJob?.expiresAt ? new Date(currentJob.expiresAt) : new Date();
+          const extraDays = config.getDurationDays(upgradeTier) - config.getDurationDays(fromTier);
+          newExpiresAt.setDate(newExpiresAt.getDate() + extraDays);
+
+          // Update job
           const job = await prisma.job.update({
             where: { id: jobId },
             data: {
-              isFeatured: true,
+              isFeatured: config.isFeaturedTier(upgradeTier),
               isVerifiedEmployer: true,
               expiresAt: newExpiresAt,
             },
           });
 
-          // Get employer job
+          // Update employer job tier
           const employerJob = await prisma.employerJob.findFirst({
             where: { jobId: jobId },
           });
 
           if (employerJob) {
+            await prisma.employerJob.update({
+              where: { id: employerJob.id },
+              data: { pricingTier: upgradeTier },
+            });
+
             // Get or create email lead for unsubscribe token
             let emailLead = await prisma.emailLead.findUnique({
               where: { email: employerJob.contactEmail },
@@ -160,18 +176,17 @@ export async function POST(request: NextRequest) {
             try {
               await sendConfirmationEmail(
                 employerJob.contactEmail,
-                `✨ ${job.title} (Upgraded to Featured)`,
+                `✨ ${job.title} (Upgraded to ${config.getTierLabel(upgradeTier)})`,
                 job.id,
                 employerJob.editToken,
                 employerJob.dashboardToken
               );
             } catch (emailError) {
               logger.error('Failed to send upgrade confirmation email', emailError, { jobId });
-              // Don't throw - job already upgraded
             }
           }
 
-          logger.info('Job upgraded to featured', { jobId });
+          logger.info(`Job upgraded to ${upgradeTier} tier`, { jobId, fromTier, upgradeTier });
 
           // Ping search engines for upgraded job (fire-and-forget)
           if (job.slug) {
@@ -201,9 +216,10 @@ export async function POST(request: NextRequest) {
           });
 
           if (employerJob) {
+            const paidTier = session.metadata?.pricing || 'starter';
             await prisma.employerJob.update({
               where: { id: employerJob.id },
-              data: { paymentStatus: 'paid' },
+              data: { paymentStatus: 'paid', pricingTier: paidTier },
             });
 
             // Send confirmation email

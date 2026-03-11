@@ -13,6 +13,13 @@ interface Summary {
   views24h: number; views7d: number; clicks24h: number; clicks7d: number;
   apps24h: number; apps7d: number;
   totalUsers: number; newUsers7d: number; totalSubscribers: number;
+  newsletterOptIns: number;
+  activeAlerts: number; dailyAlerts: number; weeklyAlerts: number;
+  activeJobs: number; employerPostedJobs: number;
+  totalEmployerLeads: number;
+  roleBreakdown: Record<string, number>;
+  jobSourceBreakdown: Record<string, number>;
+  employerLeadStatuses: Record<string, number>;
   conversionRates: { viewToClick: number; clickToApply: number; viewToApply: number };
 }
 interface SparklinePoint { date: string; count: number }
@@ -207,24 +214,23 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ─── Quick Stat Cards ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" style={{ marginBottom: '24px' }}>
+      {/* ─── Hero Stat Cards ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3" style={{ marginBottom: '24px' }}>
         {[
-          { icon: <Eye size={18} />, label: 'Views (24h)', value: s.views24h, color: '#3B82F6', sparkData: sparklines.views, sparkColor: '#3B82F6' },
-          { icon: <MousePointerClick size={18} />, label: 'Clicks (24h)', value: s.clicks24h, color: '#A855F7', sparkData: sparklines.clicks, sparkColor: '#A855F7' },
-          { icon: <FileCheck size={18} />, label: 'Apps (24h)', value: s.apps24h, color: '#22C55E', sparkData: sparklines.applications, sparkColor: '#22C55E' },
-          { icon: <Users size={18} />, label: 'Total Users', value: s.totalUsers, color: '#2DD4BF', note: `+${s.newUsers7d} this week` },
-          { icon: <Mail size={18} />, label: 'Subscribers', value: s.totalSubscribers, color: '#F59E0B' },
-          { icon: <Zap size={18} />, label: 'Autofill Uses', value: autofill.totalUsage, color: '#EC4899', note: `${autofill.uniqueUsers} users` },
+          { icon: <Briefcase size={16} />, label: 'Active Jobs', value: s.activeJobs, color: '#2DD4BF' },
+          { icon: <Users size={16} />, label: 'Total Users', value: s.totalUsers, color: '#3B82F6', note: `+${s.newUsers7d} this week` },
+          { icon: <Mail size={16} />, label: 'Newsletter', value: s.newsletterOptIns, color: '#F59E0B', note: `${s.totalSubscribers} leads` },
+          { icon: <Bell size={16} />, label: 'Active Alerts', value: s.activeAlerts, color: '#22C55E', note: `${s.dailyAlerts}d / ${s.weeklyAlerts}w` },
+          { icon: <Target size={16} />, label: 'Employer Leads', value: s.totalEmployerLeads, color: '#A855F7' },
+          { icon: <BarChart3 size={16} />, label: 'Employer Jobs', value: s.employerPostedJobs, color: '#EC4899' },
+          { icon: <FileCheck size={16} />, label: 'Apps (30d)', value: s.totalApplications, color: '#22C55E', note: `${s.apps24h} today` },
+          { icon: <Zap size={16} />, label: 'Autofill', value: autofill.totalUsage, color: '#F97316', note: `${autofill.uniqueUsers} users` },
         ].map((c) => (
-          <div key={c.label} style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-              <div style={{ color: c.color }}>{c.icon}</div>
-              {c.sparkData && <Sparkline data={c.sparkData} color={c.sparkColor!} />}
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{c.value.toLocaleString()}</div>
-            <div style={muted}>{c.label}</div>
-            {c.note && <div style={{ marginTop: '4px', fontSize: '11px', color: c.color, fontWeight: 600 }}>{c.note}</div>}
+          <div key={c.label} style={{ ...card, padding: '16px' }}>
+            <div style={{ color: c.color, marginBottom: '8px' }}>{c.icon}</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{c.value.toLocaleString()}</div>
+            <div style={{ ...muted, marginTop: '4px' }}>{c.label}</div>
+            {c.note && <div style={{ fontSize: '10px', color: c.color, fontWeight: 600, marginTop: '3px' }}>{c.note}</div>}
           </div>
         ))}
       </div>

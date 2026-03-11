@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronDown, User, Clock, FileText, X, Mail, Download, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, User, Clock, FileText, X, Mail, Download, Eye, EyeOff, CheckSquare, Square } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import ComposeMessageModal from './ComposeMessageModal';
 
@@ -21,6 +21,7 @@ interface Applicant {
     status: string;
     notes: string | null;
     coverLetter: string | null;
+    coverLetterUrl: string | null;
     resumeUrl: string | null;
     appliedAt: string;
     statusUpdatedAt: string | null;
@@ -56,6 +57,9 @@ export default function ApplicantsTab() {
     const [notesValue, setNotesValue] = useState('');
     const [messagingApplicant, setMessagingApplicant] = useState<Applicant | null>(null);
     const [expandedCoverLetter, setExpandedCoverLetter] = useState<string | null>(null);
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'status'>('newest');
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [bulkUpdating, setBulkUpdating] = useState(false);
 
     const fetchApplicants = useCallback(async () => {
         setLoading(true);
@@ -131,6 +135,61 @@ export default function ApplicantsTab() {
         return STATUSES.find(s => s.value === status) || STATUSES[0];
     };
 
+    // Bulk status change
+    const handleBulkStatusChange = async (newStatus: string) => {
+        if (selectedIds.size === 0) return;
+        setBulkUpdating(true);
+        try {
+            await Promise.all(
+                Array.from(selectedIds).map(id => handleStatusChange(id, newStatus))
+            );
+            setSelectedIds(new Set());
+        } finally {
+            setBulkUpdating(false);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === applicants.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(applicants.map(a => a.id)));
+        }
+    };
+
+    // CSV export
+    const handleExportCsv = () => {
+        const rows = applicants.map(app => ({
+            Name: app.candidate.name,
+            Job: app.job.title,
+            Status: getStatusInfo(app.status).label,
+            'Applied Date': new Date(app.appliedAt).toLocaleDateString(),
+            'Cover Letter': app.coverLetter?.replace(/[\n\r]+/g, ' ') || '',
+            'Has Resume': app.resumeUrl ? 'Yes' : 'No',
+            'Has Cover Letter PDF': app.coverLetterUrl ? 'Yes' : 'No',
+        }));
+        const headers = Object.keys(rows[0] || {});
+        const csv = [
+            headers.join(','),
+            ...rows.map(r => headers.map(h => `"${(r as Record<string, string>)[h] || ''}"`).join(','))
+        ].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `applicants-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     // Group applicants by status for summary
     const statusCounts = STATUSES.reduce((acc, s) => {
         acc[s.value] = applicants.filter(a => a.status === s.value).length;
@@ -168,9 +227,9 @@ export default function ApplicantsTab() {
                     ))}
                 </div>
 
-                {/* Filters */}
-                {jobs.length > 1 && (
-                    <div className="mb-4">
+                {/* Filters & Sorting */}
+                <div className="flex flex-wrap gap-3 mb-4">
+                    {jobs.length > 1 && (
                         <select
                             value={jobFilter}
                             onChange={(e) => setJobFilter(e.target.value)}
@@ -186,8 +245,77 @@ export default function ApplicantsTab() {
                                 <option key={j.id} value={j.id}>{j.title}</option>
                             ))}
                         </select>
+                    )}
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                        className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style={{
+                            backgroundColor: 'var(--bg-tertiary)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
+                        }}
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="status">By Status</option>
+                    </select>
+
+                    {/* Export CSV button */}
+                    {applicants.length > 0 && (
+                        <button
+                            onClick={handleExportCsv}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                            style={{
+                                backgroundColor: 'var(--bg-tertiary)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border-color)',
+                            }}
+                        >
+                            <Download size={14} /> Export CSV
+                        </button>
+                    )}
+                </div>
+
+                {/* Bulk Actions Bar */}
+                {selectedIds.size > 0 && (
+                    <div className="flex items-center gap-3 mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)' }}>
+                        <span className="text-sm font-medium" style={{ color: '#14B8A6' }}>{selectedIds.size} selected</span>
+                        <select
+                            onChange={(e) => { if (e.target.value) handleBulkStatusChange(e.target.value); e.target.value = ''; }}
+                            disabled={bulkUpdating}
+                            className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                            defaultValue=""
+                        >
+                            <option value="" disabled>Change status to...</option>
+                            {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
+                        <button onClick={() => setSelectedIds(new Set())} className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Clear</button>
                     </div>
                 )}
+
+                {/* Sort applicants */}
+                {(() => {
+                    const sorted = [...applicants].sort((a, b) => {
+                        switch (sortBy) {
+                            case 'oldest':
+                                return new Date(a.appliedAt).getTime() - new Date(b.appliedAt).getTime();
+                            case 'name':
+                                return a.candidate.name.localeCompare(b.candidate.name);
+                            case 'status': {
+                                const statusOrder: string[] = STATUSES.map(s => s.value);
+                                return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+                            }
+                            default: // newest
+                                return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+                        }
+                    });
+                    // Re-assign for the list below
+                    applicants.splice(0, applicants.length, ...sorted);
+                    return null;
+                })()}
 
                 {/* Applicants List */}
                 {applicants.length === 0 ? (
@@ -202,6 +330,13 @@ export default function ApplicantsTab() {
                     </div>
                 ) : (
                     <div className="space-y-3">
+                        {/* Select All */}
+                        <div className="flex items-center gap-2 px-2 pb-1">
+                            <button onClick={toggleSelectAll} className="p-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                {selectedIds.size === applicants.length && applicants.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
+                            </button>
+                            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Select all</span>
+                        </div>
                         {applicants.map(app => {
                             const statusInfo = getStatusInfo(app.status);
                             return (
@@ -210,12 +345,20 @@ export default function ApplicantsTab() {
                                     className="rounded-lg p-5 transition-shadow hover:shadow-md"
                                     style={{
                                         backgroundColor: 'var(--bg-secondary)',
-                                        border: '1px solid var(--border-color)',
+                                        border: selectedIds.has(app.id) ? '1.5px solid #14B8A6' : '1px solid var(--border-color)',
                                     }}
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                         {/* Candidate Info */}
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
+                                            {/* Select Checkbox */}
+                                            <button
+                                                onClick={() => toggleSelect(app.id)}
+                                                className="flex-shrink-0 mt-1"
+                                                style={{ color: selectedIds.has(app.id) ? '#14B8A6' : 'var(--text-tertiary)' }}
+                                            >
+                                                {selectedIds.has(app.id) ? <CheckSquare size={16} /> : <Square size={16} />}
+                                            </button>
                                             {/* Avatar */}
                                             <div
                                                 className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
@@ -343,6 +486,21 @@ export default function ApplicantsTab() {
                                                         {expandedCoverLetter === app.id ? 'Hide' : 'View'} Cover Letter
                                                     </button>
                                                 )}
+                                                {app.coverLetterUrl && (
+                                                    <a
+                                                        href={app.coverLetterUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
+                                                        style={{
+                                                            backgroundColor: 'rgba(37,99,235,0.08)',
+                                                            color: '#2563EB',
+                                                            border: '1px solid rgba(37,99,235,0.2)',
+                                                        }}
+                                                    >
+                                                        <Download size={12} /> Cover Letter PDF
+                                                    </a>
+                                                )}
                                             </div>
                                         )}
 
@@ -405,7 +563,8 @@ export default function ApplicantsTab() {
                             );
                         })}
                     </div>
-                )}
+                )
+                }
             </div>
 
             {/* Compose Message Modal */}

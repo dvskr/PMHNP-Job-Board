@@ -35,7 +35,7 @@ const jobPostingSchema = z.object({
   description: z.string().min(200, 'Job description must be at least 200 characters'),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
-  pricingTier: z.enum(['standard', 'featured']),
+  pricingTier: z.enum(['starter', 'growth', 'premium']),
   benefits: z.array(z.string()).optional(),
   setting: z.string().optional(),
   population: z.string().optional(),
@@ -146,7 +146,7 @@ function PostJobContent() {
   } = useForm<JobPostingFormData>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
-      pricingTier: 'standard',
+      pricingTier: 'starter',
       salaryCompetitive: false,
       salaryPeriod: 'annual',
       benefits: [],
@@ -457,14 +457,7 @@ function PostJobContent() {
           </div>
         )}
 
-        {/* Free Mode Banner */}
-        {!config.isPaidPostingEnabled && (
-          <div className="mb-6 rounded-lg p-4" style={{ backgroundColor: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)' }}>
-            <p className="font-medium" style={{ color: 'var(--color-primary)' }}>
-              🎉 Launch Special: Job postings are FREE for a limited time!
-            </p>
-          </div>
-        )}
+
 
         <form id="job-post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-8">
           {/* Job Details Section */}
@@ -753,10 +746,11 @@ function PostJobContent() {
                 </label>
                 <div className="space-y-3">
                   <label
-                    className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${!watch('applyOnPlatform')
-                        ? 'border-teal-500 bg-teal-50/50'
-                        : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                    className="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all"
+                    style={!watch('applyOnPlatform')
+                      ? { borderColor: '#2DD4BF', background: 'rgba(45,212,191,0.08)' }
+                      : { borderColor: 'var(--border-color)' }
+                    }
                   >
                     <input
                       type="radio"
@@ -765,15 +759,16 @@ function PostJobContent() {
                       className="w-5 h-5 text-teal-600 border-gray-300 focus:ring-teal-500 mt-0.5"
                     />
                     <div>
-                      <span className="text-base font-medium text-gray-900">External Application URL</span>
-                      <p className="text-sm text-gray-500 mt-0.5">Candidates will be redirected to your website or ATS to apply</p>
+                      <span className="text-base font-medium" style={{ color: 'var(--text-primary)' }}>External Application URL</span>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>Candidates will be redirected to your website or ATS to apply</p>
                     </div>
                   </label>
                   <label
-                    className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${watch('applyOnPlatform')
-                        ? 'border-teal-500 bg-teal-50/50'
-                        : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                    className="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all"
+                    style={watch('applyOnPlatform')
+                      ? { borderColor: '#2DD4BF', background: 'rgba(45,212,191,0.08)' }
+                      : { borderColor: 'var(--border-color)' }
+                    }
                   >
                     <input
                       type="radio"
@@ -785,12 +780,12 @@ function PostJobContent() {
                       className="w-5 h-5 text-teal-600 border-gray-300 focus:ring-teal-500 mt-0.5"
                     />
                     <div>
-                      <span className="text-base font-medium text-gray-900">Receive applications on PMHNP Hiring</span>
-                      <p className="text-sm text-gray-500 mt-0.5">Candidates apply directly on our platform — no website needed. You&apos;ll receive applications in your employer dashboard.</p>
+                      <span className="text-base font-medium" style={{ color: 'var(--text-primary)' }}>Receive applications on PMHNP Hiring</span>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>Candidates apply directly on our platform — no website needed. You&apos;ll receive applications in your employer dashboard.</p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">✓ Resume collection</span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">✓ Cover letter</span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">✓ Email notifications</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>✓ Resume collection</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>✓ Cover letter</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(45,212,191,0.12)', color: '#2DD4BF' }}>✓ Email notifications</span>
                       </div>
                     </div>
                   </label>
@@ -799,7 +794,7 @@ function PostJobContent() {
                 {/* External Apply URL — only shown when NOT using platform */}
                 {!watch('applyOnPlatform') && (
                   <div className="mt-4">
-                    <label htmlFor="applyUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="applyUrl" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                       Application URL <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -808,17 +803,21 @@ function PostJobContent() {
                       id="applyUrl"
                       placeholder="https://www.example.com/careers/apply"
                       {...register('applyUrl')}
-                      className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ${errors.applyUrl ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
-                        }`}
-                      style={{ minHeight: '44px' }}
+                      className={`w-full rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors`}
+                      style={{
+                        minHeight: '44px',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        border: `1px solid ${errors.applyUrl ? '#EF4444' : 'var(--border-color)'}`,
+                        color: 'var(--text-primary)',
+                      }}
                     />
                     {errors.applyUrl && (
                       <p className="mt-2 text-sm font-medium text-red-600">{errors.applyUrl.message}</p>
                     )}
-                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-                      <span className="text-amber-500 text-lg leading-none mt-0.5">💡</span>
-                      <p className="text-sm text-amber-800">
-                        This should be a direct link to your application page — <strong>not your company homepage</strong>. Candidates will click &quot;Apply Now&quot; and be taken directly to this URL.
+                    <div className="mt-2 flex items-start gap-2 rounded-lg px-4 py-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                      <span className="text-lg leading-none mt-0.5">💡</span>
+                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        This should be a direct link to your application page — <strong style={{ color: 'var(--text-primary)' }}>not your company homepage</strong>. Candidates will click &quot;Apply Now&quot; and be taken directly to this URL.
                       </p>
                     </div>
                   </div>
@@ -826,10 +825,10 @@ function PostJobContent() {
 
                 {/* Platform apply info */}
                 {watch('applyOnPlatform') && (
-                  <div className="mt-4 flex items-start gap-2 rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
-                    <span className="text-teal-500 text-lg leading-none mt-0.5">✅</span>
-                    <p className="text-sm text-teal-800">
-                      <strong>Great choice!</strong> Candidates will apply directly on this platform. You&apos;ll receive email notifications for each new application and can manage all applicants from your employer dashboard.
+                  <div className="mt-4 flex items-start gap-2 rounded-lg px-4 py-3" style={{ background: 'rgba(45,212,191,0.08)', border: '1px solid rgba(45,212,191,0.2)' }}>
+                    <span className="text-lg leading-none mt-0.5">✅</span>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>Great choice!</strong> Candidates will apply directly on this platform. You&apos;ll receive email notifications for each new application and can manage all applicants from your employer dashboard.
                     </p>
                   </div>
                 )}
@@ -933,83 +932,119 @@ function PostJobContent() {
           </div>
 
           {/* Pricing Section */}
-          <div className="rounded-lg shadow-md p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h2 className="text-xl font-semibold mb-6">Choose Your Plan</h2>
+          {config.isPaidPostingEnabled ? (
+            <div className="rounded-lg shadow-md p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <h2 className="text-xl font-semibold mb-6">Choose Your Plan</h2>
 
-            {!config.isPaidPostingEnabled && (
-              <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(13,148,136,0.1)', border: '1px solid rgba(13,148,136,0.3)' }}>
-                <p className="text-sm" style={{ color: 'var(--color-primary)' }}>
-                  🎉 Limited time: Post jobs for FREE during our launch period!
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Starter Plan */}
+                <label
+                  className={`relative flex flex-col p-5 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'starter'
+                    ? 'border-teal-500'
+                    : ''
+                    }`}
+                  style={{
+                    backgroundColor: selectedPricingTier === 'starter' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
+                    borderColor: selectedPricingTier === 'starter' ? undefined : 'var(--border-color)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    value="starter"
+                    {...register('pricingTier')}
+                    className="absolute top-4 right-4 w-4 h-4 text-teal-500"
+                  />
+                  <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Starter</span>
+                  <span className="text-2xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
+                    ${config.pricing.starter}
+                  </span>
+                  <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
+                    <li>• 30-day listing</li>
+                    <li>• Shown in job feed</li>
+                    <li>• Email alerts to subscribers</li>
+                    <li>• 5 candidate unlocks/mo</li>
+                  </ul>
+                </label>
+
+                {/* Growth Plan */}
+                <label
+                  className={`relative flex flex-col p-5 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'growth'
+                    ? 'border-teal-500'
+                    : ''
+                    }`}
+                  style={{
+                    backgroundColor: selectedPricingTier === 'growth' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
+                    borderColor: selectedPricingTier === 'growth' ? undefined : 'var(--border-color)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    value="growth"
+                    {...register('pricingTier')}
+                    className="absolute top-4 right-4 w-4 h-4 text-teal-500"
+                  />
+                  <span className="absolute -top-3 left-4 bg-teal-500 text-white text-xs px-2 py-1 rounded">
+                    MOST POPULAR
+                  </span>
+                  <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Growth</span>
+                  <span className="text-2xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
+                    ${config.pricing.growth}
+                  </span>
+                  <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
+                    <li>• 60-day listing</li>
+                    <li>• ⭐ Featured badge</li>
+                    <li>• Top search placement</li>
+                    <li>• 25 candidate unlocks/mo</li>
+                    <li>• 25 InMails/mo</li>
+                  </ul>
+                </label>
+
+                {/* Premium Plan */}
+                <label
+                  className={`relative flex flex-col p-5 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'premium'
+                    ? 'border-teal-500'
+                    : ''
+                    }`}
+                  style={{
+                    backgroundColor: selectedPricingTier === 'premium' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
+                    borderColor: selectedPricingTier === 'premium' ? undefined : 'var(--border-color)',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    value="premium"
+                    {...register('pricingTier')}
+                    className="absolute top-4 right-4 w-4 h-4 text-teal-500"
+                  />
+                  <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Premium</span>
+                  <span className="text-2xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
+                    ${config.pricing.premium}
+                  </span>
+                  <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
+                    <li>• 90-day listing</li>
+                    <li>• Everything in Growth</li>
+                    <li>• Unlimited candidate unlocks</li>
+                    <li>• Unlimited InMails</li>
+                    <li>• Social media promotion</li>
+                  </ul>
+                </label>
               </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Standard Plan */}
-              <label
-                className={`relative flex flex-col p-6 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'standard'
-                  ? 'border-teal-500'
-                  : ''
-                  }`}
-                style={{
-                  backgroundColor: selectedPricingTier === 'standard' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
-                  borderColor: selectedPricingTier === 'standard' ? undefined : 'var(--border-color)',
-                }}
-              >
-                <input
-                  type="radio"
-                  value="standard"
-                  {...register('pricingTier')}
-                  className="absolute top-4 right-4 w-4 h-4 text-teal-500"
-                />
-                <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Standard Job</span>
-                <span className="text-3xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
-                  FREE
-                </span>
-                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>• 30-day listing</li>
-                  <li>• Shown in job feed</li>
-                  <li>• Email alerts to subscribers</li>
-                </ul>
-              </label>
-
-              {/* Featured Plan */}
-              <label
-                className={`relative flex flex-col p-6 border-2 rounded-lg cursor-pointer transition-all ${selectedPricingTier === 'featured'
-                  ? 'border-teal-500'
-                  : ''
-                  }`}
-                style={{
-                  backgroundColor: selectedPricingTier === 'featured' ? 'rgba(13,148,136,0.1)' : 'var(--bg-primary)',
-                  borderColor: selectedPricingTier === 'featured' ? undefined : 'var(--border-color)',
-                }}
-              >
-                <input
-                  type="radio"
-                  value="featured"
-                  {...register('pricingTier')}
-                  className="absolute top-4 right-4 w-4 h-4 text-teal-500"
-                />
-                <span className="absolute -top-3 left-4 bg-teal-500 text-white text-xs px-2 py-1 rounded">
-                  {!config.isPaidPostingEnabled ? '⭐ RECOMMENDED' : 'BEST VALUE'}
-                </span>
-                <span className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Featured Job</span>
-                <span className="text-3xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
-                  FREE
-                </span>
-                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>• 60-day listing</li>
-                  <li>• Featured badge</li>
-                  <li>• Pinned to top of results</li>
-                  <li>• Priority email alerts</li>
-                  <li>• Social media promotion</li>
-                </ul>
-              </label>
+              {errors.pricingTier && (
+                <p className="mt-2 text-sm text-red-500">{errors.pricingTier.message}</p>
+              )}
             </div>
-            {errors.pricingTier && (
-              <p className="mt-2 text-sm text-red-500">{errors.pricingTier.message}</p>
-            )}
-          </div>
+          ) : (
+            <div className="rounded-lg shadow-md p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>What&apos;s Included</h2>
+              <div className="flex flex-wrap gap-3">
+                {['30-day job listing', 'Included in daily job alerts', 'Full job description page', 'Basic analytics (views)', '5 candidate unlocks/mo', '5 InMails/mo'].map((feat) => (
+                  <span key={feat} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: 'rgba(45,212,191,0.1)', color: '#2DD4BF' }}>
+                    ✓ {feat}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Submit Buttons - Desktop */}
           <div className="hidden lg:flex flex-row justify-end gap-3">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { config } from '@/lib/config';
+import { config, PricingTier } from '@/lib/config';
 import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText } from '@/lib/sanitize';
@@ -180,9 +180,11 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
 
-    // Calculate expiry date (30 days)
+    // Free posts always get Starter plan features (30 days, not featured)
+    // Ignore any pricing tier from the request body to prevent feature spoofing
+    const tierForDuration: PricingTier = 'starter';
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + config.getDurationDays(tierForDuration));
 
     // Parse salary values
     const parsedMinSalary = (() => {
@@ -251,7 +253,7 @@ export async function POST(request: NextRequest) {
         stateCode: parsedLoc.stateCode,
         isRemote: parsedLoc.isRemote,
         isHybrid: parsedLoc.isHybrid,
-        isFeatured: pricing === 'featured',
+        isFeatured: config.isFeaturedTier(tierForDuration),
         isPublished: true,
         isVerifiedEmployer: true,
         sourceType: 'employer',
@@ -287,6 +289,7 @@ export async function POST(request: NextRequest) {
         editToken,
         dashboardToken,
         paymentStatus: 'free',
+        pricingTier: 'starter',
         userId: userId,
       },
     });

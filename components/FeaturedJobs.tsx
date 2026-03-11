@@ -129,8 +129,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
         <motion.section
             className="fj-section"
             style={{
-                backgroundColor: 'var(--bg-secondary)',
-                padding: '72px 0 88px',
+                padding: '24px 0 88px',
                 position: 'relative',
                 overflow: 'hidden',
             }}
@@ -147,18 +146,6 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                     style={{ textAlign: 'center', marginBottom: '48px' }}
                     variants={headerVariants}
                 >
-                    <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        padding: '6px 16px', borderRadius: '999px', fontSize: '11px',
-                        fontWeight: 700, letterSpacing: '0.14em',
-                        backgroundColor: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--color-primary)',
-                        marginBottom: '16px',
-                    }}>
-                        <Sparkles size={12} />
-                        UPDATED DAILY
-                    </span>
                     <h2 className="fj-heading" style={{
                         fontSize: '32px', fontWeight: 800, letterSpacing: '-0.02em',
                         color: 'var(--text-primary)', margin: '16px 0 8px',

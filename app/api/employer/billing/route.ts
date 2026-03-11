@@ -47,7 +47,7 @@ export async function GET() {
     const payments = employerJobs.map((ej) => ({
         id: ej.id,
         jobTitle: ej.job.title,
-        tier: ej.job.isFeatured ? 'Featured' : 'Standard',
+        tier: ej.job.isFeatured ? 'Growth' : 'Starter',
         status: ej.paymentStatus,
         date: ej.createdAt.toISOString(),
         expiresAt: ej.job.expiresAt?.toISOString() || null,

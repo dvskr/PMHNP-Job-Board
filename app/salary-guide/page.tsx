@@ -387,11 +387,11 @@ export default async function SalaryGuidePage() {
                     </thead>
                     <tbody className="divide-y divide-gray-200" suppressHydrationWarning>
                       {stateSalaries.map((state, index) => (
-                        <tr key={state.state} className={index < 3 ? '' : 'hover:bg-gray-50'} style={index < 3 ? { backgroundColor: 'rgba(236, 253, 245, 0.5)' } : undefined}>
+                        <tr key={state.state} className={index < 3 ? '' : 'hover:bg-gray-50'} style={index < 3 ? { backgroundColor: 'rgba(251, 191, 36, 0.08)' } : undefined}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {index < 3 && (
-                                <span className="flex items-center justify-center w-6 h-6 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                                <span className="flex items-center justify-center w-6 h-6 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
                                   {index + 1}
                                 </span>
                               )}
@@ -410,7 +410,7 @@ export default async function SalaryGuidePage() {
                             ${Math.round(state.minSalary / 1000)}k - ${Math.round(state.maxSalary / 1000)}k
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300">
+                            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                               {state.jobCount}
                             </span>
                           </td>

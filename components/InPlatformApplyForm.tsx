@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Upload, CheckCircle, Loader2, AlertCircle, X, ShieldCheck } from 'lucide-react';
+import { FileText, Upload, CheckCircle, Loader2, AlertCircle, X, ShieldCheck, Briefcase } from 'lucide-react';
+import Link from 'next/link';
 
 interface InPlatformApplyFormProps {
     jobId: string;
@@ -26,6 +27,9 @@ export default function InPlatformApplyForm({
 }: InPlatformApplyFormProps) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [coverLetter, setCoverLetter] = useState('');
+    const [coverLetterMode, setCoverLetterMode] = useState<'write' | 'upload'>('write');
+    const [coverLetterUrl, setCoverLetterUrl] = useState<string | null>(null);
+    const [uploadingCoverLetter, setUploadingCoverLetter] = useState(false);
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
     const [useProfileResume, setUseProfileResume] = useState(true);
     const [uploadingResume, setUploadingResume] = useState(false);
@@ -34,12 +38,13 @@ export default function InPlatformApplyForm({
     const [error, setError] = useState<string | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [consentGiven, setConsentGiven] = useState(false);
+    const [similarJobs, setSimilarJobs] = useState<Array<{ id: string; title: string; employer: string; location: string; slug: string | null }>>([]);
 
     // Load user profile data
     useEffect(() => {
         async function loadProfile() {
             try {
-                const res = await fetch('/api/profile');
+                const res = await fetch('/api/auth/profile');
                 if (res.ok) {
                     const data = await res.json();
                     setProfile(data);
@@ -82,8 +87,9 @@ export default function InPlatformApplyForm({
         try {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('type', 'resume');
 
-            const res = await fetch('/api/upload/resume', {
+            const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -104,6 +110,47 @@ export default function InPlatformApplyForm({
         }
     };
 
+    const handleCoverLetterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (file.type !== 'application/pdf') {
+            setError('Cover letter must be a PDF file');
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Cover letter must be under 5MB');
+            return;
+        }
+
+        setUploadingCoverLetter(true);
+        setError(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'resume'); // reuse resume bucket for cover letters too
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+            setCoverLetterUrl(data.path || data.url);
+        } catch (err) {
+            console.error('Cover letter upload failed:', err);
+            setError('Failed to upload cover letter. Please try again.');
+        } finally {
+            setUploadingCoverLetter(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -115,7 +162,8 @@ export default function InPlatformApplyForm({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     jobId,
-                    coverLetter: coverLetter.trim() || null,
+                    coverLetter: coverLetterMode === 'write' ? (coverLetter.trim() || null) : null,
+                    coverLetterUrl: coverLetterMode === 'upload' ? coverLetterUrl : null,
                     resumeUrl: resumeUrl || null,
                     consent: consentGiven,
                 }),
@@ -128,9 +176,18 @@ export default function InPlatformApplyForm({
             }
 
             setSubmitted(true);
-            setTimeout(() => {
-                onSuccess();
-            }, 2000);
+            onSuccess();
+
+            // Fetch similar jobs in the background
+            try {
+                const simRes = await fetch(`/api/jobs/similar?jobId=${jobId}`);
+                if (simRes.ok) {
+                    const simData = await simRes.json();
+                    setSimilarJobs(simData.jobs || []);
+                }
+            } catch {
+                // Non-critical — ignore
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong');
         } finally {
@@ -159,6 +216,28 @@ export default function InPlatformApplyForm({
                     Your application for <strong>{jobTitle}</strong> has been sent to the employer.
                     They&apos;ll be notified by email.
                 </p>
+
+                {/* Similar Jobs */}
+                {similarJobs.length > 0 && (
+                    <div className="mt-6 text-left">
+                        <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                            <Briefcase size={14} /> Similar positions you might like
+                        </p>
+                        <div className="space-y-2">
+                            {similarJobs.map(job => (
+                                <Link
+                                    key={job.id}
+                                    href={`/jobs/${job.slug || job.id}`}
+                                    className="block p-3 rounded-lg transition-colors hover:opacity-80"
+                                    style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
+                                >
+                                    <p className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>{job.title}</p>
+                                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{job.employer} · {job.location}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -297,33 +376,96 @@ export default function InPlatformApplyForm({
 
                 {/* Cover Letter */}
                 <div>
-                    <label htmlFor="coverLetter" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                        Cover Letter <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
-                    </label>
-                    <textarea
-                        id="coverLetter"
-                        value={coverLetter}
-                        onChange={(e) => setCoverLetter(e.target.value)}
-                        placeholder="Tell the employer why you're a great fit for this role..."
-                        rows={5}
-                        className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
-                        style={{
-                            backgroundColor: 'var(--bg-primary)',
-                            border: '1px solid var(--border-color)',
-                            color: 'var(--text-primary)',
-                        }}
-                        onFocus={(e) => {
-                            e.target.style.borderColor = '#0d9488';
-                            e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.1)';
-                        }}
-                        onBlur={(e) => {
-                            e.target.style.borderColor = 'var(--border-color)';
-                            e.target.style.boxShadow = 'none';
-                        }}
-                    />
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                        {coverLetter.length > 0 ? `${coverLetter.length} characters` : 'A brief note can help you stand out'}
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            Cover Letter <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
+                        </label>
+                        <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-color)' }}>
+                            <button
+                                type="button"
+                                onClick={() => setCoverLetterMode('write')}
+                                className="px-3 py-1 text-xs font-medium transition-colors"
+                                style={{
+                                    backgroundColor: coverLetterMode === 'write' ? '#0d9488' : 'transparent',
+                                    color: coverLetterMode === 'write' ? '#fff' : 'var(--text-secondary)',
+                                }}
+                            >
+                                Write
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCoverLetterMode('upload')}
+                                className="px-3 py-1 text-xs font-medium transition-colors"
+                                style={{
+                                    backgroundColor: coverLetterMode === 'upload' ? '#0d9488' : 'transparent',
+                                    color: coverLetterMode === 'upload' ? '#fff' : 'var(--text-secondary)',
+                                    borderLeft: '1px solid var(--border-color)',
+                                }}
+                            >
+                                Upload PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    {coverLetterMode === 'write' ? (
+                        <>
+                            <textarea
+                                id="coverLetter"
+                                value={coverLetter}
+                                onChange={(e) => setCoverLetter(e.target.value)}
+                                placeholder="Tell the employer why you're a great fit for this role..."
+                                rows={5}
+                                className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all resize-none"
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-primary)',
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#0d9488';
+                                    e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.1)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = 'var(--border-color)';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                            <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                                {coverLetter.length > 0 ? `${coverLetter.length} / 5,000 characters` : 'A brief note can help you stand out'}
+                            </p>
+                        </>
+                    ) : (
+                        <label
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                            style={{ border: '1px dashed var(--border-color)' }}
+                        >
+                            <div className="flex items-center gap-3 flex-1">
+                                <div
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                    style={{ backgroundColor: 'rgba(13,148,136,0.08)' }}
+                                >
+                                    <FileText size={16} style={{ color: '#0d9488' }} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                        {coverLetterUrl ? 'Cover letter uploaded ✓' : 'Upload cover letter'}
+                                    </p>
+                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                        PDF, up to 5MB
+                                    </p>
+                                </div>
+                            </div>
+                            {uploadingCoverLetter && <Loader2 size={16} className="animate-spin" style={{ color: '#0d9488' }} />}
+                            {coverLetterUrl && !uploadingCoverLetter && <CheckCircle size={16} style={{ color: '#0d9488' }} />}
+                            <input
+                                type="file"
+                                accept=".pdf"
+                                onChange={handleCoverLetterUpload}
+                                className="sr-only"
+                                disabled={uploadingCoverLetter}
+                            />
+                        </label>
+                    )}
                 </div>
 
                 {/* Error */}
@@ -340,6 +482,21 @@ export default function InPlatformApplyForm({
                         <span>{error}</span>
                     </div>
                 )}
+
+                {/* GDPR Consent */}
+                <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={consentGiven}
+                        onChange={(e) => setConsentGiven(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-xs leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+                        <ShieldCheck size={12} className="inline mr-1" style={{ color: '#0d9488' }} />
+                        I consent to sharing my profile, resume, and cover letter with this employer.
+                        You may withdraw your application at any time.
+                    </span>
+                </label>
 
                 {/* Submit Button */}
                 <button
@@ -370,21 +527,6 @@ export default function InPlatformApplyForm({
                         'Submit Application'
                     )}
                 </button>
-
-                {/* GDPR Consent */}
-                <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={consentGiven}
-                        onChange={(e) => setConsentGiven(e.target.checked)}
-                        className="mt-1 w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                    />
-                    <span className="text-xs leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
-                        <ShieldCheck size={12} className="inline mr-1" style={{ color: '#0d9488' }} />
-                        I consent to sharing my profile, resume, and cover letter with this employer.
-                        You may withdraw your application at any time.
-                    </span>
-                </label>
 
                 {/* Privacy Note */}
                 <p className="text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>

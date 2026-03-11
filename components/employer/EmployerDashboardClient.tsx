@@ -16,6 +16,7 @@ interface Job {
     isFeatured: boolean;
     viewCount: number;
     applyClickCount: number;
+    applicantCount?: number;
     createdAt: string;
     expiresAt: string | null;
     editToken: string;
@@ -125,7 +126,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         setShowRenewModal(true);
     };
 
-    const handleRenewCheckout = async (tier: 'standard' | 'featured') => {
+    const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
         if (!selectedJob) return;
 
         setRenewingJobId(selectedJob.id);
@@ -428,6 +429,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         </svg>
                                                         {job.applyClickCount} clicks
                                                     </span>
+                                                    {(job.applicantCount !== undefined && job.applicantCount > 0) && (
+                                                        <span className="flex items-center gap-1" title="Platform Applicants">
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                            </svg>
+                                                            {job.applicantCount} applicant{job.applicantCount !== 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {/* Dates + Invoice */}
@@ -663,44 +672,64 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </p>
 
                             <div className="space-y-3 mb-6">
-                                {/* Standard Option */}
+                                {/* Starter Option */}
                                 <button
-                                    onClick={() => handleRenewCheckout('standard')}
+                                    onClick={() => handleRenewCheckout('starter')}
                                     className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-teal-500 hover:bg-teal-50 transition-all group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-gray-900 group-hover:text-teal-700">Standard Renewal</span>
+                                        <span className="font-semibold text-gray-900 group-hover:text-teal-700">Starter Renewal</span>
                                         <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">
                                             {config.isPaidPostingEnabled ? '$199' : 'FREE'}
                                         </span>
                                     </div>
                                     <ul className="text-sm text-gray-600 space-y-1">
                                         <li>✓ 30 days of visibility</li>
-                                        <li>✓ Standard placement</li>
+                                        <li>✓ 5 candidate unlocks/mo</li>
                                     </ul>
                                 </button>
 
-                                {/* Featured Option */}
+                                {/* Growth Option */}
                                 <button
-                                    onClick={() => handleRenewCheckout('featured')}
+                                    onClick={() => handleRenewCheckout('growth')}
                                     className="w-full text-left border-2 border-teal-500 bg-teal-50 rounded-lg p-4 hover:bg-teal-100 transition-all group relative"
                                 >
                                     <div className="absolute top-2 right-2">
                                         <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">
-                                            RECOMMENDED
+                                            MOST POPULAR
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-teal-900">Featured Renewal</span>
+                                        <span className="font-semibold text-teal-900">Growth Renewal</span>
                                         <span className="text-2xl font-bold text-teal-900">
                                             {config.isPaidPostingEnabled ? '$299' : 'FREE'}
                                         </span>
                                     </div>
                                     <ul className="text-sm text-teal-800 space-y-1">
                                         <li>✓ 60 days of visibility</li>
-                                        <li>✓ <strong>Top placement</strong></li>
-                                        <li>✓ <strong>2x more visibility</strong></li>
-                                        <li>✓ <strong>Candidate database access</strong></li>
+                                        <li>✓ <strong>Featured placement</strong></li>
+                                        <li>✓ 25 candidate unlocks/mo</li>
+                                        <li>✓ 25 InMails/mo</li>
+                                    </ul>
+                                </button>
+
+                                {/* Premium Option */}
+                                <button
+                                    onClick={() => handleRenewCheckout('premium')}
+                                    className="w-full text-left border-2 border-purple-300 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-semibold text-gray-900 group-hover:text-purple-700">Premium Renewal</span>
+                                        <span className="text-2xl font-bold text-gray-900 group-hover:text-purple-700">
+                                            {config.isPaidPostingEnabled ? '$399' : 'FREE'}
+                                        </span>
+                                    </div>
+                                    <ul className="text-sm text-gray-600 space-y-1">
+                                        <li>✓ 90 days of visibility</li>
+                                        <li>✓ Everything in Growth</li>
+                                        <li>✓ <strong>Unlimited</strong> candidate unlocks</li>
+                                        <li>✓ <strong>Unlimited</strong> InMails</li>
+                                        <li>✓ Social media promotion</li>
                                     </ul>
                                 </button>
                             </div>

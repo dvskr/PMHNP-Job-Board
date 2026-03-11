@@ -40,7 +40,7 @@ const STATE_TO_CODE: Record<string, string> = {
 
 // ─── Build a single alert email HTML ──────────────────────────────────────────
 function buildAlertHtml(
-  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; mode?: string | null }>,
+  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; mode?: string | null; isFeatured?: boolean }>,
   alertToken: string,
   totalCount?: number
 ): string {
@@ -66,6 +66,7 @@ function buildAlertHtml(
             ${job.employer} · ${job.location}${job.mode ? ` · ${job.mode}` : ''}
           </p>
           ${salaryText ? `<p style="margin: 8px 0 0;">${salaryBadge(salaryText)}</p>` : ''}
+          ${job.isFeatured ? `<p style="margin: 6px 0 0;"><span style="display: inline-block; background-color: #312E81; color: #A5B4FC; padding: 2px 8px; border-radius: 4px; font-family: ${F}; font-size: 10px; font-weight: bold; letter-spacing: 0.5px;">⭐ FEATURED</span></p>` : ''}
         </td>
       </tr>`
   }).join('')

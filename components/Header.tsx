@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Bookmark, Briefcase, Sun, Moon, Mail, Bell } from 'lucide-react';
+import { Menu, X, Bookmark, Briefcase, Mail, Bell, Sun, Moon, BarChart, Users, DollarSign } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -188,56 +188,54 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* ═══ Center: Nav links ═══ */}
+            {/* ═══ Center: Main nav links ═══ */}
             <nav aria-label="Main navigation" className="hidden lg:flex items-center" style={{
-              gap: 'clamp(2px, 0.5vw, 8px)',
+              gap: 'clamp(4px, 0.6vw, 8px)',
             }}>
               <Link
                 href="/jobs"
                 className={`nav-link ${isActive('/jobs') ? 'active' : ''}`}
                 style={{
-                  padding: '8px clamp(10px, 1.2vw, 18px)', borderRadius: '10px',
+                  padding: '8px clamp(12px, 1.2vw, 18px)', borderRadius: '10px',
                   fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
                   textDecoration: 'none', whiteSpace: 'nowrap',
                 }}
               >
                 Find Jobs
               </Link>
-              {userRole !== 'employer' && (
-                <Link
-                  href="/saved"
-                  className={`nav-link ${isActive('/saved') ? 'active' : ''}`}
-                  style={{
-                    padding: '8px clamp(10px, 1.2vw, 18px)', borderRadius: '10px',
-                    fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
-                    textDecoration: 'none', whiteSpace: 'nowrap',
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                  }}
-                >
-                  <Bookmark size={14} /> Saved
-                </Link>
-              )}
               <Link
-                href="/messages"
-                className={`nav-link ${isActive('/messages') ? 'active' : ''}`}
+                href="/salary-guide"
+                className={`nav-link ${isActive('/salary-guide') ? 'active' : ''}`}
                 style={{
-                  padding: '8px clamp(10px, 1.2vw, 18px)', borderRadius: '10px',
+                  padding: '8px clamp(12px, 1.2vw, 18px)', borderRadius: '10px',
                   fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
                   textDecoration: 'none', whiteSpace: 'nowrap',
-                  display: 'inline-flex', alignItems: 'center', gap: '5px',
                 }}
               >
-                <Mail size={14} /> Messages
+                Salary Guide
               </Link>
+              {userRole !== 'job_seeker' && (
+                <Link
+                  href="/for-employers"
+                  className={`nav-link ${isActive('/for-employers') ? 'active' : ''}`}
+                  style={{
+                    padding: '8px clamp(12px, 1.2vw, 18px)', borderRadius: '10px',
+                    fontSize: 'clamp(12px, 1vw, 14px)', fontWeight: 600,
+                    textDecoration: 'none', whiteSpace: 'nowrap',
+                  }}
+                >
+                  For Employers
+                </Link>
+              )}
               {userRole !== 'job_seeker' && (
                 <Link
                   href="/post-job"
                   className="hdr-post-link"
                   style={{
-                    padding: '7px clamp(10px, 1vw, 16px)', borderRadius: '10px',
+                    padding: '7px clamp(12px, 1.2vw, 16px)', borderRadius: '10px',
                     fontSize: 'clamp(12px, 1vw, 13px)', fontWeight: 600,
                     textDecoration: 'none', whiteSpace: 'nowrap',
-                    marginLeft: '6px',
+                    marginLeft: '4px',
                   }}
                 >
                   Post a Job
@@ -245,8 +243,36 @@ export default function Header() {
               )}
             </nav>
 
-            {/* ═══ Right: Theme + Auth ═══ */}
-            <div className="hidden lg:flex items-center gap-3" style={{ flexShrink: 0 }}>
+            {/* ═══ Right: Saved icon + Theme + Auth ═══ */}
+            <div className="hidden lg:flex items-center gap-2" style={{ flexShrink: 0 }}>
+              {userRole !== 'employer' && (
+                <Link
+                  href="/saved"
+                  className="hdr-theme-btn"
+                  style={{
+                    padding: '8px', borderRadius: '10px',
+                    color: isActive('/saved') ? '#2DD4BF' : 'var(--text-secondary)',
+                    display: 'flex',
+                  }}
+                  aria-label="Saved jobs"
+                  title="Saved Jobs"
+                >
+                  <Bookmark size={18} />
+                </Link>
+              )}
+              <Link
+                href="/messages"
+                className="hdr-theme-btn"
+                style={{
+                  padding: '8px', borderRadius: '10px',
+                  color: isActive('/messages') ? '#2DD4BF' : 'var(--text-secondary)',
+                  display: 'flex',
+                }}
+                aria-label="Messages"
+                title="Messages"
+              >
+                <Mail size={18} />
+              </Link>
               <button
                 onClick={toggleTheme}
                 className="hdr-theme-btn"
@@ -259,7 +285,6 @@ export default function Header() {
               >
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-              {/* Separator */}
               <div style={{
                 width: '1px', height: '24px',
                 backgroundColor: 'var(--border-color)',
@@ -351,6 +376,8 @@ export default function Header() {
                       </div>
                     )}
                     <div className="space-y-1 w-full flex flex-col items-center">
+                      {/* Mobile: Job Seekers section */}
+                      <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '1.5px', color: '#2DD4BF', padding: '8px 12px 4px', width: '100%', textAlign: 'center' }}>For Job Seekers</div>
                       <Link
                         href="/jobs"
                         className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
@@ -359,6 +386,15 @@ export default function Header() {
                       >
                         <Briefcase size={20} />
                         <span className="font-semibold">Browse Jobs</span>
+                      </Link>
+                      <Link
+                        href="/salary-guide"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <BarChart size={20} />
+                        <span className="font-semibold">Salary Guide</span>
                       </Link>
                       <Link
                         href="/saved"
@@ -386,6 +422,27 @@ export default function Header() {
                       >
                         <Mail size={20} />
                         <span className="font-semibold">Messages</span>
+                      </Link>
+
+                      {/* Mobile: Employers section */}
+                      <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '1.5px', color: '#E86C2C', padding: '16px 12px 4px', width: '100%', textAlign: 'center', borderTop: '1px solid var(--border-color)', marginTop: '8px' }}>For Employers</div>
+                      <Link
+                        href="/for-employers"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Users size={20} />
+                        <span className="font-semibold">Employer Hub</span>
+                      </Link>
+                      <Link
+                        href="/pricing"
+                        className="flex items-center justify-center gap-3 py-3 px-3 rounded-lg transition-colors duration-200 w-full"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <DollarSign size={20} />
+                        <span className="font-semibold">Pricing</span>
                       </Link>
                     </div>
                     <div className="mt-auto pt-6 space-y-1 w-full flex flex-col items-center" style={{ borderTop: '1px solid var(--border-color)' }}>

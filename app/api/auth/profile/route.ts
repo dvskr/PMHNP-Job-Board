@@ -5,6 +5,7 @@ import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 import { verifyCsrf } from '@/lib/csrf'
+import { syncToBeehiiv } from '@/lib/beehiiv'
 
 // Shared include for _count used by completeness scoring
 const profileInclude = {
@@ -143,39 +144,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create JobAlert if user opted in (only for new signups)
-    if (!existingProfile && wantJobHighlights && role === 'job_seeker') {
-      try {
-        // Check if alert already exists for this email
-        const existingAlert = await prisma.jobAlert.findFirst({
-          where: { email }
-        })
-
-        if (!existingAlert) {
-          await prisma.jobAlert.create({
-            data: {
-              email,
-              name: 'Job Highlights',
-              keyword: null,
-              location: null,
-              mode: null,
-              jobType: null,
-              minSalary: null,
-              maxSalary: null,
-              frequency: highlightsFrequency || 'daily',
-              isActive: true,
-              token: crypto.randomUUID(),
-            }
-          })
-          logger.info('JobAlert created for new user', { email, frequency: highlightsFrequency })
-        }
-      } catch (alertError) {
-        // Don't fail signup if alert creation fails
-        logger.error('Failed to create JobAlert', alertError)
-      }
-    }
-
     // Create leads for new signups — job seekers go to email_leads, employers go to employer_leads
+    // IMPORTANT: EmailLead must be created BEFORE JobAlert (foreign key: JobAlert.email → EmailLead.email)
     if (!existingProfile) {
       try {
         if (role === 'employer') {
@@ -211,9 +181,45 @@ export async function POST(request: NextRequest) {
             },
           })
           logger.info('EmailLead created for job seeker signup', { email })
+
+          // Sync to Beehiiv newsletter (fire-and-forget)
+          syncToBeehiiv(email, { utmSource: 'signup' })
         }
       } catch (leadError) {
         logger.error('Failed to create lead', leadError)
+      }
+    }
+
+    // Create JobAlert if user opted in (only for new signups)
+    // Must run AFTER EmailLead creation above (FK constraint)
+    if (!existingProfile && wantJobHighlights && role === 'job_seeker') {
+      try {
+        // Check if alert already exists for this email
+        const existingAlert = await prisma.jobAlert.findFirst({
+          where: { email }
+        })
+
+        if (!existingAlert) {
+          await prisma.jobAlert.create({
+            data: {
+              email,
+              name: 'Job Highlights',
+              keyword: null,
+              location: null,
+              mode: null,
+              jobType: null,
+              minSalary: null,
+              maxSalary: null,
+              frequency: highlightsFrequency || 'daily',
+              isActive: true,
+              token: crypto.randomUUID(),
+            }
+          })
+          logger.info('JobAlert created for new user', { email, frequency: highlightsFrequency })
+        }
+      } catch (alertError) {
+        // Don't fail signup if alert creation fails
+        logger.error('Failed to create JobAlert', alertError)
       }
     }
 

@@ -21,7 +21,7 @@ interface JobFormData {
   applyUrl?: string;
   applyOnPlatform?: boolean;
   contactEmail: string;
-  pricingTier: 'standard' | 'featured';
+  pricingTier: 'starter' | 'growth' | 'premium';
   benefits?: string[];
   setting?: string;
   population?: string;
@@ -154,7 +154,7 @@ export default function PreviewPage() {
                   {formData.title}
                 </h3>
                 <div className="flex gap-1 flex-wrap">
-                  {formData.pricingTier === 'featured' && (
+                  {formData.pricingTier !== 'starter' && (
                     <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       Featured
                     </span>
@@ -327,12 +327,14 @@ export default function PreviewPage() {
           <div className="flex items-center justify-between mb-4 pb-4 border-b">
             <div>
               <p className="font-semibold text-gray-900">
-                {formData.pricingTier === 'featured' ? 'Featured Job Post' : 'Standard Job Post'}
+                {formData.pricingTier === 'premium' ? 'Premium Job Post' : formData.pricingTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {formData.pricingTier === 'featured'
-                  ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
-                  : '✓ 30 days active ✓ Email to subscribers'
+                {formData.pricingTier === 'premium'
+                  ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days active'
+                  : formData.pricingTier === 'growth'
+                    ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
+                    : '✓ 30 days active ✓ Email to subscribers'
                 }
               </p>
             </div>

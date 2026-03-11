@@ -159,6 +159,22 @@
     {
       "path": "/api/cron/x-post",
       "schedule": "15 15 * * *"
+    },
+    {
+      "path": "/api/cron/profile-nudge",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/employer-report",
+      "schedule": "0 14 * * 1"
+    },
+    {
+      "path": "/api/cron/saved-job-reminder",
+      "schedule": "0 13 * * 3,6"
+    },
+    {
+      "path": "/api/cron/push-notifications",
+      "schedule": "0 14 * * *"
     }
   ],
   "headers": [

@@ -15,6 +15,8 @@ import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 const StickyEmailBar = dynamic(() => import('@/components/StickyEmailBar'));
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
+const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
+const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificationPrompt'));
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
     template: '%s | PMHNP Hiring',
   },
 
-  description: 'Browse 10,000+ PMHNP jobs updated daily. Find remote, telehealth, and in-person psychiatric NP positions with salary transparency across all 50 states. Free for job seekers.',
+  description: 'Browse thousands of PMHNP jobs updated daily. Find remote, telehealth, and in-person psychiatric NP positions with salary transparency across all 50 states. Free for job seekers.',
 
   keywords: [
     'PMHNP jobs',
@@ -213,12 +215,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
         style={{
-          backgroundColor: '#060E18',
+          backgroundColor: '#0F1923',
           color: '#F1F5F9',
         }}
       >
         <ThemeProvider>
-          <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative' }}>
+          <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <GoogleAnalytics />
             <LayoutShell>
               <Header />
@@ -233,6 +235,8 @@ export default function RootLayout({
                 <StickyEmailBar />
               </MobileHideOnAppRoutes>
               <BottomNav />
+              <ExitIntentPopup />
+              <PushNotificationPrompt />
             </LayoutShell>
           </div>
         </ThemeProvider>

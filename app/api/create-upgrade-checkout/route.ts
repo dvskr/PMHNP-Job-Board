@@ -1,19 +1,20 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { config } from '@/lib/config';
+import { config, PricingTier } from '@/lib/config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 interface UpgradeCheckoutBody {
   jobId: string;
   editToken: string;
+  targetTier?: PricingTier; // 'growth' or 'premium'
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: UpgradeCheckoutBody = await request.json();
-    const { jobId, editToken } = body;
+    const { jobId, editToken, targetTier } = body;
 
     // Validate required fields
     if (!jobId || !editToken) {
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
             location: true,
             isFeatured: true,
             isPublished: true,
+            expiresAt: true,
           },
         },
       },
@@ -51,11 +53,16 @@ export async function POST(request: NextRequest) {
     }
 
     const { job, dashboardToken } = employerJob;
+    const currentTier = (employerJob.pricingTier || 'starter') as PricingTier;
 
-    // Check if job is already featured
-    if (job.isFeatured) {
+    // Determine the target upgrade tier
+    const upgradeTo: PricingTier = targetTier || 'growth';
+
+    // Validate upgrade path
+    const tierRank: Record<string, number> = { starter: 1, growth: 2, premium: 3 };
+    if (tierRank[upgradeTo] <= tierRank[currentTier]) {
       return NextResponse.json(
-        { error: 'This job is already featured' },
+        { error: `Already on ${config.getTierLabel(currentTier)} tier — can only upgrade to a higher tier` },
         { status: 400 }
       );
     }
@@ -68,11 +75,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if free mode is enabled
-    if (config.isPaidPostingEnabled) {
-      // PAID MODE: Existing Stripe checkout flow
+    // Calculate extra listing days (difference between tiers)
+    const extraDays = config.getDurationDays(upgradeTo) - config.getDurationDays(currentTier);
+    const newExpiresAt = job.expiresAt ? new Date(job.expiresAt) : new Date();
+    newExpiresAt.setDate(newExpiresAt.getDate() + extraDays);
 
-      // Create Stripe Checkout session for upgrade
+    if (config.isPaidPostingEnabled) {
+      // PAID MODE: Stripe checkout
+
+      // Calculate upgrade price (difference between tiers)
+      const upgradePrice = config.getUpgradePrice(currentTier, upgradeTo);
+      const upgradePriceCents = upgradePrice * 100;
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
@@ -80,10 +94,10 @@ export async function POST(request: NextRequest) {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: 'Upgrade to Featured Job',
+                name: `Upgrade to ${config.getTierLabel(upgradeTo)}`,
                 description: `${job.title} - ${job.employer}`,
               },
-              unit_amount: 10000, // $100 (difference between $299 and $199)
+              unit_amount: upgradePriceCents,
             },
             quantity: 1,
           },
@@ -94,6 +108,8 @@ export async function POST(request: NextRequest) {
         metadata: {
           jobId: job.id,
           type: 'upgrade',
+          tier: upgradeTo,
+          fromTier: currentTier,
         },
       });
 
@@ -104,11 +120,12 @@ export async function POST(request: NextRequest) {
     } else {
       // FREE MODE: Upgrade directly without payment
 
-      // Update job to featured
+      // Update job
       await prisma.job.update({
         where: { id: jobId },
         data: {
-          isFeatured: true,
+          isFeatured: config.isFeaturedTier(upgradeTo),
+          expiresAt: newExpiresAt,
         },
       });
 
@@ -117,12 +134,13 @@ export async function POST(request: NextRequest) {
         where: { jobId },
         data: {
           paymentStatus: 'free_upgraded',
+          pricingTier: upgradeTo,
         },
       });
 
       return NextResponse.json({
         success: true,
-        message: 'Job upgraded to Featured! It will now appear at the top of search results.',
+        message: `Job upgraded to ${config.getTierLabel(upgradeTo)}!`,
         free: true,
       });
     }
@@ -134,4 +152,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
