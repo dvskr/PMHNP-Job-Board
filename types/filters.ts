@@ -38,6 +38,11 @@ export interface FilterCounts {
     Travel: number;
     'New Grad': number;
   };
+  experienceLevel: {
+    'New Grad': number;
+    'Mid-Level': number;
+    'Senior': number;
+  };
   total: number;
 }
 

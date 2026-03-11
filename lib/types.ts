@@ -12,6 +12,7 @@ export interface Job {
   location: string;
   jobType: string | null;
   mode: string | null;
+  experienceLevel: string | null;
   description: string;
   descriptionSummary: string | null;
   salaryRange: string | null;

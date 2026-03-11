@@ -51,6 +51,10 @@ export interface IngestionResult {
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
 const MAX_INGESTION_MS = 240_000; // 240s (leave 60s buffer for post-processing)
 
+// ── Quality Gate (DISABLED — volume too low, re-enable when more ATS sources are added) ──
+// Jobs scoring below this threshold at ingestion will NOT be published.
+// const MIN_QUALITY_SCORE = 5;
+
 /**
  * Fetch raw jobs from a specific source
  */
@@ -159,14 +163,23 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       });
     }
 
-    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap
-    const RENEWAL_EXTENSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day renewal window
+    const MAX_JOB_AGE_MS = 60 * 24 * 60 * 60 * 1000; // 60-day lifetime cap (PMHNP jobs >60d are almost certainly filled)
+    const RENEWAL_EXTENSION_MS = 14 * 24 * 60 * 60 * 1000; // 14-day renewal window (if source stops returning, die quick)
     let expiredByAge = 0;
 
-    // Helper to renew a job (Auto-Renewal) — with max-age cap
+    // Helper to renew a job (Auto-Renewal) — with max-age cap + manual unpublish guard
     const renewJob = async (id: string, title: string, existingPostedAt?: Date | null) => {
       try {
-        // Enforce max-age cap: if originalPostedAt > 120 days ago, unpublish instead
+        // Check if manually unpublished — never override admin decisions
+        const job = await prisma.job.findUnique({
+          where: { id },
+          select: { isManuallyUnpublished: true },
+        });
+        if (job?.isManuallyUnpublished) {
+          return; // Skip — admin intentionally hid this job
+        }
+
+        // Enforce max-age cap: if originalPostedAt > 60 days ago, unpublish instead
         if (existingPostedAt) {
           const ageMs = Date.now() - new Date(existingPostedAt).getTime();
           if (ageMs > MAX_JOB_AGE_MS) {
@@ -338,6 +351,12 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
               isEmployerPosted: false,  // aggregated jobs are never employer-posted
             });
             await prisma.job.update({ where: { id: savedJob.id }, data: { qualityScore: qScore } });
+
+            // ── Quality Gate (DISABLED) ──
+            // if (qScore < MIN_QUALITY_SCORE) {
+            //   await prisma.job.update({ where: { id: savedJob.id }, data: { isPublished: false } });
+            //   console.log(`[${source.toUpperCase()}] Quality gate: unpublished job "${normalizedJob.title}" (score: ${qScore} < ${MIN_QUALITY_SCORE})`);
+            // }
           }
         } catch (qError) {
           // Non-fatal — job remains with default score of 0

@@ -15,6 +15,7 @@ model Job {
   location            String
   jobType             String?      @map("job_type")
   mode                String?
+  experienceLevel     String?      @map("experience_level")
   description         String
   descriptionSummary  String?      @map("description_summary")
   salaryRange         String?      @map("salary_range")
@@ -36,6 +37,7 @@ model Job {
   applyOnPlatform     Boolean      @default(false) @map("apply_on_platform")
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
+  isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
   benefits            String[]     @default([])
   setting             String?      @map("clinical_setting")

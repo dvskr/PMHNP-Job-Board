@@ -167,6 +167,59 @@ function detectMode(text: string): string | null {
   return null;
 }
 
+/**
+ * Detect experience level from job title + description.
+ * Returns: 'New Grad' | 'Mid-Level' | 'Senior' | null
+ * 
+ * Priority: Senior > Mid-Level > New Grad (most jobs don't specify)
+ */
+export function detectExperienceLevel(title: string, description: string): string | null {
+  const text = `${title} ${description}`.toLowerCase();
+
+  // ── Senior (5+ years) ──
+  const seniorPatterns = [
+    'senior pmhnp', 'senior psychiatric', 'senior nurse practitioner',
+    'lead pmhnp', 'lead psychiatric', 'lead nurse practitioner',
+    'supervisor', 'supervisory', 'director',
+    'clinical lead', 'program director', 'medical director',
+    'chief', 'manager', 'management',
+    '5+ years', '5-7 years', '5-10 years', '7+ years', '7-10 years',
+    '10+ years', '8+ years', '6+ years',
+    'minimum 5 years', 'minimum of 5 years', 'at least 5 years',
+    'minimum 7 years', 'minimum of 7 years',
+    'senior level', 'advanced practice leader',
+  ];
+  if (seniorPatterns.some(p => text.includes(p))) return 'Senior';
+
+  // ── Mid-Level (2-5 years) ──
+  const midPatterns = [
+    '2-5 years', '3-5 years', '2-4 years', '3-4 years',
+    '2+ years', '3+ years', '4+ years',
+    'minimum 2 years', 'minimum of 2 years', 'at least 2 years',
+    'minimum 3 years', 'minimum of 3 years', 'at least 3 years',
+    'mid-level', 'mid level', 'experienced pmhnp', 'experienced psychiatric',
+    '2 years of experience', '3 years of experience', '4 years of experience',
+    '2 years experience', '3 years experience', '4 years experience',
+    'two years', 'three years', 'four years',
+  ];
+  if (midPatterns.some(p => text.includes(p))) return 'Mid-Level';
+
+  // ── New Grad / Entry ──
+  const newGradPatterns = [
+    'new grad', 'new graduate', 'entry level', 'entry-level',
+    'no experience required', 'no experience necessary',
+    '0-1 year', '0-2 year', '1 year of experience', '1 year experience',
+    'recent graduate', 'newly graduated', 'recent grad',
+    'fellowship', 'residency program', 'mentorship',
+    'training program', 'preceptor', 'will train',
+    'welcome new grads', 'new grads welcome', 'open to new grads',
+    'graduate nurse practitioner',
+  ];
+  if (newGradPatterns.some(p => text.includes(p))) return 'New Grad';
+
+  return null;
+}
+
 /*
 // Commented out functions below (currently unused)
 /*
@@ -453,6 +506,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
 
     const jobType = rawJob.jobType ? String(rawJob.jobType) : detectJobType(fullText);
     const mode = detectMode(fullText);
+    const experienceLevel = detectExperienceLevel(title, fullText);
 
 
     // Set expiration
@@ -506,6 +560,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         location,
         jobType,
         mode,
+        experienceLevel,
         description: fullDescription,
         descriptionSummary: summary,
         salaryRange: salaryMin && salaryMax ? `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}` : null,
