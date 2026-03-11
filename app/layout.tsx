@@ -13,10 +13,12 @@ import MainContent from '@/components/MainContent';
 import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-const StickyEmailBar = dynamic(() => import('@/components/StickyEmailBar'));
+import { ToastProvider } from '@/components/ui/ToastProvider';
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
 const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
 const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificationPrompt'));
+const CookieConsent = dynamic(() => import('@/components/CookieConsent'));
+const PWAInstallBanner = dynamic(() => import('@/components/PWAInstallBanner'));
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -220,27 +222,31 @@ export default function RootLayout({
         }}
       >
         <ThemeProvider>
-          <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <GoogleAnalytics />
-            <LayoutShell>
-              <Header />
-              <ProfileNudgeBanner />
-            </LayoutShell>
-            <MainContent>{children}</MainContent>
-            <LayoutShell>
-              <MobileHideOnAppRoutes>
-                <Footer />
-                <FloatingSocial />
-                <FeedbackWidget />
-                <StickyEmailBar />
-              </MobileHideOnAppRoutes>
-              <BottomNav />
-              <ExitIntentPopup />
-              <PushNotificationPrompt />
-            </LayoutShell>
-          </div>
+          <ToastProvider>
+            <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+              <GoogleAnalytics />
+              <LayoutShell>
+                <Header />
+                <ProfileNudgeBanner />
+              </LayoutShell>
+              <MainContent>{children}</MainContent>
+              <LayoutShell>
+                <MobileHideOnAppRoutes>
+                  <Footer />
+                  <FloatingSocial />
+                  <FeedbackWidget />
+                </MobileHideOnAppRoutes>
+                <BottomNav />
+                <ExitIntentPopup />
+                <PushNotificationPrompt />
+                <CookieConsent />
+                <PWAInstallBanner />
+              </LayoutShell>
+            </div>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

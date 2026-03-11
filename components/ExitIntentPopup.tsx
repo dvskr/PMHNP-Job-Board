@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { X, Bell, ArrowRight } from 'lucide-react';
 
 const STORAGE_KEY = 'pmhnp_exit_popup_dismissed';
-const SUPPRESS_DAYS = 7;
+const SUPPRESS_DAYS = 14;
 
 /**
- * B7: Exit-intent popup for job alerts
+ * Exit-intent popup for job alerts
  * Desktop: triggers on mouse leaving viewport
- * Mobile: triggers after 30s idle
- * Suppressed for 7 days after dismiss/submit
+ * Mobile: triggers after 45s idle
+ * Suppressed for 14 days after dismiss/submit
+ * Skips logged-in users (they already have an account)
  */
 export default function ExitIntentPopup() {
     const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +27,12 @@ export default function ExitIntentPopup() {
     }, []);
 
     useEffect(() => {
+        // Skip for logged-in users
+        try {
+            const hasAuth = document.cookie.includes('sb-') || localStorage.getItem('supabase.auth.token');
+            if (hasAuth) return;
+        } catch { /* noop */ }
+
         // Check if suppressed
         try {
             const dismissed = localStorage.getItem(STORAGE_KEY);
@@ -45,13 +52,13 @@ export default function ExitIntentPopup() {
             }
         };
 
-        // Mobile: 30s idle timer
+        // Mobile: 45s idle timer (less aggressive)
         const mobileTimer = setTimeout(() => {
             if (!triggered && window.innerWidth < 768) {
                 triggered = true;
                 setIsOpen(true);
             }
-        }, 30000);
+        }, 45000);
 
         document.addEventListener('mouseleave', handleMouseLeave);
 
