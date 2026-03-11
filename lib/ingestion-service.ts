@@ -4,8 +4,10 @@ import { fetchUSAJobs } from './aggregators/usajobs';
 import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
 import { fetchJoobleJobs } from './aggregators/jooble';
-import { fetchJSearchJobs } from './aggregators/jsearch';
+// REMOVED 2026-03-11 — JSearch subscription cancelled ($75/mo, lowest quality source)
+// import { fetchJSearchJobs } from './aggregators/jsearch';
 import { fetchAshbyJobs } from './aggregators/ashby';
+import { fetchFantasticJobsDbJobs } from './aggregators/fantastic-jobs-db';
 import { fetchWorkdayJobs } from './aggregators/workday';
 import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
 import { fetchBambooHRJobs } from './aggregators/bamboohr';
@@ -19,15 +21,21 @@ import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
+
+// ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
+let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
+let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> jobId
 import { pingAllSearchEnginesBatch, pingGoogle, pingIndexNow } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'jsearch' | 'ashby' | 'workday' | 'ats-jobs-db' | 'bamboohr' | 'smartrecruiters' | 'icims' | 'jazzhr';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'ashby' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'bamboohr' | 'smartrecruiters' | 'icims' | 'jazzhr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
 // REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
 // ADDED smartrecruiters, icims, jazzhr 2026-02-20 — discovered via production DB mining
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'jsearch', 'ashby', 'workday', 'ats-jobs-db', 'smartrecruiters', 'icims', 'jazzhr'];
+// REMOVED jsearch 2026-03-11 — subscription cancelled
+// ADDED fantastic-jobs-db 2026-03-11 — replacing JSearch ($45/mo Pro, direct ATS links)
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'ashby', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters', 'icims', 'jazzhr'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -58,14 +66,15 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
     case 'jooble':
       return await fetchJoobleJobs();
-    case 'jsearch':
-      return await fetchJSearchJobs({ chunk: options?.chunk });
+    // case 'jsearch': REMOVED 2026-03-11
     case 'ashby':
       return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
     case 'workday':
       return await fetchWorkdayJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'ats-jobs-db':
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
+    case 'fantastic-jobs-db':
+      return await fetchFantasticJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     case 'bamboohr':
       return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
     case 'smartrecruiters':
@@ -78,6 +87,15 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       console.warn(`[Ingestion] Unknown source: ${source}`);
       return [];
   }
+}
+
+/**
+ * Extract raw title from a rawJob for early relevance filtering
+ */
+function extractRawTitle(rawJob: Record<string, unknown>): string {
+  return String(
+    rawJob.title || rawJob.job_title || rawJob.jobOpeningName || rawJob.positionName || ''
+  );
 }
 
 /**
@@ -117,19 +135,29 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
     }
 
-    // Optimized: Load all existing externalIds for this source once
-    // Map ExternalID -> { id, originalPostedAt } for fast lookup, renewal, and age-cap
-    const existingJobsMap = new Map<string, { id: string; originalPostedAt: Date | null }>();
-    const existingJobs = await prisma.job.findMany({
-      where: { sourceProvider: source },
-      select: { id: true, externalId: true, originalPostedAt: true },
-    });
-
-    existingJobs.forEach(job => {
-      if (job.externalId) {
-        existingJobsMap.set(job.externalId, { id: job.id, originalPostedAt: job.originalPostedAt });
+    // Use global dedup maps (pre-loaded once at start of full run)
+    // Fall back to per-source loading if global maps not available
+    let existingJobsMap: Map<string, { id: string; originalPostedAt: Date | null }>;
+    if (globalExternalIdMap) {
+      // Filter global map for this source
+      existingJobsMap = new Map();
+      for (const [extId, val] of globalExternalIdMap) {
+        if (val.sourceProvider === source) {
+          existingJobsMap.set(extId, { id: val.id, originalPostedAt: val.originalPostedAt });
+        }
       }
-    });
+    } else {
+      existingJobsMap = new Map();
+      const existingJobs = await prisma.job.findMany({
+        where: { sourceProvider: source },
+        select: { id: true, externalId: true, originalPostedAt: true },
+      });
+      existingJobs.forEach(job => {
+        if (job.externalId) {
+          existingJobsMap.set(job.externalId, { id: job.id, originalPostedAt: job.originalPostedAt });
+        }
+      });
+    }
 
     const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap
     const RENEWAL_EXTENSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day renewal window
@@ -178,36 +206,39 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       const rawJob = rawJobs[i];
 
       try {
-        // Normalize the job
+        // ── PRE-FILTER: Quick relevance check on raw title BEFORE expensive normalization ──
+        // This saves CPU on salary extraction, location parsing, description cleaning
+        // for jobs that will be rejected anyway. JSearch already pre-filters internally,
+        // but other sources don't.
+        const rawTitle = extractRawTitle(rawJob);
+        const rawDesc = String(rawJob.description || rawJob.job_description || '');
+        if (source !== null && rawTitle && !isRelevantJob(rawTitle, rawDesc)) {
+          rejectedJobs.push({
+            title: rawTitle,
+            employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
+            location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
+            applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
+            externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
+            sourceProvider: source,
+            rejectionReason: 'relevance_filter',
+            rawData: rawJob as object,
+          });
+          continue;
+        }
+
+        // Normalize the job (field extraction, salary parsing, location parsing, etc.)
         const normalizedJob = normalizeJob(rawJob, source);
 
         if (!normalizedJob) {
           // Track normalizer rejections for accuracy analysis
           rejectedJobs.push({
-            title: String(rawJob.title || rawJob.jobOpeningName || rawJob.job_title || 'Unknown'),
+            title: rawTitle || 'Unknown',
             employer: String(rawJob.employer || rawJob.company || rawJob.employer_name || rawJob.organizationName || null),
             location: String(rawJob.location || rawJob.locationsText || rawJob.job_city || null),
             applyLink: String(rawJob.applyLink || rawJob.apply_link || rawJob.url || rawJob.link || null),
             externalId: String(rawJob.externalId || rawJob.id || rawJob.job_id || null),
             sourceProvider: source,
             rejectionReason: 'normalizer',
-            rawData: rawJob as object,
-          });
-          continue;
-        }
-
-        // Apply Strict Relevance Filter to Aggregator Sources
-        // We skip this for employer postings (sourceProvider: null) to avoid false negatives on paid roles
-        if (source !== null && !isRelevantJob(normalizedJob.title, normalizedJob.description)) {
-          // Track relevance filter rejections for accuracy analysis
-          rejectedJobs.push({
-            title: normalizedJob.title,
-            employer: normalizedJob.employer || null,
-            location: normalizedJob.location || null,
-            applyLink: normalizedJob.applyLink || null,
-            externalId: normalizedJob.externalId || null,
-            sourceProvider: source,
-            rejectionReason: 'relevance_filter',
             rawData: rawJob as object,
           });
           continue;
@@ -380,14 +411,50 @@ export async function ingestJobs(
   console.log(`Sources: ${sources.join(', ')}`);
   console.log('='.repeat(80) + '\n');
 
+  // ── Pre-load ALL externalIds + applyLinks globally (eliminates per-source queries) ──
+  try {
+    console.log('[Dedup] Pre-loading global externalId + applyLink maps...');
+    const allJobs = await prisma.job.findMany({
+      where: { isPublished: true },
+      select: { id: true, externalId: true, sourceProvider: true, originalPostedAt: true, applyLink: true },
+    });
+    globalExternalIdMap = new Map();
+    globalApplyLinkMap = new Map();
+    for (const job of allJobs) {
+      if (job.externalId) {
+        globalExternalIdMap.set(job.externalId, {
+          id: job.id,
+          sourceProvider: job.sourceProvider || '',
+          originalPostedAt: job.originalPostedAt,
+        });
+      }
+      if (job.applyLink) {
+        try {
+          const pathname = new URL(job.applyLink).pathname.slice(0, 60);
+          globalApplyLinkMap.set(pathname, job.id);
+        } catch { /* malformed URL */ }
+      }
+    }
+    console.log(`[Dedup] Loaded ${globalExternalIdMap.size} externalIds, ${globalApplyLinkMap.size} applyLinks`);
+  } catch (e) {
+    console.error('[Dedup] Failed to pre-load global maps, falling back to per-source:', e);
+    globalExternalIdMap = null;
+    globalApplyLinkMap = null;
+  }
+
   const results: IngestionResult[] = [];
 
   // Process each source sequentially
   for (const source of sources) {
-    const useChunk = source === 'jsearch' || source === 'workday' || source === 'greenhouse';
-    const result = await ingestFromSource(source, useChunk ? options : undefined);
+    const useChunk = source === 'workday' || source === 'greenhouse';
+    let sourceOptions = useChunk ? options : undefined;
+    const result = await ingestFromSource(source, sourceOptions);
     results.push(result);
   }
+
+  // Clean up global maps after ingestion
+  globalExternalIdMap = null;
+  globalApplyLinkMap = null;
 
   // Calculate totals
   const totals = results.reduce(
@@ -405,22 +472,18 @@ export async function ingestJobs(
     ? ((totals.duplicates / totals.fetched) * 100).toFixed(1)
     : '0.0';
 
-  // Final summary
-  console.log('\n' + '='.repeat(80));
-  console.log('JOB INGESTION COMPLETE');
-  console.log('='.repeat(80));
-  console.log('\nTOTALS:');
-  console.log(`  Fetched:    ${totals.fetched} jobs`);
-  console.log(`  Added:      ${totals.added} jobs (${((totals.added / totals.fetched) * 100).toFixed(1)}%)`);
-  console.log(`  Duplicates: ${totals.duplicates} jobs (${overallDuplicateRate}%)`);
-  console.log(`  Errors:     ${totals.errors} jobs (${((totals.errors / totals.fetched) * 100).toFixed(1)}%)`);
-  console.log(`  Duration:   ${(overallDuration / 1000).toFixed(1)}s`);
-  console.log('\nBY SOURCE:');
-  results.forEach((r: IngestionResult) => {
-    const rate = r.fetched > 0 ? ((r.duplicates / r.fetched) * 100).toFixed(0) : '0';
-    console.log(`  ${r.source.padEnd(12)} - ${r.added.toString().padStart(3)} added, ${r.duplicates.toString().padStart(3)} dup (${rate}%), ${r.errors.toString().padStart(2)} err`);
-  });
+  // Final summary — use ingestion monitor for rich formatting
+  const { generateIngestionSummary } = await import('./ingestion-monitor');
+  console.log('\n' + generateIngestionSummary(results));
   console.log('='.repeat(80) + '\n');
+
+  // Send Discord notification
+  try {
+    const { sendIngestionSummary } = await import('./discord-notifier');
+    await sendIngestionSummary(results);
+  } catch (discordError) {
+    console.error('[Discord] Failed to send ingestion summary:', discordError);
+  }
 
   // Run post-ingestion cleanup if any jobs were added
   if (totals.added > 0) {

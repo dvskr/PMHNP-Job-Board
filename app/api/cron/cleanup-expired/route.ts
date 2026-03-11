@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const maxDuration = 60 // 1 minute
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  
+
   try {
     // Mark expired jobs as unpublished
     const result = await prisma.job.updateMany({
@@ -21,11 +23,11 @@ export async function GET(request: NextRequest) {
         isPublished: false,
       },
     })
-    
+
     console.log(`Unpublished ${result.count} expired jobs`)
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       expiredCount: result.count,
       timestamp: new Date().toISOString(),
     })

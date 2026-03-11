@@ -40,6 +40,9 @@ const POSITIVE_KEYWORDS = [
     'np psychiatry',
     'np mental health',
     'np behavioral health',
+    // Headway/Jooble title variants (previously rejected by normalizer)
+    'licensed psychiatric np',
+    'licensed psychiatric nurse practitioner',
 ];
 
 const NEGATIVE_KEYWORDS = [
