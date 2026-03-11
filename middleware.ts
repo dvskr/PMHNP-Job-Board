@@ -20,6 +20,25 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
+    // ── Company URL Normalization ─────────────────────────────────────
+    // GSC shows ~100 company pages crawled with spaces instead of hyphens
+    // (e.g., "/companies/elite dna behavioral" → "/companies/elite-dna-behavioral")
+    const pathname = url.pathname;
+
+    if (pathname.startsWith('/companies/') && pathname.includes(' ')) {
+        const normalized = pathname.replace(/ +/g, '-').toLowerCase();
+        url.pathname = normalized;
+        return NextResponse.redirect(url, 301);
+    }
+
+    // ── Junk URL Cleanup ──────────────────────────────────────────────
+    // Redirect garbage paths that got crawled (/$, /&, /year) to homepage
+    const junkPaths = ['/$', '/&', '/year'];
+    if (junkPaths.includes(pathname)) {
+        url.pathname = '/';
+        return NextResponse.redirect(url, 301);
+    }
+
     // Refresh the Supabase session (keeps auth cookies alive)
     const response = await updateSession(request);
 

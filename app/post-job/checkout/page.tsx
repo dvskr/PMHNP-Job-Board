@@ -18,7 +18,7 @@ interface JobFormData {
   salaryCompetitive?: boolean;
   description: string;
   applyUrl: string;
-  pricingTier: 'standard' | 'featured';
+  pricingTier: 'starter' | 'growth' | 'premium';
 }
 
 export default function CheckoutPage() {
@@ -87,11 +87,15 @@ export default function CheckoutPage() {
   };
 
   const getPrice = () => {
-    return jobData?.pricingTier === 'featured' ? '$299' : '$199';
+    if (jobData?.pricingTier === 'premium') return `$${config.pricing.premium}`;
+    if (jobData?.pricingTier === 'growth') return `$${config.pricing.growth}`;
+    return `$${config.pricing.starter}`;
   };
 
   const getPlanName = () => {
-    return jobData?.pricingTier === 'featured' ? 'Featured Job' : 'Standard Job';
+    if (jobData?.pricingTier === 'premium') return 'Premium Job';
+    if (jobData?.pricingTier === 'growth') return 'Growth Job';
+    return 'Starter Job';
   };
 
   const formatSalary = () => {
@@ -193,9 +197,11 @@ export default function CheckoutPage() {
           <div>
             <h3 className="text-lg font-semibold">{getPlanName()}</h3>
             <p className="text-sm text-gray-500">
-              {jobData.pricingTier === 'featured'
-                ? '60-day listing • Featured badge • Pinned to top'
-                : '30-day listing • Shown in job feed'}
+              {jobData.pricingTier === 'premium'
+                ? '90-day listing • Featured badge • Social media promotion'
+                : jobData.pricingTier === 'growth'
+                  ? '60-day listing • Featured badge • Top search placement'
+                  : '30-day listing • Shown in job feed'}
             </p>
           </div>
           <div className="text-right">

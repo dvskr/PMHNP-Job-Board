@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { getEmployerTier } from '@/lib/tier-limits';
+import { config } from '@/lib/config';
 
 /**
  * GET /api/employer/analytics/benchmarks
@@ -22,8 +24,17 @@ export async function GET() {
     if (!profile || !['employer', 'admin'].includes(profile.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
     try {
+        // Gate: Advanced analytics requires Growth or Premium tier
+        const tier = await getEmployerTier(user.id);
+        if (tier === 'starter') {
+            return NextResponse.json({
+                error: 'Advanced analytics requires a Growth or Premium posting',
+                tier,
+                upgradeRequired: true,
+            }, { status: 403 });
+        }
+
         // Get platform-wide averages from published employer jobs
         const allEmployerJobs = await prisma.employerJob.findMany({
             where: {

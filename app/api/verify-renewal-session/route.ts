@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       jobTitle: employerJob.job.title,
       jobSlug: slugify(employerJob.job.title, employerJob.job.id),
       dashboardToken: employerJob.dashboardToken,
-      tier: tier || 'standard',
+      tier: tier || 'starter',
     });
   } catch (error) {
     logger.error('Error verifying renewal session:', error);

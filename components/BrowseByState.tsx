@@ -16,7 +16,7 @@ export default function BrowseByState({ states }: BrowseByStateProps) {
     if (states.length === 0) return null;
 
     return (
-        <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '64px 0 72px' }}>
+        <section style={{ padding: '64px 0 72px' }}>
             <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px' }}>
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>

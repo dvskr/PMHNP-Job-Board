@@ -59,6 +59,44 @@ export async function GET(request: Request) {
         // Sync new user to Beehiiv newsletter (fire-and-forget)
         syncToBeehiiv(data.user.email, { utmSource: 'google_signup' })
 
+        // Create lead records (mirrors /api/auth/profile POST logic)
+        try {
+          const userRole = metadata.role || 'job_seeker'
+          if (userRole === 'employer') {
+            const existingEmployerLead = await prisma.employerLead.findFirst({
+              where: { contactEmail: data.user.email },
+            })
+            if (!existingEmployerLead) {
+              await prisma.employerLead.create({
+                data: {
+                  companyName: metadata.company || `${firstName || ''} ${lastName || ''}`.trim() || 'Unknown',
+                  contactEmail: data.user.email,
+                  contactName: [firstName, lastName].filter(Boolean).join(' ') || null,
+                  source: 'google_signup',
+                  status: 'prospect',
+                },
+              })
+            }
+          } else {
+            // Job seekers → email_leads with newsletter opt-in
+            await prisma.emailLead.upsert({
+              where: { email: data.user.email },
+              update: {
+                isSubscribed: true,
+                newsletterOptIn: true,
+              },
+              create: {
+                email: data.user.email,
+                source: 'google_signup',
+                isSubscribed: true,
+                newsletterOptIn: true,
+              },
+            })
+          }
+        } catch (leadError) {
+          console.error('Failed to create lead for Google user', leadError)
+        }
+
         // Auto-create daily job alert for job seekers (only if none exists)
         if ((metadata.role || 'job_seeker') === 'job_seeker') {
           try {

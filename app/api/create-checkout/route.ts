@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { createId } from '@paralleldrive/cuid2';
-import { config } from '@/lib/config';
+import { config, PricingTier } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
@@ -23,7 +23,7 @@ interface CheckoutRequestBody {
   salaryCompetitive?: boolean;
   description: string;
   applyUrl: string;
-  pricingTier: 'standard' | 'featured';
+  pricingTier: PricingTier;
 }
 
 export async function POST(request: NextRequest) {
@@ -100,18 +100,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate price in cents
-    let price: number;
-    if (pricing === 'standard') {
-      price = 19900; // $199
-    } else if (pricing === 'featured') {
-      price = 29900; // $299
-    } else {
+    // Validate pricing tier
+    if (pricing !== 'starter' && pricing !== 'growth' && pricing !== 'premium') {
       return NextResponse.json(
         { error: 'Invalid pricing tier' },
         { status: 400 }
       );
     }
+
+    // Calculate price in cents from config
+    const price = config.getStripePriceInCents(pricing);
 
     // DUPLICATE CHECK
     // Check for existing active jobs for this employer
@@ -154,13 +152,9 @@ export async function POST(request: NextRequest) {
     // Determine salary period (default to year for annual salaries)
     const salaryPeriod = (salaryMin || salaryMax) && !salaryCompetitive ? 'year' : null;
 
-    // Calculate expiry date based on pricing tier
+    // Calculate expiry date based on pricing tier from config
     const expiresAt = new Date();
-    if (pricing === 'featured') {
-      expiresAt.setDate(expiresAt.getDate() + 60); // 60 days for featured
-    } else {
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days for standard
-    }
+    expiresAt.setDate(expiresAt.getDate() + config.getDurationDays(pricing));
 
     // Generate unique edit token and dashboard token
     const editToken = crypto.randomBytes(32).toString('hex');
@@ -188,7 +182,7 @@ export async function POST(request: NextRequest) {
         minSalary: salaryMin ? Math.round(salaryMin) : null,
         maxSalary: salaryMax ? Math.round(salaryMax) : null,
         salaryPeriod,
-        isFeatured: pricing === 'featured',
+        isFeatured: config.isFeaturedTier(pricing),
         isPublished: false, // Will be published after payment
         sourceType: 'employer',
         expiresAt,
@@ -219,6 +213,7 @@ export async function POST(request: NextRequest) {
       editToken,
       dashboardToken,
       paymentStatus: 'pending',
+      pricingTier: pricing,
     };
 
     logger.debug('Creating employer job record', { jobId: job.id, email: trimmedContactEmail });

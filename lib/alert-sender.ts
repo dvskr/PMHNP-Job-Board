@@ -102,7 +102,7 @@ function generateJobListHtml(jobs: Job[]): string {
       return `
         <tr>
           <td style="padding: 16px 20px;${!isLast ? ' border-bottom: 1px solid #1E293B;' : ''}">
-            <a href="${jobUrl}" style="color: #2DD4BF; text-decoration: none; font-family: ${FONT_STACK}; font-size: 15px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.4;">${job.title}</a>
+            <a href="${jobUrl}" style="color: #2DD4BF; text-decoration: none; font-family: ${FONT_STACK}; font-size: 15px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.4;">${job.title}</a>${job.isFeatured ? ` <span style="display: inline-block; background: linear-gradient(135deg, #2DD4BF, #14B8A6); color: #fff; padding: 2px 8px; border-radius: 4px; font-family: ${FONT_STACK}; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; vertical-align: middle;">⭐ FEATURED</span>` : ''}
             <p style="margin: 5px 0 0; font-family: ${FONT_STACK}; font-size: 13px; color: #94A3B8;">${job.employer} · ${job.location}</p>
             <p style="margin: 8px 0 0; font-size: 11px;">
               ${job.mode ? `<span style="display: inline-block; background-color: #1E293B; color: #94A3B8; padding: 3px 10px; border-radius: 6px; margin-right: 4px; font-family: ${FONT_STACK}; font-size: 11px; font-weight: 500; border: 1px solid #1E293B;">${job.mode}</span>` : ''}

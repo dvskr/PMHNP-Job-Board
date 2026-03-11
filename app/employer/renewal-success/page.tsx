@@ -104,7 +104,7 @@ function RenewalSuccessContent() {
     );
   }
 
-  const daysExtended = renewalData.tier === 'featured' ? 60 : 30;
+  const daysExtended = renewalData.tier === 'premium' ? 90 : renewalData.tier === 'growth' ? 60 : 30;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-teal-50 flex items-center justify-center p-4">
@@ -129,9 +129,9 @@ function RenewalSuccessContent() {
         {/* Description */}
         <p className="text-lg text-gray-600 mb-8">
           Your job posting has been extended for another {daysExtended} days.
-          {renewalData.tier === 'featured' && (
+          {(renewalData.tier === 'growth' || renewalData.tier === 'premium') && (
             <span className="block mt-2 text-green-700 font-semibold">
-              ✨ Featured placement activated!
+              ✨ {renewalData.tier === 'premium' ? 'Premium' : 'Growth'} placement activated!
             </span>
           )}
         </p>

@@ -21,7 +21,7 @@ export default function MainContent({ children }: { children: React.ReactNode })
     }
 
     return (
-        <main className={className} suppressHydrationWarning>
+        <main className={className} suppressHydrationWarning style={{ flex: 1 }}>
             {children}
         </main>
     );

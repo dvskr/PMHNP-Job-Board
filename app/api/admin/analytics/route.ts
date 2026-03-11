@@ -111,6 +111,10 @@ export async function GET(request: NextRequest) {
                 apps24h, apps7d,
                 totalUsers, newUsers7d,
                 totalSubscribers,
+                newsletterOptIns,
+                activeAlerts, dailyAlerts, weeklyAlerts,
+                activeJobs, employerPostedJobs,
+                totalEmployerLeads,
             ] = await Promise.all([
                 prisma.jobViewEvent.count({ where: { timestamp: { gte: since } } }),
                 prisma.applyClick.count({ where: { timestamp: { gte: since } } }),
@@ -124,13 +128,52 @@ export async function GET(request: NextRequest) {
                 prisma.userProfile.count(),
                 prisma.userProfile.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
                 prisma.emailLead.count({ where: { isSubscribed: true } }),
+                prisma.emailLead.count({ where: { newsletterOptIn: true } }),
+                prisma.jobAlert.count({ where: { isActive: true } }),
+                prisma.jobAlert.count({ where: { isActive: true, frequency: 'daily' } }),
+                prisma.jobAlert.count({ where: { isActive: true, frequency: 'weekly' } }),
+                prisma.job.count({ where: { isPublished: true } }),
+                prisma.employerJob.count(),
+                prisma.employerLead.count(),
             ]);
+
+            // User role breakdown
+            const roleBreakdown = await prisma.userProfile.groupBy({
+                by: ['role'],
+                _count: true,
+            });
+
+            // Job source breakdown
+            const jobSourceBreakdown = await prisma.job.groupBy({
+                by: ['sourceProvider'],
+                where: { isPublished: true },
+                _count: true,
+            });
+
+            // Employer lead status breakdown
+            const employerLeadStatuses = await prisma.employerLead.groupBy({
+                by: ['status'],
+                _count: true,
+            });
 
             result.summary = {
                 totalViews, totalClicks, totalApplications,
                 views24h, views7d, clicks24h, clicks7d,
                 apps24h, apps7d,
                 totalUsers, newUsers7d, totalSubscribers,
+                newsletterOptIns,
+                activeAlerts, dailyAlerts, weeklyAlerts,
+                activeJobs, employerPostedJobs,
+                totalEmployerLeads,
+                roleBreakdown: Object.fromEntries(
+                    roleBreakdown.map(r => [r.role, r._count])
+                ),
+                jobSourceBreakdown: Object.fromEntries(
+                    jobSourceBreakdown.map(s => [s.sourceProvider || 'unknown', s._count])
+                ),
+                employerLeadStatuses: Object.fromEntries(
+                    employerLeadStatuses.map(s => [s.status, s._count])
+                ),
                 conversionRates: {
                     viewToClick: totalViews > 0 ? +(totalClicks / totalViews * 100).toFixed(2) : 0,
                     clickToApply: totalClicks > 0 ? +(totalApplications / totalClicks * 100).toFixed(2) : 0,

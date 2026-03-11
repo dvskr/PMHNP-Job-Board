@@ -1142,3 +1142,482 @@ export async function sendBroadcastEmail(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// NEW APPLICATION NOTIFICATION (Employer — Platform Apply)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface NewApplicationEmailParams {
+  employerEmail: string;
+  employerName: string;
+  jobTitle: string;
+  candidateName: string;
+  candidateHeadline?: string;
+  candidateExperience?: number | null;
+  hasResume: boolean;
+  hasCoverLetter: boolean;
+}
+
+export async function sendNewApplicationEmail(params: NewApplicationEmailParams): Promise<EmailResult> {
+  const {
+    employerEmail,
+    employerName,
+    jobTitle,
+    candidateName,
+    candidateHeadline,
+    candidateExperience,
+    hasResume,
+    hasCoverLetter,
+  } = params;
+
+  try {
+    const greeting = employerName ? `Hi ${employerName.split(' ')[0]},` : 'Hi there,';
+
+    const html = emailShell(`
+          ${headerBlock('New Application Received!', jobTitle)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                ${greeting} a candidate has applied for your job posting on PMHNP Hiring.
+              </p>
+
+              ${infoCard(`
+                    ${sectionLabel('Candidate')}
+                    <p style="margin: 0 0 4px; font-family: ${F}; font-size: 17px; font-weight: bold; color: ${C.textPrimary};">${candidateName}</p>
+                    ${candidateHeadline ? `<p style="margin: 0 0 4px; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateHeadline}</p>` : ''}
+                    ${candidateExperience ? `<p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateExperience}+ years experience</p>` : ''}
+              `, C.tealDarker)}
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                ${featureRow(hasResume ? '✅' : '❌', 'Resume', hasResume ? 'Resume attached' : 'No resume submitted')}
+                ${featureRow(hasCoverLetter ? '✅' : '—', 'Cover Letter', hasCoverLetter ? 'Cover letter included' : 'No cover letter')}
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    ${primaryButton('View Applicant →', `${BASE_URL}/employer/dashboard`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+      </p>`,
+      `${candidateName} applied for "${jobTitle}" — view their application now!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: employerEmail,
+      subject: `📋 New application for "${jobTitle}" — ${candidateName}`,
+      html,
+    });
+
+    logger.info('New application notification sent', { employerEmail, jobTitle, candidateName });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending new application notification', error, { employerEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send application notification',
+    };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// APPLICATION CONFIRMATION — sent to the CANDIDATE after they apply
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface ApplicationConfirmationEmailParams {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  employerName: string;
+  hasResume: boolean;
+  hasCoverLetter: boolean;
+}
+
+export async function sendApplicationConfirmationEmail(params: ApplicationConfirmationEmailParams): Promise<EmailResult> {
+  const {
+    candidateEmail,
+    candidateName,
+    jobTitle,
+    employerName,
+    hasResume,
+    hasCoverLetter,
+  } = params;
+
+  try {
+    const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
+
+    const html = emailShell(`
+          ${headerBlock('Application Received!', jobTitle)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                ${greeting} your application for <strong style="color: ${C.textPrimary};">${jobTitle}</strong> at
+                <strong style="color: ${C.textPrimary};">${employerName}</strong> has been submitted successfully.
+              </p>
+
+              ${infoCard(`
+                    ${sectionLabel('What was submitted')}
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      ${featureRow(hasResume ? '✅' : '—', 'Resume', hasResume ? 'Your resume was shared' : 'No resume attached')}
+                      ${featureRow(hasCoverLetter ? '✅' : '—', 'Cover Letter', hasCoverLetter ? 'Cover letter included' : 'No cover letter')}
+                    </table>
+              `, C.tealDarker)}
+
+              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.7;">
+                The employer has been notified and will review your application. You'll receive updates when the status of your application changes.
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    ${primaryButton('View My Applications →', `${BASE_URL}/my-applications`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        You can withdraw your application at any time from your applications page.
+      </p>`,
+      `Your application for "${jobTitle}" at ${employerName} has been received!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: candidateEmail,
+      subject: `✅ Application received — ${jobTitle} at ${employerName}`,
+      html,
+    });
+
+    logger.info('Application confirmation sent to candidate', { candidateEmail, jobTitle });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending application confirmation', error, { candidateEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send confirmation',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATUS UPDATE — sent to the CANDIDATE when their application status changes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const STATUS_LABELS: Record<string, { label: string; emoji: string; message: string }> = {
+  screening: { label: 'Under Review', emoji: '🔍', message: 'Your application is being reviewed.' },
+  interview: { label: 'Interview', emoji: '🎉', message: 'Great news! The employer would like to move forward with an interview.' },
+  offered: { label: 'Offer Extended', emoji: '🎊', message: 'Congratulations! An offer has been extended for this position.' },
+  hired: { label: 'Hired', emoji: '🥳', message: 'Congratulations! You have been hired for this position.' },
+  rejected: { label: 'Not Selected', emoji: '📋', message: 'After careful consideration, the employer has decided to move forward with other candidates.' },
+};
+
+interface StatusUpdateEmailParams {
+  candidateEmail: string;
+  candidateName: string;
+  jobTitle: string;
+  employerName: string;
+  newStatus: string;
+}
+
+export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Promise<EmailResult> {
+  const { candidateEmail, candidateName, jobTitle, employerName, newStatus } = params;
+
+  const statusInfo = STATUS_LABELS[newStatus];
+  if (!statusInfo) return { success: true }; // Don't email for statuses like 'applied'
+
+  try {
+    const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
+
+    const html = emailShell(`
+          ${headerBlock(`${statusInfo.emoji} Application Update`, jobTitle)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                ${greeting} there's an update on your application for
+                <strong style="color: ${C.textPrimary};">${jobTitle}</strong> at
+                <strong style="color: ${C.textPrimary};">${employerName}</strong>.
+              </p>
+
+              ${infoCard(`
+                    ${sectionLabel('New Status')}
+                    <p style="margin: 0 0 8px; font-family: ${F}; font-size: 20px; font-weight: bold; color: ${C.textPrimary};">
+                      ${statusInfo.emoji} ${statusInfo.label}
+                    </p>
+                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
+                      ${statusInfo.message}
+                    </p>
+              `, C.tealDarker)}
+
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top: 24px;">
+                <tr>
+                  <td>
+                    ${primaryButton('View My Applications →', `${BASE_URL}/my-applications`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        If you have questions, please reach out to the employer directly.
+      </p>`,
+      `Your application status for "${jobTitle}" has been updated to ${statusInfo.label}.`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: candidateEmail,
+      subject: `${statusInfo.emoji} Application update — ${jobTitle} at ${employerName}`,
+      html,
+    });
+
+    logger.info('Status update email sent', { candidateEmail, jobTitle, newStatus });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending status update email', error, { candidateEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send status update',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// I6. PROFILE INCOMPLETE NUDGE EMAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function sendProfileIncompleteEmail(
+  email: string,
+  firstName: string | null,
+  completedPercentage: number,
+  missingFields: string[]
+): Promise<EmailResult> {
+  try {
+    const name = firstName || 'there';
+    const topMissing = missingFields.slice(0, 4);
+
+    const missingListHtml = topMissing.map(f =>
+      `<tr>
+        <td style="padding: 8px 16px; border-bottom: 1px solid ${C.borderLight};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td width="24" style="font-size: 14px;">⬜</td>
+              <td style="font-family: ${F}; font-size: 14px; color: ${C.textSecondary};">${f}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>`
+    ).join('');
+
+    const html = emailShell(`
+          ${headerBlock(`Your Profile is ${completedPercentage}% Complete`, 'A few steps to stand out')}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                Hey ${name}! Employers are searching for candidates like you — but profiles with <strong style="color: ${C.teal};">80%+ completion get 3× more views</strong>. Here's what's missing:
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                ${missingListHtml}
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                <tr>
+                  <td>
+                    ${primaryButton('Complete Your Profile →', `${BASE_URL}/settings/profile`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        <a href="${BASE_URL}/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+      </p>`,
+      `Your profile is ${completedPercentage}% complete — finish it to get 3× more employer views!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: `📋 Your profile is ${completedPercentage}% complete — finish it to get noticed`,
+      html,
+    });
+
+    logger.info('Profile incomplete email sent', { email, completedPercentage });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending profile incomplete email', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send profile email',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// I8. EMPLOYER PERFORMANCE REPORT EMAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface JobPerformance {
+  title: string;
+  views: number;
+  applyClicks: number;
+  applications: number;
+  dashboardToken: string;
+}
+
+export async function sendPerformanceReportEmail(
+  email: string,
+  employerName: string,
+  jobs: JobPerformance[],
+  periodLabel: string
+): Promise<EmailResult> {
+  try {
+    const totalViews = jobs.reduce((s, j) => s + j.views, 0);
+    const totalClicks = jobs.reduce((s, j) => s + j.applyClicks, 0);
+    const totalApps = jobs.reduce((s, j) => s + j.applications, 0);
+
+    const jobRowsHtml = jobs.slice(0, 5).map((job, i) => {
+      const isLast = i === Math.min(jobs.length, 5) - 1;
+      const ctr = job.views > 0 ? ((job.applyClicks / job.views) * 100).toFixed(1) : '0';
+      return `<tr>
+        <td style="padding: 14px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
+          <p style="margin: 0 0 4px; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">${job.title}</p>
+          <p style="margin: 0; font-family: ${F}; font-size: 12px; color: ${C.textMuted};">
+            👁 ${job.views.toLocaleString()} views · 🖱 ${job.applyClicks.toLocaleString()} clicks · 📄 ${job.applications} apps · ${ctr}% CTR
+          </p>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const html = emailShell(`
+          ${headerBlock(`${periodLabel} Performance Report`, employerName)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                <tr>
+                  ${statCard(totalViews.toLocaleString(), 'Views')}
+                  <td width="8"></td>
+                  ${statCard(totalClicks.toLocaleString(), 'Apply Clicks')}
+                </tr>
+                <tr><td height="8" colspan="3"></td></tr>
+                <tr>
+                  ${statCard(totalApps.toLocaleString(), 'Applications')}
+                  <td width="8"></td>
+                  ${statCard(totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) + '%' : '0%', 'CTR')}
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                ${jobRowsHtml}
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                <tr>
+                  <td>
+                    ${primaryButton('View Full Dashboard →', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        <a href="${BASE_URL}/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe from reports</a>
+      </p>`,
+      `Your ${periodLabel.toLowerCase()} report: ${totalViews} views, ${totalClicks} clicks, ${totalApps} applications`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications — ${employerName}`,
+      html,
+    });
+
+    logger.info('Performance report sent', { email, employerName, periodLabel });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending performance report', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send performance report',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// I5. SAVED JOB REMINDER EMAIL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function sendSavedJobReminderEmail(
+  email: string,
+  firstName: string | null,
+  jobs: Array<{ title: string; employer: string; location: string; slug: string }>
+): Promise<EmailResult> {
+  try {
+    const name = firstName || 'there';
+
+    const jobListHtml = jobs.slice(0, 5).map((job, i) => {
+      const isLast = i === jobs.length - 1;
+      return `<tr>
+        <td style="padding: 14px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
+          <a href="${BASE_URL}/jobs/${job.slug}" style="color: ${C.teal}; text-decoration: none; font-family: ${F}; font-size: 15px; font-weight: bold; line-height: 1.4;">
+            ${job.title}
+          </a>
+          <p style="margin: 4px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
+            ${job.employer} · ${job.location}
+          </p>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const html = emailShell(`
+          ${headerBlock('Jobs You Saved Are Still Open!', `${jobs.length} saved position${jobs.length !== 1 ? 's' : ''} waiting for you`)}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                Hey ${name}, you saved these jobs but haven't applied yet. Don't let them slip away!
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                ${jobListHtml}
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                <tr>
+                  <td>
+                    ${primaryButton('View Saved Jobs →', `${BASE_URL}/saved`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        <a href="${BASE_URL}/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+      </p>`,
+      `${jobs.length} jobs you saved are still open — apply before they're filled!`
+    );
+
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: email,
+      subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open — apply now!`,
+      html,
+    });
+
+    logger.info('Saved job reminder sent', { email, jobCount: jobs.length });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending saved job reminder', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send saved job reminder',
+    };
+  }
+}

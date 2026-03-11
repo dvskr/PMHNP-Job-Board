@@ -163,7 +163,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="footer-bottom-bar" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '16px 0', borderTop: '1px solid var(--border-color)',
+          padding: '16px 0 20px', borderTop: '1px solid var(--border-color)',
           flexWrap: 'wrap', gap: '12px',
         }}>
           {/* Left: logo + tagline */}

@@ -10,7 +10,9 @@ import {
     extractHeadings,
     BLOG_CATEGORIES,
 } from '@/lib/blog';
-import { Calendar, ArrowLeft, Facebook, Linkedin, Twitter } from 'lucide-react';
+import { autoLinkCategories } from '@/lib/autoLink';
+import { Calendar, ArrowLeft, Facebook, Linkedin, Twitter, User, Briefcase, ArrowRight, Search, MapPin, Home } from 'lucide-react';
+import BlogEmailSignup from '@/components/BlogEmailSignup';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,9 +77,23 @@ export default async function BlogPostPage({ params }: Props) {
     // Convert markdown to HTML and auto-link states
     let contentHtml = markdownToHtml(post.content);
     contentHtml = autoLinkStates(contentHtml);
+    contentHtml = autoLinkCategories(contentHtml);
 
     // Extract headings for TOC
     const headings = extractHeadings(post.content);
+
+    // F4: Inject mid-article email signup placeholder
+    // Find the ~40% point of h2 tags and inject a marker
+    const h2Matches = [...contentHtml.matchAll(/<h2[^>]*>/g)];
+    if (h2Matches.length >= 3) {
+        const midIdx = Math.floor(h2Matches.length * 0.4);
+        const insertPos = h2Matches[midIdx]?.index;
+        if (insertPos !== undefined) {
+            contentHtml = contentHtml.slice(0, insertPos)
+                + '<div id="mid-article-signup" class="mid-article-signup-slot"></div>'
+                + contentHtml.slice(insertPos);
+        }
+    }
 
     // Category label lookup
     const categoryLabel =
@@ -451,7 +467,14 @@ export default async function BlogPostPage({ params }: Props) {
                     </div>
                 </article>
 
-                {/* CTA Section */}
+                {/* F5: End-of-Article Email Signup */}
+                <div className="mt-8 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border border-teal-100 text-center">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">📬 Stay Updated</h3>
+                    <p className="text-sm text-gray-600 mb-4">Get the latest PMHNP career tips, salary data, and job openings delivered to your inbox.</p>
+                    <BlogEmailSignup source={`blog_end_${slug}`} />
+                </div>
+
+                {/* Existing CTA Section */}
                 <div className="mt-8 bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-8 text-white text-center">
                     <h3 className="text-2xl font-bold mb-3">
                         Ready to Find Your Next PMHNP Position?
@@ -466,6 +489,42 @@ export default async function BlogPostPage({ params }: Props) {
                     >
                         Browse PMHNP Jobs →
                     </Link>
+                </div>
+
+                {/* F7: Job Category CTAs */}
+                <div className="mt-8">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Explore PMHNP Jobs</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                            { label: 'Remote', href: '/jobs/remote', icon: Home, color: '#2DD4BF' },
+                            { label: 'Full-Time', href: '/jobs?jobType=Full-Time', icon: Briefcase, color: '#3B82F6' },
+                            { label: 'Travel / Locum', href: '/jobs?specialty=Travel', icon: MapPin, color: '#E86C2C' },
+                            { label: 'All Jobs', href: '/jobs', icon: Search, color: '#A855F7' },
+                        ].map(({ label, href, icon: Icon, color }) => (
+                            <Link key={label} href={href}
+                                className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 hover:border-teal-300 hover:shadow-sm transition-all text-sm font-semibold text-gray-700 hover:text-teal-700">
+                                <Icon size={16} style={{ color }} />
+                                {label}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+
+                {/* F8: Create Your Profile CTA */}
+                <div className="mt-8 bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                            <User size={20} className="text-teal-600" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-gray-900 mb-1">Let Employers Find You</h3>
+                            <p className="text-sm text-gray-600 mb-3">Create your PMHNP profile and get discovered by top employers actively hiring.</p>
+                            <Link href="/for-job-seekers/create-profile"
+                                className="inline-flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors">
+                                Create Your Profile <ArrowRight size={14} />
+                            </Link>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Related Posts */}

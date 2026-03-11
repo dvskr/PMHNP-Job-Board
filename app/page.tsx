@@ -14,6 +14,10 @@ import Comparison from '@/components/Comparison';
 import ScrollReveal from '@/components/ScrollReveal';
 import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
+import TrustedByEmployers from '@/components/TrustedByEmployers';
+import PostJobCTA from '@/components/PostJobCTA';
+import ExitIntentPopup from '@/components/ExitIntentPopup';
+import StickyEmailBar from '@/components/StickyEmailBar';
 
 
 
@@ -42,9 +46,9 @@ async function getTotalJobCount(): Promise<number> {
  */
 export async function generateMetadata(): Promise<Metadata> {
   const totalJobs = await getTotalJobCount();
-  const jobCountDisplay = totalJobs > 10000
-    ? `${Math.floor(totalJobs / 1000).toLocaleString()},000+`
-    : '10,000+';
+  const jobCountDisplay = totalJobs > 1000
+    ? `${(Math.floor(totalJobs / 100) * 100).toLocaleString()}+`
+    : totalJobs.toLocaleString();
 
   return {
     title: `${jobCountDisplay} PMHNP Jobs Near Me | Psych NP & Psychiatric Nurse Practitioner Job Board`,
@@ -135,9 +139,19 @@ export default async function Home() {
       {/* 1. Hero Section — no scroll reveal (above the fold) */}
       <HomepageHero jobCountDisplay={jobCountDisplay} />
 
+      {/* B2: Featured Jobs moved right below hero (6 latest job cards) */}
+      <ScrollReveal>
+        <FeaturedJobsSection />
+      </ScrollReveal>
+
       {/* 2. Stats Counter (animated numbers) */}
       <ScrollReveal>
         <StatsSection />
+      </ScrollReveal>
+
+      {/* B4: Trusted By Employers trust signal */}
+      <ScrollReveal>
+        <TrustedByEmployers />
       </ScrollReveal>
 
       {/* 3. Employer Marquee (scrolling company names) */}
@@ -147,14 +161,10 @@ export default async function Home() {
 
 
 
-      {/* 5. Featured Jobs (6 latest job cards) */}
-      <ScrollReveal>
-        <FeaturedJobsSection />
-      </ScrollReveal>
 
-      {/* 6. Why PMHNPs Choose Us (3 cards: Shield, Zap, DollarSign) */}
+      {/* B10: Post a Job CTA */}
       <ScrollReveal>
-        <WhyUs />
+        <PostJobCTA />
       </ScrollReveal>
 
       {/* 7. Testimonial (Sarah M. quote) */}
@@ -172,15 +182,19 @@ export default async function Home() {
         <Comparison />
       </ScrollReveal>
 
-      {/* 10. Salary Guide + Job Alerts (side-by-side) */}
-      <ScrollReveal>
-        <StayConnected />
-      </ScrollReveal>
+
+
 
       {/* 12. Employer CTA (new design) */}
       <ScrollReveal>
         <EmployerCTA />
       </ScrollReveal>
+
+      {/* B7: Exit-intent popup */}
+      <ExitIntentPopup />
+
+      {/* B8: Sticky email bar */}
+      <StickyEmailBar />
     </div>
   );
 }

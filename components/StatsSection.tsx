@@ -37,8 +37,8 @@ export default async function StatsSection() {
       }),
     ]);
 
-    totalJobs = Math.max(jobCount, 10000);
-    totalCompanies = Math.max(companyGroups.length, 3000);
+    totalJobs = jobCount;
+    totalCompanies = companyGroups.length;
     statesCovered = Math.min(stateGroups.length, 50);
 
     if (newToday > 0) {

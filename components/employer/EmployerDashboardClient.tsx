@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, BellOff } from 'lucide-react';
 import { config } from '@/lib/config';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
@@ -16,6 +16,7 @@ interface Job {
     isFeatured: boolean;
     viewCount: number;
     applyClickCount: number;
+    applicantCount?: number;
     createdAt: string;
     expiresAt: string | null;
     editToken: string;
@@ -53,6 +54,25 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
             .then(d => { setNewsletterOptIn(d.optIn ?? false); setNewsletterChecked(true); })
             .catch(() => setNewsletterChecked(true));
     }, [employerEmail, isTokenAccess]);
+
+    // Notification preferences (only for logged-in users)
+    interface NotifPref {
+        employerJobId: string;
+        jobId: string;
+        jobTitle: string;
+        notifyOnApplication: boolean;
+        notifyDigest: string;
+    }
+    const [notifPrefs, setNotifPrefs] = useState<NotifPref[]>([]);
+    const [notifLoading, setNotifLoading] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isTokenAccess) return;
+        fetch('/api/employer/settings/notifications')
+            .then(r => r.json())
+            .then(d => setNotifPrefs(d.preferences || []))
+            .catch(() => { });
+    }, [isTokenAccess]);
 
     const handleNewsletterToggle = async () => {
         setNewsletterLoading(true);
@@ -106,7 +126,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         setShowRenewModal(true);
     };
 
-    const handleRenewCheckout = async (tier: 'standard' | 'featured') => {
+    const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
         if (!selectedJob) return;
 
         setRenewingJobId(selectedJob.id);
@@ -409,6 +429,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         </svg>
                                                         {job.applyClickCount} clicks
                                                     </span>
+                                                    {(job.applicantCount !== undefined && job.applicantCount > 0) && (
+                                                        <span className="flex items-center gap-1" title="Platform Applicants">
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                            </svg>
+                                                            {job.applicantCount} applicant{job.applicantCount !== 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {/* Dates + Invoice */}
@@ -517,6 +545,98 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </div>
                         )}
 
+                        {/* Notification Preferences — session access only */}
+                        {!isTokenAccess && notifPrefs.length > 0 && (
+                            <div
+                                className="mt-4 rounded-lg p-6"
+                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div
+                                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                        style={{ background: 'rgba(20,184,166,0.1)' }}
+                                    >
+                                        <Bell size={20} style={{ color: '#14B8A6' }} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                                            Application Notifications
+                                        </h3>
+                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                            Get notified when candidates apply to your jobs
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    {notifPrefs.map(pref => (
+                                        <div
+                                            key={pref.employerJobId}
+                                            className="flex items-center justify-between gap-4 p-3 rounded-lg"
+                                            style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                                    {pref.jobTitle}
+                                                </p>
+                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                                    {pref.notifyOnApplication ? 'Email on each application' : 'Notifications off'}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    setNotifLoading(pref.employerJobId);
+                                                    const newState = !pref.notifyOnApplication;
+                                                    setNotifPrefs(prev => prev.map(p =>
+                                                        p.employerJobId === pref.employerJobId
+                                                            ? { ...p, notifyOnApplication: newState }
+                                                            : p
+                                                    ));
+                                                    try {
+                                                        await fetch('/api/employer/settings/notifications', {
+                                                            method: 'PATCH',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                employerJobId: pref.employerJobId,
+                                                                notifyOnApplication: newState,
+                                                            }),
+                                                        });
+                                                    } catch {
+                                                        setNotifPrefs(prev => prev.map(p =>
+                                                            p.employerJobId === pref.employerJobId
+                                                                ? { ...p, notifyOnApplication: !newState }
+                                                                : p
+                                                        ));
+                                                    } finally {
+                                                        setNotifLoading(null);
+                                                    }
+                                                }}
+                                                disabled={notifLoading === pref.employerJobId}
+                                                style={{
+                                                    position: 'relative',
+                                                    width: '44px', height: '24px',
+                                                    borderRadius: '12px',
+                                                    background: pref.notifyOnApplication ? '#14B8A6' : 'var(--bg-tertiary)',
+                                                    border: '1px solid',
+                                                    borderColor: pref.notifyOnApplication ? '#14B8A6' : 'var(--border-color)',
+                                                    cursor: 'pointer', transition: 'all 0.2s',
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: 'absolute', top: '2px',
+                                                    left: pref.notifyOnApplication ? '22px' : '2px',
+                                                    width: '18px', height: '18px', borderRadius: '50%',
+                                                    background: '#fff',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                }} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Footer */}
                         <div className="mt-12 pt-6 flex justify-between items-center text-sm" style={{ borderTop: '1px solid var(--border-color)', color: 'var(--text-tertiary)' }}>
                             <div>
@@ -552,44 +672,64 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </p>
 
                             <div className="space-y-3 mb-6">
-                                {/* Standard Option */}
+                                {/* Starter Option */}
                                 <button
-                                    onClick={() => handleRenewCheckout('standard')}
+                                    onClick={() => handleRenewCheckout('starter')}
                                     className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-teal-500 hover:bg-teal-50 transition-all group"
                                 >
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-gray-900 group-hover:text-teal-700">Standard Renewal</span>
+                                        <span className="font-semibold text-gray-900 group-hover:text-teal-700">Starter Renewal</span>
                                         <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">
                                             {config.isPaidPostingEnabled ? '$199' : 'FREE'}
                                         </span>
                                     </div>
                                     <ul className="text-sm text-gray-600 space-y-1">
                                         <li>✓ 30 days of visibility</li>
-                                        <li>✓ Standard placement</li>
+                                        <li>✓ 5 candidate unlocks/mo</li>
                                     </ul>
                                 </button>
 
-                                {/* Featured Option */}
+                                {/* Growth Option */}
                                 <button
-                                    onClick={() => handleRenewCheckout('featured')}
+                                    onClick={() => handleRenewCheckout('growth')}
                                     className="w-full text-left border-2 border-teal-500 bg-teal-50 rounded-lg p-4 hover:bg-teal-100 transition-all group relative"
                                 >
                                     <div className="absolute top-2 right-2">
                                         <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">
-                                            RECOMMENDED
+                                            MOST POPULAR
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-teal-900">Featured Renewal</span>
+                                        <span className="font-semibold text-teal-900">Growth Renewal</span>
                                         <span className="text-2xl font-bold text-teal-900">
                                             {config.isPaidPostingEnabled ? '$299' : 'FREE'}
                                         </span>
                                     </div>
                                     <ul className="text-sm text-teal-800 space-y-1">
                                         <li>✓ 60 days of visibility</li>
-                                        <li>✓ <strong>Top placement</strong></li>
-                                        <li>✓ <strong>2x more visibility</strong></li>
-                                        <li>✓ <strong>Candidate database access</strong></li>
+                                        <li>✓ <strong>Featured placement</strong></li>
+                                        <li>✓ 25 candidate unlocks/mo</li>
+                                        <li>✓ 25 InMails/mo</li>
+                                    </ul>
+                                </button>
+
+                                {/* Premium Option */}
+                                <button
+                                    onClick={() => handleRenewCheckout('premium')}
+                                    className="w-full text-left border-2 border-purple-300 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="font-semibold text-gray-900 group-hover:text-purple-700">Premium Renewal</span>
+                                        <span className="text-2xl font-bold text-gray-900 group-hover:text-purple-700">
+                                            {config.isPaidPostingEnabled ? '$399' : 'FREE'}
+                                        </span>
+                                    </div>
+                                    <ul className="text-sm text-gray-600 space-y-1">
+                                        <li>✓ 90 days of visibility</li>
+                                        <li>✓ Everything in Growth</li>
+                                        <li>✓ <strong>Unlimited</strong> candidate unlocks</li>
+                                        <li>✓ <strong>Unlimited</strong> InMails</li>
+                                        <li>✓ Social media promotion</li>
                                     </ul>
                                 </button>
                             </div>

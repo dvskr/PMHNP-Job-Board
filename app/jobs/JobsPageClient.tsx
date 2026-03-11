@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { LayoutGrid, List, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import JobCard from '@/components/JobCard';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
@@ -49,6 +50,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   const { viewMode, setViewMode } = useViewMode('grid');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const router = useRouter();
+
+
 
   // Read sort from URL params (persists across navigation)
   const urlSort = searchParams.get('sort') || 'best';
@@ -193,6 +196,8 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
   return (
     <>
       <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '0 16px' }}>
+
+
         {/* Main Content with Sidebar Layout */}
         <div style={{ display: 'flex', gap: '28px' }}>
           {/* Sidebar Filters - Hidden on mobile by default, visible on desktop */}

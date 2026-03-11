@@ -230,7 +230,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           location: normalizedJob.location,
           externalId: normalizedJob.externalId ?? undefined,
           sourceProvider: normalizedJob.sourceProvider ?? undefined,
-          applyLink: normalizedJob.applyLink,
+          applyLink: normalizedJob.applyLink ?? undefined,
         });
 
         if (dupCheck.isDuplicate) {

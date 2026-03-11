@@ -12,7 +12,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setTheme] = useState<Theme>('dark');
+    const [theme, setTheme] = useState<Theme>('light');
     const [mounted, setMounted] = useState(false);
 
     // Initialize theme from localStorage or system preference
@@ -85,9 +85,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             s.setProperty('--salary-color', '#2DD4BF');
 
             // HTML + Body inline styles (overrides layout.tsx inline style)
-            root.style.backgroundColor = '#060E18';
+            root.style.backgroundColor = '#0F1923';
             root.style.color = '#F1F5F9';
-            document.body.style.backgroundColor = '#060E18';
+            document.body.style.backgroundColor = '#0F1923';
             document.body.style.color = '#F1F5F9';
         } else {
             root.classList.remove('dark');

@@ -26,7 +26,7 @@ const testimonials = [
 
 export default function Testimonial() {
     return (
-        <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '48px 0' }}>
+        <section style={{ padding: '48px 0' }}>
             <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px' }}>
                 <div style={{
                     display: 'grid',
@@ -47,21 +47,42 @@ export default function Testimonial() {
                             }}>
                                 &ldquo;{t.quote}&rdquo;
                             </p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <div style={{ display: 'flex', gap: '1px' }}>
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} size={11} fill="#eab308" style={{ color: '#eab308' }} />
-                                    ))}
-                                </div>
-                                <span style={{
-                                    fontSize: '12px', fontWeight: 700,
-                                    color: 'var(--text-primary)',
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {/* B5: Avatar initial */}
+                                <div style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    background: `linear-gradient(135deg, ${t.color}, ${t.color}88)`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
                                 }}>
-                                    {t.name}
-                                </span>
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                    {t.credential}
-                                </span>
+                                    <span style={{
+                                        fontSize: '12px',
+                                        fontWeight: 700,
+                                        color: '#fff',
+                                    }}>
+                                        {t.name.charAt(0)}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ display: 'flex', gap: '1px' }}>
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={11} fill="#eab308" style={{ color: '#eab308' }} />
+                                        ))}
+                                    </div>
+                                    <span style={{
+                                        fontSize: '12px', fontWeight: 700,
+                                        color: 'var(--text-primary)',
+                                    }}>
+                                        {t.name}
+                                    </span>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        {t.credential}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     ))}

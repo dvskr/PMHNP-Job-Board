@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { Settings, LayoutDashboard, LogOut, ChevronDown, Shield } from 'lucide-react'
+import { Settings, LayoutDashboard, LogOut, ChevronDown, Shield, MessageSquare } from 'lucide-react'
 
 interface UserMenuProps {
   user: {
@@ -236,6 +236,16 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
               >
                 <LayoutDashboard style={{ width: '16px', height: '16px' }} />
                 Dashboard
+              </Link>
+
+              <Link
+                href="/messages"
+                onClick={() => setIsOpen(false)}
+                className="um-menu-item"
+                style={menuItemStyle}
+              >
+                <MessageSquare style={{ width: '16px', height: '16px' }} />
+                Messages
               </Link>
 
               <Link

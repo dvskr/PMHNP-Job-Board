@@ -13,6 +13,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import RelatedJobs from '@/components/RelatedJobs';
 import AboutEmployer from '@/components/AboutEmployer';
 import SalaryInsights from '@/components/SalaryInsights';
+import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
 import InternalLinks from '@/components/InternalLinks';
 import { prisma } from '@/lib/prisma';
@@ -153,13 +154,25 @@ async function getRelatedJobs({
 /**
  * Fetch company information for employer section
  */
-async function getCompanyInfo(companyId: string | null, employerName: string) {
+async function getCompanyInfo(companyId: string | null, employerName: string, jobId?: string) {
   // Try to get company from companyId first
   if (companyId) {
     const company = await prisma.company.findUnique({
       where: { id: companyId },
     });
-    if (company) return company as Company;
+    if (company) {
+      // If company exists but has no logo, try to get it from EmployerJob
+      if (!company.logoUrl && jobId) {
+        const ej = await prisma.employerJob.findUnique({
+          where: { jobId },
+          select: { companyLogoUrl: true },
+        });
+        if (ej?.companyLogoUrl) {
+          return { ...company, logoUrl: ej.companyLogoUrl } as Company;
+        }
+      }
+      return company as Company;
+    }
   }
 
   // Try to find by normalized name
@@ -173,7 +186,45 @@ async function getCompanyInfo(companyId: string | null, employerName: string) {
     },
   });
 
-  return company as Company | null;
+  if (company) {
+    // If company exists but has no logo, try EmployerJob
+    if (!company.logoUrl && jobId) {
+      const ej = await prisma.employerJob.findUnique({
+        where: { jobId },
+        select: { companyLogoUrl: true },
+      });
+      if (ej?.companyLogoUrl) {
+        return { ...company, logoUrl: ej.companyLogoUrl } as Company;
+      }
+    }
+    return company as Company;
+  }
+
+  // No Company record found — try to build one from EmployerJob data
+  if (jobId) {
+    const ej = await prisma.employerJob.findUnique({
+      where: { jobId },
+      select: { companyLogoUrl: true, companyWebsite: true, companyDescription: true, employerName: true },
+    });
+    if (ej && (ej.companyLogoUrl || ej.companyDescription)) {
+      // Count other jobs from this employer for jobCount
+      const jobCount = await prisma.job.count({
+        where: { employer: employerName, isPublished: true },
+      });
+      return {
+        id: 'employer-' + jobId,
+        name: ej.employerName || employerName,
+        description: ej.companyDescription,
+        website: ej.companyWebsite,
+        logoUrl: ej.companyLogoUrl,
+        jobCount,
+        isVerified: false,
+        normalizedName: normalizedName,
+      } as Company;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -271,8 +322,23 @@ export async function generateMetadata({ params }: JobPageProps) {
 
   const result = await getJob(id);
 
-  if (result.status !== 'found') {
+  if (result.status === 'not_found') {
     notFound();
+  }
+
+  // A9: Expired jobs get noindex metadata instead of 404
+  if (result.status === 'expired') {
+    return {
+      title: `${result.title || 'Job'} - No Longer Available | PMHNP Hiring`,
+      description: 'This PMHNP position is no longer available. Browse thousands of other psychiatric nurse practitioner jobs.',
+      robots: {
+        index: false,
+        follow: true,
+      },
+      alternates: {
+        canonical: `https://pmhnphiring.com/jobs/${slug}`,
+      },
+    };
   }
 
   const job = result.job;
@@ -379,50 +445,134 @@ export default async function JobPage({ params }: JobPageProps) {
     notFound();
   }
 
-  // Job exists but expired/unpublished → show expired page (soft 410)
+  // Job exists but expired/unpublished → show enhanced expired page (A8)
   if (result.status === 'expired') {
+    // Fetch similar active jobs for the expired page
+    const similarJobs = await prisma.job.findMany({
+      where: {
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        title: true,
+        employer: true,
+        location: true,
+        city: true,
+        state: true,
+        mode: true,
+        isRemote: true,
+        normalizedMinSalary: true,
+        normalizedMaxSalary: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+    }) as Job[];
+
     return (
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <div
-            className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-          >
-            <Briefcase className="w-10 h-10" style={{ color: 'var(--text-tertiary)' }} />
-          </div>
-          <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-            This Job Has Been Filled or Removed
-          </h1>
-          <p className="text-lg mb-8 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
-            {result.title ? `"${result.title}"` : 'This position'}
-            {result.employer ? ` at ${result.employer}` : ''} is no longer available.
-            Don&apos;t worry — we have thousands of similar PMHNP jobs!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link
-              href="/jobs"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-colors"
-              style={{ backgroundColor: 'var(--color-primary)' }}
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div
+              className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
             >
-              <Search className="w-5 h-5" />
-              Browse All PMHNP Jobs
-            </Link>
+              <Briefcase className="w-10 h-10" style={{ color: 'var(--text-tertiary)' }} />
+            </div>
+            <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+              This Job Is No Longer Available
+            </h1>
+            <p className="text-lg mb-8 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+              {result.title ? `"${result.title}"` : 'This position'}
+              {result.employer ? ` at ${result.employer}` : ''} is no longer available.
+              Don&apos;t worry — we have thousands of similar PMHNP jobs!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/jobs"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-colors"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                <Search className="w-5 h-5" />
+                Browse All PMHNP Jobs
+              </Link>
+              <Link
+                href="/jobs/remote"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+              >
+                Remote Positions <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Similar Active Jobs */}
+          {similarJobs.length > 0 && (
+            <div className="mb-12">
+              <h2 className="text-xl font-bold mb-6 text-center" style={{ color: 'var(--text-primary)' }}>
+                Similar PMHNP Positions Available Now
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {similarJobs.map((sj) => {
+                  const sjSlug = `${sj.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${sj.id}`;
+                  const sjSalary = sj.normalizedMinSalary && sj.normalizedMaxSalary
+                    ? `$${Math.round(Number(sj.normalizedMinSalary) / 1000)}k-$${Math.round(Number(sj.normalizedMaxSalary) / 1000)}k`
+                    : null;
+                  return (
+                    <Link
+                      key={sj.id}
+                      href={`/jobs/${sjSlug}`}
+                      className="block rounded-xl p-5 transition-all hover:shadow-md"
+                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                    >
+                      <h3 className="font-semibold mb-1 line-clamp-1" style={{ color: 'var(--text-primary)' }}>
+                        {sj.title}
+                      </h3>
+                      <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+                        {sj.employer}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="flex items-center gap-1">
+                          <MapPin size={12} /> {sj.location}
+                        </span>
+                        {sjSalary && (
+                          <span className="font-semibold" style={{ color: 'var(--salary-color, #1d4ed8)' }}>
+                            {sjSalary}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Email Signup CTA */}
+          <div className="rounded-xl p-8 text-center mb-8" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: '#fff' }}>
+            <h3 className="text-xl font-bold mb-2">Never Miss a PMHNP Opportunity</h3>
+            <p className="text-sm opacity-90 mb-4">Get daily job alerts delivered to your inbox — free forever.</p>
             <Link
-              href="/jobs/remote"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors"
-              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+              href="/job-alerts"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-lg font-semibold transition-colors hover:bg-gray-100"
+              style={{ color: 'var(--color-primary)' }}
             >
-              Remote Positions <ArrowRight className="w-4 h-4" />
+              Set Up Job Alerts <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
+
+          {/* Explore by Category */}
           <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <p className="font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Explore by Category</p>
+            <p className="font-medium mb-4 text-center" style={{ color: 'var(--text-primary)' }}>Explore by Category</p>
             <div className="flex flex-wrap justify-center gap-3">
               {[
                 { label: 'Telehealth', href: '/jobs/telehealth' },
                 { label: 'New Grad', href: '/jobs/new-grad' },
                 { label: 'Per Diem', href: '/jobs/per-diem' },
                 { label: 'Travel', href: '/jobs/travel' },
+                { label: 'Inpatient', href: '/jobs/inpatient' },
+                { label: 'Outpatient', href: '/jobs/outpatient' },
                 { label: 'Salary Guide', href: '/salary-guide' },
               ].map((link) => (
                 <Link
@@ -453,7 +603,7 @@ export default async function JobPage({ params }: JobPageProps) {
       mode: job.mode,
       limit: 5, // Increased from 4 to 5 for more related content
     }),
-    getCompanyInfo(job.companyId, job.employer),
+    getCompanyInfo(job.companyId, job.employer, job.id),
     getEmployerJobCount(job.employer, job.id),
     getStateSalaryAverage(job.state, job.stateCode),
     getCurrentUser(),
@@ -698,6 +848,18 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
             </AnimatedContainer>
 
+            {/* Salary Comparison Widget (A21) */}
+            {stateAvgSalary > 0 && job.state && (
+              <AnimatedContainer animation="fade-in-up" delay={220}>
+                <SalaryComparisonWidget
+                  stateName={job.state}
+                  stateAvgSalary={Math.round(stateAvgSalary / 1000)}
+                  jobMinSalary={job.normalizedMinSalary}
+                  jobMaxSalary={job.normalizedMaxSalary}
+                />
+              </AnimatedContainer>
+            )}
+
             {/* About Employer Section */}
             <AnimatedContainer animation="fade-in-up" delay={250}>
               <AboutEmployer
@@ -736,6 +898,11 @@ export default async function JobPage({ params }: JobPageProps) {
             {/* Footer Info */}
             <div className="text-sm px-1 mt-6" style={{ color: 'var(--text-tertiary)' }}>
               <p>{freshness}</p>
+              {job.updatedAt && (
+                <p className="mt-1">
+                  Last updated: {new Date(job.updatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
               {job.sourceType === 'external' && job.sourceProvider && (
                 <p className="mt-1">Posted via {job.sourceProvider}</p>
               )}
@@ -759,7 +926,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div className="space-y-3 mb-5">
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
                   <SaveJobButton jobId={job.id} />
 
                 </div>
@@ -807,7 +974,7 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-3 pb-safe">
-          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} />
+          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
         </div>
       </div>
     </>

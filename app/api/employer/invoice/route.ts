@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine pricing tier and amount
-    const tier = employerJob.job.isFeatured ? 'featured' : 'standard';
+    const tier = employerJob.job.isFeatured ? 'growth' : 'starter';
     const amount = employerJob.job.isFeatured ? 29900 : 19900; // in cents
 
     // Generate invoice number (using job ID and creation date)

@@ -53,7 +53,7 @@ function isJobBoardLink(url: string): boolean {
 }
 
 export interface QualityScoreInput {
-    applyLink: string;
+    applyLink: string | null;
     displaySalary?: string | null;
     normalizedMinSalary?: number | null;
     normalizedMaxSalary?: number | null;
@@ -80,9 +80,9 @@ export function computeQualityScore(input: QualityScoreInput): number {
     let score = 0;
 
     // ── Link Quality (0–30) ──
-    if (isDirectAtsLink(input.applyLink)) {
+    if (input.applyLink && isDirectAtsLink(input.applyLink)) {
         score += 30;
-    } else if (!isJobBoardLink(input.applyLink)) {
+    } else if (input.applyLink && !isJobBoardLink(input.applyLink)) {
         // Non-ATS, non-job-board = likely employer career page
         score += 20;
     }

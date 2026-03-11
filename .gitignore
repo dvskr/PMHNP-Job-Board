@@ -83,3 +83,8 @@ supabase_dashboard_queries.sql
 
 # Docs
 /docs/
+
+# YouTube automation assets (large files, generated content)
+/yt-videos/
+/yt-thumbnails/
+/scripts/schedule-log.json

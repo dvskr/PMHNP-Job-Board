@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExternalLink, LogIn } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
+import InPlatformApplyForm from '@/components/InPlatformApplyForm';
+import Link from 'next/link';
 
 interface ApplyButtonProps {
   jobId: string;
-  applyLink: string;
+  applyLink: string | null;
   jobTitle: string;
   isAuthenticated?: boolean;
+  applyOnPlatform?: boolean;
 }
 
 function formatAppliedDate(date: Date): string {
@@ -19,12 +22,23 @@ function formatAppliedDate(date: Date): string {
   });
 }
 
-export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false }: ApplyButtonProps) {
+export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPlatformApply, setShowPlatformApply] = useState(false);
+  const [serverApplied, setServerApplied] = useState<{ applied: boolean; appliedAt?: string; status?: string } | null>(null);
 
-  const applied = isApplied(jobId);
+  // Check server for existing application (for platform-apply jobs)
+  useEffect(() => {
+    if (!isAuthenticated || !applyOnPlatform) return;
+    fetch(`/api/applications/check?jobId=${jobId}`)
+      .then(r => r.json())
+      .then(data => setServerApplied(data))
+      .catch(() => { });
+  }, [isAuthenticated, applyOnPlatform, jobId]);
+
+  const applied = isApplied(jobId) || serverApplied?.applied;
   const appliedDate = getAppliedDate(jobId);
 
   const handleApply = () => {
@@ -34,19 +48,28 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       return;
     }
 
-    // Track apply click (fire and forget)
-    try {
-      fetch(`/api/jobs/${jobId}/track-apply`, {
-        method: 'POST',
-      }).catch(() => { });
-    } catch { }
+    // Platform apply: show inline form
+    if (applyOnPlatform) {
+      setShowPlatformApply(true);
+      return;
+    }
 
-    // Open apply link in new tab
-    window.open(applyLink, '_blank', 'noopener,noreferrer');
+    // External apply: open link in new tab
+    if (applyLink) {
+      // Track apply click (fire and forget)
+      try {
+        fetch(`/api/jobs/${jobId}/track-apply`, {
+          method: 'POST',
+        }).catch(() => { });
+      } catch { }
 
-    // Show confirmation modal only if not already applied
-    if (!isApplied(jobId)) {
-      setShowConfirmModal(true);
+      // Open apply link in new tab
+      window.open(applyLink, '_blank', 'noopener,noreferrer');
+
+      // Show confirmation modal only if not already applied
+      if (!isApplied(jobId)) {
+        setShowConfirmModal(true);
+      }
     }
   };
 
@@ -68,6 +91,11 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     setShowConfirmModal(false);
   };
 
+  const handlePlatformApplySuccess = () => {
+    markApplied(jobId);
+    setShowPlatformApply(false);
+  };
+
   const handleSignIn = () => {
     const returnUrl = window.location.pathname;
     window.location.href = `/login?redirectTo=${encodeURIComponent(returnUrl)}`;
@@ -80,8 +108,50 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
 
   return (
     <div className="flex flex-col w-full">
-      {/* Inline Auth Gate — replaces button area when triggered */}
-      {showAuthModal ? (
+      {/* Already Applied Notice (server-verified for platform apply jobs) */}
+      {applyOnPlatform && serverApplied?.applied && !showPlatformApply && (
+        <div
+          className="rounded-xl p-4 mb-3"
+          style={{
+            backgroundColor: 'rgba(34,197,94,0.08)',
+            border: '1px solid rgba(34,197,94,0.2)',
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+              You&apos;ve already applied
+            </span>
+            {serverApplied.status && serverApplied.status !== 'applied' && (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
+                style={{ backgroundColor: 'rgba(13,148,136,0.1)', color: '#0d9488' }}
+              >
+                {serverApplied.status}
+              </span>
+            )}
+          </div>
+          <p className="text-xs ml-7" style={{ color: 'var(--text-secondary)' }}>
+            Applied on {serverApplied.appliedAt ? formatAppliedDate(new Date(serverApplied.appliedAt)) : 'recently'}.{' '}
+            <Link href="/my-applications" className="underline font-medium" style={{ color: '#0d9488' }}>
+              View your applications →
+            </Link>
+          </p>
+        </div>
+      )}
+
+      {/* In-Platform Apply Form */}
+      {showPlatformApply ? (
+        <InPlatformApplyForm
+          jobId={jobId}
+          jobTitle={jobTitle}
+          onClose={() => setShowPlatformApply(false)}
+          onSuccess={handlePlatformApplySuccess}
+        />
+      ) : showAuthModal ? (
+        /* Inline Auth Gate — replaces button area when triggered */
         <div className="w-full">
           {/* Title */}
           <div className="flex items-center gap-2 mb-3">
@@ -165,7 +235,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
               }}
             >
               {applied ? 'Apply Again' : 'Apply Now'}
-              <ExternalLink size={20} />
+              {!applyOnPlatform && <ExternalLink size={20} />}
             </button>
 
             {applied && (
@@ -228,3 +298,4 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     </div>
   );
 }
+

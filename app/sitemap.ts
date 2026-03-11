@@ -212,6 +212,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
+  // Salary guide per-state pages (C15)
+  const salaryGuideStatePages = US_STATES.map(state => ({
+    url: `${baseUrl}/salary-guide/${state}`,
+    lastModified: latestJobDate,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+
+  // Pricing page
+  const pricingPage = {
+    url: `${baseUrl}/pricing`,
+    lastModified: STATIC_CONTENT_DATE,
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }
+
 
   try {
     // Blog Posts from Supabase
@@ -320,6 +336,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       substanceAbuseJobsPage,
       childAdolescentJobsPage,
       ...statePages,
+      ...salaryGuideStatePages,
+      pricingPage,
       ...cityPages,
       ...jobPages,
       ...blogPages,
@@ -342,6 +360,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       substanceAbuseJobsPage,
       childAdolescentJobsPage,
       ...statePages,
+      ...salaryGuideStatePages,
+      pricingPage,
     ]
   }
 }

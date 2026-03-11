@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmployerMessageNotification } from '@/lib/email-service';
+import { canSendInMail, getEmployerTier } from '@/lib/tier-limits';
 
 /**
  * GET /api/employer/messages — List sent messages for the employer
@@ -132,6 +133,19 @@ export async function POST(req: NextRequest) {
 
         if (!recipient) {
             return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
+        }
+
+        // Check InMail limit based on employer's posting tier
+        const tier = await getEmployerTier(user.id);
+        const inmailCheck = await canSendInMail(senderProfile.id, user.id, tier);
+        if (!inmailCheck.allowed) {
+            return NextResponse.json({
+                error: 'Monthly InMail limit reached',
+                used: inmailCheck.used,
+                limit: inmailCheck.limit,
+                tier,
+                upgradeRequired: true,
+            }, { status: 403 });
         }
 
         // Look up job title if jobId provided
