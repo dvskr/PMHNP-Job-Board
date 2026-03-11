@@ -4,11 +4,10 @@ import { syncToBeehiiv } from '@/lib/beehiiv'
 import crypto from 'crypto'
 
 /**
- * ONE-TIME backfill for users affected by the signup bug:
- * 1. JobAlert wasn't created (FK ordering issue)
- * 2. Beehiiv sync was missing from signup flow
+ * Backfill: Create job alerts + sync to Beehiiv for given emails.
+ * Auto-creates EmailLead if missing.
  *
- * DELETE this route after running once.
+ * GET /api/admin/backfill-signups (auth: Bearer CRON_SECRET)
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
@@ -17,21 +16,31 @@ export async function GET(request: NextRequest) {
     }
 
     const emails = [
-        'corbanjoy@gmail.com',
-        'pkanchi27@gmail.com',
-        'mrs.tlewis31@gmail.com',
+        'jeremysakkas@gmail.com',
+        'johnfjamero@gmail.com',
+        'rebecca@centeredpsychiatrycare.com',
+        'tbini2019@gmail.com',
     ]
 
-    const results: Record<string, { alert: string; beehiiv: string }> = {}
+    const results: Record<string, { lead: string; alert: string; beehiiv: string }> = {}
 
     for (const email of emails) {
-        results[email] = { alert: 'skipped', beehiiv: 'skipped' }
+        results[email] = { lead: 'skipped', alert: 'skipped', beehiiv: 'skipped' }
 
-        // 1. Ensure EmailLead exists
-        const lead = await prisma.emailLead.findUnique({ where: { email } })
+        // 1. Ensure EmailLead exists (create if missing)
+        let lead = await prisma.emailLead.findUnique({ where: { email } })
         if (!lead) {
-            results[email].alert = 'no EmailLead found — skipped'
-            continue
+            try {
+                lead = await prisma.emailLead.create({
+                    data: { email, source: 'manual_add' },
+                })
+                results[email].lead = 'CREATED ✅'
+            } catch (e) {
+                results[email].lead = `FAILED: ${e}`
+                continue
+            }
+        } else {
+            results[email].lead = 'already exists'
         }
 
         // 2. Create JobAlert if missing
@@ -57,7 +66,7 @@ export async function GET(request: NextRequest) {
 
         // 3. Sync to Beehiiv
         try {
-            syncToBeehiiv(email, { utmSource: 'signup_backfill' })
+            await syncToBeehiiv(email, { utmSource: 'manual_add' })
             results[email].beehiiv = 'synced ✅'
         } catch (e) {
             results[email].beehiiv = `FAILED: ${e}`
@@ -66,3 +75,4 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, results })
 }
+
