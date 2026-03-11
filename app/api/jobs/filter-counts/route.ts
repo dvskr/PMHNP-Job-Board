@@ -104,16 +104,21 @@ export async function POST(request: NextRequest) {
         },
       }),
 
-      // Posted Within — 24h uses broader window to catch recently ingested jobs
-      // "Past 24 hours" = ingested in last 24h OR originally posted within 3 days
+      // Posted Within — all filters prioritize originalPostedAt, fallback to createdAt when null
+      // Past 24h
       prisma.job.count({
         where: {
           AND: [
             postedBase,
             {
               OR: [
-                { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-                { originalPostedAt: { gte: new Date(now.getTime() - 48 * 60 * 60 * 1000) } },
+                { originalPostedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+                {
+                  AND: [
+                    { originalPostedAt: null },
+                    { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+                  ],
+                },
               ],
             },
           ],
@@ -126,8 +131,13 @@ export async function POST(request: NextRequest) {
             postedBase,
             {
               OR: [
-                { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
                 { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+                {
+                  AND: [
+                    { originalPostedAt: null },
+                    { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+                  ],
+                },
               ],
             },
           ],
@@ -226,6 +236,19 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
+    // Experience Level counts (from DB column, not keyword matching)
+    const expLevelCounts = await prisma.job.groupBy({
+      by: ['experienceLevel'],
+      where: baseWhere,
+      _count: { _all: true },
+    });
+    const expMap: Record<string, number> = {};
+    for (const el of expLevelCounts) {
+      if (el.experienceLevel) {
+        expMap[el.experienceLevel] = el._count._all;
+      }
+    }
+
     const counts: FilterCounts = {
       workMode: {
         remote: remoteCount,
@@ -255,6 +278,11 @@ export async function POST(request: NextRequest) {
         Telehealth: telehealthCount,
         Travel: travelCount,
         'New Grad': newGradCount,
+      },
+      experienceLevel: {
+        'New Grad': expMap['New Grad'] || 0,
+        'Mid-Level': expMap['Mid-Level'] || 0,
+        'Senior': expMap['Senior'] || 0,
       },
       total,
     };

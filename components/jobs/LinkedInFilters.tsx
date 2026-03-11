@@ -480,19 +480,19 @@ export default function LinkedInFilters() {
             <FilterSection title="Experience Level">
               <CheckboxFilter
                 label="New Grad / Entry"
-                count={counts?.specialty?.['New Grad'] || 0}
+                count={counts?.experienceLevel?.['New Grad'] || 0}
                 checked={filters.specialty?.includes('New Grad') || false}
                 onChange={() => toggleArrayFilter('specialty', 'New Grad')}
               />
               <CheckboxFilter
                 label="Mid-Level (3-5 yrs)"
-                count={0}
+                count={counts?.experienceLevel?.['Mid-Level'] || 0}
                 checked={filters.specialty?.includes('Mid-Level') || false}
                 onChange={() => toggleArrayFilter('specialty', 'Mid-Level')}
               />
               <CheckboxFilter
                 label="Senior (5+ yrs)"
-                count={0}
+                count={counts?.experienceLevel?.['Senior'] || 0}
                 checked={filters.specialty?.includes('Senior') || false}
                 onChange={() => toggleArrayFilter('specialty', 'Senior')}
               />
