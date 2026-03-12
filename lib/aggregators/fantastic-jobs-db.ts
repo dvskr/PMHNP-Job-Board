@@ -54,9 +54,8 @@ export interface FantasticJobOutput {
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const API_HOST = 'active-jobs-db.p.rapidapi.com';
-// BACKFILL MODE: Using 6-month endpoint to pull in all historical PMHNP jobs
-// TODO: Switch back to active-ats-7d after backfill is complete
-const BASE_URL = `https://${API_HOST}/active-ats-6m`;
+// Production: 7-day endpoint — 6-month backfill completed 2026-03-12
+const BASE_URL = `https://${API_HOST}/active-ats-7d`;
 const PAGE_SIZE = 100;
 
 // PMHNP-specific search filters using the API's title_filter syntax
@@ -80,9 +79,9 @@ const TITLE_FILTERS = [
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
 // 6 filters × 50 pages max = 300 requests/run × 1 run/day × 30 days = 9,000 (well within budget)
-// BACKFILL: 6-month endpoint needs more pages to exhaust all results
-const MAX_PAGES_PER_FILTER = 50;
-const MAX_REQUESTS_PER_RUN = 1000;  // backfill needs more budget
+// 7-day endpoint has less data per filter, 10 pages is plenty for daily cron
+const MAX_PAGES_PER_FILTER = 10;
+const MAX_REQUESTS_PER_RUN = 500;
 const MIN_REMAINING_BUFFER = 2000; // stop if API reports fewer than this remaining
 
 function sleep(ms: number): Promise<void> {
