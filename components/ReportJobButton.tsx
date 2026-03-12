@@ -80,9 +80,10 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
                 style={{ color: 'var(--text-tertiary)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                title="Report this job"
             >
                 <Flag size={14} />
-                Report this job
+                <span className="hidden sm:inline">Report this job</span>
             </button>
 
             {/* Modal via Portal */}
