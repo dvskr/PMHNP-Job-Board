@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendExpiryWarningEmail } from '@/lib/email-service'
 
+export const maxDuration = 120 // 2 minutes — expiry warning emails
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization')

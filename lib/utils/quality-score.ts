@@ -11,6 +11,7 @@
  * Score is computed at ingestion and stored in the DB for zero-cost sorting.
  */
 
+import { calculateFreshnessScore } from '../freshness-decay';
 // Direct ATS platforms — best apply experience (one click to employer form)
 const DIRECT_ATS_DOMAINS = [
     'boards.greenhouse.io', 'jobs.lever.co', 'jobs.ashbyhq.com',
@@ -62,19 +63,22 @@ export interface QualityScoreInput {
     city?: string | null;
     state?: string | null;
     isEmployerPosted?: boolean;  // true if submitted via employer form (has EmployerJob record)
+    originalPostedAt?: Date | null;  // for freshness scoring
+    createdAt?: Date | null;         // fallback for freshness scoring
 }
 
 /**
  * Compute a 0–100 quality score for a job listing.
  * 
  * Scoring breakdown:
- *   Link quality:    0–30 pts
- *   Salary data:     0–20 pts
- *   Description:     0–10 pts
- *   Location:        0–10 pts
+ *   Link quality:    0–30 pts  (direct ATS vs redirect)
+ *   Salary data:     0–20 pts  (graduated by completeness)
+ *   Description:     0–10 pts  (graduated by length/quality)
+ *   Location:        0–10 pts  (city+state vs state-only)
+ *   Freshness:       0–20 pts  (age-based decay)
  *   Employer-posted: 0–30 pts  (ensures form-submitted jobs always rank top)
  *   
- * Total possible: 100
+ * Total possible: 120, clamped to 100
  */
 export function computeQualityScore(input: QualityScoreInput): number {
     let score = 0;
@@ -88,18 +92,35 @@ export function computeQualityScore(input: QualityScoreInput): number {
     }
     // Job board links get +0
 
-    // ── Salary Data (0–20) ──
-    const hasSalary = !!(input.displaySalary || input.normalizedMinSalary || input.normalizedMaxSalary);
-    if (hasSalary) {
-        score += 20;
-    }
+    // ── Salary Data (0–20) — graduated ──
+    const hasMin = !!(input.normalizedMinSalary && input.normalizedMinSalary > 0);
+    const hasMax = !!(input.normalizedMaxSalary && input.normalizedMaxSalary > 0);
+    const hasDisplay = !!(input.displaySalary && input.displaySalary.length > 0);
 
-    // ── Description Quality (0–10) ──
-    if (input.descriptionSummary && input.descriptionSummary.length > 20) {
-        score += 10;
-    } else if (input.description && input.description.length > 200) {
-        score += 5;
+    if (hasMin && hasMax) {
+        score += 20;  // Full range — best
+    } else if (hasMin || hasMax) {
+        score += 15;  // Partial range
+    } else if (hasDisplay) {
+        score += 10;  // Display string only (text-extracted, lower confidence)
     }
+    // No salary = +0
+
+    // ── Description Quality (0–10) — graduated ──
+    const descLen = input.description?.length || 0;
+    const summaryLen = input.descriptionSummary?.length || 0;
+    const effectiveLen = Math.max(descLen, summaryLen);
+
+    if (effectiveLen > 1000) {
+        score += 10;  // Rich, detailed description
+    } else if (effectiveLen > 500) {
+        score += 7;   // Good description
+    } else if (effectiveLen > 200) {
+        score += 5;   // Basic description
+    } else if (effectiveLen > 50) {
+        score += 2;   // Stub
+    }
+    // Empty/tiny = +0
 
     // ── Location Specificity (0–10) ──
     if (input.city && input.state) {
@@ -107,6 +128,12 @@ export function computeQualityScore(input: QualityScoreInput): number {
     } else if (input.state) {
         score += 5;
     }
+
+    // ── Freshness (0–20) — delegates to single source of truth in freshness-decay.ts ──
+    score += calculateFreshnessScore(
+        input.originalPostedAt ?? null,
+        input.createdAt ?? new Date(),
+    );
 
     // ── Employer-Posted (0–30) ──
     // Jobs submitted through our employer form get maximum boost

@@ -15,6 +15,7 @@ model Job {
   location            String
   jobType             String?      @map("job_type")
   mode                String?
+  experienceLevel     String?      @map("experience_level")
   description         String
   descriptionSummary  String?      @map("description_summary")
   salaryRange         String?      @map("salary_range")
@@ -36,6 +37,7 @@ model Job {
   applyOnPlatform     Boolean      @default(false) @map("apply_on_platform")
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
+  isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
   benefits            String[]     @default([])
   setting             String?      @map("clinical_setting")
@@ -633,13 +635,15 @@ model AutofillUsage {
 }
 
 model JobReport {
-  id        String   @id @default(cuid())
-  jobId     String   @map("job_id")
-  reason    String
-  details   String?
-  ipHash    String?  @map("ip_hash")
-  createdAt DateTime @default(now()) @map("created_at")
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  jobId         String   @map("job_id")
+  reason        String
+  details       String?
+  ipHash        String?  @map("ip_hash")
+  reporterEmail String?  @map("reporter_email")
+  reporterName  String?  @map("reporter_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@map("job_reports")

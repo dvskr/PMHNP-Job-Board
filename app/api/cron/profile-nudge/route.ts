@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendProfileIncompleteEmail } from '@/lib/email-service'
 
+export const maxDuration = 120 // 2 minutes — profile nudge emails
+
 // Fields that count toward profile completeness
 const PROFILE_FIELDS = [
     { key: 'firstName', label: 'First Name' },

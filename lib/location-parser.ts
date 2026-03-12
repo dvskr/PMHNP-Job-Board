@@ -92,14 +92,42 @@ export function parseLocation(location: string): ParsedLocation {
     }
   }
 
-  // If fully remote, don't try to parse city/state
-  if (result.isRemote && !result.isHybrid) {
+  // ── Pre-clean: strip remote/hybrid/country markers to isolate city/state ──
+  let cleaned = normalized
+    // Remove "Remote -", "Remote:", "Remote –", "(Remote)" etc.
+    .replace(/\b(remote|telehealth|telepsychiatry|virtual|work from home|wfh|hybrid|flexible)\s*[-–:]\s*/gi, '')
+    .replace(/\(\s*(remote|telehealth|virtual|hybrid|flexible)\s*\)/gi, '')
+    .replace(/[-–]\s*(remote|telehealth|virtual|hybrid|flexible)\b/gi, '')
+    .replace(/\b(remote|telehealth|telepsychiatry|virtual|work from home|wfh)\b/gi, '')
+    // Remove "HQ:", "Headquarters:"
+    .replace(/\b(hq|headquarters)\s*[:]\s*/gi, '')
+    .trim();
+
+  // Handle Workday "US-ST-City" format → "City, ST" (BEFORE stripping "US")
+  cleaned = cleaned.replace(/^US-([A-Z]{2})-(.+)$/i, '$2, $1');
+
+  // Now remove country markers
+  cleaned = cleaned
+    .replace(/,?\s*\b(united states|usa|us|u\.s\.a?\.|nationwide|anywhere)\b/gi, '')
+    // Strip county names: "Colorado Springs, El Paso County" → "Colorado Springs"
+    // Also handles "Raleigh, Wake County" and "San Diego, San Diego County"
+    .replace(/,\s*[A-Z][a-zA-Z\s'-]+ County\b/gi, '')
+    // Strip borough/neighborhood qualifiers: "Grand Central, Manhattan" → keep as-is
+    .replace(/,\s*,/g, ',') // clean double commas
+    .trim()
+    .replace(/^[,\-–\s]+|[,\-–\s]+$/g, ''); // trim delimiters
+
+  // If nothing left after cleaning and it's remote, return remote-only
+  if (!cleaned && result.isRemote) {
     return result;
   }
 
+  // If cleaned string is different, use it for parsing; otherwise use original
+  const toParse = cleaned || normalized;
+
   // Try to parse "City, ST" pattern (e.g., "San Francisco, CA")
   const cityStateCodePattern = /^([^,]+),\s*([A-Z]{2})$/i;
-  const cityStateCodeMatch = normalized.match(cityStateCodePattern);
+  const cityStateCodeMatch = toParse.match(cityStateCodePattern);
 
   if (cityStateCodeMatch) {
     const potentialCity = cityStateCodeMatch[1].trim();
@@ -117,7 +145,7 @@ export function parseLocation(location: string): ParsedLocation {
 
   // Try to parse "City, State" pattern (e.g., "San Francisco, California")
   const cityStateNamePattern = /^([^,]+),\s*([A-Za-z\s]+)$/;
-  const cityStateNameMatch = normalized.match(cityStateNamePattern);
+  const cityStateNameMatch = toParse.match(cityStateNamePattern);
 
   if (cityStateNameMatch) {
     const potentialCity = cityStateNameMatch[1].trim();
@@ -147,7 +175,7 @@ export function parseLocation(location: string): ParsedLocation {
 
   // Try to extract just state code (look for 2-letter uppercase)
   const stateCodeOnlyPattern = /\b([A-Z]{2})\b/;
-  const stateCodeMatch = normalized.match(stateCodeOnlyPattern);
+  const stateCodeMatch = toParse.match(stateCodeOnlyPattern);
 
   if (stateCodeMatch) {
     const code = stateCodeMatch[1];
@@ -157,7 +185,7 @@ export function parseLocation(location: string): ParsedLocation {
       result.confidence = 0.8;
 
       // Try to extract city (everything before the state code)
-      const beforeState = normalized.split(code)[0].trim().replace(/,\s*$/, '');
+      const beforeState = toParse.split(code)[0].trim().replace(/,\s*$/, '');
       if (beforeState && beforeState.length > 2) {
         result.city = beforeState;
         result.confidence = 1.0;
@@ -168,25 +196,33 @@ export function parseLocation(location: string): ParsedLocation {
   }
 
   // Try to find state name in the location string
+  const toParseL = toParse.toLowerCase();
   for (const [stateName, code] of Object.entries(STATE_CODES)) {
-    const stateNameLower = stateName.toLowerCase();
-    if (lower.includes(stateNameLower)) {
-      result.state = stateName;
-      result.stateCode = code;
-      result.confidence = 0.8;
+    // Use word boundary to match full state names only
+    const stateRegex = new RegExp(`\\b${stateName}\\b`, 'i');
+    if (!stateRegex.test(toParse)) continue;
 
-      // Try to extract city (part before state name)
-      const parts = normalized.split(new RegExp(stateName, 'i'));
-      if (parts.length > 1 && parts[0].trim()) {
-        const potentialCity = parts[0].trim().replace(/,\s*$/, '');
-        if (potentialCity.length > 2) {
-          result.city = potentialCity;
-          result.confidence = 1.0;
-        }
-      }
+    // Check if state name is part of a compound city name
+    // (e.g., "Colorado Springs", "New York City", "Virginia Beach")
+    const parts = toParse.split(stateRegex);
+    const beforeState = parts[0]?.trim().replace(/,\s*$/, '') || '';
+    const afterState = parts[parts.length - 1]?.trim().replace(/^,\s*/, '') || '';
 
-      return result;
+    // If there's text AFTER the state name with no comma separator,
+    // it's likely a compound city name — skip this state match
+    if (afterState && !toParse.includes(',')) continue;
+
+    result.state = stateName;
+    result.stateCode = code;
+    result.confidence = 0.8;
+
+    // Try to extract city (part before state name)
+    if (beforeState && beforeState.length > 2) {
+      result.city = beforeState;
+      result.confidence = 1.0;
     }
+
+    return result;
   }
 
   // If we have stateCode but not state, look up full name
@@ -201,7 +237,14 @@ export function parseLocation(location: string): ParsedLocation {
 
   // If we still have nothing parsed, return low confidence
   if (!result.city && !result.state && !result.isRemote && !result.isHybrid) {
-    result.confidence = 0.3;
+    // Last resort: if toParse has a clean string that looks like a city name
+    // (e.g., "Colorado Springs" after county stripping), use it as city
+    if (toParse && toParse.length > 2 && /^[A-Za-z\s'-]+$/.test(toParse)) {
+      result.city = toParse;
+      result.confidence = 0.5;
+    } else {
+      result.confidence = 0.3;
+    }
   }
 
   return result;

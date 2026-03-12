@@ -149,6 +149,21 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'saintlukes', instance: 1, site: 'saintlukeshealthcareers', name: "Saint Luke's Health System" },
     { slug: 'brightli', instance: 5, site: 'BrightliTalent', name: 'Brightli' },
     { slug: 'thriveworks', instance: 5, site: 'Thriveworks', name: 'Thriveworks' },
+
+    // === ADDED 2026-03-10 — Phase 3 expansion (major health systems + behavioral health) ===
+    { slug: 'hca', instance: 1, site: 'HCA_Careers', name: 'HCA Healthcare' },
+    { slug: 'commonspirit', instance: 5, site: 'FY22CommonSpiritCareers', name: 'CommonSpirit Health' },
+    { slug: 'kaiser', instance: 12, site: 'External', name: 'Kaiser Permanente' },
+    { slug: 'universalhealth', instance: 1, site: 'uhsinccareers', name: 'Universal Health Services' },
+    { slug: 'acadia', instance: 1, site: 'careers', name: 'Acadia Healthcare' },
+    { slug: 'wellpath', instance: 12, site: 'External', name: 'Wellpath' },
+    { slug: 'telecarecorp', instance: 1, site: 'careers', name: 'Telecare Corporation' },
+    { slug: 'providentphysicainc', instance: 5, site: 'careers', name: 'Providence' },
+    { slug: 'ascension', instance: 1, site: 'external', name: 'Ascension' },
+    { slug: 'tenet', instance: 1, site: 'tenetcareers', name: 'Tenet Healthcare' },
+
+    // === ADDED 2026-03-11 — Mined from ats-jobs-db apply links in production DB ===
+    { slug: 'benefis', instance: 1, site: 'BHS', name: 'Benefis Health System' },
 ];
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));

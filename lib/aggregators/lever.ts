@@ -85,6 +85,23 @@ const LEVER_COMPANIES = [
   'vivo-care',
   'wepclinical',
   'zushealth',
+
+  // === ADDED 2026-03-10 — Phase 3 expansion (psychiatric/behavioral health employers) ===
+  'cerebral',             // Cerebral — large telehealth psych employer
+  'donehealth',           // Done Health — ADHD/psych telehealth
+  'mindbloom',            // Mindbloom — ketamine-assisted therapy
+  'brightside',           // Brightside Health — psych telehealth
+  'alma',                 // Alma — mental health platform
+  'headway',              // Headway — mental health provider network
+  'growtherapy',          // Grow Therapy — telehealth mental health
+  'rula',                 // Rula Health — behavioral health
+  'springhealth',         // Spring Health — mental health benefits
+  'modernhealth',         // Modern Health — mental health platform
+  'ginger',               // Ginger (Headspace Health) — behavioral health
+  'pathccm',              // Path — collaborative care
+  'valera',               // Valera Health — behavioral health
+  'regroup',              // Regroup — telehealth psychiatry
+  'teladochealth',        // Teladoc Health — major telehealth
 ];
 
 import { isRelevantJob } from '../utils/job-filter';
@@ -132,6 +149,23 @@ const COMPANY_NAMES: Record<string, string> = {
   'peakped.com': 'Peak Pediatric Therapies',
   'simulmedia': 'Simulmedia',
   'theattractiongame.online': 'Furum Jobs',
+
+  // Added 2026-03-10 (Phase 3 expansion)
+  'cerebral': 'Cerebral',
+  'donehealth': 'Done Health',
+  'mindbloom': 'Mindbloom',
+  'brightside': 'Brightside Health',
+  'alma': 'Alma',
+  'headway': 'Headway',
+  'growtherapy': 'Grow Therapy',
+  'rula': 'Rula Health',
+  'springhealth': 'Spring Health',
+  'modernhealth': 'Modern Health',
+  'ginger': 'Headspace Health',
+  'pathccm': 'Path',
+  'valera': 'Valera Health',
+  'regroup': 'Regroup Telehealth',
+  'teladochealth': 'Teladoc Health',
 };
 
 function formatCompanyName(slug: string): string {

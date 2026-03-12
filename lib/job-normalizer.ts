@@ -167,6 +167,59 @@ function detectMode(text: string): string | null {
   return null;
 }
 
+/**
+ * Detect experience level from job title + description.
+ * Returns: 'New Grad' | 'Mid-Level' | 'Senior' | null
+ * 
+ * Priority: Senior > Mid-Level > New Grad (most jobs don't specify)
+ */
+export function detectExperienceLevel(title: string, description: string): string | null {
+  const text = `${title} ${description}`.toLowerCase();
+
+  // ── Senior (5+ years) ──
+  const seniorPatterns = [
+    'senior pmhnp', 'senior psychiatric', 'senior nurse practitioner',
+    'lead pmhnp', 'lead psychiatric', 'lead nurse practitioner',
+    'supervisor', 'supervisory', 'director',
+    'clinical lead', 'program director', 'medical director',
+    'chief', 'manager', 'management',
+    '5+ years', '5-7 years', '5-10 years', '7+ years', '7-10 years',
+    '10+ years', '8+ years', '6+ years',
+    'minimum 5 years', 'minimum of 5 years', 'at least 5 years',
+    'minimum 7 years', 'minimum of 7 years',
+    'senior level', 'advanced practice leader',
+  ];
+  if (seniorPatterns.some(p => text.includes(p))) return 'Senior';
+
+  // ── Mid-Level (2-5 years) ──
+  const midPatterns = [
+    '2-5 years', '3-5 years', '2-4 years', '3-4 years',
+    '2+ years', '3+ years', '4+ years',
+    'minimum 2 years', 'minimum of 2 years', 'at least 2 years',
+    'minimum 3 years', 'minimum of 3 years', 'at least 3 years',
+    'mid-level', 'mid level', 'experienced pmhnp', 'experienced psychiatric',
+    '2 years of experience', '3 years of experience', '4 years of experience',
+    '2 years experience', '3 years experience', '4 years experience',
+    'two years', 'three years', 'four years',
+  ];
+  if (midPatterns.some(p => text.includes(p))) return 'Mid-Level';
+
+  // ── New Grad / Entry ──
+  const newGradPatterns = [
+    'new grad', 'new graduate', 'entry level', 'entry-level',
+    'no experience required', 'no experience necessary',
+    '0-1 year', '0-2 year', '1 year of experience', '1 year experience',
+    'recent graduate', 'newly graduated', 'recent grad',
+    'fellowship', 'residency program', 'mentorship',
+    'training program', 'preceptor', 'will train',
+    'welcome new grads', 'new grads welcome', 'open to new grads',
+    'graduate nurse practitioner',
+  ];
+  if (newGradPatterns.some(p => text.includes(p))) return 'New Grad';
+
+  return null;
+}
+
 /*
 // Commented out functions below (currently unused)
 /*
@@ -293,103 +346,135 @@ export function validateAndNormalizeSalary(
   };
 }
 
-export function normalizeJob(rawJob: Record<string, unknown>, source: string): NormalizedJob | null {
-  try {
-    // Extract required fields based on source
-    let title: string;
-    let employer: string;
-    let location: string;
-    let description: string;
-    let applyLink: string;
-    let externalId: string;
-    let salaryMin: number | null = null;
-    let salaryMax: number | null = null;
-    let originalPostedAt: Date | null = null;
+// ── Source field mapping config — add new sources here instead of if/else ──
+interface SourceFieldConfig {
+  title: string[];        // Field names to try for title
+  employer: string[];     // Field names to try for employer
+  location: string[];     // Field names to try for location
+  description: string[];  // Field names to try for description
+  applyLink: string[];    // Field names to try for apply link
+  externalId: string[];   // Field names to try for external ID
+  salaryMin: string[];    // Field names to try for salary min
+  salaryMax: string[];    // Field names to try for salary max
+  datePosted: string[];   // Field names to try for posted date
+  defaultEmployer: string;
+  defaultLocation: string;
+}
 
-    if (source === 'adzuna') {
-      title = String(rawJob.title || '');
-      employer = (rawJob.company as Record<string, unknown>)?.display_name as string ||
-        String(rawJob.employer || 'Unknown Company');
-      location = (rawJob.location as Record<string, unknown>)?.display_name as string ||
-        String(rawJob.location || 'Unknown Location');
-      description = String(rawJob.description || '');
-      // Aggregator already normalizes to applyLink, but fallback to redirect_url for direct API calls
-      applyLink = String(rawJob.applyLink || rawJob.redirect_url || '');
-      externalId = String(rawJob.externalId || (rawJob.id as string | number)?.toString() || '');
-      // Adzuna provides salary_min/max as annual salaries - use them
-      salaryMin = typeof rawJob.minSalary === 'number' ? rawJob.minSalary : null;
-      salaryMax = typeof rawJob.maxSalary === 'number' ? rawJob.maxSalary : null;
-      if (rawJob.postedAt) {
-        originalPostedAt = new Date(String(rawJob.postedAt));
-      }
-    } else if (source === 'jsearch') {
-      title = String(rawJob.title || '');
-      employer = String(rawJob.employer || 'Company Not Listed');
-      location = String(rawJob.location || 'United States');
-      description = String(rawJob.description || '');
-      applyLink = String(rawJob.applyLink || '');
-      externalId = String(rawJob.externalId || '');
-      salaryMin = typeof rawJob.minSalary === 'number' ? rawJob.minSalary : null;
-      salaryMax = typeof rawJob.maxSalary === 'number' ? rawJob.maxSalary : null;
-      if (rawJob.postedDate) {
-        originalPostedAt = new Date(String(rawJob.postedDate));
-      }
-      // JSearch salaryPeriod is already normalized in aggregator, but normalizer does its own check later
-    } else if (source === 'jooble') {
-      title = String(rawJob.title || '');
-      employer = String(rawJob.company || 'Company Not Listed');
-      location = String(rawJob.location || 'United States');
-      description = String(rawJob.description || '');
-      applyLink = String(rawJob.applyLink || '');
-      externalId = String(rawJob.externalId || '');
-      salaryMin = typeof rawJob.minSalary === 'number' ? rawJob.minSalary : null;
-      salaryMax = typeof rawJob.maxSalary === 'number' ? rawJob.maxSalary : null;
-      if (rawJob.postedDate) {
-        originalPostedAt = new Date(String(rawJob.postedDate));
-      }
-    } else if (source === 'greenhouse' || source === 'lever' || source === 'ashby' || source === 'smartrecruiters' || source === 'icims' || source === 'jazzhr') {
-      title = String(rawJob.title || '');
-      employer = String(rawJob.company || rawJob.employer || 'Company Not Listed');
-      location = String(rawJob.location || 'United States');
-      description = String(rawJob.description || '');
-      applyLink = String(rawJob.applyLink || '');
-      externalId = String(rawJob.externalId || '');
-      if (rawJob.postedDate) {
-        originalPostedAt = new Date(String(rawJob.postedDate));
-      }
-    } else {
-      // Generic mapping for other sources
-      title = String(rawJob.title || '');
-      employer = String(rawJob.company || rawJob.employer || 'Unknown Company');
-      location = String(rawJob.location || 'Unknown Location');
-      description = String(rawJob.description || '');
-      applyLink = String(rawJob.applyLink || rawJob.url || rawJob.redirect_url || rawJob.apply_link || '');
-      externalId = String(rawJob.externalId || (rawJob.id as string | number)?.toString() || rawJob.external_id || '');
+const DEFAULT_CONFIG: SourceFieldConfig = {
+  title: ['title', 'job_title', 'jobOpeningName', 'positionName'],
+  employer: ['company', 'employer'],
+  location: ['location'],
+  description: ['description'],
+  applyLink: ['applyLink', 'url', 'redirect_url', 'apply_link'],
+  externalId: ['externalId', 'id', 'external_id'],
+  salaryMin: ['minSalary'],
+  salaryMax: ['maxSalary'],
+  datePosted: ['postedAt', 'postedDate', 'posted_at', 'updated_at', 'createdAt', 'updated'],
+  defaultEmployer: 'Unknown Company',
+  defaultLocation: 'Unknown Location',
+};
 
-      // Handle common date fields for other sources
-      const rawDate = rawJob.postedAt || rawJob.posted_at || rawJob.updated_at || rawJob.createdAt || rawJob.updated;
-      if (rawDate) {
-        originalPostedAt = new Date(String(rawDate));
+const SOURCE_CONFIGS: Record<string, Partial<SourceFieldConfig>> = {
+  adzuna: {
+    applyLink: ['applyLink', 'redirect_url'],
+    datePosted: ['postedAt'],
+  },
+  jsearch: {
+    datePosted: ['postedDate'],
+    defaultEmployer: 'Company Not Listed',
+    defaultLocation: 'United States',
+  },
+  jooble: {
+    employer: ['company'],
+    datePosted: ['postedDate'],
+    defaultEmployer: 'Company Not Listed',
+    defaultLocation: 'United States',
+  },
+  greenhouse: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  lever: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  ashby: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  smartrecruiters: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  icims: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  jazzhr: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  workday: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+};
+
+function getConfig(source: string): SourceFieldConfig {
+  const override = SOURCE_CONFIGS[source] || {};
+  return { ...DEFAULT_CONFIG, ...override };
+}
+
+function extractField(rawJob: Record<string, unknown>, fields: string[], defaultValue: string): string {
+  for (const field of fields) {
+    const val = rawJob[field];
+    if (val !== undefined && val !== null && val !== '') {
+      // Handle nested objects (e.g., adzuna company.display_name)
+      if (typeof val === 'object' && val !== null && 'display_name' in (val as Record<string, unknown>)) {
+        return String((val as Record<string, unknown>).display_name || defaultValue);
       }
+      return String(val);
     }
+  }
+  return defaultValue;
+}
+
+function extractNumericField(rawJob: Record<string, unknown>, fields: string[]): number | null {
+  for (const field of fields) {
+    if (typeof rawJob[field] === 'number') return rawJob[field] as number;
+  }
+  return null;
+}
+
+function extractDateField(rawJob: Record<string, unknown>, fields: string[]): Date | null {
+  for (const field of fields) {
+    if (rawJob[field]) {
+      const d = new Date(String(rawJob[field]));
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return null;
+}
+
+// Return type with rejection reason for tracking
+export interface NormalizeResult {
+  job: NormalizedJob | null;
+  rejectionReason?: string;
+}
+
+export function normalizeJob(rawJob: Record<string, unknown>, source: string): NormalizedJob | null {
+  const result = normalizeJobWithReason(rawJob, source);
+  return result.job;
+}
+
+export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: string): NormalizeResult {
+  try {
+    const config = getConfig(source);
+
+    // Extract fields using config
+    const title = extractField(rawJob, config.title, '');
+    const employer = extractField(rawJob, config.employer, config.defaultEmployer);
+    const location = extractField(rawJob, config.location, config.defaultLocation);
+    const description = extractField(rawJob, config.description, '');
+    const applyLink = extractField(rawJob, config.applyLink, '');
+    const externalId = extractField(rawJob, config.externalId, '');
+    let salaryMin = extractNumericField(rawJob, config.salaryMin);
+    let salaryMax = extractNumericField(rawJob, config.salaryMax);
+    const originalPostedAt = extractDateField(rawJob, config.datePosted);
 
     // Validate required fields
     if (!title || !applyLink) {
-      console.warn('Missing required fields for job:', { title, applyLink });
-      return null;
+      return { job: null, rejectionReason: 'missing_fields:title_or_apply_link' };
     }
 
     // Global Freshness Filter (90 Days)
-    // Skip for ATS sources (greenhouse, lever, ashby, bamboohr) — their APIs only
-    // return currently open positions, so postedDate age is irrelevant.
-    // originalPostedAt is still preserved for UI "Posted Within" filters.
+    // Skip for ATS sources — their APIs only return currently open positions
     const atsSources = ['greenhouse', 'lever', 'ashby', 'bamboohr', 'smartrecruiters', 'icims', 'jazzhr', 'workday'];
     if (!atsSources.includes(source) && originalPostedAt && !isNaN(originalPostedAt.getTime())) {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       if (originalPostedAt < ninetyDaysAgo) {
-        console.log(`[Normalizer] Skipping stale job from ${source}: ${title} (Posted: ${originalPostedAt.toISOString().split('T')[0]})`);
-        return null;
+        return { job: null, rejectionReason: `stale_90d:${originalPostedAt.toISOString().split('T')[0]}` };
       }
     }
 
@@ -421,6 +506,7 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
 
     const jobType = rawJob.jobType ? String(rawJob.jobType) : detectJobType(fullText);
     const mode = detectMode(fullText);
+    const experienceLevel = detectExperienceLevel(title, fullText);
 
 
     // Set expiration
@@ -468,44 +554,47 @@ export function normalizeJob(rawJob: Record<string, unknown>, source: string): N
     );
 
     return {
-      title,
-      employer,
-      location,
-      jobType,
-      mode,
-      description: fullDescription,
-      descriptionSummary: summary,
-      salaryRange: salaryMin && salaryMax ? `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}` : null,
-      minSalary: salaryMin,
-      maxSalary: salaryMax,
-      salaryPeriod,
-      normalizedMinSalary: normalizedSalaryData.normalizedMinSalary,
-      normalizedMaxSalary: normalizedSalaryData.normalizedMaxSalary,
-      salaryIsEstimated: normalizedSalaryData.salaryIsEstimated,
-      salaryConfidence: normalizedSalaryData.salaryConfidence,
-      displaySalary,
-      city: parsedLocationData.city,
-      state: parsedLocationData.state,
-      stateCode: parsedLocationData.stateCode,
-      country: parsedLocationData.country,
-      isRemote: isRemote,
-      isHybrid: isHybrid,
-      applyLink,
-      applyOnPlatform: false,
-      isFeatured: false,
-      isPublished: true,
-      isVerifiedEmployer: false,
-      sourceType: 'external',
-      sourceProvider: source,
-      sourceSite: rawJob.sourceSite ? String(rawJob.sourceSite) : null,
-      externalId,
-      originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : new Date(),
-      expiresAt,
-      companyId: null,
+      job: {
+        title,
+        employer,
+        location,
+        jobType,
+        mode,
+        experienceLevel,
+        description: fullDescription,
+        descriptionSummary: summary,
+        salaryRange: salaryMin && salaryMax ? `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}` : null,
+        minSalary: salaryMin,
+        maxSalary: salaryMax,
+        salaryPeriod,
+        normalizedMinSalary: normalizedSalaryData.normalizedMinSalary,
+        normalizedMaxSalary: normalizedSalaryData.normalizedMaxSalary,
+        salaryIsEstimated: normalizedSalaryData.salaryIsEstimated,
+        salaryConfidence: normalizedSalaryData.salaryConfidence,
+        displaySalary,
+        city: parsedLocationData.city,
+        state: parsedLocationData.state,
+        stateCode: parsedLocationData.stateCode,
+        country: parsedLocationData.country,
+        isRemote: isRemote,
+        isHybrid: isHybrid,
+        applyLink,
+        applyOnPlatform: false,
+        isFeatured: false,
+        isPublished: true,
+        isVerifiedEmployer: false,
+        sourceType: 'external',
+        sourceProvider: source,
+        sourceSite: rawJob.sourceSite ? String(rawJob.sourceSite) : null,
+        externalId,
+        originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : new Date(),
+        expiresAt,
+        companyId: null,
+      }
     };
   } catch (error) {
     console.error('Error normalizing job:', error);
-    return null;
+    return { job: null, rejectionReason: `error:${error instanceof Error ? error.message : 'unknown'}` };
   }
 }
 

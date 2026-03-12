@@ -94,3 +94,17 @@ describe('isRelevantJob — Core PMHNP Titles Still Pass', () => {
         expect(isRelevantJob('Nurse Practitioner - Psychiatry', 'behavioral health outpatient services')).toBe(true);
     });
 });
+
+describe('isRelevantJob — Previously Rejected Headway/Jooble Variants', () => {
+    it('should PASS "Licensed Psychiatric NP"', () => {
+        expect(isRelevantJob('Licensed Psychiatric NP', 'Headway licensed psychiatric nurse practitioner role')).toBe(true);
+    });
+
+    it('should PASS "Licensed Psychiatric Nurse Practitioner"', () => {
+        expect(isRelevantJob('Licensed Psychiatric Nurse Practitioner', 'telehealth psychiatric care')).toBe(true);
+    });
+
+    it('should PASS "Licensed Psychiatric Nurse Practitioner (Virtual)"', () => {
+        expect(isRelevantJob('Licensed Psychiatric Nurse Practitioner (Virtual)', 'virtual psychiatric NP role')).toBe(true);
+    });
+});

@@ -59,19 +59,22 @@ export function shouldUnpublish(updatedAt: Date, sourceType: string): boolean {
 /**
  * Apply freshness decay to all published jobs
  * Unpublishes jobs that haven't been renewed/seen in 90 days
+ * Also recomputes quality scores for all published jobs (catches freshness decay + data changes)
  */
 export async function applyFreshnessDecay(): Promise<{
   updated: number;
   unpublished: number;
+  scoresRecomputed: number;
 }> {
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 200;
   let updated = 0;
   let unpublished = 0;
+  let scoresRecomputed = 0;
 
   try {
-    console.log('[Freshness Decay] Starting decay process...');
+    console.log('[Freshness Decay] Starting decay + quality score recompute...');
 
-    // Get all published jobs
+    // Get all published jobs with fields needed for quality scoring
     const totalJobs = await prisma.job.count({
       where: { isPublished: true },
     });
@@ -88,6 +91,17 @@ export async function applyFreshnessDecay(): Promise<{
           updatedAt: true,
           originalPostedAt: true,
           sourceType: true,
+          sourceProvider: true,
+          // Fields for quality score recompute
+          applyLink: true,
+          displaySalary: true,
+          normalizedMinSalary: true,
+          normalizedMaxSalary: true,
+          descriptionSummary: true,
+          description: true,
+          city: true,
+          state: true,
+          qualityScore: true,
         },
         take: BATCH_SIZE,
         skip,
@@ -97,7 +111,7 @@ export async function applyFreshnessDecay(): Promise<{
 
       for (const job of jobs) {
         try {
-          // Use updatedAt for unpublish decision — renewed jobs stay alive
+          // Check if job should be unpublished (not renewed for 90 days)
           const shouldUnpub = shouldUnpublish(
             job.updatedAt,
             job.sourceType || 'external'
@@ -110,7 +124,30 @@ export async function applyFreshnessDecay(): Promise<{
             });
             unpublished++;
           } else {
-            // Track jobs that have been processed (for stats)
+            // Recompute quality score (picks up freshness decay + any data changes)
+            const { computeQualityScore } = await import('./utils/quality-score');
+            const newScore = computeQualityScore({
+              applyLink: job.applyLink,
+              displaySalary: job.displaySalary,
+              normalizedMinSalary: job.normalizedMinSalary,
+              normalizedMaxSalary: job.normalizedMaxSalary,
+              descriptionSummary: job.descriptionSummary,
+              description: job.description,
+              city: job.city,
+              state: job.state,
+              isEmployerPosted: job.sourceType === 'employer' || job.sourceType === 'direct',
+              originalPostedAt: job.originalPostedAt,
+              createdAt: job.createdAt,
+            });
+
+            // Only update if score actually changed (avoid unnecessary writes)
+            if (newScore !== job.qualityScore) {
+              await prisma.job.update({
+                where: { id: job.id },
+                data: { qualityScore: newScore },
+              });
+              scoresRecomputed++;
+            }
             updated++;
           }
         } catch (error) {
@@ -120,17 +157,18 @@ export async function applyFreshnessDecay(): Promise<{
 
       skip += BATCH_SIZE;
 
-      if ((skip % 500) === 0) {
-        console.log(`[Freshness Decay] Progress: ${skip}/${totalJobs} jobs processed`);
+      if ((skip % 1000) === 0) {
+        console.log(`[Freshness Decay] Progress: ${skip}/${totalJobs} | Unpublished: ${unpublished} | Scores updated: ${scoresRecomputed}`);
       }
     }
 
     console.log('[Freshness Decay] Complete:', {
       processed: updated,
       unpublished,
+      scoresRecomputed,
     });
 
-    return { updated, unpublished };
+    return { updated, unpublished, scoresRecomputed };
   } catch (error) {
     console.error('[Freshness Decay] Fatal error during decay process:', error);
     throw error;

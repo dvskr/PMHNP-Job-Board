@@ -13,12 +13,12 @@ export default function BlogEmailSignup({ source }: { source: string }) {
         slot.dataset.rendered = '1';
 
         slot.innerHTML = `
-            <div style="margin:32px 0;padding:20px;border-radius:12px;background:linear-gradient(135deg,#f0fdfa,#ecfdf5);border:1px solid #99f6e4;text-align:center">
-                <p style="font-weight:700;font-size:15px;color:#0f172a;margin:0 0 4px">📬 Enjoying this article?</p>
-                <p style="font-size:13px;color:#475569;margin:0 0 12px">Get PMHNP career tips and job alerts in your inbox.</p>
+            <div class="mid-article-email-box" style="margin:32px 0;padding:20px;border-radius:12px;text-align:center">
+                <p style="font-weight:700;font-size:15px;margin:0 0 4px" class="mid-article-title">📬 Enjoying this article?</p>
+                <p style="font-size:13px;margin:0 0 12px" class="mid-article-subtitle">Get PMHNP career tips and job alerts in your inbox.</p>
                 <form id="mid-signup-form" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
                     <input id="mid-signup-email" type="email" required placeholder="you@email.com"
-                        style="padding:8px 14px;border-radius:8px;border:1px solid #d1d5db;font-size:13px;width:220px;outline:none" />
+                        style="padding:8px 14px;border-radius:8px;font-size:13px;width:220px;outline:none" class="mid-article-input" />
                     <button type="submit"
                         style="padding:8px 18px;border-radius:8px;border:none;font-weight:700;font-size:13px;background:linear-gradient(135deg,#2DD4BF,#0D9488);color:#fff;cursor:pointer">
                         Subscribe
@@ -26,6 +26,16 @@ export default function BlogEmailSignup({ source }: { source: string }) {
                 </form>
                 <p id="mid-signup-msg" style="font-size:12px;color:#2DD4BF;font-weight:600;margin:8px 0 0;display:none">✓ Subscribed!</p>
             </div>
+            <style>
+                .mid-article-email-box { background: linear-gradient(135deg, #f0fdfa, #ecfdf5); border: 1px solid #99f6e4; }
+                .mid-article-title { color: #0f172a; }
+                .mid-article-subtitle { color: #475569; }
+                .mid-article-input { border: 1px solid #d1d5db; background: #fff; color: #0f172a; }
+                .dark .mid-article-email-box { background: linear-gradient(135deg, rgba(13,148,136,0.15), rgba(6,95,70,0.15)); border: 1px solid rgba(45,212,191,0.3); }
+                .dark .mid-article-title { color: #f1f5f9; }
+                .dark .mid-article-subtitle { color: #94a3b8; }
+                .dark .mid-article-input { border: 1px solid #4b5563; background: #1f2937; color: #f1f5f9; }
+            </style>
         `;
 
         const form = document.getElementById('mid-signup-form');

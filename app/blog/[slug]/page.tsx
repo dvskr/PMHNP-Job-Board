@@ -266,7 +266,7 @@ export default async function BlogPostPage({ params }: Props) {
     } : null;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
             {/* BlogPosting Schema */}
             <script
                 type="application/ld+json"
@@ -325,7 +325,7 @@ export default async function BlogPostPage({ params }: Props) {
             />
 
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 py-12 px-4">
+            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 py-12 px-4">
                 <div className="max-w-4xl mx-auto">
                     <Link
                         href="/blog"
@@ -338,7 +338,7 @@ export default async function BlogPostPage({ params }: Props) {
                             {categoryLabel}
                         </span>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                    <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
                         {post.title}
                     </h1>
                     <div className="flex items-center text-gray-500 text-sm gap-6">
@@ -389,12 +389,12 @@ export default async function BlogPostPage({ params }: Props) {
             {/* Content Area — Full Width, No Sidebar */}
             <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
                 {/* Author Bar (compact inline) */}
-                <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200">
+                <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-lg">
                         P
                     </div>
                     <div>
-                        <span className="font-semibold text-gray-900 text-sm">PMHNP Hiring</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">PMHNP Hiring</span>
                         <span className="text-gray-400 mx-2">·</span>
                         <span className="text-sm text-gray-500">Editorial Team</span>
                     </div>
@@ -402,8 +402,8 @@ export default async function BlogPostPage({ params }: Props) {
 
                 {/* Table of Contents (collapsible) */}
                 {headings.length > 0 && (
-                    <details className="mb-8 bg-gray-50 rounded-lg border border-gray-200">
-                        <summary className="px-5 py-3 cursor-pointer font-semibold text-gray-900 text-sm hover:text-teal-600 transition-colors select-none">
+                    <details className="mb-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <summary className="px-5 py-3 cursor-pointer font-semibold text-gray-900 dark:text-gray-100 text-sm hover:text-teal-600 transition-colors select-none">
                             📑 Table of Contents
                         </summary>
                         <nav className="px-5 pb-4 pt-1 space-y-1.5">
@@ -424,7 +424,7 @@ export default async function BlogPostPage({ params }: Props) {
                 )}
 
                 {/* Article */}
-                <article className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+                <article className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <div
                         className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-teal-600 dark:prose-a:text-teal-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-blockquote:border-l-teal-500 prose-blockquote:bg-teal-50 dark:prose-blockquote:bg-teal-950/30 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300 prose-blockquote:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-li:text-gray-700 dark:prose-li:text-gray-300"
                         dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -468,9 +468,9 @@ export default async function BlogPostPage({ params }: Props) {
                 </article>
 
                 {/* F5: End-of-Article Email Signup */}
-                <div className="mt-8 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border border-teal-100 text-center">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">📬 Stay Updated</h3>
-                    <p className="text-sm text-gray-600 mb-4">Get the latest PMHNP career tips, salary data, and job openings delivered to your inbox.</p>
+                <div className="mt-8 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950/40 dark:to-cyan-950/40 rounded-xl p-6 border border-teal-100 dark:border-teal-800 text-center">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">📬 Stay Updated</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Get the latest PMHNP career tips, salary data, and job openings delivered to your inbox.</p>
                     <BlogEmailSignup source={`blog_end_${slug}`} />
                 </div>
 
@@ -493,7 +493,7 @@ export default async function BlogPostPage({ params }: Props) {
 
                 {/* F7: Job Category CTAs */}
                 <div className="mt-8">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Explore PMHNP Jobs</h3>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Explore PMHNP Jobs</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
                             { label: 'Remote', href: '/jobs/remote', icon: Home, color: '#2DD4BF' },
@@ -502,7 +502,7 @@ export default async function BlogPostPage({ params }: Props) {
                             { label: 'All Jobs', href: '/jobs', icon: Search, color: '#A855F7' },
                         ].map(({ label, href, icon: Icon, color }) => (
                             <Link key={label} href={href}
-                                className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 hover:border-teal-300 hover:shadow-sm transition-all text-sm font-semibold text-gray-700 hover:text-teal-700">
+                                className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-teal-300 hover:shadow-sm transition-all text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-teal-700">
                                 <Icon size={16} style={{ color }} />
                                 {label}
                             </Link>
@@ -511,14 +511,14 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
 
                 {/* F8: Create Your Profile CTA */}
-                <div className="mt-8 bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <div className="mt-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-start gap-4">
                         <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
                             <User size={20} className="text-teal-600" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 mb-1">Let Employers Find You</h3>
-                            <p className="text-sm text-gray-600 mb-3">Create your PMHNP profile and get discovered by top employers actively hiring.</p>
+                            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">Let Employers Find You</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Create your PMHNP profile and get discovered by top employers actively hiring.</p>
                             <Link href="/for-job-seekers/create-profile"
                                 className="inline-flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors">
                                 Create Your Profile <ArrowRight size={14} />
@@ -530,7 +530,7 @@ export default async function BlogPostPage({ params }: Props) {
                 {/* Related Posts */}
                 {relatedPosts.length > 0 && (
                     <div className="mt-12">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
                             Related Articles
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -544,11 +544,11 @@ export default async function BlogPostPage({ params }: Props) {
                                         href={`/blog/${relPost.slug}`}
                                         className="block group"
                                     >
-                                        <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-all">
+                                        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
                                             <div className="text-xs text-teal-600 font-bold uppercase mb-2">
                                                 {relLabel}
                                             </div>
-                                            <h4 className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors mb-2">
+                                            <h4 className="font-bold text-gray-900 dark:text-gray-100 group-hover:text-teal-600 transition-colors mb-2">
                                                 {relPost.title}
                                             </h4>
                                             <p className="text-sm text-gray-500 line-clamp-2">
@@ -563,8 +563,8 @@ export default async function BlogPostPage({ params }: Props) {
                 )}
 
                 {/* Popular Resources — bottom of page */}
-                <div className="mt-12 bg-teal-50 p-6 rounded-xl border border-teal-100">
-                    <h3 className="font-bold text-teal-900 mb-4 text-center">
+                <div className="mt-12 bg-teal-50 dark:bg-teal-950/30 p-6 rounded-xl border border-teal-100 dark:border-teal-800">
+                    <h3 className="font-bold text-teal-900 dark:text-teal-200 mb-4 text-center">
                         Popular Resources
                     </h3>
                     <div className="flex flex-wrap justify-center gap-6">

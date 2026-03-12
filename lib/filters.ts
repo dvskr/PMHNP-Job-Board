@@ -77,14 +77,17 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     const now = new Date();
 
     if (filters.postedWithin === '24h') {
-      // "Past 24 hours" = ingested in last 24h OR originally posted within 48h.
-      // The 48h window covers one missed cron cycle (crons run every 12h).
-      const ingestCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const originalCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      // "Past 24 hours" — prioritize originalPostedAt, fallback to createdAt when null
+      const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       andConditions.push({
         OR: [
-          { createdAt: { gte: ingestCutoff } },
-          { originalPostedAt: { gte: originalCutoff } },
+          { originalPostedAt: { gte: cutoff } },
+          {
+            AND: [
+              { originalPostedAt: null },
+              { createdAt: { gte: cutoff } },
+            ],
+          },
         ]
       });
     } else if (filters.postedWithin === '3d') {

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
+
 const BATCH_SIZE = 15;
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_JOBS_PER_RUN = 1500;  // Check up to 1500 per run
