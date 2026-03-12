@@ -6,7 +6,18 @@ import { buildWhereClause } from '@/lib/filters';
 
 export async function POST(request: NextRequest) {
   try {
-    const filters: FilterState = await request.json();
+    const raw = await request.json();
+    // Normalize: ensure all array fields exist (handles old clients without experienceLevel)
+    const filters: FilterState = {
+      search: raw.search || '',
+      workMode: raw.workMode || [],
+      jobType: raw.jobType || [],
+      specialty: raw.specialty || [],
+      experienceLevel: raw.experienceLevel || [],
+      salaryMin: raw.salaryMin ?? null,
+      postedWithin: raw.postedWithin ?? null,
+      location: raw.location ?? null,
+    };
 
     // Base filters for all counts (excludes the specific category being counted)
     const baseFilters = { ...filters };
@@ -199,11 +210,13 @@ export async function POST(request: NextRequest) {
     const otherCount = nullTypeCount ? nullTypeCount._count._all : 0;
 
     // Specialty counts (keyword-based)
-    const baseWhere = buildWhereClause(filters);
-    const [telehealthCount, travelCount, newGradCount] = await Promise.all([
+    // Exclude specialty filter from base so counts don't self-filter
+    const specialtyFilters = { ...baseFilters, specialty: [] };
+    const specialtyBase = buildWhereClause(specialtyFilters);
+    const [telehealthCount, travelCount] = await Promise.all([
       prisma.job.count({
         where: {
-          ...baseWhere,
+          ...specialtyBase,
           OR: [
             { title: { contains: 'telehealth', mode: 'insensitive' } },
             { title: { contains: 'telemedicine', mode: 'insensitive' } },
@@ -215,31 +228,22 @@ export async function POST(request: NextRequest) {
       }),
       prisma.job.count({
         where: {
-          ...baseWhere,
+          ...specialtyBase,
           OR: [
             { title: { contains: 'travel', mode: 'insensitive' } },
             { title: { contains: 'locum', mode: 'insensitive' } },
           ],
         },
       }),
-      prisma.job.count({
-        where: {
-          ...baseWhere,
-          OR: [
-            { title: { contains: 'new grad', mode: 'insensitive' } },
-            { title: { contains: 'new graduate', mode: 'insensitive' } },
-            { title: { contains: 'entry level', mode: 'insensitive' } },
-            { title: { contains: 'fellowship', mode: 'insensitive' } },
-            { title: { contains: 'residency', mode: 'insensitive' } },
-          ],
-        },
-      }),
     ]);
 
     // Experience Level counts (from DB column, not keyword matching)
+    // Exclude experienceLevel filter from base so counts don't self-filter
+    const expFilters = { ...baseFilters, experienceLevel: [] };
+    const expBase = buildWhereClause(expFilters);
     const expLevelCounts = await prisma.job.groupBy({
       by: ['experienceLevel'],
-      where: baseWhere,
+      where: expBase,
       _count: { _all: true },
     });
     const expMap: Record<string, number> = {};
@@ -277,7 +281,6 @@ export async function POST(request: NextRequest) {
       specialty: {
         Telehealth: telehealthCount,
         Travel: travelCount,
-        'New Grad': newGradCount,
       },
       experienceLevel: {
         'New Grad': expMap['New Grad'] || 0,

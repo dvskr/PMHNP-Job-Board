@@ -128,7 +128,7 @@ export default function LinkedInFilters() {
   }, [fetchCounts]);
 
   // Toggle array-based filter (workMode, jobType, specialty)
-  const toggleArrayFilter = (key: 'workMode' | 'jobType' | 'specialty', value: string) => {
+  const toggleArrayFilter = (key: 'workMode' | 'jobType' | 'specialty' | 'experienceLevel', value: string) => {
     const newFilters = { ...filters };
     const arr = [...newFilters[key]];
     const idx = arr.indexOf(value);
@@ -169,6 +169,8 @@ export default function LinkedInFilters() {
   const activeFilterCount =
     filters.workMode.length +
     filters.jobType.length +
+    (filters.specialty?.length || 0) +
+    (filters.experienceLevel?.length || 0) +
     (filters.search ? 1 : 0) +
     (filters.location ? 1 : 0) +
     (filters.salaryMin ? 1 : 0) +
@@ -212,6 +214,15 @@ export default function LinkedInFilters() {
           key: `specialty-${spec}`,
           label: spec,
           onRemove: () => toggleArrayFilter('specialty', spec),
+        });
+      });
+    }
+    if (filters.experienceLevel) {
+      filters.experienceLevel.forEach(el => {
+        pills.push({
+          key: `experienceLevel-${el}`,
+          label: el,
+          onRemove: () => toggleArrayFilter('experienceLevel', el),
         });
       });
     }
@@ -468,33 +479,27 @@ export default function LinkedInFilters() {
                 checked={filters.specialty?.includes('Travel') || false}
                 onChange={() => toggleArrayFilter('specialty', 'Travel')}
               />
-              <CheckboxFilter
-                label="New Grad"
-                count={counts?.specialty?.['New Grad'] || 0}
-                checked={filters.specialty?.includes('New Grad') || false}
-                onChange={() => toggleArrayFilter('specialty', 'New Grad')}
-              />
             </FilterSection>
 
-            {/* Experience Level (E4) */}
+            {/* Experience Level */}
             <FilterSection title="Experience Level">
               <CheckboxFilter
                 label="New Grad / Entry"
                 count={counts?.experienceLevel?.['New Grad'] || 0}
-                checked={filters.specialty?.includes('New Grad') || false}
-                onChange={() => toggleArrayFilter('specialty', 'New Grad')}
+                checked={filters.experienceLevel?.includes('New Grad') || false}
+                onChange={() => toggleArrayFilter('experienceLevel', 'New Grad')}
               />
               <CheckboxFilter
                 label="Mid-Level (3-5 yrs)"
                 count={counts?.experienceLevel?.['Mid-Level'] || 0}
-                checked={filters.specialty?.includes('Mid-Level') || false}
-                onChange={() => toggleArrayFilter('specialty', 'Mid-Level')}
+                checked={filters.experienceLevel?.includes('Mid-Level') || false}
+                onChange={() => toggleArrayFilter('experienceLevel', 'Mid-Level')}
               />
               <CheckboxFilter
                 label="Senior (5+ yrs)"
                 count={counts?.experienceLevel?.['Senior'] || 0}
-                checked={filters.specialty?.includes('Senior') || false}
-                onChange={() => toggleArrayFilter('specialty', 'Senior')}
+                checked={filters.experienceLevel?.includes('Senior') || false}
+                onChange={() => toggleArrayFilter('experienceLevel', 'Senior')}
               />
             </FilterSection>
 

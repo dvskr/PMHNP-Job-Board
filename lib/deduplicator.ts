@@ -258,8 +258,11 @@ export async function checkDuplicate(job: {
       }
     }
 
-    // STRATEGY 4: Fuzzy Title Match (confidence: based on similarity)
+    // STRATEGY 4: Fuzzy Title + Employer + Location Match (confidence: based on similarity)
     // Narrowed query: uses BOTH employer prefix AND title prefix for fewer false candidates
+    // FIX 2026-03-11: Added location check — without it, multi-location employers
+    // (LifeStance 500+ offices, BlueSky 50 states, Blackbird 20+ states) all collapse
+    // into one job, causing ~400 false duplicates per Fantastic-Jobs-DB run.
     const employerPrefix = job.employer.substring(0, 10);
     const titlePrefix5 = job.title.substring(0, 15);
     const fuzzyMatches = await prisma.job.findMany({
@@ -273,6 +276,7 @@ export async function checkDuplicate(job: {
         id: true,
         title: true,
         employer: true,
+        location: true,
       },
       take: 20,
     });
@@ -282,6 +286,20 @@ export async function checkDuplicate(job: {
       const employerSimilarity = calculateSimilarity(normalizedEmployer, normalizeCompany(match.employer));
 
       if (titleSimilarity > 0.85 && employerSimilarity > 0.80) {
+        // Location gate: prevent collapsing different locations into one job.
+        // "Remote" vs "Remote" is always a match (same job, same company, same title).
+        // Otherwise require location similarity > 0.50 to account for minor formatting
+        // differences ("New York, NY" vs "New York, New York") while blocking
+        // clearly different cities ("Wilmington, Delaware" vs "Saint Louis, MO").
+        const matchNormLocation = normalizeLocation(match.location);
+        const locationSimilarity = calculateSimilarity(normalizedLocation, matchNormLocation);
+        const bothRemote = normalizedLocation.includes('remote') && matchNormLocation.includes('remote');
+
+        if (!bothRemote && locationSimilarity <= 0.50) {
+          // Same company + title but different location = different position, skip
+          continue;
+        }
+
         const confidence = Math.min(titleSimilarity, employerSimilarity);
         return {
           isDuplicate: true,

@@ -162,21 +162,17 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
         ],
       });
     }
-    if (filters.specialty.includes('New Grad')) {
-      specialtyConditions.push({
-        OR: [
-          { title: { contains: 'new grad', mode: 'insensitive' } },
-          { title: { contains: 'new graduate', mode: 'insensitive' } },
-          { title: { contains: 'entry level', mode: 'insensitive' } },
-          { title: { contains: 'fellowship', mode: 'insensitive' } },
-          { title: { contains: 'residency', mode: 'insensitive' } },
-        ],
-      });
-    }
 
     if (specialtyConditions.length > 0) {
       andConditions.push({ OR: specialtyConditions });
     }
+  }
+
+  // Experience Level (from DB column)
+  if (filters.experienceLevel && filters.experienceLevel.length > 0) {
+    andConditions.push({
+      experienceLevel: { in: filters.experienceLevel },
+    });
   }
 
   if (andConditions.length > 0) {
@@ -193,6 +189,7 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     workMode: searchParams.getAll('workMode'),
     jobType: searchParams.getAll('jobType'),
     specialty: searchParams.getAll('specialty'),
+    experienceLevel: searchParams.getAll('experienceLevel'),
     salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
@@ -207,6 +204,7 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   filters.workMode.forEach((wm: string) => params.append('workMode', wm));
   filters.jobType.forEach((jt: string) => params.append('jobType', jt));
   if (filters.specialty) filters.specialty.forEach((s: string) => params.append('specialty', s));
+  if (filters.experienceLevel) filters.experienceLevel.forEach((el: string) => params.append('experienceLevel', el));
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);

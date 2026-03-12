@@ -97,6 +97,20 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         params.append('jobType', type);
       });
 
+      // Add specialty (multi-select)
+      if (filters.specialty) {
+        filters.specialty.forEach((spec: string) => {
+          params.append('specialty', spec);
+        });
+      }
+
+      // Add experience level (multi-select)
+      if (filters.experienceLevel) {
+        filters.experienceLevel.forEach((el: string) => {
+          params.append('experienceLevel', el);
+        });
+      }
+
       // Add salary
       if (filters.salaryMin) {
         params.set('salaryMin', filters.salaryMin.toString());

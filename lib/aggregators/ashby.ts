@@ -1,5 +1,4 @@
 ﻿
-import { isRelevantJob } from '../utils/job-filter';
 
 export interface AshbyJobRaw {
     externalId: string;
@@ -146,12 +145,9 @@ async function fetchCompanyPostings(companySlug: string, companyName: string): P
         const data: AshbyResponse = await response.json();
         const jobs = data.jobs || [];
 
-        // Filter for PMHNP relevance
-        const relevantJobs = jobs.filter(job => isRelevantJob(job.title, job.descriptionHtml));
+        console.log(`[Ashby] ${companySlug}: ${jobs.length} jobs found`);
 
-        console.log(`[Ashby] ${companySlug}: ${relevantJobs.length}/${jobs.length} jobs relevant`);
-
-        return relevantJobs.map(job => {
+        return jobs.map(job => {
             const salary = parseAshbySalary(job.compensation?.compensationTierSummary);
 
             // Construct location string

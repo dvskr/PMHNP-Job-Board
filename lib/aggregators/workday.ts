@@ -8,7 +8,6 @@
  * No API key required. Free and unlimited.
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 interface WorkdayCompany {
     slug: string;
@@ -70,7 +69,7 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'chaptershealth', instance: 5, site: 'jobs', name: 'Chapters Health System' },
     { slug: 'cincinnatichildrens', instance: 5, site: 'careersatcincinnatichildrens', name: "Cincinnati Children's" },
     { slug: 'ccf', instance: 1, site: 'ClevelandClinicCareers', name: 'Cleveland Clinic' },
-    { slug: 'cookchildrens', instance: 1, site: 'Careers', name: "Cook Children's" },
+    // REMOVED 2026-03-11 — Dead (HTTP 404): Cook Children's
     { slug: 'spectrumhealth', instance: 5, site: 'CorewellHealthCareers', name: 'Corewell Health' },
     { slug: 'coxhealth', instance: 5, site: 'CoxHealth_External', name: 'CoxHealth' },
     { slug: 'davita', instance: 1, site: 'DKC_External', name: 'DaVita' },
@@ -126,9 +125,8 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'crossoverhealth', instance: 1, site: 'careers', name: 'Crossover Health' },
     { slug: 'devoted', instance: 1, site: 'devoted', name: 'Devoted Health' },
     { slug: 'evolent', instance: 1, site: 'External', name: 'Evolent Health' },
-    { slug: 'cwi', instance: 1, site: 'External', name: "Children's Wisconsin" },
+    // REMOVED 2026-03-11 — Dead (HTTP 404): Children's Wisconsin, St. Jude
     { slug: 'sharecare', instance: 1, site: 'sharecare_careers', name: 'Sharecare' },
-    { slug: 'stjude', instance: 1, site: 'External', name: "St. Jude Children's Research Hospital" },
     { slug: 'tuftsmedicine', instance: 1, site: 'jobs', name: 'Tufts Medicine' },
     { slug: 'umchealthsystem', instance: 1, site: 'External', name: 'UMC Health System (Lubbock)' },
 
@@ -150,17 +148,7 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'brightli', instance: 5, site: 'BrightliTalent', name: 'Brightli' },
     { slug: 'thriveworks', instance: 5, site: 'Thriveworks', name: 'Thriveworks' },
 
-    // === ADDED 2026-03-10 — Phase 3 expansion (major health systems + behavioral health) ===
-    { slug: 'hca', instance: 1, site: 'HCA_Careers', name: 'HCA Healthcare' },
-    { slug: 'commonspirit', instance: 5, site: 'FY22CommonSpiritCareers', name: 'CommonSpirit Health' },
-    { slug: 'kaiser', instance: 12, site: 'External', name: 'Kaiser Permanente' },
-    { slug: 'universalhealth', instance: 1, site: 'uhsinccareers', name: 'Universal Health Services' },
-    { slug: 'acadia', instance: 1, site: 'careers', name: 'Acadia Healthcare' },
-    { slug: 'wellpath', instance: 12, site: 'External', name: 'Wellpath' },
-    { slug: 'telecarecorp', instance: 1, site: 'careers', name: 'Telecare Corporation' },
-    { slug: 'providentphysicainc', instance: 5, site: 'careers', name: 'Providence' },
-    { slug: 'ascension', instance: 1, site: 'external', name: 'Ascension' },
-    { slug: 'tenet', instance: 1, site: 'tenetcareers', name: 'Tenet Healthcare' },
+    // REMOVED 2026-03-11 — Dead (HTTP 422): HCA, CommonSpirit, Kaiser, UHS, Acadia, Wellpath, Telecare, Providence, Ascension, Tenet
 
     // === ADDED 2026-03-11 — Mined from ats-jobs-db apply links in production DB ===
     { slug: 'benefis', instance: 1, site: 'BHS', name: 'Benefis Health System' },
@@ -170,9 +158,43 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch job description from the Workday job detail endpoint
+ * Parse "Posted X Days Ago" text from Workday into a real Date
  */
-async function fetchJobDescription(company: WorkdayCompany, externalPath: string): Promise<string> {
+function parsePostedAgoText(text: string): string | undefined {
+    if (!text) return undefined;
+    const lower = text.toLowerCase().trim();
+
+    // "posted today" or "posted 0 days ago"
+    if (lower.includes('today') || lower === 'posted 0 days ago') {
+        return new Date().toISOString();
+    }
+
+    // "posted 7 days ago", "posted 30+ days ago"
+    const daysMatch = lower.match(/(\d+)\+?\s*days?\s*ago/);
+    if (daysMatch) {
+        const daysAgo = parseInt(daysMatch[1], 10);
+        const date = new Date();
+        date.setDate(date.getDate() - daysAgo);
+        return date.toISOString();
+    }
+
+    // "posted 1 month ago", "posted 2 months ago"
+    const monthsMatch = lower.match(/(\d+)\+?\s*months?\s*ago/);
+    if (monthsMatch) {
+        const monthsAgo = parseInt(monthsMatch[1], 10);
+        const date = new Date();
+        date.setMonth(date.getMonth() - monthsAgo);
+        return date.toISOString();
+    }
+
+    return undefined;
+}
+
+/**
+ * Fetch job description AND real posted date from the Workday job detail endpoint
+ * The detail endpoint returns jobPostingInfo which has the real "Posted X Days Ago" text
+ */
+async function fetchJobDetails(company: WorkdayCompany, externalPath: string): Promise<{ description: string; realPostedDate?: string }> {
     const url = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/wday/cxs/${company.slug}/${company.site}${externalPath}`;
 
     try {
@@ -185,13 +207,32 @@ async function fetchJobDescription(company: WorkdayCompany, externalPath: string
         });
         clearTimeout(timeout);
 
-        if (!res.ok) return '';
+        if (!res.ok) return { description: '' };
 
         const data = await res.json();
-        // Workday returns jobPostingInfo with jobDescription in HTML
-        return data?.jobPostingInfo?.jobDescription || '';
+        const info = data?.jobPostingInfo;
+        const description = info?.jobDescription || '';
+
+        // Extract the REAL original posting date from the detail endpoint
+        // Priority: startDate (exact ISO date "2026-03-05") > postedOn ("Posted 7 Days Ago")
+        let realPostedDate: string | undefined;
+
+        // 1. Try startDate first — exact date from Workday
+        if (info?.startDate) {
+            const d = new Date(info.startDate);
+            if (!isNaN(d.getTime())) {
+                realPostedDate = d.toISOString();
+            }
+        }
+
+        // 2. Fallback: parse relative "Posted X Days Ago" text
+        if (!realPostedDate && info?.postedOn) {
+            realPostedDate = parsePostedAgoText(info.postedOn);
+        }
+
+        return { description, realPostedDate };
     } catch {
-        return '';
+        return { description: '' };
     }
 }
 
@@ -269,21 +310,20 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
 
                     if (!likelyPMHNP) continue;
 
-                    // Fetch the full job description
-                    const description = await fetchJobDescription(company, posting.externalPath);
+                    // Fetch the full job description AND real posted date
+                    const details = await fetchJobDetails(company, posting.externalPath);
                     await sleep(200); // Be polite
 
-                    // Final relevance filter
-                    if (!isRelevantJob(posting.title, description)) continue;
-
+                    // Prioritize the real date from detail endpoint over search API's postedOn
+                    // Search API's postedOn is often an update timestamp, not the original post date
                     allJobs.push({
                         externalId: `workday-${company.slug}-${jobId}`,
                         title: posting.title,
                         company: company.name,
                         location: posting.locationsText || 'United States',
-                        description,
+                        description: details.description,
                         applyLink: `${applyBase}${posting.externalPath}`,
-                        postedDate: posting.postedOn || undefined,
+                        postedDate: details.realPostedDate || undefined,
                     });
                 }
 

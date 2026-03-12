@@ -34,11 +34,13 @@ export interface LeverJobRaw {
 }
 
 const LEVER_COMPANIES = [
-  // === VERIFIED â€” Have PMHNP jobs ===
-  'lifestance',          // LifeStance Health â€” 100+ PMHNP jobs (BIGGEST SOURCE)
-  'talkiatry',           // Talkiatry â€” 59 PMHNP jobs
-  'includedhealth',      // Included Health â€” 6 PMHNP jobs
-  'lyrahealth',          // Lyra Health â€” 1 PMHNP job
+  // === VERIFIED — Have PMHNP jobs ===
+  'lifestance',          // LifeStance Health — 100+ PMHNP jobs (BIGGEST SOURCE)
+  'synapticure',         // Synapticure — 1 PMHNP job
+  'ucsf',                // UCSF — 1 PMHNP job
+  'talkiatry',           // Talkiatry — 59 PMHNP jobs
+  'includedhealth',      // Included Health — 6 PMHNP jobs
+  'lyrahealth',          // Lyra Health — 1 PMHNP job
 
   // === VERIFIED â€” Valid, monitoring for PMHNP ===
   'carbonhealth',        // Carbon Health â€” 0 currently but valid endpoint
@@ -56,13 +58,11 @@ const LEVER_COMPANIES = [
   'athenapsych',         // AthenaPsych â€” 4 PMHNP (0 recent)
   'seven-starling',      // Seven Starling â€” 3 PMHNP (3 recent)
   'beckley-clinical',    // Beckley Clinical â€” 1 PMHNP
-  'synapticure',         // SynaptiCure â€” 1 PMHNP
   'arundellodge',        // Arundel Lodge â€” 1 PMHNP
 
   // === ADDED 2026-02-16 â€” Full ATS Discovery (189 companies scanned) ===
   'ro',                  // Ro Health â€” 40 total jobs
   'advocate',            // Advocate Health â€” 9 total jobs
-  'ucsf',                // UCSF Health â€” 1 total job
 
   // === ADDED 2026-02-16 â€” CSV test: 6 new PMHNP-active slugs ===
   'lunaphysicaltherapy', // Luna Physical Therapy â€” 108 PMHNP
@@ -87,24 +87,9 @@ const LEVER_COMPANIES = [
   'zushealth',
 
   // === ADDED 2026-03-10 — Phase 3 expansion (psychiatric/behavioral health employers) ===
-  'cerebral',             // Cerebral — large telehealth psych employer
-  'donehealth',           // Done Health — ADHD/psych telehealth
   'mindbloom',            // Mindbloom — ketamine-assisted therapy
-  'brightside',           // Brightside Health — psych telehealth
-  'alma',                 // Alma — mental health platform
-  'headway',              // Headway — mental health provider network
-  'growtherapy',          // Grow Therapy — telehealth mental health
-  'rula',                 // Rula Health — behavioral health
-  'springhealth',         // Spring Health — mental health benefits
-  'modernhealth',         // Modern Health — mental health platform
-  'ginger',               // Ginger (Headspace Health) — behavioral health
-  'pathccm',              // Path — collaborative care
-  'valera',               // Valera Health — behavioral health
-  'regroup',              // Regroup — telehealth psychiatry
-  'teladochealth',        // Teladoc Health — major telehealth
 ];
 
-import { isRelevantJob } from '../utils/job-filter';
 
 const COMPANY_NAMES: Record<string, string> = {
   'talkiatry': 'Talkiatry',
@@ -121,13 +106,11 @@ const COMPANY_NAMES: Record<string, string> = {
   'athenapsych': 'AthenaPsych',
   'seven-starling': 'Seven Starling',
   'beckley-clinical': 'Beckley Clinical',
-  'synapticure': 'SynaptiCure',
   'arundellodge': 'Arundel Lodge',
 
   // Added 2026-02-16 (ATS discovery)
   'ro': 'Ro Health',
   'advocate': 'Advocate Health',
-  'ucsf': 'UCSF Health',
 
   // Added 2026-02-16 (CSV test)
   'lunaphysicaltherapy': 'Luna Physical Therapy',
@@ -151,21 +134,7 @@ const COMPANY_NAMES: Record<string, string> = {
   'theattractiongame.online': 'Furum Jobs',
 
   // Added 2026-03-10 (Phase 3 expansion)
-  'cerebral': 'Cerebral',
-  'donehealth': 'Done Health',
   'mindbloom': 'Mindbloom',
-  'brightside': 'Brightside Health',
-  'alma': 'Alma',
-  'headway': 'Headway',
-  'growtherapy': 'Grow Therapy',
-  'rula': 'Rula Health',
-  'springhealth': 'Spring Health',
-  'modernhealth': 'Modern Health',
-  'ginger': 'Headspace Health',
-  'pathccm': 'Path',
-  'valera': 'Valera Health',
-  'regroup': 'Regroup Telehealth',
-  'teladochealth': 'Teladoc Health',
 };
 
 function formatCompanyName(slug: string): string {
@@ -175,8 +144,8 @@ function formatCompanyName(slug: string): string {
     .join(' ');
 }
 
-function isPMHNPJob(title: string, description: string): boolean {
-  return isRelevantJob(title, description);
+function isPMHNPJob(_title: string, _description: string): boolean {
+  return true; // All jobs pass through — central filter in ingestFromSource handles rejection tracking
 }
 
 function sleep(ms: number): Promise<void> {

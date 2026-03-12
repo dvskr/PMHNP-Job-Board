@@ -77,10 +77,10 @@ export async function GET(req: Request) {
     try {
         console.log('[Dead Link Check] Starting...');
 
-        // Get published external jobs with apply links
-        // Order by updatedAt ASC so the least-recently-checked jobs get checked first.
-        // After we check a job, its updatedAt stays the same (we only update on unpublish),
-        // ensuring a fair rotation.
+        // Get published external jobs with apply links.
+        // Order by lastLinkCheckedAt ASC NULLS FIRST — never-checked jobs first,
+        // then the least-recently-checked jobs. This ensures fair rotation
+        // across all published jobs over multiple runs.
         const jobs = await prisma.job.findMany({
             where: {
                 isPublished: true,
@@ -94,7 +94,7 @@ export async function GET(req: Request) {
                 sourceProvider: true,
             },
             orderBy: {
-                updatedAt: 'asc',
+                lastLinkCheckedAt: { sort: 'asc', nulls: 'first' },
             },
             take: MAX_JOBS_PER_RUN,
         });
@@ -106,6 +106,7 @@ export async function GET(req: Request) {
         let alive = 0;
         let errors = 0;
         const deadIds: string[] = [];
+        const checkedIds: string[] = [];
         const deadBySource: Record<string, number> = {};
 
         for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
@@ -134,6 +135,11 @@ export async function GET(req: Request) {
                 })
             );
 
+            // Track all checked job IDs for timestamp update
+            for (const job of batch) {
+                checkedIds.push(job.id as string);
+            }
+
             for (const result of results) {
                 checked++;
                 if (result.status === 'fulfilled') {
@@ -153,17 +159,35 @@ export async function GET(req: Request) {
                 });
             }
 
+            // Update lastLinkCheckedAt for all checked jobs in this batch
+            // This ensures proper rotation — checked jobs move to the back of the queue
+            if (checkedIds.length >= 100) {
+                await prisma.job.updateMany({
+                    where: { id: { in: checkedIds } },
+                    data: { lastLinkCheckedAt: new Date() },
+                });
+                checkedIds.length = 0; // Reset batch
+            }
+
             // Rate limit between batches
             if (i + BATCH_SIZE < jobs.length) {
                 await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
             }
         }
 
-        // Final batch unpublish
+        // Final batch: unpublish dead jobs
         if (deadIds.length > 0) {
             await prisma.job.updateMany({
                 where: { id: { in: deadIds } },
                 data: { isPublished: false },
+            });
+        }
+
+        // Final batch: update lastLinkCheckedAt for remaining checked jobs
+        if (checkedIds.length > 0) {
+            await prisma.job.updateMany({
+                where: { id: { in: checkedIds } },
+                data: { lastLinkCheckedAt: new Date() },
             });
         }
 
