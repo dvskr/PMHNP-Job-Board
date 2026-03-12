@@ -158,9 +158,43 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Fetch job description from the Workday job detail endpoint
+ * Parse "Posted X Days Ago" text from Workday into a real Date
  */
-async function fetchJobDescription(company: WorkdayCompany, externalPath: string): Promise<string> {
+function parsePostedAgoText(text: string): string | undefined {
+    if (!text) return undefined;
+    const lower = text.toLowerCase().trim();
+
+    // "posted today" or "posted 0 days ago"
+    if (lower.includes('today') || lower === 'posted 0 days ago') {
+        return new Date().toISOString();
+    }
+
+    // "posted 7 days ago", "posted 30+ days ago"
+    const daysMatch = lower.match(/(\d+)\+?\s*days?\s*ago/);
+    if (daysMatch) {
+        const daysAgo = parseInt(daysMatch[1], 10);
+        const date = new Date();
+        date.setDate(date.getDate() - daysAgo);
+        return date.toISOString();
+    }
+
+    // "posted 1 month ago", "posted 2 months ago"
+    const monthsMatch = lower.match(/(\d+)\+?\s*months?\s*ago/);
+    if (monthsMatch) {
+        const monthsAgo = parseInt(monthsMatch[1], 10);
+        const date = new Date();
+        date.setMonth(date.getMonth() - monthsAgo);
+        return date.toISOString();
+    }
+
+    return undefined;
+}
+
+/**
+ * Fetch job description AND real posted date from the Workday job detail endpoint
+ * The detail endpoint returns jobPostingInfo which has the real "Posted X Days Ago" text
+ */
+async function fetchJobDetails(company: WorkdayCompany, externalPath: string): Promise<{ description: string; realPostedDate?: string }> {
     const url = `https://${company.slug}.wd${company.instance}.myworkdayjobs.com/wday/cxs/${company.slug}/${company.site}${externalPath}`;
 
     try {
@@ -173,13 +207,32 @@ async function fetchJobDescription(company: WorkdayCompany, externalPath: string
         });
         clearTimeout(timeout);
 
-        if (!res.ok) return '';
+        if (!res.ok) return { description: '' };
 
         const data = await res.json();
-        // Workday returns jobPostingInfo with jobDescription in HTML
-        return data?.jobPostingInfo?.jobDescription || '';
+        const info = data?.jobPostingInfo;
+        const description = info?.jobDescription || '';
+
+        // Extract the REAL original posting date from the detail endpoint
+        // Priority: startDate (exact ISO date "2026-03-05") > postedOn ("Posted 7 Days Ago")
+        let realPostedDate: string | undefined;
+
+        // 1. Try startDate first — exact date from Workday
+        if (info?.startDate) {
+            const d = new Date(info.startDate);
+            if (!isNaN(d.getTime())) {
+                realPostedDate = d.toISOString();
+            }
+        }
+
+        // 2. Fallback: parse relative "Posted X Days Ago" text
+        if (!realPostedDate && info?.postedOn) {
+            realPostedDate = parsePostedAgoText(info.postedOn);
+        }
+
+        return { description, realPostedDate };
     } catch {
-        return '';
+        return { description: '' };
     }
 }
 
@@ -257,19 +310,20 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
 
                     if (!likelyPMHNP) continue;
 
-                    // Fetch the full job description
-                    const description = await fetchJobDescription(company, posting.externalPath);
+                    // Fetch the full job description AND real posted date
+                    const details = await fetchJobDetails(company, posting.externalPath);
                     await sleep(200); // Be polite
 
-
+                    // Prioritize the real date from detail endpoint over search API's postedOn
+                    // Search API's postedOn is often an update timestamp, not the original post date
                     allJobs.push({
                         externalId: `workday-${company.slug}-${jobId}`,
                         title: posting.title,
                         company: company.name,
                         location: posting.locationsText || 'United States',
-                        description,
+                        description: details.description,
                         applyLink: `${applyBase}${posting.externalPath}`,
-                        postedDate: posting.postedOn || undefined,
+                        postedDate: details.realPostedDate || undefined,
                     });
                 }
 

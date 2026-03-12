@@ -165,8 +165,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       });
     }
 
-    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap (aligned with cleanup hard cap — PMHNP positions often stay open 3-4 months)
-    const RENEWAL_EXTENSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day renewal window (tolerates source API hiccups without losing valid jobs)
+    const MAX_JOB_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90-day lifetime cap — hard cutoff for any job regardless of renewals
+    const RENEWAL_EXTENSION_MS = 14 * 24 * 60 * 60 * 1000; // 14-day renewal window — tighter expiry, cron runs 2x daily so 14 days is plenty of buffer
     let expiredByAge = 0;
 
     // Helper to renew a job (Auto-Renewal) — with max-age cap + manual unpublish guard
@@ -329,9 +329,20 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           continue;
         }
 
+        // Set initial expiresAt based on original posting date + 30 days
+        // If source didn't provide a posted date, use now + 30 days
+        const INITIAL_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30-day initial posting window
+        const baseDate = normalizedJob.originalPostedAt
+          ? new Date(normalizedJob.originalPostedAt as any).getTime()
+          : Date.now();
+        const initialExpiresAt = new Date(baseDate + INITIAL_EXPIRY_MS);
+
         // Insert the job
         const savedJob = await prisma.job.create({
-          data: normalizedJob as any,
+          data: {
+            ...(normalizedJob as any),
+            expiresAt: initialExpiresAt,
+          },
         });
         added++;
         newJobIds.push(savedJob.id);

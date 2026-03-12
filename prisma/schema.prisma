@@ -54,6 +54,7 @@ model Job {
   expiresAt           DateTime?    @map("expires_at")
   companyId           String?      @map("company_id")
   originalPostedAt    DateTime?    @map("original_posted_at")
+  lastLinkCheckedAt   DateTime?    @map("last_link_checked_at")
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
   jobReports          JobReport[]

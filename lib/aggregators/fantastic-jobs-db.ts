@@ -216,7 +216,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
                     description: job.description || '',
                     applyLink: job.url,
                     job_type: mapEmploymentType(job),
-                    postedDate: job.date_posted || undefined,
+                    postedDate: job.date_posted || job.date_created || undefined,
                     source_ats: job.source,
                 });
             }

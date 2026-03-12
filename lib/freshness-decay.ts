@@ -54,7 +54,13 @@ export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?:
       return false;
     }
 
-    // External jobs: unpublish if not seen/renewed for 90 days
+    // If expiresAt exists and has passed — unpublish immediately
+    // (renewal window expired, source stopped returning this job)
+    if (expiresAt && expiresAt.getTime() <= Date.now()) {
+      return true;
+    }
+
+    // Fallback for legacy jobs without expiresAt: use updatedAt as proxy
     const now = new Date();
     const daysSinceLastSeen = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
 

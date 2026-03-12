@@ -45,26 +45,20 @@ export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Pr
 
     return (
         <div style={{ position: 'relative', marginBottom: '24px' }}>
-            {/* Fade hint on the right */}
-            <div style={{
-                position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px',
-                background: 'linear-gradient(to left, var(--bg-primary, #fff) 0%, transparent 100%)',
-                pointerEvents: 'none', zIndex: 1,
-            }} />
             <div
                 className="settings-tabs-scroll"
                 style={{
-                    display: 'flex', gap: '2px', overflowX: 'auto', paddingBottom: '2px',
+                    display: 'flex', gap: '2px', overflowX: 'auto', paddingBottom: '6px',
                     borderBottom: '1px solid var(--border-color)',
-                    scrollbarWidth: 'thin',
+                    scrollbarWidth: 'auto',
                     WebkitOverflowScrolling: 'touch',
-                    paddingRight: '40px',
                 }}
             >
                 <style>{`
-                    .settings-tabs-scroll::-webkit-scrollbar { height: 3px; }
-                    .settings-tabs-scroll::-webkit-scrollbar-track { background: transparent; }
-                    .settings-tabs-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+                    .settings-tabs-scroll::-webkit-scrollbar { height: 6px; }
+                    .settings-tabs-scroll::-webkit-scrollbar-track { background: var(--bg-tertiary, #1a1a2e); border-radius: 3px; }
+                    .settings-tabs-scroll::-webkit-scrollbar-thumb { background: rgba(45,212,191,0.4); border-radius: 3px; }
+                    .settings-tabs-scroll::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.7); }
                 `}</style>
                 {visibleTabs.map((tab) => {
                     const Icon = tab.icon

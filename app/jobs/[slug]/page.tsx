@@ -678,7 +678,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
                 {/* Badges Row - Top */}
                 {(job.isFeatured || job.isVerifiedEmployer) && (
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', paddingRight: '50px' }}>
                     {job.isFeatured && (
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -701,7 +701,7 @@ export default async function JobPage({ params }: JobPageProps) {
                   </div>
                 )}
 
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '100px' }}>{job.title}</h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '50px' }}>{job.title}</h1>
                 {companyInfo ? (
                   <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl mb-4 font-medium inline-block hover:text-teal-600 transition-colors" style={{ color: 'var(--text-secondary)' }}>
                     {job.employer}
