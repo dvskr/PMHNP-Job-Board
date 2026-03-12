@@ -11,6 +11,7 @@
  * Score is computed at ingestion and stored in the DB for zero-cost sorting.
  */
 
+import { calculateFreshnessScore } from '../freshness-decay';
 // Direct ATS platforms — best apply experience (one click to employer form)
 const DIRECT_ATS_DOMAINS = [
     'boards.greenhouse.io', 'jobs.lever.co', 'jobs.ashbyhq.com',
@@ -128,23 +129,11 @@ export function computeQualityScore(input: QualityScoreInput): number {
         score += 5;
     }
 
-    // ── Freshness (0–20) — age-based decay ──
-    const refDate = input.originalPostedAt || input.createdAt;
-    if (refDate) {
-        const ageMs = Date.now() - new Date(refDate).getTime();
-        const ageDays = ageMs / (1000 * 60 * 60 * 24);
-
-        if (ageDays < 3) {
-            score += 20;  // Fresh (< 3 days)
-        } else if (ageDays < 7) {
-            score += 15;  // Recent (< 7 days)
-        } else if (ageDays < 14) {
-            score += 10;  // Normal (< 14 days)
-        } else if (ageDays < 45) {
-            score += 5;   // Aging (< 45 days)
-        }
-        // Stale (> 45 days) = +0
-    }
+    // ── Freshness (0–20) — delegates to single source of truth in freshness-decay.ts ──
+    score += calculateFreshnessScore(
+        input.originalPostedAt ?? null,
+        input.createdAt ?? new Date(),
+    );
 
     // ── Employer-Posted (0–30) ──
     // Jobs submitted through our employer form get maximum boost

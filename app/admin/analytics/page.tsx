@@ -16,7 +16,8 @@ interface TopJob {
 interface FeedbackItem { id: string; rating: number; message: string | null; page: string | null; createdAt: string }
 interface ReportItem {
     id: string; reason: string; details: string | null; createdAt: string;
-    job: { id: string; title: string; employer: string };
+    reporterEmail: string | null; reporterName: string | null;
+    job: { id: string; title: string; employer: string; isPublished: boolean; slug: string | null };
 }
 interface Summary {
     totalViews: number; totalClicks: number; totalApplications: number;
@@ -458,17 +459,76 @@ export default function AnalyticsPage() {
                                 padding: '14px 18px', borderRadius: '10px',
                                 backgroundColor: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)',
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                                    <div>
-                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>{r.job.title}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 12 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <a
+                                            href={`/jobs/${r.job.slug || r.job.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ fontWeight: 600, color: '#2DD4BF', fontSize: 13, textDecoration: 'none' }}
+                                        >
+                                            {r.job.title} ↗
+                                        </a>
                                         <span style={{ ...muted, marginLeft: 8 }}>by {r.job.employer}</span>
                                     </div>
-                                    <span style={muted}>{new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                        <span style={muted}>{new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                        {r.job.isPublished ? (
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm(`Unpublish "${r.job.title}"?`)) return;
+                                                    try {
+                                                        const res = await fetch(`/api/admin/jobs/${r.job.id}`, {
+                                                            method: 'PATCH',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ isPublished: false }),
+                                                        });
+                                                        if (res.ok) {
+                                                            // Update local state
+                                                            setData(prev => {
+                                                                if (!prev?.reports) return prev;
+                                                                return {
+                                                                    ...prev,
+                                                                    reports: prev.reports.map(rep =>
+                                                                        rep.id === r.id
+                                                                            ? { ...rep, job: { ...rep.job, isPublished: false } }
+                                                                            : rep
+                                                                    ),
+                                                                };
+                                                            });
+                                                        }
+                                                    } catch (e) {
+                                                        console.error('Failed to unpublish:', e);
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700,
+                                                    backgroundColor: '#EF4444', color: '#fff', border: 'none', cursor: 'pointer',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                Unpublish
+                                            </button>
+                                        ) : (
+                                            <span style={{
+                                                padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                                                backgroundColor: 'rgba(234,179,8,0.12)', color: '#EAB308',
+                                            }}>
+                                                expired
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <span style={{
                                     display: 'inline-block', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                                     backgroundColor: 'rgba(239,68,68,0.12)', color: '#EF4444', marginBottom: 4,
                                 }}>{r.reason}</span>
+                                {(r.reporterName || r.reporterEmail) && (
+                                    <div style={{ fontSize: 12, color: '#3B82F6', marginBottom: 4 }}>
+                                        Reported by: <strong>{r.reporterName || 'Unknown'}</strong>
+                                        {r.reporterEmail && <span style={{ color: 'var(--text-tertiary)', marginLeft: 4 }}>({r.reporterEmail})</span>}
+                                    </div>
+                                )}
                                 {r.details && <p style={{ ...sub, margin: '6px 0 0' }}>{r.details}</p>}
                             </div>
                         ))}

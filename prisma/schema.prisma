@@ -635,13 +635,15 @@ model AutofillUsage {
 }
 
 model JobReport {
-  id        String   @id @default(cuid())
-  jobId     String   @map("job_id")
-  reason    String
-  details   String?
-  ipHash    String?  @map("ip_hash")
-  createdAt DateTime @default(now()) @map("created_at")
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  jobId         String   @map("job_id")
+  reason        String
+  details       String?
+  ipHash        String?  @map("ip_hash")
+  reporterEmail String?  @map("reporter_email")
+  reporterName  String?  @map("reporter_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@map("job_reports")

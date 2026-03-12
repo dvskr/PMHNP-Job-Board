@@ -314,7 +314,8 @@ export async function GET(request: NextRequest) {
                 take: 20,
                 select: {
                     id: true, reason: true, details: true, createdAt: true,
-                    job: { select: { id: true, title: true, employer: true } },
+                    reporterEmail: true, reporterName: true,
+                    job: { select: { id: true, title: true, employer: true, isPublished: true, slug: true } },
                 },
             });
             result.reports = reports;

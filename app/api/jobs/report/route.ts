@@ -85,6 +85,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Look up reporter's profile for name
+        const profile = await prisma.userProfile.findUnique({
+            where: { supabaseId: user.id },
+            select: { firstName: true, lastName: true, email: true },
+        });
+
+        const reporterEmail = profile?.email || user.email || null;
+        const reporterName = profile?.firstName
+            ? `${profile.firstName} ${profile.lastName || ''}`.trim()
+            : null;
+
         // Create report
         const report = await prisma.jobReport.create({
             data: {
@@ -92,6 +103,8 @@ export async function POST(request: NextRequest) {
                 reason,
                 details: details?.slice(0, 500) || null,
                 ipHash: hashIp(ip),
+                reporterEmail,
+                reporterName,
             },
         });
 

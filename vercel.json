@@ -77,20 +77,24 @@
       "schedule": "0 7,19 * * *"
     },
     {
+      "path": "/api/cron/ingest?source=smartrecruiters",
+      "schedule": "10 7,19 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=icims",
+      "schedule": "20 7,19 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=jazzhr",
+      "schedule": "30 7,19 * * *"
+    },
+    {
       "path": "/api/cron/ingest?source=ats-jobs-db",
       "schedule": "50 7,19 * * *"
     },
     {
-      "path": "/api/cron/ingest?source=bamboohr",
-      "schedule": "55 7,19 * * *"
-    },
-    {
       "path": "/api/cron/freshness-decay",
       "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/check-dead-links",
-      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/daily-report",
@@ -107,10 +111,6 @@
     {
       "path": "/api/cron/check-dead-links",
       "schedule": "0 3,11,19 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-expired",
-      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/cleanup-descriptions",

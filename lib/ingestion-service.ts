@@ -10,7 +10,8 @@ import { fetchAshbyJobs } from './aggregators/ashby';
 import { fetchFantasticJobsDbJobs } from './aggregators/fantastic-jobs-db';
 import { fetchWorkdayJobs } from './aggregators/workday';
 import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
-import { fetchBambooHRJobs } from './aggregators/bamboohr';
+// REMOVED 2026-03-11 — 0 PMHNP jobs, dead endpoints
+// import { fetchBambooHRJobs } from './aggregators/bamboohr';
 import { fetchSmartRecruitersJobs } from './aggregators/smartrecruiters';
 import { fetchICIMSJobs } from './aggregators/icims';
 import { fetchJazzHRJobs } from './aggregators/jazzhr';
@@ -28,13 +29,14 @@ let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> j
 import { pingAllSearchEnginesBatch, pingGoogle, pingIndexNow } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'ashby' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'bamboohr' | 'smartrecruiters' | 'icims' | 'jazzhr';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'ashby' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'smartrecruiters' | 'icims' | 'jazzhr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
 // REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
 // ADDED smartrecruiters, icims, jazzhr 2026-02-20 — discovered via production DB mining
 // REMOVED jsearch 2026-03-11 — subscription cancelled
 // ADDED fantastic-jobs-db 2026-03-11 — replacing JSearch ($45/mo Pro, direct ATS links)
+// REMOVED bamboohr from ALL_SOURCES 2026-03-11 — was still running despite being dead
 export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'ashby', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters', 'icims', 'jazzhr'];
 
 export interface IngestionResult {
@@ -79,8 +81,8 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     case 'fantastic-jobs-db':
       return await fetchFantasticJobsDbJobs() as unknown as Array<Record<string, unknown>>;
-    case 'bamboohr':
-      return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
+    // case 'bamboohr': REMOVED 2026-03-11 — dead source
+    //   return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
     case 'smartrecruiters':
       return await fetchSmartRecruitersJobs() as unknown as Array<Record<string, unknown>>;
     case 'icims':
@@ -626,77 +628,15 @@ export async function cleanupExpiredJobs(): Promise<number> {
       },
     });
 
-    // Sweep 3: Check ATS job apply links for liveness (404 = unpublish)
-    const ATS_SOURCES = ['greenhouse', 'lever', 'ashby', 'workday', 'smartrecruiters', 'icims', 'jazzhr'];
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const atsJobs = await prisma.job.findMany({
-      where: {
-        isPublished: true,
-        sourceProvider: { in: ATS_SOURCES },
-        applyLink: { not: '' },
-        // Only check jobs older than 7 days to avoid false positives on freshly posted
-        originalPostedAt: { lt: sevenDaysAgo },
-      },
-      select: { id: true, title: true, applyLink: true, sourceProvider: true },
-    });
+    // NOTE: Sweep 3 (ATS dead link checking) REMOVED 2026-03-11 — now handled by
+    // dedicated /api/cron/check-dead-links cron (3×/day, 1500 links/run, HEAD→GET fallback).
+    // Running it here after every ingestion cron (~21×/day) was redundant and wasteful.
 
-    let deadLinks = 0;
-    const deadJobIds: string[] = [];
-    const BATCH_SIZE = 10;
-
-    for (let i = 0; i < atsJobs.length; i += BATCH_SIZE) {
-      const batch = atsJobs.slice(i, i + BATCH_SIZE);
-      const results = await Promise.allSettled(
-        batch.map(async (job) => {
-          try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000);
-            const response = await fetch(job.applyLink!, {
-              method: 'HEAD',
-              redirect: 'follow',
-              signal: controller.signal,
-              headers: { 'User-Agent': 'PMHNPHiring-LinkChecker/1.0' },
-            });
-            clearTimeout(timeout);
-            // 404 or 410 = job removed
-            if (response.status === 404 || response.status === 410) {
-              return { dead: true, job };
-            }
-            return { dead: false, job };
-          } catch {
-            // Network errors, timeouts = don't unpublish (could be temporary)
-            return { dead: false, job };
-          }
-        })
-      );
-
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value.dead) {
-          deadLinks++;
-          deadJobIds.push(result.value.job.id);
-          console.log(`[Cleanup] Dead link: [${result.value.job.sourceProvider}] "${result.value.job.title}"`);
-        }
-      }
-
-      // Rate limit: 200ms between batches
-      if (i + BATCH_SIZE < atsJobs.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-    }
-
-    if (deadJobIds.length > 0) {
-      await prisma.job.updateMany({
-        where: { id: { in: deadJobIds } },
-        data: { isPublished: false },
-      });
-    }
-    console.log(`[Cleanup] Checked ${atsJobs.length} ATS links, found ${deadLinks} dead`);
-
-    const total = expiredResult.count + agedOutResult.count + deadLinks;
-    console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out + ${deadLinks} dead links = ${total}`);
+    const total = expiredResult.count + agedOutResult.count;
+    console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out = ${total}`);
 
     // Notify search engines to de-index expired job URLs
-    const allExpiredJobs = [...jobsToExpire, ...atsJobs.filter(j => deadJobIds.includes(j.id as string))];
+    const allExpiredJobs = [...jobsToExpire];
     if (allExpiredJobs.length > 0) {
       try {
         const { slugify } = await import('./utils');
