@@ -9,7 +9,6 @@
  * No API key required. Free.
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 export interface ICIMSJobRaw {
     externalId: string;
@@ -108,8 +107,6 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
                 let title = titleMatch ? titleMatch[1].trim() : titleAttr;
                 let location = titleMatch?.[2]?.trim() || 'United States';
 
-                // Check PMHNP relevance
-                if (!isRelevantJob(title, '')) continue;
 
                 // Fetch description
                 const description = await fetchJobDescription(jobUrl);

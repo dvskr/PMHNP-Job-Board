@@ -55,7 +55,6 @@ interface JSearchResponse {
     data: JSearchJob[];
 }
 
-import { isRelevantJob } from '../utils/job-filter';
 import {
     SEARCH_QUERIES,
     STATES as LOCATIONS,
@@ -362,7 +361,6 @@ export async function fetchJSearchJobs(
     let totalRawJobs = 0;
     let totalProcessed = 0;
     let droppedByGeo = 0;
-    let droppedByFilter = 0;
     let droppedByDup = 0;
     let totalApiCalls = 0;
     let newJobsFound = 0;
@@ -426,11 +424,6 @@ export async function fetchJSearchJobs(
                     if (expiryMs < Date.now()) continue;
                 }
 
-                // Global Relevance Gate — strict early filtering before DB layer
-                if (!isRelevantJob(job.job_title, job.job_description || '')) {
-                    droppedByFilter++;
-                    continue;
-                }
 
                 seenJobIds.add(job.job_id);
                 newJobsFound++;
@@ -470,8 +463,7 @@ export async function fetchJSearchJobs(
     console.log(`[JSearch] VALIDATION STATS:`);
     console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
     console.log(`    Duplicate IDs (seen before): ${droppedByDup}`);
-    console.log(`    Dropped by Relevance Filter: ${droppedByFilter}`);
-    console.log(`    Final Accepted: ${allJobs.length}`);
+    console.log(`    Final Passed to Pipeline: ${allJobs.length}`);
 
     return allJobs;
 }

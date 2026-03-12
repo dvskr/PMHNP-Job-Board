@@ -8,7 +8,6 @@
  * This aggregator is budget-conscious — it prioritizes the most efficient search terms.
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 interface AtsJobsDbCompany {
     id: string;
@@ -111,8 +110,8 @@ function mapEmploymentType(type: string | null): string | null {
 }
 
 async function fetchPage(query: string, page: number): Promise<AtsJobsDbResponse | null> {
-    // Only fetch jobs posted in the last 90 days
-    const postedAfter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] + 'T00:00:00Z';
+    // Only fetch jobs posted in the last 7 days (cron runs 2x/day)
+    const postedAfter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] + 'T00:00:00Z';
 
     const params = new URLSearchParams({
         page_size: PAGE_SIZE.toString(),
@@ -188,7 +187,6 @@ export async function fetchAtsJobsDbJobs(): Promise<AtsJobsDbJobRaw[]> {
                 seenIds.add(job.id);
 
                 // Apply PMHNP relevance filter
-                if (!isRelevantJob(job.title, job.description || '')) continue;
 
                 // Format company name (API returns object)
                 const companyName = job.company?.name || 'Unknown';

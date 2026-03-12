@@ -22,7 +22,6 @@ interface AdzunaResponse {
 }
 
 import { SEARCH_QUERIES } from './constants';
-import { isRelevantJob } from '../utils/job-filter';
 
 // Helper function for delays
 function sleep(ms: number): Promise<void> {
@@ -46,7 +45,6 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
 
   // VALIDATION STATS
   let totalRawJobs = 0;
-  let droppedByFilter = 0;
 
   console.log(`[Adzuna] Starting fetch with ${SEARCH_QUERIES.length} search queries...`);
 
@@ -101,13 +99,6 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
 
           // Skip jobs without a valid apply link
           if (!job.redirect_url) {
-            droppedByFilter++;
-            continue;
-          }
-
-          // Strict relevance filter — drop non-PMHNP jobs early
-          if (!isRelevantJob(job.title, job.description || '')) {
-            droppedByFilter++;
             continue;
           }
 
@@ -154,8 +145,7 @@ export async function fetchAdzunaJobs(): Promise<Array<Record<string, unknown>>>
 
   console.log(`[Adzuna] VALIDATION STATS:`);
   console.log(`    Total Raw Jobs Fetched: ${totalRawJobs}`);
-  console.log(`    Dropped by Cleanups/Filtering: ${droppedByFilter}`);
-  console.log(`    Final Accepted: ${allJobs.length}`);
+  console.log(`    Final Passed to Pipeline: ${allJobs.length}`);
 
   return allJobs;
 }

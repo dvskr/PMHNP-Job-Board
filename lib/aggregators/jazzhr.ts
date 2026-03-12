@@ -10,7 +10,6 @@
  * No API key required. Free.
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 export interface JazzHRJobRaw {
     externalId: string;
@@ -76,7 +75,6 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
 
                 for (const job of jobsData) {
                     const title = job.title || '';
-                    if (!isRelevantJob(title, job.description || '')) continue;
 
                     const location = [job.city, job.state].filter(Boolean).join(', ') || 'United States';
                     const applyLink = `https://${company.slug}.applytojob.com/apply/${job.id}`;
@@ -106,7 +104,6 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
             if (seen.has(applyLink)) continue;
             seen.add(applyLink);
 
-            if (!isRelevantJob(title, '')) continue;
 
             // Extract job ID from URL
             const idMatch = applyLink.match(/\/apply\/([a-zA-Z0-9]+)/);
@@ -131,7 +128,6 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
             if (seen.has(applyLink)) continue;
             seen.add(applyLink);
 
-            if (!isRelevantJob(title, '')) continue;
 
             const idMatch = applyLink.match(/\/apply\/([a-zA-Z0-9]+)/);
             const jobId = idMatch ? idMatch[1] : title.replace(/\s+/g, '-').toLowerCase();

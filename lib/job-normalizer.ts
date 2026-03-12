@@ -398,6 +398,8 @@ const SOURCE_CONFIGS: Record<string, Partial<SourceFieldConfig>> = {
   icims: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
   jazzhr: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
   workday: { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  'fantastic-jobs-db': { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
+  'ats-jobs-db': { employer: ['company', 'employer'], datePosted: ['postedDate'], defaultEmployer: 'Company Not Listed', defaultLocation: 'United States' },
 };
 
 function getConfig(source: string): SourceFieldConfig {

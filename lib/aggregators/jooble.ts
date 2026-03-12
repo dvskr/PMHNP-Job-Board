@@ -1,7 +1,5 @@
 // Jooble API aggregator for PMHNP jobs
 
-import { isRelevantJob } from '../utils/job-filter';
-
 interface JoobleJob {
   title: string;
   location: string;
@@ -94,6 +92,7 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
             keywords: keyword,
             location: 'United States',
             page: page,
+            datecreatedfrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7-day lookback
           }),
         });
 
@@ -108,10 +107,6 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
           if (!seenIds.has(job.id)) {
             seenIds.add(job.id);
 
-            // Strict relevance filter — drop non-PMHNP jobs early
-            if (!isRelevantJob(job.title, job.snippet || '')) {
-              continue;
-            }
 
             // Parse salary string
             // [KEEP EXISTING SALARY PARSING LOGIC]

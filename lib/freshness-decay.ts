@@ -34,14 +34,23 @@ export function calculateFreshnessScore(originalPostedAt: Date | null, createdAt
  * Uses updatedAt (last renewal date) — if a job is still appearing in source
  * APIs (and thus being renewed), it should stay published.
  * 
- * External jobs: unpublish if not renewed/seen for 90 days
+ * Also checks expiresAt as a safety net: if expiresAt is still in the future,
+ * the job was recently renewed enough to have a valid expiry, so keep it alive.
+ * 
+ * External jobs: unpublish if not renewed/seen for 90 days AND expiresAt is past
  * Employer jobs: keep until expiresAt (they paid for the listing)
  */
-export function shouldUnpublish(updatedAt: Date, sourceType: string): boolean {
+export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?: Date | null): boolean {
   try {
     // Employer-posted jobs should not be auto-unpublished
     // They have their own expiry logic based on expiresAt
     if (sourceType === 'employer' || sourceType === 'direct') {
+      return false;
+    }
+
+    // Safety net: if expiresAt is still in the future, the job was renewed
+    // recently enough to have a valid expiry — don't unpublish yet
+    if (expiresAt && expiresAt.getTime() > Date.now()) {
       return false;
     }
 
@@ -102,6 +111,7 @@ export async function applyFreshnessDecay(): Promise<{
           city: true,
           state: true,
           qualityScore: true,
+          expiresAt: true,
         },
         take: BATCH_SIZE,
         skip,
@@ -114,7 +124,8 @@ export async function applyFreshnessDecay(): Promise<{
           // Check if job should be unpublished (not renewed for 90 days)
           const shouldUnpub = shouldUnpublish(
             job.updatedAt,
-            job.sourceType || 'external'
+            job.sourceType || 'external',
+            job.expiresAt
           );
 
           if (shouldUnpub) {

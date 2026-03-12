@@ -1,4 +1,3 @@
-import { isRelevantJob } from '../utils/job-filter';
 
 interface USAJobsPosition {
   PositionID: string;
@@ -143,10 +142,17 @@ export async function fetchUSAJobs(): Promise<USAJobRaw[]> {
     try {
       // Fetch up to 5 pages per keyword (100 results per page = 500 max per keyword)
       for (let page = 0; page < 5; page++) {
+        // Calculate 7-day lookback date range for DatePosted filter
+        const now = new Date();
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const formatDate = (d: Date) => `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+        const dateRange = `${formatDate(sevenDaysAgo)}-${formatDate(now)}`;
+
         const params = new URLSearchParams({
           Keyword: keyword,
           ResultsPerPage: '100',
           Page: page.toString(),
+          DatePosted: dateRange, // 7-day lookback
         });
 
         const response = await fetch(`${baseUrl}?${params.toString()}`, {
@@ -182,11 +188,6 @@ export async function fetchUSAJobs(): Promise<USAJobRaw[]> {
           }
           seenIds.add(positionId);
 
-          // Strict relevance filter — drop non-PMHNP jobs early
-          const jobDescription = item.MatchedObjectDescriptor.UserArea?.Details?.JobSummary || '';
-          if (!isRelevantJob(job.PositionTitle, jobDescription)) {
-            continue;
-          }
 
           const remuneration = job.PositionRemuneration?.[0];
           const locations = job.PositionLocation || [];
