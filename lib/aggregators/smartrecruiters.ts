@@ -7,7 +7,6 @@
  * No API key required. Free and unlimited.
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 interface SmartRecruitersPosting {
     id: string;
@@ -106,12 +105,8 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
 
             if (postings.length === 0) break;
 
-            // Pre-filter: check title for PMHNP relevance before fetching descriptions
             for (const posting of postings) {
-                const titleRelevant = isRelevantJob(posting.name, '');
-
-                if (titleRelevant) {
-                    // Fetch full description for relevant jobs
+                    // Fetch full description for all jobs
                     const description = await fetchJobDescription(company.slug, posting.id);
 
                     const locationParts = [
@@ -134,7 +129,6 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
                     });
 
                     await sleep(100); // Rate limit between detail requests
-                }
             }
 
             offset += postings.length;

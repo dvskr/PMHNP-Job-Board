@@ -8,7 +8,6 @@
  * No API key required. Free and unlimited.
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 interface WorkdayCompany {
     slug: string;
@@ -70,7 +69,7 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'chaptershealth', instance: 5, site: 'jobs', name: 'Chapters Health System' },
     { slug: 'cincinnatichildrens', instance: 5, site: 'careersatcincinnatichildrens', name: "Cincinnati Children's" },
     { slug: 'ccf', instance: 1, site: 'ClevelandClinicCareers', name: 'Cleveland Clinic' },
-    { slug: 'cookchildrens', instance: 1, site: 'Careers', name: "Cook Children's" },
+    // REMOVED 2026-03-11 — Dead (HTTP 404): Cook Children's
     { slug: 'spectrumhealth', instance: 5, site: 'CorewellHealthCareers', name: 'Corewell Health' },
     { slug: 'coxhealth', instance: 5, site: 'CoxHealth_External', name: 'CoxHealth' },
     { slug: 'davita', instance: 1, site: 'DKC_External', name: 'DaVita' },
@@ -126,9 +125,8 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'crossoverhealth', instance: 1, site: 'careers', name: 'Crossover Health' },
     { slug: 'devoted', instance: 1, site: 'devoted', name: 'Devoted Health' },
     { slug: 'evolent', instance: 1, site: 'External', name: 'Evolent Health' },
-    { slug: 'cwi', instance: 1, site: 'External', name: "Children's Wisconsin" },
+    // REMOVED 2026-03-11 — Dead (HTTP 404): Children's Wisconsin, St. Jude
     { slug: 'sharecare', instance: 1, site: 'sharecare_careers', name: 'Sharecare' },
-    { slug: 'stjude', instance: 1, site: 'External', name: "St. Jude Children's Research Hospital" },
     { slug: 'tuftsmedicine', instance: 1, site: 'jobs', name: 'Tufts Medicine' },
     { slug: 'umchealthsystem', instance: 1, site: 'External', name: 'UMC Health System (Lubbock)' },
 
@@ -150,17 +148,7 @@ const WORKDAY_COMPANIES: WorkdayCompany[] = [
     { slug: 'brightli', instance: 5, site: 'BrightliTalent', name: 'Brightli' },
     { slug: 'thriveworks', instance: 5, site: 'Thriveworks', name: 'Thriveworks' },
 
-    // === ADDED 2026-03-10 — Phase 3 expansion (major health systems + behavioral health) ===
-    { slug: 'hca', instance: 1, site: 'HCA_Careers', name: 'HCA Healthcare' },
-    { slug: 'commonspirit', instance: 5, site: 'FY22CommonSpiritCareers', name: 'CommonSpirit Health' },
-    { slug: 'kaiser', instance: 12, site: 'External', name: 'Kaiser Permanente' },
-    { slug: 'universalhealth', instance: 1, site: 'uhsinccareers', name: 'Universal Health Services' },
-    { slug: 'acadia', instance: 1, site: 'careers', name: 'Acadia Healthcare' },
-    { slug: 'wellpath', instance: 12, site: 'External', name: 'Wellpath' },
-    { slug: 'telecarecorp', instance: 1, site: 'careers', name: 'Telecare Corporation' },
-    { slug: 'providentphysicainc', instance: 5, site: 'careers', name: 'Providence' },
-    { slug: 'ascension', instance: 1, site: 'external', name: 'Ascension' },
-    { slug: 'tenet', instance: 1, site: 'tenetcareers', name: 'Tenet Healthcare' },
+    // REMOVED 2026-03-11 — Dead (HTTP 422): HCA, CommonSpirit, Kaiser, UHS, Acadia, Wellpath, Telecare, Providence, Ascension, Tenet
 
     // === ADDED 2026-03-11 — Mined from ats-jobs-db apply links in production DB ===
     { slug: 'benefis', instance: 1, site: 'BHS', name: 'Benefis Health System' },
@@ -273,8 +261,6 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
                     const description = await fetchJobDescription(company, posting.externalPath);
                     await sleep(200); // Be polite
 
-                    // Final relevance filter
-                    if (!isRelevantJob(posting.title, description)) continue;
 
                     allJobs.push({
                         externalId: `workday-${company.slug}-${jobId}`,

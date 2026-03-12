@@ -3,15 +3,15 @@
  * 
  * High-quality job data from 120,000+ organizations across 50+ ATS platforms.
  * Direct employer apply links — no redirects.
- * Refreshed hourly. Pro plan: 5,000 jobs/mo, 2,500 requests/mo.
+ * Refreshed hourly. Ultra plan: 20,000 jobs/mo, 20,000 requests/mo, 5 req/sec.
  * 
  * API: https://active-jobs-db.p.rapidapi.com
- * Endpoint: /active-ats-7d (jobs from last 7 days)
+ * Endpoint: /active-ats-6m (jobs from last 6 months — backfill)
  * 
  * Added: 2026-03-11 — replacing JSearch ($75/mo, avg quality 5.8)
+ * Upgraded to Ultra plan: 2026-03-11 — unlocks 6-month backfill, expired jobs, hourly firehose
  */
 
-import { isRelevantJob } from '../utils/job-filter';
 
 // API response structure (derived/enriched fields)
 interface FantasticJobApiResponse {
@@ -35,9 +35,9 @@ interface FantasticJobApiResponse {
     remote_derived: boolean;
     domain_derived: string | null;
     // AI-enriched fields
-    ai_employment_type: string | null;
-    ai_work_arrangement: string | null;
-    employment_type: string | null;
+    ai_employment_type: unknown;
+    ai_work_arrangement: unknown;
+    employment_type: unknown;
 }
 
 export interface FantasticJobOutput {
@@ -54,23 +54,35 @@ export interface FantasticJobOutput {
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const API_HOST = 'active-jobs-db.p.rapidapi.com';
+// Production: 7-day endpoint — backfill is complete, daily cron only needs fresh jobs
 const BASE_URL = `https://${API_HOST}/active-ats-7d`;
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 100;  // 7d endpoint default limit
 
 // PMHNP-specific search filters using the API's title_filter syntax
 // Uses OR operator (|) to search across multiple title variations in one request
+// Expanded to catch every possible PMHNP job title variation
 const TITLE_FILTERS = [
-    'PMHNP | Psychiatric Nurse Practitioner | Psychiatric Mental Health',
-    'Psych NP | Behavioral Health NP | Mental Health NP',
-    'Psychiatric APRN | Telepsychiatry | Psychiatric Prescriber',
+    // Core PMHNP titles
+    'PMHNP | Psychiatric Nurse Practitioner | Psychiatric Mental Health Nurse',
+    // Behavioral/Mental Health NP variations
+    'Psych NP | Behavioral Health NP | Mental Health NP | Mental Health Nurse Practitioner',
+    // APRN and prescriber titles
+    'Psychiatric APRN | APRN Psychiatry | Psychiatric Prescriber | Psych APRN',
+    // Telepsychiatry and hybrid titles
+    'Telepsychiatry | Tele Psychiatry | Psych Nurse | Psychiatric Nurse',
+    // Broader mental health NP searches
+    'Mental Health Nurse | Behavioral Health Nurse Practitioner | Mental Health Provider',
+    // Medication management and outpatient psych
+    'Psychiatric Medication | Outpatient Psychiatry NP | Psych Medication Management',
 ];
 
 // ── Budget Protection ──
-// Pro plan: 2,500 requests/month
-// 3 filters × 12 pages = 36 requests/run × 2 runs/day × 30 days = 2,160 req/month (86% of budget)
-const MAX_PAGES_PER_FILTER = 12;
-const MAX_REQUESTS_PER_RUN = 40;   // hard cap per cron invocation
-const MIN_REMAINING_BUFFER = 200;  // stop if API reports fewer than this remaining
+// Ultra plan: 20,000 requests/month, 5 req/sec
+// 6 filters × 50 pages max = 300 requests/run × 1 run/day × 30 days = 9,000 (well within budget)
+// 7-day endpoint has much less data per filter, 10 pages is plenty
+const MAX_PAGES_PER_FILTER = 10;
+const MAX_REQUESTS_PER_RUN = 500;  // hard cap per cron invocation
+const MIN_REMAINING_BUFFER = 2000; // stop if API reports fewer than this remaining
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -94,8 +106,11 @@ function formatLocation(job: FantasticJobApiResponse): string {
 }
 
 function mapEmploymentType(job: FantasticJobApiResponse): string | null {
-    const t = job.ai_employment_type || job.employment_type;
-    if (!t) return null;
+    const raw = job.ai_employment_type || job.employment_type;
+    if (!raw) return null;
+    // API can return arrays or objects — coerce to string safely
+    const t = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : String(raw);
+    if (!t || typeof t !== 'string') return null;
     const lower = t.toLowerCase();
     if (lower.includes('full')) return 'Full-time';
     if (lower.includes('part')) return 'Part-time';
@@ -192,7 +207,6 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
                 seenUrls.add(jobKey);
 
                 // Apply PMHNP relevance filter
-                if (!isRelevantJob(job.title, job.description || '')) continue;
 
                 allJobs.push({
                     externalId: `fantasticjobs-${job.source || 'unknown'}-${job.id}`,
@@ -210,8 +224,8 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
             hasMore = jobs.length === PAGE_SIZE;
             offset += PAGE_SIZE;
 
-            // Rate limiting — be polite (free tier: 1000 req/hour)
-            await sleep(500);
+            // Rate limiting — Ultra plan: 5 req/sec
+            await sleep(200);
         }
 
         console.log(`[Fantastic-Jobs-DB] Filter "${titleFilter.substring(0, 40)}...": ${allJobs.length} PMHNP jobs found (${totalApiCalls} API calls)`);

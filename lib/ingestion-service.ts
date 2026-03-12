@@ -165,8 +165,8 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       });
     }
 
-    const MAX_JOB_AGE_MS = 60 * 24 * 60 * 60 * 1000; // 60-day lifetime cap (PMHNP jobs >60d are almost certainly filled)
-    const RENEWAL_EXTENSION_MS = 14 * 24 * 60 * 60 * 1000; // 14-day renewal window (if source stops returning, die quick)
+    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap (aligned with cleanup hard cap — PMHNP positions often stay open 3-4 months)
+    const RENEWAL_EXTENSION_MS = 30 * 24 * 60 * 60 * 1000; // 30-day renewal window (tolerates source API hiccups without losing valid jobs)
     let expiredByAge = 0;
 
     // Helper to renew a job (Auto-Renewal) — with max-age cap + manual unpublish guard
@@ -181,13 +181,24 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           return; // Skip — admin intentionally hid this job
         }
 
-        // Enforce max-age cap: if originalPostedAt > 60 days ago, unpublish instead
+        // Enforce max-age cap: if originalPostedAt > 120 days ago, unpublish instead
         if (existingPostedAt) {
           const ageMs = Date.now() - new Date(existingPostedAt).getTime();
           if (ageMs > MAX_JOB_AGE_MS) {
             await prisma.job.update({
               where: { id },
               data: { isPublished: false },
+            });
+            // Track age-expired for analysis
+            rejectedJobs.push({
+              title: title,
+              employer: null,
+              location: null,
+              applyLink: null,
+              externalId: null,
+              sourceProvider: source,
+              rejectionReason: 'renewal_age_expired',
+              rawData: { jobId: id, ageDays: Math.round(ageMs / (24 * 60 * 60 * 1000)) } as object,
             });
             expiredByAge++;
             return;
@@ -265,6 +276,18 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           const existing = existingJobsMap.get(normalizedJob.externalId)!;
           await renewJob(existing.id, normalizedJob.title, existing.originalPostedAt);
 
+          // Track duplicate for analysis
+          rejectedJobs.push({
+            title: normalizedJob.title,
+            employer: normalizedJob.employer || null,
+            location: normalizedJob.location || null,
+            applyLink: normalizedJob.applyLink || null,
+            externalId: normalizedJob.externalId || null,
+            sourceProvider: source,
+            rejectionReason: 'duplicate_externalid',
+            rawData: { matchedJobId: existing.id } as object,
+          });
+
           duplicates++; // Count as duplicate (it IS a duplicate, just renewed)
           continue;
         }
@@ -289,6 +312,18 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
             });
             await renewJob(dupCheck.matchedJobId, normalizedJob.title, matchedJob?.originalPostedAt);
           }
+
+          // Track duplicate for analysis
+          rejectedJobs.push({
+            title: normalizedJob.title,
+            employer: normalizedJob.employer || null,
+            location: normalizedJob.location || null,
+            applyLink: normalizedJob.applyLink || null,
+            externalId: normalizedJob.externalId || null,
+            sourceProvider: source,
+            rejectionReason: `duplicate_${dupCheck.matchType || 'fuzzy'}`,
+            rawData: { matchedJobId: dupCheck.matchedJobId, matchType: dupCheck.matchType } as object,
+          });
 
           duplicates++;
           continue;
