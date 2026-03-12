@@ -676,9 +676,18 @@ export default async function JobPage({ params }: JobPageProps) {
                   <ReportJobButton jobId={job.id} jobTitle={job.title} />
                 </div>
 
-                {/* Badges Row - Top */}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '40px' }}>{job.title}</h1>
+                {companyInfo ? (
+                  <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl mb-3 font-medium inline-block hover:text-teal-600 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                    {job.employer}
+                  </Link>
+                ) : (
+                  <p className="text-lg sm:text-xl mb-3 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
+                )}
+
+                {/* Badges Row - Below employer */}
                 {(job.isFeatured || job.isVerifiedEmployer) && (
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', paddingRight: '50px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                     {job.isFeatured && (
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -699,15 +708,6 @@ export default async function JobPage({ params }: JobPageProps) {
                       </span>
                     )}
                   </div>
-                )}
-
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '50px' }}>{job.title}</h1>
-                {companyInfo ? (
-                  <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl mb-4 font-medium inline-block hover:text-teal-600 transition-colors" style={{ color: 'var(--text-secondary)' }}>
-                    {job.employer}
-                  </Link>
-                ) : (
-                  <p className="text-lg sm:text-xl mb-4 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
                 )}
 
                 {/* Salary */}
