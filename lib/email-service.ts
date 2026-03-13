@@ -151,9 +151,7 @@ export function headerBlock(title: string, subtitle: string = ''): string {
   return `
           <tr>
             <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <div style="width: 64px; height: 64px; margin: 0 auto 14px; background-color: #FFFFFF; border-radius: 50%; padding: 2px;">
-                <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; border-radius: 50%;" />
-              </div>
+              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
               <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
                 ${title}
               </h1>
@@ -166,9 +164,7 @@ function amberHeader(title: string, subtitle: string = ''): string {
   return `
           <tr>
             <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <div style="width: 64px; height: 64px; margin: 0 auto 14px; background-color: #FFFFFF; border-radius: 50%; padding: 2px;">
-                <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; border-radius: 50%;" />
-              </div>
+              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
               <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
                 ${title}
               </h1>
@@ -238,7 +234,7 @@ function featureRow(icon: string, title: string, desc: string): string {
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr>
           <td width="40" valign="top" style="padding-right: 12px;">
-            <div style="width: 36px; height: 36px; background-color: ${C.bgCardAlt}; border-radius: 10px; text-align: center; line-height: 36px; font-size: 18px; border: 1px solid ${C.borderLight};">${icon}</div>
+            <div style="width: 36px; height: 36px; background-color: ${C.bgCardAlt}; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: bold; color: ${C.teal}; border: 1px solid ${C.borderLight};">${icon}</div>
           </td>
           <td valign="top">
             <p style="margin: 0; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">${title}</p>
@@ -329,9 +325,9 @@ export async function sendSignupWelcomeEmail(
                 Your employer account is ready. Start posting jobs and connect with qualified PMHNPs nationwide.
               </p>
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('📋', 'Post in Minutes', 'Create and publish job listings with our guided form')}
-                ${featureRow('👥', 'Reach PMHNPs', 'Your listing is seen by 10,000+ qualified candidates')}
-                ${featureRow('📊', 'Track Everything', 'View counts, apply clicks, and applicant analytics')}
+                ${featureRow('+', 'Post in Minutes', 'Create and publish job listings with our guided form')}
+                ${featureRow('&gt;', 'Reach PMHNPs', 'Your listing is seen by 10,000+ qualified candidates')}
+                ${featureRow('&#9776;', 'Track Everything', 'View counts, apply clicks, and applicant analytics')}
               </table>
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr class="stack">
@@ -349,9 +345,9 @@ export async function sendSignupWelcomeEmail(
                 Welcome to the #1 job board built exclusively for Psychiatric Mental Health Nurse Practitioners.
               </p>
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('🔍', 'Browse 10,000+ Jobs', 'Remote, travel, full-time, per diem — all PMHNP specialties')}
-                ${featureRow('🔔', 'Smart Alerts', 'Get notified instantly when matching jobs are posted')}
-                ${featureRow('📄', 'One-Click Apply', 'Save jobs, track applications, and apply fast')}
+                ${featureRow('&#10003;', 'Browse 10,000+ Jobs', 'Remote, travel, full-time, per diem &mdash; all PMHNP specialties')}
+                ${featureRow('&#9993;', 'Smart Alerts', 'Get notified instantly when matching jobs are posted')}
+                ${featureRow('&#9889;', 'One-Click Apply', 'Save jobs, track applications, and apply fast')}
               </table>
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr class="stack">
@@ -368,10 +364,10 @@ export async function sendSignupWelcomeEmail(
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 32px; border-top: 1px solid ${C.borderLight};">
                 <tr>
                   <td style="padding-top: 28px;">
-                    <p style="margin: 0 0 6px; font-family: ${F}; font-size: 13px; font-weight: bold; color: ${C.teal}; text-transform: uppercase; letter-spacing: 1px;">🎁 FREE BONUS</p>
+                    <p style="margin: 0 0 6px; font-family: ${F}; font-size: 13px; font-weight: bold; color: ${C.teal}; text-transform: uppercase; letter-spacing: 1px;">&#9733; FREE BONUS</p>
                     <p style="margin: 0 0 12px; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">2026 PMHNP Salary Guide</p>
                     <p style="margin: 0 0 16px; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.6;">Salary ranges by state · Remote vs in-person pay · Negotiation tips</p>
-                    ${primaryButton('📊 Download Salary Guide (PDF)', SALARY_GUIDE_URL)}
+                    ${primaryButton('Download Salary Guide (PDF)', SALARY_GUIDE_URL)}
                   </td>
                 </tr>
               </table>`;
