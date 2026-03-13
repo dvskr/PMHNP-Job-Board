@@ -223,15 +223,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send welcome email alongside the confirmation email
-    // Users will get both emails during signup — this is standard practice
-    try {
-      await sendSignupWelcomeEmail(email, firstName || '', role)
-      logger.info('Welcome email sent during signup', { email, role })
-    } catch (emailError) {
-      // Don't fail signup if email fails
-      logger.error('Failed to send welcome email', emailError)
-    }
+    // Welcome email is sent after email confirmation, not during signup
 
     return NextResponse.json(profile)
   } catch (error) {
