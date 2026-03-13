@@ -125,24 +125,16 @@ export async function GET(request: Request) {
             console.error('Failed to create auto job alert for Google user', e)
           }
         }
-      } // end of if (!existingProfile)
 
-      // Send welcome email — user has now confirmed their email
-      // This runs for BOTH new profiles (Google OAuth) and existing profiles (email signup confirmation)
-      if (data.user.email) {
+        // Send welcome email for first-time Google OAuth users only
         try {
-          const profile = existingProfile || await prisma.userProfile.findUnique({
-            where: { supabaseId: data.user.id }
-          })
-          const metadata = data.user.user_metadata || {}
-          const userRole = profile?.role || metadata.role || 'job_seeker'
-          const userName = profile?.firstName || metadata.first_name || ''
-          await sendSignupWelcomeEmail(data.user.email, userName, userRole)
-          console.log('Welcome email sent after email confirmation', { email: data.user.email, role: userRole })
+          const userRole = metadata.role || 'job_seeker'
+          await sendSignupWelcomeEmail(data.user.email, firstName || '', userRole)
+          console.log('Welcome email sent for new Google OAuth user', { email: data.user.email })
         } catch (emailError) {
           console.error('Failed to send welcome email', emailError)
         }
-      }
+      } // end of if (!existingProfile)
     } catch (profileError) {
       // Don't block login if profile creation fails
       console.error('Auth callback: profile creation error', profileError)
