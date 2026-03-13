@@ -78,9 +78,7 @@ export async function POST(request: NextRequest) {
           <!-- Header -->
           <tr>
             <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid #1E293B;">
-              <div style="width: 64px; height: 64px; margin: 0 auto 14px; background-color: #FFFFFF; border-radius: 50%; padding: 2px;">
-                <img src="${BASE_URL}/logo.png" width="60" height="60" alt="PMHNP Hiring" style="display: block; width: 60px; height: 60px; border-radius: 50%;" />
-              </div>
+              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
               <h1 style="margin: 0; font-size: 22px; font-weight: bold; color: #F1F5F9; line-height: 1.3;">
                 Confirm Your Email
               </h1>
