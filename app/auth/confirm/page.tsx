@@ -8,7 +8,11 @@ import { createClient } from '@/lib/supabase/client'
  * /auth/confirm
  * 
  * Client-side page that handles Supabase hash fragment redirects.
- * This handles:
+ * @supabase/ssr browser client does NOT auto-detect hash fragments,
+ * so we manually extract access_token and refresh_token from the URL hash
+ * and call setSession() to establish the auth session.
+ * 
+ * Handles:
  * - Magic link confirmations (#access_token=...&type=magiclink)
  * - Password reset links (#access_token=...&type=recovery)
  * 
@@ -17,59 +21,75 @@ import { createClient } from '@/lib/supabase/client'
 export default function AuthConfirmPage() {
   const router = useRouter()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [message, setMessage] = useState('Confirming your email...')
+  const [message, setMessage] = useState('Confirming your account...')
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        const supabase = createClient()
+        const hash = window.location.hash.substring(1) // remove '#'
+        if (!hash) {
+          console.log('No hash fragment found, redirecting to login')
+          setStatus('error')
+          setMessage('Invalid or expired link. Redirecting to login...')
+          setTimeout(() => router.push('/login'), 2000)
+          return
+        }
 
-        // Supabase client automatically reads the hash fragment
-        // and exchanges it for a session
-        const { data: { session }, error } = await supabase.auth.getSession()
+        // Parse the hash fragment
+        const params = new URLSearchParams(hash)
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        const type = params.get('type')
+        const errorParam = params.get('error')
+        const errorDescription = params.get('error_description')
+
+        console.log('Auth confirm - type:', type, 'hasAccessToken:', !!accessToken, 'error:', errorParam)
+
+        if (errorParam) {
+          console.error('Auth error from hash:', errorParam, errorDescription)
+          setStatus('error')
+          setMessage(errorDescription?.replace(/\+/g, ' ') || 'Authentication failed. Please try again.')
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        if (!accessToken || !refreshToken) {
+          console.error('Missing tokens in hash fragment')
+          setStatus('error')
+          setMessage('Invalid authentication link. Please request a new one.')
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        // Set the session using the tokens from the hash
+        const supabase = createClient()
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
 
         if (error) {
-          console.error('Auth confirm error:', error.message)
+          console.error('Failed to set session:', error.message)
           setStatus('error')
-          setMessage('Something went wrong. Please try again.')
+          setMessage('Session expired or invalid. Please try again.')
           setTimeout(() => router.push('/login'), 3000)
           return
         }
 
-        if (session) {
-          // Check the auth event type from the hash fragment
-          const hash = window.location.hash
-          const isRecovery = hash.includes('type=recovery')
+        console.log('Session set successfully, type:', type, 'user:', data.session?.user?.email)
 
-          if (isRecovery) {
-            // Password reset — redirect to reset password page
-            setMessage('Redirecting to reset password...')
-            setStatus('success')
-            router.push('/reset-password')
-            return
-          }
-
-          // Magic link / email confirmation — user is logged in
-          setMessage('Email confirmed! Redirecting to dashboard...')
+        // Handle different auth types
+        if (type === 'recovery') {
+          setMessage('Verified! Redirecting to reset password...')
           setStatus('success')
-          setTimeout(() => router.push('/dashboard'), 1500)
+          router.push('/reset-password')
           return
         }
 
-        // No session — might be a confirmation-only link
-        // Check if the hash has error or access_denied
-        const hash = window.location.hash
-        if (hash.includes('error')) {
-          setStatus('error')
-          setMessage('This link has expired or is invalid. Please request a new one.')
-          setTimeout(() => router.push('/login'), 3000)
-          return
-        }
-
-        // No session, no error — just redirect to login
-        setMessage('Email confirmed! Please log in.')
+        // Magic link / email confirmation — user is now logged in
+        setMessage('Email confirmed! Redirecting to dashboard...')
         setStatus('success')
-        setTimeout(() => router.push('/login?message=email_confirmed'), 2000)
+        setTimeout(() => router.push('/dashboard'), 1500)
       } catch (err) {
         console.error('Auth confirm unexpected error:', err)
         setStatus('error')
@@ -78,8 +98,7 @@ export default function AuthConfirmPage() {
       }
     }
 
-    // Small delay to let Supabase client initialize and read hash
-    setTimeout(handleAuth, 500)
+    handleAuth()
   }, [router])
 
   return (
