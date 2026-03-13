@@ -26,9 +26,49 @@ export default function AuthConfirmPage() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
+        const supabase = createClient()
+
+        // --- Strategy 1: PKCE flow (code in query params) ---
+        // @supabase/ssr uses PKCE by default. Supabase's verify endpoint
+        // redirects with ?code=xxx in the query string after validating the token.
+        const urlParams = new URLSearchParams(window.location.search)
+        const code = urlParams.get('code')
+
+        if (code) {
+          console.log('Auth confirm - exchanging PKCE code for session')
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (error) {
+            console.error('Failed to exchange code:', error.message)
+            setStatus('error')
+            setMessage('Invalid or expired link. Please request a new one.')
+            setTimeout(() => router.push('/login'), 3000)
+            return
+          }
+
+          // Determine type from the session metadata
+          const isRecovery = data.session?.user?.recovery_sent_at || 
+            urlParams.get('type') === 'recovery'
+
+          if (isRecovery) {
+            setMessage('Verified! Redirecting to reset password...')
+            setStatus('success')
+            router.push('/reset-password')
+            return
+          }
+
+          // Email confirmation — user is now logged in
+          setMessage('Email confirmed! Redirecting to dashboard...')
+          setStatus('success')
+          setTimeout(() => router.push('/dashboard'), 1500)
+          return
+        }
+
+        // --- Strategy 2: Implicit flow (tokens in hash fragment) ---
+        // Fallback for admin-generated links (e.g. /api/auth/send-confirmation)
         const hash = window.location.hash.substring(1) // remove '#'
         if (!hash) {
-          console.log('No hash fragment found, redirecting to login')
+          console.log('No code or hash fragment found, redirecting to login')
           setStatus('error')
           setMessage('Invalid or expired link. Redirecting to login...')
           setTimeout(() => router.push('/login'), 2000)
@@ -62,7 +102,6 @@ export default function AuthConfirmPage() {
         }
 
         // Set the session using the tokens from the hash
-        const supabase = createClient()
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
