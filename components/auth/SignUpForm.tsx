@@ -98,19 +98,6 @@ export default function SignUpForm() {
           }),
         })
 
-        // Send confirmation email via Resend (hello@ — the working one)
-        if (!data.session) {
-          try {
-            await fetch('/api/auth/send-confirmation', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: data.user.email }),
-            })
-          } catch {
-            // Don't block signup if email fails
-          }
-        }
-
         setSuccess(true)
 
         if (data.session) {
