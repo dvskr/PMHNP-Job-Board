@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 import { verifyCsrf } from '@/lib/csrf'
@@ -223,16 +222,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send welcome email only for new signups (not updates)
-    if (!existingProfile) {
-      try {
-        await sendSignupWelcomeEmail(email, firstName || '', role || 'job_seeker')
-        logger.info('Welcome email sent to new user', { email, role })
-      } catch (emailError) {
-        // Don't fail signup if email fails
-        logger.error('Failed to send welcome email', emailError)
-      }
-    }
+    // NOTE: Welcome email is NOT sent here.
+    // It is sent in /auth/callback/route.ts AFTER the user confirms their email.
+    // This prevents sending welcome emails to unconfirmed accounts.
 
     return NextResponse.json(profile)
   } catch (error) {

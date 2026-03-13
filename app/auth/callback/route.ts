@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { syncToBeehiiv } from '@/lib/beehiiv'
+import { sendSignupWelcomeEmail } from '@/lib/email-service'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -123,6 +124,15 @@ export async function GET(request: Request) {
           } catch (e) {
             console.error('Failed to create auto job alert for Google user', e)
           }
+        }
+
+        // Send welcome email — user has now confirmed their email
+        try {
+          const userRole = metadata.role || 'job_seeker'
+          await sendSignupWelcomeEmail(data.user.email!, firstName || '', userRole)
+          console.log('Welcome email sent after email confirmation', { email: data.user.email, role: userRole })
+        } catch (emailError) {
+          console.error('Failed to send welcome email', emailError)
         }
       }
     } catch (profileError) {
