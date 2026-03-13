@@ -21,12 +21,12 @@ export default function LoginForm() {
     if (resendCooldown > 0 || !email) return
     setResendStatus('sending')
     try {
-      const supabase = createClient()
-      const { error: resendError } = await supabase.auth.resend({
-        type: 'signup',
-        email,
+      const res = await fetch('/api/auth/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       })
-      if (resendError) {
+      if (!res.ok) {
         setResendStatus('error')
       } else {
         setResendStatus('sent')

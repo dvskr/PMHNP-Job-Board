@@ -98,6 +98,20 @@ export default function SignUpForm() {
           }),
         })
 
+        // Send confirmation email via our own Resend endpoint
+        // (bypasses broken Supabase email delivery)
+        if (!data.session) {
+          try {
+            await fetch('/api/auth/send-confirmation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: data.user.email }),
+            })
+          } catch {
+            // Don't block signup if email fails
+          }
+        }
+
         setSuccess(true)
 
         if (data.session) {
@@ -128,12 +142,12 @@ export default function SignUpForm() {
     if (resendCooldown > 0) return
     setResendStatus('sending')
     try {
-      const supabase = createClient()
-      const { error: resendError } = await supabase.auth.resend({
-        type: 'signup',
-        email,
+      const res = await fetch('/api/auth/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       })
-      if (resendError) {
+      if (!res.ok) {
         setResendStatus('error')
       } else {
         setResendStatus('sent')
