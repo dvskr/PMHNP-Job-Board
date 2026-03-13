@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   // Rate limit: 3 requests per 5 minutes per IP
   const rateLimitResult = await rateLimit(request, 'sendConfirmation', {
     limit: 3,
-    window: 300,
+    windowSeconds: 300,
   })
   if (rateLimitResult) return rateLimitResult
 
