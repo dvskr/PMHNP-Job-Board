@@ -28,10 +28,27 @@ export default function AuthConfirmPage() {
       try {
         const supabase = createClient()
 
+        // --- Check for errors from Supabase (e.g. expired OTP) ---
+        const urlParams = new URLSearchParams(window.location.search)
+        const queryError = urlParams.get('error')
+        const queryErrorCode = urlParams.get('error_code')
+        const queryErrorDesc = urlParams.get('error_description')
+
+        if (queryError || queryErrorCode) {
+          console.error('Auth error from query params:', queryError, queryErrorCode, queryErrorDesc)
+          setStatus('error')
+          if (queryErrorCode === 'otp_expired') {
+            setMessage('This link has expired. Please request a new one.')
+          } else {
+            setMessage(queryErrorDesc?.replace(/\+/g, ' ') || 'Authentication failed. Please try again.')
+          }
+          setTimeout(() => router.push('/forgot-password'), 4000)
+          return
+        }
+
         // --- Strategy 1: PKCE flow (code in query params) ---
         // @supabase/ssr uses PKCE by default. Supabase's verify endpoint
         // redirects with ?code=xxx in the query string after validating the token.
-        const urlParams = new URLSearchParams(window.location.search)
         const code = urlParams.get('code')
 
         if (code) {
