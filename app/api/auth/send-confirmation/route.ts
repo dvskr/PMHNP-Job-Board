@@ -35,8 +35,10 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createAdminClient()
 
     // Generate the confirmation link via Supabase admin API
+    // Use 'magiclink' type — it generates a verification link
+    // that confirms the user's email when clicked
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'signup',
+      type: 'magiclink',
       email: normalizedEmail,
       options: {
         redirectTo: `${BASE_URL}/auth/callback`,
