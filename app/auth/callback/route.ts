@@ -24,6 +24,12 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
     }
 
+    // Password recovery: just exchange code and redirect, no profile setup
+    const type = requestUrl.searchParams.get('type')
+    if (type === 'recovery') {
+      return NextResponse.redirect(`${origin}/reset-password`)
+    }
+
     // Check if profile exists, create if not
     try {
       const existingProfile = await prisma.userProfile.findUnique({
