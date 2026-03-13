@@ -9,6 +9,10 @@ const MAX_JOBS_PER_RUN = 200; // Process up to 200 jobs per run
 const TIME_BUDGET_MS = 250_000; // 250s (Vercel 300s max)
 const BATCH_DELAY_MS = 200;
 
+// GPT-4o-mini pricing (per 1M tokens)
+const INPUT_COST_PER_1M = 0.15;  // $0.15 per 1M input tokens
+const OUTPUT_COST_PER_1M = 0.60; // $0.60 per 1M output tokens
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // US state name -> code mapping
@@ -40,6 +44,12 @@ interface LLMResult {
   benefits?: string[];
 }
 
+interface LLMResponse {
+  result: LLMResult | null;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 const SYSTEM_PROMPT = `You extract structured job posting data. Return JSON with ONLY fields you can CONFIDENTLY find. Never guess or fabricate.
 
 Fields:
@@ -60,7 +70,7 @@ Rules:
 - Salary must be $40k-$500k/yr range for PMHNP roles
 - Return {} if nothing found`;
 
-async function extractWithLLM(description: string, title: string, employer: string, location: string): Promise<LLMResult | null> {
+async function extractWithLLM(description: string, title: string, employer: string, location: string): Promise<LLMResponse> {
   try {
     const truncated = description.substring(0, 2500);
 
@@ -78,8 +88,11 @@ async function extractWithLLM(description: string, title: string, employer: stri
       max_tokens: 300,
     });
 
+    const inputTokens = response.usage?.prompt_tokens || 0;
+    const outputTokens = response.usage?.completion_tokens || 0;
+
     const content = response.choices[0]?.message?.content;
-    if (!content) return null;
+    if (!content) return { result: null, inputTokens, outputTokens };
 
     const parsed = JSON.parse(content);
 
@@ -90,9 +103,10 @@ async function extractWithLLM(description: string, title: string, employer: stri
       delete parsed.salary_period;
     }
 
-    return Object.keys(parsed).length > 0 ? parsed : null;
+    const result = Object.keys(parsed).length > 0 ? parsed : null;
+    return { result, inputTokens, outputTokens };
   } catch {
-    return null;
+    return { result: null, inputTokens: 0, outputTokens: 0 };
   }
 }
 
@@ -120,12 +134,13 @@ export async function GET(req: Request) {
     // Find published jobs that need enrichment:
     // - Have descriptions (>100 chars)
     // - Missing key data fields
-    // - Not yet enriched (no lastEnrichedAt) or enriched > 30 days ago
+    // - NOT already enriched (lastEnrichedAt is null)
     // - Order by newest first (enrich fresh jobs first)
     const jobs = await prisma.job.findMany({
       where: {
         isPublished: true,
         description: { not: '' },
+        lastEnrichedAt: null,  // Skip already-processed jobs
         OR: [
           { normalizedMinSalary: null },
           { jobType: null },
@@ -167,9 +182,10 @@ export async function GET(req: Request) {
     }
 
     const stats = {
-      processed: 0, salaryUpdated: 0, jobTypeUpdated: 0, modeUpdated: 0,
+      processed: 0, enriched: 0, salaryUpdated: 0, jobTypeUpdated: 0, modeUpdated: 0,
       cityUpdated: 0, stateUpdated: 0, settingUpdated: 0, populationUpdated: 0,
       expLevelUpdated: 0, benefitsUpdated: 0, errors: 0, noData: 0,
+      totalInputTokens: 0, totalOutputTokens: 0,
     };
 
     for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
@@ -184,8 +200,8 @@ export async function GET(req: Request) {
       const results = await Promise.allSettled(
         batch.map(async (job) => {
           if (!job.description || job.description.length < 100) return null;
-          const extracted = await extractWithLLM(job.description, job.title, job.employer, job.location);
-          return { job, extracted };
+          const llmResponse = await extractWithLLM(job.description, job.title, job.employer, job.location);
+          return { job, ...llmResponse };
         })
       );
 
@@ -193,12 +209,28 @@ export async function GET(req: Request) {
         stats.processed++;
         if (r.status === 'rejected' || !r.value) { stats.errors++; continue; }
 
-        const { job, extracted } = r.value;
-        if (!extracted) { stats.noData++; continue; }
+        const { job, result: extracted, inputTokens, outputTokens } = r.value;
 
-        // Build Prisma update data
+        // Track token usage
+        stats.totalInputTokens += inputTokens;
+        stats.totalOutputTokens += outputTokens;
+
+        // Build Prisma update data — ALWAYS set lastEnrichedAt to prevent re-processing
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateData: Record<string, any> = {};
+        const updateData: Record<string, any> = {
+          lastEnrichedAt: new Date(),
+        };
+
+        if (!extracted) {
+          // Even if no data found, mark as enriched so we don't re-process
+          stats.noData++;
+          try {
+            await prisma.job.update({ where: { id: job.id }, data: updateData });
+          } catch { /* ignore */ }
+          continue;
+        }
+
+        let fieldsUpdated = 0;
 
         // Salary (only if missing)
         if (extracted.salary_min && !job.normalizedMinSalary) {
@@ -215,12 +247,14 @@ export async function GET(req: Request) {
           const dispMax = `$${Math.round(max / 1000)}k`;
           updateData.displaySalary = `${dispMin} - ${dispMax}/yr`;
           stats.salaryUpdated++;
+          fieldsUpdated++;
         }
 
         // Job Type
         if (extracted.job_type && !job.jobType) {
           updateData.jobType = extracted.job_type;
           stats.jobTypeUpdated++;
+          fieldsUpdated++;
         }
 
         // Work Mode
@@ -233,12 +267,14 @@ export async function GET(req: Request) {
             updateData.isHybrid = true;
           }
           stats.modeUpdated++;
+          fieldsUpdated++;
         }
 
         // City
         if (extracted.city && !job.city) {
           updateData.city = extracted.city;
           stats.cityUpdated++;
+          fieldsUpdated++;
         }
 
         // State
@@ -249,35 +285,40 @@ export async function GET(req: Request) {
             updateData.stateCode = code;
           }
           stats.stateUpdated++;
+          fieldsUpdated++;
         }
 
         // Experience Level
         if (extracted.experience_level && !job.experienceLevel) {
           updateData.experienceLevel = extracted.experience_level;
           stats.expLevelUpdated++;
+          fieldsUpdated++;
         }
 
         // Clinical Setting
         if (extracted.clinical_setting && !job.setting) {
           updateData.setting = extracted.clinical_setting;
           stats.settingUpdated++;
+          fieldsUpdated++;
         }
 
         // Patient Population
         if (extracted.patient_population && !job.population) {
           updateData.population = extracted.patient_population;
           stats.populationUpdated++;
+          fieldsUpdated++;
         }
 
         // Benefits
         if (extracted.benefits && Array.isArray(extracted.benefits) && extracted.benefits.length > 0 && (!job.benefits || job.benefits.length === 0)) {
           updateData.benefits = extracted.benefits;
           stats.benefitsUpdated++;
+          fieldsUpdated++;
         }
 
-        if (Object.keys(updateData).length === 0) { stats.noData++; continue; }
+        if (fieldsUpdated > 0) stats.enriched++;
 
-        // Execute update
+        // Execute update (always writes lastEnrichedAt)
         try {
           await prisma.job.update({
             where: { id: job.id },
@@ -295,24 +336,38 @@ export async function GET(req: Request) {
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const estimatedCost = (
+      (stats.totalInputTokens / 1_000_000) * INPUT_COST_PER_1M +
+      (stats.totalOutputTokens / 1_000_000) * OUTPUT_COST_PER_1M
+    ).toFixed(4);
 
     const summary = {
       processed: stats.processed,
-      salary: stats.salaryUpdated,
-      jobType: stats.jobTypeUpdated,
-      mode: stats.modeUpdated,
-      city: stats.cityUpdated,
-      state: stats.stateUpdated,
-      setting: stats.settingUpdated,
-      population: stats.populationUpdated,
-      experienceLevel: stats.expLevelUpdated,
-      benefits: stats.benefitsUpdated,
-      noData: stats.noData,
+      enriched: stats.enriched,
+      noDataFound: stats.noData,
       errors: stats.errors,
+      fieldsUpdated: {
+        salary: stats.salaryUpdated,
+        jobType: stats.jobTypeUpdated,
+        mode: stats.modeUpdated,
+        city: stats.cityUpdated,
+        state: stats.stateUpdated,
+        setting: stats.settingUpdated,
+        population: stats.populationUpdated,
+        experienceLevel: stats.expLevelUpdated,
+        benefits: stats.benefitsUpdated,
+      },
+      gptUsage: {
+        model: 'gpt-4o-mini',
+        inputTokens: stats.totalInputTokens,
+        outputTokens: stats.totalOutputTokens,
+        totalTokens: stats.totalInputTokens + stats.totalOutputTokens,
+        estimatedCostUSD: `$${estimatedCost}`,
+      },
       elapsedSeconds: elapsed,
     };
 
-    console.log('[Enrich Jobs] Complete:', summary);
+    console.log('[Enrich Jobs] Complete:', JSON.stringify(summary, null, 2));
 
     return NextResponse.json({ success: true, ...summary });
   } catch (error) {

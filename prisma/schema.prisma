@@ -55,6 +55,7 @@ model Job {
   companyId           String?      @map("company_id")
   originalPostedAt    DateTime?    @map("original_posted_at")
   lastLinkCheckedAt   DateTime?    @map("last_link_checked_at")
+  lastEnrichedAt      DateTime?    @map("last_enriched_at")
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
   jobReports          JobReport[]
