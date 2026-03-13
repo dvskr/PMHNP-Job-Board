@@ -105,11 +105,8 @@ export async function POST(request: NextRequest) {
                 </tr>
               </table>
 
-              <p style="margin: 0 0 16px; font-size: 13px; color: #94A3B8; line-height: 1.6;">
-                If the button doesn't work, copy and paste this link into your browser:
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #2DD4BF; word-break: break-all; line-height: 1.5;">
-                ${confirmationUrl}
+              <p style="margin: 0; font-size: 13px; color: #94A3B8; line-height: 1.6;">
+                If the button doesn't work, try opening this email on a different device or browser.
               </p>
             </td>
           </tr>
