@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       type: 'magiclink',
       email: normalizedEmail,
       options: {
-        redirectTo: `${BASE_URL}/auth/callback`,
+        redirectTo: `${BASE_URL}/auth/confirm`,
       },
     })
 

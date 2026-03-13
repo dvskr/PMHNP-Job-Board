@@ -389,7 +389,7 @@ function SettingsPageInner() {
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        redirectTo: `${window.location.origin}/auth/confirm`,
       })
       if (error) {
         if (error.message?.includes('seconds') || error.message?.includes('rate limit')) {
