@@ -90,19 +90,6 @@ export default function EmployerSignUpForm() {
                     }),
                 })
 
-                // Send confirmation email via our own Resend endpoint
-                if (!data.session) {
-                  try {
-                    await fetch('/api/auth/send-confirmation', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ email: data.user.email }),
-                    })
-                  } catch {
-                    // Don't block signup if email fails
-                  }
-                }
-
                 setSuccess(true)
 
                 // If email confirmation is disabled/auto-confirmed, redirect to dashboard
