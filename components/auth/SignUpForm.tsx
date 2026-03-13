@@ -98,8 +98,7 @@ export default function SignUpForm() {
           }),
         })
 
-        // Send confirmation email via our own Resend endpoint
-        // (bypasses broken Supabase email delivery)
+        // Send confirmation email via Resend (hello@ — the working one)
         if (!data.session) {
           try {
             await fetch('/api/auth/send-confirmation', {
