@@ -9,6 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
+const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 interface EmailResult {
   success: boolean;
@@ -359,6 +360,18 @@ export async function sendSignupWelcomeEmail(
                   </td>
                   <td>
                     ${secondaryButton('Set Up Alerts', `${SITE_URL}/job-alerts`)}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Salary Guide Section -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 32px; border-top: 1px solid ${C.borderLight};">
+                <tr>
+                  <td style="padding-top: 28px;">
+                    <p style="margin: 0 0 6px; font-family: ${F}; font-size: 13px; font-weight: bold; color: ${C.teal}; text-transform: uppercase; letter-spacing: 1px;">🎁 FREE BONUS</p>
+                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">2026 PMHNP Salary Guide</p>
+                    <p style="margin: 0 0 16px; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.6;">Salary ranges by state · Remote vs in-person pay · Negotiation tips</p>
+                    ${primaryButton('📊 Download Salary Guide (PDF)', SALARY_GUIDE_URL)}
                   </td>
                 </tr>
               </table>`;

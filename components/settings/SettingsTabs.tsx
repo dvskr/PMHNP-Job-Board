@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
     User, Award, GraduationCap, Briefcase,
     ShieldCheck, MessageSquare, Users, Lock, Settings,
-    Building, CreditCard, Bell
+    Building, CreditCard, Bell, ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 const JOB_SEEKER_TABS = [
@@ -42,23 +42,75 @@ export const TABS = JOB_SEEKER_TABS
 
 export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Props) {
     const visibleTabs = isJobSeeker ? JOB_SEEKER_TABS : EMPLOYER_TABS
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const [showLeft, setShowLeft] = useState(false)
+    const [showRight, setShowRight] = useState(false)
+
+    const checkScroll = () => {
+        const el = scrollRef.current
+        if (!el) return
+        setShowLeft(el.scrollLeft > 4)
+        setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+    }
+
+    useEffect(() => {
+        checkScroll()
+        window.addEventListener('resize', checkScroll)
+        return () => window.removeEventListener('resize', checkScroll)
+    }, [])
+
+    const scroll = (dir: 'left' | 'right') => {
+        scrollRef.current?.scrollBy({ left: dir === 'left' ? -150 : 150, behavior: 'smooth' })
+    }
 
     return (
         <div style={{ position: 'relative', marginBottom: '24px' }}>
+            {/* Left fade + arrow */}
+            {showLeft && (
+                <button
+                    onClick={() => scroll('left')}
+                    aria-label="Scroll tabs left"
+                    style={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0, zIndex: 2,
+                        width: '32px', border: 'none', cursor: 'pointer',
+                        background: 'linear-gradient(90deg, var(--bg-primary, #0a0f1a) 40%, transparent)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#2DD4BF',
+                    }}
+                >
+                    <ChevronLeft size={16} />
+                </button>
+            )}
+            {/* Right fade + arrow */}
+            {showRight && (
+                <button
+                    onClick={() => scroll('right')}
+                    aria-label="Scroll tabs right"
+                    style={{
+                        position: 'absolute', right: 0, top: 0, bottom: 0, zIndex: 2,
+                        width: '32px', border: 'none', cursor: 'pointer',
+                        background: 'linear-gradient(270deg, var(--bg-primary, #0a0f1a) 40%, transparent)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#2DD4BF',
+                    }}
+                >
+                    <ChevronRight size={16} />
+                </button>
+            )}
+
             <div
-                className="settings-tabs-scroll"
+                ref={scrollRef}
+                onScroll={checkScroll}
+                className="settings-tabs-scroll-v2"
                 style={{
                     display: 'flex', gap: '2px', overflowX: 'auto', paddingBottom: '6px',
                     borderBottom: '1px solid var(--border-color)',
-                    scrollbarWidth: 'auto',
+                    scrollbarWidth: 'none',
                     WebkitOverflowScrolling: 'touch',
                 }}
             >
                 <style>{`
-                    .settings-tabs-scroll::-webkit-scrollbar { height: 6px; }
-                    .settings-tabs-scroll::-webkit-scrollbar-track { background: var(--bg-tertiary, #1a1a2e); border-radius: 3px; }
-                    .settings-tabs-scroll::-webkit-scrollbar-thumb { background: rgba(45,212,191,0.4); border-radius: 3px; }
-                    .settings-tabs-scroll::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.7); }
+                    .settings-tabs-scroll-v2::-webkit-scrollbar { display: none; }
                 `}</style>
                 {visibleTabs.map((tab) => {
                     const Icon = tab.icon
