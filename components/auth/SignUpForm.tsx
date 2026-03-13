@@ -121,6 +121,35 @@ export default function SignUpForm() {
     borderColor: 'var(--border-color-dark)',
   }
 
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  const handleResendConfirmation = async () => {
+    if (resendCooldown > 0) return
+    setResendStatus('sending')
+    try {
+      const supabase = createClient()
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+      if (resendError) {
+        setResendStatus('error')
+      } else {
+        setResendStatus('sent')
+        setResendCooldown(60)
+        const timer = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) { clearInterval(timer); return 0 }
+            return prev - 1
+          })
+        }, 1000)
+      }
+    } catch {
+      setResendStatus('error')
+    }
+  }
+
   if (success) {
     return (
       <div className="text-center space-y-4 py-4">
@@ -134,6 +163,30 @@ export default function SignUpForm() {
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           We&apos;ve sent a confirmation link to <strong>{email}</strong>
         </p>
+        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          Check your spam/junk folder if you don&apos;t see it within a few minutes.
+        </p>
+
+        {/* Resend confirmation button */}
+        <div className="pt-2">
+          {resendStatus === 'sent' ? (
+            <p className="text-sm text-emerald-500">✓ Confirmation email resent!</p>
+          ) : resendStatus === 'error' ? (
+            <p className="text-sm text-red-500">Failed to resend. Please try again.</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleResendConfirmation}
+            disabled={resendCooldown > 0 || resendStatus === 'sending'}
+            className="text-sm font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            {resendStatus === 'sending' ? 'Sending...' :
+             resendCooldown > 0 ? `Resend in ${resendCooldown}s` :
+             'Didn\'t receive it? Resend confirmation email'}
+          </button>
+        </div>
+
         <Link
           href="/login"
           className="inline-flex items-center gap-1.5 mt-4 font-medium text-sm hover:underline"

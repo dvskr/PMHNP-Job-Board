@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight, Mail } from 'lucide-react'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -13,11 +13,41 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isUnconfirmed, setIsUnconfirmed] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  const handleResendConfirmation = async () => {
+    if (resendCooldown > 0 || !email) return
+    setResendStatus('sending')
+    try {
+      const supabase = createClient()
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+      if (resendError) {
+        setResendStatus('error')
+      } else {
+        setResendStatus('sent')
+        setResendCooldown(60)
+        const timer = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) { clearInterval(timer); return 0 }
+            return prev - 1
+          })
+        }, 1000)
+      }
+    } catch {
+      setResendStatus('error')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setIsUnconfirmed(false)
 
     try {
       const supabase = createClient()
@@ -28,7 +58,14 @@ export default function LoginForm() {
       })
 
       if (signInError) {
-        setError(signInError.message)
+        // Check if it's an email-not-confirmed error
+        const msg = signInError.message.toLowerCase()
+        if (msg.includes('email not confirmed') || msg.includes('not confirmed') || msg.includes('confirm')) {
+          setIsUnconfirmed(true)
+          setError('Your email address has not been confirmed yet. Please check your inbox (and spam folder) for the confirmation link.')
+        } else {
+          setError(signInError.message)
+        }
         return
       }
 
@@ -47,11 +84,35 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
         <div
-          className="rounded-lg p-3 flex items-start gap-3"
+          className="rounded-lg p-3 flex flex-col gap-2"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
         >
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-500">{error}</p>
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-500">{error}</p>
+          </div>
+          {isUnconfirmed && (
+            <div className="ml-8">
+              {resendStatus === 'sent' && (
+                <p className="text-sm text-emerald-500 mb-1">✓ Confirmation email resent! Check your inbox.</p>
+              )}
+              {resendStatus === 'error' && (
+                <p className="text-sm text-red-400 mb-1">Failed to resend. Please try again.</p>
+              )}
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resendCooldown > 0 || resendStatus === 'sending'}
+                className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                {resendStatus === 'sending' ? 'Sending...' :
+                 resendCooldown > 0 ? `Resend in ${resendCooldown}s` :
+                 'Resend confirmation email'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
