@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger'
 import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 import { verifyCsrf } from '@/lib/csrf'
 import { syncToBeehiiv } from '@/lib/beehiiv'
+import { sendSignupWelcomeEmail } from '@/lib/email-service'
 
 // Shared include for _count used by completeness scoring
 const profileInclude = {
@@ -222,9 +223,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // NOTE: Welcome email is NOT sent here.
-    // It is sent in /auth/callback/route.ts AFTER the user confirms their email.
-    // This prevents sending welcome emails to unconfirmed accounts.
+    // Send welcome email alongside the confirmation email
+    // Users will get both emails during signup — this is standard practice
+    try {
+      await sendSignupWelcomeEmail(email, firstName || '', role)
+      logger.info('Welcome email sent during signup', { email, role })
+    } catch (emailError) {
+      // Don't fail signup if email fails
+      logger.error('Failed to send welcome email', emailError)
+    }
 
     return NextResponse.json(profile)
   } catch (error) {
