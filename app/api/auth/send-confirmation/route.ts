@@ -12,7 +12,7 @@ const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.
  * POST /api/auth/send-confirmation
  * 
  * Bypasses Supabase's broken email sending by:
- * 1. Using Supabase admin API to generate the confirmation link
+ * 1. Using Supabase admin API to generate the magic link
  * 2. Sending the confirmation email ourselves via Resend
  */
 export async function POST(request: NextRequest) {
@@ -35,8 +35,7 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createAdminClient()
 
     // Generate the confirmation link via Supabase admin API
-    // Use 'magiclink' type — it generates a verification link
-    // that confirms the user's email when clicked
+    // magiclink type verifies the user's email when clicked
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: normalizedEmail,
@@ -47,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error('Failed to generate confirmation link', error)
-      // Don't expose internal errors to client
       return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 })
     }
 
@@ -57,26 +55,14 @@ export async function POST(request: NextRequest) {
     }
 
     const confirmationUrl = data.properties.action_link
+    logger.info('Generated confirmation link', { email: normalizedEmail, url: confirmationUrl })
 
     // Send the confirmation email via Resend
     await resend.emails.send({
       from: EMAIL_FROM,
       to: normalizedEmail,
-      subject: 'Confirm your email — PMHNP Hiring',
-      html: buildConfirmationEmailHtml(confirmationUrl),
-    })
-
-    logger.info('Confirmation email sent via Resend', { email: normalizedEmail })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    logger.error('Error in send-confirmation', error)
-    return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 })
-  }
-}
-
-function buildConfirmationEmailHtml(confirmationUrl: string): string {
-  return `<!DOCTYPE html>
+      subject: 'Confirm your PMHNP Hiring account',
+      html: `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -114,7 +100,7 @@ function buildConfirmationEmailHtml(confirmationUrl: string): string {
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 24px;">
                 <tr>
                   <td>
-                    <a href="${confirmationUrl}" style="display: inline-block; background: linear-gradient(135deg, #0D9488 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 15px; text-align: center;">
+                    <a href="${confirmationUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0D9488 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 15px; text-align: center;">
                       ✓ Confirm My Email
                     </a>
                   </td>
@@ -125,7 +111,7 @@ function buildConfirmationEmailHtml(confirmationUrl: string): string {
                 If the button doesn't work, copy and paste this link into your browser:
               </p>
               <p style="margin: 0; font-size: 12px; color: #2DD4BF; word-break: break-all; line-height: 1.5;">
-                <a href="${confirmationUrl}" style="color: #2DD4BF; text-decoration: none;">${confirmationUrl}</a>
+                ${confirmationUrl}
               </p>
             </td>
           </tr>
@@ -148,5 +134,14 @@ function buildConfirmationEmailHtml(confirmationUrl: string): string {
     </tr>
   </table>
 </body>
-</html>`
+</html>`,
+    })
+
+    logger.info('Confirmation email sent via Resend', { email: normalizedEmail })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    logger.error('Error in send-confirmation', error)
+    return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 })
+  }
 }
