@@ -180,7 +180,7 @@ export default function EmployerSettingsPage() {
         try {
             const supabase = createClient();
             const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-                redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+                redirectTo: `${window.location.origin}/auth/confirm`,
             });
             if (error) throw error;
             showMsg('success', 'Password reset email sent!');
