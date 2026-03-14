@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
+import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { config } from '@/lib/config';
 
 interface JobFormData {
@@ -269,7 +270,7 @@ export default function PreviewPage() {
                 <h2 className="text-xl font-bold mb-3">About this role</h2>
                 <div
                   className="text-gray-700 leading-relaxed text-sm prose prose-sm max-w-none break-words overflow-hidden"
-                  dangerouslySetInnerHTML={{ __html: formData.description }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
                 />
               </div>
 

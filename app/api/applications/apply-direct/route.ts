@@ -98,7 +98,13 @@ export async function POST(request: NextRequest) {
         // Validate cover letter URL (if uploaded as PDF)
         let validCoverLetterUrl: string | null = null;
         if (coverLetterUrl && typeof coverLetterUrl === 'string') {
-            validCoverLetterUrl = coverLetterUrl; // same storage as resumes
+            if (!isValidResumeUrl(coverLetterUrl)) {
+                return NextResponse.json(
+                    { error: 'Invalid cover letter URL. Please upload your cover letter through the platform.' },
+                    { status: 400 }
+                );
+            }
+            validCoverLetterUrl = coverLetterUrl;
         }
 
         // 3. Verify the job exists and accepts platform applications

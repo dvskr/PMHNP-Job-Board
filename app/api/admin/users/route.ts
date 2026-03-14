@@ -1,11 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
+import { logAudit } from '@/lib/audit-log';
+import { createClient } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     // Verify admin session
-    const authError = await requireApiAdmin();
+    const authError = await requireApiAdmin(request);
     if (authError) return authError;
+
+    // Audit log: admin accessing user data
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    logAudit('admin_users_list', user?.email || 'unknown');
 
     try {
         // User profiles

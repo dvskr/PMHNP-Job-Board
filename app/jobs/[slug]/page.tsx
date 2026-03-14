@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
+import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { MapPin, Briefcase, Monitor, CheckCircle, ArrowRight, Search } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
@@ -803,7 +804,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     <div
                       className="job-description-html"
                       style={{ color: 'var(--text-secondary)' }}
-                      dangerouslySetInnerHTML={{ __html: job.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(job.description) }}
                     />
                   ) : (
                     // Plain text fallback for external/aggregated jobs

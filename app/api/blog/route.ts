@@ -6,6 +6,8 @@ import {
 } from '@/lib/blog';
 import { formatBlogContent } from '@/lib/blog-formatter';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
+import { rateLimit } from '@/lib/rate-limit';
+import { timingSafeEqual } from 'crypto';
 
 const VALID_CATEGORIES: BlogCategory[] = [
     'job_seeker_attraction',
@@ -28,7 +30,14 @@ const VALID_STATUSES = ['draft', 'published'] as const;
 // ─── POST /api/blog ──────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-    // Verify API key
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'blog-api', {
+        limit: 5,
+        windowSeconds: 60,
+    });
+    if (rateLimitResult) return rateLimitResult;
+
+    // Verify API key (timing-safe comparison)
     const authHeader = request.headers.get('Authorization');
     const apiKey = process.env.BLOG_API_KEY;
 
@@ -39,8 +48,11 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const providedKey = authHeader?.replace('Bearer ', '');
-    if (!providedKey || providedKey !== apiKey) {
+    const providedKey = authHeader?.replace('Bearer ', '') || '';
+    const keysMatch = providedKey.length === apiKey.length &&
+        timingSafeEqual(Buffer.from(providedKey), Buffer.from(apiKey));
+
+    if (!keysMatch) {
         return NextResponse.json(
             { error: 'Unauthorized — invalid or missing API key' },
             { status: 401 }

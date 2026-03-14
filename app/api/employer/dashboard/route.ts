@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 type EmployerJobWithJob = {
   editToken: string;
@@ -29,14 +30,21 @@ function maskEmail(email: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting to prevent brute-force token guessing
+  const rateLimitResult = await rateLimit(request, 'employer-dashboard', {
+    limit: 15,
+    windowSeconds: 60,
+  });
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
     if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Token is required' },
-        { status: 400 }
+        { success: false, error: 'Dashboard not found' },
+        { status: 404 }
       );
     }
 
@@ -50,8 +58,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (!employerJob) {
+      // Return same error for missing/invalid tokens to prevent enumeration
       return NextResponse.json(
-        { success: false, error: 'Invalid dashboard token' },
+        { success: false, error: 'Dashboard not found' },
         { status: 404 }
       );
     }
@@ -78,7 +87,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })) as unknown as EmployerJobWithJob[];
 
-    // Format the response
+    // Format the response (exclude editToken to prevent leaking sensitive data)
     const jobs = allEmployerJobs.map((ej: EmployerJobWithJob) => ({
       id: ej.job.id,
       title: ej.job.title,
@@ -90,7 +99,6 @@ export async function GET(request: NextRequest) {
       applicantCount: ej.job._count.jobApplications,
       createdAt: ej.job.createdAt,
       expiresAt: ej.job.expiresAt,
-      editToken: ej.editToken,
       paymentStatus: ej.paymentStatus,
     }));
 

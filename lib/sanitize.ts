@@ -6,6 +6,8 @@
  * this provides additional safety for edge cases.
  */
 
+import sanitizeHtml from 'sanitize-html';
+
 /**
  * HTML entities to encode
  */
@@ -188,6 +190,36 @@ export function sanitizeJobAlert(input: JobAlertInput): JobAlertInput {
     };
 }
 
+/**
+ * Sanitize HTML content for safe rendering via dangerouslySetInnerHTML.
+ * Uses the sanitize-html library for robust, battle-tested XSS prevention.
+ * Allows safe formatting tags but strips scripts, iframes, event handlers,
+ * and dangerous URI schemes.
+ */
+export function sanitizeHtmlContent(html: string): string {
+    return sanitizeHtml(html, {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+            'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'pre', 'code', 'hr', 'br',
+            'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+            'div', 'span', 'section', 'article',
+            'dl', 'dt', 'dd', 'figure', 'figcaption',
+            'details', 'summary', 'mark', 'abbr', 'sup', 'sub',
+        ]),
+        allowedAttributes: {
+            ...sanitizeHtml.defaults.allowedAttributes,
+            '*': ['id', 'class', 'style'],
+            'img': ['src', 'alt', 'loading', 'width', 'height'],
+            'a': ['href', 'target', 'rel', 'title'],
+            'td': ['colspan', 'rowspan', 'style'],
+            'th': ['colspan', 'rowspan', 'style', 'scope'],
+        },
+        allowedSchemes: ['http', 'https', 'mailto'],
+        // Strip all disallowed tags rather than escaping them
+        disallowedTagsMode: 'discard',
+    });
+}
+
 export default {
     escapeHtml,
     stripHtml,
@@ -197,4 +229,5 @@ export default {
     sanitizeJobPosting,
     sanitizeContactForm,
     sanitizeJobAlert,
+    sanitizeHtmlContent,
 };

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireApiAdmin } from '@/lib/auth/require-api-admin';
+import { logAudit } from '@/lib/audit-log';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * GET /api/admin/jobs
@@ -9,6 +11,11 @@ import { requireApiAdmin } from '@/lib/auth/require-api-admin';
 export async function GET(request: NextRequest) {
     const authError = await requireApiAdmin(request);
     if (authError) return authError;
+
+    // Audit log: admin accessing job data
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    logAudit('admin_jobs_list', user?.email || 'unknown');
 
     try {
         const { searchParams } = new URL(request.url);

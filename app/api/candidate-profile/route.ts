@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(req, 'general', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
+        // Require authentication
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { error: 'Authentication required. Please sign in.' },
+                { status: 401 }
+            );
+        }
+
         const body = await req.json();
         const {
             firstName,
@@ -35,6 +52,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Verify the authenticated user owns this email
+        if (user.email?.toLowerCase() !== email.toLowerCase()) {
+            return NextResponse.json(
+                { error: 'You can only update your own profile.' },
+                { status: 403 }
+            );
+        }
+
         const profileData = {
             firstName,
             lastName,
@@ -60,19 +85,19 @@ export async function POST(req: NextRequest) {
 
         // Check if profile already exists
         const existing = await prisma.userProfile.findUnique({
-            where: { email },
+            where: { supabaseId: user.id },
         });
 
         if (existing) {
             const updated = await prisma.userProfile.update({
-                where: { email },
+                where: { supabaseId: user.id },
                 data: profileData,
             });
             return NextResponse.json({ success: true, id: updated.id, updated: true });
         } else {
             const profile = await prisma.userProfile.create({
                 data: {
-                    supabaseId: `manual_${Date.now()}`,
+                    supabaseId: user.id,
                     email,
                     role: 'job_seeker',
                     ...profileData,

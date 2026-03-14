@@ -60,8 +60,15 @@ interface MemoryEntry {
 
 const memoryStore = new Map<string, MemoryEntry>();
 
+// Warn once per cold start if Redis is unavailable in production
+let hasWarnedMemoryFallback = false;
+
 // Clean up old entries every minute
 if (!redis) {
+    if (process.env.NODE_ENV === 'production' && !hasWarnedMemoryFallback) {
+        console.warn('[RATE-LIMIT] ⚠️ Redis unavailable — falling back to in-memory rate limiting (ineffective on serverless)');
+        hasWarnedMemoryFallback = true;
+    }
     setInterval(() => {
         const now = Date.now();
         for (const [key, entry] of memoryStore.entries()) {

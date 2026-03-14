@@ -42,11 +42,8 @@ export async function middleware(request: NextRequest) {
     // Refresh the Supabase session (keeps auth cookies alive)
     const response = await updateSession(request);
 
-    // Add security headers to all responses
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    // Security headers are configured in next.config.ts (CSP, HSTS, X-Frame-Options, etc.)
+    // No need to duplicate them here.
 
     return response;
 }
