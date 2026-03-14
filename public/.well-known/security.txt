@@ -1,0 +1,7 @@
+Contact: mailto:security@pmhnphiring.com
+Contact: mailto:contact@pmhnphiring.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://pmhnphiring.com/.well-known/security.txt
+Policy: https://pmhnphiring.com/privacy
+Hiring: https://pmhnphiring.com/about

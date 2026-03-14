@@ -125,12 +125,6 @@ const nextConfig: NextConfig = {
         destination: '/salary-guide',
         permanent: true,
       },
-      // Part-time queries → per-diem page (already queries for part-time jobs)
-      {
-        source: '/jobs/part-time',
-        destination: '/jobs/per-diem',
-        permanent: true,
-      },
     ];
   },
 };

@@ -88,3 +88,9 @@ supabase_dashboard_queries.sql
 /yt-videos/
 /yt-thumbnails/
 /scripts/schedule-log.json
+
+# Google Search Console exports
+https___pmhnphiring.com_-*/
+
+# NotebookLM prompts (local only)
+notebooklm-*.md

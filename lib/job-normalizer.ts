@@ -589,7 +589,7 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         sourceProvider: source,
         sourceSite: rawJob.sourceSite ? String(rawJob.sourceSite) : null,
         externalId,
-        originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : new Date(),
+        originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : null,
         expiresAt,
         companyId: null,
       }

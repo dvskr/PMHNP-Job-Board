@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: [
           '/',
           '/api/og',
+          '/api/sitemaps/',
           '/jobs/',
           '/blog/',
           '/salary-guide',
@@ -112,6 +113,7 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: [
+      `${baseUrl}/api/sitemaps/index`,
       `${baseUrl}/sitemap.xml`,
       `${baseUrl}/image-sitemap.xml`,
       `${baseUrl}/video-sitemap.xml`,

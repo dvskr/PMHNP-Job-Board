@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { formatSalary, slugify, getJobFreshness, getExpiryStatus } from '@/lib/utils';
 import { MapPin, Briefcase, Monitor, CheckCircle, ArrowRight, Search } from 'lucide-react';
 import { Job, Company } from '@/lib/types';
@@ -33,7 +34,7 @@ type JobResult =
   | { status: 'expired'; employer?: string; title?: string }
   | { status: 'not_found' };
 
-async function getJob(id: string): Promise<JobResult> {
+const getJob = cache(async function getJob(id: string): Promise<JobResult> {
   try {
     // First check if job exists at all (any status)
     const anyJob = await prisma.job.findUnique({
@@ -65,7 +66,7 @@ async function getJob(id: string): Promise<JobResult> {
     console.error('Error fetching job:', error);
     return { status: 'not_found' };
   }
-}
+});
 
 interface RelatedJobsParams {
   currentJobId: string;
@@ -286,22 +287,15 @@ async function getRelevantBlogPosts(job: Job) {
     jobType: job.jobType,
   });
 
-  const posts = [];
-  for (const slug of slugs) {
-    try {
-      const post = await getPostBySlug(slug);
-      if (post) {
-        posts.push({
-          slug: post.slug,
-          title: post.title,
-          description: post.meta_description || '',
-          category: post.category,
-        });
-      }
-    } catch {
-      // Skip if blog post doesn't exist
-    }
-  }
+  const results = await Promise.allSettled(slugs.map(slug => getPostBySlug(slug)));
+  const posts = results
+    .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof getPostBySlug>>> => r.status === 'fulfilled' && r.value !== null)
+    .map(r => ({
+      slug: r.value!.slug,
+      title: r.value!.title,
+      description: r.value!.meta_description || '',
+      category: r.value!.category,
+    }));
   return posts;
 }
 
@@ -309,7 +303,6 @@ export async function generateMetadata({ params }: JobPageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  console.log(`generateMetadata called for slug: ${slug}`);
 
   // Extract UUID from end of slug (format: title-words-UUID)
   // UUID format: 8-4-4-4-12 characters (36 chars total with dashes)

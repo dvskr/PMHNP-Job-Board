@@ -1,0 +1,25 @@
+/* TEAM */
+
+Founder: Pavan Kumar Reddy Daggula
+Role: CEO & Founder
+Location: United States
+
+/* SITE */
+
+Site: PMHNP Hiring
+URL: https://pmhnphiring.com
+Description: The #1 job board for Psychiatric Mental Health Nurse Practitioners
+Standards: HTML5, CSS3, JavaScript ES2024
+Components: Next.js 15, React 19, TypeScript, Prisma, PostgreSQL
+Platform: Vercel
+Analytics: Google Analytics 4
+Launch: 2026
+
+/* PURPOSE */
+
+Mission: Connect every PMHNP with their ideal position through the most comprehensive, transparent, and data-rich job discovery platform in psychiatric nursing.
+
+Coverage: All 50 US states + DC
+Cities: 4,135+ with enriched local data
+Categories: 24 job categories
+Pages: 100,000+ indexed content pages

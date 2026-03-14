@@ -945,7 +945,9 @@ async function fetchCompanyJobs(companySlug: string): Promise<GreenhouseJobRaw[]
       location: job.location?.name || job.offices?.[0]?.name || 'Remote',
       description: job.content || '',
       applyLink: job.absolute_url,
-      postedDate: job.updated_at,
+      // NOTE: Greenhouse API only exposes updated_at (last-edit date), NOT a real posted date.
+      // Using updated_at caused old jobs to appear "new" when employers edited listings.
+      // Omitting it so the normalizer falls through to null → filter uses createdAt (ingestion time).
     }));
 
     // Pre-filter for PMHNP relevance

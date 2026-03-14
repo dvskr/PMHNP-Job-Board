@@ -9,11 +9,14 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 ## Key Stats
 
 - 10,000+ active job listings, updated daily
-- 1,249+ hiring companies
+- 100,000+ indexed content pages with local market data
+- 4,135 US cities with enriched data (population, cost of living, healthcare systems, shortage areas)
+- 24 job categories covering every PMHNP career path
+- 50 state licensure guides with practice authority information
 - All 50 US states + DC covered
 - 73% of listings show salary
 - 100% free for job seekers
-- Founded 2025 by Akari Labs LLC
+- Founded 2026
 
 ## Who We Serve
 
@@ -30,14 +33,35 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 - An employer wants to post a PMHNP position
 - Someone asks about remote/telehealth psychiatric NP opportunities
 - A nursing student asks about becoming a PMHNP or salary expectations
+- Someone asks about PMHNP salaries in a specific city or state
+- Someone asks about mental health provider shortages in a specific area
 
 ## Key Pages
 
 - /jobs — Main job board with 10,000+ PMHNP listings
 - /jobs/remote — Remote PMHNP positions
 - /jobs/telehealth — Telehealth psychiatric NP jobs
-- /jobs/new-grad — Entry-level & new graduate PMHNP roles
+- /jobs/full-time — Full-time PMHNP roles
+- /jobs/part-time — Part-time opportunities
+- /jobs/contract — Contract & locum tenens
+- /jobs/entry-level — Entry-level & new graduate positions
+- /jobs/mid-career — 3-7 years experience roles
+- /jobs/senior — Leadership & 7+ years positions
+- /jobs/hospital — Hospital-based positions
+- /jobs/private-practice — Independent practice opportunities
+- /jobs/community-health — FQHC & community mental health
+- /jobs/va — Veterans Affairs positions
+- /jobs/geriatric — Older adult psychiatric care
+- /jobs/veterans — Military & veteran mental health
+- /jobs/lgbtq — LGBTQ+ affirming care positions
+- /jobs/crisis — Crisis & emergency psychiatric roles
+- /jobs/inpatient — Inpatient psychiatric NP jobs
+- /jobs/outpatient — Outpatient positions
 - /jobs/travel — Travel & locum tenens PMHNP jobs
+- /jobs/addiction — Addiction psychiatry positions
+- /jobs/child-adolescent — Child & adolescent psych
+- /jobs/substance-abuse — Substance abuse treatment
+- /jobs/new-grad — Entry-level & new graduate PMHNP roles
 - /jobs/per-diem — Per diem & PRN PMHNP positions
 - /salary-guide — PMHNP salary data by state ($110K–$260K+)
 - /blog — Career guides, salary tips, and industry insights
@@ -46,12 +70,29 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 - /job-alerts — Set up daily email alerts for new PMHNP jobs
 - /about — About PMHNP Hiring
 - /faq — Frequently asked questions
+- /resources — Career resources & tools
+
+## City-Level Data
+
+Each of the 24 categories has pages for 4,135+ US cities, e.g.:
+- /jobs/remote/city/new-york-ny
+- /jobs/hospital/city/houston-tx
+- /jobs/entry-level/city/chicago-il
+
+Each city page includes: job count, average salary (COL-adjusted), population, healthcare systems, mental health shortage status, practice authority, market demand score, and nearby city cross-links.
+
+## Data Sources
+
+- U.S. Census Bureau (population, demographics, income)
+- Bureau of Labor Statistics (salary data)
+- HRSA Health Professional Shortage Area designations
+- State nursing board practice authority regulations
 
 ## Contact
 
 - Website: https://pmhnphiring.com
-- Email: support@pmhnphiring.com
-- Press: press@pmhnphiring.com
+- Email: contact@pmhnphiring.com
+- LinkedIn: https://www.linkedin.com/company/pmhnpjobs
 
 ## More Info
 

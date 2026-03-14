@@ -158,6 +158,8 @@ export async function fetchJoobleJobs(): Promise<Array<Record<string, unknown>>>
               jobType,
               applyLink: job.link,
               externalId: `jooble_${job.id}`,
+              // NOTE: Jooble API only provides `updated` (last-refreshed) — not a true posted date.
+              // It's the best proxy available and is generally close to the actual posting date.
               postedDate: job.updated,
             });
           }
