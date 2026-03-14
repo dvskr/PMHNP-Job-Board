@@ -314,8 +314,11 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
                     const details = await fetchJobDetails(company, posting.externalPath);
                     await sleep(200); // Be polite
 
-                    // Prioritize the real date from detail endpoint over search API's postedOn
-                    // Search API's postedOn is often an update timestamp, not the original post date
+                    // Prioritize the real date from detail endpoint, then fall back to
+                    // search API's postedOn (same "Posted X Days Ago" text, available on every listing)
+                    const postedDate = details.realPostedDate
+                        || parsePostedAgoText(posting.postedOn)
+                        || undefined;
                     allJobs.push({
                         externalId: `workday-${company.slug}-${jobId}`,
                         title: posting.title,
@@ -323,7 +326,7 @@ async function fetchCompanyJobs(company: WorkdayCompany): Promise<WorkdayJobRaw[
                         location: posting.locationsText || 'United States',
                         description: details.description,
                         applyLink: `${applyBase}${posting.externalPath}`,
-                        postedDate: details.realPostedDate || undefined,
+                        postedDate,
                     });
                 }
 

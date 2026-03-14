@@ -146,6 +146,11 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* AI & GEO Discovery Links */}
+        <link rel="author" href="/humans.txt" />
+        <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Site Information" />
+        <link rel="alternate" type="text/plain" href="/ai.txt" title="AI Permissions" />
+        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title="PMHNP Hiring — Latest Jobs" />
         {/* Organization and WebSite Schema Markup */}
         <meta property="fb:app_id" content="940556045303701" />
         <script

@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "PMHNP Hiring",
+  "name_for_model": "pmhnp_hiring",
+  "description_for_human": "Find psychiatric mental health nurse practitioner (PMHNP) jobs across all 50 US states with salary transparency.",
+  "description_for_model": "PMHNP Hiring is the #1 specialized job board for Psychiatric Mental Health Nurse Practitioners. Use this to search PMHNP jobs by location, setting (remote, telehealth, inpatient, outpatient), specialty (addiction, child-adolescent, geriatric, crisis), job type (full-time, part-time, contract), experience level (entry-level, mid-career, senior), and employer type (hospital, private practice, community health, VA). The site covers 4,135 US cities with local salary data, cost of living adjustments, and mental health shortage area designations. Salary data ranges from $105K (entry-level) to $250K+ (private practice). 10,000+ active listings updated daily.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://pmhnphiring.com/llms-full.txt",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://pmhnphiring.com/pmhnp_logo.png",
+  "contact_email": "contact@pmhnphiring.com",
+  "legal_info_url": "https://pmhnphiring.com/terms"
+}
