@@ -480,7 +480,7 @@ const templates: Record<string, TemplateEntry> = {
     label: 'Salary Guide Delivery',
     desc: 'Sent when a user requests the PMHNP salary guide',
     fn: () => buildSalaryGuideHtml(
-      'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf',
+      'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf',
       'sample-token'
     ),
   },
