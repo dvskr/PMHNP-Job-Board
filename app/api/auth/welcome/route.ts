@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
@@ -9,44 +8,45 @@ import { logger } from '@/lib/logger'
  * 
  * Sends the welcome email after email confirmation.
  * Called from /auth/confirm after successful verification.
- * Deduplicates: checks EmailSend table to avoid sending twice.
+ * 
+ * Protection against abuse:
+ * 1. Dedup: only sends once per email (checks EmailSend table)
+ * 2. Profile check: only sends to emails with existing UserProfile
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const body = await request.json().catch(() => ({}))
+    const email = body.email?.toLowerCase?.()?.trim?.()
 
-    if (error || !user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!email) {
+      return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
 
-    // Dedup — check if welcome email was already sent to this user
+    // Must have a profile (proves they signed up)
+    const profile = await prisma.userProfile.findFirst({
+      where: { email },
+      select: { firstName: true, role: true },
+    })
+
+    if (!profile) {
+      return NextResponse.json({ sent: false, reason: 'no_profile' })
+    }
+
+    // Dedup — check if welcome email was already sent
     const alreadySent = await prisma.emailSend.findFirst({
-      where: {
-        to: user.email,
-        emailType: 'welcome_signup',
-      },
+      where: { to: email, emailType: 'welcome_signup' },
     })
 
     if (alreadySent) {
       return NextResponse.json({ sent: false, reason: 'already_sent' })
     }
 
-    // Get their profile for firstName and role
-    const profile = await prisma.userProfile.findUnique({
-      where: { supabaseId: user.id },
-      select: { firstName: true, role: true },
-    })
-
-    const firstName = profile?.firstName || ''
-    const role = profile?.role || 'job_seeker'
-
-    await sendSignupWelcomeEmail(user.email, firstName, role)
-    logger.info('Welcome email sent after email confirmation', { email: user.email, role })
+    await sendSignupWelcomeEmail(email, profile.firstName || '', profile.role || 'job_seeker')
+    logger.info('Welcome email sent after email confirmation', { email, role: profile.role })
 
     return NextResponse.json({ sent: true })
   } catch (error) {
     logger.error('Error sending post-confirmation welcome email', error)
-    return NextResponse.json({ error: 'Failed to send welcome email' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
