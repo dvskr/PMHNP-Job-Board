@@ -85,6 +85,7 @@ model EmailLead {
   preferences      Json       @default("{}")
   source           String?
   isSubscribed     Boolean    @default(true) @map("is_subscribed")
+  isSuppressed     Boolean    @default(false) @map("is_suppressed")
   newsletterOptIn  Boolean    @default(false) @map("newsletter_opt_in")
   unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
   createdAt        DateTime   @default(now()) @map("created_at")
@@ -260,6 +261,7 @@ model UserProfile {
   company           String?
   resumeUrl         String?       @map("resume_url")
   avatarUrl         String?       @map("avatar_url")
+  emailSuppressed   Boolean       @default(false) @map("email_suppressed")
 
   // PMHNP-specific professional fields
   headline          String?       @map("headline")
