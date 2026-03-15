@@ -15,6 +15,7 @@ export interface BlogPost {
     publish_date: string | null;
     image_url: string | null;
     youtube_video_id: string | null;
+    video_url: string | null;
     created_at: string;
     updated_at: string;
 }
