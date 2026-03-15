@@ -75,6 +75,7 @@ model EmailLead {
   preferences      Json     @default("{}")
   source           String?
   isSubscribed     Boolean  @default(true) @map("is_subscribed")
+  isSuppressed     Boolean  @default(false) @map("is_suppressed")
   unsubscribeToken String   @unique @default(cuid()) @map("unsubscribe_token")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -255,8 +256,9 @@ model UserProfile {
   phone      String?
   company    String?
   resumeUrl  String?  @map("resume_url")
-  avatarUrl  String?  @map("avatar_url")
-  createdAt  DateTime @default(now()) @map("created_at")
+  avatarUrl        String?  @map("avatar_url")
+  emailSuppressed  Boolean  @default(false) @map("email_suppressed")
+  createdAt        DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([supabaseId])
