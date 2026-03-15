@@ -139,7 +139,7 @@ export default async function BlogPostPage({ params }: Props) {
         url: currentUrl,
     };
 
-    // VideoObject schema when a YouTube video is associated
+    // VideoObject schema when a YouTube video or Supabase video is associated
     const videoSchema = post.youtube_video_id ? {
         '@context': 'https://schema.org',
         '@type': 'VideoObject',
@@ -149,6 +149,15 @@ export default async function BlogPostPage({ params }: Props) {
         uploadDate: post.publish_date || post.created_at,
         contentUrl: `https://www.youtube.com/watch?v=${post.youtube_video_id}`,
         embedUrl: `https://www.youtube.com/embed/${post.youtube_video_id}`,
+        publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
+    } : post.video_url ? {
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: post.title,
+        description: post.meta_description || post.title,
+        thumbnailUrl: post.image_url || 'https://pmhnphiring.com/api/og',
+        uploadDate: post.publish_date || post.created_at,
+        contentUrl: post.video_url,
         publisher: { '@type': 'Organization', name: 'PMHNP Hiring', url: 'https://pmhnphiring.com' },
     } : null;
 
@@ -379,6 +388,27 @@ export default async function BlogPostPage({ params }: Props) {
                             allowFullScreen
                             className="absolute top-0 left-0 w-full h-full"
                         />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2 text-center">
+                        ▶ Watch our complete video walkthrough
+                    </p>
+                </div>
+            )}
+
+            {/* Supabase Video Embed (fallback when no YouTube ID) */}
+            {!post.youtube_video_id && post.video_url && (
+                <div className="max-w-4xl mx-auto px-4 mt-8">
+                    <div className="rounded-xl overflow-hidden shadow-md bg-gray-900">
+                        <video
+                            src={post.video_url}
+                            controls
+                            preload="metadata"
+                            className="w-full"
+                            style={{ aspectRatio: '16/9' }}
+                            poster={post.image_url || undefined}
+                        >
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                     <p className="text-sm text-gray-500 mt-2 text-center">
                         ▶ Watch our complete video walkthrough

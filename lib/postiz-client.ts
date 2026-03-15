@@ -104,6 +104,49 @@ export async function uploadImage(
 }
 
 /**
+ * Upload a video buffer to Postiz so it can be referenced in posts.
+ * Returns { id, path } where path contains "uploads.postiz.com".
+ */
+export async function uploadVideo(
+    buffer: Buffer,
+    filename: string,
+    mimeType = 'video/mp4',
+): Promise<PostizUploadResponse> {
+    const uint8 = new Uint8Array(buffer);
+    const blob = new Blob([uint8], { type: mimeType });
+    const form = new FormData();
+    form.append('file', blob, filename);
+
+    const url = `${POSTIZ_BASE_URL}/upload`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: getApiKey() },
+        body: form,
+    });
+
+    if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`[Postiz] Video upload failed ${res.status}: ${body}`);
+    }
+
+    return res.json() as Promise<PostizUploadResponse>;
+}
+
+/**
+ * Upload media (image or video) from a URL to Postiz.
+ * Uses the /upload-from-url endpoint.
+ */
+export async function uploadFromUrl(
+    mediaUrl: string,
+): Promise<PostizUploadResponse> {
+    return postizFetch<PostizUploadResponse>('/upload-from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: mediaUrl }),
+    });
+}
+
+/**
  * Create (schedule or publish) a post via the Postiz API.
  */
 export async function createPost(
