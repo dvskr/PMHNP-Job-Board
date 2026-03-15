@@ -453,6 +453,7 @@ model BlogPost {
   publishDate     DateTime? @map("publish_date")
   imageUrl        String?  @map("image_url")
   youtubeVideoId  String?  @map("youtube_video_id")
+  videoUrl        String?  @map("video_url")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -839,26 +840,4 @@ model EmailSend {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("email_sends")
-}
-
-model BlogPost {
-  id               String   @id @default(cuid())
-  title            String
-  slug             String   @unique
-  content          String
-  metaDescription  String?  @map("meta_description")
-  targetKeyword    String?  @map("target_keyword")
-  category         String
-  status           String   @default("draft")
-  publishDate      String?  @map("publish_date")
-  imageUrl         String?  @map("image_url")
-  youtubeVideoId   String?  @map("youtube_video_id")
-  videoUrl         String?  @map("video_url")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  @@index([slug])
-  @@index([status])
-  @@index([category])
-  @@map("blog_posts")
 }
