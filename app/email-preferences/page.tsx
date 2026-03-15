@@ -9,6 +9,10 @@ interface PreferencesData {
   email: string;
   isSubscribed: boolean;
   newsletterOptIn: boolean;
+  preferences: {
+    profileNudge?: boolean;
+    savedJobReminder?: boolean;
+  };
 }
 
 function EmailPreferencesContent() {
@@ -42,6 +46,7 @@ function EmailPreferencesContent() {
           email: data.email,
           isSubscribed: data.isSubscribed,
           newsletterOptIn: data.newsletterOptIn ?? false,
+          preferences: data.preferences ?? {},
         });
       } catch {
         setError('Failed to load preferences');
@@ -122,6 +127,37 @@ function EmailPreferencesContent() {
             ? 'You are now subscribed to the newsletter!'
             : 'You have been unsubscribed from the newsletter.'
         );
+      } else {
+        setError(data.message || 'Failed to update preferences');
+      }
+    } catch {
+      setError('Failed to update preferences');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleTogglePreference = async (key: 'profileNudge' | 'savedJobReminder') => {
+    if (!token || !preferences) return;
+
+    setUpdating(true);
+    setSuccessMessage(null);
+
+    const newValue = !(preferences.preferences?.[key] ?? true);
+    const updated = { ...preferences.preferences, [key]: newValue };
+
+    try {
+      const response = await fetch('/api/email/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, preferences: updated }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setPreferences({ ...preferences, preferences: updated });
+        const label = key === 'profileNudge' ? 'profile nudge emails' : 'saved job reminders';
+        setSuccessMessage(newValue ? `You will now receive ${label}.` : `You have been unsubscribed from ${label}.`);
       } else {
         setError(data.message || 'Failed to update preferences');
       }
@@ -250,6 +286,60 @@ function EmailPreferencesContent() {
                     }`}
                 >
                   {preferences?.newsletterOptIn ? 'Unsubscribe' : 'Subscribe'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Profile Nudge */}
+          <div className="bg-gray-50 rounded-lg p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Profile Completion Nudges</p>
+                <p className="text-xs text-gray-500 mt-1">Reminders to finish your profile for more visibility</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {(preferences?.preferences?.profileNudge ?? true) ? (
+                  <CheckCircle className="text-green-500" size={18} />
+                ) : (
+                  <XCircle className="text-gray-400" size={18} />
+                )}
+                <button
+                  onClick={() => handleTogglePreference('profileNudge')}
+                  disabled={updating}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${(preferences?.preferences?.profileNudge ?? true)
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-teal-500 text-white hover:bg-teal-600'
+                    }`}
+                >
+                  {(preferences?.preferences?.profileNudge ?? true) ? 'Unsubscribe' : 'Subscribe'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Saved Job Reminders */}
+          <div className="bg-gray-50 rounded-lg p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Saved Job Reminders</p>
+                <p className="text-xs text-gray-500 mt-1">Nudges about jobs you saved but haven&apos;t applied to</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {(preferences?.preferences?.savedJobReminder ?? true) ? (
+                  <CheckCircle className="text-green-500" size={18} />
+                ) : (
+                  <XCircle className="text-gray-400" size={18} />
+                )}
+                <button
+                  onClick={() => handleTogglePreference('savedJobReminder')}
+                  disabled={updating}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${(preferences?.preferences?.savedJobReminder ?? true)
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-teal-500 text-white hover:bg-teal-600'
+                    }`}
+                >
+                  {(preferences?.preferences?.savedJobReminder ?? true) ? 'Unsubscribe' : 'Subscribe'}
                 </button>
               </div>
             </div>

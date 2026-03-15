@@ -40,17 +40,25 @@ export async function GET(request: NextRequest) {
 
     try {
         // Find job_seeker profiles created 3+ days ago with < 60% completeness
+        // Only nudge once per 7 days (dedup guard)
         const threeDaysAgo = new Date()
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
         const profiles = await prisma.userProfile.findMany({
             where: {
                 role: 'job_seeker',
                 createdAt: { lte: threeDaysAgo },
-                // Only nudge once — check that we haven't sent recently
-                // We'll use updatedAt isn't very recent as a proxy
+                // Dedup: only nudge if never nudged or last nudge > 7 days ago
+                OR: [
+                    { lastNudgedAt: null },
+                    { lastNudgedAt: { lt: sevenDaysAgo } },
+                ],
             },
             select: {
+                id: true,
                 email: true,
                 firstName: true,
                 lastName: true,
@@ -73,6 +81,15 @@ export async function GET(request: NextRequest) {
 
             if (percentage >= 60 || missing.length === 0) continue
 
+            // Check preference opt-out and email suppression
+            const emailLead = await prisma.emailLead.findUnique({
+                where: { email: profile.email },
+                select: { preferences: true, isSuppressed: true },
+            })
+            if (emailLead?.isSuppressed) continue
+            const prefs = (emailLead?.preferences as Record<string, unknown>) ?? {}
+            if (prefs.profileNudge === false) continue
+
             try {
                 await sendProfileIncompleteEmail(
                     profile.email,
@@ -81,6 +98,12 @@ export async function GET(request: NextRequest) {
                     missing
                 )
                 sentCount++
+
+                // Mark as nudged (dedup)
+                await prisma.userProfile.update({
+                    where: { id: profile.id },
+                    data: { lastNudgedAt: new Date() },
+                })
             } catch (e) {
                 errors.push(`${profile.email}: ${e}`)
             }

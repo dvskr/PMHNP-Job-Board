@@ -46,10 +46,26 @@ export async function GET(request: NextRequest) {
                 // Get user profile
                 const profile = await prisma.userProfile.findUnique({
                     where: { supabaseId: userId },
-                    select: { email: true, firstName: true },
+                    select: { email: true, firstName: true, lastSavedJobReminderAt: true },
                 })
 
                 if (!profile) continue
+
+                // Dedup: skip if already reminded within the last 6 days
+                if (profile.lastSavedJobReminderAt) {
+                    const sixDaysAgo = new Date()
+                    sixDaysAgo.setDate(sixDaysAgo.getDate() - 6)
+                    if (profile.lastSavedJobReminderAt > sixDaysAgo) continue
+                }
+
+                // Check preference opt-out and email suppression
+                const emailLead = await prisma.emailLead.findUnique({
+                    where: { email: profile.email },
+                    select: { preferences: true, isSuppressed: true },
+                })
+                if (emailLead?.isSuppressed) continue
+                const prefs = (emailLead?.preferences as Record<string, unknown>) ?? {}
+                if (prefs.savedJobReminder === false) continue
 
                 // Get job details (only active/published jobs)
                 const jobs = await prisma.job.findMany({
@@ -82,6 +98,12 @@ export async function GET(request: NextRequest) {
                     validJobs
                 )
                 sentCount++
+
+                // Mark as reminded (dedup)
+                await prisma.userProfile.update({
+                    where: { supabaseId: userId },
+                    data: { lastSavedJobReminderAt: new Date() },
+                })
             } catch (e) {
                 errors.push(`User ${userId}: ${e}`)
             }

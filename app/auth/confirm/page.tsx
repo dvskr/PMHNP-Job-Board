@@ -77,6 +77,8 @@ export default function AuthConfirmPage() {
           // Email confirmation — user is now logged in
           setMessage('Email confirmed! Redirecting to dashboard...')
           setStatus('success')
+          // Send welcome email (fire-and-forget, dedup handled server-side)
+          fetch('/api/auth/welcome', { method: 'POST' }).catch(() => {})
           setTimeout(() => router.push('/dashboard'), 1500)
           return
         }
@@ -145,6 +147,8 @@ export default function AuthConfirmPage() {
         // Magic link / email confirmation — user is now logged in
         setMessage('Email confirmed! Redirecting to dashboard...')
         setStatus('success')
+        // Send welcome email (fire-and-forget, dedup handled server-side)
+        fetch('/api/auth/welcome', { method: 'POST' }).catch(() => {})
         setTimeout(() => router.push('/dashboard'), 1500)
       } catch (err) {
         console.error('Auth confirm unexpected error:', err)

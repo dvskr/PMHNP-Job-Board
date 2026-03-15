@@ -1,23 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { slugify } from '@/lib/utils'
-import { emailShell, headerBlock, primaryButton } from '@/lib/email-service'
+import { emailShell, headerBlock, primaryButton, F, C } from '@/lib/email-service'
 import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const BASE_URL = 'https://pmhnphiring.com'
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>'
-
-// ─── Design tokens (same as email-service.ts) ────────────────────────────────
-const F = "Arial, Helvetica, sans-serif"
-const C = {
-  bgBody: '#060E18', bgCard: '#0F1923', bgCardAlt: '#162231', bgElevated: '#1E293B',
-  textPrimary: '#F1F5F9', textSecondary: '#E2E8F0', textMuted: '#94A3B8',
-  textFaded: '#64748B', textDimmed: '#475569',
-  teal: '#2DD4BF', tealDarker: '#0D9488', emeraldDark: '#059669', emerald: '#34D399',
-  borderLight: '#1E293B', borderMed: '#334155',
-}
+const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || 'PMHNP Hiring <alerts@pmhnphiring.com>'
 
 // ─── State name → abbreviation map (for location matching) ────────────────────
 const STATE_TO_CODE: Record<string, string> = {
@@ -297,6 +288,19 @@ export async function sendJobAlerts(): Promise<{
         })
         results.sent += batch.length
         console.log(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails)`)
+
+        // Log each batch send to EmailSend (non-blocking)
+        try {
+          await prisma.emailSend.createMany({
+            data: batch.map(b => ({
+              to: b.email,
+              subject: b.payload.subject,
+              emailType: 'job_alert',
+            })),
+          })
+        } catch (logErr) {
+          logger.error('Failed to log batch email sends', logErr)
+        }
       } else {
         for (const b of batch) {
           results.errors.push(`Alert ${b.alertId} (${b.email}): Rate limited after 3 retries`)
