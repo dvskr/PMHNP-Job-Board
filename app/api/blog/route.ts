@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
             target_keyword: target_keyword || null,
             image_url: finalImageUrl,
             youtube_video_id: youtube_video_id || null,
+            video_url: null,
             category,
             status: postStatus,
             publish_date: publish_date || (postStatus === 'published' ? new Date().toISOString() : null),
