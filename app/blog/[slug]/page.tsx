@@ -364,8 +364,8 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
             </header>
 
-            {/* Featured Image */}
-            {post.image_url && (
+            {/* Featured Image (only if no video) */}
+            {post.image_url && !post.youtube_video_id && !post.video_url && (
                 <div className="max-w-4xl mx-auto px-4 -mb-4 mt-8">
                     <img
                         src={post.image_url}
@@ -405,7 +405,6 @@ export default async function BlogPostPage({ params }: Props) {
                             preload="metadata"
                             className="w-full"
                             style={{ aspectRatio: '16/9' }}
-                            poster={post.image_url || undefined}
                         >
                             Your browser does not support the video tag.
                         </video>
