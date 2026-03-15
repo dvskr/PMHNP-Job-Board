@@ -398,14 +398,17 @@ export default async function BlogPostPage({ params }: Props) {
             {/* Supabase Video Embed (fallback when no YouTube ID) */}
             {!post.youtube_video_id && post.video_url && (
                 <div className="max-w-4xl mx-auto px-4 mt-8">
-                    <div className="rounded-xl overflow-hidden shadow-md bg-gray-900">
+                    <div className="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-md bg-gray-900">
                         <video
                             src={post.video_url}
                             controls
-                            preload="metadata"
-                            className="w-full"
-                            style={{ aspectRatio: '16/9' }}
+                            playsInline
+                            preload="auto"
+                            crossOrigin="anonymous"
+                            poster={post.image_url || undefined}
+                            className="absolute top-0 left-0 w-full h-full object-contain"
                         >
+                            <source src={post.video_url} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
                     </div>
