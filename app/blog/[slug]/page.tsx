@@ -400,11 +400,9 @@ export default async function BlogPostPage({ params }: Props) {
                 <div className="max-w-4xl mx-auto px-4 mt-8">
                     <div className="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-md bg-gray-900">
                         <video
-                            src={post.video_url}
                             controls
                             playsInline
                             preload="auto"
-                            crossOrigin="anonymous"
                             poster={post.image_url || undefined}
                             className="absolute top-0 left-0 w-full h-full object-contain"
                         >
