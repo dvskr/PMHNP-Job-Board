@@ -91,6 +91,13 @@ export default function EmployerSignUpForm() {
                     }),
                 })
 
+                // Send welcome email (fire-and-forget, dedup prevents double sends)
+                fetch('/api/auth/welcome', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: data.user.email }),
+                }).catch(() => {})
+
                 setSuccess(true)
 
                 // If email confirmation is disabled/auto-confirmed, redirect to dashboard
