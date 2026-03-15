@@ -86,6 +86,8 @@ model EmailLead {
   source           String?
   isSubscribed     Boolean    @default(true) @map("is_subscribed")
   isSuppressed     Boolean    @default(false) @map("is_suppressed")
+  suppressedAt     DateTime?  @map("suppressed_at")
+  suppressionReason String?   @map("suppression_reason")
   newsletterOptIn  Boolean    @default(false) @map("newsletter_opt_in")
   unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
   createdAt        DateTime   @default(now()) @map("created_at")
@@ -307,6 +309,9 @@ model UserProfile {
 
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
+  lastNudgedAt      DateTime?     @map("last_nudged_at")
+  lastSavedJobReminderAt DateTime? @map("last_saved_job_reminder_at")
+  emailSuppressedAt DateTime?     @map("email_suppressed_at")
 
   // ── Relations ──
   employerJobs         EmployerJob[]
