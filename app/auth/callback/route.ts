@@ -146,6 +146,29 @@ export async function GET(request: Request) {
       console.error('Auth callback: profile creation error', profileError)
     }
 
+    // Send welcome email (dedup: only if not already sent)
+    if (data.user.email) {
+      try {
+        const alreadySent = await prisma.emailSend.findFirst({
+          where: { to: data.user.email, emailType: 'welcome_signup' },
+        })
+        if (!alreadySent) {
+          const profile = await prisma.userProfile.findUnique({
+            where: { supabaseId: data.user.id },
+            select: { firstName: true, role: true },
+          })
+          await sendSignupWelcomeEmail(
+            data.user.email,
+            profile?.firstName || data.user.user_metadata?.first_name || '',
+            profile?.role || data.user.user_metadata?.role || 'job_seeker'
+          )
+          console.log('Welcome email sent', { email: data.user.email })
+        }
+      } catch (welcomeErr) {
+        console.error('Failed to send welcome email', welcomeErr)
+      }
+    }
+
     // Auto-link legacy jobs (e.g. guest posts) to this user
     if (data.user?.email) {
       try {

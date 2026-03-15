@@ -2,14 +2,116 @@ import { Resend } from 'resend';
 import { slugify } from '@/lib/utils';
 import { config } from '@/lib/config';
 import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Use env var for email links (falls back to production)
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
-const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
+const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
+
+// ── Sender addresses — separate transactional from marketing ──
+const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
+const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>';
+const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
+const EMAIL_REPLY_TO = 'hello@pmhnphiring.com';
+
+// Marketing email types — these use the marketing sender address
+const MARKETING_EMAIL_TYPES = new Set([
+  'welcome_alert', 'job_alert', 'salary_guide', 'broadcast',
+  'profile_nudge', 'performance_report', 'saved_job_reminder',
+  'candidate_alert',
+]);
+
+// ── HTML sanitization — prevents XSS in user-supplied content ──
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ── Strip HTML to plain text for multipart emails ──
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/td>/gi, ' | ')
+    .replace(/<a[^>]+href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&middot;/gi, '·')
+    .replace(/&copy;/gi, '©')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&zwnj;/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ── Email send wrapper — logs every email to EmailSend table ──
+async function sendAndLog(
+  params: { from: string; to: string; subject: string; html: string },
+  emailType: string,
+  metadata?: Record<string, unknown>,
+  unsubscribeUrl?: string
+) {
+  const isMarketing = MARKETING_EMAIL_TYPES.has(emailType);
+  const from = isMarketing ? EMAIL_FROM_MARKETING : EMAIL_FROM_TRANSACTIONAL;
+
+  const sendParams: Parameters<typeof resend.emails.send>[0] = {
+    ...params,
+    from,
+    replyTo: EMAIL_REPLY_TO,
+    text: htmlToPlainText(params.html),
+    headers: {},
+  };
+
+  // Add List-Unsubscribe headers for compliance (required by Gmail/Yahoo)
+  if (unsubscribeUrl) {
+    sendParams.headers = {
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    };
+  }
+
+  const result = await resend.emails.send(sendParams);
+
+  // Non-blocking log — don't let logging failure break email sending
+  try {
+    await prisma.emailSend.create({
+      data: {
+        resendId: result?.data?.id ?? null,
+        to: params.to,
+        subject: params.subject,
+        emailType,
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+      },
+    });
+  } catch (e) {
+    logger.error('Failed to log email send', e, { emailType, to: params.to });
+  }
+  return result;
+}
+
+// ── Suppression check — returns true if email should NOT be sent ──
+export async function isEmailSuppressed(email: string): Promise<boolean> {
+  const [emailLead, userProfile] = await Promise.all([
+    prisma.emailLead.findUnique({ where: { email }, select: { isSuppressed: true } }),
+    prisma.userProfile.findUnique({ where: { email }, select: { emailSuppressed: true } }),
+  ]);
+  return !!(emailLead?.isSuppressed || userProfile?.emailSuppressed);
+}
 
 interface EmailResult {
   success: boolean;
@@ -25,9 +127,9 @@ interface EmailResult {
 // Primary brand: teal #2DD4BF → #14B8A6 → #0D9488 → #0F766E
 // Text: #F1F5F9 → #E2E8F0 → #CBD5E1 → #94A3B8 → #64748B → #475569
 
-const F = "Arial, Helvetica, sans-serif";
+export const F = "Arial, Helvetica, sans-serif";
 
-const C = {
+export const C = {
   bgBody: '#060E18',
   bgCard: '#0F1923',
   bgCardAlt: '#162231',
@@ -214,6 +316,22 @@ function unsubscribeFooter(unsubscribeToken: string): string {
               </p>`;
 }
 
+// Get or create an unsubscribe token for any email address
+async function getOrCreateUnsubToken(email: string): Promise<string> {
+  const existing = await prisma.emailLead.findUnique({
+    where: { email },
+    select: { unsubscribeToken: true },
+  });
+  if (existing) return existing.unsubscribeToken;
+
+  // Create an EmailLead entry for this user so they can manage preferences
+  const created = await prisma.emailLead.create({
+    data: { email, isSubscribed: true, source: 'auto' },
+    select: { unsubscribeToken: true },
+  });
+  return created.unsubscribeToken;
+}
+
 function badge(text: string, bgColor: string = C.bgElevated, textColor: string = C.textMuted, borderColor: string = C.borderLight): string {
   return `<span style="display: inline-block; background-color: ${bgColor}; color: ${textColor}; padding: 3px 10px; border-radius: 6px; font-family: ${F}; font-size: 11px; font-weight: bold; border: 1px solid ${borderColor}; line-height: 1.4;">${text}</span>`;
 }
@@ -289,12 +407,12 @@ export async function sendWelcomeEmail(email: string, unsubscribeToken: string):
       'Your PMHNP job alerts are active — personalized matches coming your way!'
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: 'Welcome — Your Job Alerts Are Active!',
       html,
-    });
+    }, 'welcome_alert', undefined, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
 
     logger.info('Welcome email sent', { email });
     return { success: true };
@@ -385,14 +503,14 @@ export async function sendSignupWelcomeEmail(
       isEmployer ? 'Your employer account is ready — start posting jobs today!' : `Welcome ${firstName || ''} — browse 10,000+ PMHNP jobs now!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: isEmployer
         ? 'Welcome to PMHNP Hiring — Start Hiring Today'
         : `Welcome to PMHNP Hiring, ${firstName || 'there'}!`,
       html,
-    });
+    }, 'welcome_signup', { role });
 
     logger.info('Signup welcome email sent', { email, role });
     return { success: true };
@@ -477,12 +595,12 @@ export async function sendConfirmationEmail(
       `Your job "${jobTitle}" is now live on PMHNP Hiring!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
       subject: `✅ Your PMHNP job post is live — "${jobTitle}"`,
       html,
-    });
+    }, 'job_confirmation', { jobId });
 
     logger.info('Confirmation email sent', { email: employerEmail, jobId });
     return { success: true };
@@ -569,12 +687,12 @@ export async function sendJobAlertEmail(
     `${jobCount} new PMHNP jobs matching your alert — view them before they're filled!`
   );
 
-  await resend.emails.send({
+  await sendAndLog({
     from: EMAIL_FROM,
     to: email,
     subject: `🔔 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
     html,
-  });
+  }, 'job_alert', { jobCount }, `${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -623,12 +741,12 @@ export async function sendRenewalConfirmationEmail(
       `Your job "${jobTitle}" has been renewed and is live again!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `✅ Job Renewed — "${jobTitle}" is live again`,
       html,
-    });
+    }, 'renewal_confirmation', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubscribeToken}`);
 
     logger.info('Renewal confirmation email sent', { email, jobTitle });
     return { success: true };
@@ -712,12 +830,12 @@ export async function sendExpiryWarningEmail(
       `Your job "${jobTitle}" expires in ${daysUntilExpiry} days — renew now to keep receiving applicants!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `⏰ Your job posting expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} — Renew Now`,
       html,
-    });
+    }, 'expiry_warning', { jobTitle, daysUntilExpiry }, unsubscribeToken ? `${BASE_URL}/unsubscribe?token=${unsubscribeToken}` : undefined);
 
     logger.info('Expiry warning email sent', { email });
     return { success: true };
@@ -775,12 +893,12 @@ export async function sendDraftSavedEmail(
       'Your job posting draft has been saved — continue anytime!'
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: '📝 Continue your PMHNP job posting',
       html,
-    });
+    }, 'draft_saved');
 
     logger.info('Draft saved email sent', { email });
     return { success: true };
@@ -841,6 +959,10 @@ export function buildContactConfirmationHtml(name: string, subject: string): str
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function buildContactNotificationHtml(name: string, email: string, subject: string, message: string): string {
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message);
   return emailShell(`
           ${headerBlock('New Contact Form Submission', 'pmhnphiring.com')}
           <tr>
@@ -849,39 +971,39 @@ export function buildContactNotificationHtml(name: string, email: string, subjec
                 <tr>
                   <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-radius: 12px 12px 0 0; border-bottom: 1px solid ${C.borderLight};">
                     ${sectionLabel('From')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textPrimary};">${name}</p>
+                    <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textPrimary};">${safeName}</p>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-bottom: 1px solid ${C.borderLight};">
                     ${sectionLabel('Email')}
-                    <p style="margin: 0;"><a href="mailto:${email}" style="font-family: ${F}; font-size: 15px; color: ${C.teal}; text-decoration: none;">${email}</a></p>
+                    <p style="margin: 0;"><a href="mailto:${safeEmail}" style="font-family: ${F}; font-size: 15px; color: ${C.teal}; text-decoration: none;">${safeEmail}</a></p>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-bottom: 1px solid ${C.borderLight};">
                     ${sectionLabel('Subject')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textPrimary};">${subject}</p>
+                    <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textPrimary};">${safeSubject}</p>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-radius: 0 0 12px 12px;">
                     ${sectionLabel('Message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${message}</p>
+                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${safeMessage}</p>
                   </td>
                 </tr>
               </table>
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
                   <td>
-                    ${primaryButton('Reply to ' + name, `mailto:${email}`)}
+                    ${primaryButton('Reply to ' + safeName, `mailto:${safeEmail}`)}
                   </td>
                 </tr>
               </table>
             </td>
           </tr>`,
     '',
-    `New contact form submission from ${name} — "${subject}"`
+    `New contact form submission from ${safeName} — "${safeSubject}"`
   );
 }
 
@@ -971,9 +1093,9 @@ export async function sendEmployerMessageNotification(
   jobTitle: string | null
 ): Promise<EmailResult> {
   try {
-    const greeting = recipientFirstName ? `Hi ${recipientFirstName},` : 'Hi there,';
-    const fromLine = senderCompany ? `${senderName} from ${senderCompany}` : senderName;
-    const preview = messageBody.length > 200 ? messageBody.substring(0, 200) + '…' : messageBody;
+    const greeting = recipientFirstName ? `Hi ${escapeHtml(recipientFirstName)},` : 'Hi there,';
+    const fromLine = senderCompany ? `${escapeHtml(senderName)} from ${escapeHtml(senderCompany)}` : escapeHtml(senderName);
+    const preview = messageBody.length > 200 ? escapeHtml(messageBody.substring(0, 200)) + '…' : escapeHtml(messageBody);
 
     const html = emailShell(`
           ${headerBlock('New Message from an Employer', fromLine)}
@@ -1010,12 +1132,12 @@ export async function sendEmployerMessageNotification(
       `${fromLine} sent you a message${jobTitle ? ` about "${jobTitle}"` : ''} — view it now!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
       subject: `📩 New message from ${fromLine}${jobTitle ? ` — ${jobTitle}` : ''}`,
       html,
-    });
+    }, 'employer_message', { senderName, jobTitle });
 
     logger.info('Employer message notification sent', { recipientEmail, senderName });
     return { success: true };
@@ -1050,16 +1172,16 @@ export async function sendNewCandidateAlertEmail(
     const candidateRows = candidates.slice(0, 10).map(c => `
       <tr>
         <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight};">
-          <div style="font-family: ${F};">
+            <div style="font-family: ${F};">
             <div style="font-size: 15px; font-weight: 600; color: ${C.textPrimary}; margin-bottom: 4px;">
-              ${c.name}
+              ${escapeHtml(c.name)}
             </div>
-            ${c.headline ? `<div style="font-size: 13px; color: ${C.textMuted}; margin-bottom: 6px;">${c.headline}</div>` : ''}
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              ${c.specialties.slice(0, 3).map(s => badge(s, 'rgba(139,92,246,0.15)', '#A78BFA', 'rgba(139,92,246,0.3)')).join(' ')}
-              ${c.states.slice(0, 3).map(s => badge(s)).join(' ')}
-              ${c.experience !== null ? badge(`${c.experience}+ yrs`, 'rgba(45,212,191,0.15)', '#2DD4BF', 'rgba(45,212,191,0.3)') : ''}
-            </div>
+            ${c.headline ? `<div style="font-size: 13px; color: ${C.textMuted}; margin-bottom: 6px;">${escapeHtml(c.headline)}</div>` : ''}
+            <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+              ${c.specialties.slice(0, 3).map(s => `<td style="padding-right: 4px;">${badge(escapeHtml(s), 'rgba(139,92,246,0.15)', '#A78BFA', 'rgba(139,92,246,0.3)')}</td>`).join('')}
+              ${c.states.slice(0, 3).map(s => `<td style="padding-right: 4px;">${badge(escapeHtml(s))}</td>`).join('')}
+              ${c.experience !== null ? `<td>${badge(`${c.experience}+ yrs`, 'rgba(45,212,191,0.15)', '#2DD4BF', 'rgba(45,212,191,0.3)')}</td>` : ''}
+            </tr></table>
           </div>
         </td>
         <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight}; vertical-align: middle;">
@@ -1084,12 +1206,12 @@ export async function sendNewCandidateAlertEmail(
       `${candidates.length} new PMHNP candidates match your criteria — view them now!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: recipientEmail,
       subject: `🔔 ${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`,
       html,
-    });
+    }, 'candidate_alert', { candidateCount: candidates.length });
 
     logger.info('New candidate alert sent', { recipientEmail, count: candidates.length });
     return { success: true };
@@ -1106,7 +1228,7 @@ export async function sendNewCandidateAlertEmail(
 // ADMIN BROADCAST EMAIL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function buildBroadcastHtml(body: string, preheaderText: string = ''): string {
+export function buildBroadcastHtml(body: string, preheaderText: string = '', unsubscribeToken?: string): string {
   return emailShell(`
           ${headerBlock('PMHNP Hiring', 'A message from the team')}
           <tr>
@@ -1124,7 +1246,7 @@ export function buildBroadcastHtml(body: string, preheaderText: string = ''): st
             </td>
           </tr>`,
     `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${BASE_URL}/unsubscribe" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+        <a href="${unsubscribeToken ? `${BASE_URL}/unsubscribe?token=${unsubscribeToken}` : `${BASE_URL}/unsubscribe`}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
         &nbsp;·&nbsp;
         <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">Contact us</a>
       </p>`,
@@ -1138,12 +1260,13 @@ export async function sendBroadcastEmail(
   htmlBody: string
 ): Promise<EmailResult> {
   try {
-    await resend.emails.send({
+    const unsubToken = await getOrCreateUnsubToken(to);
+    await sendAndLog({
       from: EMAIL_FROM,
       to,
       subject,
       html: htmlBody,
-    });
+    }, 'broadcast', undefined, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
     return { success: true };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to send broadcast';
@@ -1216,12 +1339,12 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
       `${candidateName} applied for "${jobTitle}" — view their application now!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
       subject: `📋 New application for "${jobTitle}" — ${candidateName}`,
       html,
-    });
+    }, 'application_notification', { jobTitle, candidateName });
 
     logger.info('New application notification sent', { employerEmail, jobTitle, candidateName });
     return { success: true };
@@ -1297,12 +1420,12 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
       `Your application for "${jobTitle}" at ${employerName} has been received!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
       subject: `✅ Application received — ${jobTitle} at ${employerName}`,
       html,
-    });
+    }, 'application_confirmation', { jobTitle, employerName });
 
     logger.info('Application confirmation sent to candidate', { candidateEmail, jobTitle });
     return { success: true };
@@ -1379,12 +1502,12 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
       `Your application status for "${jobTitle}" has been updated to ${statusInfo.label}.`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: candidateEmail,
       subject: `${statusInfo.emoji} Application update — ${jobTitle} at ${employerName}`,
       html,
-    });
+    }, 'status_update', { jobTitle, newStatus });
 
     logger.info('Status update email sent', { candidateEmail, jobTitle, newStatus });
     return { success: true };
@@ -1410,6 +1533,7 @@ export async function sendProfileIncompleteEmail(
   try {
     const name = firstName || 'there';
     const topMissing = missingFields.slice(0, 4);
+    const unsubToken = await getOrCreateUnsubToken(email);
 
     const missingListHtml = topMissing.map(f =>
       `<tr>
@@ -1445,18 +1569,16 @@ export async function sendProfileIncompleteEmail(
               </table>
             </td>
           </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${BASE_URL}/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
-      </p>`,
+      `${unsubscribeFooter(unsubToken)}`,
       `Your profile is ${completedPercentage}% complete — finish it to get 3× more employer views!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `📋 Your profile is ${completedPercentage}% complete — finish it to get noticed`,
       html,
-    });
+    }, 'profile_nudge', { completedPercentage }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
     logger.info('Profile incomplete email sent', { email, completedPercentage });
     return { success: true };
@@ -1491,6 +1613,7 @@ export async function sendPerformanceReportEmail(
     const totalViews = jobs.reduce((s, j) => s + j.views, 0);
     const totalClicks = jobs.reduce((s, j) => s + j.applyClicks, 0);
     const totalApps = jobs.reduce((s, j) => s + j.applications, 0);
+    const unsubToken = await getOrCreateUnsubToken(email);
 
     const jobRowsHtml = jobs.slice(0, 5).map((job, i) => {
       const isLast = i === Math.min(jobs.length, 5) - 1;
@@ -1536,18 +1659,16 @@ export async function sendPerformanceReportEmail(
               </table>
             </td>
           </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${BASE_URL}/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe from reports</a>
-      </p>`,
+      `${unsubscribeFooter(unsubToken)}`,
       `Your ${periodLabel.toLowerCase()} report: ${totalViews} views, ${totalClicks} clicks, ${totalApps} applications`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `📊 ${periodLabel} Report: ${totalViews} views, ${totalApps} applications — ${employerName}`,
       html,
-    });
+    }, 'performance_report', { employerName, totalViews, totalApps }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
     logger.info('Performance report sent', { email, employerName, periodLabel });
     return { success: true };
@@ -1571,6 +1692,7 @@ export async function sendSavedJobReminderEmail(
 ): Promise<EmailResult> {
   try {
     const name = firstName || 'there';
+    const unsubToken = await getOrCreateUnsubToken(email);
 
     const jobListHtml = jobs.slice(0, 5).map((job, i) => {
       const isLast = i === jobs.length - 1;
@@ -1608,17 +1730,17 @@ export async function sendSavedJobReminderEmail(
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${BASE_URL}/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+        <a href="${BASE_URL}/unsubscribe?token=${unsubToken}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
       </p>`,
       `${jobs.length} jobs you saved are still open — apply before they're filled!`
     );
 
-    await resend.emails.send({
+    await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `💾 ${jobs.length} job${jobs.length !== 1 ? 's' : ''} you saved ${jobs.length !== 1 ? 'are' : 'is'} still open — apply now!`,
       html,
-    });
+    }, 'saved_job_reminder', { jobCount: jobs.length }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
     logger.info('Saved job reminder sent', { email, jobCount: jobs.length });
     return { success: true };

@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
           gte: fourDaysFromNow,
           lte: fiveDaysFromNow,
         },
+        // Only warn once per job (dedup via expiryWarningSentAt)
+        employerJobs: {
+          expiryWarningSentAt: null,
+        },
       },
       include: {
         employerJobs: true,
@@ -51,6 +55,12 @@ export async function GET(request: NextRequest) {
             employerJob.editToken // Using editToken as unsubscribe token
           )
           sentCount++
+
+          // Mark as warned (dedup)
+          await prisma.employerJob.update({
+            where: { id: employerJob.id },
+            data: { expiryWarningSentAt: new Date() },
+          })
         } catch (e) {
           errors.push(`Job ${job.id}: ${e}`)
           console.error(`Failed to send expiry warning for job ${job.id}:`, e)

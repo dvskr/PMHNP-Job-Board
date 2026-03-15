@@ -90,6 +90,9 @@ model EmailLead {
   suppressionReason String?   @map("suppression_reason")
   newsletterOptIn  Boolean    @default(false) @map("newsletter_opt_in")
   unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
+  isSuppressed     Boolean    @default(false) @map("is_suppressed")
+  suppressedAt     DateTime?  @map("suppressed_at")
+  suppressionReason String?   @map("suppression_reason")
   createdAt        DateTime   @default(now()) @map("created_at")
   updatedAt        DateTime   @updatedAt @map("updated_at")
   jobAlerts        JobAlert[]
@@ -818,4 +821,25 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Email Send Log — Track every email sent for audit/analytics
+// ═══════════════════════════════════════════════════════════════
+
+model EmailSend {
+  id           String   @id @default(cuid())
+  resendId     String?  @map("resend_id")
+  to           String
+  subject      String
+  emailType    String   @map("email_type")
+  status       String   @default("sent")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([to])
+  @@index([emailType])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("email_sends")
 }

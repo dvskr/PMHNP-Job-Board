@@ -1,15 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobAlert } from '@/lib/sanitize';
 import { syncToBeehiiv } from '@/lib/beehiiv';
 import { logger } from '@/lib/logger';
+import { emailShell, headerBlock, primaryButton, secondaryButton, F, C } from '@/lib/email-service';
+import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
-const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://zdmpmncrcpgpmwdqvekg.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
+const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || 'PMHNP Hiring <alerts@pmhnphiring.com>';
+const EMAIL_REPLY_TO = 'hello@pmhnphiring.com';
+const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 interface CreateAlertBody {
   email: string;
@@ -42,10 +44,10 @@ function buildCriteriaSummary(alert: CreateAlertBody): string {
     }
   }
 
-  return parts.length > 0 ? parts.join(' ') : 'all PMHNP jobs';
+  return parts.length > 0 ? parts.join(' · ') : 'all PMHNP jobs';
 }
 
-// Send alert confirmation email with Salary Guide
+// Send alert confirmation email with Salary Guide — enterprise design system
 async function sendAlertConfirmationEmail(
   email: string,
   frequency: string,
@@ -53,68 +55,139 @@ async function sendAlertConfirmationEmail(
   token: string
 ): Promise<void> {
   try {
+    const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${token}`;
+
+    const html = emailShell(`
+          ${headerBlock('Job Alert Activated!', 'You\'ll never miss a matching job')}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                Your alert is live! Here's what you'll receive:
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid ${C.borderLight};">
+                    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                      <td style="width: 28px; vertical-align: top; padding-top: 2px;">
+                        <span style="font-family: ${F}; font-size: 16px; color: ${C.teal};">&#9993;</span>
+                      </td>
+                      <td>
+                        <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textPrimary}; font-weight: bold;">
+                          ${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts
+                        </p>
+                        <p style="margin: 2px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
+                          New jobs matching: ${criteriaSummary}
+                        </p>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid ${C.borderLight};">
+                    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                      <td style="width: 28px; vertical-align: top; padding-top: 2px;">
+                        <span style="font-family: ${F}; font-size: 16px; color: ${C.teal};">&#10003;</span>
+                      </td>
+                      <td>
+                        <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textPrimary}; font-weight: bold;">
+                          Smart Matching
+                        </p>
+                        <p style="margin: 2px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
+                          Only relevant PMHNP positions — no spam
+                        </p>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                      <td style="width: 28px; vertical-align: top; padding-top: 2px;">
+                        <span style="font-family: ${F}; font-size: 16px; color: ${C.teal};">&#9889;</span>
+                      </td>
+                      <td>
+                        <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textPrimary}; font-weight: bold;">
+                          Be First to Apply
+                        </p>
+                        <p style="margin: 2px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
+                          Jobs delivered before they fill up
+                        </p>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding-right: 12px;">
+                    ${primaryButton('Browse Jobs Now →', `${BASE_URL}/jobs`)}
+                  </td>
+                  <td>
+                    ${secondaryButton('Manage Alert', `${BASE_URL}/job-alerts/manage?token=${token}`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Salary Guide Section -->
+          <tr>
+            <td class="content-pad" style="padding: 0 40px 32px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top: 1px solid ${C.borderLight};">
+                <tr>
+                  <td style="padding-top: 28px;">
+                    <p style="margin: 0 0 6px; font-family: ${F}; font-size: 13px; font-weight: bold; color: ${C.teal}; text-transform: uppercase; letter-spacing: 1px;">&#9733; FREE BONUS</p>
+                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">2026 PMHNP Salary Guide</p>
+                    <p style="margin: 0 0 16px; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.6;">Salary ranges by state &middot; Remote vs in-person pay &middot; Negotiation tips</p>
+                    ${primaryButton('Download Salary Guide (PDF)', SALARY_GUIDE_URL)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        <a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: ${C.textFaded}; text-decoration: none;">Manage alert</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${unsubUrl}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+      </p>`,
+      `Your PMHNP job alert is live! Browse 10,000+ jobs now.`
+    );
+
+    // Strip HTML for plain text
+    const text = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n\n')
+      .replace(/<a[^>]+href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$2 ($1)')
+      .replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').replace(/&middot;/gi, '·')
+      .replace(/&amp;/gi, '&').replace(/&#9733;/gi, '★').replace(/&#9993;/gi, '✉')
+      .replace(/&#10003;/gi, '✓').replace(/&#9889;/gi, '⚡')
+      .replace(/\n{3,}/g, '\n\n').trim();
+
     await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
-      subject: '🎉 Welcome! Your Job Alerts + Free Salary Guide',
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #0d9488; font-size: 24px; margin-bottom: 20px;">Welcome to PMHNP Hiring! 🎉</h1>
-            
-            <p style="font-size: 16px; margin-bottom: 16px;">
-              Thanks for signing up! Here's what you'll get:
-            </p>
-            
-            <ul style="font-size: 15px; margin-bottom: 20px; padding-left: 20px;">
-              <li>📧 <strong>${frequency === 'daily' ? 'Daily' : 'Weekly'}</strong> emails with new PMHNP jobs</li>
-              <li>🎯 Jobs matching: <strong>${criteriaSummary}</strong></li>
-              <li>💰 Only relevant psychiatric NP positions</li>
-            </ul>
-
-            <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
-
-            <h2 style="color: #0d9488; font-size: 20px; margin-bottom: 16px;">🎁 Your Free Salary Guide</h2>
-            
-            <p style="font-size: 15px; margin-bottom: 16px;">
-              As promised, here's your <strong>2026 PMHNP Salary Guide</strong>:
-            </p>
-            
-            <p style="margin-bottom: 20px;">
-              <a href="${SALARY_GUIDE_URL}" 
-                 style="display: inline-block; background: #0d9488; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                📊 Download Salary Guide (PDF)
-              </a>
-            </p>
-
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
-              Inside you'll find:
-            </p>
-            <ul style="color: #6b7280; font-size: 14px; padding-left: 20px; margin-bottom: 24px;">
-              <li>Salary ranges by state</li>
-              <li>Remote vs in-person pay comparison</li>
-              <li>Negotiation tips to get paid what you deserve</li>
-            </ul>
-
-            <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
-            
-            <p style="margin-bottom: 20px;">
-              <a href="${BASE_URL}/jobs" style="display: inline-block; background-color: #14B8A6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 15px;">Browse Jobs Now</a>
-            </p>
-            
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-              <p>You're receiving this because you signed up at PMHNPHiring.com</p>
-              <p><a href="${BASE_URL}/job-alerts/manage?token=${token}" style="color: #14B8A6;">Manage your alerts</a> · <a href="${BASE_URL}/job-alerts/unsubscribe?token=${token}" style="color: #14B8A6;">Unsubscribe</a></p>
-            </div>
-          </body>
-        </html>
-      `,
+      replyTo: EMAIL_REPLY_TO,
+      subject: 'Job Alert Activated + Free Salary Guide',
+      html,
+      text,
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     });
+
+    // Log to email_sends (non-blocking)
+    try {
+      await prisma.emailSend.create({
+        data: {
+          to: email,
+          subject: 'Job Alert Activated + Free Salary Guide',
+          emailType: 'welcome_alert',
+        },
+      });
+    } catch { /* non-blocking */ }
+
     logger.info('Alert confirmation email sent', { email });
   } catch (error) {
     logger.error('Error sending alert confirmation email', error, { email });

@@ -77,6 +77,15 @@ export default function AuthConfirmPage() {
           // Email confirmation — user is now logged in
           setMessage('Email confirmed! Redirecting to dashboard...')
           setStatus('success')
+          // Send welcome email (fire-and-forget, dedup handled server-side)
+          const userEmail = data.session?.user?.email
+          if (userEmail) {
+            fetch('/api/auth/welcome', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: userEmail }),
+            }).catch(() => {})
+          }
           setTimeout(() => router.push('/dashboard'), 1500)
           return
         }
@@ -145,6 +154,15 @@ export default function AuthConfirmPage() {
         // Magic link / email confirmation — user is now logged in
         setMessage('Email confirmed! Redirecting to dashboard...')
         setStatus('success')
+        // Send welcome email (fire-and-forget, dedup handled server-side)
+        const userEmail2 = data.session?.user?.email
+        if (userEmail2) {
+          fetch('/api/auth/welcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail2 }),
+          }).catch(() => {})
+        }
         setTimeout(() => router.push('/dashboard'), 1500)
       } catch (err) {
         console.error('Auth confirm unexpected error:', err)

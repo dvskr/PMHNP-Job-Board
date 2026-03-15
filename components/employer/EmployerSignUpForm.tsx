@@ -59,6 +59,7 @@ export default function EmployerSignUpForm() {
                 email,
                 password,
                 options: {
+                    emailRedirectTo: `${window.location.origin}/auth/confirm`,
                     data: {
                         first_name: firstName,
                         last_name: lastName,
@@ -89,6 +90,13 @@ export default function EmployerSignUpForm() {
                         newsletterOptIn,
                     }),
                 })
+
+                // Send welcome email (fire-and-forget, dedup prevents double sends)
+                fetch('/api/auth/welcome', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: data.user.email }),
+                }).catch(() => {})
 
                 setSuccess(true)
 
