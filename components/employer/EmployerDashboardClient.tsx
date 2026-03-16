@@ -471,24 +471,24 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     <Edit size={16} />
                                                     Edit
                                                 </Link>
-                                                {!job.isFeatured && job.isPublished && !isExpired(job) && (
+                                                {config.isPaidPostingEnabled && !job.isFeatured && job.isPublished && !isExpired(job) && (
                                                     <button
                                                         onClick={() => handleUpgradeClick(job)}
                                                         disabled={upgradingJobId === job.id}
                                                         className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-600 to-purple-600 text-white rounded-lg font-medium hover:from-teal-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <Shield size={16} />
-                                                        {upgradingJobId === job.id ? 'Processing...' : (config.isPaidPostingEnabled ? 'Upgrade - $100' : 'Upgrade - Free')}
+                                                        {upgradingJobId === job.id ? 'Processing...' : 'Upgrade - $100'}
                                                     </button>
                                                 )}
-                                                {shouldShowRenew(job) && (
+                                                {config.isPaidPostingEnabled && shouldShowRenew(job) && (
                                                     <button
                                                         onClick={() => handleRenewClick(job)}
                                                         disabled={renewingJobId === job.id}
                                                         className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <RefreshCw size={16} className={renewingJobId === job.id ? 'animate-spin' : ''} />
-                                                        {renewingJobId === job.id ? 'Processing...' : (config.isPaidPostingEnabled ? 'Renew - $199' : 'Renew - Free')}
+                                                        {renewingJobId === job.id ? 'Processing...' : 'Renew - $199'}
                                                     </button>
                                                 )}
                                             </div>
@@ -657,7 +657,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 )}
 
                 {/* Renewal Modal */}
-                {showRenewModal && selectedJob && (
+                {config.isPaidPostingEnabled && showRenewModal && selectedJob && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                         <div className="rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in-up" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                             <div className="mb-4">
@@ -685,7 +685,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                     </div>
                                     <ul className="text-sm text-gray-600 space-y-1">
                                         <li>✓ 30 days of visibility</li>
-                                        <li>✓ 5 candidate unlocks/mo</li>
+                                        <li>✓ 5 candidate unlocks/posting</li>
                                     </ul>
                                 </button>
 
@@ -708,8 +708,8 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                     <ul className="text-sm text-teal-800 space-y-1">
                                         <li>✓ 60 days of visibility</li>
                                         <li>✓ <strong>Featured placement</strong></li>
-                                        <li>✓ 25 candidate unlocks/mo</li>
-                                        <li>✓ 25 InMails/mo</li>
+                                        <li>✓ 25 candidate unlocks/posting</li>
+                                        <li>✓ 25 InMails/posting</li>
                                     </ul>
                                 </button>
 

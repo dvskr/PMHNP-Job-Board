@@ -560,8 +560,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 </div>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>✓ 30 days of visibility</li>
-                  <li>✓ 5 candidate unlocks/mo</li>
-                  <li>✓ 5 InMails/mo</li>
+                  <li>✓ 5 candidate unlocks/posting</li>
+                  <li>✓ 5 InMails/posting</li>
                 </ul>
               </button>
 
@@ -580,8 +580,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 <ul className="text-sm text-teal-800 space-y-1">
                   <li>✓ 60 days of visibility</li>
                   <li>✓ <strong>Featured placement</strong> (top of list)</li>
-                  <li>✓ 25 candidate unlocks/mo</li>
-                  <li>✓ 25 InMails/mo</li>
+                  <li>✓ 25 candidate unlocks/posting</li>
+                  <li>✓ 25 InMails/posting</li>
                 </ul>
               </button>
 

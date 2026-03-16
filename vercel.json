@@ -137,14 +137,6 @@
       "schedule": "5 14 * * *"
     },
     {
-      "path": "/api/cron/linkedin-post",
-      "schedule": "10 14 * * *"
-    },
-    {
-      "path": "/api/cron/x-post",
-      "schedule": "15 14 * * *"
-    },
-    {
       "path": "/api/cron/profile-nudge",
       "schedule": "0 18 * * *"
     },

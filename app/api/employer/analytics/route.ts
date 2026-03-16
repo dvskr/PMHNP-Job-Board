@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { getEmployerTier } from '@/lib/tier-limits';
+import { PricingTier } from '@/lib/config';
 
 /**
  * GET /api/employer/analytics
  * Return view + apply-click time-series data for an employer's jobs.
  * Query params: jobId (optional), days (default 30)
+ *
+ * Tier gating:
+ *   Starter  → summary totals only (totalViews, totalClicks, CTR)
+ *   Growth   → full data (time-series chart, per-job breakdown, CTR)
+ *   Premium  → full data + exportUrl for CSV download
  */
 export async function GET(req: NextRequest) {
     const supabase = await createClient();
@@ -14,6 +21,17 @@ export async function GET(req: NextRequest) {
     if (authError || !user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const profile = await prisma.userProfile.findUnique({
+        where: { supabaseId: user.id },
+        select: { id: true, role: true },
+    });
+
+    if (!profile || !['employer', 'admin'].includes(profile.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const tier: PricingTier = profile.role === 'admin' ? 'premium' : await getEmployerTier(user.id);
 
     const { searchParams } = new URL(req.url);
     const jobIdFilter = searchParams.get('jobId');
@@ -35,20 +53,15 @@ export async function GET(req: NextRequest) {
     const jobIds = jobIdFilter ? [jobIdFilter] : employerJobs.map(ej => ej.jobId);
 
     if (jobIds.length === 0) {
-        return NextResponse.json({ views: [], clicks: [], summary: { totalViews: 0, totalClicks: 0, ctr: 0 }, jobs: [] });
+        return NextResponse.json({
+            tier,
+            views: [], clicks: [],
+            summary: { totalViews: 0, totalClicks: 0, ctr: 0 },
+            jobs: [],
+        });
     }
 
-    // Fetch apply clicks grouped by date (last N days)
-    const applyClicks = await prisma.applyClick.groupBy({
-        by: ['jobId'],
-        where: {
-            jobId: { in: jobIds },
-            timestamp: { gte: since },
-        },
-        _count: { id: true },
-    });
-
-    // Build per-job summary
+    // Build per-job summary (all tiers get this)
     const jobSummaries = employerJobs.map(ej => ({
         id: ej.job.id,
         title: ej.job.title,
@@ -62,6 +75,18 @@ export async function GET(req: NextRequest) {
     const totalViews = jobSummaries.reduce((sum, j) => sum + j.views, 0);
     const totalClicks = jobSummaries.reduce((sum, j) => sum + j.clicks, 0);
     const ctr = totalViews > 0 ? Math.round((totalClicks / totalViews) * 1000) / 10 : 0;
+
+    // ── Starter tier: summary totals only ──
+    if (tier === 'starter') {
+        return NextResponse.json({
+            tier,
+            summary: { totalViews, totalClicks, ctr },
+            // No per-job breakdown, no time-series for    starter
+            upgradeHint: 'Upgrade to Growth for per-job breakdowns, time-series charts, and click analytics.',
+        });
+    }
+
+    // ── Growth & Premium: full time-series + per-job breakdown ──
 
     // Recent apply clicks (last N days) per day
     const recentClicks = await prisma.applyClick.findMany({
@@ -91,12 +116,20 @@ export async function GET(req: NextRequest) {
         clickSeries.push(clicksByDate[dateKey] || 0);
     }
 
-    return NextResponse.json({
+    const response: Record<string, unknown> = {
+        tier,
         summary: { totalViews, totalClicks, ctr },
         jobs: jobSummaries,
         chart: {
             labels: dateLabels,
             clicks: clickSeries,
         },
-    });
+    };
+
+    // ── Premium: add CSV export URL ──
+    if (tier === 'premium') {
+        response.exportUrl = '/api/employer/analytics/csv';
+    }
+
+    return NextResponse.json(response);
 }

@@ -1,8 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
+import { getEmployerTier } from '@/lib/tier-limits';
 
 export async function GET(req: NextRequest) {
     try {
+        // Auth check — employer or admin only
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const profile = await prisma.userProfile.findUnique({
+            where: { supabaseId: user.id },
+            select: { id: true, role: true },
+        });
+
+        if (!profile || !['employer', 'admin'].includes(profile.role)) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Determine employer tier from server (admin gets premium access)
+        const tier = profile.role === 'admin' ? 'premium' : await getEmployerTier(user.id);
+
         const url = new URL(req.url);
         const specialty = url.searchParams.get('specialty');
         const state = url.searchParams.get('state');
@@ -11,9 +33,6 @@ export async function GET(req: NextRequest) {
         const page = parseInt(url.searchParams.get('page') || '1');
         const limit = 20;
         const skip = (page - 1) * limit;
-
-        // Determine employer tier (mock for now — will integrate Stripe later)
-        const tier = url.searchParams.get('tier') || 'starter';
 
         // Build where clause
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,8 +63,8 @@ export async function GET(req: NextRequest) {
             createdAt: true,
         };
 
-        // Featured tier: more details
-        const featuredSelect = {
+        // Growth tier: more details
+        const growthSelect = {
             ...baseSelect,
             licenseStates: true,
             certifications: true,
@@ -56,7 +75,7 @@ export async function GET(req: NextRequest) {
 
         // Premium tier: full access
         const premiumSelect = {
-            ...featuredSelect,
+            ...growthSelect,
             email: true,
             phone: true,
             npiNumber: true,
@@ -70,7 +89,7 @@ export async function GET(req: NextRequest) {
                 select = premiumSelect;
                 break;
             case 'growth':
-                select = featuredSelect;
+                select = growthSelect;
                 break;
             default:
                 select = baseSelect;
@@ -87,9 +106,9 @@ export async function GET(req: NextRequest) {
             prisma.userProfile.count({ where }),
         ]);
 
-        // For standard/featured tiers, mask the last name
+        // For starter/growth tiers, mask the last name. Premium gets full names.
         const masked = candidates.map((c) => {
-            if (tier === 'pro') return c;
+            if (tier === 'premium') return c;
             return {
                 ...c,
                 lastName: c.lastName ? c.lastName[0] + '.' : '',

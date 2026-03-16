@@ -1,11 +1,11 @@
 /**
  * Daily Social Media Posting Cron — Facebook
  *
- * Vercel Cron: 0 15 * * *  (3 PM UTC = 9 AM CST)
+ * Vercel Cron: 0 14 * * *  (9 AM CST)
  *
  * Posts the top PMHNP jobs to Facebook Page.
  * Supports ?dry=true for preview-only mode.
- * Supports ?platform=all to post to both platforms.
+ * Supports ?platform=all to post to Facebook and Instagram.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
