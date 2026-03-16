@@ -1037,7 +1037,7 @@ function PostJobContent() {
             <div className="rounded-lg shadow-md p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
               <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>What&apos;s Included</h2>
               <div className="flex flex-wrap gap-3">
-                {['30-day job listing', 'Included in daily job alerts', 'Full job description page', 'Basic analytics (views)', '5 candidate unlocks/posting', '5 InMails/posting'].map((feat) => (
+                {['60-day job listing', 'Featured badge', 'Top search placement', 'Highlighted in email alerts', '25 candidate unlocks/posting', '25 InMails/posting', 'Advanced analytics'].map((feat) => (
                   <span key={feat} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: 'rgba(45,212,191,0.1)', color: '#2DD4BF' }}>
                     ✓ {feat}
                   </span>
