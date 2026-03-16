@@ -60,12 +60,12 @@ const plans = [
   {
     name: 'Starter', price: 199, period: 'per posting', duration: '30 days',
     icon: Zap, color: '#2DD4BF', popular: false, cta: 'Get Started',
-    features: ['30-day job listing', 'Included in daily job alerts', 'Full job description page', 'Basic analytics (views)', '5 candidate unlocks/mo', '5 InMails/mo'],
+    features: ['30-day job listing', 'Included in daily job alerts', 'Full job description page', 'Basic analytics (views)', '5 candidate unlocks/posting', '5 InMails/posting'],
   },
   {
     name: 'Growth', price: 299, period: 'per posting', duration: '60 days',
     icon: Sparkles, color: '#E86C2C', popular: true, cta: 'Get Growth',
-    features: ['60-day listing (2× longer)', '"Featured" badge on listing', 'Top placement in search', 'Highlighted in email digests', '25 candidate unlocks/mo', '25 InMails/mo', 'Advanced analytics'],
+    features: ['60-day listing (2× longer)', '"Featured" badge on listing', 'Top placement in search', 'Highlighted in email digests', '25 candidate unlocks/posting', '25 InMails/posting', 'Advanced analytics'],
   },
   {
     name: 'Premium', price: 399, period: 'per posting', duration: '90 days',
@@ -294,8 +294,8 @@ export default async function ForEmployersPage() {
                 { icon: FileText, label: '30-day job listing', color: '#2DD4BF' },
                 { icon: Mail, label: 'Included in daily job alerts', color: '#E86C2C' },
                 { icon: Eye, label: 'Full job description page', color: '#3B82F6' },
-                { icon: Users, label: '5 candidate unlocks/mo', color: '#10B981' },
-                { icon: Briefcase, label: '5 InMails/mo', color: '#F59E0B' },
+                { icon: Users, label: '5 candidate unlocks/posting', color: '#10B981' },
+                { icon: Briefcase, label: '5 InMails/posting', color: '#F59E0B' },
               ].map(({ icon: Icon, label, color }) => (
                 <div key={label} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',

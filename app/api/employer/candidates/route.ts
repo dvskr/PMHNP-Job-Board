@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { getEmployerTier } from '@/lib/tier-limits'
+import { PricingTier } from '@/lib/config'
 
 export async function GET(req: NextRequest) {
     // Auth check — employer or admin only
@@ -20,24 +22,9 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Determine access level: admin always gets full access,
-    // employers need an active featured job post for full candidate info
+    // Determine access tier from employer's best active posting
     const isAdmin = profile.role === 'admin'
-    let hasFullAccess = isAdmin
-    if (!isAdmin) {
-        const featuredCount = await prisma.employerJob.count({
-            where: {
-                userId: user.id,
-                job: {
-                    isFeatured: true,
-                    isPublished: true,
-                    expiresAt: { gt: new Date() },
-                },
-            },
-        })
-        hasFullAccess = featuredCount > 0
-    }
-
+    const tier: PricingTier = isAdmin ? 'premium' : await getEmployerTier(user.id)
 
     // Parse query params
     const { searchParams } = new URL(req.url)
@@ -120,27 +107,51 @@ export async function GET(req: NextRequest) {
         where.resumeUrl = null
     }
 
+    // ── Tier-based field selection ──
+    // Starter: basic info only
+    const starterSelect = {
+        id: true,
+        supabaseId: true,
+        firstName: true,
+        lastName: true,
+        headline: true,
+        yearsExperience: true,
+        specialties: true,
+        preferredWorkMode: true,
+        avatarUrl: true,
+        createdAt: true,
+    }
+
+    // Growth: add license, certifications, salary, availability
+    const growthSelect = {
+        ...starterSelect,
+        certifications: true,
+        licenseStates: true,
+        desiredSalaryMin: true,
+        desiredSalaryMax: true,
+        desiredSalaryType: true,
+        availableDate: true,
+        resumeUrl: true,
+    }
+
+    // Premium: full access including bio, join date, etc.
+    const premiumSelect = {
+        ...growthSelect,
+        bio: true,
+        preferredJobType: true,
+        state: true,
+        city: true,
+    }
+
+    const select = tier === 'premium' ? premiumSelect
+        : tier === 'growth' ? growthSelect
+        : starterSelect
+
     // Query
     const [candidates, totalCount] = await Promise.all([
         prisma.userProfile.findMany({
             where,
-            select: {
-                id: true,
-                supabaseId: true,
-                firstName: true,
-                lastName: true,
-                headline: true,
-                yearsExperience: true,
-                certifications: true,
-                licenseStates: true,
-                specialties: true,
-                preferredWorkMode: true,
-                availableDate: true,
-                resumeUrl: true,
-                avatarUrl: true,
-                bio: true,
-                createdAt: true,
-            },
+            select,
             orderBy: { updatedAt: 'desc' },
             skip,
             take: limit,
@@ -148,30 +159,68 @@ export async function GET(req: NextRequest) {
         prisma.userProfile.count({ where }),
     ])
 
-    // Privacy transform: first name + last initial, no email/phone/resumeUrl value
-    const results = candidates.map(c => ({
-        id: c.supabaseId,
-        displayName: c.firstName
-            ? `${c.firstName} ${c.lastName ? c.lastName.charAt(0) + '.' : ''}`.trim()
-            : 'PMHNP Candidate',
-        headline: c.headline,
-        yearsExperience: c.yearsExperience,
-        certifications: c.certifications ? c.certifications.split(',').map(s => s.trim()) : [],
-        licenseStates: c.licenseStates ? c.licenseStates.split(',').map(s => s.trim()) : [],
-        specialties: c.specialties ? c.specialties.split(',').map(s => s.trim()) : [],
-        preferredWorkMode: c.preferredWorkMode,
-        availableDate: c.availableDate?.toISOString() || null,
-        hasResume: !!c.resumeUrl,
-        avatarUrl: c.avatarUrl,
-        initials: `${(c.firstName || 'P').charAt(0)}${(c.lastName || 'C').charAt(0)}`.toUpperCase(),
-        joinedAt: c.createdAt.toISOString(),
-    }))
+    // Privacy transform: mask last name for non-premium tiers
+    const results = candidates.map(c => {
+        const base = {
+            id: c.supabaseId,
+            displayName: c.firstName
+                ? `${c.firstName} ${tier === 'premium' && c.lastName ? c.lastName : (c.lastName ? c.lastName.charAt(0) + '.' : '')}`.trim()
+                : 'PMHNP Candidate',
+            headline: c.headline,
+            yearsExperience: c.yearsExperience,
+            specialties: c.specialties ? c.specialties.split(',').map(s => s.trim()) : [],
+            preferredWorkMode: c.preferredWorkMode,
+            avatarUrl: c.avatarUrl,
+            initials: `${(c.firstName || 'P').charAt(0)}${(c.lastName || 'C').charAt(0)}`.toUpperCase(),
+            joinedAt: c.createdAt.toISOString(),
+        }
+
+        // Growth fields
+        if (tier === 'growth' || tier === 'premium') {
+            const growthData = c as typeof c & {
+                certifications?: string | null;
+                licenseStates?: string | null;
+                desiredSalaryMin?: number | null;
+                desiredSalaryMax?: number | null;
+                desiredSalaryType?: string | null;
+                availableDate?: Date | null;
+                resumeUrl?: string | null;
+            }
+            Object.assign(base, {
+                certifications: growthData.certifications ? growthData.certifications.split(',').map(s => s.trim()) : [],
+                licenseStates: growthData.licenseStates ? growthData.licenseStates.split(',').map(s => s.trim()) : [],
+                desiredSalaryMin: growthData.desiredSalaryMin,
+                desiredSalaryMax: growthData.desiredSalaryMax,
+                desiredSalaryType: growthData.desiredSalaryType,
+                availableDate: growthData.availableDate?.toISOString() || null,
+                hasResume: !!growthData.resumeUrl,
+            })
+        }
+
+        // Premium fields
+        if (tier === 'premium') {
+            const premiumData = c as typeof c & {
+                bio?: string | null;
+                preferredJobType?: string | null;
+                state?: string | null;
+                city?: string | null;
+            }
+            Object.assign(base, {
+                bio: premiumData.bio,
+                preferredJobType: premiumData.preferredJobType,
+                state: premiumData.state,
+                city: premiumData.city,
+            })
+        }
+
+        return base
+    })
 
     return NextResponse.json({
         candidates: results,
         totalCount,
         page,
         totalPages: Math.ceil(totalCount / limit),
-        hasFullAccess,
+        tier,
     })
 }

@@ -962,7 +962,7 @@ function PostJobContent() {
                     <li>• 30-day listing</li>
                     <li>• Shown in job feed</li>
                     <li>• Email alerts to subscribers</li>
-                    <li>• 5 candidate unlocks/mo</li>
+                    <li>• 5 candidate unlocks/posting</li>
                   </ul>
                 </label>
 
@@ -994,8 +994,8 @@ function PostJobContent() {
                     <li>• 60-day listing</li>
                     <li>• ⭐ Featured badge</li>
                     <li>• Top search placement</li>
-                    <li>• 25 candidate unlocks/mo</li>
-                    <li>• 25 InMails/mo</li>
+                    <li>• 25 candidate unlocks/posting</li>
+                    <li>• 25 InMails/posting</li>
                   </ul>
                 </label>
 
@@ -1037,7 +1037,7 @@ function PostJobContent() {
             <div className="rounded-lg shadow-md p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
               <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>What&apos;s Included</h2>
               <div className="flex flex-wrap gap-3">
-                {['30-day job listing', 'Included in daily job alerts', 'Full job description page', 'Basic analytics (views)', '5 candidate unlocks/mo', '5 InMails/mo'].map((feat) => (
+                {['30-day job listing', 'Included in daily job alerts', 'Full job description page', 'Basic analytics (views)', '5 candidate unlocks/posting', '5 InMails/posting'].map((feat) => (
                   <span key={feat} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: 'rgba(45,212,191,0.1)', color: '#2DD4BF' }}>
                     ✓ {feat}
                   </span>

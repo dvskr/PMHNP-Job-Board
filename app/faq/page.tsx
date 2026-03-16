@@ -52,7 +52,7 @@ export default function FAQPage() {
     {
       question: "How much does it cost to post a job?",
       answer: config.isPaidPostingEnabled
-        ? "We offer three posting tiers: Starter ($199) for a 30-day listing, Growth ($299) with featured placement and 25 candidate unlocks/mo, and Premium ($399) with 90-day listing, unlimited unlocks, and social media promotion."
+        ? "We offer three posting tiers: Starter ($199) for a 30-day listing, Growth ($299) with featured placement and 25 candidate unlocks/posting, and Premium ($399) with 90-day listing, unlimited unlocks, and social media promotion."
         : "During our launch period, job postings are completely FREE! This includes all tiers. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
     },
     {
@@ -64,7 +64,7 @@ export default function FAQPage() {
     {
       question: "What are the differences between tiers?",
       answer: config.isPaidPostingEnabled
-        ? "Starter gets you a 30-day listing with basic analytics and 5 candidate unlocks/mo. Growth adds a featured badge, top search placement, 25 candidate unlocks/mo, and 25 InMails/mo for 60 days. Premium extends to 90 days with unlimited unlocks, unlimited InMails, social media promotion, and dedicated support."
+        ? "Starter gets you a 30-day listing with basic analytics and 5 candidate unlocks/posting. Growth adds a featured badge, top search placement, 25 candidate unlocks/posting, and 25 InMails/posting for 60 days. Premium extends to 90 days with unlimited unlocks, unlimited InMails, social media promotion, and dedicated support."
         : "Growth jobs appear at the top of search results, are highlighted in job alerts, and display a prominent 'Featured' badge. During our free launch period, all tiers are free - we recommend choosing Growth for maximum visibility!"
     },
     {

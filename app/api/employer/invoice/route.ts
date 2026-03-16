@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { generateInvoice } from '@/lib/invoice-generator';
+import { config, PricingTier } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -66,9 +67,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Determine pricing tier and amount
-    const tier = employerJob.job.isFeatured ? 'growth' : 'starter';
-    const amount = employerJob.job.isFeatured ? 29900 : 19900; // in cents
+    // Determine pricing tier and amount from the stored tier
+    const tier = (employerJob.pricingTier || 'starter') as PricingTier;
+    const amount = config.getStripePriceInCents(tier);
 
     // Generate invoice number (using job ID and creation date)
     const createdDate = new Date(employerJob.createdAt);

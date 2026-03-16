@@ -190,8 +190,8 @@ export default function PricingPage() {
                             { icon: Mail, title: 'Daily Job Alert Emails', desc: 'Your listing is emailed directly to thousands of opted-in PMHNP candidates.', color: '#E86C2C' },
                             { icon: Search, title: 'Full Job Description Page', desc: 'A dedicated, SEO-optimized page with all the details candidates need to apply.', color: '#A855F7' },
                             { icon: TrendingUp, title: 'Basic Analytics (Views)', desc: 'Track how many job seekers view your listing from your employer dashboard.', color: '#3B82F6' },
-                            { icon: Users, title: '5 Candidate Unlocks/mo', desc: 'Preview candidate profiles and unlock up to 5 per month.', color: '#10B981' },
-                            { icon: MessageSquare, title: '5 InMails/mo', desc: 'Message up to 5 candidates directly on the platform each month.', color: '#F59E0B' },
+                            { icon: Users, title: '5 Candidate Unlocks/posting', desc: 'Preview candidate profiles and unlock up to 5 per posting.', color: '#10B981' },
+                            { icon: MessageSquare, title: '5 InMails/posting', desc: 'Message up to 5 candidates directly on the platform per posting.', color: '#F59E0B' },
                         ].map(({ icon: Ic, title, desc, color }) => (
                             <div key={title} style={{
                                 padding: '24px 20px', borderRadius: '14px',

@@ -118,31 +118,11 @@ export async function POST(request: NextRequest) {
         url: session.url,
       });
     } else {
-      // FREE MODE: Upgrade directly without payment
-
-      // Update job
-      await prisma.job.update({
-        where: { id: jobId },
-        data: {
-          isFeatured: config.isFeaturedTier(upgradeTo),
-          expiresAt: newExpiresAt,
-        },
-      });
-
-      // Update employer job record
-      await prisma.employerJob.update({
-        where: { jobId },
-        data: {
-          paymentStatus: 'free_upgraded',
-          pricingTier: upgradeTo,
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: `Job upgraded to ${config.getTierLabel(upgradeTo)}!`,
-        free: true,
-      });
+      // FREE MODE: Upgrades not available during free launch
+      return NextResponse.json(
+        { error: 'Upgrades are available when paid plans are enabled. During the free launch, all postings include Starter-tier features.' },
+        { status: 403 }
+      );
     }
   } catch (error) {
     console.error('Error creating upgrade checkout session:', error);

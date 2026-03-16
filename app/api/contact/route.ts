@@ -4,6 +4,9 @@ import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeContactForm } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
 import { buildContactConfirmationHtml, buildContactNotificationHtml } from '@/lib/email-service';
+import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+import { getEmployerTier } from '@/lib/tier-limits';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
@@ -59,13 +62,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if the sender is an authenticated employer and get their tier
+    let tierPrefix = '';
+    let tierInfo = '';
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const profile = await prisma.userProfile.findUnique({
+          where: { supabaseId: user.id },
+          select: { role: true },
+        });
+        if (profile && ['employer', 'admin'].includes(profile.role)) {
+          const tier = profile.role === 'admin' ? 'admin' : await getEmployerTier(user.id);
+          tierPrefix = `[${tier.toUpperCase()}] `;
+          tierInfo = `\n\nSender Tier: ${tier.toUpperCase()} (${profile.role})`;
+        }
+      }
+    } catch {
+      // Non-critical — continue without tier info
+    }
+
     // 1. Send notification email to support team
     try {
       await resend.emails.send({
         from: EMAIL_FROM,
         to: 'support@pmhnphiring.com',
-        subject: `Contact Form: ${trimmedSubject}`,
-        html: buildContactNotificationHtml(trimmedName, trimmedEmail, trimmedSubject, trimmedMessage),
+        subject: `${tierPrefix}Contact Form: ${trimmedSubject}`,
+        html: buildContactNotificationHtml(trimmedName, trimmedEmail, trimmedSubject, trimmedMessage + tierInfo),
         replyTo: trimmedEmail,
       });
 

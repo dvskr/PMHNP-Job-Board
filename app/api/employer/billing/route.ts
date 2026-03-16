@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { config, PricingTier } from '@/lib/config';
 
 /**
  * GET /api/employer/billing
@@ -47,7 +48,7 @@ export async function GET() {
     const payments = employerJobs.map((ej) => ({
         id: ej.id,
         jobTitle: ej.job.title,
-        tier: ej.job.isFeatured ? 'Growth' : 'Starter',
+        tier: config.getTierLabel((ej.pricingTier || 'starter') as PricingTier),
         status: ej.paymentStatus,
         date: ej.createdAt.toISOString(),
         expiresAt: ej.job.expiresAt?.toISOString() || null,

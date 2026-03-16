@@ -97,51 +97,11 @@ export async function POST(request: NextRequest) {
         url: session.url,
       });
     } else {
-      // FREE MODE: Renew directly without payment
-
-      // Calculate new expiry based on tier duration
-      const durationDays = config.getDurationDays(tier);
-      const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + durationDays);
-
-      // Update job
-      await prisma.job.update({
-        where: { id: jobId },
-        data: {
-          expiresAt: newExpiresAt,
-          isPublished: true,
-          isFeatured: config.isFeaturedTier(tier),
-        },
-      });
-
-      // Update employer job record
-      await prisma.employerJob.update({
-        where: { jobId },
-        data: {
-          paymentStatus: 'free_renewed',
-          pricingTier: tier,
-        },
-      });
-
-      // Send renewal confirmation email
-      try {
-        await sendRenewalConfirmationEmail(
-          employerJob.contactEmail,
-          employerJob.job.title,
-          newExpiresAt,
-          employerJob.dashboardToken,
-          employerJob.editToken // Using editToken as unsubscribe token
-        );
-      } catch (e) {
-        console.error('Failed to send renewal email:', e);
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Job renewed successfully for another 30 days',
-        free: true,
-        newExpiresAt,
-      });
+      // FREE MODE: Renewals not available during free launch
+      return NextResponse.json(
+        { error: 'Renewals are available when paid plans are enabled. During the free launch, you can post a new job for free instead.' },
+        { status: 403 }
+      );
     }
   } catch (error) {
     console.error('Error creating renewal checkout session:', error);

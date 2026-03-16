@@ -2,8 +2,8 @@
  * Social Post Generator
  *
  * Queries the production DB for top jobs with a mix of categories,
- * then generates formatted captions for Facebook, Instagram, LinkedIn, and X,
- * plus carousel images for Instagram and LinkedIn.
+ * then generates formatted captions for Facebook and Instagram,
+ * plus carousel images for Instagram.
  */
 
 import { prisma } from '@/lib/prisma';
@@ -12,8 +12,6 @@ import {
     uploadImage,
     postToFacebook,
     postToInstagramCarousel,
-    postToLinkedIn,
-    postToX,
     type PostizImage,
 } from '@/lib/postiz-client';
 
@@ -46,9 +44,27 @@ interface SocialJob {
 }
 
 export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
-    // Use a raw query to get a diverse mix via ROW_NUMBER partitioned by job_type
+    // Use a raw query to get a diverse mix via ROW_NUMBER partitioned by job_type.
+    // A date-seeded random tiebreaker ensures different jobs surface each day.
     const jobs = await prisma.$queryRaw<SocialJob[]>`
-    WITH employer_posts AS (
+    WITH premium_posts AS (
+      -- Premium tier employer posts get highest priority (always shown first)
+      SELECT
+        j.title, j.employer, j.location,
+        j.job_type AS "jobType", j.mode,
+        j.display_salary AS "displaySalary",
+        j.is_remote AS "isRemote", j.is_featured AS "isFeatured", j.slug,
+        j.quality_score AS "qualityScore", j.state, j.city,
+        j.created_at,
+        0 AS priority
+      FROM jobs j
+      INNER JOIN employer_jobs ej ON ej.job_id = j.id
+      WHERE j.is_published = true
+        AND (j.expires_at IS NULL OR j.expires_at > NOW())
+        AND j.slug IS NOT NULL
+        AND ej.pricing_tier = 'premium'
+    ),
+    employer_posts AS (
       -- Employer posts always included first, regardless of quality score
       SELECT
         title, employer, location,
@@ -56,70 +72,82 @@ export async function fetchTopJobsForSocial(): Promise<SocialJob[]> {
         display_salary AS "displaySalary",
         is_remote AS "isRemote", is_featured AS "isFeatured", slug,
         quality_score AS "qualityScore", state, city,
+        created_at,
         1 AS priority
       FROM jobs
       WHERE is_published = true
         AND (expires_at IS NULL OR expires_at > NOW())
         AND slug IS NOT NULL
-        AND created_at > NOW() - INTERVAL '24 hours'
+        AND created_at > NOW() - INTERVAL '48 hours'
         AND source_type = 'employer'
+        AND id NOT IN (SELECT j.id FROM jobs j INNER JOIN employer_jobs ej ON ej.job_id = j.id WHERE ej.pricing_tier = 'premium')
     ),
     featured_posts AS (
-      -- Featured/paid jobs get priority 2 (after employer, before regular)
+      -- Featured/paid jobs get priority 2, capped at 30 days to prevent stale repeats
       SELECT
         title, employer, location,
         job_type AS "jobType", mode,
         display_salary AS "displaySalary",
         is_remote AS "isRemote", is_featured AS "isFeatured", slug,
         quality_score AS "qualityScore", state, city,
+        created_at,
         2 AS priority
       FROM jobs
       WHERE is_published = true
         AND is_featured = true
         AND (expires_at IS NULL OR expires_at > NOW())
         AND slug IS NOT NULL
+        AND created_at > NOW() - INTERVAL '30 days'
         AND source_type != 'employer'
     ),
     external_ranked AS (
-      -- External non-featured jobs ranked by quality with category diversity
+      -- External jobs ranked by quality (salary bonus) with category diversity.
+      -- Jobs with salary get +10 quality bonus so they rank higher, but jobs
+      -- without salary are no longer excluded entirely.
       SELECT
         title, employer, location,
         job_type AS "jobType", mode,
         display_salary AS "displaySalary",
         is_remote AS "isRemote", is_featured AS "isFeatured", slug,
         quality_score AS "qualityScore", state, city,
+        created_at,
         3 AS priority,
         ROW_NUMBER() OVER (
           PARTITION BY COALESCE(job_type, 'General')
-          ORDER BY quality_score DESC, created_at DESC
+          ORDER BY
+            (quality_score + CASE WHEN display_salary IS NOT NULL THEN 10 ELSE 0 END) DESC,
+            created_at DESC
         ) AS rn
       FROM jobs
       WHERE is_published = true
         AND is_featured = false
         AND (expires_at IS NULL OR expires_at > NOW())
         AND slug IS NOT NULL
-        AND created_at > NOW() - INTERVAL '24 hours'
-        AND display_salary IS NOT NULL
+        AND created_at > NOW() - INTERVAL '48 hours'
         AND source_type != 'employer'
     ),
     combined AS (
       SELECT title, employer, location, "jobType", mode, "displaySalary",
-             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority, created_at
+      FROM premium_posts
+      UNION ALL
+      SELECT title, employer, location, "jobType", mode, "displaySalary",
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority, created_at
       FROM employer_posts
       UNION ALL
       SELECT title, employer, location, "jobType", mode, "displaySalary",
-             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority, created_at
       FROM featured_posts
       UNION ALL
       SELECT title, employer, location, "jobType", mode, "displaySalary",
-             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority
+             "isRemote", "isFeatured", slug, "qualityScore", state, city, priority, created_at
       FROM external_ranked
       WHERE rn <= 3
     )
     SELECT title, employer, location, "jobType", mode, "displaySalary",
            "isRemote", "isFeatured", slug, "qualityScore", state, city
     FROM combined
-    ORDER BY priority ASC, "qualityScore" DESC
+    ORDER BY priority ASC, "qualityScore" DESC, created_at DESC
     LIMIT ${JOBS_PER_POST}
   `;
 
@@ -222,53 +250,6 @@ export async function uploadCarouselImages(
 }
 
 // ---------------------------------------------------------------------------
-// LinkedIn caption
-// ---------------------------------------------------------------------------
-
-export function buildLinkedInCaption(jobs: SocialJob[]): string {
-    const lines = [
-        '🔥 Today\'s Top PMHNP Opportunities\n',
-        'We\'re seeing strong demand for Psychiatric Mental Health Nurse Practitioners. Here are today\'s top openings:\n',
-    ];
-
-    jobs.forEach((job, i) => {
-        const emoji = JOB_EMOJIS[i] ?? `${i + 1}.`;
-        const featured = job.isFeatured ? ' ⭐' : '';
-        const salary = job.displaySalary ? ` | ${job.displaySalary}` : '';
-        const loc = job.isRemote ? 'Remote' : job.location;
-        lines.push(`${emoji} ${job.title}${featured}`);
-        lines.push(`   🏢 ${job.employer} · 📍 ${loc}${salary}`);
-        lines.push('');
-    });
-
-    lines.push(`👉 Browse all openings: ${BASE_URL}`);
-    lines.push(`\n${HASHTAGS} #LinkedIn #PMHNPJobs`);
-
-    return lines.join('\n');
-}
-
-// ---------------------------------------------------------------------------
-// X (Twitter) caption — concise due to character limit
-// ---------------------------------------------------------------------------
-
-export function buildXCaption(jobs: SocialJob[]): string {
-    const topJobs = jobs.slice(0, 5); // Keep it short for X
-    const lines = ['🔥 Top PMHNP Jobs Today:\n'];
-
-    topJobs.forEach((job, i) => {
-        const salary = job.displaySalary ? ` — ${job.displaySalary}` : '';
-        const loc = job.isRemote ? '🌐 Remote' : `📍 ${job.location}`;
-        lines.push(`${i + 1}. ${job.title}${salary}`);
-        lines.push(`   ${loc} | ${job.employer}`);
-    });
-
-    lines.push(`\n👉 ${BASE_URL}`);
-    lines.push('#PMHNP #NurseJobs #MentalHealth #Hiring');
-
-    return lines.join('\n');
-}
-
-// ---------------------------------------------------------------------------
 // Orchestrator — run the full pipeline
 // ---------------------------------------------------------------------------
 
@@ -278,13 +259,11 @@ export interface SocialPostResult {
     reason?: string;
     facebook?: { posted: boolean; error?: string };
     instagram?: { posted: boolean; error?: string };
-    linkedin?: { posted: boolean; error?: string };
-    x?: { posted: boolean; error?: string };
     dryRun: boolean;
     caption?: string;
 }
 
-export type SocialPlatform = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'all';
+export type SocialPlatform = 'facebook' | 'instagram' | 'all';
 
 export async function runSocialPostPipeline(
     dryRun = false,
@@ -309,15 +288,13 @@ export async function runSocialPostPipeline(
     // Build captions
     const fbCaption = (platform === 'facebook' || platform === 'all') ? buildFacebookCaption(jobs) : '';
     const igCaption = (platform === 'instagram' || platform === 'all') ? buildInstagramCaption(jobs) : '';
-    const liCaption = (platform === 'linkedin' || platform === 'all') ? buildLinkedInCaption(jobs) : '';
-    const xCaption = (platform === 'x' || platform === 'all') ? buildXCaption(jobs) : '';
 
     if (dryRun) {
         return {
             success: true,
             jobCount: jobs.length,
             dryRun: true,
-            caption: fbCaption || igCaption || liCaption || xCaption,
+            caption: fbCaption || igCaption,
         };
     }
 
@@ -383,77 +360,6 @@ export async function runSocialPostPipeline(
             console.warn('[SOCIAL] POSTIZ_INSTAGRAM_INTEGRATION_ID not set — skipping IG');
             result.instagram = { posted: false, error: 'Integration ID not configured' };
             result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_INSTAGRAM_INTEGRATION_ID not set';
-        }
-    }
-
-    // ── LinkedIn carousel ──
-    if (platform === 'linkedin' || platform === 'all') {
-        const liId = process.env.POSTIZ_LINKEDIN_INTEGRATION_ID;
-        if (liId) {
-            try {
-                console.log('[SOCIAL] Generating LinkedIn carousel images...');
-                // Reuse Instagram carousel images if already generated, otherwise generate
-                let imageBuffers: Buffer[];
-                if (result.instagram?.posted || platform === 'all') {
-                    // Images were already generated for Instagram, regenerate for LinkedIn
-                    imageBuffers = await generateCarouselImages(jobs);
-                } else {
-                    imageBuffers = await generateCarouselImages(jobs);
-                }
-
-                console.log(`[SOCIAL] Uploading ${imageBuffers.length} images for LinkedIn...`);
-                const uploadedImages = await uploadCarouselImages(imageBuffers);
-
-                console.log('[SOCIAL] Posting to LinkedIn...');
-                await postToLinkedIn(liId, liCaption, uploadedImages);
-                result.linkedin = { posted: true };
-                console.log('[SOCIAL] LinkedIn post successful');
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                console.error('[SOCIAL] LinkedIn post failed:', msg);
-                result.linkedin = { posted: false, error: msg };
-                result.success = false;
-            }
-        } else {
-            console.warn('[SOCIAL] POSTIZ_LINKEDIN_INTEGRATION_ID not set — skipping LinkedIn');
-            result.linkedin = { posted: false, error: 'Integration ID not configured' };
-            result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_LINKEDIN_INTEGRATION_ID not set';
-        }
-    }
-
-    // ── X (Twitter) — single summary image ──
-    if (platform === 'x' || platform === 'all') {
-        const xId = process.env.POSTIZ_X_INTEGRATION_ID;
-        if (xId) {
-            try {
-                console.log('[SOCIAL] Generating X summary image...');
-                const xSummaryPng = await generateFBSummaryPng(
-                    jobs.map((j) => ({
-                        title: j.title,
-                        employer: j.employer,
-                        location: j.location,
-                        salary: j.displaySalary,
-                        isRemote: j.isRemote,
-                    })),
-                );
-
-                console.log('[SOCIAL] Uploading X summary image...');
-                const xUpload = await uploadImage(xSummaryPng, 'x-summary.png');
-
-                console.log('[SOCIAL] Posting to X...');
-                await postToX(xId, xCaption, { id: xUpload.id, path: xUpload.path });
-                result.x = { posted: true };
-                console.log('[SOCIAL] X post successful');
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                console.error('[SOCIAL] X post failed:', msg);
-                result.x = { posted: false, error: msg };
-                result.success = false;
-            }
-        } else {
-            console.warn('[SOCIAL] POSTIZ_X_INTEGRATION_ID not set — skipping X');
-            result.x = { posted: false, error: 'Integration ID not configured' };
-            result.reason = (result.reason ? result.reason + '; ' : '') + 'POSTIZ_X_INTEGRATION_ID not set';
         }
     }
 
