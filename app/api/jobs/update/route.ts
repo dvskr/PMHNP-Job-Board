@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       title: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).title,
       location: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).location,
       description: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).description,
-      applyLink: sanitizeUrl(rawJobData.applyLink),
+      applyLink: rawJobData.applyLink ? sanitizeUrl(rawJobData.applyLink) : null,
       contactEmail: rawJobData.contactEmail ? sanitizeEmail(rawJobData.contactEmail) : undefined,
       companyWebsite: rawJobData.companyWebsite ? sanitizeUrl(rawJobData.companyWebsite) : undefined,
     };
