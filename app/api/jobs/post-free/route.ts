@@ -180,9 +180,9 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
 
-    // Free posts always get Starter plan features (30 days, not featured)
+    // Free-launch posts get Growth tier features (60 days, featured badge)
     // Ignore any pricing tier from the request body to prevent feature spoofing
-    const tierForDuration: PricingTier = 'starter';
+    const tierForDuration: PricingTier = 'growth';
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + config.getDurationDays(tierForDuration));
 
@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
         editToken,
         dashboardToken,
         paymentStatus: 'free',
-        pricingTier: 'starter',
+        pricingTier: 'growth',
         userId: userId,
       },
     });
