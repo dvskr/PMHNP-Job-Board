@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { Job } from '@/lib/types';
 import { AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+
+const ReactQuill = lazy(() => import('react-quill-new'));
+import 'react-quill-new/dist/quill.snow.css';
 
 const editJobSchema = z.object({
   title: z.string().min(10, 'Job title must be at least 10 characters'),
@@ -20,7 +23,7 @@ const editJobSchema = z.object({
   salaryMin: z.number().positive().optional().nullable(),
   salaryMax: z.number().positive().optional().nullable(),
   description: z.string().min(200, 'Job description must be at least 200 characters'),
-  applyUrl: z.string().url('Must be a valid URL'),
+  applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   contactEmail: z.string().email('Must be a valid email address'),
   companyWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
@@ -38,6 +41,18 @@ interface EmployerJobData {
 const workModes = ['Remote', 'Hybrid', 'In-Person'] as const;
 const jobTypes = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'] as const;
 
+const quillModules = {
+  toolbar: [
+    [{ header: [2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['link'],
+    ['clean'],
+  ],
+};
+
+const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'link'];
+
 export default function EditJobPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter();
   const [token, setToken] = useState<string>('');
@@ -50,10 +65,12 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   const [unpublishing, setUnpublishing] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [renewingTier, setRenewingTier] = useState<'starter' | 'growth' | 'premium' | null>(null);
+  const [isApplyOnPlatform, setIsApplyOnPlatform] = useState(false);
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<EditJobFormData>({
@@ -75,6 +92,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
         setJob(data.job);
         setEmployerJob(data.employerJob);
+        setIsApplyOnPlatform(data.job.applyOnPlatform || false);
 
         // Pre-fill form
         reset({
@@ -85,7 +103,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
           salaryMin: data.job.minSalary,
           salaryMax: data.job.maxSalary,
           description: data.job.description,
-          applyUrl: data.job.applyLink,
+          applyUrl: data.job.applyLink || '',
           contactEmail: data.employerJob.contactEmail,
           companyWebsite: data.employerJob.companyWebsite || '',
         });
@@ -117,7 +135,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             mode: data.mode,
             jobType: data.jobType,
             description: data.description,
-            applyLink: data.applyUrl,
+            applyLink: isApplyOnPlatform ? null : data.applyUrl,
             minSalary: data.salaryMin,
             maxSalary: data.salaryMax,
             salaryPeriod: 'year',
@@ -307,21 +325,21 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Job Details Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="rounded-lg shadow-md p-5 md:p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
           <h2 className="text-xl font-semibold mb-6">Job Details</h2>
 
           <div className="space-y-6">
             {/* Job Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="title" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 Job Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 id="title"
                 {...register('title')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.title ? 'border-red-500' : ''}`}
+                style={{ borderColor: errors.title ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
@@ -330,7 +348,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
             {/* Location */}
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="location" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 Location <span className="text-red-500">*</span>
               </label>
               <input
@@ -338,8 +356,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="location"
                 placeholder="e.g. Remote, New York NY"
                 {...register('location')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.location ? 'border-red-500' : ''}`}
+                style={{ borderColor: errors.location ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
               />
               {errors.location && (
                 <p className="mt-1 text-sm text-red-500">{errors.location.message}</p>
@@ -348,7 +366,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
             {/* Work Mode */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 Work Mode <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
@@ -360,7 +378,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       {...register('mode')}
                       className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
                     />
-                    <span className="ml-2 text-sm text-gray-600">{mode}</span>
+                    <span className="ml-2 text-sm" style={{ color: 'var(--text-secondary)' }}>{mode}</span>
                   </label>
                 ))}
               </div>
@@ -371,7 +389,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
             {/* Job Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 Job Type <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-4">
@@ -383,7 +401,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       {...register('jobType')}
                       className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
                     />
-                    <span className="ml-2 text-sm text-gray-600">{type}</span>
+                    <span className="ml-2 text-sm" style={{ color: 'var(--text-secondary)' }}>{type}</span>
                   </label>
                 ))}
               </div>
@@ -394,7 +412,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
             {/* Salary Range */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 Salary Range (Annual)
               </label>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -403,7 +421,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                     type="number"
                     placeholder="Min $"
                     {...register('salaryMin', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    style={{ borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 <div className="flex-1">
@@ -411,57 +430,82 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                     type="number"
                     placeholder="Max $"
                     {...register('salaryMax', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    style={{ borderColor: 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Job Description */}
+            {/* Job Description — Rich Text */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 Job Description <span className="text-red-500">*</span>
               </label>
-              <textarea
-                id="description"
-                rows={8}
-                {...register('description')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
-                  }`}
-              />
+              <style>{`.ql-editor { min-height: 300px !important; }`}</style>
+              <Suspense fallback={<div className="h-64 rounded-lg animate-pulse" style={{ background: 'var(--bg-tertiary)' }} />}>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <ReactQuill
+                      theme="snow"
+                      value={field.value || ''}
+                      onChange={(content: string) => {
+                        const text = content.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                        field.onChange(text.length > 0 ? content : '');
+                      }}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      placeholder="Describe the role, responsibilities, requirements, benefits..."
+                    />
+                  )}
+                />
+              </Suspense>
               {errors.description && (
                 <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
               )}
             </div>
 
-            {/* Apply URL */}
-            <div>
-              <label htmlFor="applyUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                How to Apply URL <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="url"
-                id="applyUrl"
-                {...register('applyUrl')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.applyUrl ? 'border-red-500' : 'border-gray-300'
-                  }`}
-              />
-              {errors.applyUrl && (
-                <p className="mt-1 text-sm text-red-500">{errors.applyUrl.message}</p>
-              )}
-            </div>
+            {/* Apply URL — only when NOT apply on platform */}
+            {!isApplyOnPlatform && (
+              <div>
+                <label htmlFor="applyUrl" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                  How to Apply URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  id="applyUrl"
+                  {...register('applyUrl')}
+                  className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.applyUrl ? 'border-red-500' : ''}`}
+                  style={{ borderColor: errors.applyUrl ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                />
+                {errors.applyUrl && (
+                  <p className="mt-1 text-sm text-red-500">{errors.applyUrl.message}</p>
+                )}
+              </div>
+            )}
+
+            {isApplyOnPlatform && (
+              <div className="flex items-start gap-2 rounded-lg px-4 py-3" style={{ background: 'rgba(45,212,191,0.08)', border: '1px solid rgba(45,212,191,0.2)' }}>
+                <span className="text-lg leading-none mt-0.5">✅</span>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Candidates apply directly on this platform. Applications arrive in your employer dashboard.
+                </p>
+              </div>
+            )}
 
             {/* Contact Email */}
             <div>
-              <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="contactEmail" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 Contact Email <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 id="contactEmail"
                 {...register('contactEmail')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.contactEmail ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.contactEmail ? 'border-red-500' : ''}`}
+                style={{ borderColor: errors.contactEmail ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
               />
               {errors.contactEmail && (
                 <p className="mt-1 text-sm text-red-500">{errors.contactEmail.message}</p>
@@ -470,15 +514,15 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
             {/* Company Website */}
             <div>
-              <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="companyWebsite" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                 Company Website
               </label>
               <input
                 type="url"
                 id="companyWebsite"
                 {...register('companyWebsite')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                className={`w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.companyWebsite ? 'border-red-500' : ''}`}
+                style={{ borderColor: errors.companyWebsite ? undefined : 'var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
               />
               {errors.companyWebsite && (
                 <p className="mt-1 text-sm text-red-500">{errors.companyWebsite.message}</p>
@@ -509,19 +553,19 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       {/* Unpublish Confirmation Dialog */}
       {showUnpublishConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="rounded-lg shadow-xl max-w-md w-full p-6" style={{ background: 'var(--bg-secondary)' }}>
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="text-red-500" size={24} />
               <h3 className="text-xl font-semibold">Unpublish Job?</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
               Are you sure you want to unpublish this job? It will no longer be visible to job seekers.
               You can contact support if you need to republish it later.
             </p>
             <div className="flex gap-4 justify-end">
               <button
                 onClick={() => setShowUnpublishConfirm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-4 py-2 transition-colors" style={{ color: 'var(--text-secondary)' }}
               >
                 Cancel
               </button>
@@ -540,25 +584,26 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       {/* Renewal Modal */}
       {showRenewModal && job && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="rounded-lg shadow-xl max-w-md w-full p-6" style={{ background: 'var(--bg-secondary)' }}>
             <div className="mb-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Renew Job Posting</h3>
-              <p className="text-sm text-gray-600">{job.title}</p>
+              <h3 className="text-xl font-bold mb-2">Renew Job Posting</h3>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{job.title}</p>
             </div>
 
-            <p className="text-gray-700 mb-6">Choose how you&apos;d like to renew your listing:</p>
+            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Choose how you&apos;d like to renew your listing:</p>
 
             <div className="space-y-3 mb-6">
               {/* Starter Option */}
               <button
                 onClick={() => handleRenewCheckout('starter')}
-                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-teal-500 hover:bg-teal-50 transition-all group"
+                className="w-full text-left border-2 rounded-lg p-4 transition-all group"
+                style={{ borderColor: 'var(--border-color)' }}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-gray-900 group-hover:text-teal-700">Starter Renewal</span>
-                  <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">$199</span>
+                  <span className="font-semibold">Starter Renewal</span>
+                  <span className="text-2xl font-bold">$199</span>
                 </div>
-                <ul className="text-sm text-gray-600 space-y-1">
+                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>✓ 30 days of visibility</li>
                   <li>✓ 5 candidate unlocks/posting</li>
                   <li>✓ 5 InMails/posting</li>
@@ -568,16 +613,17 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               {/* Growth Option */}
               <button
                 onClick={() => handleRenewCheckout('growth')}
-                className="w-full text-left border-2 border-teal-500 bg-teal-50 rounded-lg p-4 hover:bg-teal-100 transition-all group relative"
+                className="w-full text-left border-2 border-teal-500 rounded-lg p-4 transition-all group relative"
+                style={{ background: 'rgba(13,148,136,0.08)' }}
               >
                 <div className="absolute top-2 right-2">
                   <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">MOST POPULAR</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-teal-900">Growth Renewal</span>
-                  <span className="text-2xl font-bold text-teal-900">$299</span>
+                  <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Growth Renewal</span>
+                  <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$299</span>
                 </div>
-                <ul className="text-sm text-teal-800 space-y-1">
+                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>✓ 60 days of visibility</li>
                   <li>✓ <strong>Featured placement</strong> (top of list)</li>
                   <li>✓ 25 candidate unlocks/posting</li>
@@ -588,13 +634,14 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
               {/* Premium Option */}
               <button
                 onClick={() => handleRenewCheckout('premium')}
-                className="w-full text-left border-2 border-purple-300 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                className="w-full text-left border-2 rounded-lg p-4 transition-all group"
+                style={{ borderColor: 'var(--border-color)' }}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-gray-900 group-hover:text-purple-700">Premium Renewal</span>
-                  <span className="text-2xl font-bold text-gray-900 group-hover:text-purple-700">$399</span>
+                  <span className="font-semibold">Premium Renewal</span>
+                  <span className="text-2xl font-bold">$399</span>
                 </div>
-                <ul className="text-sm text-gray-600 space-y-1">
+                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>✓ 90 days of visibility</li>
                   <li>✓ Everything in Growth</li>
                   <li>✓ <strong>Unlimited</strong> candidate unlocks</li>
@@ -607,7 +654,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             {/* Cancel Button */}
             <button
               onClick={() => setShowRenewModal(false)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full px-4 py-2 border rounded-lg font-medium transition-colors"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               Cancel
             </button>
@@ -617,4 +665,3 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
     </div>
   );
 }
-
