@@ -8,54 +8,62 @@ datasource db {
 }
 
 model Job {
-  id                 String  @id @default(uuid())
-  title              String
-  slug               String? @unique // SEO-friendly URL slug
-  employer           String
-  location           String
-  jobType            String? @map("job_type")
-  mode               String?
-  description        String
-  descriptionSummary String? @map("description_summary")
-  salaryRange        String? @map("salary_range")
-  minSalary          Int?    @map("min_salary")
-  maxSalary          Int?    @map("max_salary")
-  salaryPeriod       String? @map("salary_period")
-
-  // Parsed location data
-  city      String?
-  state     String?
-  stateCode String? @map("state_code")
-  country   String? @default("US")
-  isRemote  Boolean @default(false) @map("is_remote")
-  isHybrid  Boolean @default(false) @map("is_hybrid")
-
-  // Normalized salary fields (always annual)
-  normalizedMinSalary Int?    @map("normalized_min_salary")
-  normalizedMaxSalary Int?    @map("normalized_max_salary")
-  salaryIsEstimated   Boolean @default(false) @map("salary_is_estimated")
-  salaryConfidence    Float?  @map("salary_confidence")
-  displaySalary       String? @map("display_salary") // User-friendly format: "$145-$200/hr" or "$150k-$180k/yr"
-
-  applyLink          String    @map("apply_link")
-  isFeatured         Boolean   @default(false) @map("is_featured")
-  isPublished        Boolean   @default(true) @map("is_published")
-  isVerifiedEmployer Boolean   @default(false) @map("is_verified_employer")
-  sourceType         String?   @map("source_type")
-  sourceProvider     String?   @map("source_provider")
-  externalId         String?   @map("external_id")
-  viewCount          Int       @default(0) @map("view_count")
-  applyClickCount    Int       @default(0) @map("apply_click_count")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-  expiresAt          DateTime? @map("expires_at")
-
-  // Company relation
-  companyId String?  @map("company_id")
-  company   Company? @relation(fields: [companyId], references: [id])
-
-  employerJobs EmployerJob[]
-  applyClicks  ApplyClick[]
+  id                  String       @id @default(uuid())
+  title               String
+  slug                String?      @unique
+  employer            String
+  location            String
+  jobType             String?      @map("job_type")
+  mode                String?
+  experienceLevel     String?      @map("experience_level")
+  description         String
+  descriptionSummary  String?      @map("description_summary")
+  salaryRange         String?      @map("salary_range")
+  minSalary           Int?         @map("min_salary")
+  maxSalary           Int?         @map("max_salary")
+  salaryPeriod        String?      @map("salary_period")
+  city                String?
+  state               String?
+  stateCode           String?      @map("state_code")
+  country             String?      @default("US")
+  isRemote            Boolean      @default(false) @map("is_remote")
+  isHybrid            Boolean      @default(false) @map("is_hybrid")
+  normalizedMinSalary Int?         @map("normalized_min_salary")
+  normalizedMaxSalary Int?         @map("normalized_max_salary")
+  salaryIsEstimated   Boolean      @default(false) @map("salary_is_estimated")
+  salaryConfidence    Float?       @map("salary_confidence")
+  displaySalary       String?      @map("display_salary")
+  applyLink           String?      @map("apply_link")
+  applyOnPlatform     Boolean      @default(false) @map("apply_on_platform")
+  isFeatured          Boolean      @default(false) @map("is_featured")
+  isPublished         Boolean      @default(true) @map("is_published")
+  isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
+  isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
+  benefits            String[]     @default([])
+  setting             String?      @map("clinical_setting")
+  population          String?      @map("patient_population")
+  sourceType          String?      @map("source_type")
+  sourceProvider      String?      @map("source_provider")
+  sourceSite          String?      @map("source_site")
+  externalId          String?      @map("external_id")
+  viewCount           Int          @default(0) @map("view_count")
+  applyClickCount     Int          @default(0) @map("apply_click_count")
+  qualityScore        Int          @default(0) @map("quality_score")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  expiresAt           DateTime?    @map("expires_at")
+  companyId           String?      @map("company_id")
+  originalPostedAt    DateTime?    @map("original_posted_at")
+  lastLinkCheckedAt   DateTime?    @map("last_link_checked_at")
+  lastEnrichedAt      DateTime?    @map("last_enriched_at")
+  applyClicks         ApplyClick[]
+  jobApplications     JobApplication[]
+  jobReports          JobReport[]
+  jobViewEvents       JobViewEvent[]
+  employerJobs        EmployerJob?
+  employerMessages    EmployerMessage[]
+  conversations       Conversation[]
+  company             Company?     @relation(fields: [companyId], references: [id])
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -66,21 +74,25 @@ model Job {
   @@index([isRemote])
   @@index([companyId])
   @@index([slug])
+  @@index([externalId, sourceProvider])
+  @@index([qualityScore(sort: Desc)])
   @@map("jobs")
 }
 
 model EmailLead {
-  id               String   @id @default(cuid())
-  email            String   @unique
-  preferences      Json     @default("{}")
+  id               String     @id @default(cuid())
+  email            String     @unique
+  preferences      Json       @default("{}")
   source           String?
-  isSubscribed     Boolean  @default(true) @map("is_subscribed")
-  isSuppressed     Boolean  @default(false) @map("is_suppressed")
-  unsubscribeToken String   @unique @default(cuid()) @map("unsubscribe_token")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  jobAlerts JobAlert[]
+  isSubscribed     Boolean    @default(true) @map("is_subscribed")
+  isSuppressed     Boolean    @default(false) @map("is_suppressed")
+  suppressedAt     DateTime?  @map("suppressed_at")
+  suppressionReason String?   @map("suppression_reason")
+  newsletterOptIn  Boolean    @default(false) @map("newsletter_opt_in")
+  unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  jobAlerts        JobAlert[]
 
   @@index([email])
   @@index([unsubscribeToken])
@@ -88,31 +100,22 @@ model EmailLead {
 }
 
 model JobAlert {
-  id    String  @id @default(cuid())
-  email String
-  name  String? // Optional: "Remote CA jobs"
-
-  // Search criteria
-  keyword   String?
-  location  String?
-  mode      String? // Remote, Hybrid, In-Person
-  jobType   String? @map("job_type") // Full-Time, Part-Time, Contract, Per Diem
-  minSalary Int?    @map("min_salary")
-  maxSalary Int?    @map("max_salary")
-
-  // Settings
-  frequency String  @default("weekly") // daily, weekly
-  isActive  Boolean @default(true) @map("is_active")
-
-  // Tracking
+  id         String    @id @default(cuid())
+  email      String
+  name       String?
+  keyword    String?
+  location   String?
+  mode       String?
+  jobType    String?   @map("job_type")
+  minSalary  Int?      @map("min_salary")
+  maxSalary  Int?      @map("max_salary")
+  frequency  String    @default("weekly")
+  isActive   Boolean   @default(true) @map("is_active")
   lastSentAt DateTime? @map("last_sent_at")
-  token      String    @unique @default(cuid()) // For manage/delete
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relation (optional - can exist without EmailLead)
-  emailLead EmailLead? @relation(fields: [email], references: [email])
+  token      String    @unique @default(cuid())
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  emailLead  EmailLead @relation(fields: [email], references: [email])
 
   @@index([email])
   @@index([token])
@@ -121,23 +124,27 @@ model JobAlert {
 }
 
 model EmployerJob {
-  id                  String    @id @default(uuid())
-  employerName        String    @map("employer_name")
-  contactEmail        String    @map("contact_email")
-  companyLogoUrl      String?   @map("company_logo_url")
-  companyDescription  String?   @map("company_description")
-  companyWebsite      String?   @map("company_website")
-  jobId               String    @unique @map("job_id")
-  editToken           String    @unique @map("edit_token")
-  dashboardToken      String    @unique @default(cuid()) @map("dashboard_token")
-  // Valid values: 'pending', 'paid', 'failed', 'refunded', 'free', 'free_renewed', 'free_upgraded'
-  paymentStatus       String    @map("payment_status")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  expiryWarningSentAt DateTime? @map("expiry_warning_sent_at")
+  id                  String       @id @default(uuid())
+  employerName        String       @map("employer_name")
+  contactEmail        String       @map("contact_email")
+  companyLogoUrl      String?      @map("company_logo_url")
+  companyDescription  String?      @map("company_description")
+  companyWebsite      String?      @map("company_website")
+  jobId               String       @unique @map("job_id")
+  editToken           String       @unique @map("edit_token")
+  dashboardToken      String       @unique @default(cuid()) @map("dashboard_token")
+  paymentStatus       String       @map("payment_status")
+  pricingTier         String       @default("starter") @map("pricing_tier")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  expiryWarningSentAt DateTime?    @map("expiry_warning_sent_at")
+  notifyOnApplication Boolean      @default(true) @map("notify_on_application")
+  notifyDigest        String       @default("instant") @map("notify_digest") // instant, daily, off
+  userId              String?      @map("user_id")
+  job                 Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user                UserProfile? @relation(fields: [userId], references: [supabaseId])
 
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
+  @@index([userId])
   @@index([editToken])
   @@index([contactEmail])
   @@index([dashboardToken])
@@ -170,9 +177,9 @@ model JobDraft {
 
 model Company {
   id             String   @id @default(uuid())
-  name           String   @unique // Canonical name
-  normalizedName String   @unique @map("normalized_name") // For matching
-  aliases        String[] @default([]) // Alternative names
+  name           String   @unique
+  normalizedName String   @unique @map("normalized_name")
+  aliases        String[] @default([])
   logoUrl        String?  @map("logo_url")
   website        String?
   description    String?
@@ -180,8 +187,7 @@ model Company {
   isVerified     Boolean  @default(false) @map("is_verified")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
-
-  jobs Job[]
+  jobs           Job[]
 
   @@index([normalizedName])
   @@index([isVerified])
@@ -190,8 +196,8 @@ model Company {
 
 model SourceStats {
   id               String   @id @default(uuid())
-  source           String // adzuna, jooble, etc.
-  date             DateTime @db.Date // Stats for this day
+  source           String
+  date             DateTime @db.Date
   jobsFetched      Int      @default(0) @map("jobs_fetched")
   jobsAdded        Int      @default(0) @map("jobs_added")
   jobsDuplicate    Int      @default(0) @map("jobs_duplicate")
@@ -211,12 +217,12 @@ model SourceStats {
 model ApplyClick {
   id        String   @id @default(uuid())
   jobId     String   @map("job_id")
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  source    String? // Job's sourceProvider
+  source    String?
   timestamp DateTime @default(now())
-  sessionId String?  @map("session_id") // For deduping
-  referrer  String? // Where user came from
+  sessionId String?  @map("session_id")
+  referrer  String?
   userAgent String?  @map("user_agent")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([source])
@@ -233,8 +239,8 @@ model EmployerLead {
   website         String?
   linkedInUrl     String?   @map("linkedin_url")
   notes           String?
-  status          String    @default("prospect") // prospect, contacted, responded, converted, declined
-  source          String? // where we found them
+  status          String    @default("prospect")
+  source          String?
   lastContactedAt DateTime? @map("last_contacted_at")
   nextFollowUpAt  DateTime? @map("next_follow_up_at")
   jobsPosted      Int       @default(0) @map("jobs_posted")
@@ -247,21 +253,591 @@ model EmployerLead {
 }
 
 model UserProfile {
-  id         String   @id @default(cuid())
-  supabaseId String   @unique @map("supabase_id")
-  email      String   @unique
-  role       String   @default("job_seeker") // job_seeker, employer, admin
-  firstName  String?  @map("first_name")
-  lastName   String?  @map("last_name")
-  phone      String?
-  company    String?
-  resumeUrl  String?  @map("resume_url")
-  avatarUrl        String?  @map("avatar_url")
-  emailSuppressed  Boolean  @default(false) @map("email_suppressed")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id                String        @id @default(cuid())
+  supabaseId        String        @unique @map("supabase_id")
+  email             String        @unique
+  role              String        @default("job_seeker")
+  firstName         String?       @map("first_name")
+  lastName          String?       @map("last_name")
+  phone             String?
+  company           String?
+  resumeUrl         String?       @map("resume_url")
+  avatarUrl         String?       @map("avatar_url")
+  emailSuppressed   Boolean       @default(false) @map("email_suppressed")
+
+  // PMHNP-specific professional fields
+  headline          String?       @map("headline")
+  yearsExperience   Int?          @map("years_experience")
+  certifications    String?       @map("certifications")
+  licenseStates     String?       @map("license_states")
+  specialties       String?       @map("specialties")
+  bio               String?       @map("bio")
+  linkedinUrl       String?       @map("linkedin_url")
+
+  // Job preferences
+  preferredWorkMode String?       @map("preferred_work_mode")
+  preferredJobType  String?       @map("preferred_job_type")
+  desiredSalaryMin  Int?          @map("desired_salary_min")
+  desiredSalaryMax  Int?          @map("desired_salary_max")
+  desiredSalaryType String?       @map("desired_salary_type")
+  availableDate     DateTime?     @map("available_date")
+
+  // Visibility
+  openToOffers      Boolean       @default(true) @map("open_to_offers")
+  profileVisible    Boolean       @default(true) @map("profile_visible")
+
+  // ── Address ──
+  addressLine1      String?       @map("address_line_1")
+  addressLine2      String?       @map("address_line_2")
+  city              String?
+  state             String?
+  zipCode           String?       @map("zip_code")
+  country           String?       @default("US")
+
+  // ── EEO & Work Authorization (voluntary/sensitive) ──
+  workAuthorized        Boolean?  @map("work_authorized")
+  requiresSponsorship   Boolean?  @map("requires_sponsorship")
+  veteranStatus         String?   @map("veteran_status")
+  disabilityStatus      String?   @map("disability_status")
+  raceEthnicity         String?   @map("race_ethnicity")
+  gender                String?
+
+  // ── Federal Registrations ──
+  npiNumber                    String?    @map("npi_number")
+  deaNumber                    String?    @map("dea_number")
+  deaExpirationDate            DateTime?  @map("dea_expiration_date")
+
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  lastNudgedAt      DateTime?     @map("last_nudged_at")
+  lastSavedJobReminderAt DateTime? @map("last_saved_job_reminder_at")
+  emailSuppressedAt DateTime?     @map("email_suppressed_at")
+
+  // ── Relations ──
+  employerJobs         EmployerJob[]
+  jobApplications      JobApplication[]
+  licenses             CandidateLicense[]
+  certificationRecords CandidateCertification[]
+  education            CandidateEducation[]
+  workExperience       CandidateWorkExperience[]
+  screeningAnswers     CandidateScreeningAnswer[]
+  openEndedResponses   CandidateOpenEndedResponse[]
+
+  candidateReferences  CandidateReference[]
+  autofillUsage        AutofillUsage[]
+  autofillTelemetry    AutofillTelemetry[]
+  sentMessages         EmployerMessage[]    @relation("SenderMessages")
+  receivedMessages     EmployerMessage[]    @relation("RecipientMessages")
+  conversationsA       Conversation[]       @relation("ConversationParticipantA")
+  conversationsB       Conversation[]       @relation("ConversationParticipantB")
+  savedByEmployers     SavedCandidate[]     @relation("SavedAsCandidate")
+  savedCandidates      SavedCandidate[]     @relation("SavedByEmployer")
+  candidateAlerts      EmployerCandidateAlert[]
 
   @@index([supabaseId])
   @@index([email])
+  @@index([profileVisible, openToOffers, role])
   @@map("user_profiles")
+}
+
+model JobApplication {
+  id              String      @id @default(cuid())
+  userId          String      @map("user_id")
+  jobId           String      @map("job_id")
+  sourceUrl       String?     @map("source_url")
+  coverLetter     String?     @map("cover_letter")
+  coverLetterUrl  String?     @map("cover_letter_url")
+  resumeUrl       String?     @map("resume_url")
+  appliedAt       DateTime    @default(now()) @map("applied_at")
+  status          String      @default("applied") // applied, screening, interview, offered, hired, rejected
+  notes           String?     // Private employer notes
+  statusUpdatedAt DateTime?   @map("status_updated_at")
+  consentGiven    Boolean     @default(false) @map("consent_given")
+  consentGivenAt  DateTime?   @map("consent_given_at")
+  withdrawnAt     DateTime?   @map("withdrawn_at")
+  user            UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
+  job             Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@index([status])
+  @@map("job_applications")
+}
+
+model JobViewEvent {
+  id        String   @id @default(uuid())
+  jobId     String   @map("job_id")
+  timestamp DateTime @default(now())
+  sessionId String?  @map("session_id")
+  referrer  String?
+  userAgent String?  @map("user_agent")
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([timestamp])
+  @@index([jobId, timestamp])
+  @@map("job_view_events")
+}
+
+model Conversation {
+  id             String            @id @default(cuid())
+  participantA   String            @map("participant_a")
+  participantB   String            @map("participant_b")
+  jobId          String?           @map("job_id")
+  subject        String
+  lastMessageAt  DateTime          @default(now()) @map("last_message_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  deletedByA     Boolean           @default(false) @map("deleted_by_a")
+  deletedByB     Boolean           @default(false) @map("deleted_by_b")
+
+  userA          UserProfile       @relation("ConversationParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
+  userB          UserProfile       @relation("ConversationParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
+  job            Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  messages       EmployerMessage[]
+
+  @@unique([participantA, participantB, jobId])
+  @@index([participantA, lastMessageAt(sort: Desc)])
+  @@index([participantB, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model EmployerMessage {
+  id              String        @id @default(cuid())
+  senderId        String        @map("sender_id")
+  recipientId     String        @map("recipient_id")
+  conversationId  String?       @map("conversation_id")
+  jobId           String?       @map("job_id")
+  subject         String
+  body            String
+  attachmentUrl   String?       @map("attachment_url")
+  attachmentName  String?       @map("attachment_name")
+  deletedBySender    Boolean    @default(false) @map("deleted_by_sender")
+  deletedByRecipient Boolean    @default(false) @map("deleted_by_recipient")
+  sentAt          DateTime      @default(now()) @map("sent_at")
+  readAt          DateTime?     @map("read_at")
+  editedAt        DateTime?     @map("edited_at")
+  sender          UserProfile   @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient       UserProfile   @relation("RecipientMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  job             Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([conversationId])
+  @@index([jobId])
+  @@map("employer_messages")
+}
+
+model ProfileView {
+  id          String   @id @default(cuid())
+  viewerId    String   @map("viewer_id")
+  candidateId String   @map("candidate_id")
+  viewedAt    DateTime @default(now()) @map("viewed_at")
+
+  @@unique([viewerId, candidateId])
+  @@index([viewerId])
+  @@index([candidateId])
+  @@map("profile_views")
+}
+
+model BlogPost {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  content         String
+  metaDescription String?  @map("meta_description")
+  targetKeyword   String?  @map("target_keyword")
+  category        String
+  status          String   @default("draft")
+  publishDate     DateTime? @map("publish_date")
+  imageUrl        String?  @map("image_url")
+  youtubeVideoId  String?  @map("youtube_video_id")
+  videoUrl        String?  @map("video_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([status, publishDate(sort: Desc)])
+  @@index([slug])
+  @@index([category])
+  @@map("blog_posts")
+}
+
+model YouTubeVideo {
+  id                String    @id @default(uuid())
+  stateKey          String    @unique @map("state_key")
+  stateName         String    @map("state_name")
+  blogSlug          String    @unique @map("blog_slug")
+
+  // YouTube metadata
+  ytTitle           String    @map("yt_title")
+  ytDescription     String    @map("yt_description")
+  ytTags            String[]  @default([]) @map("yt_tags")
+  seoKeywords       String[]  @default([]) @map("seo_keywords")
+  hashtags          String[]  @default([]) @map("hashtags")
+
+  // Storage URLs (Supabase Storage public URLs)
+  thumbnailUrl      String?   @map("thumbnail_url")
+  videoUrl          String?   @map("video_url")
+
+  // Upload & publish tracking
+  youtubeVideoId    String?   @map("youtube_video_id")
+  postizPostId      String?   @map("postiz_post_id")
+  status            String    @default("pending")
+  scheduledDate     DateTime? @map("scheduled_date")
+  publishedDate     DateTime? @map("published_date")
+
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([stateKey])
+  @@map("youtube_videos")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Candidate Profile Expansion — Chrome Extension Autofill Models
+// ═══════════════════════════════════════════════════════════════
+
+model CandidateLicense {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  licenseType     String    @map("license_type")
+  licenseNumber   String    @map("license_number")
+  licenseState    String    @map("license_state")
+  expirationDate  DateTime? @map("expiration_date")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("candidate_licenses")
+}
+
+model CandidateCertification {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  certificationName   String    @map("certification_name")
+  certifyingBody      String?   @map("certifying_body")
+  certificationNumber String?   @map("certification_number")
+  expirationDate      DateTime? @map("expiration_date")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  user                UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("candidate_certifications")
+}
+
+model CandidateEducation {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  degreeType      String    @map("degree_type")
+  fieldOfStudy    String?   @map("field_of_study")
+  schoolName      String    @map("school_name")
+  startDate       DateTime? @map("start_date")
+  graduationDate  DateTime? @map("graduation_date")
+  gpa             String?
+  isHighestDegree Boolean   @default(false) @map("is_highest_degree")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("candidate_education")
+}
+
+model CandidateWorkExperience {
+  id                  String    @id @default(cuid())
+  userId              String    @map("user_id")
+  jobTitle            String    @map("job_title")
+  employerName        String    @map("employer_name")
+  employerCity        String?   @map("employer_city")
+  employerState       String?   @map("employer_state")
+  startDate           DateTime  @map("start_date")
+  endDate             DateTime? @map("end_date")
+  isCurrent           Boolean   @default(false) @map("is_current")
+  supervisorName      String?   @map("supervisor_name")
+  supervisorPhone     String?   @map("supervisor_phone")
+  supervisorEmail     String?   @map("supervisor_email")
+  mayContact          Boolean?  @map("may_contact")
+  reasonForLeaving    String?   @map("reason_for_leaving")
+  description         String?
+
+  practiceSetting      String?   @map("practice_setting")
+
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  user                 UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("candidate_work_experience")
+}
+
+model CandidateScreeningAnswer {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  questionKey  String    @map("question_key")
+  questionText String    @map("question_text")
+  answerType   String    @map("answer_type")
+  answerBool   Boolean?  @map("answer_bool")
+  answerText   String?   @map("answer_text")
+  category     String
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionKey])
+  @@index([userId])
+  @@map("candidate_screening_answers")
+}
+
+model CandidateOpenEndedResponse {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  questionKey   String    @map("question_key")
+  questionText  String    @map("question_text")
+  response      String
+  isAIGenerated Boolean   @default(false) @map("is_ai_generated")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionKey])
+  @@index([userId])
+  @@map("candidate_open_ended_responses")
+}
+
+
+
+model CandidateReference {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  fullName      String    @map("full_name")
+  title         String?
+  organization  String?
+  phone         String?
+  email         String?
+  relationship  String?
+  yearsKnown    Int?      @map("years_known")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("candidate_references")
+}
+
+model AutofillUsage {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  pageUrl         String    @map("page_url")
+  atsName         String?   @map("ats_name")
+  fieldsFilled    Int       @default(0) @map("fields_filled")
+  aiGenerations   Int       @default(0) @map("ai_generations")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("autofill_usage")
+}
+
+model JobReport {
+  id            String   @id @default(cuid())
+  jobId         String   @map("job_id")
+  reason        String
+  details       String?
+  ipHash        String?  @map("ip_hash")
+  reporterEmail String?  @map("reporter_email")
+  reporterName  String?  @map("reporter_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_reports")
+}
+
+model UserFeedback {
+  id        String   @id @default(cuid())
+  rating    Int
+  message   String?
+  page      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("user_feedback")
+}
+
+model AutofillTelemetry {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  timestamp    DateTime
+  atsDomain    String?  @map("ats_domain")
+  fieldName    String   @map("field_name")
+  fieldLabel   String   @map("field_label")
+  fieldType    String   @map("field_type")
+  matchMethod  String   @map("match_method")
+  profileKey   String?  @map("profile_key")
+  valueSample  String?  @map("value_sample")
+  confidence   Float    @default(0)
+  filled       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([matchMethod])
+  @@index([fieldName])
+  @@index([createdAt])
+  @@map("autofill_telemetry")
+}
+
+model RejectedJob {
+  id              String   @id @default(uuid())
+  title           String
+  employer        String?
+  location        String?
+  applyLink       String?  @map("apply_link")
+  externalId      String?  @map("external_id")
+  sourceProvider  String   @map("source_provider")
+  rejectionReason String   @map("rejection_reason")
+  rawData         Json?    @map("raw_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([sourceProvider])
+  @@index([rejectionReason])
+  @@index([createdAt])
+  @@map("rejected_jobs")
+}
+
+model SavedCandidate {
+  id          String      @id @default(cuid())
+  employerId  String      @map("employer_id")
+  candidateId String      @map("candidate_id")
+  note        String?
+  savedAt     DateTime    @default(now()) @map("saved_at")
+  employer    UserProfile @relation("SavedByEmployer", fields: [employerId], references: [id], onDelete: Cascade)
+  candidate   UserProfile @relation("SavedAsCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([employerId, candidateId])
+  @@index([employerId])
+  @@map("saved_candidates")
+}
+
+model EmployerCandidateAlert {
+  id            String    @id @default(cuid())
+  employerId    String    @map("employer_id")
+  specialties   String?
+  states        String?
+  minExperience Int?      @map("min_experience")
+  workMode      String?   @map("work_mode")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastSentAt    DateTime? @map("last_sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  employer      UserProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId])
+  @@index([isActive])
+  @@map("employer_candidate_alerts")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Email Broadcasting — Admin broadcast campaigns
+// ═══════════════════════════════════════════════════════════════
+
+model EmailBroadcast {
+  id            String    @id @default(cuid())
+  subject       String
+  body          String
+  audience      String    // all | job_seekers | employers | subscribers | newsletter | custom
+  audienceCount Int       @default(0) @map("audience_count")
+  status        String    @default("draft") // draft | scheduled | sending | sent | failed
+  scheduledFor  DateTime? @map("scheduled_for")
+  sentAt        DateTime? @map("sent_at")
+  sentCount     Int       @default(0) @map("sent_count")
+  failedCount   Int       @default(0) @map("failed_count")
+  templateId    String?   @map("template_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  recipients EmailBroadcastRecipient[]
+  template   EmailTemplate?            @relation(fields: [templateId], references: [id])
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("email_broadcasts")
+}
+
+model EmailBroadcastRecipient {
+  id          String    @id @default(cuid())
+  broadcastId String    @map("broadcast_id")
+  email       String
+  firstName   String?   @map("first_name")
+  status      String    @default("pending") // pending | sent | failed | bounced
+  sentAt      DateTime? @map("sent_at")
+  error       String?
+
+  broadcast EmailBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@index([broadcastId])
+  @@index([status])
+  @@map("email_broadcast_recipients")
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  broadcasts EmailBroadcast[]
+
+  @@map("email_templates")
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  jobId     String   @map("job_id")
+  savedAt   DateTime @default(now()) @map("saved_at")
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("saved_jobs")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Email Send Log — Track every email sent for audit/analytics
+// ═══════════════════════════════════════════════════════════════
+
+model EmailSend {
+  id           String   @id @default(cuid())
+  resendId     String?  @map("resend_id")
+  to           String
+  subject      String
+  emailType    String   @map("email_type")
+  status       String   @default("sent")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([to])
+  @@index([emailType])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("email_sends")
 }

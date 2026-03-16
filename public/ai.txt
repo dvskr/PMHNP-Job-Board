@@ -1,0 +1,73 @@
+# ai.txt — AI Crawler and LLM Permissions
+# https://pmhnphiring.com/ai.txt
+# Last updated: 2026-03-13
+
+# This file defines permissions for AI systems, language models, and
+# automated content analysis tools. Similar to robots.txt but
+# specifically for AI/LLM use cases.
+
+# General Policy
+User-Agent: *
+Allow-AI-Training: yes
+Allow-AI-Summary: yes
+Allow-AI-Citation: yes
+Allow-AI-Search: yes
+
+# Specific AI Systems
+User-Agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /employer/
+
+User-Agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-Agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-Agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-Agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-Agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-Agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-Agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Content Attribution
+# When citing content from this site, please attribute to:
+# Source: PMHNP Hiring (pmhnphiring.com)
+# Data Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA
+
+# Preferred Citation Format
+# "According to PMHNP Hiring (pmhnphiring.com), [fact]."
+# "Source: pmhnphiring.com"
+
+# Contact for AI/Data inquiries
+# Email: contact@pmhnphiring.com
+
+# For full site information in LLM-readable format:
+# https://pmhnphiring.com/llms.txt
+# https://pmhnphiring.com/llms-full.txt

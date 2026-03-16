@@ -12,18 +12,18 @@ interface DuplicateCheckResult {
  */
 function normalizeTitle(title: string): string {
   if (!title) return '';
-  
+
   let normalized = title.toLowerCase();
-  
+
   // Remove special characters (keep alphanumeric and spaces)
   normalized = normalized.replace(/[^a-z0-9\s]/g, ' ');
-  
+
   // Remove common words
   const commonWords = ['the', 'a', 'an', 'at', 'in', 'for', 'to', 'and', 'or'];
-  const words = normalized.split(/\s+/).filter((word: string) => 
+  const words = normalized.split(/\s+/).filter((word: string) =>
     word.length > 0 && !commonWords.includes(word)
   );
-  
+
   // Normalize whitespace and trim
   return words.join(' ').trim();
 }
@@ -33,22 +33,24 @@ function normalizeTitle(title: string): string {
  */
 function normalizeCompany(company: string): string {
   if (!company) return '';
-  
+
   let normalized = company.toLowerCase();
-  
+
   // Remove special characters
   normalized = normalized.replace(/[^a-z0-9\s]/g, ' ');
-  
+
   // Remove business suffixes
+  // NOTE: Only strip corporate entity suffixes. Do NOT strip healthcare-specific
+  // words like 'health', 'healthcare', 'medical', 'group', 'services' — these are
+  // identity-critical for healthcare companies (e.g. "Spring Health" ≠ "Spring").
   const suffixes = [
     'inc', 'llc', 'corp', 'corporation', 'company', 'co', 'ltd',
-    'health', 'healthcare', 'medical', 'group', 'services'
   ];
-  
-  const words = normalized.split(/\s+/).filter((word: string) => 
+
+  const words = normalized.split(/\s+/).filter((word: string) =>
     word.length > 0 && !suffixes.includes(word)
   );
-  
+
   return words.join(' ').trim();
 }
 
@@ -57,7 +59,7 @@ function normalizeCompany(company: string): string {
  */
 function normalizeLocation(location: string): string {
   if (!location) return '';
-  
+
   // Keep alphanumeric, spaces, commas
   return location.toLowerCase()
     .replace(/[^a-z0-9\s,]/g, ' ')
@@ -70,14 +72,14 @@ function normalizeLocation(location: string): string {
  */
 function normalizeApplyUrl(url: string): string {
   if (!url) return '';
-  
+
   try {
     const urlObj = new URL(url);
-    
+
     // Remove tracking parameters
     const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'ref', 'source'];
     trackingParams.forEach((param: string) => urlObj.searchParams.delete(param));
-    
+
     // Return normalized URL: hostname + pathname + remaining params
     return urlObj.hostname + urlObj.pathname + urlObj.search;
   } catch {
@@ -92,16 +94,16 @@ function normalizeApplyUrl(url: string): string {
 function levenshteinDistance(s1: string, s2: string): number {
   const len1 = s1.length;
   const len2 = s2.length;
-  
+
   // Create matrix
   const matrix: number[][] = Array(len1 + 1)
     .fill(null)
     .map(() => Array(len2 + 1).fill(0));
-  
+
   // Initialize first row and column
   for (let i = 0; i <= len1; i++) matrix[i][0] = i;
   for (let j = 0; j <= len2; j++) matrix[0][j] = j;
-  
+
   // Fill matrix with edit distances
   for (let i = 1; i <= len1; i++) {
     for (let j = 1; j <= len2; j++) {
@@ -113,7 +115,7 @@ function levenshteinDistance(s1: string, s2: string): number {
       );
     }
   }
-  
+
   return matrix[len1][len2];
 }
 
@@ -123,12 +125,12 @@ function levenshteinDistance(s1: string, s2: string): number {
 function calculateSimilarity(str1: string, str2: string): number {
   if (str1 === str2) return 1.0;
   if (!str1 || !str2) return 0;
-  
+
   const distance = levenshteinDistance(str1, str2);
   const maxLength = Math.max(str1.length, str2.length);
-  
+
   if (maxLength === 0) return 1.0;
-  
+
   return 1 - (distance / maxLength);
 }
 
@@ -153,7 +155,7 @@ export async function checkDuplicate(job: {
         },
         select: { id: true },
       });
-      
+
       if (exactIdMatch) {
         return {
           isDuplicate: true,
@@ -168,7 +170,7 @@ export async function checkDuplicate(job: {
     const normalizedTitle = normalizeTitle(job.title);
     const normalizedEmployer = normalizeCompany(job.employer);
     const normalizedLocation = normalizeLocation(job.location);
-    
+
     // Query jobs with similar title (first 30 chars for performance)
     const titlePrefix = job.title.substring(0, 30);
     const potentialMatches = await prisma.job.findMany({
@@ -192,7 +194,7 @@ export async function checkDuplicate(job: {
       const matchNormalizedTitle = normalizeTitle(match.title);
       const matchNormalizedEmployer = normalizeCompany(match.employer);
       const matchNormalizedLocation = normalizeLocation(match.location);
-      
+
       if (
         matchNormalizedTitle === normalizedTitle &&
         matchNormalizedEmployer === normalizedEmployer &&
@@ -207,10 +209,12 @@ export async function checkDuplicate(job: {
       }
     }
 
-    // STRATEGY 3: Apply URL Match (confidence: 0.90)
+    // STRATEGY 3: Apply URL Match — GLOBAL cross-source check (confidence: 0.90)
+    // This catches the same job posted across different sources (JSearch + Adzuna, etc.)
     if (job.applyLink) {
       const normalizedUrl = normalizeApplyUrl(job.applyLink);
-      
+
+      // First check within title-based matches
       for (const match of potentialMatches) {
         if (match.applyLink) {
           const matchNormalizedUrl = normalizeApplyUrl(match.applyLink);
@@ -224,29 +228,78 @@ export async function checkDuplicate(job: {
           }
         }
       }
+
+      // Then do a global apply URL search across ALL sources
+      // This catches cross-source duplicates with different titles
+      try {
+        const urlPathname = new URL(job.applyLink).pathname.slice(0, 60);
+        const globalUrlMatch = await prisma.job.findFirst({
+          where: {
+            applyLink: {
+              contains: urlPathname,
+            },
+          },
+          select: { id: true, applyLink: true },
+        });
+
+        if (globalUrlMatch && globalUrlMatch.applyLink) {
+          const matchNormalizedUrl = normalizeApplyUrl(globalUrlMatch.applyLink);
+          if (normalizedUrl === matchNormalizedUrl) {
+            return {
+              isDuplicate: true,
+              confidence: 0.90,
+              matchType: 'apply_url',
+              matchedJobId: globalUrlMatch.id,
+            };
+          }
+        }
+      } catch {
+        // Malformed URL — skip global URL check, fall through to fuzzy matching
+      }
     }
 
-    // STRATEGY 4: Fuzzy Title Match (confidence: based on similarity)
+    // STRATEGY 4: Fuzzy Title + Employer + Location Match (confidence: based on similarity)
+    // Narrowed query: uses BOTH employer prefix AND title prefix for fewer false candidates
+    // FIX 2026-03-11: Added location check — without it, multi-location employers
+    // (LifeStance 500+ offices, BlueSky 50 states, Blackbird 20+ states) all collapse
+    // into one job, causing ~400 false duplicates per Fantastic-Jobs-DB run.
     const employerPrefix = job.employer.substring(0, 10);
+    const titlePrefix5 = job.title.substring(0, 15);
     const fuzzyMatches = await prisma.job.findMany({
       where: {
-        employer: {
-          contains: employerPrefix,
-        },
+        AND: [
+          { employer: { contains: employerPrefix } },
+          { title: { contains: titlePrefix5 } },
+        ],
       },
       select: {
         id: true,
         title: true,
         employer: true,
+        location: true,
       },
-      take: 20, // Limit for performance
+      take: 20,
     });
 
     for (const match of fuzzyMatches) {
       const titleSimilarity = calculateSimilarity(normalizedTitle, normalizeTitle(match.title));
       const employerSimilarity = calculateSimilarity(normalizedEmployer, normalizeCompany(match.employer));
-      
+
       if (titleSimilarity > 0.85 && employerSimilarity > 0.80) {
+        // Location gate: prevent collapsing different locations into one job.
+        // "Remote" vs "Remote" is always a match (same job, same company, same title).
+        // Otherwise require location similarity > 0.50 to account for minor formatting
+        // differences ("New York, NY" vs "New York, New York") while blocking
+        // clearly different cities ("Wilmington, Delaware" vs "Saint Louis, MO").
+        const matchNormLocation = normalizeLocation(match.location);
+        const locationSimilarity = calculateSimilarity(normalizedLocation, matchNormLocation);
+        const bothRemote = normalizedLocation.includes('remote') && matchNormLocation.includes('remote');
+
+        if (!bothRemote && locationSimilarity <= 0.50) {
+          // Same company + title but different location = different position, skip
+          continue;
+        }
+
         const confidence = Math.min(titleSimilarity, employerSimilarity);
         return {
           isDuplicate: true,
@@ -290,21 +343,21 @@ export async function checkDuplicateBatch(
 ): Promise<Map<number, DuplicateCheckResult>> {
   const results = new Map<number, DuplicateCheckResult>();
   const batchSize = 10;
-  
+
   // Process in batches of 10
   for (let i = 0; i < jobs.length; i += batchSize) {
     const batch = jobs.slice(i, i + batchSize);
     const batchResults = await Promise.all(
-      batch.map((job: { title: string; employer: string; location: string; externalId?: string; sourceProvider?: string; applyLink?: string }, batchIndex: number) => 
+      batch.map((job: { title: string; employer: string; location: string; externalId?: string; sourceProvider?: string; applyLink?: string }, batchIndex: number) =>
         checkDuplicate(job).then((result: DuplicateCheckResult) => ({ index: i + batchIndex, result }))
       )
     );
-    
+
     batchResults.forEach(({ index, result }: { index: number; result: DuplicateCheckResult }) => {
       results.set(index, result);
     });
   }
-  
+
   return results;
 }
 

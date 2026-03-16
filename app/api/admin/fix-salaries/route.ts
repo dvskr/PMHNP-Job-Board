@@ -1,40 +1,46 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import { requireApiAdmin } from '@/lib/auth/require-api-admin'
 
 export async function POST() {
+  // Verify admin session
+  const authError = await requireApiAdmin();
+  if (authError) return authError;
+
   try {
     // Find all Adzuna jobs with salaries that need fixing (< 10000 means stored in thousands)
     const adzunaJobs = await prisma.job.findMany({
       where: {
         sourceProvider: 'adzuna',
         OR: [
-          { 
-            minSalary: { 
+          {
+            minSalary: {
               not: null,
-              lt: 10000 
-            } 
+              lt: 10000
+            }
           },
-          { 
-            maxSalary: { 
+          {
+            maxSalary: {
               not: null,
-              lt: 10000 
-            } 
+              lt: 10000
+            }
           },
         ],
       },
     })
-    
-    console.log(`Found ${adzunaJobs.length} Adzuna jobs with salaries to fix`)
-    
+
+    logger.info(`Found ${adzunaJobs.length} Adzuna jobs with salaries to fix`)
+
     let updatedCount = 0
     const updates = []
-    
+
     for (const job of adzunaJobs) {
       const oldMin = job.minSalary
       const oldMax = job.maxSalary
       const newMin = job.minSalary ? job.minSalary * 1000 : null
       const newMax = job.maxSalary ? job.maxSalary * 1000 : null
-      
+
       await prisma.job.update({
         where: { id: job.id },
         data: {
@@ -42,24 +48,24 @@ export async function POST() {
           maxSalary: newMax,
         },
       })
-      
+
       updates.push({
         id: job.id,
         title: job.title,
         oldSalary: `$${oldMin}k - $${oldMax}k`,
         newSalary: `$${newMin} - $${newMax}`,
       })
-      
+
       updatedCount++
     }
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       updatedCount,
       updates,
     })
   } catch (error) {
-    console.error('Fix salaries error:', error)
+    logger.error('Fix salaries error', error)
     return NextResponse.json({ error: 'Failed to fix salaries' }, { status: 500 })
   }
 }

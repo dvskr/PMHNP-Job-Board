@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { config } from '@/lib/config';
+import { config, PricingTier } from '@/lib/config';
 import { sendRenewalConfirmationEmail } from '@/lib/email-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -9,7 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 interface RenewalCheckoutBody {
   jobId: string;
   editToken: string;
-  tier: 'standard' | 'featured';
+  tier: PricingTier;
 }
 
 export async function POST(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate tier
-    if (tier !== 'standard' && tier !== 'featured') {
+    if (tier !== 'starter' && tier !== 'growth' && tier !== 'premium') {
       return NextResponse.json(
         { error: 'Invalid pricing tier' },
         { status: 400 }
@@ -61,36 +61,36 @@ export async function POST(request: NextRequest) {
     // Check if free mode is enabled
     if (config.isPaidPostingEnabled) {
       // PAID MODE: Existing Stripe checkout flow
-      
-      // Determine price in cents
-      const price = tier === 'featured' ? 19900 : 9900; // $199 or $99
+
+      // Determine renewal price in cents from config (20% discount)
+      const price = config.getStripeRenewalPriceInCents(tier);
 
       // Create Stripe Checkout session
       const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Job Renewal - ${employerJob.job.title}`,
-              description: `${tier === 'featured' ? 'Featured' : 'Standard'} renewal - ${employerJob.job.employer}`,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `Job Renewal - ${employerJob.job.title}`,
+                description: `${config.getTierLabel(tier)} renewal (Save 20%) - ${employerJob.job.employer}`,
+              },
+              unit_amount: price,
             },
-            unit_amount: price,
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        mode: 'payment',
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/renewal-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard/${employerJob.dashboardToken}`,
+        customer_email: employerJob.contactEmail,
+        metadata: {
+          jobId,
+          type: 'renewal',
+          tier,
         },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/renewal-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard/${employerJob.dashboardToken}`,
-      customer_email: employerJob.contactEmail,
-      metadata: {
-        jobId,
-        type: 'renewal',
-        tier,
-      },
-    });
+      });
 
       return NextResponse.json({
         sessionId: session.id,
@@ -98,28 +98,31 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // FREE MODE: Renew directly without payment
-      
-      // Calculate new expiry (30 days from now)
+
+      // Calculate new expiry based on tier duration
+      const durationDays = config.getDurationDays(tier);
       const newExpiresAt = new Date();
-      newExpiresAt.setDate(newExpiresAt.getDate() + 30);
-      
+      newExpiresAt.setDate(newExpiresAt.getDate() + durationDays);
+
       // Update job
       await prisma.job.update({
         where: { id: jobId },
         data: {
           expiresAt: newExpiresAt,
           isPublished: true,
+          isFeatured: config.isFeaturedTier(tier),
         },
       });
-      
+
       // Update employer job record
       await prisma.employerJob.update({
         where: { jobId },
         data: {
           paymentStatus: 'free_renewed',
+          pricingTier: tier,
         },
       });
-      
+
       // Send renewal confirmation email
       try {
         await sendRenewalConfirmationEmail(
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error('Failed to send renewal email:', e);
       }
-      
+
       return NextResponse.json({
         success: true,
         message: 'Job renewed successfully for another 30 days',

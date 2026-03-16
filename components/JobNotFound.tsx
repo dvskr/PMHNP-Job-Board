@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { Search, Bell, Briefcase, Clock, TrendingUp } from 'lucide-react';
+import { Search, Bell, Briefcase, TrendingUp } from 'lucide-react';
 
 export default function JobNotFound() {
   const handleAlertClick = () => {
@@ -29,7 +29,7 @@ export default function JobNotFound() {
 
         {/* Subtext */}
         <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-          This job posting may have expired, been filled, or removed by the employer.
+          This job posting is no longer available.
         </p>
 
         {/* Suggestions */}
@@ -63,8 +63,8 @@ export default function JobNotFound() {
               Browse All Jobs
             </Button>
           </Link>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="lg"
             onClick={handleAlertClick}
           >
@@ -74,22 +74,7 @@ export default function JobNotFound() {
         </div>
       </Card>
 
-      {/* Why This Might Have Happened */}
-      <Card padding="md" variant="bordered" className="mb-8 bg-gray-50">
-        <div className="flex items-start gap-3">
-          <Clock className="w-5 h-5 text-gray-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium text-gray-900 text-sm mb-2">
-              Why did this happen?
-            </p>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Job postings expire after 30-60 days</li>
-              <li>• Employers may remove filled positions</li>
-              <li>• The job link may be outdated</li>
-            </ul>
-          </div>
-        </div>
-      </Card>
+
 
       {/* Recently Posted Jobs Section */}
       <div>
@@ -99,7 +84,7 @@ export default function JobNotFound() {
             Recently Posted Jobs
           </h2>
         </div>
-        
+
         <Card padding="md" variant="bordered" className="bg-primary-50 border-primary-200">
           <div className="text-center py-8">
             <p className="text-gray-700 mb-4">

@@ -2,31 +2,187 @@
   "crons": [
     {
       "path": "/api/cron/ingest?source=adzuna",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 10,16 * * *"
     },
     {
       "path": "/api/cron/ingest?source=jooble",
-      "schedule": "0 1,7,13,19 * * *"
+      "schedule": "5 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=0",
+      "schedule": "10 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=1",
+      "schedule": "15 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=2",
+      "schedule": "20 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=3",
+      "schedule": "25 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=4",
+      "schedule": "30 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=5",
+      "schedule": "35 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=6",
+      "schedule": "40 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=greenhouse&chunk=7",
+      "schedule": "45 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=lever",
+      "schedule": "50 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=usajobs",
+      "schedule": "55 10,16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=ashby",
+      "schedule": "0 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=0",
+      "schedule": "5 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=1",
+      "schedule": "10 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=2",
+      "schedule": "15 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=3",
+      "schedule": "20 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=workday&chunk=4",
+      "schedule": "25 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=fantastic-jobs-db",
+      "schedule": "30 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=smartrecruiters",
+      "schedule": "35 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=icims",
+      "schedule": "40 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=jazzhr",
+      "schedule": "45 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/ingest?source=ats-jobs-db",
+      "schedule": "50 11,17 * * *"
+    },
+    {
+      "path": "/api/cron/enrich-jobs",
+      "schedule": "0 12,18 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-expired",
+      "schedule": "10 12 * * *"
     },
     {
       "path": "/api/cron/freshness-decay",
-      "schedule": "0 3 * * *"
+      "schedule": "20 12 * * *"
     },
     {
-      "path": "/api/cron/ingest?source=greenhouse",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/send-alerts",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/expiry-warnings",
-      "schedule": "0 9 * * *"
+      "path": "/api/cron/check-dead-links",
+      "schedule": "30 12,18 * * *"
     },
     {
       "path": "/api/cron/cleanup-descriptions",
-      "schedule": "0 2 * * *"
+      "schedule": "40 12 * * *"
+    },
+    {
+      "path": "/api/cron/daily-report",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/index-urls",
+      "schedule": "15 13 * * *"
+    },
+    {
+      "path": "/api/cron/send-alerts",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/candidate-alerts",
+      "schedule": "45 13 * * *"
+    },
+    {
+      "path": "/api/cron/social-post",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/instagram-post",
+      "schedule": "5 14 * * *"
+    },
+    {
+      "path": "/api/cron/linkedin-post",
+      "schedule": "10 14 * * *"
+    },
+    {
+      "path": "/api/cron/x-post",
+      "schedule": "15 14 * * *"
+    },
+    {
+      "path": "/api/cron/profile-nudge",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/employer-report",
+      "schedule": "0 14 * * 1"
+    },
+    {
+      "path": "/api/cron/saved-job-reminder",
+      "schedule": "0 13 * * 3,6"
+    },
+    {
+      "path": "/api/cron/push-notifications",
+      "schedule": "30 14 * * *"
+    },
+    {
+      "path": "/api/cron/expiry-warnings",
+      "schedule": "0 22 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/:path*\\.(png|jpg|jpeg|gif|webp|svg|ico|avif)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
     }
   ]
 }

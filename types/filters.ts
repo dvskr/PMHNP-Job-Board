@@ -2,8 +2,10 @@ export interface FilterState {
   search: string;
   workMode: string[];      // ['remote', 'hybrid', 'onsite']
   jobType: string[];       // ['Full-Time', 'Part-Time', 'Contract', 'Per Diem']
+  specialty: string[];     // ['Telehealth', 'Travel']
+  experienceLevel: string[]; // ['New Grad', 'Mid-Level', 'Senior']
   salaryMin: number | null;
-  postedWithin: string | null;  // '24h', '7d', '30d', 'all'
+  postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
 }
 
@@ -18,6 +20,7 @@ export interface FilterCounts {
     'Part-Time': number;
     'Contract': number;
     'Per Diem': number;
+    'Other': number;
   };
   salary: {
     any: number;
@@ -27,8 +30,18 @@ export interface FilterCounts {
   };
   postedWithin: {
     '24h': number;
+    '3d': number;
     '7d': number;
     '30d': number;
+  };
+  specialty: {
+    Telehealth: number;
+    Travel: number;
+  };
+  experienceLevel: {
+    'New Grad': number;
+    'Mid-Level': number;
+    'Senior': number;
   };
   total: number;
 }
@@ -37,6 +50,8 @@ export const DEFAULT_FILTERS: FilterState = {
   search: '',
   workMode: [],
   jobType: [],
+  specialty: [],
+  experienceLevel: [],
   salaryMin: null,
   postedWithin: null,
   location: null,

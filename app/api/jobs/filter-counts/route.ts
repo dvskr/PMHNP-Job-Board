@@ -1,50 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
 import { buildWhereClause } from '@/lib/filters';
 
 export async function POST(request: NextRequest) {
   try {
-    const filters: FilterState = await request.json();
-    
-    // Base where clause with current filters (for calculating counts of other options)
+    const raw = await request.json();
+    // Normalize: ensure all array fields exist (handles old clients without experienceLevel)
+    const filters: FilterState = {
+      search: raw.search || '',
+      workMode: raw.workMode || [],
+      jobType: raw.jobType || [],
+      specialty: raw.specialty || [],
+      experienceLevel: raw.experienceLevel || [],
+      salaryMin: raw.salaryMin ?? null,
+      postedWithin: raw.postedWithin ?? null,
+      location: raw.location ?? null,
+    };
+
+    // Base filters for all counts (excludes the specific category being counted)
     const baseFilters = { ...filters };
-    
-    // Calculate counts for each filter category
-    // The key is: show count IF user selects this option (considering other active filters)
-    
+
     // Work Mode counts
+    // We want to see counts for other work modes given current filters, 
+    // BUT satisfying the other active filters (like jobType, salary, etc)
     const workModeFilters = { ...baseFilters, workMode: [] };
     const workModeBase = buildWhereClause(workModeFilters);
-    
-    const [remoteCount, hybridCount, onsiteCount] = await Promise.all([
-      prisma.job.count({ where: { AND: [workModeBase, { isRemote: true }] } }),
-      prisma.job.count({ where: { AND: [workModeBase, { isHybrid: true }] } }),
-      prisma.job.count({ where: { AND: [workModeBase, { isRemote: false, isHybrid: false }] } }),
-    ]);
 
     // Job Type counts
     const jobTypeFilters = { ...baseFilters, jobType: [] };
     const jobTypeBase = buildWhereClause(jobTypeFilters);
-    
-    const jobTypeCounts = await prisma.job.groupBy({
-      by: ['jobType'],
-      where: jobTypeBase,
-      _count: { _all: true },
-    });
-    
-    const jobTypeMap: Record<string, number> = {};
-    for (const jt of jobTypeCounts) {
-      if (jt.jobType) {
-        jobTypeMap[jt.jobType] = jt._count._all;
-      }
-    }
 
     // Salary counts
     const salaryFilters = { ...baseFilters, salaryMin: null };
     const salaryBase = buildWhereClause(salaryFilters);
-    
-    const [anySalary, over100k, over150k, over200k] = await Promise.all([
+
+    // Posted Within counts
+    const postedFilters = { ...baseFilters, postedWithin: null };
+    const postedBase = buildWhereClause(postedFilters);
+
+    const now = new Date();
+
+    const [
+      remoteCount, hybridCount, onsiteCount,
+      jobTypeCounts,
+      anySalary, over100k, over150k, over200k,
+      day, threeDays, week, month,
+      total
+    ] = await Promise.all([
+      // Work Mode
+      prisma.job.count({ where: { AND: [workModeBase, { isRemote: true }] } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isHybrid: true }] } }),
+      prisma.job.count({ where: { AND: [workModeBase, { isRemote: false, isHybrid: false }] } }),
+
+      // Job Type
+      prisma.job.groupBy({
+        by: ['jobType'],
+        where: jobTypeBase,
+        _count: { _all: true },
+      }),
+
+      // Salary
       prisma.job.count({
         where: {
           AND: [
@@ -97,45 +114,144 @@ export async function POST(request: NextRequest) {
           ],
         },
       }),
+
+      // Posted Within — all filters prioritize originalPostedAt, fallback to createdAt when null
+      // Past 24h
+      prisma.job.count({
+        where: {
+          AND: [
+            postedBase,
+            {
+              OR: [
+                { originalPostedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+                {
+                  AND: [
+                    { originalPostedAt: null },
+                    { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      // Past 3 days
+      prisma.job.count({
+        where: {
+          AND: [
+            postedBase,
+            {
+              OR: [
+                { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+                {
+                  AND: [
+                    { originalPostedAt: null },
+                    { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      prisma.job.count({
+        where: {
+          AND: [
+            postedBase,
+            {
+              OR: [
+                { originalPostedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+                {
+                  AND: [
+                    { originalPostedAt: null },
+                    { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      prisma.job.count({
+        where: {
+          AND: [
+            postedBase,
+            {
+              OR: [
+                { originalPostedAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+                {
+                  AND: [
+                    { originalPostedAt: null },
+                    { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+
+      // Total
+      prisma.job.count({
+        where: buildWhereClause(filters),
+      }),
     ]);
 
-    // Posted Within counts
-    const now = new Date();
-    const postedFilters = { ...baseFilters, postedWithin: null };
-    const postedBase = buildWhereClause(postedFilters);
-    
-    // Note: Using createdAt field (Job model doesn't have postedAt)
-    const [day, week, month] = await Promise.all([
+    const jobTypeMap: Record<string, number> = {};
+    let knownTypeTotal = 0;
+    for (const jt of jobTypeCounts) {
+      if (jt.jobType) {
+        jobTypeMap[jt.jobType] = jt._count._all;
+        knownTypeTotal += jt._count._all;
+      }
+    }
+    // Count jobs with NULL jobType as "Other"
+    const nullTypeCount = jobTypeCounts.find((jt: { jobType: string | null }) => jt.jobType === null);
+    const otherCount = nullTypeCount ? nullTypeCount._count._all : 0;
+
+    // Specialty counts (keyword-based)
+    // Exclude specialty filter from base so counts don't self-filter
+    const specialtyFilters = { ...baseFilters, specialty: [] };
+    const specialtyBase = buildWhereClause(specialtyFilters);
+    const [telehealthCount, travelCount] = await Promise.all([
       prisma.job.count({
         where: {
-          AND: [
-            postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+          ...specialtyBase,
+          OR: [
+            { title: { contains: 'telehealth', mode: 'insensitive' } },
+            { title: { contains: 'telemedicine', mode: 'insensitive' } },
+            { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+            { description: { contains: 'telehealth', mode: 'insensitive' } },
+            { description: { contains: 'telemedicine', mode: 'insensitive' } },
           ],
         },
       }),
       prisma.job.count({
         where: {
-          AND: [
-            postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
-          ],
-        },
-      }),
-      prisma.job.count({
-        where: {
-          AND: [
-            postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+          ...specialtyBase,
+          OR: [
+            { title: { contains: 'travel', mode: 'insensitive' } },
+            { title: { contains: 'locum', mode: 'insensitive' } },
           ],
         },
       }),
     ]);
 
-    // Total with all current filters
-    const total = await prisma.job.count({
-      where: buildWhereClause(filters),
+    // Experience Level counts (from DB column, not keyword matching)
+    // Exclude experienceLevel filter from base so counts don't self-filter
+    const expFilters = { ...baseFilters, experienceLevel: [] };
+    const expBase = buildWhereClause(expFilters);
+    const expLevelCounts = await prisma.job.groupBy({
+      by: ['experienceLevel'],
+      where: expBase,
+      _count: { _all: true },
     });
+    const expMap: Record<string, number> = {};
+    for (const el of expLevelCounts) {
+      if (el.experienceLevel) {
+        expMap[el.experienceLevel] = el._count._all;
+      }
+    }
 
     const counts: FilterCounts = {
       workMode: {
@@ -148,6 +264,7 @@ export async function POST(request: NextRequest) {
         'Part-Time': jobTypeMap['Part-Time'] || 0,
         'Contract': jobTypeMap['Contract'] || 0,
         'Per Diem': jobTypeMap['Per Diem'] || 0,
+        'Other': otherCount,
       },
       salary: {
         any: anySalary,
@@ -157,19 +274,28 @@ export async function POST(request: NextRequest) {
       },
       postedWithin: {
         '24h': day,
+        '3d': threeDays,
         '7d': week,
         '30d': month,
+      },
+      specialty: {
+        Telehealth: telehealthCount,
+        Travel: travelCount,
+      },
+      experienceLevel: {
+        'New Grad': expMap['New Grad'] || 0,
+        'Mid-Level': expMap['Mid-Level'] || 0,
+        'Senior': expMap['Senior'] || 0,
       },
       total,
     };
 
     return NextResponse.json(counts);
   } catch (error) {
-    console.error('Error calculating filter counts:', error);
+    logger.error('Error calculating filter counts:', error);
     return NextResponse.json(
       { error: 'Failed to calculate filter counts' },
       { status: 500 }
     );
   }
 }
-

@@ -12,7 +12,7 @@ export default function Skeleton({
   animation = 'pulse',
 }: SkeletonProps) {
   // Base styles
-  const baseStyles = 'bg-gray-200';
+  const baseStyles = 'bg-gray-200 dark:bg-gray-700';
 
   // Variant styles
   const variantStyles = {

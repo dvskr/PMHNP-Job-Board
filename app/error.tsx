@@ -13,6 +13,7 @@ interface ErrorProps {
 export default function Error({ error, reset }: ErrorProps) {
   // Log error to console for debugging (not shown to user)
   useEffect(() => {
+    // Note: logger is server-only, so we use console.error here (client side)
     console.error('Application error:', error);
   }, [error]);
 
@@ -38,9 +39,9 @@ export default function Error({ error, reset }: ErrorProps) {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Button 
-            variant="primary" 
-            size="lg" 
+          <Button
+            variant="primary"
+            size="lg"
             onClick={reset}
             className="w-full sm:w-auto"
           >
@@ -48,8 +49,8 @@ export default function Error({ error, reset }: ErrorProps) {
             Try Again
           </Button>
           <Link href="/">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               className="w-full sm:w-auto"
             >
@@ -78,8 +79,8 @@ export default function Error({ error, reset }: ErrorProps) {
         <div className="pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-500">
             If this keeps happening, please{' '}
-            <Link 
-              href="/contact" 
+            <Link
+              href="/contact"
               className="text-primary-600 hover:text-primary-700 underline"
             >
               contact us

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const STORAGE_KEY = 'savedJobs';
 
@@ -96,7 +96,7 @@ export default function useSavedJobs(): UseSavedJobsReturn {
   }, []);
 
   // Get array of saved job IDs
-  const savedJobs = Object.keys(savedJobsMap);
+  const savedJobs = useMemo(() => Object.keys(savedJobsMap), [savedJobsMap]);
 
   // Check if a job is saved
   const isSaved = useCallback(

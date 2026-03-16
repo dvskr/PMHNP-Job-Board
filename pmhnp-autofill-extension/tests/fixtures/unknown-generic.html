@@ -1,0 +1,213 @@
+<!--
+  Unknown Generic Job Application Fixture
+  Simulates a company career page not using any known ATS.
+  Uses unusual label patterns, fieldsets, aria-describedby, and unconventional markup.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Acme Corp - Apply Now</title>
+</head>
+
+<body>
+    <div class="career-page">
+        <h1>Software Engineer Application</h1>
+        <form id="job-apply-form" action="/submit" method="POST">
+
+            <!-- Section 1: Personal Details with fieldset/legend -->
+            <fieldset>
+                <legend>Personal Information</legend>
+
+                <!-- aria-describedby label pattern -->
+                <div class="form-row">
+                    <span id="desc-fname">Your First Name</span>
+                    <input type="text" name="applicant_first" aria-describedby="desc-fname" required>
+                </div>
+
+                <div class="form-row">
+                    <span id="desc-lname">Your Last Name</span>
+                    <input type="text" name="applicant_last" aria-describedby="desc-lname" required>
+                </div>
+
+                <!-- Adjacent div label (no <label> tag) -->
+                <div class="form-group">
+                    <div class="field-label">Email Address</div>
+                    <input type="email" name="contact_email" placeholder="you@example.com">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Phone Number</div>
+                    <input type="tel" name="contact_phone">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">City</div>
+                    <input type="text" name="location_city">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">State / Province</div>
+                    <input type="text" name="location_state">
+                </div>
+            </fieldset>
+
+            <!-- Section 2: Professional Background -->
+            <fieldset>
+                <legend>Professional Background</legend>
+
+                <div class="form-group">
+                    <div class="field-label">LinkedIn Profile URL</div>
+                    <input type="url" name="social_linkedin" placeholder="https://linkedin.com/in/yourname">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Personal Website / Portfolio</div>
+                    <input type="url" name="personal_site">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Current Job Title</div>
+                    <input type="text" name="current_role">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Current Employer</div>
+                    <input type="text" name="current_company">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Total Years of Experience</div>
+                    <input type="number" name="yrs_exp" min="0" max="50">
+                </div>
+            </fieldset>
+
+            <!-- Section 3: Education -->
+            <fieldset>
+                <legend>Education</legend>
+
+                <div class="form-group">
+                    <div class="field-label">Highest Degree Earned</div>
+                    <select name="edu_degree">
+                        <option value="">Select...</option>
+                        <option value="hs">High School</option>
+                        <option value="assoc">Associate's</option>
+                        <option value="bach">Bachelor's</option>
+                        <option value="mast">Master's</option>
+                        <option value="phd">Doctorate</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">School / University</div>
+                    <input type="text" name="edu_school">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Field of Study / Major</div>
+                    <input type="text" name="edu_major">
+                </div>
+            </fieldset>
+
+            <!-- Section 4: Screening Questions -->
+            <fieldset>
+                <legend>Additional Questions</legend>
+
+                <div class="form-group">
+                    <div class="field-label">Desired Salary (USD)</div>
+                    <input type="text" name="salary_desired" placeholder="e.g. $80,000">
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Are you authorized to work in the United States?</div>
+                    <select name="work_auth">
+                        <option value="">Select...</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Will you require visa sponsorship?</div>
+                    <select name="need_visa">
+                        <option value="">Select...</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Earliest Start Date</div>
+                    <input type="date" name="available_start">
+                </div>
+            </fieldset>
+
+            <!-- Section 5: EEO -->
+            <fieldset>
+                <legend>Voluntary Self-Identification</legend>
+
+                <div class="form-group">
+                    <div class="field-label">Gender</div>
+                    <select name="eeo_gender">
+                        <option value="">Prefer not to say</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="nonbinary">Non-binary</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Race / Ethnicity</div>
+                    <select name="eeo_race">
+                        <option value="">Prefer not to say</option>
+                        <option value="asian">Asian</option>
+                        <option value="black">Black or African American</option>
+                        <option value="hispanic">Hispanic or Latino</option>
+                        <option value="white">White</option>
+                        <option value="other">Two or More Races</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Veteran Status</div>
+                    <select name="eeo_veteran">
+                        <option value="">Prefer not to say</option>
+                        <option value="yes">I am a veteran</option>
+                        <option value="no">I am not a veteran</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="field-label">Disability Status</div>
+                    <select name="eeo_disability">
+                        <option value="">Prefer not to say</option>
+                        <option value="yes">Yes, I have a disability</option>
+                        <option value="no">No, I do not have a disability</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- Section 6: Resume Upload -->
+            <fieldset>
+                <legend>Documents</legend>
+                <div class="form-group">
+                    <div class="field-label">Upload your resume</div>
+                    <input type="file" name="resume_file" accept=".pdf,.doc,.docx">
+                </div>
+            </fieldset>
+
+            <!-- Open-ended question -->
+            <fieldset>
+                <legend>Tell Us More</legend>
+                <div class="form-group">
+                    <div class="field-label">Why are you interested in this position?</div>
+                    <textarea name="cover_msg" rows="5" maxlength="2000"></textarea>
+                </div>
+            </fieldset>
+
+            <button type="submit">Submit Application</button>
+        </form>
+    </div>
+</body>
+
+</html>

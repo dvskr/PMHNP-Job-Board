@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 
 interface CategoryCounts {
@@ -131,7 +132,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Error fetching job categories:', error);
+    logger.error('Error fetching job categories:', error);
     // Return empty categories instead of error to prevent UI breaking
     return NextResponse.json({
       byMode: {},

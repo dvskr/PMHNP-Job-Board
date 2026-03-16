@@ -7,10 +7,12 @@
 export interface Job {
   id: string;
   title: string;
+  slug?: string | null;
   employer: string;
   location: string;
   jobType: string | null;
   mode: string | null;
+  experienceLevel: string | null;
   description: string;
   descriptionSummary: string | null;
   salaryRange: string | null;
@@ -28,13 +30,16 @@ export interface Job {
   salaryIsEstimated: boolean;
   salaryConfidence: number | null;
   displaySalary: string | null;
-  applyLink: string;
+  applyLink: string | null;
+  applyOnPlatform: boolean;
   isFeatured: boolean;
   isPublished: boolean;
   isVerifiedEmployer: boolean;
   sourceType: string | null;
   sourceProvider: string | null;
+  sourceSite: string | null;
   externalId: string | null;
+  originalPostedAt: Date | null;
   viewCount: number;
   applyClickCount: number;
   createdAt: Date;

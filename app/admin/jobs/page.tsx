@@ -1,746 +1,475 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Search, Filter, ChevronLeft, ChevronRight, Eye, MousePointerClick,
+  FileCheck, MoreHorizontal, Trash2, Star, StarOff, Globe, GlobeLock,
+  RefreshCw, X, Check, Pencil, Plus,
+} from 'lucide-react';
 
-interface Stats {
-  totalActive: number;
-  addedLast24h: number;
-  bySource: Record<string, number>;
-  jobsByDay: Record<string, number>;
-  topEmployers: Array<{ employer: string; count: number }>;
-  additionalMetrics?: {
-    totalJobs: number;
-    publishedJobs: number;
-    unpublishedJobs: number;
-    featuredJobs: number;
-    jobTypeDistribution: Record<string, number>;
-    modeDistribution: Record<string, number>;
-  };
-  lastUpdated: string;
+/* ─── Types ─── */
+interface AdminJob {
+  id: string; title: string; slug: string | null; employer: string;
+  location: string; city: string | null; state: string | null;
+  jobType: string | null; mode: string | null;
+  displaySalary: string | null; sourceProvider: string | null;
+  isPublished: boolean; isFeatured: boolean; isVerifiedEmployer: boolean;
+  viewCount: number; applyClickCount: number; applications: number;
+  qualityScore: number; createdAt: string; updatedAt: string;
+  expiresAt: string | null; applyLink: string;
 }
+interface SourceOption { source: string; count: number }
 
-interface SourcePerformance {
-  source: string;
-  totalJobs: number;
-  jobsLast7Days: number;
-  jobsLast30Days: number;
-  avgQualityScore: number;
-  totalViews: number;
-  totalApplyClicks: number;
-  clickThroughRate: number;
-  duplicateRate: number;
-  costPerJob: number | null;
-}
+/* ─── Shared styles ─── */
+const s = {
+  card: {
+    backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
+    borderRadius: '14px', overflow: 'hidden' as const,
+  },
+  heading: { color: 'var(--text-primary)', fontWeight: 700 as const },
+  sub: { color: 'var(--text-secondary)', fontSize: '14px' },
+  muted: { color: 'var(--text-tertiary)', fontSize: '12px' },
+  th: {
+    padding: '12px 14px', textAlign: 'left' as const, fontSize: '11px',
+    fontWeight: 600 as const, textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em', color: 'var(--text-tertiary)',
+    backgroundColor: 'var(--bg-tertiary)', whiteSpace: 'nowrap' as const,
+  },
+  td: {
+    padding: '12px 14px', fontSize: '13px', color: 'var(--text-secondary)',
+    borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' as const,
+  },
+  tdBold: {
+    padding: '12px 14px', fontSize: '13px', color: 'var(--text-primary)',
+    fontWeight: 600 as const, borderBottom: '1px solid var(--border-color)',
+  },
+};
 
-interface ClickAnalytics {
-  summary: {
-    totalClicks: number;
-    uniqueJobs: number;
-    avgClicksPerJob: number;
-  };
-  bySource: Array<{
-    source: string;
-    clicks: number;
-    jobs: number;
-    avgPerJob: number;
-  }>;
-  byDay: Array<{
-    date: string;
-    clicks: number;
-  }>;
-  topJobs: Array<{
-    jobId: string;
-    title: string;
-    employer: string;
-    clicks: number;
-  }>;
-}
+const inputStyle: React.CSSProperties = {
+  padding: '9px 14px', borderRadius: '10px', fontSize: '13px',
+  backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
+  color: 'var(--text-primary)', outline: 'none',
+};
 
-export default function AdminJobsPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [sourceAnalytics, setSourceAnalytics] = useState<SourcePerformance[] | null>(null);
-  const [clickAnalytics, setClickAnalytics] = useState<ClickAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [actionResult, setActionResult] = useState<string | null>(null);
-  const [selectedSource, setSelectedSource] = useState<string>('all');
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/admin/stats');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
-      }
-      
-      const data = await response.json();
-      setStats(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSourceAnalytics = async () => {
-    try {
-      const response = await fetch('/api/analytics/sources');
-      
-      if (!response.ok) {
-        console.error('Failed to fetch source analytics');
-        return;
-      }
-      
-      const data = await response.json();
-      setSourceAnalytics(data.sources || []);
-    } catch (err) {
-      console.error('Error fetching source analytics:', err);
-    }
-  };
-
-  const fetchClickAnalytics = async () => {
-    try {
-      const response = await fetch('/api/analytics/clicks?days=30');
-      
-      if (!response.ok) {
-        console.error('Failed to fetch click analytics');
-        return;
-      }
-      
-      const data = await response.json();
-      setClickAnalytics(data);
-    } catch (err) {
-      console.error('Error fetching click analytics:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-    fetchSourceAnalytics();
-    fetchClickAnalytics();
-    // Auto-refresh every 60 seconds
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchSourceAnalytics();
-      fetchClickAnalytics();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleTriggerIngestion = async () => {
-    try {
-      setActionLoading(true);
-      setActionResult(null);
-      
-      const response = await fetch('/api/admin/trigger-ingestion', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          source: selectedSource === 'all' ? undefined : selectedSource,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Ingestion failed');
-      }
-      
-      const result = await response.json();
-      const totalAdded = result.ingestion?.summary?.totalAdded || 0;
-      const totalFetched = result.ingestion?.summary?.totalFetched || 0;
-      const totalDuplicates = result.ingestion?.summary?.totalDuplicates || 0;
-      
-      setActionResult(
-        `Success! Fetched ${totalFetched} jobs, added ${totalAdded} new, ${totalDuplicates} duplicates`
-      );
-      
-      // Refresh stats after ingestion
-      setTimeout(fetchStats, 2000);
-    } catch (err) {
-      setActionResult(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (loading && !stats) {
-    return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading statistics...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-red-800 font-bold mb-2">Error</h2>
-          <p className="text-red-600">{error}</p>
-          <button
-            onClick={fetchStats}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!stats) return null;
-
-  const avgDailyNew = Object.keys(stats.jobsByDay).length > 0
-    ? Math.round(Object.values(stats.jobsByDay).reduce((a: number, b: number) => a + b, 0) / Object.keys(stats.jobsByDay).length)
-    : 0;
-
-  const totalBySource = Object.values(stats.bySource).reduce((a: number, b: number) => a + b, 0);
-
-  const sortedDays = Object.entries(stats.jobsByDay).sort(([a]: [string, number], [b]: [string, number]) => a.localeCompare(b));
-  const trend = sortedDays.length >= 2
-    ? (sortedDays[sortedDays.length - 1]?.[1] ?? 0) > (sortedDays[sortedDays.length - 2]?.[1] ?? 0)
-    : null;
-
+function badge(text: string, color: string, bg: string) {
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Job Aggregation Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Last updated: {new Date(stats.lastUpdated).toLocaleString()}
-            </p>
-          </div>
-          <button
-            onClick={fetchStats}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Active Jobs</h3>
-          <p className="text-3xl font-bold text-gray-900">{stats.totalActive}</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Added Last 24h</h3>
-          <p className="text-3xl font-bold text-green-600">{stats.addedLast24h}</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Active Sources</h3>
-          <p className="text-3xl font-bold text-blue-600">{Object.keys(stats.bySource).length}</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Avg Daily New</h3>
-          <p className="text-3xl font-bold text-purple-600">{avgDailyNew}</p>
-        </div>
-      </div>
-
-      {/* Top Sources Summary */}
-      {sourceAnalytics && sourceAnalytics.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
-            <h3 className="text-sm font-medium text-blue-700 mb-3">🏆 Best for Volume</h3>
-            {(() => {
-              const bestVolume = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.totalJobs - a.totalJobs)[0];
-              if (!bestVolume) return <p className="text-sm text-gray-500">No data</p>;
-              return (
-                <>
-                  <p className="text-2xl font-bold text-blue-900 capitalize">{bestVolume.source}</p>
-                  <p className="text-sm text-blue-600 mt-1">{bestVolume.totalJobs.toLocaleString()} active jobs</p>
-                </>
-              );
-            })()}
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
-            <h3 className="text-sm font-medium text-green-700 mb-3">⭐ Best for Quality</h3>
-            {(() => {
-              const bestQuality = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.avgQualityScore - a.avgQualityScore)[0];
-              if (!bestQuality) return <p className="text-sm text-gray-500">No data</p>;
-              return (
-                <>
-                  <p className="text-2xl font-bold text-green-900 capitalize">{bestQuality.source}</p>
-                  <p className="text-sm text-green-600 mt-1">{(bestQuality.avgQualityScore * 100).toFixed(0)}% quality score</p>
-                </>
-              );
-            })()}
-          </div>
-          
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
-            <h3 className="text-sm font-medium text-purple-700 mb-3">🎯 Best for Clicks</h3>
-            {(() => {
-              const bestClicks = [...sourceAnalytics].sort((a: SourcePerformance, b: SourcePerformance) => b.clickThroughRate - a.clickThroughRate)[0];
-              if (!bestClicks) return <p className="text-sm text-gray-500">No data</p>;
-              return (
-                <>
-                  <p className="text-2xl font-bold text-purple-900 capitalize">{bestClicks.source}</p>
-                  <p className="text-sm text-purple-600 mt-1">{(bestClicks.clickThroughRate * 100).toFixed(1)}% CTR</p>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Jobs by Source */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Jobs by Source</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Source
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Count
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Percentage
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Object.entries(stats.bySource)
-                  .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
-                  .map(([source, count]: [string, number]) => (
-                    <tr key={source}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                        {source}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {((count / totalBySource) * 100).toFixed(1)}%
-                      </td>
-                    </tr>
-                  ))}
-                <tr className="bg-gray-50 font-bold">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    Total
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {totalBySource}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    100%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Jobs Added Per Day */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Jobs Added Per Day (Last 7 Days)
-            {trend !== null && (
-              <span className="ml-3 text-sm">
-                {trend ? (
-                  <span className="text-green-600">↑ Trending Up</span>
-                ) : (
-                  <span className="text-red-600">↓ Trending Down</span>
-                )}
-              </span>
-            )}
-          </h2>
-          <div className="space-y-3">
-            {sortedDays.length > 0 ? (
-              sortedDays.map(([date, count]: [string, number]) => (
-                <div key={date} className="flex items-center">
-                  <div className="w-32 text-sm text-gray-600">{date}</div>
-                  <div className="flex-1 flex items-center">
-                    <div
-                      className="bg-blue-500 h-8 rounded"
-                      style={{
-                        width: `${(count / Math.max(...Object.values(stats.jobsByDay))) * 100}%`,
-                        minWidth: '2rem',
-                      }}
-                    ></div>
-                    <span className="ml-3 text-sm font-medium text-gray-900">{count}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500">No data available</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Top Employers */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Top Employers</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rank
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Job Count
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stats.topEmployers.map((employer: { employer: string; count: number }, index: number) => (
-                  <tr key={employer.employer}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      #{index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {employer.employer}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employer.count}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Source Performance */}
-      {sourceAnalytics && sourceAnalytics.length > 0 && (
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Source Performance</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Source
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Active Jobs
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      7-Day Adds
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Quality
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Views
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Clicks
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      CTR
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Dup Rate
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sourceAnalytics.map((source: SourcePerformance, index: number) => {
-                    // Performance scoring for color coding
-                    const qualityScore = source.avgQualityScore * 100;
-                    const ctr = source.clickThroughRate * 100;
-                    const dupRate = source.duplicateRate * 100;
-                    
-                    // Color coding logic
-                    const getQualityColor = (score: number) => {
-                      if (score >= 75) return 'text-green-700 bg-green-50';
-                      if (score >= 50) return 'text-yellow-700 bg-yellow-50';
-                      return 'text-red-700 bg-red-50';
-                    };
-                    
-                    const getCtrColor = (rate: number) => {
-                      if (rate >= 5) return 'text-green-700 bg-green-50';
-                      if (rate >= 2) return 'text-yellow-700 bg-yellow-50';
-                      return 'text-gray-700 bg-gray-50';
-                    };
-                    
-                    const getDupColor = (rate: number) => {
-                      if (rate >= 50) return 'text-red-700 bg-red-50';
-                      if (rate >= 30) return 'text-yellow-700 bg-yellow-50';
-                      return 'text-green-700 bg-green-50';
-                    };
-                    
-                    return (
-                      <tr key={source.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                          {source.source}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
-                          {source.totalJobs.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                          {source.jobsLast7Days.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                          <span className={`px-2 py-1 rounded-full font-medium ${getQualityColor(qualityScore)}`}>
-                            {qualityScore.toFixed(0)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                          {source.totalViews.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                          {source.totalApplyClicks.toLocaleString()}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                          <span className={`px-2 py-1 rounded-full font-medium ${getCtrColor(ctr)}`}>
-                            {ctr.toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                          <span className={`px-2 py-1 rounded-full font-medium ${getDupColor(dupRate)}`}>
-                            {dupRate.toFixed(0)}%
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-200"></span>
-                <span>Good performance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-yellow-200"></span>
-                <span>Average performance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-200"></span>
-                <span>Needs improvement</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Apply Click Analytics */}
-      {clickAnalytics && (
-        <div className="space-y-8 mb-8">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Apply Click Analytics (Last 30 Days)</h2>
-              
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-6 border border-indigo-200">
-                  <h3 className="text-sm font-medium text-indigo-700 mb-2">Total Clicks</h3>
-                  <p className="text-3xl font-bold text-indigo-900">{clickAnalytics.summary.totalClicks.toLocaleString()}</p>
-                  <p className="text-xs text-indigo-600 mt-1">{clickAnalytics.summary.uniqueJobs} unique jobs</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow p-6 border border-teal-200">
-                  <h3 className="text-sm font-medium text-teal-700 mb-2">Avg Clicks per Job</h3>
-                  <p className="text-3xl font-bold text-teal-900">{clickAnalytics.summary.avgClicksPerJob.toFixed(2)}</p>
-                  <p className="text-xs text-teal-600 mt-1">Engagement rate</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow p-6 border border-amber-200">
-                  <h3 className="text-sm font-medium text-amber-700 mb-2">Best Converting Source</h3>
-                  {(() => {
-                    const best = clickAnalytics.bySource.length > 0 ? clickAnalytics.bySource[0] : null;
-                    return best ? (
-                      <>
-                        <p className="text-3xl font-bold text-amber-900 capitalize">{best.source}</p>
-                        <p className="text-xs text-amber-600 mt-1">{best.clicks} clicks ({best.avgPerJob.toFixed(2)} per job)</p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-amber-600">No data</p>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Clicks by Source */}
-              {clickAnalytics.bySource.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Clicks by Source</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Source
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Total Clicks
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Jobs Clicked
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Avg per Job
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Performance
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {clickAnalytics.bySource.map((sourceData: { source: string; clicks: number; jobs: number; avgPerJob: number }, index: number) => {
-                          const performance = sourceData.avgPerJob;
-                          const getPerformanceColor = () => {
-                            if (performance >= 0.5) return 'text-green-700 bg-green-50';
-                            if (performance >= 0.3) return 'text-yellow-700 bg-yellow-50';
-                            return 'text-red-700 bg-red-50';
-                          };
-                          
-                          return (
-                            <tr key={sourceData.source} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                                {sourceData.source}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-semibold">
-                                {sourceData.clicks.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                                {sourceData.jobs.toLocaleString()}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                                {sourceData.avgPerJob.toFixed(2)}
-                              </td>
-                              <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                                <span className={`px-2 py-1 rounded-full font-medium ${getPerformanceColor()}`}>
-                                  {performance >= 0.5 ? '🔥 Hot' : performance >= 0.3 ? '👍 Good' : '📊 Low'}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Top 10 Most Clicked Jobs */}
-              {clickAnalytics.topJobs.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Top 10 Most Clicked Jobs</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Rank
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Job Title
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Employer
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Clicks
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {clickAnalytics.topJobs.map((job: { jobId: string; title: string; employer: string; clicks: number }, index: number) => (
-                          <tr key={job.jobId} className={index < 3 ? 'bg-yellow-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <span className={`font-bold ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-500' : index === 2 ? 'text-amber-600' : ''}`}>
-                                #{index + 1}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-sm font-medium text-gray-900">
-                              {job.title}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-gray-600">
-                              {job.employer}
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {job.clicks} clicks
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Actions Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Actions</h2>
-          
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <select
-                value={selectedSource}
-                onChange={(e) => setSelectedSource(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Sources</option>
-                {Object.keys(stats.bySource).map((source: string) => (
-                  <option key={source} value={source}>
-                    {source.charAt(0).toUpperCase() + source.slice(1)}
-                  </option>
-                ))}
-              </select>
-              
-              <button
-                onClick={handleTriggerIngestion}
-                disabled={actionLoading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-              >
-                {actionLoading ? 'Running...' : 'Trigger Ingestion'}
-              </button>
-            </div>
-            
-            {actionResult && (
-              <div className={`p-4 rounded-lg ${actionResult.includes('Error') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}>
-                {actionResult}
-              </div>
-            )}
-            
-            <p className="text-sm text-gray-500">
-              ⚠️ Note: Full ingestion can take 40+ seconds. The page will refresh automatically when complete.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <span style={{
+      padding: '3px 10px', borderRadius: '20px', fontSize: '11px',
+      fontWeight: 600, backgroundColor: bg, color, whiteSpace: 'nowrap',
+    }}>{text}</span>
   );
 }
 
+export default function AdminJobsPage() {
+  const [jobs, setJobs] = useState<AdminJob[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sources, setSources] = useState<SourceOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [publishedFilter, setPublishedFilter] = useState('');
+  const [featuredFilter, setFeaturedFilter] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+
+  // Selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Edit modal
+  const [editingJob, setEditingJob] = useState<AdminJob | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Action feedback
+  const [actionMsg, setActionMsg] = useState<{ text: string; isError: boolean } | null>(null);
+
+  const fetchJobs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', '25');
+      params.set('sort', sortBy);
+      if (search) params.set('search', search);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
+      if (publishedFilter) params.set('published', publishedFilter);
+      if (featuredFilter) params.set('featured', featuredFilter);
+
+      const res = await fetch(`/api/admin/jobs?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setJobs(data.jobs);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+        if (data.sources) setSources(data.sources);
+      }
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, sourceFilter, publishedFilter, featuredFilter, sortBy]);
+
+  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+
+  // Debounced search
+  const [searchInput, setSearchInput] = useState('');
+  useEffect(() => {
+    const timeout = setTimeout(() => { setSearch(searchInput); setPage(1); }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  // Toggle helpers
+  const toggleField = async (jobId: string, field: string, value: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (res.ok) {
+        setJobs(prev => prev.map(j => j.id === jobId ? { ...j, [field]: value } : j));
+        showMsg(`${field === 'isPublished' ? (value ? 'Published' : 'Unpublished') : (value ? 'Featured' : 'Unfeatured')}`, false);
+      }
+    } catch { showMsg('Failed to update', true); }
+  };
+
+  const deleteJob = async (jobId: string, hard = false) => {
+    if (!confirm(hard ? 'Permanently delete this job? This cannot be undone.' : 'Unpublish this job?')) return;
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}?hard=${hard}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (hard) setJobs(prev => prev.filter(j => j.id !== jobId));
+        else setJobs(prev => prev.map(j => j.id === jobId ? { ...j, isPublished: false } : j));
+        showMsg(hard ? 'Job permanently deleted' : 'Job unpublished', false);
+      }
+    } catch { showMsg('Failed to delete', true); }
+  };
+
+  // Bulk actions
+  const handleBulk = async (action: string) => {
+    if (selected.size === 0) return;
+    const label = action === 'hard_delete' ? 'permanently delete' : action;
+    if (action.includes('delete') && !confirm(`${label} ${selected.size} job(s)?`)) return;
+
+    try {
+      setBulkLoading(true);
+      const res = await fetch('/api/admin/jobs/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, jobIds: Array.from(selected) }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showMsg(`${data.action}: ${data.affected} job(s)`, false);
+        setSelected(new Set());
+        fetchJobs();
+      }
+    } catch { showMsg('Bulk action failed', true); }
+    finally { setBulkLoading(false); }
+  };
+
+  // Edit modal
+  const openEdit = (job: AdminJob) => {
+    setEditingJob(job);
+    setEditForm({
+      title: job.title,
+      employer: job.employer,
+      location: job.location,
+      displaySalary: job.displaySalary || '',
+      jobType: job.jobType || '',
+      mode: job.mode || '',
+      applyLink: job.applyLink,
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingJob) return;
+    try {
+      setEditLoading(true);
+      const res = await fetch(`/api/admin/jobs/${editingJob.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        showMsg('Job updated', false);
+        setEditingJob(null);
+        fetchJobs();
+      }
+    } catch { showMsg('Failed to update', true); }
+    finally { setEditLoading(false); }
+  };
+
+  const showMsg = (text: string, isError: boolean) => {
+    setActionMsg({ text, isError });
+    setTimeout(() => setActionMsg(null), 3000);
+  };
+
+  const selectAll = () => {
+    if (selected.size === jobs.length) setSelected(new Set());
+    else setSelected(new Set(jobs.map(j => j.id)));
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ ...s.heading, fontSize: '26px' }}>Jobs Management</h1>
+          <p style={s.muted}>{total.toLocaleString()} total jobs</p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={fetchJobs} style={{ ...inputStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Action message */}
+      {actionMsg && (
+        <div style={{
+          marginBottom: '16px', padding: '12px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+          backgroundColor: actionMsg.isError ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+          color: actionMsg.isError ? '#F87171' : '#22C55E',
+        }}>{actionMsg.text}</div>
+      )}
+
+      {/* Filters */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 240px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+          <input
+            type="text"
+            placeholder="Search title or employer..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            style={{ ...inputStyle, width: '100%', paddingLeft: '36px' }}
+          />
+        </div>
+        <select value={sourceFilter} onChange={e => { setSourceFilter(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="all">All Sources</option>
+          {sources.map(s => (
+            <option key={s.source} value={s.source}>{s.source} ({s.count})</option>
+          ))}
+        </select>
+        <select value={publishedFilter} onChange={e => { setPublishedFilter(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">All Status</option>
+          <option value="true">Published</option>
+          <option value="false">Unpublished</option>
+        </select>
+        <select value={featuredFilter} onChange={e => { setFeaturedFilter(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">All Featured</option>
+          <option value="true">Featured</option>
+          <option value="false">Not Featured</option>
+        </select>
+        <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1); }} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="views">Most Views</option>
+          <option value="clicks">Most Clicks</option>
+          <option value="title">Title A-Z</option>
+        </select>
+      </div>
+
+      {/* Bulk actions */}
+      {selected.size > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px',
+          padding: '12px 18px', borderRadius: '10px',
+          backgroundColor: 'rgba(45, 212, 191, 0.08)', border: '1px solid rgba(45, 212, 191, 0.2)',
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>{selected.size} selected</span>
+          {[
+            { label: 'Publish', action: 'publish', color: '#22C55E' },
+            { label: 'Unpublish', action: 'unpublish', color: '#F59E0B' },
+            { label: 'Feature', action: 'feature', color: '#A855F7' },
+            { label: 'Unfeature', action: 'unfeature', color: '#94A3B8' },
+            { label: 'Delete', action: 'delete', color: '#EF4444' },
+          ].map(b => (
+            <button key={b.action} onClick={() => handleBulk(b.action)} disabled={bulkLoading}
+              style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, backgroundColor: `${b.color}15`, color: b.color }}>
+              {b.label}
+            </button>
+          ))}
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Jobs Table */}
+      <div style={s.card}>
+        {loading && jobs.length === 0 ? (
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+            <div style={{ width: 40, height: 40, border: '3px solid var(--border-color)', borderTop: '3px solid #2DD4BF', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ ...s.sub, marginTop: '12px' }}>Loading jobs…</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ ...s.th, width: '36px' }}>
+                    <input type="checkbox" checked={selected.size === jobs.length && jobs.length > 0} onChange={selectAll} style={{ cursor: 'pointer' }} />
+                  </th>
+                  <th style={s.th}>Title</th>
+                  <th style={s.th}>Employer</th>
+                  <th style={s.th}>Source</th>
+                  <th style={{ ...s.th, textAlign: 'center' }}>Status</th>
+                  <th style={{ ...s.th, textAlign: 'center' }}>Featured</th>
+                  <th style={{ ...s.th, textAlign: 'right' }}><Eye size={13} /></th>
+                  <th style={{ ...s.th, textAlign: 'right' }}><MousePointerClick size={13} /></th>
+                  <th style={{ ...s.th, textAlign: 'right' }}><FileCheck size={13} /></th>
+                  <th style={s.th}>Created</th>
+                  <th style={{ ...s.th, textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map(job => (
+                  <tr key={job.id} style={{ backgroundColor: selected.has(job.id) ? 'rgba(45,212,191,0.04)' : undefined }}>
+                    <td style={s.td}>
+                      <input type="checkbox" checked={selected.has(job.id)} onChange={() => toggleSelect(job.id)} style={{ cursor: 'pointer' }} />
+                    </td>
+                    <td style={{ ...s.tdBold, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={job.title}>
+                      {job.title}
+                    </td>
+                    <td style={s.td}>{job.employer}</td>
+                    <td style={s.td}>
+                      <span style={{ textTransform: 'capitalize' }}>{job.sourceProvider || '—'}</span>
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'center' }}>
+                      <button onClick={() => toggleField(job.id, 'isPublished', !job.isPublished)}
+                        title={job.isPublished ? 'Click to unpublish' : 'Click to publish'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                        {job.isPublished
+                          ? <Globe size={16} style={{ color: '#22C55E' }} />
+                          : <GlobeLock size={16} style={{ color: '#94A3B8' }} />}
+                      </button>
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'center' }}>
+                      <button onClick={() => toggleField(job.id, 'isFeatured', !job.isFeatured)}
+                        title={job.isFeatured ? 'Click to unfeature' : 'Click to feature'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                        {job.isFeatured
+                          ? <Star size={16} style={{ color: '#F59E0B', fill: '#F59E0B' }} />
+                          : <StarOff size={16} style={{ color: '#94A3B8' }} />}
+                      </button>
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.viewCount.toLocaleString()}</td>
+                    <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.applyClickCount.toLocaleString()}</td>
+                    <td style={{ ...s.td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{job.applications}</td>
+                    <td style={s.td}>
+                      {new Date(job.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                    </td>
+                    <td style={{ ...s.td, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button onClick={() => openEdit(job)} title="Edit"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3B82F6' }}>
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => deleteJob(job.id)} title="Unpublish"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#EF4444' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {jobs.length === 0 && (
+                  <tr><td colSpan={11} style={{ ...s.td, textAlign: 'center', padding: '40px' }}>No jobs found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 20px', borderTop: '1px solid var(--border-color)',
+          }}>
+            <span style={s.muted}>Page {page} of {totalPages} · {total.toLocaleString()} jobs</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ ...inputStyle, cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ChevronLeft size={14} /> Prev
+              </button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ ...inputStyle, cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {editingJob && (
+        <>
+          <div onClick={() => setEditingJob(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 50 }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 51, width: '90%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto',
+            backgroundColor: 'var(--bg-secondary)', borderRadius: '16px',
+            border: '1px solid var(--border-color)', padding: '28px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ ...s.heading, fontSize: '20px' }}>Edit Job</h2>
+              <button onClick={() => setEditingJob(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {[
+                { key: 'title', label: 'Title' },
+                { key: 'employer', label: 'Employer' },
+                { key: 'location', label: 'Location' },
+                { key: 'displaySalary', label: 'Salary Display' },
+                { key: 'jobType', label: 'Job Type' },
+                { key: 'mode', label: 'Mode (remote/onsite/hybrid)' },
+                { key: 'applyLink', label: 'Apply Link' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: 'block', ...s.muted, fontWeight: 600, marginBottom: '6px' }}>{f.label}</label>
+                  <input
+                    type="text"
+                    value={editForm[f.key] || ''}
+                    onChange={e => setEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    style={{ ...inputStyle, width: '100%' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingJob(null)}
+                style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px' }}>
+                Cancel
+              </button>
+              <button onClick={saveEdit} disabled={editLoading}
+                style={{ padding: '10px 24px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none', fontWeight: 700, fontSize: '13px', opacity: editLoading ? 0.5 : 1 }}>
+                {editLoading ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

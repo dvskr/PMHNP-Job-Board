@@ -29,12 +29,12 @@ const PERIOD_MULTIPLIERS: Record<string, number> = {
 const PMHNP_SALARY_RANGES = {
   // W-2 / Salaried positions
   min: 80000,           // Minimum reasonable annual salary
-  max: 250000,          // Maximum reasonable W-2 annual salary
-  
+  max: 350000,          // Maximum reasonable W-2 annual salary (PMHNP in HCOL areas)
+
   // Contract / Hourly positions (these convert to higher annual equivalents)
   contractorHourlyMin: 50,   // $50/hour minimum for contractor PMHNP
   contractorHourlyMax: 350,  // $350/hour maximum (high-end contractors)
-  
+
   typical: {
     min: 100000,
     max: 160000,
@@ -104,7 +104,7 @@ function detectSalaryPeriod(
  * Handles hourly contractor rates and annual salaries differently
  */
 function isReasonableSalary(
-  annual: number, 
+  annual: number,
   originalPeriod: string,
   originalSalary: number,
   confidence: number = 1.0
@@ -115,36 +115,36 @@ function isReasonableSalary(
     const hourlyRate = originalSalary;
     const minHourly = PMHNP_SALARY_RANGES.contractorHourlyMin;
     const maxHourly = PMHNP_SALARY_RANGES.contractorHourlyMax;
-    
+
     const isValid = hourlyRate >= minHourly && hourlyRate <= maxHourly;
-    
+
     if (!isValid) {
       console.log(
         `[Salary] Rejected hourly rate: $${hourlyRate}/hr (outside $${minHourly}-${maxHourly}/hr range)`
       );
     }
-    
+
     return isValid;
   }
-  
+
   // For annual salaries, validate against annual thresholds
   // Allow wider ranges for estimated/low-confidence salaries
-  const minThreshold = confidence < 0.5 
+  const minThreshold = confidence < 0.5
     ? PMHNP_SALARY_RANGES.min * 0.6   // $48k minimum for low-confidence
     : PMHNP_SALARY_RANGES.min * 0.8;   // $64k minimum for high-confidence
-  
-  const maxThreshold = confidence < 0.5 
-    ? 400000   // $400k max for low-confidence (catches high contractor estimates)
-    : 300000;  // $300k max for high-confidence
-  
+
+  const maxThreshold = confidence < 0.5
+    ? 500000   // $500k max for low-confidence (catches high contractor estimates)
+    : 400000;  // $400k max for high-confidence (PMHNP in HCOL areas / 1099 contracts)
+
   const isValid = annual >= minThreshold && annual <= maxThreshold;
-  
+
   if (!isValid) {
     console.log(
       `[Salary] Rejected annual salary: $${annual.toLocaleString()} (outside $${minThreshold.toLocaleString()}-${maxThreshold.toLocaleString()} range, confidence: ${confidence})`
     );
   }
-  
+
   return isValid;
 }
 
@@ -158,27 +158,27 @@ function normalizeSingleSalary(
 ): { value: number; confidence: number } | null {
   const multiplier = PERIOD_MULTIPLIERS[period] || 1;
   const annualSalary = Math.round(salary * multiplier);
-  
+
   // Calculate confidence
   let confidence = 1.0;
   if (isEstimated) {
     confidence = 0.6; // Lower confidence for estimated salaries
   }
-  
+
   // Validate salary based on period and original value
   // Pass the original salary and period for proper validation
   if (!isReasonableSalary(annualSalary, period, salary, confidence)) {
     // Salary rejected - original values are still preserved in the job record
     return null;
   }
-  
+
   // Adjust confidence based on period (annual is most reliable)
   if (period === 'hourly' || period === 'hour') {
     confidence *= 0.9; // Hourly conversions slightly less certain
   } else if (period === 'daily' || period === 'weekly' || period === 'day' || period === 'week') {
     confidence *= 0.85; // Weekly/daily conversions less certain
   }
-  
+
   return { value: annualSalary, confidence };
 }
 
@@ -200,9 +200,9 @@ export function normalizeSalary(job: {
   };
 
   // Check if salary is marked as estimated/predicted
-  const isEstimated = job.salaryRange?.toLowerCase().includes('estimated') || 
-                     job.salaryRange?.toLowerCase().includes('predicted') ||
-                     false;
+  const isEstimated = job.salaryRange?.toLowerCase().includes('estimated') ||
+    job.salaryRange?.toLowerCase().includes('predicted') ||
+    false;
 
   result.salaryIsEstimated = isEstimated;
 
@@ -246,10 +246,10 @@ export function normalizeSalary(job: {
   if (result.normalizedMinSalary && result.normalizedMaxSalary) {
     if (result.normalizedMinSalary > result.normalizedMaxSalary) {
       // Swap min and max if they're reversed
-      [result.normalizedMinSalary, result.normalizedMaxSalary] = 
+      [result.normalizedMinSalary, result.normalizedMaxSalary] =
         [result.normalizedMaxSalary, result.normalizedMinSalary];
     }
-    
+
     // Check if range is too wide (indicates bad data)
     const rangeRatio = result.normalizedMaxSalary / result.normalizedMinSalary;
     if (rangeRatio > 2.5) {
@@ -272,15 +272,15 @@ export function formatNormalizedSalary(
   isEstimated: boolean = false
 ): string {
   if (!min && !max) return 'Not specified';
-  
+
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 0,
   });
-  
+
   const estimatedLabel = isEstimated ? ' (estimated)' : '';
-  
+
   if (min && max) {
     return `${formatter.format(min)} - ${formatter.format(max)}${estimatedLabel}`;
   }
@@ -290,7 +290,7 @@ export function formatNormalizedSalary(
   if (max) {
     return `Up to ${formatter.format(max)}${estimatedLabel}`;
   }
-  
+
   return 'Not specified';
 }
 

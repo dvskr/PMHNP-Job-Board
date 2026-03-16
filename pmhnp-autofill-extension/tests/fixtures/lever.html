@@ -1,0 +1,235 @@
+<!--
+  Lever ATS Application Form Fixture
+  Verified against: https://jobs.lever.co/lifestance/496e5fc1-b01e-4dd0-bd5e-c2df1e1fa193/apply
+  Verified date: 2026-02-18
+  Fields: name, email, phone, location (typeahead), org, LinkedIn URL, resume, EEO, custom questions
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Lever Application</title>
+</head>
+
+<body class="application header-compact">
+  <div class="page application">
+    <div class="content-wrapper application-page">
+      <form id="application-form" enctype="multipart/form-data" method="POST">
+        <div class="section page-centered application-form">
+          <h4>Submit your application</h4>
+          <ul>
+            <!-- Full Name -->
+            <li class="application-question awli-application-row">
+              <label>
+                <div class="application-label">Full name<span class="required">✱</span></div>
+                <div class="application-field">
+                  <input type="text" data-qa="name-input" name="name" placeholder="Enter your full name" required>
+                </div>
+              </label>
+            </li>
+
+            <!-- Resume -->
+            <li class="application-question resume">
+              <label>
+                <div class="application-label">Resume/CV <span class="required">✱</span></div>
+                <div class="application-field">
+                  <input type="file" name="resume" id="resume-upload-input" data-qa="input-resume"
+                    accept=".pdf,.doc,.docx,.txt,.rtf">
+                </div>
+              </label>
+            </li>
+
+            <!-- Email -->
+            <li class="application-question">
+              <label>
+                <div class="application-label">Email<span class="required">✱</span></div>
+                <div class="application-field">
+                  <input type="email" data-qa="email-input" name="email" placeholder="Enter your email" required>
+                </div>
+              </label>
+            </li>
+
+            <!-- Phone -->
+            <li class="application-question">
+              <label>
+                <div class="application-label">Phone<span class="required">✱</span></div>
+                <div class="application-field">
+                  <input type="tel" data-qa="phone-input" name="phone" placeholder="Enter your phone number" required>
+                </div>
+              </label>
+            </li>
+
+            <!-- Location (typeahead) -->
+            <li class="application-question" data-qa="structured-contact-location-question">
+              <label>
+                <div class="application-label">Current location</div>
+                <div class="application-field">
+                  <input type="text" id="location-input" data-qa="location-input" name="location"
+                    placeholder="Type to search for your location" autocomplete="off">
+                </div>
+              </label>
+            </li>
+
+            <!-- Current Company -->
+            <li class="application-question">
+              <label>
+                <div class="application-label">Current company</div>
+                <div class="application-field">
+                  <input type="text" data-qa="org-input" name="org" placeholder="Enter your current company">
+                </div>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Links Section -->
+        <div class="section page-centered application-form">
+          <h4>Links</h4>
+          <ul>
+            <li class="application-question">
+              <label>
+                <div class="application-label">LinkedIn URL</div>
+                <div class="application-field">
+                  <input type="text" data-qa="url-input" name="urls[LinkedIn]" placeholder="Enter your LinkedIn URL">
+                </div>
+              </label>
+            </li>
+            <li class="application-question">
+              <label>
+                <div class="application-label">GitHub URL</div>
+                <div class="application-field">
+                  <input type="text" data-qa="url-input" name="urls[github]" placeholder="Enter your GitHub URL">
+                </div>
+              </label>
+            </li>
+            <li class="application-question">
+              <label>
+                <div class="application-label">Portfolio URL</div>
+                <div class="application-field">
+                  <input type="text" data-qa="url-input" name="urls[portfolio]" placeholder="Enter your portfolio URL">
+                </div>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Additional (Custom Screening Questions) -->
+        <div class="section page-centered application-form">
+          <h4>Additional information</h4>
+          <ul>
+            <li class="application-question custom-question">
+              <label>
+                <div class="application-label">How did you hear about this job?</div>
+                <div class="application-field">
+                  <textarea name="cards[how-hear]" placeholder=""></textarea>
+                </div>
+              </label>
+            </li>
+            <li class="application-question custom-question">
+              <label>
+                <div class="application-label">Are you authorized to work in the United States?</div>
+                <div class="application-field">
+                  <select name="cards[work-auth]">
+                    <option value="">Select...</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+              </label>
+            </li>
+            <li class="application-question custom-question">
+              <label>
+                <div class="application-label">Do you now or will you in the future require sponsorship?</div>
+                <div class="application-field">
+                  <select name="cards[sponsorship]">
+                    <option value="">Select...</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+              </label>
+            </li>
+            <li class="application-question custom-question">
+              <label>
+                <div class="application-label">Additional comments</div>
+                <div class="application-field">
+                  <textarea name="comments"
+                    placeholder="Add a cover letter or anything else you want to share"></textarea>
+                </div>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+        <!-- EEO Section -->
+        <div class="section eeo-section page-centered application-form" id="eeoSurvey_test123" data-qa="eeo-section">
+          <h4>U.S. Equal Employment Opportunity information</h4>
+          <ul>
+            <li class="application-question eeo-question">
+              <label>
+                <div class="application-label">Gender</div>
+                <div class="application-field">
+                  <select name="eeo[gender]" data-qa="eeo-gender">
+                    <option value="">Select...</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Decline to self-identify">Decline to self-identify</option>
+                  </select>
+                </div>
+              </label>
+            </li>
+            <li class="application-question eeo-question">
+              <label>
+                <div class="application-label">Race / Ethnicity</div>
+                <div class="application-field">
+                  <select name="eeo[race]" data-qa="eeo-race">
+                    <option value="">Select...</option>
+                    <option value="Hispanic or Latino">Hispanic or Latino</option>
+                    <option value="White (Not Hispanic or Latino)">White (Not Hispanic or Latino)</option>
+                    <option value="Black or African American (Not Hispanic or Latino)">Black or African American (Not
+                      Hispanic or Latino)</option>
+                    <option value="Asian (Not Hispanic or Latino)">Asian (Not Hispanic or Latino)</option>
+                    <option value="American Indian or Alaska Native (Not Hispanic or Latino)">American Indian or Alaska
+                      Native (Not Hispanic or Latino)</option>
+                    <option value="Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)">Native Hawaiian
+                      or Other Pacific Islander (Not Hispanic or Latino)</option>
+                    <option value="Two or More Races (Not Hispanic or Latino)">Two or More Races (Not Hispanic or
+                      Latino)</option>
+                    <option value="Decline to self-identify">Decline to self-identify</option>
+                  </select>
+                </div>
+              </label>
+            </li>
+            <li class="application-question eeo-question">
+              <label>
+                <div class="application-label">Veteran status</div>
+                <div class="application-field">
+                  <select name="eeo[veteran]" data-qa="eeo-veteran">
+                    <option value="">Select...</option>
+                    <option value="I am a protected veteran">I am a protected veteran</option>
+                    <option value="I am not a veteran">I am not a veteran</option>
+                    <option value="Decline to self-identify">Decline to self-identify</option>
+                  </select>
+                </div>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Hidden fields -->
+        <input type="hidden" name="accountId" value="test-account-123">
+        <input type="hidden" name="linkedInData" value="">
+        <input type="hidden" name="origin" value="">
+        <input type="hidden" name="referer" value="https://jobs.lever.co/testcompany/job123/apply">
+        <input type="hidden" name="socialReferralKey" value="">
+        <input type="hidden" name="socialSource" value="">
+        <input type="hidden" name="resumeStorageId" value="">
+        <input type="hidden" name="source" value="">
+
+        <button id="btn-submit" data-qa="btn-submit" type="submit">Submit application</button>
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>

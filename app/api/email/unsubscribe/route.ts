@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Unsubscribe
@@ -26,10 +27,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Update isSubscribed to false
+    // Update isSubscribed and newsletterOptIn to false
     await prisma.emailLead.update({
       where: { unsubscribeToken: token },
-      data: { isSubscribed: false },
+      data: { isSubscribed: false, newsletterOptIn: false },
     });
 
     return NextResponse.json({
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       message: 'Unsubscribed successfully',
     });
   } catch (error) {
-    console.error('Error unsubscribing:', error);
+    logger.error('Error unsubscribing:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to unsubscribe' },
       { status: 500 }
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
       message: 'Resubscribed successfully',
     });
   } catch (error) {
-    console.error('Error resubscribing:', error);
+    logger.error('Error resubscribing:', error);
     return NextResponse.json(
       { success: false, message: 'Failed to resubscribe' },
       { status: 500 }

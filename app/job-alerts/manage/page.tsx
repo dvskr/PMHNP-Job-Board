@@ -170,10 +170,10 @@ function ManageAlertsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)', minHeight: 'calc(100vh - 4rem)' }}>
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="text-slate-600">Loading alerts...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+          <p style={{ color: 'var(--text-secondary)' }}>Loading alerts...</p>
         </div>
       </div>
     );
@@ -181,18 +181,18 @@ function ManageAlertsContent() {
 
   if (error && alerts.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+      <div className="flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-primary)', minHeight: 'calc(100vh - 4rem)' }}>
+        <div className="max-w-md w-full rounded-xl shadow-sm p-8 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
             <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Alert Not Found</h2>
-          <p className="text-slate-600 mb-6">{error}</p>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Alert Not Found</h2>
+          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
           <Link
             href="/jobs"
-            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
           >
             Browse Jobs
           </Link>
@@ -203,18 +203,18 @@ function ManageAlertsContent() {
 
   if (alerts.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-            <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <div className="flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-primary)', minHeight: 'calc(100vh - 4rem)' }}>
+        <div className="max-w-md w-full rounded-xl shadow-sm p-8 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+            <svg className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">No Alerts Found</h2>
-          <p className="text-slate-600 mb-6">You don&apos;t have any job alerts set up yet.</p>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No Alerts Found</h2>
+          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>You don&apos;t have any job alerts set up yet.</p>
           <Link
             href="/jobs"
-            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
           >
             Create Your First Alert
           </Link>
@@ -224,13 +224,13 @@ function ManageAlertsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4">
+    <div className="min-h-screen py-12 px-4" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Manage Job Alerts</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Manage Job Alerts</h1>
           {email && (
-            <p className="text-slate-600 mt-1">Alerts for {email}</p>
+            <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Alerts for {email}</p>
           )}
         </div>
 
@@ -246,36 +246,35 @@ function ManageAlertsContent() {
           {alerts.map((alert: JobAlert) => (
             <div
               key={alert.id}
-              className={`bg-white rounded-xl shadow-sm border transition-all ${
-                alert.isActive ? 'border-slate-200' : 'border-slate-200 opacity-60'
-              }`}
+              className={`rounded-xl shadow-sm transition-all ${alert.isActive ? '' : 'opacity-60'}`}
+              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
             >
               <div className="p-5">
                 {/* Alert Header */}
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div className="flex-1 min-w-0">
                     {alert.name && (
-                      <h3 className="font-semibold text-slate-900 mb-1">{alert.name}</h3>
+                      <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{alert.name}</h3>
                     )}
-                    <p className="text-slate-700 font-medium">
+                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                       {buildCriteriaSummary(alert)}
                     </p>
                   </div>
-                  
+
                   {/* Status Badge */}
                   <span
-                    className={`flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      alert.isActive
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}
+                    className={`flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${alert.isActive
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'text-slate-600'
+                      }`}
+                    style={!alert.isActive ? { backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' } : {}}
                   >
                     {alert.isActive ? 'Active' : 'Paused'}
                   </span>
                 </div>
 
                 {/* Alert Details */}
-                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500 mb-5">
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm mb-5" style={{ color: 'var(--text-tertiary)' }}>
                   <span className="flex items-center gap-1.5">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -299,35 +298,16 @@ function ManageAlertsContent() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100">
-                  {/* Frequency Select */}
-                  <div className="flex items-center gap-2">
-                    <label htmlFor={`frequency-${alert.id}`} className="text-sm text-slate-600">
-                      Frequency:
-                    </label>
-                    <select
-                      id={`frequency-${alert.id}`}
-                      value={alert.frequency}
-                      onChange={(e) => handleChangeFrequency(alert, e.target.value)}
-                      disabled={actionLoading === alert.id}
-                      className="text-sm border border-slate-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                    >
-                      <option value="weekly">Weekly</option>
-                      <option value="daily">Daily</option>
-                    </select>
-                  </div>
-
-                  <div className="flex-1" />
+                <div className="flex flex-wrap items-center justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
 
                   {/* Pause/Resume Button */}
                   <button
                     onClick={() => handleToggleActive(alert)}
                     disabled={actionLoading === alert.id}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
-                      alert.isActive
-                        ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                        : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                    }`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${alert.isActive
+                      ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                      }`}
                   >
                     {actionLoading === alert.id ? (
                       <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -354,7 +334,7 @@ function ManageAlertsContent() {
                   {/* Delete Button */}
                   {deleteConfirm === alert.id ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-600">Delete?</span>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Delete?</span>
                       <button
                         onClick={() => handleDelete(alert)}
                         disabled={actionLoading === alert.id}
@@ -365,7 +345,8 @@ function ManageAlertsContent() {
                       <button
                         onClick={() => setDeleteConfirm(null)}
                         disabled={actionLoading === alert.id}
-                        className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                        style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-tertiary)' }}
                       >
                         No
                       </button>
@@ -392,7 +373,8 @@ function ManageAlertsContent() {
         <div className="mt-8 text-center">
           <Link
             href="/jobs"
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="text-sm font-medium hover:opacity-80"
+            style={{ color: 'var(--color-primary)' }}
           >
             ← Back to Jobs
           </Link>
@@ -404,10 +386,10 @@ function ManageAlertsContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)', minHeight: 'calc(100vh - 4rem)' }}>
       <div className="flex items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="text-slate-600">Loading alerts...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading alerts...</p>
       </div>
     </div>
   );

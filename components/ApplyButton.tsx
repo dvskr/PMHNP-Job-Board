@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ExternalLink, LogIn } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
+import InPlatformApplyForm from '@/components/InPlatformApplyForm';
+import Link from 'next/link';
 
 interface ApplyButtonProps {
   jobId: string;
-  applyLink: string;
+  applyLink: string | null;
   jobTitle: string;
+  isAuthenticated?: boolean;
+  applyOnPlatform?: boolean;
 }
 
 function formatAppliedDate(date: Date): string {
@@ -18,88 +22,258 @@ function formatAppliedDate(date: Date): string {
   });
 }
 
-export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonProps) {
+export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPlatformApply, setShowPlatformApply] = useState(false);
+  const [serverApplied, setServerApplied] = useState<{ applied: boolean; appliedAt?: string; status?: string } | null>(null);
 
-  const applied = isApplied(jobId);
+  // Check server for existing application (for platform-apply jobs)
+  useEffect(() => {
+    if (!isAuthenticated || !applyOnPlatform) return;
+    fetch(`/api/applications/check?jobId=${jobId}`)
+      .then(r => r.json())
+      .then(data => setServerApplied(data))
+      .catch(() => { });
+  }, [isAuthenticated, applyOnPlatform, jobId]);
+
+  const applied = isApplied(jobId) || serverApplied?.applied;
   const appliedDate = getAppliedDate(jobId);
 
   const handleApply = () => {
-    // Track apply click (fire and forget)
-    try {
-      fetch(`/api/jobs/${jobId}/track-apply`, {
-        method: 'POST',
-      }).catch(() => {
-        // Silently fail - tracking is not critical
-      });
-    } catch {
-      // Silently fail
+    // If user is not authenticated, show auth gate
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
     }
 
-    // Open apply link in new tab
-    window.open(applyLink, '_blank', 'noopener,noreferrer');
+    // Platform apply: show inline form
+    if (applyOnPlatform) {
+      setShowPlatformApply(true);
+      return;
+    }
 
-    // Show confirmation modal only if not already applied
-    if (!isApplied(jobId)) {
-      setShowConfirmModal(true);
+    // External apply: open link in new tab
+    if (applyLink) {
+      // Track apply click (fire and forget)
+      try {
+        fetch(`/api/jobs/${jobId}/track-apply`, {
+          method: 'POST',
+        }).catch(() => { });
+      } catch { }
+
+      // Open apply link in new tab
+      window.open(applyLink, '_blank', 'noopener,noreferrer');
+
+      // Show confirmation modal only if not already applied
+      if (!isApplied(jobId)) {
+        setShowConfirmModal(true);
+      }
     }
   };
 
   const handleConfirmApplied = () => {
     markApplied(jobId);
     setShowConfirmModal(false);
+
+    // Also persist to database (fire-and-forget)
+    try {
+      fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, sourceUrl: applyLink }),
+      }).catch(() => { });
+    } catch { }
   };
 
   const handleNotApplied = () => {
     setShowConfirmModal(false);
   };
 
+  const handlePlatformApplySuccess = () => {
+    markApplied(jobId);
+    setShowPlatformApply(false);
+  };
+
+  const handleSignIn = () => {
+    const returnUrl = window.location.pathname;
+    window.location.href = `/login?redirectTo=${encodeURIComponent(returnUrl)}`;
+  };
+
+  const handleSignUp = () => {
+    const returnUrl = window.location.pathname;
+    window.location.href = `/signup?redirectTo=${encodeURIComponent(returnUrl)}`;
+  };
+
   return (
     <div className="flex flex-col w-full">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleApply}
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 lg:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-lg w-full lg:w-auto touch-manipulation"
-          style={{ minHeight: '52px' }}
+      {/* Already Applied Notice (server-verified for platform apply jobs) */}
+      {applyOnPlatform && serverApplied?.applied && !showPlatformApply && (
+        <div
+          className="rounded-xl p-4 mb-3"
+          style={{
+            backgroundColor: 'rgba(34,197,94,0.08)',
+            border: '1px solid rgba(34,197,94,0.2)',
+          }}
         >
-          {applied ? 'Apply Again' : 'Apply Now'}
-          <ExternalLink size={20} />
-        </button>
-
-        {applied && (
-          <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-sm font-medium">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.5 12.75l6 6 9-13.5"
-              />
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
-            Applied
-          </span>
-        )}
-      </div>
-
-      {applied && appliedDate && (
-        <p className="text-sm text-gray-500 mt-2 text-center lg:text-left">
-          Applied on {formatAppliedDate(appliedDate)}
-        </p>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+              You&apos;ve already applied
+            </span>
+            {serverApplied.status && serverApplied.status !== 'applied' && (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
+                style={{ backgroundColor: 'rgba(13,148,136,0.1)', color: '#0d9488' }}
+              >
+                {serverApplied.status}
+              </span>
+            )}
+          </div>
+          <p className="text-xs ml-7" style={{ color: 'var(--text-secondary)' }}>
+            Applied on {serverApplied.appliedAt ? formatAppliedDate(new Date(serverApplied.appliedAt)) : 'recently'}.{' '}
+            <Link href="/my-applications" className="underline font-medium" style={{ color: '#0d9488' }}>
+              View your applications →
+            </Link>
+          </p>
+        </div>
       )}
 
-      {!applied && (
-        <button
-          onClick={() => markApplied(jobId)}
-          className="text-sm text-gray-500 hover:underline mt-2 text-center lg:text-left py-2 touch-manipulation"
-        >
-          Already applied? Mark as applied
-        </button>
+      {/* In-Platform Apply Form */}
+      {showPlatformApply ? (
+        <InPlatformApplyForm
+          jobId={jobId}
+          jobTitle={jobTitle}
+          onClose={() => setShowPlatformApply(false)}
+          onSuccess={handlePlatformApplySuccess}
+        />
+      ) : showAuthModal ? (
+        /* Inline Auth Gate — replaces button area when triggered */
+        <div className="w-full">
+          {/* Title */}
+          <div className="flex items-center gap-2 mb-3">
+            <LogIn size={18} style={{ color: '#0d9488' }} />
+            <h3
+              className="text-base font-bold"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Sign in to apply
+            </h3>
+          </div>
+
+          {/* Description */}
+          <p
+            className="text-sm mb-4 leading-relaxed"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Create a free account to apply and unlock these benefits:
+          </p>
+
+          {/* Benefits */}
+          <div className="space-y-2 mb-4">
+            {[
+              { icon: '👀', text: 'Get noticed by employers hiring PMHNPs' },
+              { icon: '💬', text: 'Receive direct messages from recruiters' },
+              { icon: '⚡', text: 'Auto-fill applications with our Chrome extension (Coming soon)' },
+            ].map((item) => (
+              <div key={item.text} className="flex items-center gap-2.5">
+                <span className="text-sm flex-shrink-0">{item.icon}</span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Buttons */}
+          <div className="space-y-2">
+            <button
+              onClick={handleSignUp}
+              className="w-full py-3 rounded-xl font-bold text-white transition-all text-sm"
+              style={{
+                background: 'linear-gradient(135deg, #0d9488, #0f766e)',
+                boxShadow: '0 4px 14px rgba(13,148,136,0.35)',
+              }}
+            >
+              Create Free Account
+            </button>
+            <button
+              onClick={handleSignIn}
+              className="w-full py-2.5 rounded-xl font-semibold transition-all text-sm"
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              Sign In
+            </button>
+          </div>
+
+          {/* Dismiss */}
+          <button
+            onClick={() => setShowAuthModal(false)}
+            className="w-full text-center text-xs mt-3 py-1"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            ← Back
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleApply}
+              className="apply-btn inline-flex items-center justify-center gap-2 text-white px-8 py-4 lg:py-3 rounded-xl font-bold transition-all text-lg w-full lg:w-auto touch-manipulation"
+              style={{
+                minHeight: '52px',
+                background: 'linear-gradient(135deg, #0d9488, #0f766e)',
+                boxShadow: '0 4px 14px rgba(13,148,136,0.35)',
+              }}
+            >
+              {applied ? 'Apply Again' : 'Apply Now'}
+              {!applyOnPlatform && <ExternalLink size={20} />}
+            </button>
+
+            {applied && (
+              <span className="hidden lg:inline-flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-full text-sm font-medium">
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4.5 12.75l6 6 9-13.5"
+                  />
+                </svg>
+                Applied
+              </span>
+            )}
+          </div>
+
+          {applied && appliedDate && (
+            <p className="text-sm mt-2 text-center lg:text-left" style={{ color: 'var(--text-tertiary)' }}>
+              Applied on {formatAppliedDate(appliedDate)}
+            </p>
+          )}
+
+          {!applied && (
+            <button
+              onClick={() => markApplied(jobId)}
+              className="text-sm hover:underline mt-2 text-center lg:text-left py-2 touch-manipulation"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Already applied? Mark as applied
+            </button>
+          )}
+        </>
       )}
 
       <ApplyConfirmationModal
@@ -108,7 +282,19 @@ export default function ApplyButton({ jobId, applyLink, jobTitle }: ApplyButtonP
         onConfirmApplied={handleConfirmApplied}
         onNotApplied={handleNotApplied}
         jobTitle={jobTitle}
+        userEmail={null}
       />
+
+      <style>{`
+        .apply-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(13,148,136,0.45) !important;
+        }
+        .apply-btn:active {
+          transform: translateY(0);
+        }
+      `}
+      </style>
     </div>
   );
 }

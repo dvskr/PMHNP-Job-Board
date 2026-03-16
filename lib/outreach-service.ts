@@ -6,7 +6,7 @@ const TEMPLATES = {
     subject: 'Reach qualified PMHNPs with {{companyName}}',
     body: `Hi {{contactName}},
 
-I noticed {{companyName}} is hiring psychiatric nurse practitioners. I'm reaching out because we run PMHNP Jobs, the specialized job board for psychiatric mental health nurse practitioners.
+I noticed {{companyName}} is hiring psychiatric nurse practitioners. I'm reaching out because we run PMHNP Hiring, the specialized job board for psychiatric mental health nurse practitioners.
 
 We have over 1,000 PMHNPs subscribed to job alerts, and our site gets targeted traffic from practitioners actively looking for new opportunities.
 
@@ -16,11 +16,11 @@ Would you be interested in posting your open positions? I'm happy to set up your
 
 Best,
 [Your name]
-PMHNP Jobs
+PMHNP Hiring
 
-P.S. You can check out our site at pmhnpjobs.com`
+P.S. You can check out our site at pmhnphiring.com`
   },
-  
+
   followUp: {
     subject: 'Following up: PMHNP job posting',
     body: `Hi {{contactName}},
@@ -34,16 +34,16 @@ Happy to answer any questions or set up a quick call.
 Best,
 [Your name]`
   },
-  
+
   freeOffer: {
     subject: 'Free PMHNP job posting for {{companyName}}',
     body: `Hi {{contactName}},
 
-I'd like to offer {{companyName}} a free featured job posting on PMHNP Jobs.
+I'd like to offer {{companyName}} a free featured job posting on PMHNP Hiring.
 
 No strings attached - I want to help you reach our audience of psychiatric nurse practitioners.
 
-Just reply to this email with your job details, or post directly at pmhnpjobs.com/post-job
+Just reply to this email with your job details, or post directly at pmhnphiring.com/post-job
 
 Best,
 [Your name]`
@@ -55,20 +55,20 @@ export function renderTemplate(
   variables: { companyName: string; contactName?: string }
 ): { subject: string; body: string } {
   const template = TEMPLATES[templateName];
-  
+
   // Replace variables in subject and body
   let subject = template.subject;
   let body = template.body;
-  
+
   // Replace {{companyName}}
   subject = subject.replace(/\{\{companyName\}\}/g, variables.companyName);
   body = body.replace(/\{\{companyName\}\}/g, variables.companyName);
-  
+
   // Replace {{contactName}} with name or fallback to "there"
   const contactName = variables.contactName || 'there';
   subject = subject.replace(/\{\{contactName\}\}/g, contactName);
   body = body.replace(/\{\{contactName\}\}/g, contactName);
-  
+
   return { subject, body };
 }
 
@@ -91,7 +91,7 @@ export async function createEmployerLead(data: {
       status: 'prospect',
     },
   });
-  
+
   return lead;
 }
 
@@ -103,26 +103,26 @@ export async function updateLeadStatus(
   const updateData: { status: string; notes?: string; contactedAt?: Date } = {
     status,
   };
-  
+
   // Set contactedAt if status is 'contacted'
   if (status === 'contacted') {
     updateData.contactedAt = new Date();
   }
-  
+
   // Append to notes if provided
   if (notes) {
     const existingLead = await prisma.employerLead.findUnique({
       where: { id: leadId },
       select: { notes: true },
     });
-    
+
     const existingNotes = existingLead?.notes || '';
     const timestamp = new Date().toISOString();
-    updateData.notes = existingNotes 
+    updateData.notes = existingNotes
       ? `${existingNotes}\n\n[${timestamp}] ${notes}`
       : `[${timestamp}] ${notes}`;
   }
-  
+
   await prisma.employerLead.update({
     where: { id: leadId },
     data: updateData,
@@ -140,7 +140,7 @@ export async function getLeadsDueForFollowUp(): Promise<EmployerLead[]> {
       nextFollowUpAt: 'asc',
     },
   });
-  
+
   return leads;
 }
 
@@ -151,7 +151,7 @@ export async function getLeadsByStatus(status: string): Promise<EmployerLead[]> 
       createdAt: 'desc',
     },
   });
-  
+
   return leads;
 }
 
@@ -181,22 +181,22 @@ export async function suggestTargetCompanies(): Promise<string[]> {
     },
     take: 50, // Get more initially to filter
   });
-  
+
   // Get list of companies already in employer_leads
   const existingLeads = await prisma.employerLead.findMany({
     select: { companyName: true },
   });
-  
+
   const existingCompanyNames = new Set(
     existingLeads.map((lead: { companyName: string }) => lead.companyName.toLowerCase())
   );
-  
+
   // Filter out companies already in leads
   const suggestions = companies
     .filter((company: { employer: string; _count: { employer: number } }) => !existingCompanyNames.has(company.employer.toLowerCase()))
     .map((company: { employer: string; _count: { employer: number } }) => company.employer)
     .slice(0, 20); // Return top 20
-  
+
   return suggestions;
 }
 

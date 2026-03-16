@@ -12,11 +12,11 @@ type JsonInputValue =
 function maskEmail(email: string): string {
   const [localPart, domain] = email.split('@');
   if (!localPart || !domain) return '***@***.***';
-  
-  const maskedLocal = localPart.length > 1 
-    ? localPart[0] + '***' 
+
+  const maskedLocal = localPart.length > 1
+    ? localPart[0] + '***'
     : localPart + '***';
-  
+
   return `${maskedLocal}@${domain}`;
 }
 
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       select: {
         email: true,
         isSubscribed: true,
+        newsletterOptIn: true,
         preferences: true,
       },
     });
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
       success: true,
       email: maskEmail(emailLead.email),
       isSubscribed: emailLead.isSubscribed,
+      newsletterOptIn: emailLead.newsletterOptIn,
       preferences: emailLead.preferences,
     });
   } catch (error) {
@@ -93,11 +95,16 @@ export async function POST(request: NextRequest) {
     // Build update data
     const updateData: {
       isSubscribed?: boolean;
+      newsletterOptIn?: boolean;
       preferences?: JsonInputValue;
     } = {};
 
     if (typeof isSubscribed === 'boolean') {
       updateData.isSubscribed = isSubscribed;
+    }
+
+    if (typeof body.newsletterOptIn === 'boolean') {
+      updateData.newsletterOptIn = body.newsletterOptIn;
     }
 
     if (preferences !== undefined && preferences !== null) {
@@ -111,6 +118,7 @@ export async function POST(request: NextRequest) {
       select: {
         email: true,
         isSubscribed: true,
+        newsletterOptIn: true,
         preferences: true,
       },
     });
@@ -119,6 +127,7 @@ export async function POST(request: NextRequest) {
       success: true,
       email: maskEmail(updatedEmailLead.email),
       isSubscribed: updatedEmailLead.isSubscribed,
+      newsletterOptIn: updatedEmailLead.newsletterOptIn,
       preferences: updatedEmailLead.preferences,
     });
   } catch (error) {

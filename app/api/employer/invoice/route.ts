@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { generateInvoice } from '@/lib/invoice-generator';
 
@@ -45,11 +46,11 @@ export async function GET(request: NextRequest) {
     }
 
     // GAP FIX 3: Block invoice generation for free posts
-    if (employerJob.paymentStatus === 'free' || 
-        employerJob.paymentStatus === 'free_renewed' || 
-        employerJob.paymentStatus === 'free_upgraded') {
+    if (employerJob.paymentStatus === 'free' ||
+      employerJob.paymentStatus === 'free_renewed' ||
+      employerJob.paymentStatus === 'free_upgraded') {
       return NextResponse.json(
-        { 
+        {
           error: 'Invoices are not available for free job postings.',
           message: 'Your job was posted during our free launch period. No payment was made, so no invoice is available.'
         },
@@ -66,8 +67,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine pricing tier and amount
-    const tier = employerJob.job.isFeatured ? 'featured' : 'standard';
-    const amount = employerJob.job.isFeatured ? 19900 : 9900; // in cents
+    const tier = employerJob.job.isFeatured ? 'growth' : 'starter';
+    const amount = employerJob.job.isFeatured ? 29900 : 19900; // in cents
 
     // Generate invoice number (using job ID and creation date)
     const createdDate = new Date(employerJob.createdAt);
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error generating invoice:', error);
+    logger.error('Error generating invoice:', error);
     return NextResponse.json(
       { error: 'Failed to generate invoice' },
       { status: 500 }

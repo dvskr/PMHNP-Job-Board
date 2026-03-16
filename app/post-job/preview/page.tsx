@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
+import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { config } from '@/lib/config';
 
 interface JobFormData {
@@ -15,12 +16,17 @@ interface JobFormData {
   mode?: string;
   jobType?: string;
   description: string;
-  minSalary?: number;
-  maxSalary?: number;
+  salaryMin?: number;
+  salaryMax?: number;
   salaryPeriod?: string;
-  applyLink: string;
+  applyUrl?: string;
+  applyOnPlatform?: boolean;
   contactEmail: string;
-  tier: 'standard' | 'featured';
+  pricingTier: 'starter' | 'growth' | 'premium';
+  benefits?: string[];
+  setting?: string;
+  population?: string;
+  companyLogoUrl?: string;
 }
 
 export default function PreviewPage() {
@@ -58,7 +64,7 @@ export default function PreviewPage() {
   const handleContinue = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       if (config.isPaidPostingEnabled) {
         // PAID MODE: Navigate to checkout (existing behavior)
@@ -77,18 +83,23 @@ export default function PreviewPage() {
             mode: formData.mode,
             jobType: formData.jobType,
             description: formData.description,
-            applyLink: formData.applyLink,
+            applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
+            applyOnPlatform: formData.applyOnPlatform || false,
             contactEmail: formData.contactEmail,
-            minSalary: formData.minSalary,
-            maxSalary: formData.maxSalary,
+            minSalary: formData.salaryMin,
+            maxSalary: formData.salaryMax,
             salaryPeriod: formData.salaryPeriod || 'annual',
             companyWebsite: formData.companyWebsite,
-            pricing: formData.tier,
+            pricing: formData.pricingTier,
+            benefits: formData.benefits,
+            setting: formData.setting,
+            population: formData.population,
+            companyLogoUrl: formData.companyLogoUrl,
           }),
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           // Clear localStorage
           localStorage.removeItem('jobFormData');
@@ -108,19 +119,19 @@ export default function PreviewPage() {
   if (loading || !formData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
 
-  const salary = formatSalary(formData.minSalary, formData.maxSalary, formData.salaryPeriod);
-  const price = config.isPaidPostingEnabled 
-    ? (formData.tier === 'featured' ? 199 : 99)
+  const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
+  const price = config.isPaidPostingEnabled
+    ? config.getPostingPrice(formData.pricingTier)
     : 0;
-  const priceLabel = price === 0 ? 'FREE' : `$${price}`;
+  const priceLabel = config.formatPrice(price);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-white py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -134,9 +145,9 @@ export default function PreviewPage() {
             <h2 className="text-lg font-semibold text-gray-900">How it appears in job listings</h2>
             <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
           </div>
-          
+
           {/* Job Card Preview */}
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4">
+          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 overflow-hidden">
             <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-3">
               {/* Title and Badges Row */}
               <div className="flex items-start justify-between gap-2">
@@ -144,16 +155,25 @@ export default function PreviewPage() {
                   {formData.title}
                 </h3>
                 <div className="flex gap-1 flex-wrap">
-                  {formData.tier === 'featured' && (
-                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  {formData.pricingTier !== 'starter' && (
+                    <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       Featured
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Company Name */}
-              <p className="text-gray-600">{formData.companyName}</p>
+              {/* Company Name & Logo */}
+              <div className="flex items-center gap-3">
+                {formData.companyLogoUrl && (
+                  <img
+                    src={formData.companyLogoUrl}
+                    alt={`${formData.companyName} logo`}
+                    className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                  />
+                )}
+                <p className="text-gray-600">{formData.companyName}</p>
+              </div>
 
               {/* Location */}
               <div className="flex items-center gap-1 text-gray-500 text-sm">
@@ -164,12 +184,12 @@ export default function PreviewPage() {
               {/* Job Type and Mode Badges */}
               <div className="flex gap-2 flex-wrap">
                 {formData.jobType && (
-                  <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                  <span className="inline-flex px-2 py-1 rounded bg-teal-100 text-teal-700 text-xs">
                     {formData.jobType}
                   </span>
                 )}
                 {formData.mode && (
-                  <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                  <span className="inline-flex px-2 py-1 rounded bg-teal-100 text-teal-700 text-xs">
                     {formData.mode}
                   </span>
                 )}
@@ -178,6 +198,22 @@ export default function PreviewPage() {
               {/* Salary */}
               {salary && (
                 <p className="text-green-600 font-semibold">{salary}</p>
+              )}
+
+              {/* Clinical Details */}
+              {(formData.setting || formData.population) && (
+                <div className="flex gap-2 flex-wrap">
+                  {formData.setting && (
+                    <span className="inline-flex px-2 py-1 rounded bg-purple-100 text-purple-700 text-xs">
+                      {formData.setting}
+                    </span>
+                  )}
+                  {formData.population && (
+                    <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                      {formData.population}
+                    </span>
+                  )}
+                </div>
               )}
 
               {/* Posted Date */}
@@ -193,8 +229,8 @@ export default function PreviewPage() {
             <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
           </div>
 
-          <div className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 p-4">
-            <div className="bg-white rounded-lg p-6">
+          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 overflow-hidden">
+            <div className="bg-white rounded-lg p-6 overflow-hidden">
               {/* Title and Company */}
               <h1 className="text-2xl md:text-3xl font-bold mb-2">{formData.title}</h1>
               <p className="text-xl text-gray-600 mb-4">{formData.companyName}</p>
@@ -232,20 +268,54 @@ export default function PreviewPage() {
               {/* Description */}
               <div className="mt-6">
                 <h2 className="text-xl font-bold mb-3">About this role</h2>
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm">
-                  {formData.description}
-                </div>
+                <div
+                  className="text-gray-700 leading-relaxed text-sm prose prose-sm max-w-none break-words overflow-hidden"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
+                />
               </div>
 
-              {/* Apply Button (Disabled) */}
+              {/* Benefits */}
+              {formData.benefits && formData.benefits.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="text-xl font-bold mb-3">Benefits & Perks</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.benefits.map((b) => (
+                      <span key={b} className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-medium">
+                        ✓ {b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Apply Button / Platform Info */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <button
-                  disabled
-                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold opacity-50 cursor-not-allowed"
-                >
-                  Apply Now
-                  <ExternalLink size={20} />
-                </button>
+                {formData.applyOnPlatform ? (
+                  <div>
+                    <div className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold">
+                      Apply Now
+                    </div>
+                    <div className="mt-3 flex items-start gap-2 rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
+                      <span className="text-teal-500 text-base leading-none mt-0.5">✅</span>
+                      <p className="text-sm text-teal-800">
+                        Candidates will apply directly on this platform. Applications will be delivered to your employer dashboard and via email.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <a
+                      href={formData.applyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+                    >
+                      Apply Now
+                      <ExternalLink size={20} />
+                    </a>
+                    <p className="mt-2 text-xs text-gray-500">Opens in a new tab — verify your apply link works correctly.</p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -254,16 +324,18 @@ export default function PreviewPage() {
         {/* Section 3: Pricing Summary */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h2>
-          
+
           <div className="flex items-center justify-between mb-4 pb-4 border-b">
             <div>
               <p className="font-semibold text-gray-900">
-                {formData.tier === 'featured' ? 'Featured Job Post' : 'Standard Job Post'}
+                {formData.pricingTier === 'premium' ? 'Premium Job Post' : formData.pricingTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {formData.tier === 'featured' 
-                  ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
-                  : '✓ 30 days active ✓ Email to subscribers'
+                {formData.pricingTier === 'premium'
+                  ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days active'
+                  : formData.pricingTier === 'growth'
+                    ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
+                    : '✓ 30 days active ✓ Email to subscribers'
                 }
               </p>
             </div>
@@ -299,12 +371,12 @@ export default function PreviewPage() {
           <button
             onClick={handleContinue}
             disabled={isLoading}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading 
+            {isLoading
               ? 'Processing...'
-              : config.isPaidPostingEnabled 
-                ? 'Looks Good - Continue to Payment' 
+              : config.isPaidPostingEnabled
+                ? 'Looks Good - Continue to Payment'
                 : 'Looks Good - Post Job (Free)'}
             {!isLoading && (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

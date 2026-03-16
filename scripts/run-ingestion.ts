@@ -16,7 +16,7 @@ async function runIngestion() {
     const { ingestJobs, getIngestionStats } = await import('../lib/ingestion-service');
 
     // Run ingestion for all working sources
-    const sources: JobSource[] = ['adzuna', 'jooble', 'greenhouse'];
+    const sources: JobSource[] = ['greenhouse', 'lever', 'usajobs', 'jsearch'];
     console.log(`📡 Sources: ${sources.join(', ')}\n`);
 
     const results = await ingestJobs(sources);
@@ -57,7 +57,7 @@ async function runIngestion() {
     }
 
     console.log('🎉 Done!\n');
-    
+
     // Explicitly disconnect
     await prisma.$disconnect();
     process.exit(0);

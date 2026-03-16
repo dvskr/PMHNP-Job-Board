@@ -1,0 +1,195 @@
+<!--
+  Greenhouse ATS Application Form Fixture
+  Verified against: https://job-boards.greenhouse.io/sondermind/jobs/7541267003
+  Verified date: 2026-02-18
+  Modern Greenhouse uses: form#application-form.application--form with simple ids (first_name, email, etc.)
+  Legacy Greenhouse uses: form#application_form with job_application[...] names
+  This fixture tests the legacy variant; custom questions use question_XXXXX ids in both.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Greenhouse Application</title>
+</head>
+
+<body>
+    <div id="application">
+        <form id="application_form" class="application--form" method="post" enctype="multipart/form-data"
+            action="/applications">
+            <input type="hidden" name="job_id" value="456789">
+            <input type="hidden" name="authenticity_token" value="test-token">
+
+            <!-- Basic Information -->
+            <div id="main_fields">
+                <div class="field" id="first_name_field">
+                    <label for="first_name">First Name <span class="required">*</span></label>
+                    <input type="text" id="first_name" name="job_application[first_name]" required
+                        autocomplete="given-name">
+                </div>
+
+                <div class="field" id="last_name_field">
+                    <label for="last_name">Last Name <span class="required">*</span></label>
+                    <input type="text" id="last_name" name="job_application[last_name]" required
+                        autocomplete="family-name">
+                </div>
+
+                <div class="field" id="email_field">
+                    <label for="email">Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="job_application[email]" required autocomplete="email">
+                </div>
+
+                <div class="field" id="phone_field">
+                    <label for="phone">Phone <span class="required">*</span></label>
+                    <input type="tel" id="phone" name="job_application[phone]" required autocomplete="tel">
+                </div>
+
+                <div class="field" id="resume_field">
+                    <label for="resume">Resume/CV <span class="required">*</span></label>
+                    <input type="file" id="resume" name="job_application[resume]" accept=".pdf,.doc,.docx,.txt,.rtf"
+                        required>
+                </div>
+
+                <div class="field" id="cover_letter_field">
+                    <label for="cover_letter">Cover Letter</label>
+                    <textarea id="cover_letter" name="job_application[cover_letter]" rows="5"
+                        placeholder="Add a cover letter..."></textarea>
+                </div>
+
+                <div class="field" id="linkedin_field">
+                    <label for="job_application_linkedin_profile_url">LinkedIn Profile</label>
+                    <input type="url" id="job_application_linkedin_profile_url"
+                        name="job_application[linkedin_profile_url]" placeholder="https://linkedin.com/in/...">
+                </div>
+
+                <div class="field" id="website_field">
+                    <label for="job_application_website_url">Website</label>
+                    <input type="url" id="job_application_website_url" name="job_application[website_url]"
+                        placeholder="https://...">
+                </div>
+
+                <div class="field" id="location_field">
+                    <label for="job_application_location">Location (City)</label>
+                    <input type="text" id="job_application_location" name="job_application[location]"
+                        placeholder="e.g. San Francisco, CA" autocomplete="off" role="combobox"
+                        aria-autocomplete="list">
+                </div>
+            </div>
+
+            <!-- Custom Questions -->
+            <div id="custom_fields">
+                <div class="field">
+                    <label for="question_12345">Are you legally authorized to work in the United States?</label>
+                    <select id="question_12345" name="job_application[answers_attributes][0][answer]">
+                        <option value="">-- Select --</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="question_12346">Will you now or in the future require sponsorship for employment visa
+                        status?</label>
+                    <select id="question_12346" name="job_application[answers_attributes][1][answer]">
+                        <option value="">-- Select --</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="question_12347">What is your desired salary range?</label>
+                    <input type="text" id="question_12347" name="job_application[answers_attributes][2][answer]"
+                        placeholder="">
+                </div>
+
+                <div class="field">
+                    <label for="question_12348">How many years of clinical experience do you have?</label>
+                    <select id="question_12348" name="job_application[answers_attributes][3][answer]">
+                        <option value="">-- Select --</option>
+                        <option value="0-2">0-2</option>
+                        <option value="3-5">3-5</option>
+                        <option value="6-10">6-10</option>
+                        <option value="10+">10+</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="question_12349">Do you hold an active NPI number?</label>
+                    <select id="question_12349" name="job_application[answers_attributes][4][answer]">
+                        <option value="">-- Select --</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="question_12350">Why are you interested in this position?</label>
+                    <textarea id="question_12350" name="job_application[answers_attributes][5][answer]" rows="4"
+                        placeholder=""></textarea>
+                </div>
+            </div>
+
+            <!-- EEO Section -->
+            <div id="eeoc_fields">
+                <h3>Voluntary Self-Identification</h3>
+
+                <div class="field">
+                    <label for="job_application_gender">Gender</label>
+                    <select id="job_application_gender" name="job_application[gender]">
+                        <option value="">-- Select --</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Non-Binary">Non-Binary</option>
+                        <option value="Decline to Self Identify">Decline to Self Identify</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="job_application_race">Race / Ethnicity</label>
+                    <select id="job_application_race" name="job_application[race]">
+                        <option value="">-- Select --</option>
+                        <option value="Hispanic or Latino">Hispanic or Latino</option>
+                        <option value="White (Not Hispanic or Latino)">White (Not Hispanic or Latino)</option>
+                        <option value="Black or African American (Not Hispanic or Latino)">Black or African American
+                            (Not Hispanic or Latino)</option>
+                        <option value="Asian (Not Hispanic or Latino)">Asian (Not Hispanic or Latino)</option>
+                        <option value="American Indian or Alaska Native (Not Hispanic or Latino)">American Indian or
+                            Alaska Native (Not Hispanic or Latino)</option>
+                        <option value="Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)">Native
+                            Hawaiian or Other Pacific Islander (Not Hispanic or Latino)</option>
+                        <option value="Two or More Races (Not Hispanic or Latino)">Two or More Races (Not Hispanic or
+                            Latino)</option>
+                        <option value="Decline to Self Identify">Decline to Self Identify</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="job_application_veteran_status">Veteran Status</label>
+                    <select id="job_application_veteran_status" name="job_application[veteran_status]">
+                        <option value="">-- Select --</option>
+                        <option value="I am a protected veteran">I am a protected veteran</option>
+                        <option value="I am not a veteran">I am not a veteran</option>
+                        <option value="Decline to Self Identify">Decline to Self Identify</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="job_application_disability_status">Disability Status</label>
+                    <select id="job_application_disability_status" name="job_application[disability_status]">
+                        <option value="">-- Select --</option>
+                        <option value="Yes, I have a disability">Yes, I have a disability</option>
+                        <option value="No, I don't have a disability">No, I don't have a disability</option>
+                        <option value="Decline to Self Identify">Decline to Self Identify</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="submit_app">
+                <input type="submit" value="Submit Application" id="submit_app_button">
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

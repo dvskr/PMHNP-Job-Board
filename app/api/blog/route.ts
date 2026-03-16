@@ -1,0 +1,201 @@
+import { NextRequest, NextResponse } from 'next/server';
+import {
+    createBlogPost,
+    generateUniqueSlug,
+    BlogCategory,
+} from '@/lib/blog';
+import { formatBlogContent } from '@/lib/blog-formatter';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
+import { rateLimit } from '@/lib/rate-limit';
+import { timingSafeEqual } from 'crypto';
+
+const VALID_CATEGORIES: BlogCategory[] = [
+    'job_seeker_attraction',
+    'salary_negotiation',
+    'career_myths',
+    'state_spotlight',
+    'employer_facing',
+    'community_lifestyle',
+    'industry_awareness',
+    'product_lead_gen',
+    'success_stories',
+    'mental_health_trends',
+    'policy_industry',
+    'career_opportunities',
+    'tech_tools',
+];
+
+const VALID_STATUSES = ['draft', 'published'] as const;
+
+// ─── POST /api/blog ──────────────────────────────────────────────────────────
+
+export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'blog-api', {
+        limit: 5,
+        windowSeconds: 60,
+    });
+    if (rateLimitResult) return rateLimitResult;
+
+    // Verify API key (timing-safe comparison)
+    const authHeader = request.headers.get('Authorization');
+    const apiKey = process.env.BLOG_API_KEY;
+
+    if (!apiKey) {
+        return NextResponse.json(
+            { error: 'BLOG_API_KEY not configured on server' },
+            { status: 500 }
+        );
+    }
+
+    const providedKey = authHeader?.replace('Bearer ', '') || '';
+    const keysMatch = providedKey.length === apiKey.length &&
+        timingSafeEqual(Buffer.from(providedKey), Buffer.from(apiKey));
+
+    if (!keysMatch) {
+        return NextResponse.json(
+            { error: 'Unauthorized — invalid or missing API key' },
+            { status: 401 }
+        );
+    }
+
+    try {
+        const body = await request.json();
+
+        // Validate required fields
+        const { title, content, meta_description, target_keyword, category, status, publish_date, format, image_url, youtube_video_id } =
+            body;
+
+        if (!title || !content) {
+            return NextResponse.json(
+                { error: 'Missing required fields: title, content' },
+                { status: 400 }
+            );
+        }
+
+        if (!category || !VALID_CATEGORIES.includes(category)) {
+            return NextResponse.json(
+                {
+                    error: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`,
+                },
+                { status: 400 }
+            );
+        }
+
+        const postStatus = status || 'draft';
+        if (!VALID_STATUSES.includes(postStatus)) {
+            return NextResponse.json(
+                { error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` },
+                { status: 400 }
+            );
+        }
+
+        // Generate unique slug
+        const slug = await generateUniqueSlug(title);
+
+        // Create the post
+        // Only auto-format if explicitly requested (format: true)
+        // OpenAI already produces clean markdown, so default is no formatting
+        const finalContent = format ? formatBlogContent(content) : content;
+
+        // Convert Google Drive viewer URLs to direct image URLs
+        let finalImageUrl: string | null = null;
+        if (image_url) {
+            const driveMatch = image_url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+            if (driveMatch) {
+                finalImageUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+            } else {
+                finalImageUrl = image_url;
+            }
+        }
+
+        const post = await createBlogPost({
+            title,
+            slug,
+            content: finalContent,
+            meta_description: meta_description || null,
+            target_keyword: target_keyword || null,
+            image_url: finalImageUrl,
+            youtube_video_id: youtube_video_id || null,
+            video_url: null,
+            category,
+            status: postStatus,
+            publish_date: publish_date || (postStatus === 'published' ? new Date().toISOString() : null),
+        });
+
+        // If published, ping all search engines (Google, Bing, IndexNow)
+        if (postStatus === 'published') {
+            const postUrl = `https://pmhnphiring.com/blog/${slug}`;
+            // Fire and forget — don't block the response
+            pingAllSearchEngines(postUrl).catch((err) =>
+                console.error('[Blog API] Background indexing ping failed:', err)
+            );
+        }
+
+        return NextResponse.json(
+            {
+                success: true,
+                post: {
+                    id: post.id,
+                    title: post.title,
+                    slug: post.slug,
+                    category: post.category,
+                    status: post.status,
+                    publish_date: post.publish_date,
+                    url: `https://pmhnphiring.com/blog/${post.slug}`,
+                },
+            },
+            { status: 201 }
+        );
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[Blog API] Error creating post:', message);
+        return NextResponse.json(
+            { error: `Failed to create blog post: ${message}` },
+            { status: 500 }
+        );
+    }
+}
+
+// ─── PATCH /api/blog ─────────────────────────────────────────────────────────
+
+export async function PATCH(request: NextRequest) {
+    const authHeader = request.headers.get('Authorization');
+    const apiKey = process.env.BLOG_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'BLOG_API_KEY not configured' }, { status: 500 });
+    const providedKey = authHeader?.replace('Bearer ', '');
+    if (!providedKey || providedKey !== apiKey) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    try {
+        const body = await request.json();
+        const { slug, youtube_video_id, image_url } = body;
+        if (!slug) return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
+
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const updates: Record<string, string | null> = {};
+        if (youtube_video_id !== undefined) updates.youtube_video_id = youtube_video_id;
+        if (image_url !== undefined) updates.image_url = image_url;
+
+        if (Object.keys(updates).length === 0) {
+            return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+        }
+
+        const { data, error } = await supabase
+            .from('blog_posts')
+            .update(updates)
+            .eq('slug', slug)
+            .select('id, slug, youtube_video_id, image_url')
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json({ success: true, post: data });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
+}

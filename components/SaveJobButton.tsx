@@ -13,15 +13,21 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
   useEffect(() => {
     // Read saved jobs from localStorage
     const timer = setTimeout(() => {
-      const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-      setIsSaved(savedJobs.includes(jobId));
+      try {
+        const raw = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+        const savedJobs = Array.isArray(raw) ? raw : [];
+        setIsSaved(savedJobs.includes(jobId));
+      } catch {
+        setIsSaved(false);
+      }
     }, 0);
     return () => clearTimeout(timer);
   }, [jobId]);
 
   const toggleSave = () => {
-    const savedJobs: string[] = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-    
+    const raw = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+    const savedJobs: string[] = Array.isArray(raw) ? raw : [];
+
     if (isSaved) {
       // Remove from saved
       const updatedJobs = savedJobs.filter((id: string) => id !== jobId);
@@ -38,15 +44,14 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
   return (
     <button
       onClick={toggleSave}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-        isSaved
-          ? 'bg-blue-50 border-blue-500 text-blue-600 hover:bg-blue-100'
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${isSaved
+          ? 'bg-teal-50 border-teal-500 text-teal-600 hover:bg-teal-100'
           : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-      }`}
+        }`}
     >
       <Bookmark
         size={20}
-        className={isSaved ? 'fill-blue-600' : ''}
+        className={isSaved ? 'fill-teal-600' : ''}
       />
       {isSaved ? 'Saved' : 'Save'}
     </button>

@@ -1,0 +1,239 @@
+<!--
+  iCIMS ATS Application Form Fixture
+  Based on: company.icims.com standard application template
+  Fields: name, email, phone, address fields, resume, EEO, custom questions
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>iCIMS Application</title>
+</head>
+
+<body>
+    <div id="iCIMS_MainWrapper">
+        <form id="iCIMS_ApplicationForm" method="post" enctype="multipart/form-data">
+
+            <!-- Personal Information -->
+            <fieldset class="iCIMS_InfoFields">
+                <legend>Personal Information</legend>
+
+                <div class="iCIMS_InfoField">
+                    <label for="FirstName" class="iCIMS_InfoFieldLabel">First Name <span
+                            class="required">*</span></label>
+                    <input type="text" id="FirstName" name="FirstName" class="iCIMS_Forms_TextField" required>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="LastName" class="iCIMS_InfoFieldLabel">Last Name <span class="required">*</span></label>
+                    <input type="text" id="LastName" name="LastName" class="iCIMS_Forms_TextField" required>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="Email" class="iCIMS_InfoFieldLabel">Email Address <span
+                            class="required">*</span></label>
+                    <input type="email" id="Email" name="Email" class="iCIMS_Forms_TextField" required>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="Phone" class="iCIMS_InfoFieldLabel">Phone <span class="required">*</span></label>
+                    <input type="tel" id="Phone" name="Phone" class="iCIMS_Forms_TextField" required>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="street-address" class="iCIMS_InfoFieldLabel">Street Address</label>
+                    <input type="text" id="street-address" name="street-address" class="iCIMS_Forms_TextField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="City" class="iCIMS_InfoFieldLabel">City</label>
+                    <input type="text" id="City" name="City" class="iCIMS_Forms_TextField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="State" class="iCIMS_InfoFieldLabel">State</label>
+                    <select id="State" name="State" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="AL">Alabama</option>
+                        <option value="AK">Alaska</option>
+                        <option value="AZ">Arizona</option>
+                        <option value="CA">California</option>
+                        <option value="CO">Colorado</option>
+                        <option value="TX">Texas</option>
+                        <option value="NY">New York</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="ZipCode" class="iCIMS_InfoFieldLabel">Zip Code</label>
+                    <input type="text" id="ZipCode" name="ZipCode" class="iCIMS_Forms_TextField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="Country" class="iCIMS_InfoFieldLabel">Country</label>
+                    <select id="Country" name="Country" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="UK">United Kingdom</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- Resume -->
+            <fieldset class="iCIMS_ResumeSection">
+                <legend>Resume</legend>
+                <div class="iCIMS_InfoField">
+                    <label for="Resume" class="iCIMS_InfoFieldLabel">Attach Resume <span
+                            class="required">*</span></label>
+                    <input type="file" id="Resume" name="Resume" accept=".pdf,.doc,.docx,.txt,.rtf">
+                </div>
+            </fieldset>
+
+            <!-- LinkedIn -->
+            <fieldset class="iCIMS_LinksSection">
+                <legend>Links</legend>
+                <div class="iCIMS_InfoField">
+                    <label for="LinkedIn" class="iCIMS_InfoFieldLabel">LinkedIn Profile URL</label>
+                    <input type="url" id="LinkedIn" name="LinkedIn" class="iCIMS_Forms_TextField"
+                        placeholder="https://linkedin.com/in/...">
+                </div>
+            </fieldset>
+
+            <!-- Screening Questions -->
+            <fieldset class="iCIMS_Questions">
+                <legend>Screening Questions</legend>
+
+                <div class="iCIMS_InfoField">
+                    <label for="workAuth" class="iCIMS_InfoFieldLabel">Are you authorized to work in the US?</label>
+                    <select id="workAuth" name="workAuth" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="sponsorship" class="iCIMS_InfoFieldLabel">Do you require sponsorship to work in the
+                        US?</label>
+                    <select id="sponsorship" name="sponsorship" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="salary-expectation" class="iCIMS_InfoFieldLabel">Salary Expectations</label>
+                    <input type="text" id="salary-expectation" name="salary-expectation" class="iCIMS_Forms_TextField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="start-date" class="iCIMS_InfoFieldLabel">Earliest Available Start Date</label>
+                    <input type="date" id="start-date" name="start-date" class="iCIMS_Forms_DateField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="felony" class="iCIMS_InfoFieldLabel">Have you ever been convicted of a felony?</label>
+                    <select id="felony" name="felony" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="backgroundCheck" class="iCIMS_InfoFieldLabel">Do you consent to a background
+                        check?</label>
+                    <select id="backgroundCheck" name="backgroundCheck" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="drugScreen" class="iCIMS_InfoFieldLabel">Do you consent to a drug screen?</label>
+                    <select id="drugScreen" name="drugScreen" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="npi" class="iCIMS_InfoFieldLabel">NPI Number</label>
+                    <input type="text" id="npi" name="npi" class="iCIMS_Forms_TextField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="licenseNumber" class="iCIMS_InfoFieldLabel">License Number</label>
+                    <input type="text" id="licenseNumber" name="licenseNumber" class="iCIMS_Forms_TextField">
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="licenseState" class="iCIMS_InfoFieldLabel">State of Licensure</label>
+                    <select id="licenseState" name="licenseState" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Texas">Texas</option>
+                        <option value="California">California</option>
+                        <option value="New York">New York</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- EEO Section -->
+            <fieldset class="iCIMS_EEO">
+                <legend>Voluntary Self-Identification</legend>
+
+                <div class="iCIMS_InfoField">
+                    <label for="gender" class="iCIMS_InfoFieldLabel">Gender</label>
+                    <select id="gender" name="gender" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Non-Binary">Non-Binary</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="race" class="iCIMS_InfoFieldLabel">Race / Ethnicity</label>
+                    <select id="race" name="race" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Hispanic or Latino">Hispanic or Latino</option>
+                        <option value="White">White</option>
+                        <option value="Black or African American">Black or African American</option>
+                        <option value="Asian">Asian</option>
+                        <option value="Two or More Races">Two or More Races</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="veteranStatus" class="iCIMS_InfoFieldLabel">Veteran Status</label>
+                    <select id="veteranStatus" name="veteranStatus" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="I am a protected veteran">I am a protected veteran</option>
+                        <option value="I am not a veteran">I am not a veteran</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+
+                <div class="iCIMS_InfoField">
+                    <label for="disabilityStatus" class="iCIMS_InfoFieldLabel">Disability Status</label>
+                    <select id="disabilityStatus" name="disabilityStatus" class="iCIMS_Forms_Dropdown">
+                        <option value="">Select...</option>
+                        <option value="Yes, I have a disability">Yes, I have a disability</option>
+                        <option value="No, I don't have a disability">No, I don't have a disability</option>
+                        <option value="Decline to Self-Identify">Decline to Self-Identify</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <button type="submit" class="iCIMS_PrimaryButton">Submit Application</button>
+        </form>
+    </div>
+</body>
+
+</html>

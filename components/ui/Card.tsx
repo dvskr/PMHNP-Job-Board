@@ -5,6 +5,7 @@ interface CardProps {
   padding?: 'none' | 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   onClick?: () => void;
 }
 
@@ -13,16 +14,23 @@ const Card: React.FC<CardProps> = ({
   padding = 'md',
   children,
   className = '',
+  style,
   onClick,
 }) => {
+  // Dynamic styles based on variant
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--bg-secondary)',
+    border: variant === 'bordered' ? '1px solid var(--border-color)' : undefined,
+    ...style,
+  };
   // Base styles for all cards
-  const baseStyles = 'bg-white rounded-xl';
+  const baseStyles = 'rounded-xl';
 
   // Variant styles
   const variantStyles = {
     default: 'shadow-card',
     elevated: 'shadow-lg',
-    bordered: 'border border-gray-200 shadow-none',
+    bordered: 'shadow-none',
     interactive: 'shadow-card hover:shadow-card-hover transition-shadow duration-200 cursor-pointer',
   };
 
@@ -58,13 +66,14 @@ const Card: React.FC<CardProps> = ({
           }
         }}
         className={cardClasses}
+        style={cardStyle}
       >
         {children}
       </div>
     );
   }
 
-  return <div className={cardClasses}>{children}</div>;
+  return <div className={cardClasses} style={cardStyle}>{children}</div>;
 };
 
 export default Card;

@@ -3,7 +3,7 @@ import Skeleton from '@/components/ui/Skeleton';
 
 export default function JobCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl shadow-card flex flex-col gap-3 w-full p-6">
+    <div className="rounded-xl flex flex-col gap-3 w-full p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       {/* Title area */}
       <div className="flex items-start justify-between gap-2">
         <Skeleton className="h-6 w-3/4" animation="pulse" />

@@ -2,6 +2,10 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail } from '@/lib/email-service';
+import { config, PricingTier } from '@/lib/config';
+import { logger } from '@/lib/logger';
+import { pingAllSearchEngines } from '@/lib/search-indexing';
+import { anonymizeEmail } from '@/lib/server-utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
         process.env.STRIPE_WEBHOOK_SECRET!
       );
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      logger.error('Webhook signature verification failed', err);
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 400 }
@@ -30,13 +34,13 @@ export async function POST(request: NextRequest) {
     // Handle checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
+
       const jobId = session.metadata?.jobId;
       const type = session.metadata?.type;
       const tier = session.metadata?.tier;
-      
+
       if (!jobId) {
-        console.error('No job ID in session metadata');
+        logger.error('No job ID in session metadata', null, { sessionId: session.id });
         return NextResponse.json(
           { error: 'Missing job ID' },
           { status: 400 }
@@ -46,10 +50,10 @@ export async function POST(request: NextRequest) {
       // Handle renewal payment
       if (type === 'renewal') {
         try {
-          // Calculate new expiry date
+          // Calculate new expiry date from config
           const newExpiresAt = new Date();
-          const daysToAdd = tier === 'featured' ? 60 : 30;
-          newExpiresAt.setDate(newExpiresAt.getDate() + daysToAdd);
+          const renewalTier = (tier || 'starter') as PricingTier;
+          newExpiresAt.setDate(newExpiresAt.getDate() + config.getDurationDays(renewalTier));
 
           // Update job
           const job = await prisma.job.update({
@@ -57,7 +61,8 @@ export async function POST(request: NextRequest) {
             data: {
               expiresAt: newExpiresAt,
               isPublished: true,
-              ...(tier === 'featured' && { isFeatured: true }),
+              isVerifiedEmployer: true,
+              ...(config.isFeaturedTier(renewalTier) && { isFeatured: true }),
             },
           });
 
@@ -69,7 +74,7 @@ export async function POST(request: NextRequest) {
           if (employerJob) {
             await prisma.employerJob.update({
               where: { id: employerJob.id },
-              data: { paymentStatus: 'paid' },
+              data: { paymentStatus: 'paid', pricingTier: renewalTier },
             });
 
             // Get or create email lead for unsubscribe token
@@ -93,46 +98,69 @@ export async function POST(request: NextRequest) {
                 emailLead.unsubscribeToken
               );
             } catch (emailError) {
-              console.error('Failed to send renewal confirmation email:', emailError);
+              logger.error('Failed to send renewal confirmation email', emailError, { jobId });
               // Don't throw - job already renewed
             }
           }
 
-          console.log('Job renewed:', jobId);
+          logger.info('Job renewed', { jobId, tier });
+
+          // Ping search engines for renewed job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (renewal)', err)
+            );
+          }
         } catch (prismaError) {
-          console.error('Error renewing job in database:', prismaError);
+          logger.error('Error renewing job in database', prismaError, { jobId });
           return NextResponse.json(
             { error: 'Failed to renew job' },
             { status: 500 }
           );
         }
       } else if (type === 'upgrade') {
-        // Handle upgrade to featured
+        // Handle upgrade to higher tier
         try {
-          // Calculate new expiry date (add 30 days to current expiry since featured gets 60 days total)
+          const upgradeTier = (tier || 'growth') as PricingTier;
+
+          // Get current job to determine new expiry
           const currentJob = await prisma.job.findUnique({
             where: { id: jobId },
             select: { expiresAt: true },
           });
 
-          const newExpiresAt = currentJob?.expiresAt ? new Date(currentJob.expiresAt) : new Date();
-          newExpiresAt.setDate(newExpiresAt.getDate() + 30); // Add 30 days (60 total for featured vs 30 for standard)
+          // Find the employer's current tier to calculate extra days
+          const employerJobForTier = await prisma.employerJob.findFirst({
+            where: { jobId },
+            select: { pricingTier: true },
+          });
+          const fromTier = (employerJobForTier?.pricingTier || 'starter') as PricingTier;
 
-          // Update job to featured
+          const newExpiresAt = currentJob?.expiresAt ? new Date(currentJob.expiresAt) : new Date();
+          const extraDays = config.getDurationDays(upgradeTier) - config.getDurationDays(fromTier);
+          newExpiresAt.setDate(newExpiresAt.getDate() + extraDays);
+
+          // Update job
           const job = await prisma.job.update({
             where: { id: jobId },
             data: {
-              isFeatured: true,
+              isFeatured: config.isFeaturedTier(upgradeTier),
+              isVerifiedEmployer: true,
               expiresAt: newExpiresAt,
             },
           });
 
-          // Get employer job
+          // Update employer job tier
           const employerJob = await prisma.employerJob.findFirst({
             where: { jobId: jobId },
           });
 
           if (employerJob) {
+            await prisma.employerJob.update({
+              where: { id: employerJob.id },
+              data: { pricingTier: upgradeTier },
+            });
+
             // Get or create email lead for unsubscribe token
             let emailLead = await prisma.emailLead.findUnique({
               where: { email: employerJob.contactEmail },
@@ -148,20 +176,26 @@ export async function POST(request: NextRequest) {
             try {
               await sendConfirmationEmail(
                 employerJob.contactEmail,
-                `✨ ${job.title} (Upgraded to Featured)`,
+                `✨ ${job.title} (Upgraded to ${config.getTierLabel(upgradeTier)})`,
                 job.id,
                 employerJob.editToken,
                 employerJob.dashboardToken
               );
             } catch (emailError) {
-              console.error('Failed to send upgrade confirmation email:', emailError);
-              // Don't throw - job already upgraded
+              logger.error('Failed to send upgrade confirmation email', emailError, { jobId });
             }
           }
 
-          console.log('Job upgraded to featured:', jobId);
+          logger.info(`Job upgraded to ${upgradeTier} tier`, { jobId, fromTier, upgradeTier });
+
+          // Ping search engines for upgraded job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (upgrade)', err)
+            );
+          }
         } catch (prismaError) {
-          console.error('Error upgrading job in database:', prismaError);
+          logger.error('Error upgrading job in database', prismaError, { jobId });
           return NextResponse.json(
             { error: 'Failed to upgrade job' },
             { status: 500 }
@@ -173,7 +207,7 @@ export async function POST(request: NextRequest) {
           // Update job to published
           const job = await prisma.job.update({
             where: { id: jobId },
-            data: { isPublished: true },
+            data: { isPublished: true, isVerifiedEmployer: true },
           });
 
           // Update employer job payment status and get the record
@@ -182,9 +216,10 @@ export async function POST(request: NextRequest) {
           });
 
           if (employerJob) {
+            const paidTier = session.metadata?.pricing || 'starter';
             await prisma.employerJob.update({
               where: { id: employerJob.id },
-              data: { paymentStatus: 'paid' },
+              data: { paymentStatus: 'paid', pricingTier: paidTier },
             });
 
             // Send confirmation email
@@ -197,7 +232,7 @@ export async function POST(request: NextRequest) {
                 employerJob.dashboardToken
               );
             } catch (emailError) {
-              console.error('Failed to send confirmation email:', emailError);
+              logger.error('Failed to send confirmation email', emailError, { jobId });
               // Don't throw - job already created
             }
 
@@ -207,17 +242,25 @@ export async function POST(request: NextRequest) {
                 where: { email: employerJob.contactEmail },
               });
               if (deletedDrafts.count > 0) {
-                console.log(`Deleted ${deletedDrafts.count} draft(s) for ${employerJob.contactEmail}`);
+                const anonymizedEmail = anonymizeEmail(employerJob.contactEmail);
+                logger.debug('Deleted drafts', { count: deletedDrafts.count, email: anonymizedEmail });
               }
             } catch (draftError) {
-              console.error('Failed to delete job drafts:', draftError);
+              logger.error('Failed to delete job drafts', draftError, { jobId });
               // Don't throw - job already created
             }
           }
 
-          console.log('Job published:', jobId);
+          logger.info('Job published', { jobId });
+
+          // Ping search engines for new job (fire-and-forget)
+          if (job.slug) {
+            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
+              logger.error('[Stripe] Background indexing ping failed (new job)', err)
+            );
+          }
         } catch (prismaError) {
-          console.error('Error updating job in database:', prismaError);
+          logger.error('Error updating job in database', prismaError, { jobId });
           return NextResponse.json(
             { error: 'Failed to update job' },
             { status: 500 }
@@ -228,10 +271,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
+    logger.error('Webhook error', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }
 }
+

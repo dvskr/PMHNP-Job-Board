@@ -1,25 +1,28 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { AlertTriangle } from 'lucide-react';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | PMHNP Jobs',
-  description: 'Terms of Service for PMHNP Jobs job board platform.',
+  title: 'Terms of Service | PMHNP Hiring',
+  description: 'Read the Terms of Service for PMHNP Hiring. Understand your rights, responsibilities, and our policies for using the #1 PMHNP job board.',
+  openGraph: {
+    images: [{ url: '/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],
+  },
+  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-hiring-terms-of-service.webp'] },
+  alternates: {
+    canonical: 'https://pmhnphiring.com/terms',
+  },
 };
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Terms of Service', url: 'https://pmhnphiring.com/terms' },
+      ]} />
       <article className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 md:p-12">
-        {/* Legal Disclaimer */}
-        <div className="mb-8 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg">
-          <div className="flex items-start">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
-            <p className="text-sm text-amber-900">
-              <strong>Legal Disclaimer:</strong> This is a template. Consult a legal professional for advice specific to your situation.
-            </p>
-          </div>
-        </div>
 
         {/* Header */}
         <header className="mb-12 pb-6 border-b border-gray-200">
@@ -27,7 +30,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p className="text-sm text-gray-500">
-            Last updated: December 8, 2024
+            Last updated: January 1, 2026
           </p>
         </header>
 
@@ -112,7 +115,7 @@ export default function TermsPage() {
               <li>We are not responsible for screening employers or verifying the accuracy of job listings</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
-              Job postings expire after the stated duration (30 days for Standard, 60 days for Featured). Renewal options may be available through the employer dashboard.
+              Job postings expire after the stated duration (30 days for Starter, 60 days for Growth, 90 days for Premium). Renewal options may be available through the employer dashboard.
             </p>
           </section>
 
@@ -136,7 +139,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
               <li>Job posting fees are generally non-refundable</li>
               <li>Refund requests may be considered within 7 days of purchase on a case-by-case basis</li>
-              <li>Contact us at hello@pmhnpjobs.com to request a refund</li>
+              <li>Contact us at support@pmhnphiring.com to request a refund</li>
               <li>We reserve the right to issue refunds at our sole discretion</li>
             </ul>
             <p className="text-gray-700 leading-relaxed">
@@ -232,11 +235,11 @@ export default function TermsPage() {
               If you have any questions about these Terms of Service, please contact us:
             </p>
             <ul className="list-none text-gray-700 space-y-2">
-              <li><strong>Email:</strong> hello@pmhnpjobs.com</li>
-              <li><strong>Website:</strong> <Link href="/" className="text-blue-600 hover:text-blue-700 underline">pmhnpjobs.com</Link></li>
+              <li><strong>Email:</strong> support@pmhnphiring.com</li>
+              <li><strong>Website:</strong> <Link href="/" className="text-teal-600 hover:text-teal-700 underline">pmhnphiring.com</Link></li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
-              For general inquiries or support, please visit our <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">FAQ page</Link> or <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">Contact page</Link>.
+              For general inquiries or support, please visit our <Link href="/faq" className="text-teal-600 hover:text-teal-700 underline">FAQ page</Link> or <Link href="/contact" className="text-teal-600 hover:text-teal-700 underline">Contact page</Link>.
             </p>
           </section>
         </div>
@@ -244,19 +247,19 @@ export default function TermsPage() {
         {/* Bottom Navigation */}
         <footer className="mt-12 pt-8 border-t border-gray-200">
           <div className="flex flex-wrap gap-4 justify-center text-sm">
-            <Link href="/privacy" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/privacy" className="text-teal-600 hover:text-teal-700 underline">
               Privacy Policy
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/faq" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/faq" className="text-teal-600 hover:text-teal-700 underline">
               FAQ
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/about" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/about" className="text-teal-600 hover:text-teal-700 underline">
               About Us
             </Link>
             <span className="text-gray-400">·</span>
-            <Link href="/contact" className="text-blue-600 hover:text-blue-700 underline">
+            <Link href="/contact" className="text-teal-600 hover:text-teal-700 underline">
               Contact
             </Link>
           </div>

@@ -18,7 +18,7 @@ interface JobFormData {
   salaryCompetitive?: boolean;
   description: string;
   applyUrl: string;
-  pricingTier: 'standard' | 'featured';
+  pricingTier: 'starter' | 'growth' | 'premium';
 }
 
 export default function CheckoutPage() {
@@ -36,7 +36,7 @@ export default function CheckoutPage() {
 
     // Read jobFormData from localStorage
     const storedData = localStorage.getItem('jobFormData');
-    
+
     if (!storedData) {
       // No data, redirect to post-job
       router.push('/post-job');
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
       }
 
       const { url } = await response.json();
-      
+
       if (url) {
         window.location.href = url;
       } else {
@@ -87,11 +87,15 @@ export default function CheckoutPage() {
   };
 
   const getPrice = () => {
-    return jobData?.pricingTier === 'featured' ? '$199' : '$99';
+    if (jobData?.pricingTier === 'premium') return `$${config.pricing.premium}`;
+    if (jobData?.pricingTier === 'growth') return `$${config.pricing.growth}`;
+    return `$${config.pricing.starter}`;
   };
 
   const getPlanName = () => {
-    return jobData?.pricingTier === 'featured' ? 'Featured Job' : 'Standard Job';
+    if (jobData?.pricingTier === 'premium') return 'Premium Job';
+    if (jobData?.pricingTier === 'growth') return 'Growth Job';
+    return 'Starter Job';
   };
 
   const formatSalary = () => {
@@ -115,7 +119,7 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
         </div>
       </div>
     );
@@ -132,7 +136,7 @@ export default function CheckoutPage() {
       {/* Job Summary Card */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Job Posting Summary</h2>
-        
+
         <div className="space-y-4">
           {/* Title and Company */}
           <div className="border-b pb-4">
@@ -193,9 +197,11 @@ export default function CheckoutPage() {
           <div>
             <h3 className="text-lg font-semibold">{getPlanName()}</h3>
             <p className="text-sm text-gray-500">
-              {jobData.pricingTier === 'featured' 
-                ? '60-day listing • Featured badge • Pinned to top' 
-                : '30-day listing • Shown in job feed'}
+              {jobData.pricingTier === 'premium'
+                ? '90-day listing • Featured badge • Social media promotion'
+                : jobData.pricingTier === 'growth'
+                  ? '60-day listing • Featured badge • Top search placement'
+                  : '30-day listing • Shown in job feed'}
             </p>
           </div>
           <div className="text-right">
@@ -216,7 +222,7 @@ export default function CheckoutPage() {
       <button
         onClick={handlePayment}
         disabled={loading}
-        className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -232,7 +238,7 @@ export default function CheckoutPage() {
       <div className="text-center mt-4">
         <Link
           href="/post-job"
-          className="text-gray-600 hover:text-blue-500 transition-colors text-sm"
+          className="text-gray-600 hover:text-teal-500 transition-colors text-sm"
         >
           ← Back to edit job posting
         </Link>

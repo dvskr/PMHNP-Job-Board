@@ -10,6 +10,7 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   // Log error to console for debugging
   useEffect(() => {
+    // Note: logger is server-only, so we use console.error here (client side)
     console.error('Global application error:', error);
   }, [error]);
 
@@ -193,13 +194,13 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               >
                 If this keeps happening, please email us at{' '}
                 <a
-                  href="mailto:hello@pmhnpjobs.com"
+                  href="mailto:support@pmhnphiring.com"
                   style={{
                     color: '#0d9488',
                     textDecoration: 'underline',
                   }}
                 >
-                  hello@pmhnpjobs.com
+                  support@pmhnphiring.com
                 </a>
               </p>
             </div>

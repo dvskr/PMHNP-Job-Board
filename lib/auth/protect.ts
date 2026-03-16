@@ -28,29 +28,42 @@ export interface UserProfile {
  */
 export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProfile | null }> {
   const supabase = await createClient()
-  
+
   const { data: { user }, error } = await supabase.auth.getUser()
-  
+
   if (error || !user) {
     redirect('/login')
   }
-  
+
   // Get or create profile
   let profile = await prisma.userProfile.findUnique({
     where: { supabaseId: user.id }
   })
-  
+
   // Auto-create profile if doesn't exist
   if (!profile && user.email) {
-    profile = await prisma.userProfile.create({
-      data: {
-        supabaseId: user.id,
-        email: user.email,
-        role: 'job_seeker',
-      }
+    // Check by email first to avoid unique constraint errors
+    profile = await prisma.userProfile.findFirst({
+      where: { email: user.email }
     })
+
+    if (profile && profile.supabaseId !== user.id) {
+      // Update existing profile to point to current supabase user
+      profile = await prisma.userProfile.update({
+        where: { id: profile.id },
+        data: { supabaseId: user.id }
+      })
+    } else if (!profile) {
+      profile = await prisma.userProfile.create({
+        data: {
+          supabaseId: user.id,
+          email: user.email,
+          role: 'job_seeker',
+        }
+      })
+    }
   }
-  
+
   return {
     user: { id: user.id, email: user.email! },
     profile: profile as UserProfile | null
@@ -62,11 +75,11 @@ export async function requireAuth(): Promise<{ user: AuthUser; profile: UserProf
  */
 export async function requireRole(allowedRoles: UserRole[]): Promise<{ user: AuthUser; profile: UserProfile }> {
   const { user, profile } = await requireAuth()
-  
+
   if (!profile || !allowedRoles.includes(profile.role as UserRole)) {
     redirect('/unauthorized')
   }
-  
+
   return { user, profile }
 }
 
@@ -89,17 +102,17 @@ export async function requireEmployer() {
  */
 export async function getCurrentUser(): Promise<{ user: AuthUser; profile: UserProfile | null } | null> {
   const supabase = await createClient()
-  
+
   const { data: { user }, error } = await supabase.auth.getUser()
-  
+
   if (error || !user) {
     return null
   }
-  
+
   const profile = await prisma.userProfile.findUnique({
     where: { supabaseId: user.id }
   })
-  
+
   return {
     user: { id: user.id, email: user.email! },
     profile: profile as UserProfile | null

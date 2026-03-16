@@ -49,7 +49,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
-  const [renewingTier, setRenewingTier] = useState<'standard' | 'featured' | null>(null);
+  const [renewingTier, setRenewingTier] = useState<'starter' | 'growth' | 'premium' | null>(null);
 
   const {
     register,
@@ -180,7 +180,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
     return isExpired() || isExpiringSoon();
   };
 
-  const handleRenewCheckout = async (tier: 'standard' | 'featured') => {
+  const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
     if (!job) return;
 
     setRenewingTier(tier);
@@ -220,7 +220,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
             <p className="text-gray-600">Loading job details...</p>
           </div>
         </div>
@@ -271,25 +271,21 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
 
       {/* Expiry Warning & Renew Section */}
       {shouldShowRenew() && job && (
-        <div className={`rounded-lg border-2 p-6 mb-6 ${
-          isExpired() 
-            ? 'bg-red-50 border-red-300' 
-            : 'bg-orange-50 border-orange-300'
-        }`}>
+        <div className={`rounded-lg border-2 p-6 mb-6 ${isExpired()
+          ? 'bg-red-50 border-red-300'
+          : 'bg-orange-50 border-orange-300'
+          }`}>
           <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className={`flex-shrink-0 ${
-              isExpired() ? 'text-red-600' : 'text-orange-600'
-            }`} size={24} />
+            <AlertTriangle className={`flex-shrink-0 ${isExpired() ? 'text-red-600' : 'text-orange-600'
+              }`} size={24} />
             <div className="flex-1">
-              <h3 className={`font-bold text-lg mb-1 ${
-                isExpired() ? 'text-red-900' : 'text-orange-900'
-              }`}>
+              <h3 className={`font-bold text-lg mb-1 ${isExpired() ? 'text-red-900' : 'text-orange-900'
+                }`}>
                 {isExpired() ? 'This job has expired' : 'This job expires soon'}
               </h3>
-              <p className={`text-sm mb-4 ${
-                isExpired() ? 'text-red-700' : 'text-orange-700'
-              }`}>
-                {isExpired() 
+              <p className={`text-sm mb-4 ${isExpired() ? 'text-red-700' : 'text-orange-700'
+                }`}>
+                {isExpired()
                   ? `This job expired on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} and is no longer visible to candidates.`
                   : `This job expires on ${new Date(job.expiresAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Renew now to keep it visible.`
                 }
@@ -298,7 +294,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 <button
                   onClick={() => setShowRenewModal(true)}
                   disabled={renewingTier !== null}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RefreshCw size={18} className={renewingTier ? 'animate-spin' : ''} />
                   {renewingTier ? 'Processing...' : 'Renew This Job'}
@@ -313,7 +309,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
         {/* Job Details Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-6">Job Details</h2>
-          
+
           <div className="space-y-6">
             {/* Job Title */}
             <div>
@@ -324,9 +320,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="text"
                 id="title"
                 {...register('title')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
@@ -343,9 +338,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="location"
                 placeholder="e.g. Remote, New York NY"
                 {...register('location')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.location ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.location ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.location && (
                 <p className="mt-1 text-sm text-red-500">{errors.location.message}</p>
@@ -364,7 +358,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       type="radio"
                       value={mode}
                       {...register('mode')}
-                      className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
                     />
                     <span className="ml-2 text-sm text-gray-600">{mode}</span>
                   </label>
@@ -387,7 +381,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                       type="radio"
                       value={type}
                       {...register('jobType')}
-                      className="w-4 h-4 text-blue-500 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-teal-500 border-gray-300 focus:ring-teal-500"
                     />
                     <span className="ml-2 text-sm text-gray-600">{type}</span>
                   </label>
@@ -409,7 +403,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                     type="number"
                     placeholder="Min $"
                     {...register('salaryMin', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div className="flex-1">
@@ -417,7 +411,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                     type="number"
                     placeholder="Max $"
                     {...register('salaryMax', { valueAsNumber: true })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
               </div>
@@ -432,9 +426,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 id="description"
                 rows={8}
                 {...register('description')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.description && (
                 <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
@@ -450,9 +443,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="url"
                 id="applyUrl"
                 {...register('applyUrl')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.applyUrl ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.applyUrl ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.applyUrl && (
                 <p className="mt-1 text-sm text-red-500">{errors.applyUrl.message}</p>
@@ -468,9 +460,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="email"
                 id="contactEmail"
                 {...register('contactEmail')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.contactEmail ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.contactEmail ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.contactEmail && (
                 <p className="mt-1 text-sm text-red-500">{errors.contactEmail.message}</p>
@@ -486,9 +477,8 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
                 type="url"
                 id="companyWebsite"
                 {...register('companyWebsite')}
-                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.companyWebsite ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.companyWebsite && (
                 <p className="mt-1 text-sm text-red-500">{errors.companyWebsite.message}</p>
@@ -509,7 +499,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-8 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-3 bg-teal-500 text-white rounded-lg font-semibold hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Updating...' : 'Update Job'}
           </button>
@@ -559,39 +549,57 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             <p className="text-gray-700 mb-6">Choose how you&apos;d like to renew your listing:</p>
 
             <div className="space-y-3 mb-6">
-              {/* Standard Option */}
+              {/* Starter Option */}
               <button
-                onClick={() => handleRenewCheckout('standard')}
-                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                onClick={() => handleRenewCheckout('starter')}
+                className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-teal-500 hover:bg-teal-50 transition-all group"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-gray-900 group-hover:text-blue-700">Standard Renewal</span>
-                  <span className="text-2xl font-bold text-gray-900 group-hover:text-blue-700">$99</span>
+                  <span className="font-semibold text-gray-900 group-hover:text-teal-700">Starter Renewal</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">$199</span>
                 </div>
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>✓ 30 days of visibility</li>
-                  <li>✓ Standard placement</li>
-                  <li>✓ Email confirmation</li>
+                  <li>✓ 5 candidate unlocks/mo</li>
+                  <li>✓ 5 InMails/mo</li>
                 </ul>
               </button>
 
-              {/* Featured Option */}
+              {/* Growth Option */}
               <button
-                onClick={() => handleRenewCheckout('featured')}
-                className="w-full text-left border-2 border-blue-500 bg-blue-50 rounded-lg p-4 hover:bg-blue-100 transition-all group relative"
+                onClick={() => handleRenewCheckout('growth')}
+                className="w-full text-left border-2 border-teal-500 bg-teal-50 rounded-lg p-4 hover:bg-teal-100 transition-all group relative"
               >
                 <div className="absolute top-2 right-2">
-                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">BEST VALUE</span>
+                  <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">MOST POPULAR</span>
                 </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-blue-900">Featured Renewal</span>
-                  <span className="text-2xl font-bold text-blue-900">$199</span>
+                  <span className="font-semibold text-teal-900">Growth Renewal</span>
+                  <span className="text-2xl font-bold text-teal-900">$299</span>
                 </div>
-                <ul className="text-sm text-blue-800 space-y-1">
+                <ul className="text-sm text-teal-800 space-y-1">
                   <li>✓ 60 days of visibility</li>
                   <li>✓ <strong>Featured placement</strong> (top of list)</li>
-                  <li>✓ <strong>2x more visibility</strong></li>
-                  <li>✓ Email confirmation</li>
+                  <li>✓ 25 candidate unlocks/mo</li>
+                  <li>✓ 25 InMails/mo</li>
+                </ul>
+              </button>
+
+              {/* Premium Option */}
+              <button
+                onClick={() => handleRenewCheckout('premium')}
+                className="w-full text-left border-2 border-purple-300 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-gray-900 group-hover:text-purple-700">Premium Renewal</span>
+                  <span className="text-2xl font-bold text-gray-900 group-hover:text-purple-700">$399</span>
+                </div>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>✓ 90 days of visibility</li>
+                  <li>✓ Everything in Growth</li>
+                  <li>✓ <strong>Unlimited</strong> candidate unlocks</li>
+                  <li>✓ <strong>Unlimited</strong> InMails</li>
+                  <li>✓ Social media promotion</li>
                 </ul>
               </button>
             </div>

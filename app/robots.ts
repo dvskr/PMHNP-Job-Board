@@ -1,15 +1,28 @@
 import { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnpjobs.com'
-  
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
+
   return {
     rules: [
+      // Main crawlers
       {
         userAgent: '*',
-        allow: '/',
+        allow: [
+          '/',
+          '/api/og',
+          '/api/sitemaps/',
+          '/jobs/',
+          '/blog/',
+          '/salary-guide',
+          '/for-job-seekers',
+          '/for-employers',
+          '/faq',
+          '/post-job',
+        ],
         disallow: [
           '/api/',
+          '/_next/',
           '/jobs/edit/',
           '/employer/',
           '/email-preferences',
@@ -17,10 +30,94 @@ export default function robots(): MetadataRoute.Robots {
           '/post-job/checkout',
           '/post-job/preview',
           '/job-alerts/manage',
+          '/job-alerts/unsubscribe',
+          '/admin/',
+          '/dashboard/',
+          '/saved',
+          '/settings',
+          '/reset-password',
+          '/unauthorized',
+          '/login',
+          '/signup',
+          '/forgot-password',
+          '/unsubscribe',
+          '/auth/',
         ],
       },
+      // Explicitly allow AI search crawlers
+      {
+        userAgent: 'OAI-SearchBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'GPTBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'PerplexityBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'ClaudeBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Google-Extended',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      // Social media bots for link previews
+      {
+        userAgent: 'Twitterbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'facebookexternalhit',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'LinkedInBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Pinterest',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Slackbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'WhatsApp',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'Discordbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
+      {
+        userAgent: 'TelegramBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/'],
+      },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: [
+      `${baseUrl}/api/sitemaps/index`,
+      `${baseUrl}/sitemap.xml`,
+      `${baseUrl}/image-sitemap.xml`,
+      `${baseUrl}/video-sitemap.xml`,
+    ],
   }
 }
 
