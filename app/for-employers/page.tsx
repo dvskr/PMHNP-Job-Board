@@ -282,20 +282,22 @@ export default async function ForEmployersPage() {
         {!config.isPaidPostingEnabled && (
           <section style={{ marginBottom: '48px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '4px', color: 'var(--text-primary)' }}>
-              What&apos;s Included — Free
+              What&apos;s Included — Growth Package
             </h2>
             <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-              Every job posting includes all of this at no cost.
+              Every job posting includes our $299 Growth package — free during launch.
             </p>
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px',
             }}>
               {[
-                { icon: FileText, label: '30-day job listing', color: '#2DD4BF' },
-                { icon: Mail, label: 'Included in daily job alerts', color: '#E86C2C' },
-                { icon: Eye, label: 'Full job description page', color: '#3B82F6' },
-                { icon: Users, label: '5 candidate unlocks/posting', color: '#10B981' },
-                { icon: Briefcase, label: '5 InMails/posting', color: '#F59E0B' },
+                { icon: Sparkles, label: '60-day job listing (2× longer)', color: '#E86C2C' },
+                { icon: Crown, label: '"Featured" badge on listing', color: '#A855F7' },
+                { icon: TrendingUp, label: 'Top placement in search results', color: '#2DD4BF' },
+                { icon: Mail, label: 'Highlighted in daily job alerts', color: '#E86C2C' },
+                { icon: Users, label: '25 candidate unlocks/posting', color: '#10B981' },
+                { icon: Briefcase, label: '25 InMails/posting', color: '#F59E0B' },
+                { icon: BarChart, label: 'Advanced analytics (views, clicks, sources)', color: '#3B82F6' },
               ].map(({ icon: Icon, label, color }) => (
                 <div key={label} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',

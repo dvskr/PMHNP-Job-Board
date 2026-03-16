@@ -177,21 +177,22 @@ export default function PricingPage() {
             {!config.isPaidPostingEnabled && (
                 <section style={{ padding: '0 16px 80px', maxWidth: '900px', margin: '0 auto' }}>
                     <h2 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>
-                        What You Get
+                        What You Get — Growth Package
                     </h2>
                     <p style={{ fontSize: '15px', color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '32px' }}>
-                        Every job posting includes all of this — completely free.
+                        Every job posting includes our $299 Growth package — completely free during launch.
                     </p>
                     <div style={{
                         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px',
                     }}>
                         {[
-                            { icon: Zap, title: '30-Day Job Listing', desc: 'Your posting stays active for a full 30 days, visible to all PMHNPs.', color: '#2DD4BF' },
-                            { icon: Mail, title: 'Daily Job Alert Emails', desc: 'Your listing is emailed directly to thousands of opted-in PMHNP candidates.', color: '#E86C2C' },
-                            { icon: Search, title: 'Full Job Description Page', desc: 'A dedicated, SEO-optimized page with all the details candidates need to apply.', color: '#A855F7' },
-                            { icon: TrendingUp, title: 'Basic Analytics (Views)', desc: 'Track how many job seekers view your listing from your employer dashboard.', color: '#3B82F6' },
-                            { icon: Users, title: '5 Candidate Unlocks/posting', desc: 'Preview candidate profiles and unlock up to 5 per posting.', color: '#10B981' },
-                            { icon: MessageSquare, title: '5 InMails/posting', desc: 'Message up to 5 candidates directly on the platform per posting.', color: '#F59E0B' },
+                            { icon: Sparkles, title: '60-Day Job Listing', desc: 'Your posting stays active for 60 days — 2× longer than standard. Maximum exposure.', color: '#E86C2C' },
+                            { icon: Crown, title: '"Featured" Badge', desc: 'Your listing displays a prominent Featured badge, standing out from all other postings.', color: '#A855F7' },
+                            { icon: TrendingUp, title: 'Top Search Placement', desc: 'Your job appears at the top of search results, ahead of standard listings.', color: '#2DD4BF' },
+                            { icon: Mail, title: 'Highlighted in Job Alerts', desc: 'Your listing is prioritized and highlighted in daily emails to 6,000+ PMHNPs.', color: '#E86C2C' },
+                            { icon: Users, title: '25 Candidate Unlocks', desc: 'Preview and unlock up to 25 candidate profiles per posting.', color: '#10B981' },
+                            { icon: MessageSquare, title: '25 InMails/Posting', desc: 'Message up to 25 candidates directly on the platform.', color: '#F59E0B' },
+                            { icon: Search, title: 'Advanced Analytics', desc: 'Track views, clicks, and sources. Know exactly how your posting performs.', color: '#3B82F6' },
                         ].map(({ icon: Ic, title, desc, color }) => (
                             <div key={title} style={{
                                 padding: '24px 20px', borderRadius: '14px',
