@@ -37,7 +37,7 @@ export function calculateFreshnessScore(originalPostedAt: Date | null, createdAt
  * Also checks expiresAt as a safety net: if expiresAt is still in the future,
  * the job was recently renewed enough to have a valid expiry, so keep it alive.
  * 
- * External jobs: unpublish if not renewed/seen for 90 days AND expiresAt is past
+ * External jobs: unpublish if not renewed/seen for 120 days AND expiresAt is past
  * Employer jobs: keep until expiresAt (they paid for the listing)
  */
 export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?: Date | null): boolean {
@@ -64,7 +64,7 @@ export function shouldUnpublish(updatedAt: Date, sourceType: string, expiresAt?:
     const now = new Date();
     const daysSinceLastSeen = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
 
-    return daysSinceLastSeen >= 90;
+    return daysSinceLastSeen >= 120;
   } catch (error) {
     console.error('Error determining unpublish status:', error);
     return false;
