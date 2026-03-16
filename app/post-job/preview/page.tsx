@@ -155,7 +155,7 @@ export default function PreviewPage() {
                   {formData.title}
                 </h3>
                 <div className="flex gap-1 flex-wrap">
-                  {formData.pricingTier !== 'starter' && (
+                  {(formData.pricingTier !== 'starter' || !config.isPaidPostingEnabled) && (
                     <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       Featured
                     </span>
@@ -321,33 +321,49 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        {/* Section 3: Pricing Summary */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h2>
+        {/* Section 3: Pricing Summary — only shown when paid posting is enabled */}
+        {config.isPaidPostingEnabled ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h2>
 
-          <div className="flex items-center justify-between mb-4 pb-4 border-b">
-            <div>
-              <p className="font-semibold text-gray-900">
-                {formData.pricingTier === 'premium' ? 'Premium Job Post' : formData.pricingTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {formData.pricingTier === 'premium'
-                  ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days active'
-                  : formData.pricingTier === 'growth'
-                    ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
-                    : '✓ 30 days active ✓ Email to subscribers'
-                }
-              </p>
+            <div className="flex items-center justify-between mb-4 pb-4 border-b">
+              <div>
+                <p className="font-semibold text-gray-900">
+                  {formData.pricingTier === 'premium' ? 'Premium Job Post' : formData.pricingTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {formData.pricingTier === 'premium'
+                    ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days active'
+                    : formData.pricingTier === 'growth'
+                      ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
+                      : '✓ 30 days active ✓ Email to subscribers'
+                  }
+                </p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{priceLabel}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{priceLabel}</p>
-          </div>
 
-          <div className="text-sm text-gray-600">
-            <p>• Your job will go live immediately after payment</p>
-            <p>• Edit or update your listing anytime via email link</p>
-            <p>• Reach thousands of qualified PMHNPs actively looking</p>
+            <div className="text-sm text-gray-600">
+              <p>• Your job will go live immediately after payment</p>
+              <p>• Edit or update your listing anytime via email link</p>
+              <p>• Reach thousands of qualified PMHNPs actively looking</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Growth Package — Free during launch</p>
+                <p className="text-sm text-gray-500">Your job goes live immediately with all Growth features included.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
