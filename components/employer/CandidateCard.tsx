@@ -74,9 +74,13 @@ export default function CandidateCard({
         ? WORK_MODE_ICONS[preferredWorkMode.toLowerCase()] || '🌐'
         : null;
 
+    const safeStates = licenseStates || [];
+    const safeCerts = certifications || [];
+    const safeSpecs = specialties || [];
+
     const maxStates = 5;
-    const visibleStates = licenseStates.slice(0, maxStates);
-    const extraStates = licenseStates.length - maxStates;
+    const visibleStates = safeStates.slice(0, maxStates);
+    const extraStates = safeStates.length - maxStates;
 
     return (
         <div
@@ -183,9 +187,9 @@ export default function CandidateCard({
             </div>
 
             {/* Certifications */}
-            {certifications.length > 0 && (
+            {safeCerts.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {certifications.map(cert => (
+                    {safeCerts.map(cert => (
                         <span
                             key={cert}
                             style={{
@@ -205,9 +209,9 @@ export default function CandidateCard({
             )}
 
             {/* Specialties */}
-            {specialties.length > 0 && (
+            {safeSpecs.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                    {specialties.map(spec => (
+                    {safeSpecs.map(spec => (
                         <span
                             key={spec}
                             style={{
