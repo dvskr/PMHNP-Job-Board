@@ -142,7 +142,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { isPublished: true },
       select: { id: true, title: true, updatedAt: true },
       orderBy: { createdAt: 'desc' },
-      take: 5000,
     })
 
     const jobPages: MetadataRoute.Sitemap = jobs.map((job: JobSitemapData) => {
@@ -161,7 +160,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { isPublished: true, city: { not: null }, state: { not: null } },
       _count: { city: true },
       orderBy: { _count: { city: 'desc' } },
-      take: 200,
     })
 
     const cityPages: MetadataRoute.Sitemap = topCities
@@ -180,6 +178,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
       .filter((c): c is NonNullable<typeof c> => c !== null)
 
+    // Company pages
+    const companies = await prisma.job.groupBy({
+      by: ['employer'],
+      where: { isPublished: true, employer: { not: null } },
+    })
+    const companyPages: MetadataRoute.Sitemap = companies
+      .filter(c => c.employer)
+      .map(c => {
+        const slug = c.employer!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        return {
+          url: `${baseUrl}/companies/${slug}`,
+          lastModified: latestJobDate,
+          changeFrequency: 'weekly' as const,
+          priority: 0.6,
+        }
+      })
+
     return [
       ...staticPages,
       ...categoryLandingPages,
@@ -188,6 +203,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...salaryGuideStatePages,
       ...categoryStatePages,
       ...cityPages,
+      ...companyPages,
       ...jobPages,
       ...blogPages,
     ]
