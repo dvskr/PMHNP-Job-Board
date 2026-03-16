@@ -15,6 +15,10 @@ const BATCH_DELAY_MS = 200;     // Rate-limit delay between batches
  * 404/410 = dead. Network errors = assume alive (transient).
  */
 async function isLinkAlive(url: string): Promise<{ alive: boolean; status: number }> {
+    // Use a real browser User-Agent — many ATS platforms (Adzuna, Jooble, Workday)
+    // return 403 to bot-like UAs even when the job is still live.
+    const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -23,17 +27,20 @@ async function isLinkAlive(url: string): Promise<{ alive: boolean; status: numbe
             method: 'HEAD',
             redirect: 'follow',
             signal: controller.signal,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; PMHNPHiring-LinkChecker/1.0)',
-            },
+            headers: { 'User-Agent': BROWSER_UA },
         });
         clearTimeout(timeout);
 
         if (response.ok) return { alive: true, status: response.status };
+
+        // ONLY 404/410 = definitively dead
         if (response.status === 404 || response.status === 410) return { alive: false, status: response.status };
 
+        // 403 = server exists but blocks us — NOT dead (Adzuna, Jooble do this)
+        if (response.status === 403) return { alive: true, status: response.status };
+
         // Some servers block HEAD — retry with GET
-        if (response.status === 405 || response.status === 403) {
+        if (response.status === 405) {
             const controller2 = new AbortController();
             const timeout2 = setTimeout(() => controller2.abort(), REQUEST_TIMEOUT_MS);
 
@@ -41,19 +48,18 @@ async function isLinkAlive(url: string): Promise<{ alive: boolean; status: numbe
                 method: 'GET',
                 redirect: 'follow',
                 signal: controller2.signal,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; PMHNPHiring-LinkChecker/1.0)',
-                },
+                headers: { 'User-Agent': BROWSER_UA },
             });
             clearTimeout(timeout2);
 
+            // Only 404/410 = dead, everything else = alive
             if (getResponse.status === 404 || getResponse.status === 410) {
                 return { alive: false, status: getResponse.status };
             }
-            return { alive: getResponse.ok, status: getResponse.status };
+            return { alive: true, status: getResponse.status };
         }
 
-        // 5xx errors — assume temporarily down, not dead
+        // 5xx, 429, etc. — assume temporarily down, not dead
         return { alive: true, status: response.status };
     } catch {
         // Network errors, timeouts — don't unpublish (could be temporary)
