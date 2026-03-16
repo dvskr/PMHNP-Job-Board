@@ -61,20 +61,11 @@ export default function AuthConfirmPage() {
             // PKCE verifier mismatch — happens when the confirmation email
             // opens in a different tab/browser than where signup occurred.
             // Supabase already confirmed the user server-side during the
-            // redirect, so check if there's already an active session.
-            const { data: userData } = await supabase.auth.getUser()
-            if (userData?.user?.email_confirmed_at) {
-              // User IS confirmed — just needs to log in
-              setMessage('Email confirmed! Please log in to continue.')
-              setStatus('success')
-              setTimeout(() => router.push('/login?confirmed=true'), 2000)
-              return
-            }
-
-            // No session at all — genuinely invalid/expired
-            setStatus('error')
-            setMessage('Invalid or expired link. Please request a new one.')
-            setTimeout(() => router.push('/login'), 3000)
+            // redirect (before appending ?code=), so the email IS confirmed.
+            // We just can't establish a client session without the verifier.
+            setMessage('Email confirmed! Please log in to continue.')
+            setStatus('success')
+            setTimeout(() => router.push('/login?confirmed=true'), 2000)
             return
           }
 

@@ -181,7 +181,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Company pages
     const companies = await prisma.job.groupBy({
       by: ['employer'],
-      where: { isPublished: true, employer: { not: null } },
+      where: { isPublished: true, employer: { not: '' } },
     })
     const companyPages: MetadataRoute.Sitemap = companies
       .filter(c => c.employer)
