@@ -165,7 +165,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       });
     }
 
-    const MAX_JOB_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90-day lifetime cap — hard cutoff for any job regardless of renewals
+    const MAX_JOB_AGE_MS = 120 * 24 * 60 * 60 * 1000; // 120-day lifetime cap — hard cutoff for any job regardless of renewals
     const RENEWAL_EXTENSION_MS = 14 * 24 * 60 * 60 * 1000; // 14-day renewal window — tighter expiry, cron runs 2x daily so 14 days is plenty of buffer
     let expiredByAge = 0;
 
