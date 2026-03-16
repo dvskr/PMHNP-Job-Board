@@ -329,9 +329,9 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           continue;
         }
 
-        // Set initial expiresAt based on original posting date + 30 days
-        // If source didn't provide a posted date, use now + 30 days
-        const INITIAL_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30-day initial posting window
+        // Set initial expiresAt based on original posting date + 60 days
+        // If source didn't provide a posted date, use now + 60 days
+        const INITIAL_EXPIRY_MS = 60 * 24 * 60 * 60 * 1000; // 60-day initial posting window
         const baseDate = normalizedJob.originalPostedAt
           ? new Date(normalizedJob.originalPostedAt as any).getTime()
           : Date.now();
