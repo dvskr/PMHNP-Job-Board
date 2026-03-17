@@ -60,27 +60,51 @@ const PAGE_SIZE = 100;
 
 // PMHNP-specific search filters using the API's title_filter syntax
 // Uses OR operator (|) to search across multiple title variations in one request
-// Expanded to catch every possible PMHNP job title variation
+// DEEP expansion: covers credentials, specialties, clinical settings, and every
+// way an employer might write a PMHNP job title in their ATS
 const TITLE_FILTERS = [
-    // Core PMHNP titles
-    'PMHNP | Psychiatric Nurse Practitioner | Psychiatric Mental Health Nurse',
-    // Behavioral/Mental Health NP variations
-    'Psych NP | Behavioral Health NP | Mental Health NP | Mental Health Nurse Practitioner',
-    // APRN and prescriber titles
-    'Psychiatric APRN | APRN Psychiatry | Psychiatric Prescriber | Psych APRN',
-    // Telepsychiatry and hybrid titles
-    'Telepsychiatry | Tele Psychiatry | Psych Nurse | Psychiatric Nurse',
-    // Broader mental health NP searches
-    'Mental Health Nurse | Behavioral Health Nurse Practitioner | Mental Health Provider',
-    // Medication management and outpatient psych
-    'Psychiatric Medication | Outpatient Psychiatry NP | Psych Medication Management',
+    // ── Core PMHNP titles & credentials ──
+    'PMHNP | PMHNP-BC | PMH-NP | PMHCNS | Psychiatric Mental Health Nurse Practitioner',
+    'Psychiatric Nurse Practitioner | Psychiatric Mental Health Nurse | Psych Mental Health NP',
+
+    // ── Behavioral / Mental Health NP variations ──
+    'Mental Health NP | Mental Health Nurse Practitioner | Behavioral Health NP',
+    'Behavioral Health Nurse Practitioner | Psych NP | Psychiatric NP',
+
+    // ── APRN / APN in psychiatry ──
+    'Psychiatric APRN | APRN Psychiatry | Psych APRN | Mental Health APRN | Behavioral Health APRN',
+    'APN Psychiatry | Advanced Practice Nurse Psychiatry | Advanced Practice Psychiatric',
+
+    // ── Prescriber / provider titles ──
+    'Psychiatric Prescriber | Psychiatric Provider | Mental Health Prescriber',
+    'Psychiatry Nurse Practitioner | Nurse Practitioner Psychiatry | NP Psychiatry',
+
+    // ── Medication management & clinical roles ──
+    'Psychiatric Medication Management | Psych Medication Management | Psychiatric Evaluator',
+    'Psychotropic Prescriber | Medication Management NP | Medication Management Mental Health',
+
+    // ── Telepsychiatry & telehealth ──
+    'Telepsychiatry | Tele Psychiatry | Telemental Health | Tele Mental Health NP',
+    'Remote Psychiatric NP | Remote PMHNP | Virtual Psychiatry NP',
+
+    // ── Addiction / MAT / Substance abuse ──
+    'Suboxone NP | Suboxone Nurse Practitioner | MAT Nurse Practitioner | MAT Provider NP',
+    'Addiction NP | Addiction Nurse Practitioner | Substance Abuse NP | Substance Use NP',
+
+    // ── Specialty populations & settings ──
+    'Child Psychiatry NP | Adolescent Psychiatry NP | Pediatric Psychiatry NP | Geriatric Psychiatry NP',
+    'Inpatient Psychiatry NP | Outpatient Psychiatry NP | Correctional Psychiatry | Forensic Psychiatry NP',
+
+    // ── Broader catch-all psychiatric nursing ──
+    'Psych Nurse | Psychiatric Nurse | Mental Health Nurse | Outpatient Mental Health NP',
+    'Community Mental Health NP | Crisis Mental Health | Psychiatric Clinical Nurse',
 ];
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
-// 6 filters × 50 pages max = 300 requests/run × 1 run/day × 30 days = 9,000 (well within budget)
-// 7-day endpoint has less data per filter, 10 pages is plenty for daily cron
-const MAX_PAGES_PER_FILTER = 10;
+// 18 filters × 15 pages max = 270 requests/run × 2 runs/day × 30 days = 16,200 (within budget)
+// 7-day endpoint returns limited data per filter, 15 pages handles any spikes
+const MAX_PAGES_PER_FILTER = 15;
 const MAX_REQUESTS_PER_RUN = 500;
 const MIN_REMAINING_BUFFER = 2000; // stop if API reports fewer than this remaining
 

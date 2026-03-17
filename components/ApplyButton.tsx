@@ -5,6 +5,7 @@ import { ExternalLink, LogIn } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
 import InPlatformApplyForm from '@/components/InPlatformApplyForm';
+import { trackJobApply, buildJobItem } from '@/lib/analytics';
 import Link from 'next/link';
 
 interface ApplyButtonProps {
@@ -56,12 +57,15 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
 
     // External apply: open link in new tab
     if (applyLink) {
-      // Track apply click (fire and forget)
+      // Track apply click (fire and forget — internal analytics)
       try {
         fetch(`/api/jobs/${jobId}/track-apply`, {
           method: 'POST',
         }).catch(() => { });
       } catch { }
+
+      // Track in Google Analytics (GA4 conversion event)
+      trackJobApply(buildJobItem({ id: jobId, title: jobTitle }), 'external');
 
       // Open apply link in new tab
       window.open(applyLink, '_blank', 'noopener,noreferrer');

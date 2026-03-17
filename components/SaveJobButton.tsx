@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bookmark } from 'lucide-react';
+import { trackJobSave, trackJobUnsave, buildJobItem } from '@/lib/analytics';
 
 interface SaveJobButtonProps {
   jobId: string;
@@ -33,11 +34,13 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
       const updatedJobs = savedJobs.filter((id: string) => id !== jobId);
       localStorage.setItem('savedJobs', JSON.stringify(updatedJobs));
       setIsSaved(false);
+      trackJobUnsave(buildJobItem({ id: jobId, title: '' }));
     } else {
       // Add to saved
       savedJobs.push(jobId);
       localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
       setIsSaved(true);
+      trackJobSave(buildJobItem({ id: jobId, title: '' }));
     }
   };
 

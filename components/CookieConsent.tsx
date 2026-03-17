@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { X, Shield } from 'lucide-react';
+import { grantAllConsent, denyAllConsent } from '@/lib/analytics';
 
 const STORAGE_KEY = 'pmhnp_cookie_consent';
 
 /**
- * Cookie consent banner — bottom-anchored, unobtrusive.
- * Stores consent in localStorage, never shows again after accept.
+ * Cookie consent banner — Consent Mode v2 compliant.
+ * 
+ * On accept: calls grantAllConsent() which updates GA4 consent signals.
+ * On deny: calls denyAllConsent() which keeps analytics in cookieless mode.
+ * Stores choice in localStorage so it never shows again.
  */
 export default function CookieConsent() {
     const [show, setShow] = useState(false);
@@ -15,7 +19,7 @@ export default function CookieConsent() {
     useEffect(() => {
         try {
             if (!localStorage.getItem(STORAGE_KEY)) {
-                // Delay to avoid jump on first render
+                // Delay to avoid layout shift on first render
                 setTimeout(() => setShow(true), 1500);
             }
         } catch { /* noop */ }
@@ -23,7 +27,14 @@ export default function CookieConsent() {
 
     const accept = () => {
         setShow(false);
+        grantAllConsent();
         try { localStorage.setItem(STORAGE_KEY, 'accepted'); } catch { /* noop */ }
+    };
+
+    const deny = () => {
+        setShow(false);
+        denyAllConsent();
+        try { localStorage.setItem(STORAGE_KEY, 'denied'); } catch { /* noop */ }
     };
 
     if (!show) return null;
@@ -50,14 +61,24 @@ export default function CookieConsent() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     <button
+                        onClick={deny}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer"
+                        style={{
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-color)',
+                        }}
+                    >
+                        Decline
+                    </button>
+                    <button
                         onClick={accept}
                         className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all cursor-pointer"
                         style={{ background: 'linear-gradient(135deg, #2DD4BF, #0D9488)' }}
                     >
-                        Accept
+                        Accept All
                     </button>
                     <button
-                        onClick={accept}
+                        onClick={deny}
                         className="p-2 rounded-lg transition-colors cursor-pointer"
                         style={{ color: 'var(--text-muted)' }}
                         aria-label="Close"

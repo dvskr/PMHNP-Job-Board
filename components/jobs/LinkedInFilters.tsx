@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { X, ChevronDown, ChevronUp, Search, MapPin } from 'lucide-react';
 import { FilterState, FilterCounts, DEFAULT_FILTERS } from '@/types/filters';
 import { filtersToParams, parseFiltersFromParams } from '@/lib/filters';
+import { trackSearch, trackFilterChange } from '@/lib/analytics';
 
 interface CheckboxFilterProps {
   label: string;
@@ -136,6 +137,7 @@ export default function LinkedInFilters() {
     else arr.push(value);
     newFilters[key] = arr;
     router.push(`/jobs?${filtersToParams(newFilters).toString()}`, { scroll: false });
+    trackFilterChange(key, arr.join(','));
   };
 
   // Set single-value filter
@@ -156,6 +158,7 @@ export default function LinkedInFilters() {
     e.preventDefault();
     const newFilters = { ...filters, search: searchInput || undefined };
     router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
+    if (searchInput) trackSearch(searchInput);
   };
 
   // Handle location submit

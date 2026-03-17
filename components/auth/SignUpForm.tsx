@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { User, Building2, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Bell, ArrowRight } from 'lucide-react'
+import { trackSignUp } from '@/lib/analytics'
 
 type UserRole = 'job_seeker' | 'employer'
 
@@ -107,6 +108,9 @@ export default function SignUpForm() {
         }).catch(() => {})
 
         setSuccess(true)
+
+        // GA4 conversion event — sign_up
+        trackSignUp('email', role)
 
         if (data.session) {
           router.refresh()
