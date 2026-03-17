@@ -226,7 +226,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-              <GoogleAnalytics />
+              <GoogleAnalytics nonce={nonce} />
               <LayoutShell>
                 <Header />
                 <ProfileNudgeBanner />

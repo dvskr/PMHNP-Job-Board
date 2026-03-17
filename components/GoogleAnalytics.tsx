@@ -4,7 +4,7 @@ import Script from 'next/script';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
-export default function GoogleAnalytics() {
+export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
   // Only load in production and if measurement ID exists
   if (!GA_MEASUREMENT_ID || process.env.NODE_ENV !== 'production') {
     return null;
@@ -14,9 +14,10 @@ export default function GoogleAnalytics() {
     <>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        strategy="lazyOnload"
+        strategy="afterInteractive"
+        nonce={nonce}
       />
-      <Script id="google-analytics" strategy="lazyOnload">
+      <Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
