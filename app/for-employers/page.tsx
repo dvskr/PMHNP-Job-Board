@@ -28,7 +28,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: 'For Employers — Hire PMHNPs | PMHNP Job Board',
   description:
-    'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post your first job free. Reach 6,000+ PMHNPs actively searching. Simple pricing, real results.',
+    'Hire qualified Psychiatric Mental Health Nurse Practitioners. Post your first job free. Reach thousands of PMHNPs actively searching. Simple pricing, real results.',
   openGraph: {
     images: [{ url: '/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
   },
@@ -44,15 +44,10 @@ async function getEmployerStats() {
       prisma.job.groupBy({ by: ['employer'], where: { isPublished: true } }).then((r) => r.length),
       prisma.job.aggregate({ where: { isPublished: true, viewCount: { gt: 0 } }, _avg: { viewCount: true } }).then((r) => Math.round(r._avg.viewCount || 0)),
     ]);
-    // Use minimum thresholds so the page never looks empty
-    return {
-      totalJobs: Math.max(totalJobs, 2500),
-      totalSubscribers: Math.max(totalSubscribers, 6300),
-      totalCompanies: Math.max(totalCompanies, 450),
-      avgViews: Math.max(avgViews, 180),
-    };
+    // Return actual stats — no inflation
+    return { totalJobs, totalSubscribers, totalCompanies, avgViews };
   } catch {
-    return { totalJobs: 2500, totalSubscribers: 6300, totalCompanies: 450, avgViews: 180 };
+    return { totalJobs: 0, totalSubscribers: 0, totalCompanies: 0, avgViews: 0 };
   }
 }
 
@@ -112,7 +107,7 @@ export default async function ForEmployersPage() {
             <span style={{ color: '#2DD4BF' }}>Exclusively</span> for PMHNPs
           </h1>
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)', maxWidth: '520px', margin: '0 auto 24px', lineHeight: 1.5 }}>
-            Reach {fmt(stats.totalSubscribers)} psychiatric nurse practitioners actively searching for their next role. Every candidate is a qualified PMHNP.
+            Reach thousands of psychiatric nurse practitioners actively searching for their next role. Every candidate is a qualified PMHNP.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/post-job" style={{
@@ -134,27 +129,8 @@ export default async function ForEmployersPage() {
           </div>
         </section>
 
-        {/* ═══ STATS BAR ═══ */}
-        <section style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
-          marginBottom: '48px',
-        }}>
-          {[
-            { icon: Users, label: 'Active PMHNPs', value: fmt(stats.totalSubscribers), color: '#2DD4BF' },
-            { icon: Briefcase, label: 'Active Listings', value: fmt(stats.totalJobs), color: '#E86C2C' },
-            { icon: TrendingUp, label: 'Employers Trust Us', value: fmt(stats.totalCompanies), color: '#A855F7' },
-            { icon: Eye, label: 'Avg Views Per Post', value: `${stats.avgViews}`, color: '#3B82F6' },
-          ].map(({ icon: Icon, label, value, color }) => (
-            <div key={label} style={{
-              textAlign: 'center', padding: '20px 12px', borderRadius: '12px',
-              background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-            }}>
-              <Icon size={20} style={{ color, marginBottom: '8px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
-              <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{value}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{label}</div>
-            </div>
-          ))}
-        </section>
+
+
 
         {/* ═══ WHY CHOOSE US — 6 features in 2×3 grid ═══ */}
         <section style={{ marginBottom: '48px' }}>
@@ -350,28 +326,7 @@ export default async function ForEmployersPage() {
           </div>
         </section>
 
-        {/* ═══ ROI STATS ═══ */}
-        <section style={{ marginBottom: '48px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, textAlign: 'center', marginBottom: '20px', color: 'var(--text-primary)' }}>
-            Real Results for Employers
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-            {[
-              { icon: Eye, label: 'Avg Views Per Post', value: `${stats.avgViews}`, color: '#3B82F6' },
-              { icon: MousePointerClick, label: 'Avg Apply Clicks', value: `${Math.round(stats.avgViews * 0.12)}`, color: '#E86C2C' },
-              { icon: Mail, label: 'Email Recipients', value: fmt(stats.totalSubscribers), color: '#2DD4BF' },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} style={{
-                textAlign: 'center', padding: '24px 16px', borderRadius: '12px',
-                background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-              }}>
-                <Icon size={20} style={{ color, marginBottom: '8px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
-                <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{value}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
+
 
         {/* ═══ BOTTOM CTA ═══ */}
         <section style={{

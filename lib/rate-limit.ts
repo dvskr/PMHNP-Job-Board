@@ -40,6 +40,10 @@ export const RATE_LIMITS = {
     applyDirect: { limit: 10, windowSeconds: 60 },
     /** Admin endpoints: 20 req/min */
     admin: { limit: 20, windowSeconds: 60 },
+    /** Employer endpoints: 30 req/min */
+    employer: { limit: 30, windowSeconds: 60 },
+    /** Candidate messaging: 10 messages per 24h */
+    candidateMessage: { limit: 10, windowSeconds: 86400 },
 } as const;
 
 // --- Redis Backend Setup ---

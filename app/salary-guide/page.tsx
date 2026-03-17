@@ -193,16 +193,16 @@ export default async function SalaryGuidePage() {
     "@type": "Article",
     "headline": "2026 PMHNP Salary Guide: Psychiatric NP Pay by State",
     "description": "Comprehensive PMHNP salary data for 2026 including state-by-state pay, experience levels, specialty premiums, and market trends. Based on BLS, ZipRecruiter, Indeed, and 10,000+ job postings.",
-    "image": "https://pmhnphiring.com/og-salary-guide.png",
+    "image": "https://pmhnphiring.com/images/pages/pmhnp-salary-guide-2026.webp",
     "datePublished": "2026-01-01T00:00:00Z",
-    "dateModified": "2026-02-02T00:00:00Z",
+    "dateModified": new Date().toISOString(),
     "author": {
       "@type": "Organization",
       "name": "PMHNP Hiring",
       "url": "https://pmhnphiring.com",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://pmhnphiring.com/logo.svg"
+        "url": "https://pmhnphiring.com/logo.png"
       }
     },
     "publisher": {
@@ -240,6 +240,20 @@ export default async function SalaryGuidePage() {
         { name: "Home", url: "https://pmhnphiring.com" },
         { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
       ]} />
+      {/* Speakable Schema — targets the Quick Answer for voice assistants */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: sanitizeJson({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": `${currentYear} PMHNP Salary Guide`,
+          "speakable": {
+            "@type": "SpeakableSpecification",
+            "cssSelector": [".quick-answer-box", "h1"]
+          },
+          "url": "https://pmhnphiring.com/salary-guide"
+        }) }}
+      />
       {/* Last Updated Notice */}
       <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderBottom: '1px solid var(--border-color, #E5E7EB)', padding: '8px 16px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
@@ -288,7 +302,7 @@ export default async function SalaryGuidePage() {
         <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
           {/* Quick Answer Box */}
           <section style={{ marginBottom: '24px' }}>
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '24px' }}>
+            <div className="quick-answer-box" style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '24px' }}>
               <div className="flex items-start gap-3 mb-4">
                 <div className="flex-shrink-0" style={{ width: '40px', height: '40px', backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <BarChart3 className="h-5 w-5 text-teal-600" />

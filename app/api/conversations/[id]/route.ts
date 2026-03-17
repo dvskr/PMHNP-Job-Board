@@ -194,7 +194,7 @@ export async function POST(
 
         const profile = await prisma.userProfile.findUnique({
             where: { supabaseId: user.id },
-            select: { id: true, firstName: true, lastName: true, company: true },
+            select: { id: true, firstName: true, lastName: true, company: true, role: true },
         });
         if (!profile) {
             return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
@@ -215,6 +215,30 @@ export async function POST(
 
         if (conversation.participantA !== profile.id && conversation.participantB !== profile.id) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // LinkedIn-style reply gating: if a candidate initiated this conversation
+        // and the employer hasn't replied yet, block follow-up messages.
+        // This only applies to job_seekers — employers can always reply.
+        if (profile.role === 'job_seeker') {
+            const recipientId = conversation.participantA === profile.id
+                ? conversation.participantB
+                : conversation.participantA;
+
+            // Check if the other party (employer) has ever sent a message in this conversation
+            const employerReplyCount = await prisma.employerMessage.count({
+                where: {
+                    conversationId: id,
+                    senderId: recipientId,
+                },
+            });
+
+            if (employerReplyCount === 0) {
+                return NextResponse.json({
+                    error: 'Please wait for the employer to respond before sending another message',
+                    awaitingReply: true,
+                }, { status: 403 });
+            }
         }
 
         const body = await req.json();

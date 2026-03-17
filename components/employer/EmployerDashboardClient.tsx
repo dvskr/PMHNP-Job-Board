@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, BellOff } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, BellOff, Pause, Play, Rocket } from 'lucide-react';
 import { config } from '@/lib/config';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
@@ -21,6 +21,7 @@ interface Job {
     expiresAt: string | null;
     editToken: string;
     paymentStatus: string;
+    pricingTier: string;
     slug: string | null;
 }
 
@@ -39,6 +40,8 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [upgradingJobId, setUpgradingJobId] = useState<string | null>(null);
     const [showRenewModal, setShowRenewModal] = useState(false);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+    const [togglingJobId, setTogglingJobId] = useState<string | null>(null);
+    const [localJobs, setLocalJobs] = useState(jobs);
     const [showSignupBanner, setShowSignupBanner] = useState(isTokenAccess);
     const [activeTab, setActiveTab] = useState<'jobs' | 'applicants' | 'analytics' | 'saved'>('jobs');
 
@@ -124,6 +127,23 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const handleRenewClick = (job: Job) => {
         setSelectedJob(job);
         setShowRenewModal(true);
+    };
+
+    const handleTogglePublish = async (job: Job) => {
+        setTogglingJobId(job.id);
+        try {
+            const res = await fetch(`/api/employer/jobs/${job.id}/toggle-publish`, {
+                method: 'PATCH',
+            });
+            const result = await res.json();
+            if (res.ok && result.success) {
+                setLocalJobs(prev => prev.map(j =>
+                    j.id === job.id ? { ...j, isPublished: result.isPublished } : j
+                ));
+            }
+        } catch { /* silent */ } finally {
+            setTogglingJobId(null);
+        }
     };
 
     const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
@@ -369,28 +389,54 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {(activeTab === 'jobs' || isTokenAccess) && (
                     <>
                         {/* Empty State */}
-                        {jobs.length === 0 && (
+                        {localJobs.length === 0 && (
                             <div className="rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                                     <svg className="h-8 w-8" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No jobs posted yet</h3>
-                                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Get started by posting your first PMHNP job listing</p>
+                                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Welcome! Let&apos;s get started</h3>
+                                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Follow these steps to start hiring qualified PMHNPs</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-left w-full max-w-lg">
+                                    <Link href="/employer/settings" className="flex items-start gap-3 p-4 rounded-lg border transition-colors hover:border-teal-500" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">1</span>
+                                        <div>
+                                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Company Profile</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Add logo &amp; company details</p>
+                                        </div>
+                                    </Link>
+                                    <Link href="/post-job" className="flex items-start gap-3 p-4 rounded-lg border transition-colors hover:border-teal-500" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">2</span>
+                                        <div>
+                                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Post a Job</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Create your first listing</p>
+                                        </div>
+                                    </Link>
+                                    <div className="flex items-start gap-3 p-4 rounded-lg border opacity-60" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-bold">3</span>
+                                        <div>
+                                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Track Results</p>
+                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Views, clicks &amp; applicants</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <Link
                                     href="/post-job"
-                                    className="inline-block bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+                                    className="inline-flex items-center gap-2 bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
                                 >
+                                    <Rocket size={18} />
                                     Post Your First Job
                                 </Link>
                             </div>
                         )}
 
                         {/* Jobs List */}
-                        {jobs.length > 0 && (
+                        {localJobs.length > 0 && (
                             <div className="space-y-4">
-                                {jobs.map((job: Job) => (
+                                {localJobs.map((job: Job) => (
                                     <div key={job.id} className="rounded-lg shadow-sm p-6 transition-shadow hover:shadow-md" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                             {/* Job Info */}
@@ -448,9 +494,9 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                             {isExpiringSoon(job) && ' ⚠️'}
                                                         </span>
                                                     )}
-                                                    {config.isPaidPostingEnabled && job.paymentStatus === 'paid' && dashboardToken && (
+                                                    {config.isPaidPostingEnabled && job.paymentStatus === 'paid' && (
                                                         <a
-                                                            href={`/api/employer/invoice?jobId=${job.id}&token=${dashboardToken}`}
+                                                            href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-teal-600 hover:text-teal-800 hover:underline"
@@ -471,6 +517,23 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     <Edit size={16} />
                                                     Edit
                                                 </Link>
+                                                {!isExpired(job) && (
+                                                    <button
+                                                        onClick={() => handleTogglePublish(job)}
+                                                        disabled={togglingJobId === job.id}
+                                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                                        style={{
+                                                            color: job.isPublished ? '#F59E0B' : '#10B981',
+                                                            border: `1px solid ${job.isPublished ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                                                            backgroundColor: job.isPublished ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)',
+                                                        }}
+                                                    >
+                                                        {togglingJobId === job.id
+                                                            ? <Loader2 size={16} className="animate-spin" />
+                                                            : job.isPublished ? <Pause size={16} /> : <Play size={16} />}
+                                                        {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
+                                                    </button>
+                                                )}
                                                 {config.isPaidPostingEnabled && !job.isFeatured && job.isPublished && !isExpired(job) && (
                                                     <button
                                                         onClick={() => handleUpgradeClick(job)}
@@ -488,7 +551,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <RefreshCw size={16} className={renewingJobId === job.id ? 'animate-spin' : ''} />
-                                                        {renewingJobId === job.id ? 'Processing...' : 'Renew - $199'}
+                                                        {renewingJobId === job.id ? 'Processing...' : 'Renew'}
                                                     </button>
                                                 )}
                                             </div>

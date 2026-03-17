@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { getEmployerTier } from '@/lib/tier-limits';
 import { PricingTier } from '@/lib/config';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/analytics
@@ -15,6 +16,9 @@ import { PricingTier } from '@/lib/config';
  *   Premium  → full data + exportUrl for CSV download
  */
 export async function GET(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:analytics', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

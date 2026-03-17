@@ -109,7 +109,7 @@ export async function GET(
         const unlockCheck = await canUnlockCandidate(user.id, tier)
         if (!unlockCheck.allowed) {
             return NextResponse.json({
-                error: 'Monthly candidate unlock limit reached',
+                error: 'Candidate unlock limit reached for this posting',
                 used: unlockCheck.used,
                 limit: unlockCheck.limit,
                 tier,
@@ -136,51 +136,64 @@ export async function GET(
         // Don't fail the request if view tracking fails
     }
 
-    // Build response with privacy transforms
+    // Determine employer tier for field gating
+    const tier: PricingTier = isAdmin ? 'premium' : await getEmployerTier(user.id)
+
+    // Build response with tier-based field gating + privacy transforms
     const displayName = candidate.firstName
-        ? `${candidate.firstName} ${candidate.lastName ? candidate.lastName.charAt(0) + '.' : ''}`.trim()
+        ? `${candidate.firstName} ${tier === 'premium' && candidate.lastName ? candidate.lastName : (candidate.lastName ? candidate.lastName.charAt(0) + '.' : '')}`.trim()
         : 'PMHNP Candidate'
 
-    // Salary range — never show exact, round to nearest 5k
-    let salaryRange: string | null = null
-    if (candidate.desiredSalaryMin || candidate.desiredSalaryMax) {
-        const roundTo5k = (n: number) => Math.round(n / 5000) * 5000
-        const min = candidate.desiredSalaryMin ? roundTo5k(candidate.desiredSalaryMin) : null
-        const max = candidate.desiredSalaryMax ? roundTo5k(candidate.desiredSalaryMax) : null
-        if (min && max) {
-            salaryRange = `$${(min / 1000).toFixed(0)}k – $${(max / 1000).toFixed(0)}k`
-        } else if (min) {
-            salaryRange = `$${(min / 1000).toFixed(0)}k+`
-        } else if (max) {
-            salaryRange = `Up to $${(max / 1000).toFixed(0)}k`
-        }
-    }
-
-    // Resume + contact details — ONLY available with an active paid featured job post
-    const freshResumeUrl = hasFullAccess ? await generateResumeUrl(candidate.resumeUrl) : null;
-
-    return NextResponse.json({
+    // Base fields — all tiers see these
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response: Record<string, any> = {
         id: candidate.supabaseId,
         displayName,
         initials: `${(candidate.firstName || 'P').charAt(0)}${(candidate.lastName || 'C').charAt(0)}`.toUpperCase(),
         avatarUrl: candidate.avatarUrl,
         headline: candidate.headline,
-        bio: candidate.bio,
         yearsExperience: candidate.yearsExperience,
-        certifications: candidate.certifications ? candidate.certifications.split(',').map(s => s.trim()) : [],
-        licenseStates: candidate.licenseStates ? candidate.licenseStates.split(',').map(s => s.trim()) : [],
         specialties: candidate.specialties ? candidate.specialties.split(',').map(s => s.trim()) : [],
         preferredWorkMode: candidate.preferredWorkMode,
-        preferredJobType: candidate.preferredJobType,
-        availableDate: candidate.availableDate?.toISOString() || null,
-        salaryRange,
-        hasResume: !!candidate.resumeUrl,
         joinedAt: candidate.createdAt.toISOString(),
-
-        // Paid access only — resume, email, LinkedIn
+        tier,
         hasFullAccess,
-        resumeUrl: freshResumeUrl,
-        contactEmail: hasFullAccess ? candidate.email : null,
-        linkedinUrl: hasFullAccess ? candidate.linkedinUrl : null,
-    })
+    }
+
+    // Growth+ fields — certifications, license, salary, availability
+    if (tier === 'growth' || tier === 'premium') {
+        response.certifications = candidate.certifications ? candidate.certifications.split(',').map(s => s.trim()) : []
+        response.licenseStates = candidate.licenseStates ? candidate.licenseStates.split(',').map(s => s.trim()) : []
+        response.availableDate = candidate.availableDate?.toISOString() || null
+        response.hasResume = !!candidate.resumeUrl
+
+        // Salary range — never show exact, round to nearest 5k
+        if (candidate.desiredSalaryMin || candidate.desiredSalaryMax) {
+            const roundTo5k = (n: number) => Math.round(n / 5000) * 5000
+            const min = candidate.desiredSalaryMin ? roundTo5k(candidate.desiredSalaryMin) : null
+            const max = candidate.desiredSalaryMax ? roundTo5k(candidate.desiredSalaryMax) : null
+            if (min && max) {
+                response.salaryRange = `$${(min / 1000).toFixed(0)}k – $${(max / 1000).toFixed(0)}k`
+            } else if (min) {
+                response.salaryRange = `$${(min / 1000).toFixed(0)}k+`
+            } else if (max) {
+                response.salaryRange = `Up to $${(max / 1000).toFixed(0)}k`
+            }
+        }
+    }
+
+    // Premium fields — bio, job type preference
+    if (tier === 'premium') {
+        response.bio = candidate.bio
+        response.preferredJobType = candidate.preferredJobType
+    }
+
+    // Paid access only — resume download, email, LinkedIn
+    // Requires an active featured (Growth/Premium) job posting
+    const freshResumeUrl = hasFullAccess ? await generateResumeUrl(candidate.resumeUrl) : null
+    response.resumeUrl = freshResumeUrl
+    response.contactEmail = hasFullAccess ? candidate.email : null
+    response.linkedinUrl = hasFullAccess ? candidate.linkedinUrl : null
+
+    return NextResponse.json(response)
 }

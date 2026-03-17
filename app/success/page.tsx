@@ -60,14 +60,20 @@ function SuccessContent() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
           <Link
-            href="/jobs"
+            href="/employer/dashboard"
             className="inline-block bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors text-lg"
+          >
+            Go to Dashboard
+          </Link>
+          <Link
+            href="/jobs"
+            className="inline-block border-2 border-teal-600 text-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition-colors text-lg"
           >
             View All Jobs
           </Link>
           <Link
             href="/post-job"
-            className="inline-block border-2 border-teal-600 text-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition-colors text-lg"
+            className="inline-block border-2 border-gray-300 text-gray-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-lg"
           >
             Post Another Job
           </Link>

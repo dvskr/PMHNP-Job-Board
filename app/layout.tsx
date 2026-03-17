@@ -190,14 +190,6 @@ export default async function RootLayout({
                     "@type": "ContactPoint",
                     "email": "contact@pmhnphiring.com",
                     "contactType": "customer service"
-                  },
-                  "aggregateRating": {
-                    "@type": "AggregateRating",
-                    "ratingValue": "4.8",
-                    "bestRating": "5",
-                    "worstRating": "1",
-                    "ratingCount": "2847",
-                    "reviewCount": "412"
                   }
                 },
                 {

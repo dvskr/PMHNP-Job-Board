@@ -116,10 +116,15 @@ export default async function BlogPostPage({ params }: Props) {
         description: post.meta_description || post.title,
         datePublished: post.publish_date || post.created_at,
         dateModified: post.updated_at,
-        author: {
+        author: [{
             '@type': 'Organization',
             name: 'PMHNP Hiring',
             url: 'https://pmhnphiring.com',
+        }],
+        reviewedBy: {
+            '@type': 'Person',
+            name: 'PMHNP Clinical Review Team',
+            jobTitle: 'Board-Certified Psychiatric Nurse Practitioners',
         },
         publisher: {
             '@type': 'Organization',
@@ -360,6 +365,10 @@ export default async function BlogPostPage({ params }: Props) {
                                 {post.target_keyword}
                             </span>
                         )}
+                        <div className="flex items-center">
+                            <User className="w-4 h-4 mr-1" />
+                            <span>Reviewed by PMHNP Clinical Team</span>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -370,6 +379,8 @@ export default async function BlogPostPage({ params }: Props) {
                     <img
                         src={post.image_url}
                         alt={post.title}
+                        width={1200}
+                        height={630}
                         className="w-full h-auto max-h-[480px] object-cover rounded-xl shadow-md"
                         loading="eager"
                     />

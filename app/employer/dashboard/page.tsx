@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
 import { requireEmployer } from '@/lib/auth/protect';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerDashboardClient from '@/components/employer/EmployerDashboardClient';
+
+export const metadata: Metadata = {
+    title: 'Employer Dashboard — PMHNP Hiring',
+    description: 'Manage your PMHNP job postings, track applicants, and view analytics.',
+    robots: { index: false, follow: false },
+};
 
 export default async function EmployerDashboardPage() {
     // Require employer or admin role — redirects to /unauthorized otherwise
@@ -27,7 +34,13 @@ export default async function EmployerDashboardPage() {
             ]
         },
         include: {
-            job: true
+            job: {
+                include: {
+                    _count: {
+                        select: { jobApplications: true }
+                    }
+                }
+            }
         },
         orderBy: {
             createdAt: 'desc',
@@ -42,10 +55,12 @@ export default async function EmployerDashboardPage() {
         isFeatured: record.job.isFeatured,
         viewCount: record.job.viewCount,
         applyClickCount: record.job.applyClickCount,
+        applicantCount: record.job._count.jobApplications,
         createdAt: record.job.createdAt.toISOString(),
         expiresAt: record.job.expiresAt ? record.job.expiresAt.toISOString() : null,
         editToken: record.editToken,
         paymentStatus: record.paymentStatus,
+        pricingTier: record.pricingTier || 'starter',
         slug: record.job.slug,
     }));
 

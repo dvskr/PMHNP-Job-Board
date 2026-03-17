@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         ],
         mode: 'payment',
         success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard/${dashboardToken}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard`,
         metadata: {
           jobId: job.id,
           type: 'upgrade',
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     } else {
       // FREE MODE: Upgrades not available during free launch
       return NextResponse.json(
-        { error: 'Upgrades are available when paid plans are enabled. During the free launch, all postings include Starter-tier features.' },
+        { error: 'Upgrades are not available during the free launch period. All free postings already include Growth-tier features.' },
         { status: 403 }
       );
     }

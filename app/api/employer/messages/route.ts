@@ -3,13 +3,17 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmployerMessageNotification } from '@/lib/email-service';
 import { canSendInMail, getEmployerTier } from '@/lib/tier-limits';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/messages — List sent messages for the employer
  * POST /api/employer/messages — Send a new message to a candidate
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const rateLimitResponse = await rateLimit(req, 'employer:messages', RATE_LIMITS.employer);
+        if (rateLimitResponse) return rateLimitResponse;
+
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -60,6 +64,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     try {
+        const rateLimitResponse = await rateLimit(req, 'employer:messages', RATE_LIMITS.employer);
+        if (rateLimitResponse) return rateLimitResponse;
+
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -140,7 +147,7 @@ export async function POST(req: NextRequest) {
         const inmailCheck = await canSendInMail(senderProfile.id, user.id, tier);
         if (!inmailCheck.allowed) {
             return NextResponse.json({
-                error: 'Monthly InMail limit reached',
+                error: 'InMail limit reached for this posting',
                 used: inmailCheck.used,
                 limit: inmailCheck.limit,
                 tier,

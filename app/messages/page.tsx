@@ -282,7 +282,11 @@ export default function MessagesPage() {
             });
             if (!res.ok) {
                 const data = await res.json();
-                alert(data.error || 'Failed to send');
+                if (data.awaitingReply) {
+                    showToast('⏳ Please wait for the employer to respond before sending another message');
+                } else {
+                    alert(data.error || 'Failed to send');
+                }
                 return;
             }
             const data = await res.json();

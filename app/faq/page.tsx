@@ -115,6 +115,24 @@ export default function FAQPage() {
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'FAQ', url: 'https://pmhnphiring.com/faq' },
       ]} />
+      {/* FAQPage Schema for Google rich results */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [...jobSeekerFaqs, ...employerFaqs, ...generalFaqs].map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
+              },
+            })),
+          }),
+        }}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">

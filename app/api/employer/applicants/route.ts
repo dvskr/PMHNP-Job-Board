@@ -3,12 +3,16 @@ import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getResumeUrl } from '@/lib/supabase-storage';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/applicants
  * List all applicants for the employer's jobs, with optional filters.
  */
 export async function GET(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:applicants', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -134,11 +138,22 @@ export async function GET(req: NextRequest) {
  * Update an applicant's status and/or notes.
  */
 export async function PATCH(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:applicants', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const profile = await prisma.userProfile.findUnique({
+        where: { supabaseId: user.id },
+        select: { id: true, role: true },
+    });
+
+    if (!profile || !['employer', 'admin'].includes(profile.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -166,9 +181,13 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
+    // Check ownership: admin always allowed, otherwise check userId OR contactEmail
     const employerJob = application.job.employerJobs;
-    const isOwner = employerJob &&
-        (employerJob.userId === user.id || employerJob.contactEmail === user.email);
+    const isAdmin = profile.role === 'admin';
+    const isOwner = isAdmin || (employerJob && (
+        (employerJob.userId && employerJob.userId === user.id) ||
+        (employerJob.contactEmail && employerJob.contactEmail === user.email)
+    ));
 
     if (!isOwner) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

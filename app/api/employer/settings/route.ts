@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/settings
  * Fetch employer company info from their EmployerJob records.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:settings', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -64,6 +68,9 @@ export async function GET() {
  * Update employer profile and company info.
  */
 export async function PATCH(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:settings', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

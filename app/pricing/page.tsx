@@ -156,7 +156,7 @@ export default function PricingPage() {
                     >
                         {config.isPaidPostingEnabled
                             ? 'Choose the plan that fits your hiring needs. No subscriptions, no contracts \u2014 just results.'
-                            : 'Reach 6,000+ psychiatric nurse practitioners actively searching. No credit card required. Go live in under 5 minutes.'}
+                            : 'Reach thousands of psychiatric nurse practitioners actively searching. No credit card required. Go live in under 5 minutes.'}
                     </p>
                     {!config.isPaidPostingEnabled && (
                         <div style={{ marginTop: '28px' }}>
@@ -189,7 +189,7 @@ export default function PricingPage() {
                             { icon: Sparkles, title: '60-Day Job Listing', desc: 'Your posting stays active for 60 days — 2× longer than standard. Maximum exposure.', color: '#E86C2C' },
                             { icon: Crown, title: '"Featured" Badge', desc: 'Your listing displays a prominent Featured badge, standing out from all other postings.', color: '#A855F7' },
                             { icon: TrendingUp, title: 'Top Search Placement', desc: 'Your job appears at the top of search results, ahead of standard listings.', color: '#2DD4BF' },
-                            { icon: Mail, title: 'Highlighted in Job Alerts', desc: 'Your listing is prioritized and highlighted in daily emails to 6,000+ PMHNPs.', color: '#E86C2C' },
+                            { icon: Mail, title: 'Highlighted in Job Alerts', desc: 'Your listing is prioritized and highlighted in daily emails to thousands of PMHNPs.', color: '#E86C2C' },
                             { icon: Users, title: '25 Candidate Unlocks', desc: 'Preview and unlock up to 25 candidate profiles per posting.', color: '#10B981' },
                             { icon: MessageSquare, title: '25 InMails/Posting', desc: 'Message up to 25 candidates directly on the platform.', color: '#F59E0B' },
                             { icon: Search, title: 'Advanced Analytics', desc: 'Track views, clicks, and sources. Know exactly how your posting performs.', color: '#3B82F6' },
@@ -533,7 +533,7 @@ export default function PricingPage() {
                         }}
                     >
                         {[
-                            { icon: Users, title: '6,300+ Active PMHNPs', desc: 'The largest niche job board for psychiatric nurse practitioners.' },
+                            { icon: Users, title: 'Thousands of Active PMHNPs', desc: 'The largest niche job board for psychiatric nurse practitioners.' },
                             { icon: TrendingUp, title: '3× Higher Engagement', desc: 'Our job seekers are specifically looking for PMHNP roles.' },
                             { icon: Mail, title: 'Daily Job Alerts', desc: 'Your listing sent directly to thousands of opted-in candidates.' },
                             { icon: Search, title: 'SEO-Optimized Pages', desc: 'Every listing is discoverable on Google for maximum reach.' },

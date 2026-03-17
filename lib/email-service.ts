@@ -537,7 +537,7 @@ export async function sendConfirmationEmail(
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
-    const dashboardUrl = dashboardToken ? `${BASE_URL}/employer/dashboard/${dashboardToken}` : null;
+    const dashboardUrl = `${BASE_URL}/employer/dashboard`;
 
     const html = emailShell(`
           ${headerBlock('Your Job Post is Live!', 'Now visible to thousands of PMHNPs')}
@@ -568,7 +568,7 @@ export async function sendConfirmationEmail(
               </table>
 
               <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
-                Your listing is active for <strong style="color: ${C.textPrimary};">30 days</strong>. We'll notify you when it's time to renew.
+                Your listing is active for <strong style="color: ${C.textPrimary};">${config.isPaidPostingEnabled ? '30' : '60'} days</strong>. We'll notify you when it's time to renew.
               </p>
 
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
@@ -582,11 +582,11 @@ export async function sendConfirmationEmail(
                 </tr>
               </table>
 
-              ${dashboardUrl ? infoCard(`
+              ${infoCard(`
                     <p style="margin: 0 0 8px; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">📊 Your Employer Dashboard</p>
                     <p style="margin: 0 0 16px; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; line-height: 1.5;">Track views, clicks, and manage all your job postings in one place.</p>
                     ${primaryButton('Open Dashboard', dashboardUrl)}
-              `, C.blue) : ''}
+              `, C.blue)}
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
@@ -731,7 +731,7 @@ export async function sendRenewalConfirmationEmail(
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
                   <td>
-                    ${primaryButton('View Dashboard →', `${BASE_URL}/employer/dashboard/${dashboardToken}`)}
+                    ${primaryButton('View Dashboard →', `${BASE_URL}/employer/dashboard`)}
                   </td>
                 </tr>
               </table>
@@ -798,7 +798,7 @@ export async function sendExpiryWarningEmail(
 
               <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
                 ${config.isPaidPostingEnabled
-        ? 'Renew for just $199 to keep it active for another 30 days.'
+        ? 'Renew now to keep it active and continue receiving applicants.'
         : 'Renew now to keep it active — <strong style="color: ' + C.emerald + ';">FREE during our launch period!</strong>'}
               </p>
 
@@ -814,7 +814,7 @@ export async function sendExpiryWarningEmail(
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr class="stack">
                   <td style="padding-right: 12px;">
-                    ${primaryButton('Renew Now →', `${BASE_URL}/employer/dashboard/${dashboardToken}`)}
+                    ${primaryButton('Renew Now →', `${BASE_URL}/employer/dashboard`)}
                   </td>
                   <td>
                     ${secondaryButton('Edit Job', `${BASE_URL}/jobs/edit/${editToken}`)}
@@ -1146,6 +1146,75 @@ export async function sendEmployerMessageNotification(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send message notification',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CANDIDATE INQUIRY NOTIFICATION (candidate → employer)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function sendCandidateInquiryNotification(
+  recipientEmail: string,
+  recipientFirstName: string | null,
+  candidateName: string,
+  subject: string,
+  messageBody: string,
+  jobTitle: string | null
+): Promise<EmailResult> {
+  try {
+    const greeting = recipientFirstName ? `Hi ${escapeHtml(recipientFirstName)},` : 'Hi there,';
+    const preview = messageBody.length > 200 ? escapeHtml(messageBody.substring(0, 200)) + '…' : escapeHtml(messageBody);
+
+    const html = emailShell(`
+          ${headerBlock('New Inquiry from a Candidate', escapeHtml(candidateName))}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                ${greeting} a candidate has reached out about your job posting.
+              </p>
+
+              ${jobTitle ? infoCard(`
+                    ${sectionLabel('Regarding Your Posting')}
+                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${escapeHtml(jobTitle)}</p>
+              `, C.tealDarker) : ''}
+
+              ${infoCard(`
+                    ${sectionLabel('Subject')}
+                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${escapeHtml(subject)}</p>
+                    ${sectionLabel('Message')}
+                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${preview}</p>
+              `, C.tealDarker)}
+
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 24px 0 0;">
+                <tr>
+                  <td>
+                    ${primaryButton('View & Reply →', `${BASE_URL}/messages`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+      </p>`,
+      `${escapeHtml(candidateName)} has a question about your "${jobTitle || 'job'}" posting — reply now!`
+    );
+
+    await sendAndLog({
+      from: EMAIL_FROM,
+      to: recipientEmail,
+      subject: `💬 ${candidateName} has a question about your "${jobTitle || 'job posting'}"`,
+      html,
+    }, 'candidate_inquiry', { candidateName, jobTitle });
+
+    logger.info('Candidate inquiry notification sent', { recipientEmail, candidateName });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending candidate inquiry notification', error, { recipientEmail });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send candidate inquiry notification',
     };
   }
 }

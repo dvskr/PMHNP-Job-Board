@@ -1,13 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/billing
  * Fetch payment history (employer jobs with payment info).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:billing', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

@@ -1,105 +1,165 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { CheckCircle } from 'lucide-react';
+import { config, PricingTier } from '@/lib/config';
+
+interface UpgradeData {
+  tier: PricingTier;
+  tierLabel: string;
+  jobTitle: string;
+  expiresAt: string;
+}
+
+const TIER_BENEFITS: Record<PricingTier, string[]> = {
+  starter: [
+    '30-day job listing',
+    'Basic analytics',
+    '5 candidate unlocks/posting',
+    '5 InMails/posting',
+  ],
+  growth: [
+    '60-day listing (2× longer)',
+    '"Featured" badge on listing',
+    'Top placement in search results',
+    'Highlighted in daily job alerts',
+    '25 candidate unlocks/posting',
+    '25 InMails/posting',
+    'Advanced analytics (views, clicks, sources)',
+  ],
+  premium: [
+    '90-day listing (3× longer)',
+    'Everything in Growth',
+    'Unlimited candidate unlocks',
+    'Unlimited InMails',
+    'Social media promotion',
+    'Dedicated account support',
+  ],
+};
 
 function UpgradeSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
 
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<UpgradeData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    // In a real implementation, you could fetch the dashboard token from the session
-    // For now, we'll just show a generic success message
-    // The dashboard link will be in the confirmation email
+    if (!sessionId) {
+      setError('No session ID found');
+      setLoading(false);
+      return;
+    }
+
+    fetch(`/api/verify-upgrade-session?session_id=${sessionId}`)
+      .then(r => r.json())
+      .then(result => {
+        if (result.success) {
+          setData({
+            tier: result.tier || 'growth',
+            tierLabel: result.tierLabel || config.getTierLabel(result.tier || 'growth'),
+            jobTitle: result.jobTitle || 'Your Job',
+            expiresAt: result.expiresAt || '',
+          });
+        } else {
+          // Fallback: even if verification fails, show a success-ish page
+          // since the user was redirected here from Stripe
+          setData({
+            tier: 'growth',
+            tierLabel: 'Growth',
+            jobTitle: 'Your Job',
+            expiresAt: '',
+          });
+        }
+      })
+      .catch(() => {
+        // Show fallback on network error
+        setData({
+          tier: 'growth',
+          tierLabel: 'Growth',
+          jobTitle: 'Your Job',
+          expiresAt: '',
+        });
+      })
+      .finally(() => setLoading(false));
   }, [sessionId]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-purple-50 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full">
-        {/* Success Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          {/* Success Icon */}
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-teal-100 to-purple-100">
-            <CheckCircle className="h-12 w-12 text-teal-600" />
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            Job Upgraded Successfully!
-          </h1>
-
-          {/* Description */}
-          <p className="text-lg text-gray-600 mb-2">
-            Your job is now featured and will appear at the top of search results.
-          </p>
-
-          {/* Benefits List */}
-          <div className="bg-gradient-to-r from-teal-50 to-purple-50 rounded-lg p-4 mb-6 mt-6">
-            <p className="text-sm font-semibold text-gray-900 mb-2">What you get with Growth:</p>
-            <ul className="text-sm text-gray-700 space-y-1 text-left">
-              <li className="flex items-start gap-2">
-                <span className="text-teal-600 font-bold">✓</span>
-                <span>Pinned to the top of all search results</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-teal-600 font-bold">✓</span>
-                <span>Featured badge for increased visibility</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-teal-600 font-bold">✓</span>
-                <span>30 additional days of visibility (60 days total)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-teal-600 font-bold">✓</span>
-                <span>Priority in email alerts to job seekers</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Dashboard Link */}
-          <p className="text-sm text-gray-600 mb-6">
-            Check your email for a confirmation and link to your dashboard.
-          </p>
-
-          {/* Action Button */}
-          <Link
-            href="/"
-            className="inline-block w-full bg-gradient-to-r from-teal-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-teal-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
-          >
-            Go to Homepage
-          </Link>
-
-          {/* Alternative Link */}
-          <p className="mt-4 text-sm text-gray-500">
-            Need help?{' '}
-            <a href="mailto:support@pmhnphiring.com" className="text-teal-600 hover:underline font-medium">
-              Contact Support
-            </a>
-          </p>
-        </div>
-
-        {/* Additional Info */}
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            Your upgraded listing is now live at{' '}
-            <Link href="/jobs" className="text-teal-600 hover:underline font-medium">
-              PMHNPHiring.com
-            </Link>
-          </p>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p style={{ color: 'var(--text-secondary)' }}>Verifying your upgrade...</p>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-function LoadingFallback() {
+  if (error && !data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="max-w-md w-full rounded-lg shadow-md p-8 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Something went wrong</h2>
+          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
+          <Link href="/employer/dashboard" className="inline-block bg-teal-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-teal-700 transition-colors">
+            Go to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const tier = data?.tier || 'growth';
+  const tierLabel = data?.tierLabel || 'Growth';
+  const benefits = TIER_BENEFITS[tier] || TIER_BENEFITS.growth;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-purple-50 flex items-center justify-center px-4 py-12">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading...</p>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="max-w-lg w-full rounded-lg shadow-md p-8 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+          <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        </div>
+
+        <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+          Upgrade Complete! 🎉
+        </h1>
+        <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
+          {data?.jobTitle ? `"${data.jobTitle}" has been upgraded to ` : 'Your job has been upgraded to '}
+          <strong style={{ color: tier === 'premium' ? '#A855F7' : '#E86C2C' }}>{tierLabel}</strong>.
+        </p>
+
+        <div className="text-left mb-6 rounded-lg p-4" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+          <h3 className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+            What you get with {tierLabel}:
+          </h3>
+          <ul className="space-y-2">
+            {benefits.map((benefit) => (
+              <li key={benefit} className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <svg className="w-4 h-4 flex-shrink-0" style={{ color: tier === 'premium' ? '#A855F7' : '#2DD4BF' }} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                {benefit}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {data?.expiresAt && (
+          <p className="text-sm mb-4" style={{ color: 'var(--text-tertiary)' }}>
+            Your posting is now active until {new Date(data.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+          </p>
+        )}
+
+        <Link
+          href="/employer/dashboard"
+          className="inline-block bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+        >
+          Go to Dashboard
+        </Link>
       </div>
     </div>
   );
@@ -107,7 +167,11 @@ function LoadingFallback() {
 
 export default function UpgradeSuccessPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+      </div>
+    }>
       <UpgradeSuccessContent />
     </Suspense>
   );

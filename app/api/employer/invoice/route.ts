@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { generateInvoice } from '@/lib/invoice-generator';
 import { config, PricingTier } from '@/lib/config';
 
@@ -10,38 +11,60 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
     const token = searchParams.get('token');
 
-    // Validate required parameters
-    if (!jobId || !token) {
+    if (!jobId) {
       return NextResponse.json(
-        { error: 'Missing required parameters: jobId and token' },
+        { error: 'Missing required parameter: jobId' },
         { status: 400 }
       );
     }
 
-    // Find employer job and verify token (check both dashboardToken and editToken)
-    const employerJob = await prisma.employerJob.findFirst({
-      where: {
-        jobId,
-        OR: [
-          { dashboardToken: token },
-          { editToken: token },
-        ],
-      },
-      include: {
-        job: {
-          select: {
-            id: true,
-            title: true,
-            isFeatured: true,
-            createdAt: true,
+    // Support both token-based and session-based access
+    let employerJob;
+
+    if (token) {
+      // Token-based access (from email links)
+      employerJob = await prisma.employerJob.findFirst({
+        where: {
+          jobId,
+          OR: [
+            { dashboardToken: token },
+            { editToken: token },
+          ],
+        },
+        include: {
+          job: {
+            select: { id: true, title: true, isFeatured: true, createdAt: true },
           },
         },
-      },
-    });
+      });
+    } else {
+      // Session-based access (logged-in employer)
+      const supabase = await createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Unauthorized — provide a token or log in' }, { status: 401 });
+      }
+
+      employerJob = await prisma.employerJob.findFirst({
+        where: {
+          jobId,
+          OR: [
+            { userId: user.id },
+            { contactEmail: user.email! },
+          ],
+        },
+        include: {
+          job: {
+            select: { id: true, title: true, isFeatured: true, createdAt: true },
+          },
+        },
+      });
+    }
 
     if (!employerJob) {
       return NextResponse.json(
-        { error: 'Invalid job ID or token' },
+        { error: 'Invoice not found or access denied' },
         { status: 404 }
       );
     }

@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { getEmployerTier } from '@/lib/tier-limits';
+import { PricingTier } from '@/lib/config';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/saved-candidates
  * List all saved candidates for the authenticated employer.
+ * Fields are tier-gated to match the candidate search API.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+    const rateLimitResponse = await rateLimit(req, 'employer:saved-candidates', RATE_LIMITS.employer);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -23,51 +30,97 @@ export async function GET() {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Determine employer tier for field gating
+    const isAdmin = profile.role === 'admin';
+    const tier: PricingTier = isAdmin ? 'premium' : await getEmployerTier(user.id);
+
+    // Starter fields (always included)
+    const candidateSelect: Record<string, boolean> = {
+        id: true,
+        supabaseId: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        headline: true,
+        yearsExperience: true,
+        specialties: true,
+        preferredWorkMode: true,
+    };
+
+    // Growth+ fields
+    if (tier === 'growth' || tier === 'premium') {
+        candidateSelect.certifications = true;
+        candidateSelect.licenseStates = true;
+        candidateSelect.desiredSalaryMin = true;
+        candidateSelect.desiredSalaryMax = true;
+        candidateSelect.desiredSalaryType = true;
+        candidateSelect.availableDate = true;
+        candidateSelect.resumeUrl = true;
+    }
+
+    // Premium fields
+    if (tier === 'premium') {
+        candidateSelect.bio = true;
+        candidateSelect.preferredJobType = true;
+        candidateSelect.state = true;
+        candidateSelect.city = true;
+    }
+
     const saved = await prisma.savedCandidate.findMany({
         where: { employerId: profile.id },
         include: {
             candidate: {
-                select: {
-                    id: true,
-                    supabaseId: true,
-                    firstName: true,
-                    lastName: true,
-                    avatarUrl: true,
-                    headline: true,
-                    yearsExperience: true,
-                    certifications: true,
-                    licenseStates: true,
-                    specialties: true,
-                    preferredWorkMode: true,
-                    availableDate: true,
-                    resumeUrl: true,
-                },
+                select: candidateSelect,
             },
         },
         orderBy: { savedAt: 'desc' },
     });
 
-    const formatted = saved.map((s) => ({
-        id: s.id,
-        note: s.note,
-        savedAt: s.savedAt.toISOString(),
-        candidate: {
-            id: s.candidate.supabaseId,
-            displayName: [s.candidate.firstName, s.candidate.lastName?.[0] ? s.candidate.lastName[0] + '.' : null].filter(Boolean).join(' ') || 'PMHNP Candidate',
-            initials: `${(s.candidate.firstName || 'P').charAt(0)}${(s.candidate.lastName || 'C').charAt(0)}`.toUpperCase(),
-            avatarUrl: s.candidate.avatarUrl,
-            headline: s.candidate.headline,
-            yearsExperience: s.candidate.yearsExperience,
-            certifications: s.candidate.certifications ? s.candidate.certifications.split(',').map((c: string) => c.trim()) : [],
-            licenseStates: s.candidate.licenseStates ? s.candidate.licenseStates.split(',').map((s: string) => s.trim()) : [],
-            specialties: s.candidate.specialties ? s.candidate.specialties.split(',').map((s: string) => s.trim()) : [],
-            preferredWorkMode: s.candidate.preferredWorkMode,
-            availableDate: s.candidate.availableDate?.toISOString() || null,
-            hasResume: !!s.candidate.resumeUrl,
-        },
-    }));
+    const formatted = saved.map((s) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const c = s.candidate as any;
 
-    return NextResponse.json({ savedCandidates: formatted });
+        const base: Record<string, unknown> = {
+            id: c.supabaseId,
+            displayName: c.firstName
+                ? `${c.firstName} ${tier === 'premium' && c.lastName ? c.lastName : (c.lastName ? c.lastName.charAt(0) + '.' : '')}`.trim()
+                : 'PMHNP Candidate',
+            initials: `${(c.firstName || 'P').charAt(0)}${(c.lastName || 'C').charAt(0)}`.toUpperCase(),
+            avatarUrl: c.avatarUrl,
+            headline: c.headline,
+            yearsExperience: c.yearsExperience,
+            specialties: c.specialties ? c.specialties.split(',').map((s: string) => s.trim()) : [],
+            preferredWorkMode: c.preferredWorkMode,
+        };
+
+        // Growth+ fields
+        if (tier === 'growth' || tier === 'premium') {
+            base.certifications = c.certifications ? c.certifications.split(',').map((s: string) => s.trim()) : [];
+            base.licenseStates = c.licenseStates ? c.licenseStates.split(',').map((s: string) => s.trim()) : [];
+            base.desiredSalaryMin = c.desiredSalaryMin;
+            base.desiredSalaryMax = c.desiredSalaryMax;
+            base.desiredSalaryType = c.desiredSalaryType;
+            base.availableDate = c.availableDate?.toISOString() || null;
+            base.hasResume = !!c.resumeUrl;
+        }
+
+        // Premium fields
+        if (tier === 'premium') {
+            base.bio = c.bio;
+            base.preferredJobType = c.preferredJobType;
+            base.state = c.state;
+            base.city = c.city;
+        }
+
+        return {
+            id: s.id,
+            note: s.note,
+            savedAt: s.savedAt.toISOString(),
+            candidate: base,
+        };
+    });
+
+    return NextResponse.json({ savedCandidates: formatted, tier });
 }
 
 /**

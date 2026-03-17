@@ -3,9 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { getEmployerTier } from '@/lib/tier-limits'
 import { PricingTier } from '@/lib/config'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
-    // Auth check — employer or admin only
+    // Rate limit + Auth check — employer or admin only
+    const rateLimitResponse = await rateLimit(req, 'employer:candidates', RATE_LIMITS.employer)
+    if (rateLimitResponse) return rateLimitResponse
+
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 

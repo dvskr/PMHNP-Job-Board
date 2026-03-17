@@ -6,6 +6,7 @@ import { Job, Company } from '@/lib/types';
 import SaveJobButton from '@/components/SaveJobButton';
 import ApplyButton from '@/components/ApplyButton';
 import ReportJobButton from '@/components/ReportJobButton';
+import MessageEmployerButton from '@/components/jobs/MessageEmployerButton';
 
 import ShareButtons from '@/components/ShareButtons';
 import AnimatedContainer from '@/components/ui/AnimatedContainer';
@@ -922,7 +923,9 @@ export default async function JobPage({ params }: JobPageProps) {
                 <div className="space-y-3 mb-5">
                   <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
                   <SaveJobButton jobId={job.id} />
-
+                  {job.sourceType === 'employer' && (
+                    <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} />
+                  )}
                 </div>
 
                 {/* Share Section - Desktop */}
@@ -968,7 +971,14 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-3 pb-safe">
-          <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ flex: 1 }}>
+              <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
+            </div>
+            {job.sourceType === 'employer' && (
+              <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} />
+            )}
+          </div>
         </div>
       </div>
     </>
