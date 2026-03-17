@@ -52,7 +52,8 @@ export interface UserProperties {
 
 declare global {
   interface Window {
-    dataLayer: Record<string, unknown>[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dataLayer: any[];
     gtag: (...args: unknown[]) => void;
   }
 }
@@ -70,6 +71,7 @@ function push(data: Record<string, unknown>) {
 function gtag(...args: unknown[]) {
   if (typeof window === 'undefined') return;
   window.dataLayer = window.dataLayer || [];
+  // Google's gtag pushes arguments-style arrays to dataLayer
   window.dataLayer.push(args);
 }
 
