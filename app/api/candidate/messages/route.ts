@@ -16,7 +16,104 @@ import { sendCandidateInquiryNotification } from '@/lib/email-service';
  *  - Profile completeness: firstName, headline, specialties required
  *  - 1 message per job posting (can't spam the same employer about the same job)
  *  - 10 messages per 24 hours (generous daily limit)
+/**
+ * GET /api/candidate/messages?jobId=xxx
+ * Check if a conversation already exists for this job and what the gating status is.
  */
+export async function GET(req: NextRequest) {
+    try {
+        const jobId = req.nextUrl.searchParams.get('jobId');
+        if (!jobId) {
+            return NextResponse.json({ error: 'jobId required' }, { status: 400 });
+        }
+
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const profile = await prisma.userProfile.findUnique({
+            where: { supabaseId: user.id },
+            select: { id: true, role: true },
+        });
+        if (!profile || profile.role !== 'job_seeker') {
+            return NextResponse.json({ canMessage: false });
+        }
+
+        // Find the employer via employerJob table (same pattern as POST handler)
+        const employerJobRecord = await prisma.employerJob.findUnique({
+            where: { jobId },
+            select: { userId: true, contactEmail: true },
+        });
+        if (!employerJobRecord) {
+            return NextResponse.json({ canMessage: true }); // Not an employer job
+        }
+
+        // Find employer profile
+        let employerProfile = employerJobRecord.userId
+            ? await prisma.userProfile.findUnique({
+                where: { supabaseId: employerJobRecord.userId },
+                select: { id: true },
+            })
+            : null;
+
+        if (!employerProfile && employerJobRecord.contactEmail) {
+            employerProfile = await prisma.userProfile.findFirst({
+                where: { email: employerJobRecord.contactEmail, role: 'employer' },
+                select: { id: true },
+            });
+        }
+
+        if (!employerProfile) {
+            return NextResponse.json({ canMessage: true }); // No employer found, let frontend handle
+        }
+
+        // Check for existing conversation
+        const conversation = await prisma.conversation.findFirst({
+            where: {
+                jobId,
+                OR: [
+                    { participantA: profile.id, participantB: employerProfile.id },
+                    { participantA: employerProfile.id, participantB: profile.id },
+                ],
+            },
+            select: { id: true },
+        });
+
+        if (!conversation) {
+            return NextResponse.json({ canMessage: true });
+        }
+
+        // Check if employer has replied
+        const employerReplyCount = await prisma.employerMessage.count({
+            where: { conversationId: conversation.id, senderId: employerProfile.id },
+        });
+
+        const candidateMessageCount = await prisma.employerMessage.count({
+            where: { conversationId: conversation.id, senderId: profile.id },
+        });
+
+        if (candidateMessageCount > 0 && employerReplyCount === 0) {
+            return NextResponse.json({
+                canMessage: false,
+                awaitingReply: true,
+                conversationId: conversation.id,
+            });
+        }
+
+        // Employer has replied — candidate can send more (or conversation was employer-initiated)
+        return NextResponse.json({
+            canMessage: true,
+            conversationId: conversation.id,
+        });
+
+    } catch (error) {
+        console.error('Error checking message status:', error);
+        return NextResponse.json({ canMessage: true }); // Fail open
+    }
+}
+
 export async function POST(req: NextRequest) {
     try {
         // Rate limit: 10 messages per 24h

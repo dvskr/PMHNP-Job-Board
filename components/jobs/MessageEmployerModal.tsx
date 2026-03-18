@@ -38,15 +38,31 @@ export default function MessageEmployerModal({
     // Track client-side mount for portal
     useEffect(() => { setMounted(true); }, []);
 
-    // Check auth status on mount
+    // Check auth status and message gating on mount
     useEffect(() => {
         if (!isOpen) return;
         (async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             setIsAuthenticated(!!user);
+
+            // Pre-check if candidate already messaged this employer about this job
+            if (user) {
+                try {
+                    const res = await fetch(`/api/candidate/messages?jobId=${encodeURIComponent(jobId)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.awaitingReply) {
+                            setAwaitingReply(true);
+                            setConversationId(data.conversationId);
+                        }
+                    }
+                } catch {
+                    // Fail silently — let the POST handle gating if GET fails
+                }
+            }
         })();
-    }, [isOpen]);
+    }, [isOpen, jobId]);
 
     // Reset state when modal opens
     useEffect(() => {

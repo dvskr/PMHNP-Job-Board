@@ -905,6 +905,38 @@ export default function MessagesPage() {
                                 </div>
 
                                 {/* Reply Input — LinkedIn style "Write a message..." */}
+                                {(() => {
+                                    // Reply gating: if other user is employer, candidate sent messages, but employer hasn't replied
+                                    const otherRole = convDetail?.otherUser?.role;
+                                    const candidateSent = thread.some(m => m.isFromMe && !m.isDeleted);
+                                    const employerReplied = thread.some(m => !m.isFromMe && !m.isDeleted);
+                                    const isAwaitingReply = otherRole === 'employer' && candidateSent && !employerReplied;
+
+                                    if (isAwaitingReply) {
+                                        return (
+                                            <div style={{
+                                                padding: '16px 20px',
+                                                borderTop: borderVal,
+                                                backgroundColor: cardBg,
+                                                flexShrink: 0,
+                                                textAlign: 'center',
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                    padding: '12px 16px', borderRadius: '12px',
+                                                    backgroundColor: 'rgba(245,158,11,0.08)',
+                                                    border: '1px solid rgba(245,158,11,0.2)',
+                                                }}>
+                                                    <Clock size={16} style={{ color: '#F59E0B', flexShrink: 0 }} />
+                                                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                        Awaiting employer reply — you can respond after they message back
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
                                 <div className="msg-composer" style={{
                                     padding: '16px 20px',
                                     borderTop: borderVal,
@@ -1013,6 +1045,8 @@ export default function MessagesPage() {
                                         </button>
                                     </div>
                                 </div>
+                                    );
+                                })()}
                             </>
                         ) : null}
                     </div>
