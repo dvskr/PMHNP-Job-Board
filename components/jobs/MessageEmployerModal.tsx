@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { X, Send, Loader2, CheckCircle, MessageSquare, AlertTriangle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -31,6 +32,10 @@ export default function MessageEmployerModal({
     const [missingFields, setMissingFields] = useState<string[]>([]);
     const [alreadyMessaged, setAlreadyMessaged] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    // Track client-side mount for portal
+    useEffect(() => { setMounted(true); }, []);
 
     // Check auth status on mount
     useEffect(() => {
@@ -95,11 +100,11 @@ export default function MessageEmployerModal({
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !mounted) return null;
 
     // Unauthenticated state
     if (isAuthenticated === false) {
-        return (
+        return createPortal(
             <div
                 style={{
                     position: 'fixed', inset: 0, zIndex: 9999,
@@ -148,11 +153,12 @@ export default function MessageEmployerModal({
                         </button>
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 
-    return (
+    return createPortal(
         <div
             style={{
                 position: 'fixed', inset: 0, zIndex: 9999,
@@ -161,6 +167,7 @@ export default function MessageEmployerModal({
             }}
             onClick={onClose}
         >
+
             <div
                 onClick={e => e.stopPropagation()}
                 style={{
@@ -385,6 +392,7 @@ export default function MessageEmployerModal({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

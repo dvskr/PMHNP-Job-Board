@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
-import { sendEmployerMessageNotification } from '@/lib/email-service';
+import { sendEmployerMessageNotification, sendCandidateInquiryNotification } from '@/lib/email-service';
 import { sanitizeText } from '@/lib/sanitize';
 import { verifyCsrf } from '@/lib/csrf';
 import { rateLimit } from '@/lib/rate-limit';
@@ -296,15 +296,30 @@ export async function POST(
             });
 
             if (existingUnread === 0) {
-                sendEmployerMessageNotification(
-                    recipientProfile.email,
-                    recipientProfile.firstName,
-                    senderName,
-                    profile.company,
-                    conversation.subject,
-                    (messageBody || '').trim() || (attachmentName ? `📎 ${attachmentName}` : ''),
-                    null,
-                ).catch(err => console.error('Email notification error:', err));
+                const msgPreview = (messageBody || '').trim() || (attachmentName ? `📎 ${attachmentName}` : '');
+
+                if (profile.role === 'job_seeker') {
+                    // Candidate → Employer: use candidate inquiry notification
+                    sendCandidateInquiryNotification(
+                        recipientProfile.email,
+                        recipientProfile.firstName,
+                        senderName,
+                        conversation.subject,
+                        msgPreview,
+                        null, // jobTitle not available in conversation context
+                    ).catch(err => console.error('Email notification error:', err));
+                } else {
+                    // Employer → Candidate: use employer message notification
+                    sendEmployerMessageNotification(
+                        recipientProfile.email,
+                        recipientProfile.firstName,
+                        senderName,
+                        profile.company,
+                        conversation.subject,
+                        msgPreview,
+                        null,
+                    ).catch(err => console.error('Email notification error:', err));
+                }
             }
         }
 
