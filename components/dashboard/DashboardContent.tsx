@@ -95,28 +95,25 @@ const viewAllLink: React.CSSProperties = {
 /* ── Reusable mini job card ── */
 function CompactJobCard({ job, extra }: { job: DashboardJob; extra?: React.ReactNode }) {
     const isUnavailable = job.isPublished === false
-    const Wrapper = isUnavailable ? 'div' : Link
-    const wrapperProps = isUnavailable ? {} : { href: job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}` }
-    return (
-        <Wrapper
-            {...wrapperProps as React.ComponentProps<typeof Wrapper>}
 
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                padding: '14px 16px',
-                borderRadius: '12px',
-                background: 'var(--bg-primary)',
-                borderWidth: '1px',
-                borderStyle: 'solid',
-                borderColor: 'var(--border-color)',
-                textDecoration: 'none',
-                transition: 'border-color 0.2s',
-                opacity: isUnavailable ? 0.6 : 1,
-                cursor: isUnavailable ? 'default' : 'pointer',
-            }}
-        >
+    const cardStyle: React.CSSProperties = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        padding: '14px 16px',
+        borderRadius: '12px',
+        background: 'var(--bg-primary)',
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        borderColor: 'var(--border-color)',
+        textDecoration: 'none',
+        transition: 'border-color 0.2s',
+        opacity: isUnavailable ? 0.6 : 1,
+        cursor: isUnavailable ? 'default' : 'pointer',
+    }
+
+    const inner = (
+        <>
             {/* icon */}
             <div style={{
                 width: '40px', height: '40px', borderRadius: '10px',
@@ -168,7 +165,17 @@ function CompactJobCard({ job, extra }: { job: DashboardJob; extra?: React.React
                     <AlertTriangle size={10} /> Expired
                 </span>
             ) : extra}
-        </Wrapper>
+        </>
+    )
+
+    if (isUnavailable) {
+        return <div style={cardStyle}>{inner}</div>
+    }
+
+    return (
+        <Link href={job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`} style={cardStyle}>
+            {inner}
+        </Link>
     )
 }
 
