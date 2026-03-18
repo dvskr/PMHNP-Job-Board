@@ -83,7 +83,6 @@ export default function ReportJobButton({ jobId, jobTitle }: ReportJobButtonProp
                 title="Report this job"
             >
                 <Flag size={14} />
-                <span className="hidden sm:inline">Report this job</span>
             </button>
 
             {/* Modal via Portal */}

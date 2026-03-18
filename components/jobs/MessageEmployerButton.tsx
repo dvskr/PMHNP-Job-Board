@@ -8,6 +8,7 @@ interface MessageEmployerButtonProps {
     jobId: string;
     jobTitle: string;
     employerName: string;
+    disabled?: boolean;
 }
 
 /**
@@ -19,40 +20,48 @@ export default function MessageEmployerButton({
     jobId,
     jobTitle,
     employerName,
+    disabled = false,
 }: MessageEmployerButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
         <>
             <button
-                onClick={() => setIsOpen(true)}
+                onClick={() => !disabled && setIsOpen(true)}
+                disabled={disabled}
+                title={disabled ? 'This is your job posting' : `Send InMail to ${employerName}`}
                 style={{
                     width: '100%',
                     padding: '12px 16px',
                     borderRadius: '10px',
-                    border: '1.5px solid rgba(45,212,191,0.3)',
+                    border: disabled ? '1.5px solid var(--border-color)' : '1.5px solid rgba(45,212,191,0.3)',
                     backgroundColor: 'transparent',
-                    color: '#2DD4BF',
+                    color: disabled ? 'var(--text-tertiary)' : '#2DD4BF',
                     fontSize: '14px',
                     fontWeight: 600,
-                    cursor: 'pointer',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
                     transition: 'all 0.2s',
+                    opacity: disabled ? 0.5 : 1,
                 }}
                 onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = 'rgba(45,212,191,0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(45,212,191,0.5)';
+                    if (!disabled) {
+                        e.currentTarget.style.backgroundColor = 'rgba(45,212,191,0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(45,212,191,0.5)';
+                    }
                 }}
                 onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.borderColor = 'rgba(45,212,191,0.3)';
+                    if (!disabled) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.borderColor = 'rgba(45,212,191,0.3)';
+                    }
                 }}
             >
                 <MessageSquare size={16} />
-                Message Employer
+                InMail Employer
             </button>
 
             <MessageEmployerModal

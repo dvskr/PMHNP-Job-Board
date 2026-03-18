@@ -371,6 +371,17 @@ function PostJobContent() {
     }
   };
 
+  const handleClearDraft = () => {
+    if (!window.confirm('Are you sure you want to clear this draft? All entered data will be lost.')) return;
+    localStorage.removeItem('jobFormData');
+    // Remove resume token from URL if present
+    const url = new URL(window.location.href);
+    url.searchParams.delete('resume');
+    window.history.replaceState({}, '', url.toString());
+    // Reload page to get a fresh form
+    window.location.reload();
+  };
+
   const handleCompetitiveChange = (checked: boolean) => {
     setSalaryCompetitive(checked);
     setValue('salaryCompetitive', checked);
@@ -1048,6 +1059,16 @@ function PostJobContent() {
 
           {/* Submit Buttons - Desktop */}
           <div className="hidden lg:flex flex-row justify-end gap-3">
+            {/* Clear Draft Button */}
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="px-5 py-3 rounded-lg font-medium transition-colors text-sm"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Clear Draft
+            </button>
+
             {/* Save Draft Button */}
             <button
               type="button"
@@ -1098,6 +1119,14 @@ function PostJobContent() {
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               {savingDraft ? 'Saving...' : 'Save Draft for Later'}
+            </button>
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="w-full px-6 py-2 rounded-lg font-medium transition-colors text-sm"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Clear Draft
             </button>
           </div>
         </div>

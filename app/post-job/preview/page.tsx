@@ -125,6 +125,9 @@ export default function PreviewPage() {
   }
 
   const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
+  // In free-launch mode, the backend always uses 'growth' tier regardless of form value
+  const effectiveTier = config.isPaidPostingEnabled ? formData.pricingTier : 'growth';
+  const isFeatured = config.isFeaturedTier(effectiveTier as 'starter' | 'growth' | 'premium');
   const price = config.isPaidPostingEnabled
     ? config.getPostingPrice(formData.pricingTier)
     : 0;
@@ -155,7 +158,7 @@ export default function PreviewPage() {
                   {formData.title}
                 </h3>
                 <div className="flex gap-1 flex-wrap">
-                  {(formData.pricingTier !== 'starter' || !config.isPaidPostingEnabled) && (
+                  {isFeatured && (
                     <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       Featured
                     </span>
@@ -233,7 +236,16 @@ export default function PreviewPage() {
             <div className="bg-white rounded-lg p-6 overflow-hidden">
               {/* Title and Company */}
               <h1 className="text-2xl md:text-3xl font-bold mb-2">{formData.title}</h1>
-              <p className="text-xl text-gray-600 mb-4">{formData.companyName}</p>
+              <div className="flex items-center gap-3 mb-4">
+                {formData.companyLogoUrl && (
+                  <img
+                    src={formData.companyLogoUrl}
+                    alt={`${formData.companyName} logo`}
+                    className="w-10 h-10 rounded-lg object-contain border border-gray-200"
+                  />
+                )}
+                <p className="text-xl text-gray-600">{formData.companyName}</p>
+              </div>
 
               {/* Metadata Row */}
               <div className="flex flex-wrap gap-4 text-gray-600 mb-4">
@@ -267,7 +279,6 @@ export default function PreviewPage() {
 
               {/* Description */}
               <div className="mt-6">
-                <h2 className="text-xl font-bold mb-3">About this role</h2>
                 <div
                   className="text-gray-700 leading-relaxed text-sm prose prose-sm max-w-none break-words overflow-hidden"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
@@ -329,12 +340,12 @@ export default function PreviewPage() {
             <div className="flex items-center justify-between mb-4 pb-4 border-b">
               <div>
                 <p className="font-semibold text-gray-900">
-                  {formData.pricingTier === 'premium' ? 'Premium Job Post' : formData.pricingTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
+                  {effectiveTier === 'premium' ? 'Premium Job Post' : effectiveTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  {formData.pricingTier === 'premium'
+                  {effectiveTier === 'premium'
                     ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days active'
-                    : formData.pricingTier === 'growth'
+                    : effectiveTier === 'growth'
                       ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
                       : '✓ 30 days active ✓ Email to subscribers'
                   }

@@ -66,15 +66,32 @@ export async function GET(req: NextRequest) {
         candidateSelect.city = true;
     }
 
+    // Filter by posting if specified
+    const postingId = req.nextUrl.searchParams.get('postingId');
+    const whereClause: Record<string, unknown> = { employerId: profile.id };
+    if (postingId) {
+        whereClause.employerJobId = postingId;
+    }
+
     const saved = await prisma.savedCandidate.findMany({
-        where: { employerId: profile.id },
+        where: whereClause,
         include: {
             candidate: {
                 select: candidateSelect,
             },
+            employerJob: {
+                select: { id: true, jobId: true, pricingTier: true, job: { select: { title: true } } },
+            },
         },
         orderBy: { savedAt: 'desc' },
     });
+
+    // Also fetch which candidates this employer has unlocked (viewed)
+    const viewedProfiles = await prisma.profileView.findMany({
+        where: { viewerId: user.id },
+        select: { candidateId: true },
+    });
+    const viewedCandidateIds = viewedProfiles.map(v => v.candidateId);
 
     const formatted = saved.map((s) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,11 +133,14 @@ export async function GET(req: NextRequest) {
             id: s.id,
             note: s.note,
             savedAt: s.savedAt.toISOString(),
+            postingId: s.employerJobId || null,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            postingTitle: (s as any).employerJob?.job?.title || null,
             candidate: base,
         };
     });
 
-    return NextResponse.json({ savedCandidates: formatted, tier });
+    return NextResponse.json({ savedCandidates: formatted, tier, viewedCandidateIds });
 }
 
 /**
@@ -145,7 +165,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { candidateId, note } = body;
+    const { candidateId, note, postingId } = body;
 
     if (!candidateId) {
         return NextResponse.json({ error: 'candidateId is required' }, { status: 400 });
@@ -161,18 +181,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
     }
 
-    // Upsert to avoid duplicates
+    // Upsert: compound unique on [employerId, candidateId, employerJobId]
     const saved = await prisma.savedCandidate.upsert({
         where: {
-            employerId_candidateId: {
+            employerId_candidateId_employerJobId: {
                 employerId: profile.id,
                 candidateId: candidate.id,
+                employerJobId: postingId || null,
             },
         },
         update: { note: note || null },
         create: {
             employerId: profile.id,
             candidateId: candidate.id,
+            employerJobId: postingId || null,
             note: note || null,
         },
     });
@@ -202,7 +224,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { candidateId } = body;
+    const { candidateId, postingId } = body;
 
     if (!candidateId) {
         return NextResponse.json({ error: 'candidateId is required' }, { status: 400 });
@@ -222,6 +244,7 @@ export async function DELETE(req: NextRequest) {
         where: {
             employerId: profile.id,
             candidateId: candidate.id,
+            employerJobId: postingId || null,
         },
     });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { getUsageSummary, getEmployerTier } from '@/lib/tier-limits';
+import { getUsageSummary, getEmployerTier, getPerPostingUsage } from '@/lib/tier-limits';
 import { config, PricingTier } from '@/lib/config';
 
 /**
@@ -26,7 +26,10 @@ export async function GET() {
         }
 
         const tier = await getEmployerTier(user.id);
-        const usage = await getUsageSummary(profile.id, user.id, tier);
+        const [usage, postings] = await Promise.all([
+            getUsageSummary(profile.id, user.id, tier),
+            getPerPostingUsage(profile.id, user.id),
+        ]);
 
         return NextResponse.json({
             tier,
@@ -43,6 +46,7 @@ export async function GET() {
                     unlimited: !Number.isFinite(usage.inmails.limit),
                 },
             },
+            postings,
         });
     } catch (error) {
         console.error('Error fetching employer usage:', error);

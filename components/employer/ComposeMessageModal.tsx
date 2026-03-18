@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Send, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 
 interface ComposeMessageModalProps {
     recipientId: string;
@@ -28,6 +28,20 @@ export default function ComposeMessageModal({
     const [sending, setSending] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMsg, setErrorMsg] = useState('');
+    const [inmailUsage, setInmailUsage] = useState<{ used: number; limit: number | null; unlimited: boolean } | null>(null);
+
+    // Fetch InMail usage on mount
+    useEffect(() => {
+        fetch('/api/employer/usage')
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+                if (d?.usage?.inmails) setInmailUsage(d.usage.inmails);
+            })
+            .catch(() => {});
+    }, []);
+
+    const inmailLimitReached = inmailUsage && !inmailUsage.unlimited && inmailUsage.limit !== null && inmailUsage.used >= inmailUsage.limit;
+    const inmailRemaining = inmailUsage && !inmailUsage.unlimited && inmailUsage.limit !== null ? inmailUsage.limit - inmailUsage.used : null;
 
     const handleSend = async () => {
         if (!subject.trim() || !body.trim()) return;
@@ -70,7 +84,7 @@ export default function ComposeMessageModal({
         }
     };
 
-    const canSend = subject.trim().length > 0 && body.trim().length > 0 && !sending;
+    const canSend = subject.trim().length > 0 && body.trim().length > 0 && !sending && !inmailLimitReached;
 
     return (
         <div
@@ -127,6 +141,24 @@ export default function ComposeMessageModal({
                                 border: '1px solid rgba(45,212,191,0.2)',
                             }}>
                                 Re: {initialJobTitle}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* InMail Usage Indicator */}
+                    {inmailUsage && (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{
+                            backgroundColor: inmailLimitReached ? 'rgba(239,68,68,0.08)' : 'rgba(96,165,250,0.08)',
+                            border: `1px solid ${inmailLimitReached ? 'rgba(239,68,68,0.2)' : 'rgba(96,165,250,0.15)'}`,
+                        }}>
+                            <Mail size={14} style={{ color: inmailLimitReached ? '#EF4444' : '#60A5FA' }} />
+                            <span className="text-xs font-medium" style={{ color: inmailLimitReached ? '#EF4444' : '#60A5FA' }}>
+                                {inmailLimitReached
+                                    ? 'InMail limit reached — upgrade for unlimited'
+                                    : inmailUsage.unlimited
+                                        ? 'Unlimited InMails (Premium)'
+                                        : `${inmailRemaining} InMail${inmailRemaining !== 1 ? 's' : ''} remaining`
+                                }
                             </span>
                         </div>
                     )}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {
-    MapPin, Briefcase, FileText, Calendar, Bookmark,
+    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock,
 } from 'lucide-react';
 
 interface CandidateCardProps {
@@ -19,6 +19,8 @@ interface CandidateCardProps {
     availableDate: string | null;
     hasResume: boolean;
     isSaved?: boolean;
+    isViewed?: boolean;
+    unlockUsage?: { used: number; limit: number | null; unlimited: boolean };
     onToggleSave?: (id: string) => void;
 }
 
@@ -34,7 +36,6 @@ const EXPERIENCE_LABELS: Record<number, string> = {
 
 function getExperienceLabel(years: number | null): string | null {
     if (years === null || years === undefined) return null;
-    // Find the closest match
     const keys = Object.keys(EXPERIENCE_LABELS).map(Number).sort((a, b) => b - a);
     for (const k of keys) {
         if (years >= k) return EXPERIENCE_LABELS[k];
@@ -66,7 +67,7 @@ export default function CandidateCard({
     id, displayName, initials, avatarUrl, headline,
     yearsExperience, certifications, licenseStates,
     specialties, preferredWorkMode, availableDate, hasResume,
-    isSaved, onToggleSave,
+    isSaved, isViewed, unlockUsage, onToggleSave,
 }: CandidateCardProps) {
     const expLabel = getExperienceLabel(yearsExperience);
     const availLabel = formatAvailableDate(availableDate);
@@ -81,6 +82,12 @@ export default function CandidateCard({
     const maxStates = 5;
     const visibleStates = safeStates.slice(0, maxStates);
     const extraStates = safeStates.length - maxStates;
+
+    // Unlock credit calculations
+    const remaining = unlockUsage && !unlockUsage.unlimited && unlockUsage.limit
+        ? unlockUsage.limit - unlockUsage.used
+        : null;
+    const isExhausted = !isViewed && remaining !== null && remaining <= 0;
 
     return (
         <div
@@ -126,9 +133,9 @@ export default function CandidateCard({
                     <Bookmark size={18} fill={isSaved ? '#F59E0B' : 'none'} />
                 </button>
             )}
+
             {/* Header: Avatar + Name + Headline */}
             <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                {/* Avatar */}
                 <div
                     style={{
                         width: '48px',
@@ -154,31 +161,28 @@ export default function CandidateCard({
                             {displayName}
                         </h3>
                         {expLabel && (
-                            <span
-                                style={{
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: 'rgba(45,212,191,0.12)',
-                                    color: '#2DD4BF',
-                                }}
-                            >
+                            <span style={{
+                                fontSize: '11px', fontWeight: 600, padding: '2px 8px',
+                                borderRadius: '6px', backgroundColor: 'rgba(45,212,191,0.12)', color: '#2DD4BF',
+                            }}>
                                 {expLabel}
                             </span>
                         )}
-                        {hasResume && (
-                            <FileText size={14} style={{ color: '#2DD4BF' }} />
+                        {hasResume && <FileText size={14} style={{ color: '#2DD4BF' }} />}
+                        {isViewed && (
+                            <span style={{
+                                fontSize: '10px', fontWeight: 600, padding: '2px 7px',
+                                borderRadius: '6px', backgroundColor: 'rgba(16,185,129,0.1)',
+                                color: '#10B981', border: '1px solid rgba(16,185,129,0.2)',
+                            }}>
+                                ✓ Viewed
+                            </span>
                         )}
                     </div>
                     {headline && (
                         <p style={{
-                            fontSize: '13px',
-                            color: 'var(--text-secondary)',
-                            margin: '4px 0 0',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                             {headline}
                         </p>
@@ -190,18 +194,11 @@ export default function CandidateCard({
             {safeCerts.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {safeCerts.map(cert => (
-                        <span
-                            key={cert}
-                            style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                padding: '3px 8px',
-                                borderRadius: '6px',
-                                backgroundColor: 'rgba(45,212,191,0.1)',
-                                color: '#2DD4BF',
-                                border: '1px solid rgba(45,212,191,0.2)',
-                            }}
-                        >
+                        <span key={cert} style={{
+                            fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '6px',
+                            backgroundColor: 'rgba(45,212,191,0.1)', color: '#2DD4BF',
+                            border: '1px solid rgba(45,212,191,0.2)',
+                        }}>
                             {cert}
                         </span>
                     ))}
@@ -212,17 +209,11 @@ export default function CandidateCard({
             {safeSpecs.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                     {safeSpecs.map(spec => (
-                        <span
-                            key={spec}
-                            style={{
-                                fontSize: '11px',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                backgroundColor: 'rgba(139,92,246,0.1)',
-                                color: '#A78BFA',
-                                border: '1px solid rgba(139,92,246,0.2)',
-                            }}
-                        >
+                        <span key={spec} style={{
+                            fontSize: '11px', padding: '2px 8px', borderRadius: '6px',
+                            backgroundColor: 'rgba(139,92,246,0.1)', color: '#A78BFA',
+                            border: '1px solid rgba(139,92,246,0.2)',
+                        }}>
                             {spec}
                         </span>
                     ))}
@@ -234,16 +225,10 @@ export default function CandidateCard({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                     <MapPin size={13} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
                     {visibleStates.map(st => (
-                        <span
-                            key={st}
-                            style={{
-                                fontSize: '11px',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                backgroundColor: 'rgba(255,255,255,0.06)',
-                                color: 'var(--text-secondary)',
-                            }}
-                        >
+                        <span key={st} style={{
+                            fontSize: '11px', padding: '2px 6px', borderRadius: '4px',
+                            backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)',
+                        }}>
                             {st}
                         </span>
                     ))}
@@ -255,14 +240,10 @@ export default function CandidateCard({
                 </div>
             )}
 
-            {/* Footer: Work mode, availability, View Profile */}
+            {/* Footer: Work mode, availability, View/Unlock Profile */}
             <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                marginTop: 'auto',
-                paddingTop: '8px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: '12px', marginTop: 'auto', paddingTop: '8px',
                 borderTop: '1px solid var(--border-color)',
             }}>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -279,22 +260,49 @@ export default function CandidateCard({
                         </span>
                     )}
                 </div>
-                <Link
-                    href={`/employer/candidates/${id}`}
-                    style={{
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: '#fff',
-                        textDecoration: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-                        transition: 'opacity 0.2s',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    View Profile →
-                </Link>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    {isExhausted ? (
+                        <>
+                            <span style={{
+                                fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.4)',
+                                padding: '8px 16px', borderRadius: '10px',
+                                background: 'rgba(255,255,255,0.08)', cursor: 'not-allowed',
+                                whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px',
+                            }}>
+                                <Lock size={13} /> No Unlocks Left
+                            </span>
+                            <span style={{ fontSize: '10px', color: '#EF4444', whiteSpace: 'nowrap' }}>
+                                Upgrade to unlock more
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <Link
+                                href={`/employer/candidates/${id}`}
+                                style={{
+                                    fontSize: '13px', fontWeight: 600, color: '#fff',
+                                    textDecoration: 'none', padding: '8px 16px', borderRadius: '10px',
+                                    background: isViewed
+                                        ? 'linear-gradient(135deg, #2DD4BF, #14B8A6)'
+                                        : 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                                    transition: 'opacity 0.2s', whiteSpace: 'nowrap',
+                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                }}
+                            >
+                                {isViewed ? 'View Profile →' : <><Lock size={13} /> Unlock Profile</>}
+                            </Link>
+                            {!isViewed && remaining !== null && (
+                                <span style={{
+                                    fontSize: '10px',
+                                    color: remaining <= 2 ? '#FBBF24' : 'var(--text-tertiary)',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {remaining} of {unlockUsage!.limit} unlocks left
+                                </span>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

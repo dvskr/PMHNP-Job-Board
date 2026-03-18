@@ -103,8 +103,10 @@ export async function GET(
         },
     })
 
+    let chargePostingId: string | undefined
+
     if (!existingView && !isAdmin) {
-        // This is a new unlock — check monthly limit
+        // This is a new unlock — check per-posting credit pool
         const tier = await getEmployerTier(user.id)
         const unlockCheck = await canUnlockCandidate(user.id, tier)
         if (!unlockCheck.allowed) {
@@ -116,6 +118,7 @@ export async function GET(
                 upgradeRequired: true,
             }, { status: 403 })
         }
+        chargePostingId = unlockCheck.postingId
     }
 
     try {
@@ -130,6 +133,7 @@ export async function GET(
             create: {
                 viewerId: user.id,
                 candidateId: id,
+                employerJobId: chargePostingId || null,
             },
         })
     } catch {

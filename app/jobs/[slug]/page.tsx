@@ -53,9 +53,16 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
       return { status: 'expired', employer: anyJob.employer, title: anyJob.title };
     }
 
-    // Job is published — fetch full data
-    const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) return { status: 'not_found' };
+    // Job is published — fetch full data with employer info
+    const jobWithRelation = await prisma.job.findUnique({
+      where: { id },
+      include: {
+        employerJobs: {
+          select: { companyLogoUrl: true, companyWebsite: true, userId: true },
+        },
+      },
+    });
+    if (!jobWithRelation) return { status: 'not_found' };
 
     // Increment view count (fire-and-forget)
     prisma.job.update({
@@ -63,7 +70,15 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
       data: { viewCount: { increment: 1 } },
     }).catch(() => { });
 
-    return { status: 'found', job: job as Job };
+    // Attach employer logo to the job object for rendering
+    const jobData = {
+      ...jobWithRelation,
+      companyLogoUrl: jobWithRelation.employerJobs?.companyLogoUrl || null,
+      companyWebsite: jobWithRelation.employerJobs?.companyWebsite || null,
+      employerUserId: jobWithRelation.employerJobs?.userId || null,
+    };
+
+    return { status: 'found', job: jobData as Job };
   } catch (error) {
     console.error('Error fetching job:', error);
     return { status: 'not_found' };
@@ -604,6 +619,7 @@ export default async function JobPage({ params }: JobPageProps) {
     getCurrentUser(),
   ]);
   const isAuthenticated = !!currentUser;
+  const isOwnJob = !!(currentUser && (job as unknown as Record<string, unknown>).employerUserId === currentUser.user.id);
 
   // Get relevant blog posts (async - fetches from Supabase)
   const relevantBlogPosts = await getRelevantBlogPosts(job);
@@ -665,121 +681,91 @@ export default async function JobPage({ params }: JobPageProps) {
           <div className="min-w-0">
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
-              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative' }}>
+              <div className="rounded-2xl overflow-hidden mb-5 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative', padding: '16px 20px 20px', }}>
                 {/* Report Button - Top Right */}
                 <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
                   <ReportJobButton jobId={job.id} jobTitle={job.title} />
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '40px' }}>{job.title}</h1>
-                {companyInfo ? (
-                  <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl mb-3 font-medium inline-block hover:text-teal-600 transition-colors" style={{ color: 'var(--text-secondary)' }}>
-                    {job.employer}
-                  </Link>
-                ) : (
-                  <p className="text-lg sm:text-xl mb-3 font-medium" style={{ color: 'var(--text-secondary)' }}>{job.employer}</p>
-                )}
+                {/* Title */}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '40px' }}>{job.title}</h1>
 
-                {/* Badges Row - Below employer */}
-                {(job.isFeatured || job.isVerifiedEmployer) && (
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                    {job.isFeatured && (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '5px',
-                        padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                        background: 'linear-gradient(135deg, #f59e0b, #ea580c)', color: '#fff',
-                        letterSpacing: '0.02em',
-                      }}>
-                        ⭐ Featured
-                      </span>
+                {/* Company Info Row: Logo + Name + Location */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  {job.companyLogoUrl && (
+                    <img
+                      src={job.companyLogoUrl}
+                      alt={`${job.employer} logo`}
+                      style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                    />
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {companyInfo ? (
+                      <Link href={`/companies/${companyInfo.normalizedName}`} className="text-lg sm:text-xl font-semibold hover:text-teal-500 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        {job.employer}
+                      </Link>
+                    ) : (
+                      <span className="text-lg sm:text-xl font-semibold" style={{ color: 'var(--text-secondary)' }}>{job.employer}</span>
                     )}
-                    {job.isVerifiedEmployer && (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '5px',
-                        padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                        background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
-                      }}>
-                        <CheckCircle size={13} /> Verified Employer
-                      </span>
-                    )}
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '18px', lineHeight: 1 }}>·</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      <MapPin size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+                      {job.location}
+                    </span>
                   </div>
-                )}
+                </div>
+
+                {/* Badges Row */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+                  {job.isFeatured && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                      background: 'linear-gradient(135deg, #f59e0b, #ea580c)', color: '#fff',
+                      letterSpacing: '0.02em',
+                    }}>
+                      ⭐ Featured
+                    </span>
+                  )}
+                  {job.isVerifiedEmployer && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                      background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
+                    }}>
+                      <CheckCircle size={13} /> Verified Employer
+                    </span>
+                  )}
+                  {job.jobType && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                      backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <Briefcase size={12} /> {job.jobType}
+                    </span>
+                  )}
+                  {job.mode && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                      backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                    }}>
+                      <Monitor size={12} /> {job.mode}
+                    </span>
+                  )}
+                </div>
 
                 {/* Salary */}
                 {salary && (
                   <p style={{
                     fontSize: 'clamp(20px, 4vw, 30px)', fontWeight: 800,
                     color: 'var(--salary-color, #1d4ed8)',
-                    margin: '0 0 16px',
+                    margin: 0,
                   }}>{salary}</p>
                 )}
-
-                {/* Metadata Tags - Inline Compact */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {/* Location */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 14px', borderRadius: '10px',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                  }}>
-                    <div style={{
-                      width: '30px', height: '30px', borderRadius: '8px',
-                      backgroundColor: 'var(--color-primary)', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <MapPin size={14} style={{ color: '#fff' }} />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</p>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.location}</p>
-                    </div>
-                  </div>
-
-                  {/* Job Type */}
-                  {job.jobType && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '8px 14px', borderRadius: '10px',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                    }}>
-                      <div style={{
-                        width: '30px', height: '30px', borderRadius: '8px',
-                        backgroundColor: 'var(--color-primary)', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      }}>
-                        <Briefcase size={14} style={{ color: '#fff' }} />
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Job Type</p>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.jobType}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Work Mode */}
-                  {job.mode && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '8px 14px', borderRadius: '10px',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      border: '1px solid var(--border-color)',
-                    }}>
-                      <div style={{
-                        width: '30px', height: '30px', borderRadius: '8px',
-                        backgroundColor: 'var(--color-primary)', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      }}>
-                        <Monitor size={14} style={{ color: '#fff' }} />
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Work Mode</p>
-                        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>{job.mode}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </AnimatedContainer>
 
@@ -907,10 +893,10 @@ export default async function JobPage({ params }: JobPageProps) {
           {/* Sidebar - Desktop / Below content on mobile */}
           <AnimatedContainer animation="slide-in-right" delay={300}>
             <div className="mt-6 lg:mt-0">
-              <div className="hidden lg:block lg:sticky lg:top-24 rounded-2xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <div className="hidden lg:block lg:sticky lg:top-24 rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
                 {/* Expiry Notice - Desktop */}
                 {!expiryStatus.isExpired && expiryStatus.text && (
-                  <div className={`flex items-center gap-2 mb-4 pb-4 ${expiryStatus.isUrgent ? 'text-orange-500' : ''}`} style={{ borderBottom: '1px solid var(--border-color)', color: expiryStatus.isUrgent ? undefined : 'var(--text-tertiary)' }}>
+                  <div className={`flex items-center gap-2 mb-4 pb-3 ${expiryStatus.isUrgent ? 'text-orange-500' : ''}`} style={{ borderBottom: '1px solid var(--border-color)', color: expiryStatus.isUrgent ? undefined : 'var(--text-tertiary)' }}>
                     <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -920,18 +906,20 @@ export default async function JobPage({ params }: JobPageProps) {
                   </div>
                 )}
 
-                <div className="space-y-3 mb-5">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
                   <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
-                  <SaveJobButton jobId={job.id} />
-                  {job.sourceType === 'employer' && (
-                    <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} />
-                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
+                    <SaveJobButton jobId={job.id} />
+                    {job.sourceType === 'employer' && (
+                      <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} disabled={isOwnJob} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Share Section - Desktop */}
-                <div className="pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Share this job:</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Share this job</p>
+                  <div className="flex items-center gap-2">
                     <ShareButtons
                       url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
                       title={job.title}
@@ -970,13 +958,16 @@ export default async function JobPage({ params }: JobPageProps) {
 
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
-        <div className="px-4 py-3 pb-safe">
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="px-4 py-2 pb-safe">
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
               <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
             </div>
+            <SaveJobButton jobId={job.id} />
             {job.sourceType === 'employer' && (
-              <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} />
+              <div style={{ flexShrink: 0 }}>
+                <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} disabled={isOwnJob} />
+              </div>
             )}
           </div>
         </div>

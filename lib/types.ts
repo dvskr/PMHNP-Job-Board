@@ -46,6 +46,7 @@ export interface Job {
   updatedAt: Date;
   expiresAt: Date | null;
   companyId: string | null;
+  companyLogoUrl?: string | null;
 }
 
 export interface JobAlert {

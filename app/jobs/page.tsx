@@ -137,7 +137,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
 
   try {
     // Fetch jobs with same logic as API route
-    const [jobs, total] = await Promise.all([
+    const [rawJobs, total] = await Promise.all([
       prisma.job.findMany({
         where,
         orderBy,
@@ -164,10 +164,15 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           isVerifiedEmployer: true,
           originalPostedAt: true,
           mode: true,
+          applyLink: true,
+          employerJobs: { select: { companyLogoUrl: true } },
         },
       }),
       prisma.job.count({ where }),
     ]);
+
+    // Map employer logo onto job objects
+    const jobs = rawJobs.map(j => ({ ...j, companyLogoUrl: j.employerJobs?.companyLogoUrl || null, employerJobs: undefined }));
 
     return (
       <>
@@ -176,7 +181,7 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           { name: "Jobs", url: "https://pmhnphiring.com/jobs" }
         ]} />
         <JobsPageClient
-          initialJobs={jobs as Job[]}
+          initialJobs={jobs as unknown as Job[]}
           initialTotal={total}
           initialPage={page}
           initialTotalPages={Math.ceil(total / limit)}

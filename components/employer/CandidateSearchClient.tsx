@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock } from 'lucide-react';
 import CandidateCard from './CandidateCard';
 
 // Filter presets (match settings page)
@@ -44,9 +44,34 @@ export default function CandidateSearchClient() {
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('talentPool_page');
+            return saved ? parseInt(saved, 10) : 1;
+        }
+        return 1;
+    });
     const [loading, setLoading] = useState(true);
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+    const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+    const [unlockUsage, setUnlockUsage] = useState<{ used: number; limit: number | null; unlimited: boolean } | null>(null);
+    const [postings, setPostings] = useState<{ id: string; jobId: string; jobTitle: string; tier: string; unlocks: { used: number; limit: number; remaining: number }; inmails: { used: number; limit: number; remaining: number } }[]>([]);
+    const [selectedPostingId, setSelectedPostingId] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('talentPool_posting') || '';
+        }
+        return '';
+    });
+
+    // Persist page and posting to sessionStorage
+    useEffect(() => {
+        sessionStorage.setItem('talentPool_page', String(page));
+    }, [page]);
+    useEffect(() => {
+        if (selectedPostingId) {
+            sessionStorage.setItem('talentPool_posting', selectedPostingId);
+        }
+    }, [selectedPostingId]);
 
     const fetchCandidates = useCallback(async () => {
         setLoading(true);
@@ -67,6 +92,9 @@ export default function CandidateSearchClient() {
                 setCandidates(data.candidates);
                 setTotalCount(data.totalCount);
                 setTotalPages(data.totalPages);
+                if (data.viewedCandidateIds) {
+                    setViewedIds(new Set(data.viewedCandidateIds));
+                }
             }
         } catch { /* silent */ }
         setLoading(false);
@@ -78,18 +106,37 @@ export default function CandidateSearchClient() {
         return () => clearTimeout(timer);
     }, [fetchCandidates]);
 
-    // Fetch saved candidate IDs
+    // Fetch saved candidate IDs + usage
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch('/api/employer/saved-candidates');
-                if (res.ok) {
-                    const data = await res.json();
+                const savedUrl = selectedPostingId
+                    ? `/api/employer/saved-candidates?postingId=${selectedPostingId}`
+                    : '/api/employer/saved-candidates';
+                const [savedRes, usageRes] = await Promise.all([
+                    fetch(savedUrl),
+                    fetch('/api/employer/usage'),
+                ]);
+                if (savedRes.ok) {
+                    const data = await savedRes.json();
                     setSavedIds(new Set(data.savedCandidates.map((s: { candidate: { id: string } }) => s.candidate.id)));
+                }
+                if (usageRes.ok) {
+                    const usageData = await usageRes.json();
+                    setUnlockUsage(usageData.usage?.candidateUnlocks || null);
+                    if (usageData.postings) {
+                        setPostings(usageData.postings);
+                        // Restore from sessionStorage or default to first
+                        if (usageData.postings.length > 0 && !selectedPostingId) {
+                            const savedPosting = sessionStorage.getItem('talentPool_posting');
+                            const match = savedPosting ? usageData.postings.find((p: { id: string }) => p.id === savedPosting) : null;
+                            setSelectedPostingId(match ? match.id : usageData.postings[0].id);
+                        }
+                    }
                 }
             } catch { /* silent */ }
         })();
-    }, []);
+    }, [selectedPostingId]);
 
     const toggleSave = async (candidateId: string) => {
         const wasSaved = savedIds.has(candidateId);
@@ -104,13 +151,13 @@ export default function CandidateSearchClient() {
                 await fetch('/api/employer/saved-candidates', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ candidateId }),
+                    body: JSON.stringify({ candidateId, postingId: selectedPostingId || undefined }),
                 });
             } else {
                 await fetch('/api/employer/saved-candidates', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ candidateId }),
+                    body: JSON.stringify({ candidateId, postingId: selectedPostingId || undefined }),
                 });
             }
         } catch {
@@ -196,6 +243,70 @@ export default function CandidateSearchClient() {
                     </div>
                 </div>
             </div>
+
+            {/* Posting Selector */}
+            {postings.length > 0 && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '16px',
+                    flexWrap: 'wrap',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <Briefcase size={16} style={{ color: '#2DD4BF' }} />
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Using credits from:</span>
+                    </div>
+                    <select
+                        value={selectedPostingId}
+                        onChange={e => setSelectedPostingId(e.target.value)}
+                        style={{
+                            flex: 1,
+                            minWidth: '200px',
+                            padding: '8px 12px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            outline: 'none',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {postings.map(p => (
+                            <option key={p.id} value={p.id}>
+                                {p.jobTitle} ({p.tier.charAt(0).toUpperCase() + p.tier.slice(1)}) — {p.unlocks.remaining === -1 ? '∞' : p.unlocks.remaining} unlocks left
+                            </option>
+                        ))}
+                    </select>
+                    {(() => {
+                        const sel = postings.find(p => p.id === selectedPostingId);
+                        if (!sel) return null;
+                        const unlockPct = sel.unlocks.limit > 0 ? (sel.unlocks.used / sel.unlocks.limit) * 100 : 0;
+                        const inmailPct = sel.inmails.limit > 0 ? (sel.inmails.used / sel.inmails.limit) * 100 : 0;
+                        return (
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Lock size={13} style={{ color: '#A855F7' }} />
+                                    <span style={{ fontSize: '12px', color: unlockPct >= 100 ? '#EF4444' : unlockPct >= 80 ? '#FBBF24' : 'var(--text-secondary)' }}>
+                                        {sel.unlocks.remaining === -1 ? '∞ unlocks' : `${sel.unlocks.remaining}/${sel.unlocks.limit} unlocks`}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '12px', color: inmailPct >= 100 ? '#EF4444' : inmailPct >= 80 ? '#FBBF24' : 'var(--text-secondary)' }}>
+                                        ✉ {sel.inmails.remaining === -1 ? '∞ InMails' : `${sel.inmails.remaining}/${sel.inmails.limit} InMails`}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
 
             {/* Search + Filter Toggle */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -469,14 +580,24 @@ export default function CandidateSearchClient() {
                             marginBottom: '32px',
                         }}
                     >
-                        {candidates.map((c: Candidate) => (
-                            <CandidateCard
-                                key={c.id}
-                                {...c}
-                                isSaved={savedIds.has(c.id)}
-                                onToggleSave={toggleSave}
-                            />
-                        ))}
+                        {candidates.map((c: Candidate) => {
+                            const selPosting = postings.find(p => p.id === selectedPostingId);
+                            const perPostingUsage = selPosting ? {
+                                used: selPosting.unlocks.used,
+                                limit: selPosting.unlocks.limit === -1 ? null : selPosting.unlocks.limit,
+                                unlimited: selPosting.unlocks.limit === -1,
+                            } : (unlockUsage || undefined);
+                            return (
+                                <CandidateCard
+                                    key={c.id}
+                                    {...c}
+                                    isSaved={savedIds.has(c.id)}
+                                    isViewed={viewedIds.has(c.id)}
+                                    unlockUsage={perPostingUsage}
+                                    onToggleSave={toggleSave}
+                                />
+                            );
+                        })}
                     </div>
 
                     {/* Pagination */}

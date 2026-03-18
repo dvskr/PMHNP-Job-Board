@@ -56,6 +56,8 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     const [error, setError] = useState('');
     const [showContact, setShowContact] = useState(false);
     const [showCompose, setShowCompose] = useState(false);
+    const [postingJobId, setPostingJobId] = useState<string | undefined>(undefined);
+    const [postingJobTitle, setPostingJobTitle] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         (async () => {
@@ -71,6 +73,22 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
             } finally {
                 setLoading(false);
             }
+        })();
+        // Also fetch employer's postings to get jobId for InMail tracking
+        (async () => {
+            try {
+                const res = await fetch('/api/employer/usage');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.postings && data.postings.length > 0) {
+                        const savedPostingId = typeof window !== 'undefined' ? sessionStorage.getItem('talentPool_posting') : null;
+                        const match = savedPostingId ? data.postings.find((p: { id: string }) => p.id === savedPostingId) : null;
+                        const posting = match || data.postings[0];
+                        setPostingJobId(posting.jobId);
+                        setPostingJobTitle(posting.jobTitle);
+                    }
+                }
+            } catch { /* silent */ }
         })();
     }, [candidateId]);
 
@@ -536,6 +554,8 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                 <ComposeMessageModal
                     recipientId={candidate.id}
                     recipientName={candidate.displayName}
+                    jobId={postingJobId}
+                    jobTitle={postingJobTitle}
                     onClose={() => setShowCompose(false)}
                     onSent={() => setShowCompose(false)}
                 />

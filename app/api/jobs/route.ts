@@ -36,9 +36,11 @@ export async function GET(request: NextRequest) {
             isVerifiedEmployer: true,
             mode: true,
             originalPostedAt: true,
+            employerJobs: { select: { companyLogoUrl: true } },
           },
         });
-        return NextResponse.json({ jobs, total: jobs.length, page: 1, totalPages: 1 });
+        const jobsWithLogo = jobs.map(j => ({ ...j, companyLogoUrl: j.employerJobs?.companyLogoUrl || null, employerJobs: undefined }));
+        return NextResponse.json({ jobs: jobsWithLogo, total: jobsWithLogo.length, page: 1, totalPages: 1 });
       }
     }
 
@@ -89,26 +91,31 @@ export async function GET(request: NextRequest) {
           isRemote: true,
           isHybrid: true,
           // Salary fields
-          displaySalary: true,           // For display
-          normalizedMinSalary: true,     // For filtering
-          normalizedMaxSalary: true,     // For filtering
-          salaryPeriod: true,            // For context
-          salaryRange: true,             // Fallback for display
+          displaySalary: true,
+          normalizedMinSalary: true,
+          normalizedMaxSalary: true,
+          salaryPeriod: true,
+          salaryRange: true,
           // Other fields
           description: true,
-          descriptionSummary: true,      // For JobCard preview
+          descriptionSummary: true,
           createdAt: true,
           isFeatured: true,
-          isVerifiedEmployer: true,      // For JobCard badge
-          mode: true,                    // For JobCard work mode display
-          originalPostedAt: true,        // Crucial for correct date display
+          isVerifiedEmployer: true,
+          mode: true,
+          originalPostedAt: true,
+          applyLink: true,
+          employerJobs: { select: { companyLogoUrl: true } },
         },
       }),
       prisma.job.count({ where }),
     ]);
 
+    // Map employer logo onto job objects
+    const jobsWithLogo = jobs.map(j => ({ ...j, companyLogoUrl: j.employerJobs?.companyLogoUrl || null, employerJobs: undefined }));
+
     return NextResponse.json({
-      jobs,
+      jobs: jobsWithLogo,
       total,
       page,
       totalPages: Math.ceil(total / limit),

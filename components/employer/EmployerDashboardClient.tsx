@@ -8,6 +8,8 @@ import { config } from '@/lib/config';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
 import SavedCandidatesTab from '@/components/employer/SavedCandidatesTab';
+import MessagesTab from '@/components/employer/MessagesTab';
+import UsageWidget from '@/components/employer/UsageWidget';
 
 interface Job {
     id: string;
@@ -43,7 +45,10 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [togglingJobId, setTogglingJobId] = useState<string | null>(null);
     const [localJobs, setLocalJobs] = useState(jobs);
     const [showSignupBanner, setShowSignupBanner] = useState(isTokenAccess);
-    const [activeTab, setActiveTab] = useState<'jobs' | 'applicants' | 'analytics' | 'saved'>('jobs');
+    const [activeTab, setActiveTab] = useState<'jobs' | 'applicants' | 'analytics' | 'saved' | 'messages'>('jobs');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => { setMounted(true); }, []);
 
     // Newsletter (only for logged-in users)
     const [newsletterOptIn, setNewsletterOptIn] = useState(false);
@@ -319,36 +324,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     </Link>
                 )}
 
-                {/* Tab Navigation — session access only */}
-                {!isTokenAccess && (
-                    <div className="flex gap-1 mb-6 p-1 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                        {(['jobs', 'applicants', 'analytics', 'saved'] as const).map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab ? 'shadow-sm' : 'hover:opacity-80'}`}
-                                style={{
-                                    backgroundColor: activeTab === tab ? 'var(--bg-secondary)' : 'transparent',
-                                    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                                }}
-                            >
-                                {tab === 'jobs' ? `My Jobs (${jobs.length})` : tab === 'saved' ? '★ Saved' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* Applicants Tab Content */}
-                {activeTab === 'applicants' && !isTokenAccess && (
-                    <ApplicantsTab />
-                )}
-
-                {/* Analytics Tab Content */}
-                {activeTab === 'analytics' && !isTokenAccess && (
-                    <AnalyticsTab />
-                )}
-
-                {/* Messages — now linked to unified inbox */}
+                {/* Messages — linked to unified inbox */}
                 {!isTokenAccess && (
                     <Link
                         href="/messages"
@@ -379,6 +355,44 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                         </div>
                     </Link>
                 )}
+
+                {/* Usage Widget — session access only */}
+                {!isTokenAccess && <UsageWidget />}
+
+                {/* Tab Navigation — session access only */}
+                {!isTokenAccess && (
+                    <div className="flex gap-1 mb-6 p-1 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                        {(['jobs', 'applicants', 'analytics', 'messages', 'saved'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab ? 'shadow-sm' : 'hover:opacity-80'}`}
+                                style={{
+                                    backgroundColor: activeTab === tab ? 'var(--bg-secondary)' : 'transparent',
+                                    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                                }}
+                            >
+                                {tab === 'jobs' ? `My Jobs (${jobs.length})` : tab === 'saved' ? '★ Saved' : tab === 'messages' ? '✉ Messages' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Applicants Tab Content */}
+                {activeTab === 'applicants' && !isTokenAccess && (
+                    <ApplicantsTab />
+                )}
+
+                {/* Analytics Tab Content */}
+                {activeTab === 'analytics' && !isTokenAccess && (
+                    <AnalyticsTab />
+                )}
+
+                {/* Messages Tab Content */}
+                {activeTab === 'messages' && !isTokenAccess && (
+                    <MessagesTab />
+                )}
+
 
                 {/* Saved Candidates Tab Content */}
                 {activeTab === 'saved' && !isTokenAccess && (
@@ -488,7 +502,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                 {/* Dates + Invoice */}
                                                 <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                                                     <span>Posted {formatDate(job.createdAt)}</span>
-                                                    {job.expiresAt && (
+                                                    {mounted && job.expiresAt && (
                                                         <span className={isExpiringSoon(job) ? 'text-orange-600 font-medium' : ''}>
                                                             {isExpired(job) ? 'Expired' : 'Expires'} {formatDate(job.expiresAt)}
                                                             {isExpiringSoon(job) && ' ⚠️'}
@@ -517,7 +531,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     <Edit size={16} />
                                                     Edit
                                                 </Link>
-                                                {!isExpired(job) && (
+                                                {mounted && !isExpired(job) && (
                                                     <button
                                                         onClick={() => handleTogglePublish(job)}
                                                         disabled={togglingJobId === job.id}
@@ -534,7 +548,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
                                                     </button>
                                                 )}
-                                                {config.isPaidPostingEnabled && !job.isFeatured && job.isPublished && !isExpired(job) && (
+                                                {mounted && config.isPaidPostingEnabled && !job.isFeatured && job.isPublished && !isExpired(job) && (
                                                     <button
                                                         onClick={() => handleUpgradeClick(job)}
                                                         disabled={upgradingJobId === job.id}
@@ -544,7 +558,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                         {upgradingJobId === job.id ? 'Processing...' : 'Upgrade - $100'}
                                                     </button>
                                                 )}
-                                                {config.isPaidPostingEnabled && shouldShowRenew(job) && (
+                                                {mounted && config.isPaidPostingEnabled && shouldShowRenew(job) && (
                                                     <button
                                                         onClick={() => handleRenewClick(job)}
                                                         disabled={renewingJobId === job.id}

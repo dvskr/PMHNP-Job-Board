@@ -348,6 +348,7 @@ export default function ApplicantsTab() {
                                         border: selectedIds.has(app.id) ? '1.5px solid #14B8A6' : '1px solid var(--border-color)',
                                     }}
                                 >
+                                    {/* Row 1: Candidate info + Actions */}
                                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                         {/* Candidate Info */}
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -372,7 +373,7 @@ export default function ApplicantsTab() {
                                                 {!app.candidate.avatarUrl && app.candidate.initials}
                                             </div>
 
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2 flex-wrap mb-1">
                                                     <Link
                                                         href={`/employer/candidates/${app.candidate.id}`}
@@ -448,80 +449,7 @@ export default function ApplicantsTab() {
                                             </div>
                                         </div>
 
-                                        {/* Resume & Cover Letter Section */}
-                                        {(app.resumeUrl || app.coverLetter) && (
-                                            <div
-                                                className="mt-3 pt-3 flex flex-wrap items-center gap-2"
-                                                style={{ borderTop: '1px solid var(--border-color)' }}
-                                            >
-                                                {app.resumeUrl && (
-                                                    <a
-                                                        href={app.resumeUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-teal-50"
-                                                        style={{
-                                                            backgroundColor: 'rgba(13,148,136,0.08)',
-                                                            color: '#0d9488',
-                                                            border: '1px solid rgba(13,148,136,0.2)',
-                                                        }}
-                                                    >
-                                                        <Download size={12} />
-                                                        View Resume
-                                                    </a>
-                                                )}
-                                                {app.coverLetter && (
-                                                    <button
-                                                        onClick={() => setExpandedCoverLetter(
-                                                            expandedCoverLetter === app.id ? null : app.id
-                                                        )}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
-                                                        style={{
-                                                            backgroundColor: 'rgba(37,99,235,0.08)',
-                                                            color: '#2563EB',
-                                                            border: '1px solid rgba(37,99,235,0.2)',
-                                                        }}
-                                                    >
-                                                        {expandedCoverLetter === app.id ? <EyeOff size={12} /> : <Eye size={12} />}
-                                                        {expandedCoverLetter === app.id ? 'Hide' : 'View'} Cover Letter
-                                                    </button>
-                                                )}
-                                                {app.coverLetterUrl && (
-                                                    <a
-                                                        href={app.coverLetterUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
-                                                        style={{
-                                                            backgroundColor: 'rgba(37,99,235,0.08)',
-                                                            color: '#2563EB',
-                                                            border: '1px solid rgba(37,99,235,0.2)',
-                                                        }}
-                                                    >
-                                                        <Download size={12} /> Cover Letter PDF
-                                                    </a>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Expanded Cover Letter */}
-                                        {expandedCoverLetter === app.id && app.coverLetter && (
-                                            <div
-                                                className="mt-3 p-4 rounded-lg text-sm whitespace-pre-wrap"
-                                                style={{
-                                                    backgroundColor: 'var(--bg-tertiary)',
-                                                    color: 'var(--text-secondary)',
-                                                    border: '1px solid var(--border-color)',
-                                                    maxHeight: '200px',
-                                                    overflowY: 'auto',
-                                                    lineHeight: '1.6',
-                                                }}
-                                            >
-                                                {app.coverLetter}
-                                            </div>
-                                        )}
-
-                                        {/* Actions */}
+                                        {/* Actions — stays pinned right */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             {/* Message Button — featured posts only */}
                                             {app.job.isFeatured && (
@@ -559,6 +487,79 @@ export default function ApplicantsTab() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Row 2: Resume & Cover Letter buttons (full width, below header) */}
+                                    {(app.resumeUrl || app.coverLetter || app.coverLetterUrl) && (
+                                        <div
+                                            className="mt-3 pt-3 flex flex-wrap items-center gap-2"
+                                            style={{ borderTop: '1px solid var(--border-color)' }}
+                                        >
+                                            {app.resumeUrl && (
+                                                <a
+                                                    href={app.resumeUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-teal-50"
+                                                    style={{
+                                                        backgroundColor: 'rgba(13,148,136,0.08)',
+                                                        color: '#0d9488',
+                                                        border: '1px solid rgba(13,148,136,0.2)',
+                                                    }}
+                                                >
+                                                    <Download size={12} />
+                                                    View Resume
+                                                </a>
+                                            )}
+                                            {app.coverLetter && (
+                                                <button
+                                                    onClick={() => setExpandedCoverLetter(
+                                                        expandedCoverLetter === app.id ? null : app.id
+                                                    )}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
+                                                    style={{
+                                                        backgroundColor: 'rgba(37,99,235,0.08)',
+                                                        color: '#2563EB',
+                                                        border: '1px solid rgba(37,99,235,0.2)',
+                                                    }}
+                                                >
+                                                    {expandedCoverLetter === app.id ? <EyeOff size={12} /> : <Eye size={12} />}
+                                                    {expandedCoverLetter === app.id ? 'Hide' : 'View'} Cover Letter
+                                                </button>
+                                            )}
+                                            {app.coverLetterUrl && (
+                                                <a
+                                                    href={app.coverLetterUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
+                                                    style={{
+                                                        backgroundColor: 'rgba(37,99,235,0.08)',
+                                                        color: '#2563EB',
+                                                        border: '1px solid rgba(37,99,235,0.2)',
+                                                    }}
+                                                >
+                                                    <Download size={12} /> Cover Letter PDF
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Row 3: Expanded Cover Letter (full width) */}
+                                    {expandedCoverLetter === app.id && app.coverLetter && (
+                                        <div
+                                            className="mt-3 p-4 rounded-lg text-sm whitespace-pre-wrap"
+                                            style={{
+                                                backgroundColor: 'var(--bg-tertiary)',
+                                                color: 'var(--text-secondary)',
+                                                border: '1px solid var(--border-color)',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                                lineHeight: '1.6',
+                                            }}
+                                        >
+                                            {app.coverLetter}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

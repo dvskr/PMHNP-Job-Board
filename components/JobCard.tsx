@@ -184,7 +184,16 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 </div>
 
                 {/* Company */}
-                <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: '0 0 6px' }}>{job.employer}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px' }}>
+                  {job.companyLogoUrl && (
+                    <img
+                      src={job.companyLogoUrl}
+                      alt={`${job.employer} logo`}
+                      style={{ width: '24px', height: '24px', borderRadius: '6px', objectFit: 'contain', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                    />
+                  )}
+                  <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{job.employer}</p>
+                </div>
 
                 {/* Location and Type */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
@@ -366,7 +375,16 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         )}
 
         {/* Company Name */}
-        <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{job.employer}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+          {job.companyLogoUrl && (
+            <img
+              src={job.companyLogoUrl}
+              alt={`${job.employer} logo`}
+              style={{ width: '24px', height: '24px', borderRadius: '6px', objectFit: 'contain', border: '1px solid var(--border-color)', flexShrink: 0 }}
+            />
+          )}
+          <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{job.employer}</p>
+        </div>
 
         {/* Location and Meta */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>

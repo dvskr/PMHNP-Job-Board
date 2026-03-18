@@ -151,8 +151,8 @@ export async function GET(req: NextRequest) {
         : tier === 'growth' ? growthSelect
         : starterSelect
 
-    // Query
-    const [candidates, totalCount] = await Promise.all([
+    // Query + fetch viewed candidates in parallel
+    const [candidates, totalCount, viewedProfiles] = await Promise.all([
         prisma.userProfile.findMany({
             where,
             select,
@@ -161,7 +161,13 @@ export async function GET(req: NextRequest) {
             take: limit,
         }),
         prisma.userProfile.count({ where }),
+        prisma.profileView.findMany({
+            where: { viewerId: user.id },
+            select: { candidateId: true },
+        }),
     ])
+
+    const viewedCandidateIds = viewedProfiles.map(v => v.candidateId)
 
     // Privacy transform: mask last name for non-premium tiers
     const results = candidates.map(c => {
@@ -226,5 +232,6 @@ export async function GET(req: NextRequest) {
         page,
         totalPages: Math.ceil(totalCount / limit),
         tier,
+        viewedCandidateIds,
     })
 }
