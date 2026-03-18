@@ -314,7 +314,7 @@ export default function MessageEmployerModal({
                     )}
 
                     {/* Compose state */}
-                    {!success && !alreadyMessaged && !profileIncomplete && (
+                    {!success && !alreadyMessaged && !awaitingReply && !profileIncomplete && (
                         <>
                             {/* Subject */}
                             <div style={{ marginBottom: '16px' }}>
