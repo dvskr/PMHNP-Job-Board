@@ -85,7 +85,6 @@ export async function GET(request: Request) {
                     ? prisma.job.findMany({
                         where: {
                             id: { in: savedJobIds },
-                            isPublished: true,
                         },
                         orderBy: { createdAt: 'desc' },
                         take: 5,
@@ -98,6 +97,7 @@ export async function GET(request: Request) {
                             jobType: true,
                             mode: true,
                             displaySalary: true,
+                            isPublished: true,
                         },
                     })
                     : Promise.resolve([]),

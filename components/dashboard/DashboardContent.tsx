@@ -8,7 +8,7 @@ import { calculateCompleteness } from '@/lib/profile-completeness'
 import useSavedJobs from '@/lib/hooks/useSavedJobs'
 import {
     Bookmark, Send, Eye, Bell, ArrowRight, Briefcase, MapPin,
-    DollarSign, Loader2, TrendingUp, Clock
+    DollarSign, Loader2, TrendingUp, Clock, AlertTriangle
 } from 'lucide-react'
 
 /* ── Types ── */
@@ -22,6 +22,7 @@ interface DashboardJob {
     mode: string | null
     displaySalary: string | null
     isRemote?: boolean
+    isPublished?: boolean
 }
 
 interface Application {
@@ -93,9 +94,13 @@ const viewAllLink: React.CSSProperties = {
 
 /* ── Reusable mini job card ── */
 function CompactJobCard({ job, extra }: { job: DashboardJob; extra?: React.ReactNode }) {
+    const isUnavailable = job.isPublished === false
+    const Wrapper = isUnavailable ? 'div' : Link
+    const wrapperProps = isUnavailable ? {} : { href: job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}` }
     return (
-        <Link
-            href={job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`}
+        <Wrapper
+            {...wrapperProps as React.ComponentProps<typeof Wrapper>}
+
             style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -108,6 +113,8 @@ function CompactJobCard({ job, extra }: { job: DashboardJob; extra?: React.React
                 borderColor: 'var(--border-color)',
                 textDecoration: 'none',
                 transition: 'border-color 0.2s',
+                opacity: isUnavailable ? 0.6 : 1,
+                cursor: isUnavailable ? 'default' : 'pointer',
             }}
         >
             {/* icon */}
@@ -150,9 +157,18 @@ function CompactJobCard({ job, extra }: { job: DashboardJob; extra?: React.React
                 </p>
             </div>
 
-            {/* extra (e.g. applied date) */}
-            {extra}
-        </Link>
+            {/* extra (e.g. applied date) or unavailable badge */}
+            {isUnavailable ? (
+                <span style={{
+                    fontSize: '10px', fontWeight: 600, padding: '3px 8px',
+                    borderRadius: '6px', whiteSpace: 'nowrap', flexShrink: 0,
+                    backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444',
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                }}>
+                    <AlertTriangle size={10} /> Expired
+                </span>
+            ) : extra}
+        </Wrapper>
     )
 }
 
