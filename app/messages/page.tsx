@@ -409,7 +409,7 @@ export default function MessagesPage() {
     const showMobileThread = activeConvId !== null;
 
     return (
-        <div className="msg-page-container">
+        <div className="msg-page-container" suppressHydrationWarning>
             {/* Header — hidden on mobile, shown on desktop */}
             <div className="msg-page-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
