@@ -147,11 +147,47 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingConversation) {
+            // Add the message to the existing conversation instead of blocking
+            const cleanBody = sanitizeText(messageBody.trim(), 2000);
+            const cleanSubject = sanitizeText(subject.trim(), 200);
+
+            const message = await prisma.employerMessage.create({
+                data: {
+                    senderId: profile.id,
+                    recipientId: employerProfile.id,
+                    conversationId: existingConversation.id,
+                    jobId,
+                    subject: cleanSubject,
+                    body: cleanBody,
+                },
+            });
+
+            await prisma.conversation.update({
+                where: { id: existingConversation.id },
+                data: { lastMessageAt: new Date(), deletedByA: false, deletedByB: false },
+            });
+
+            // Send email notification
+            const candidateName = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'A candidate';
+            if (employerProfile.email) {
+                sendCandidateInquiryNotification(
+                    employerProfile.email,
+                    employerProfile.firstName,
+                    candidateName,
+                    cleanSubject,
+                    cleanBody,
+                    job.title,
+                ).catch(err => console.error('Candidate inquiry email error:', err));
+            }
+
             return NextResponse.json({
-                error: 'You have already messaged this employer about this job',
-                alreadyMessaged: true,
+                success: true,
                 conversationId: existingConversation.id,
-            }, { status: 409 });
+                message: {
+                    id: message.id,
+                    sentAt: message.sentAt.toISOString(),
+                },
+            }, { status: 201 });
         }
 
         // Sanitize inputs
