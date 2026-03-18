@@ -959,16 +959,14 @@ export default async function JobPage({ params }: JobPageProps) {
       {/* Sticky Apply Button - Mobile Only */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="px-4 py-2 pb-safe">
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ flex: 1 }}>
-              <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
-            </div>
-            <SaveJobButton jobId={job.id} />
-            {job.sourceType === 'employer' && (
-              <div style={{ flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
+            <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
+              <SaveJobButton jobId={job.id} />
+              {job.sourceType === 'employer' && (
                 <MessageEmployerButton jobId={job.id} jobTitle={job.title} employerName={job.employer} disabled={isOwnJob} />
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

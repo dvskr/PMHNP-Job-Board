@@ -61,7 +61,7 @@ export default function MessageEmployerButton({
                 }}
             >
                 <MessageSquare size={16} />
-                InMail Employer
+                Message Employer
             </button>
 
             <MessageEmployerModal
