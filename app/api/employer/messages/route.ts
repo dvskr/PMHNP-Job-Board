@@ -95,44 +95,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Message body must be under 2000 characters' }, { status: 400 });
         }
 
-        // Gate: messaging requires a featured job posting
-        if (jobId) {
-            // If sending about a specific job, that job must be featured
-            const job = await prisma.job.findFirst({
-                where: {
-                    id: jobId,
-                    isFeatured: true,
-                    employerJobs: {
-                        OR: [
-                            { userId: user.id },
-                            { contactEmail: user.email! },
-                        ],
-                    },
-                },
-                select: { id: true },
-            });
-            if (!job) {
-                return NextResponse.json({ error: 'Messaging is available for featured job postings only' }, { status: 403 });
-            }
-        } else {
-            // No jobId — employer must have at least one featured job
-            const featuredJob = await prisma.employerJob.findFirst({
-                where: {
-                    OR: [
-                        { userId: user.id },
-                        { contactEmail: user.email! },
-                    ],
-                    job: { isFeatured: true },
-                },
-                select: { id: true },
-            });
-            if (!featuredJob) {
-                return NextResponse.json({ error: 'Messaging is available for featured job postings only' }, { status: 403 });
-            }
-        }
-
-        // Look up recipient for email notification
-        // Note: recipientId from the UI is the supabaseId (UUID), not the Prisma auto-increment id
+        // Look up recipient first (needed for conversation check)
         const recipient = await prisma.userProfile.findUnique({
             where: { supabaseId: recipientId },
             select: { id: true, email: true, firstName: true },
@@ -142,17 +105,65 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
         }
 
-        // Check InMail limit based on employer's posting tier
-        const tier = await getEmployerTier(user.id);
-        const inmailCheck = await canSendInMail(senderProfile.id, user.id, tier);
-        if (!inmailCheck.allowed) {
-            return NextResponse.json({
-                error: 'InMail limit reached for this posting',
-                used: inmailCheck.used,
-                limit: inmailCheck.limit,
-                tier,
-                upgradeRequired: true,
-            }, { status: 403 });
+        // Check if a conversation already exists — replies are always free
+        // (no featured job gate, no InMail credit check)
+        const existingConversation = await prisma.conversation.findFirst({
+            where: {
+                OR: [
+                    { participantA: senderProfile.id, participantB: recipient.id },
+                    { participantA: recipient.id, participantB: senderProfile.id },
+                ],
+            },
+        });
+
+        if (!existingConversation) {
+            // NEW outreach — requires a featured job posting + InMail credit
+            // Gate: messaging requires a featured job posting
+            if (jobId) {
+                const job = await prisma.job.findFirst({
+                    where: {
+                        id: jobId,
+                        isFeatured: true,
+                        employerJobs: {
+                            OR: [
+                                { userId: user.id },
+                                { contactEmail: user.email! },
+                            ],
+                        },
+                    },
+                    select: { id: true },
+                });
+                if (!job) {
+                    return NextResponse.json({ error: 'Messaging is available for featured job postings only' }, { status: 403 });
+                }
+            } else {
+                const featuredJob = await prisma.employerJob.findFirst({
+                    where: {
+                        OR: [
+                            { userId: user.id },
+                            { contactEmail: user.email! },
+                        ],
+                        job: { isFeatured: true },
+                    },
+                    select: { id: true },
+                });
+                if (!featuredJob) {
+                    return NextResponse.json({ error: 'Messaging is available for featured job postings only' }, { status: 403 });
+                }
+            }
+
+            // Check InMail credits for new outreach
+            const tier = await getEmployerTier(user.id);
+            const inmailCheck = await canSendInMail(senderProfile.id, user.id, tier);
+            if (!inmailCheck.allowed) {
+                return NextResponse.json({
+                    error: 'InMail limit reached for this posting',
+                    used: inmailCheck.used,
+                    limit: inmailCheck.limit,
+                    tier,
+                    upgradeRequired: true,
+                }, { status: 403 });
+            }
         }
 
         // Look up job title if jobId provided

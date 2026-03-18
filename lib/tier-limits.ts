@@ -67,19 +67,22 @@ export async function getUnlocksForPosting(employerJobId: string): Promise<numbe
 }
 
 /**
- * Count how many InMails are tied to a specific job posting.
- * Uses the Job ID (not EmployerJob ID) since EmployerMessage links to Job.
+ * Count how many InMails (unique conversations) are tied to a specific job posting.
+ * Only counts unique conversations, not total messages — follow-up replies are free.
  */
 export async function getInMailsForPosting(
     senderId: string,
     jobId: string,
     postingCreatedAt: Date
 ): Promise<number> {
-    return prisma.employerMessage.count({
+    return prisma.conversation.count({
         where: {
-            senderId,
+            OR: [
+                { participantA: senderId },
+                { participantB: senderId },
+            ],
             jobId,
-            sentAt: { gte: postingCreatedAt },
+            createdAt: { gte: postingCreatedAt },
         },
     });
 }
@@ -246,12 +249,10 @@ export async function getUsageSummary(
             totalUnlocksLimit = Infinity;
         }
 
-        // InMails
+        // InMails — count unique conversations, not individual messages
         const inmailLimit = postingLimits.inmailsPerPosting;
         if (Number.isFinite(inmailLimit)) {
-            const inmailCount = await prisma.employerMessage.count({
-                where: { senderId: profileId, jobId: posting.job.id, sentAt: { gte: posting.createdAt } },
-            });
+            const inmailCount = await getInMailsForPosting(profileId, posting.job.id, posting.createdAt);
             totalInmailsUsed += inmailCount;
             totalInmailsLimit += inmailLimit;
         } else {
@@ -290,9 +291,7 @@ export async function getPerPostingUsage(
         const unlockLimit = limits.candidateUnlocksPerPosting;
         const unlockRemaining = Number.isFinite(unlockLimit) ? Math.max(0, unlockLimit - unlockCount) : Infinity;
 
-        const inmailCount = await prisma.employerMessage.count({
-            where: { senderId: profileId, jobId: posting.job.id, sentAt: { gte: posting.createdAt } },
-        });
+        const inmailCount = await getInMailsForPosting(profileId, posting.job.id, posting.createdAt);
         const inmailLimit = limits.inmailsPerPosting;
         const inmailRemaining = Number.isFinite(inmailLimit) ? Math.max(0, inmailLimit - inmailCount) : Infinity;
 

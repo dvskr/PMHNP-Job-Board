@@ -76,7 +76,19 @@ export async function GET(
     // Determine access level: admin always gets full access,
     // employers need an active paid job post for full candidate info
     const isAdmin = viewerProfile.role === 'admin'
-    const hasFullAccess = isAdmin || await hasActiveFeaturedPost(user.id)
+
+    // Check if this candidate was already unlocked (ProfileView exists)
+    const existingView = await prisma.profileView.findUnique({
+        where: {
+            viewerId_candidateId: {
+                viewerId: user.id,
+                candidateId: id,
+            },
+        },
+    })
+
+    // Full access if: admin, OR has active posting, OR already unlocked this candidate
+    const hasFullAccess = isAdmin || !!existingView || await hasActiveFeaturedPost(user.id)
 
     // Fetch candidate (privacy check: must be visible + open to offers)
     const candidate = await prisma.userProfile.findFirst({
@@ -91,17 +103,6 @@ export async function GET(
     if (!candidate) {
         return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
     }
-
-    // Track profile view (upsert — one record per viewer+candidate pair)
-    // Check if this is a NEW unlock (not a re-view of an already-unlocked candidate)
-    const existingView = await prisma.profileView.findUnique({
-        where: {
-            viewerId_candidateId: {
-                viewerId: user.id,
-                candidateId: id,
-            },
-        },
-    })
 
     let chargePostingId: string | undefined
 

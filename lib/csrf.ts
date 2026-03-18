@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const ALLOWED_ORIGINS = [
     'https://pmhnphiring.com',
     'https://www.pmhnphiring.com',
+    'https://dev.pmhnphiring.com',
     'http://localhost:3000',
     'http://localhost:3001',
 ];
