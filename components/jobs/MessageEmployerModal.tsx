@@ -253,16 +253,18 @@ export default function MessageEmployerModal({
                         <div style={{ textAlign: 'center', padding: '16px 0' }}>
                             <AlertTriangle size={48} style={{ color: '#F59E0B', margin: '0 auto 16px' }} />
                             <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
-                                Complete your profile first
+                                Almost there!
                             </h4>
                             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 8px' }}>
-                                Please fill in the following before messaging employers:
+                                To message employers, please add your <strong>first name</strong> to your profile. It only takes a moment!
                             </p>
-                            <ul style={{ textAlign: 'left', fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 20px', paddingLeft: '20px' }}>
-                                {missingFields.map(f => (
-                                    <li key={f} style={{ textTransform: 'capitalize', margin: '4px 0' }}>{f}</li>
-                                ))}
-                            </ul>
+                            {missingFields.length > 0 && (
+                                <ul style={{ textAlign: 'left', fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 20px', paddingLeft: '20px' }}>
+                                    {missingFields.map(f => (
+                                        <li key={f} style={{ textTransform: 'capitalize', margin: '4px 0' }}>{f}</li>
+                                    ))}
+                                </ul>
+                            )}
                             <button
                                 onClick={() => router.push('/profile?redirect=' + encodeURIComponent(window.location.pathname))}
                                 style={{
@@ -271,7 +273,7 @@ export default function MessageEmployerModal({
                                     fontSize: '14px', fontWeight: 600, cursor: 'pointer',
                                 }}
                             >
-                                Complete Profile
+                                Update Profile
                             </button>
                         </div>
                     )}

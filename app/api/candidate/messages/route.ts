@@ -53,16 +53,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Only job seekers can use this endpoint' }, { status: 403 });
         }
 
-        // Profile completeness check
-        const incomplete: string[] = [];
-        if (!profile.firstName) incomplete.push('first name');
-        if (!profile.headline) incomplete.push('headline');
-        if (!profile.specialties) incomplete.push('specialties');
-
-        if (incomplete.length > 0) {
+        // Profile completeness check — only first name is required to message
+        if (!profile.firstName) {
             return NextResponse.json({
-                error: 'Please complete your profile before messaging employers',
-                missingFields: incomplete,
+                error: 'Please add your first name to your profile before messaging employers',
+                missingFields: ['first name'],
                 profileIncomplete: true,
             }, { status: 400 });
         }
