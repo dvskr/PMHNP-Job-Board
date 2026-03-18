@@ -147,7 +147,31 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingConversation) {
-            // Add the message to the existing conversation instead of blocking
+            // Reply gating: if candidate already sent a message and employer hasn't replied, block
+            const employerReplyCount = await prisma.employerMessage.count({
+                where: {
+                    conversationId: existingConversation.id,
+                    senderId: employerProfile.id,
+                },
+            });
+
+            const candidateMessageCount = await prisma.employerMessage.count({
+                where: {
+                    conversationId: existingConversation.id,
+                    senderId: profile.id,
+                },
+            });
+
+            // Block if: candidate already sent a message AND employer hasn't replied
+            if (candidateMessageCount > 0 && employerReplyCount === 0) {
+                return NextResponse.json({
+                    error: 'Please wait for the employer to respond before sending another message',
+                    awaitingReply: true,
+                    conversationId: existingConversation.id,
+                }, { status: 403 });
+            }
+
+            // Add the message to the existing conversation
             const cleanBody = sanitizeText(messageBody.trim(), 2000);
             const cleanSubject = sanitizeText(subject.trim(), 200);
 

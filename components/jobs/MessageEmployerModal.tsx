@@ -31,6 +31,7 @@ export default function MessageEmployerModal({
     const [profileIncomplete, setProfileIncomplete] = useState(false);
     const [missingFields, setMissingFields] = useState<string[]>([]);
     const [alreadyMessaged, setAlreadyMessaged] = useState(false);
+    const [awaitingReply, setAwaitingReply] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [mounted, setMounted] = useState(false);
 
@@ -58,6 +59,7 @@ export default function MessageEmployerModal({
             setProfileIncomplete(false);
             setMissingFields([]);
             setAlreadyMessaged(false);
+            setAwaitingReply(false);
         }
     }, [isOpen, jobTitle]);
 
@@ -82,6 +84,9 @@ export default function MessageEmployerModal({
                     setMissingFields(data.missingFields || []);
                 } else if (data.alreadyMessaged) {
                     setAlreadyMessaged(true);
+                    setConversationId(data.conversationId);
+                } else if (data.awaitingReply) {
+                    setAwaitingReply(true);
                     setConversationId(data.conversationId);
                 } else if (res.status === 401) {
                     setIsAuthenticated(false);
@@ -255,7 +260,30 @@ export default function MessageEmployerModal({
                         </div>
                     )}
 
-                    {/* Profile incomplete state */}
+                    {/* Awaiting employer reply state */}
+                    {awaitingReply && (
+                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                            <MessageSquare size={48} style={{ color: '#F59E0B', margin: '0 auto 16px' }} />
+                            <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                                Awaiting reply
+                            </h4>
+                            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 20px' }}>
+                                You&apos;ve already sent a message. Please wait for the employer to respond before sending another.
+                            </p>
+                            <button
+                                onClick={() => router.push('/messages')}
+                                style={{
+                                    padding: '10px 24px', borderRadius: '10px',
+                                    border: 'none', backgroundColor: '#2DD4BF', color: 'white',
+                                    fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                }}
+                            >
+                                <MessageSquare size={16} />
+                                View Conversation
+                            </button>
+                        </div>
+                    )}
                     {profileIncomplete && (
                         <div style={{ textAlign: 'center', padding: '16px 0' }}>
                             <AlertTriangle size={48} style={{ color: '#F59E0B', margin: '0 auto 16px' }} />
