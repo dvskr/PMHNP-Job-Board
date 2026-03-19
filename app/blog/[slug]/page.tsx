@@ -117,14 +117,20 @@ export default async function BlogPostPage({ params }: Props) {
         datePublished: post.publish_date || post.created_at,
         dateModified: post.updated_at,
         author: [{
+            '@type': 'Person',
+            name: 'PMHNP Hiring Editorial Team',
+            jobTitle: 'Board-Certified Psychiatric-Mental Health Nurse Practitioners',
+            url: 'https://pmhnphiring.com/about',
+        }, {
             '@type': 'Organization',
             name: 'PMHNP Hiring',
             url: 'https://pmhnphiring.com',
         }],
         reviewedBy: {
             '@type': 'Person',
-            name: 'PMHNP Clinical Review Team',
-            jobTitle: 'Board-Certified Psychiatric Nurse Practitioners',
+            name: 'PMHNP Clinical Review Board',
+            jobTitle: 'Board-Certified Psychiatric-Mental Health Nurse Practitioners',
+            url: 'https://pmhnphiring.com/about',
         },
         publisher: {
             '@type': 'Organization',

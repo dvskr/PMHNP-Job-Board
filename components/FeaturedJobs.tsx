@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, ArrowRight, Clock, Sparkles, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Badge from '@/components/ui/Badge';
+import { trackJobListView, buildJobItem } from '@/lib/analytics';
 
 interface FeaturedJob {
     id: string;
@@ -123,6 +125,15 @@ const css = `
 `;
 
 export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
+    // Track homepage job list view for GA4 funnel
+    useEffect(() => {
+        if (jobs.length === 0) return;
+        trackJobListView(
+            jobs.map(j => buildJobItem({ id: j.id, title: j.title, employer: j.employer })),
+            'Homepage Featured Jobs',
+        );
+    }, [jobs]);
+
     if (jobs.length === 0) return null;
 
     return (

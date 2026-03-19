@@ -32,18 +32,18 @@ export default function MessageEmployerButton({
                 title={disabled ? 'This is your job posting' : `Send InMail to ${employerName}`}
                 style={{
                     width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    border: disabled ? '1.5px solid var(--border-color)' : '1.5px solid rgba(45,212,191,0.3)',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: disabled ? '1px solid var(--border-color)' : '1px solid rgba(45,212,191,0.3)',
                     backgroundColor: 'transparent',
                     color: disabled ? 'var(--text-tertiary)' : '#2DD4BF',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: 600,
                     cursor: disabled ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
+                    gap: '6px',
                     transition: 'all 0.2s',
                     opacity: disabled ? 0.5 : 1,
                 }}

@@ -16,6 +16,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import RelatedJobs from '@/components/RelatedJobs';
 import AboutEmployer from '@/components/AboutEmployer';
 import SalaryInsights from '@/components/SalaryInsights';
+import { JobViewTracker } from '@/components/analytics/ViewTrackers';
 import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
 import InternalLinks from '@/components/InternalLinks';
@@ -524,6 +525,7 @@ export default async function JobPage({ params }: JobPageProps) {
       <JobStructuredData
         job={job}
       />
+      <JobViewTracker job={{ id: job.id, title: job.title, employer: job.employer, jobType: job.jobType || undefined, stateCode: job.stateCode || undefined, sourceProvider: job.sourceProvider || undefined, normalizedMinSalary: job.normalizedMinSalary }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         {/* Breadcrumbs */}
         <Breadcrumbs items={breadcrumbItems} />

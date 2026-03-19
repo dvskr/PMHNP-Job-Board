@@ -84,6 +84,27 @@ export default async function Home() {
   return (
     <div>
       <VideoJsonLd pathname="/" />
+      {/* Site-wide Organization schema with social sameAs links */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'PMHNP Hiring',
+            url: 'https://pmhnphiring.com',
+            logo: 'https://pmhnphiring.com/pmhnp_logo.png',
+            description: 'The #1 job board for Psychiatric Mental Health Nurse Practitioners. Browse thousands of PMHNP jobs updated daily across all 50 states.',
+            sameAs: [
+              'https://x.com/pmhnphiring',
+              'https://www.facebook.com/pmhnphiring',
+              'https://www.instagram.com/pmhnphiring',
+              'https://www.linkedin.com/company/pmhnpjobs',
+              'https://www.youtube.com/@pmhnphiring',
+            ],
+          }),
+        }}
+      />
       {/* Homepage FAQ Schema for featured snippets */}
       <script
         type="application/ld+json"

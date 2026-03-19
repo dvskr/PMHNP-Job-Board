@@ -156,71 +156,57 @@ export function trackPageView(path: string, title?: string) {
 // ── Job Funnel Events ───────────────────────────────────────────
 // Follows GA4's recommended e-commerce events adapted for job board:
 // view_item_list → select_item → view_item → add_to_wishlist → generate_lead
+//
+// IMPORTANT: All events use gtag('event', ...) NOT dataLayer.push().
+// Without GTM, dataLayer.push() for custom events is silently ignored.
 
 /** User views a list of jobs (search results, category page, homepage) */
 export function trackJobListView(jobs: JobItem[], listName: string) {
-  push({ ecommerce: null }); // Clear previous ecommerce data
-  push({
-    event: 'view_item_list',
-    ecommerce: {
-      item_list_id: listName.toLowerCase().replace(/\s+/g, '_'),
-      item_list_name: listName,
-      items: jobs.slice(0, 20).map((job, index) => ({
-        ...job,
-        index,
-        quantity: 1,
-      })),
-    },
+  gtag('event', 'view_item_list', {
+    item_list_id: listName.toLowerCase().replace(/\s+/g, '_'),
+    item_list_name: listName,
+    items: jobs.slice(0, 20).map((job, index) => ({
+      ...job,
+      index,
+      quantity: 1,
+    })),
   });
 }
 
 /** User clicks a job card from a list */
 export function trackJobClick(job: JobItem, listName: string, position: number) {
-  push({ ecommerce: null });
-  push({
-    event: 'select_item',
-    ecommerce: {
-      item_list_id: listName.toLowerCase().replace(/\s+/g, '_'),
-      item_list_name: listName,
-      items: [{
-        ...job,
-        index: position,
-        quantity: 1,
-      }],
-    },
+  gtag('event', 'select_item', {
+    item_list_id: listName.toLowerCase().replace(/\s+/g, '_'),
+    item_list_name: listName,
+    items: [{
+      ...job,
+      index: position,
+      quantity: 1,
+    }],
   });
 }
 
 /** User views a job detail page */
 export function trackJobView(job: JobItem) {
-  push({ ecommerce: null });
-  push({
-    event: 'view_item',
-    ecommerce: {
-      currency: 'USD',
-      value: job.price || 0,
-      items: [{ ...job, quantity: 1 }],
-    },
+  gtag('event', 'view_item', {
+    currency: 'USD',
+    value: job.price || 0,
+    items: [{ ...job, quantity: 1 }],
   });
 }
 
 /** User saves a job */
 export function trackJobSave(job: JobItem) {
-  push({ ecommerce: null });
-  push({
-    event: 'add_to_wishlist',
-    ecommerce: {
-      currency: 'USD',
-      value: job.price || 0,
-      items: [{ ...job, quantity: 1 }],
-    },
+  gtag('event', 'add_to_wishlist', {
+    currency: 'USD',
+    value: job.price || 0,
+    items: [{ ...job, quantity: 1 }],
   });
 }
 
 /** User unsaves a job */
 export function trackJobUnsave(job: JobItem) {
-  push({
-    event: 'remove_from_wishlist',
+  gtag('event', 'remove_from_wishlist', {
     job_id: job.item_id,
     job_title: job.item_name,
   });
@@ -228,19 +214,15 @@ export function trackJobUnsave(job: JobItem) {
 
 /** User clicks apply — PRIMARY CONVERSION */
 export function trackJobApply(job: JobItem, method: 'external' | 'platform') {
-  push({ ecommerce: null });
-  push({
-    event: 'generate_lead',
-    ecommerce: {
-      currency: 'USD',
-      value: job.price || 1,
-      items: [{ ...job, quantity: 1 }],
-    },
+  // Fire GA4 recommended event for lead generation
+  gtag('event', 'generate_lead', {
+    currency: 'USD',
+    value: job.price || 1,
+    items: [{ ...job, quantity: 1 }],
   });
 
   // Also fire as custom event for easier reporting
-  push({
-    event: 'job_apply',
+  gtag('event', 'job_apply', {
     job_id: job.item_id,
     job_title: job.item_name,
     company: job.item_brand,
@@ -255,8 +237,7 @@ export function trackJobApply(job: JobItem, method: 'external' | 'platform') {
 // ── Search Tracking ─────────────────────────────────────────────
 
 export function trackSearch(searchTerm: string, filters?: Record<string, string>, resultsCount?: number) {
-  push({
-    event: 'search',
+  gtag('event', 'search', {
     search_term: searchTerm,
     results_count: resultsCount,
     ...filters,
@@ -264,8 +245,7 @@ export function trackSearch(searchTerm: string, filters?: Record<string, string>
 }
 
 export function trackFilterChange(filterName: string, filterValue: string) {
-  push({
-    event: 'filter_change',
+  gtag('event', 'filter_change', {
     filter_name: filterName,
     filter_value: filterValue,
   });
@@ -274,16 +254,14 @@ export function trackFilterChange(filterName: string, filterValue: string) {
 // ── Auth Events ─────────────────────────────────────────────────
 
 export function trackSignUp(method: 'email' | 'google', role: 'job_seeker' | 'employer') {
-  push({
-    event: 'sign_up',
+  gtag('event', 'sign_up', {
     method,
     user_role: role,
   });
 }
 
 export function trackLogin(method: 'email' | 'google', role?: string) {
-  push({
-    event: 'login',
+  gtag('event', 'login', {
     method,
     user_role: role,
   });
@@ -292,8 +270,7 @@ export function trackLogin(method: 'email' | 'google', role?: string) {
 // ── Engagement Events ───────────────────────────────────────────
 
 export function trackShare(contentType: string, itemId: string, method: string) {
-  push({
-    event: 'share',
+  gtag('event', 'share', {
     content_type: contentType,
     item_id: itemId,
     method,
@@ -301,22 +278,19 @@ export function trackShare(contentType: string, itemId: string, method: string) 
 }
 
 export function trackEmailSubscribe(source: string) {
-  push({
-    event: 'email_subscribe',
+  gtag('event', 'email_subscribe', {
     subscribe_source: source,
   });
 }
 
 export function trackResumeUpload() {
-  push({
-    event: 'resume_upload',
+  gtag('event', 'resume_upload', {
     engagement_type: 'high_value',
   });
 }
 
 export function trackProfileComplete(completenessPercent: number) {
-  push({
-    event: 'profile_complete',
+  gtag('event', 'profile_complete', {
     completeness: completenessPercent,
   });
 }
@@ -324,23 +298,20 @@ export function trackProfileComplete(completenessPercent: number) {
 // ── Employer Events ─────────────────────────────────────────────
 
 export function trackJobPost(jobId: string, tier: string) {
-  push({
-    event: 'post_job',
+  gtag('event', 'post_job', {
     job_id: jobId,
     pricing_tier: tier,
   });
 }
 
 export function trackCandidateView(candidateId: string) {
-  push({
-    event: 'view_candidate',
+  gtag('event', 'view_candidate', {
     candidate_id: candidateId,
   });
 }
 
 export function trackMessageSent(recipientType: 'candidate' | 'employer') {
-  push({
-    event: 'message_sent',
+  gtag('event', 'message_sent', {
     recipient_type: recipientType,
   });
 }
@@ -348,8 +319,7 @@ export function trackMessageSent(recipientType: 'candidate' | 'employer') {
 // ── Utility Events ──────────────────────────────────────────────
 
 export function trackOutboundLink(url: string, linkText?: string) {
-  push({
-    event: 'click',
+  gtag('event', 'click', {
     link_url: url,
     link_text: linkText,
     outbound: true,
@@ -357,16 +327,14 @@ export function trackOutboundLink(url: string, linkText?: string) {
 }
 
 export function trackError(errorType: string, errorMessage: string, fatal: boolean = false) {
-  push({
-    event: 'exception',
+  gtag('event', 'exception', {
     description: `${errorType}: ${errorMessage}`,
     fatal,
   });
 }
 
 export function trackTiming(category: string, variable: string, valueMs: number) {
-  push({
-    event: 'timing_complete',
+  gtag('event', 'timing_complete', {
     name: variable,
     value: valueMs,
     event_category: category,

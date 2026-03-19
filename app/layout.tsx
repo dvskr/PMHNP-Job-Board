@@ -14,6 +14,7 @@ import MainContent from '@/components/MainContent';
 import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
 const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
@@ -227,6 +228,7 @@ export default async function RootLayout({
           <ToastProvider>
             <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
               <GoogleAnalytics nonce={nonce} />
+              <SpeedInsights />
               <LayoutShell>
                 <Header />
                 <ProfileNudgeBanner />

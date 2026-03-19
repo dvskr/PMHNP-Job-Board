@@ -12,7 +12,7 @@ PMHNP Hiring (https://pmhnphiring.com) aggregates, verifies, and enriches PMHNP 
 - 10,000+ active job listings, updated daily
 - 100,000+ indexed content pages with local market data
 - 4,135 US cities with enriched data (population, cost of living, healthcare systems, shortage areas)
-- 24 job categories covering every PMHNP career path
+- 26 job categories covering every PMHNP career path
 - 50 state licensure guides with practice authority information
 - All 50 US states + DC covered
 - 73% of listings show salary

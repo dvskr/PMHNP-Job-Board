@@ -6,6 +6,7 @@ import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
+import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
@@ -197,6 +198,27 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                 { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
                 { name: "Telehealth", url: "https://pmhnphiring.com/jobs/telehealth" }
             ]} />
+            {/* ItemList Schema — enables job carousels in Google search */}
+            {jobs.length > 0 && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org',
+                            '@type': 'ItemList',
+                            name: 'Telehealth PMHNP Jobs',
+                            numberOfItems: stats.totalJobs,
+                            itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
+                                '@type': 'ListItem',
+                                position: idx + 1,
+                                name: job.title,
+                                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+                            })),
+                        }),
+                    }}
+                />
+            )}
+            <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Telehealth PMHNP Jobs" />
             {/* Hero Section */}
             <section className="bg-teal-600 text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">

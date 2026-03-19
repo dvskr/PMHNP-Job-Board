@@ -47,13 +47,13 @@ export default function SaveJobButton({ jobId }: SaveJobButtonProps) {
   return (
     <button
       onClick={toggleSave}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${isSaved
+      className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-colors ${isSaved
           ? 'bg-teal-50 border-teal-500 text-teal-600 hover:bg-teal-100'
           : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
         }`}
     >
       <Bookmark
-        size={20}
+        size={15}
         className={isSaved ? 'fill-teal-600' : ''}
       />
       {isSaved ? 'Saved' : 'Save'}
