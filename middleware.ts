@@ -24,11 +24,22 @@ export async function middleware(request: NextRequest) {
         "upgrade-insecure-requests",
     ].join('; ');
 
+    // ── Trailing Slash Stripping ─────────────────────────────────────
+    // Fixes "Duplicate, Google chose different canonical than user" GSC issue.
+    // /jobs/remote/ and /jobs/remote are the same page but different URLs.
+    // Enforce no-trailing-slash for all non-root paths.
+    const url = request.nextUrl.clone();
+    const pathname = url.pathname;
+
+    if (pathname !== '/' && pathname.endsWith('/')) {
+        url.pathname = pathname.slice(0, -1);
+        return NextResponse.redirect(url, 301);
+    }
+
     // ── UTM Parameter Stripping ──────────────────────────────────────
     // Google Jobs appends ?utm_source=google_jobs_apply&utm_campaign=...
     // to job URLs, creating ~800+ duplicate pages in GSC.
     // Strip all utm_* params and 301 redirect to the clean URL.
-    const url = request.nextUrl.clone();
     const paramsToRemove: string[] = [];
 
     url.searchParams.forEach((_value, key) => {
@@ -45,8 +56,6 @@ export async function middleware(request: NextRequest) {
     // ── Company URL Normalization ─────────────────────────────────────
     // GSC shows ~100 company pages crawled with spaces instead of hyphens
     // (e.g., "/companies/elite dna behavioral" → "/companies/elite-dna-behavioral")
-    const pathname = url.pathname;
-
     if (pathname.startsWith('/companies/') && pathname.includes(' ')) {
         const normalized = pathname.replace(/ +/g, '-').toLowerCase();
         url.pathname = normalized;
@@ -54,9 +63,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Junk URL Cleanup ──────────────────────────────────────────────
-    // Redirect garbage paths that got crawled (/$, /&, /year) to homepage
-    const junkPaths = ['/$', '/&', '/year'];
-    if (junkPaths.includes(pathname)) {
+    // Redirect garbage paths that got crawled to homepage
+    const junkPaths = ['/$', '/&', '/year', '/undefined', '/null', '/%24', '/%26'];
+    if (junkPaths.includes(pathname) || pathname.match(/^\/[^a-zA-Z]/)) {
         url.pathname = '/';
         return NextResponse.redirect(url, 301);
     }

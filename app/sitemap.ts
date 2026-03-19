@@ -10,6 +10,15 @@ interface JobSitemapData {
   updatedAt: Date;
 }
 
+// Shared filter: published AND not expired
+const ACTIVE_JOB_WHERE = {
+  isPublished: true,
+  OR: [
+    { expiresAt: null },
+    { expiresAt: { gt: new Date() } },
+  ],
+};
+
 // All 50 US states + DC
 const US_STATES = [
   'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado',
@@ -117,15 +126,48 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  // Category × State pages (13 categories × 51 states = 663 pages)
-  const categoryStatePages: MetadataRoute.Sitemap = ALL_CATEGORY_SLUGS.flatMap(category =>
-    US_STATES.map(state => ({
-      url: `${baseUrl}/jobs/${category}/${state}`,
-      lastModified: latestJobDate,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    }))
-  )
+  // Category × State pages — DB-driven, only include combos with ≥1 active job
+  // Previously: 26 categories × 51 states = 1,326 static pages (most empty → GSC issues)
+  let categoryStatePages: MetadataRoute.Sitemap = [];
+  try {
+    // Get all state values that have at least 1 published, non-expired job
+    const jobsByState = await prisma.job.groupBy({
+      by: ['state'],
+      where: ACTIVE_JOB_WHERE,
+      _count: { state: true },
+    });
+
+    // Build a set of states with jobs for quick lookup
+    const statesWithJobs = new Set(
+      jobsByState
+        .filter(s => s.state)
+        .map(s => s.state!.toLowerCase().replace(/\s+/g, '-'))
+    );
+
+    // Only include category×state combos where the state has active jobs
+    // (This is a conservative filter — individual category×state combos
+    // may still have 0 jobs, but it eliminates ~60% of empty pages)
+    categoryStatePages = ALL_CATEGORY_SLUGS.flatMap(category =>
+      US_STATES
+        .filter(state => statesWithJobs.has(state))
+        .map(state => ({
+          url: `${baseUrl}/jobs/${category}/${state}`,
+          lastModified: latestJobDate,
+          changeFrequency: 'weekly' as const,
+          priority: 0.7,
+        }))
+    );
+  } catch {
+    // Fallback to static list if DB fails
+    categoryStatePages = ALL_CATEGORY_SLUGS.flatMap(category =>
+      US_STATES.map(state => ({
+        url: `${baseUrl}/jobs/${category}/${state}`,
+        lastModified: latestJobDate,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }))
+    );
+  }
 
   try {
     // Blog pages
@@ -137,9 +179,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    // Job detail pages
+    // Job detail pages — only published AND non-expired jobs
     const jobs = await prisma.job.findMany({
-      where: { isPublished: true },
+      where: ACTIVE_JOB_WHERE,
       select: { id: true, title: true, updatedAt: true },
       orderBy: { createdAt: 'desc' },
     })
@@ -154,10 +196,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     })
 
-    // Top city pages (DB-driven)
+    // Top city pages (DB-driven, only active non-expired jobs)
     const topCities = await prisma.job.groupBy({
       by: ['city', 'state'],
-      where: { isPublished: true, city: { not: null }, state: { not: null } },
+      where: { ...ACTIVE_JOB_WHERE, city: { not: null }, state: { not: null } },
       _count: { city: true },
       orderBy: { _count: { city: 'desc' } },
     })
@@ -178,10 +220,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
       .filter((c): c is NonNullable<typeof c> => c !== null)
 
-    // Company pages
+    // Company pages — only include companies with ≥3 active jobs
+    // (fewer jobs = thin page = "crawled but not indexed" in GSC)
     const companies = await prisma.job.groupBy({
       by: ['employer'],
-      where: { isPublished: true, employer: { not: '' } },
+      where: { ...ACTIVE_JOB_WHERE, employer: { not: '' } },
+      _count: { employer: true },
+      having: { employer: { _count: { gte: 3 } } },
     })
     const companyPages: MetadataRoute.Sitemap = companies
       .filter(c => c.employer)

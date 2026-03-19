@@ -336,19 +336,11 @@ export async function generateMetadata({ params }: JobPageProps) {
     notFound();
   }
 
-  // A9: Expired jobs get noindex metadata instead of 404
+  // A9: Expired jobs → proper 404 signal for Google
+  // Previously returned 200 + noindex + thin content → Google flagged as soft 404.
+  // Clean 404 is a better signal and doesn't waste crawl budget.
   if (result.status === 'expired') {
-    return {
-      title: `${result.title || 'Job'} - No Longer Available | PMHNP Hiring`,
-      description: 'This PMHNP position is no longer available. Browse thousands of other psychiatric nurse practitioner jobs.',
-      robots: {
-        index: false,
-        follow: true,
-      },
-      alternates: {
-        canonical: `https://pmhnphiring.com/jobs/${slug}`,
-      },
-    };
+    notFound();
   }
 
   const job = result.job;
@@ -455,150 +447,9 @@ export default async function JobPage({ params }: JobPageProps) {
     notFound();
   }
 
-  // Job exists but expired/unpublished → show enhanced expired page (A8)
+  // Job exists but expired/unpublished → 404 for clean Google signal
   if (result.status === 'expired') {
-    // Fetch similar active jobs for the expired page
-    const similarJobs = await prisma.job.findMany({
-      where: {
-        isPublished: true,
-      },
-      select: {
-        id: true,
-        title: true,
-        employer: true,
-        location: true,
-        city: true,
-        state: true,
-        mode: true,
-        isRemote: true,
-        normalizedMinSalary: true,
-        normalizedMaxSalary: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 6,
-    }) as Job[];
-
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-16">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <div
-              className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-            >
-              <Briefcase className="w-10 h-10" style={{ color: 'var(--text-tertiary)' }} />
-            </div>
-            <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              This Job Is No Longer Available
-            </h1>
-            <p className="text-lg mb-8 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
-              {result.title ? `"${result.title}"` : 'This position'}
-              {result.employer ? ` at ${result.employer}` : ''} is no longer available.
-              Don&apos;t worry — we have thousands of similar PMHNP jobs!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/jobs"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-colors"
-                style={{ backgroundColor: 'var(--color-primary)' }}
-              >
-                <Search className="w-5 h-5" />
-                Browse All PMHNP Jobs
-              </Link>
-              <Link
-                href="/jobs/remote"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors"
-                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-              >
-                Remote Positions <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Similar Active Jobs */}
-          {similarJobs.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-xl font-bold mb-6 text-center" style={{ color: 'var(--text-primary)' }}>
-                Similar PMHNP Positions Available Now
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {similarJobs.map((sj) => {
-                  const sjSlug = `${sj.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${sj.id}`;
-                  const sjSalary = sj.normalizedMinSalary && sj.normalizedMaxSalary
-                    ? `$${Math.round(Number(sj.normalizedMinSalary) / 1000)}k-$${Math.round(Number(sj.normalizedMaxSalary) / 1000)}k`
-                    : null;
-                  return (
-                    <Link
-                      key={sj.id}
-                      href={`/jobs/${sjSlug}`}
-                      className="block rounded-xl p-5 transition-all hover:shadow-md"
-                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                    >
-                      <h3 className="font-semibold mb-1 line-clamp-1" style={{ color: 'var(--text-primary)' }}>
-                        {sj.title}
-                      </h3>
-                      <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                        {sj.employer}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} /> {sj.location}
-                        </span>
-                        {sjSalary && (
-                          <span className="font-semibold" style={{ color: 'var(--salary-color, #1d4ed8)' }}>
-                            {sjSalary}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Email Signup CTA */}
-          <div className="rounded-xl p-8 text-center mb-8" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: '#fff' }}>
-            <h3 className="text-xl font-bold mb-2">Never Miss a PMHNP Opportunity</h3>
-            <p className="text-sm opacity-90 mb-4">Get daily job alerts delivered to your inbox — free forever.</p>
-            <Link
-              href="/job-alerts"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-lg font-semibold transition-colors hover:bg-gray-100"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              Set Up Job Alerts <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {/* Explore by Category */}
-          <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <p className="font-medium mb-4 text-center" style={{ color: 'var(--text-primary)' }}>Explore by Category</p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {[
-                { label: 'Telehealth', href: '/jobs/telehealth' },
-                { label: 'New Grad', href: '/jobs/new-grad' },
-                { label: 'Per Diem', href: '/jobs/per-diem' },
-                { label: 'Travel', href: '/jobs/travel' },
-                { label: 'Inpatient', href: '/jobs/inpatient' },
-                { label: 'Outpatient', href: '/jobs/outpatient' },
-                { label: 'Salary Guide', href: '/salary-guide' },
-              ].map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
-                  style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--color-primary)' }}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   const job = result.job;
