@@ -73,7 +73,7 @@ export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('consent', 'default', {
-            'analytics_storage': 'denied',
+            'analytics_storage': 'granted',
             'ad_storage': 'denied',
             'ad_user_data': 'denied',
             'ad_personalization': 'denied',
@@ -100,7 +100,7 @@ export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
           gtag('js', new Date());
           
           gtag('config', '${GA_MEASUREMENT_ID}', {
-            send_page_view: true,
+            send_page_view: false,
             page_path: window.location.pathname,
             cookie_flags: 'SameSite=None;Secure',
             cookie_domain: 'auto',
