@@ -70,9 +70,17 @@ function push(data: Record<string, unknown>) {
 
 function gtag(...args: unknown[]) {
   if (typeof window === 'undefined') return;
-  window.dataLayer = window.dataLayer || [];
-  // Google's gtag pushes arguments-style arrays to dataLayer
-  window.dataLayer.push(args);
+  // CRITICAL: Must use the global gtag() function defined in the script tag,
+  // NOT push arrays to dataLayer directly. GA4/gtag.js only processes
+  // Arguments objects (created by `function gtag(){dataLayer.push(arguments)}`),
+  // not plain Array instances. Pushing plain arrays is silently ignored.
+  if (typeof window.gtag === 'function') {
+    window.gtag(...args);
+  } else {
+    // Fallback: gtag.js hasn't loaded yet, queue via dataLayer
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(arguments);
+  }
 }
 
 // ── Consent Mode v2 ─────────────────────────────────────────────
