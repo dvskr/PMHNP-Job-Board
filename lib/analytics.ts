@@ -132,10 +132,14 @@ export function setUserProperties(props: UserProperties) {
 
 export function trackPageView(path: string, title?: string) {
   if (!GA_ID) return;
-  gtag('config', GA_ID, {
+  // Use gtag('event') instead of gtag('config') — calling config with
+  // send_page_view:false set on init suppresses ALL subsequent page_views.
+  // Explicit event fire always works.
+  gtag('event', 'page_view', {
     page_path: path,
-    page_title: title || document.title,
-    page_location: window.location.href,
+    page_title: title || (typeof document !== 'undefined' ? document.title : ''),
+    page_location: typeof window !== 'undefined' ? window.location.href : '',
+    send_to: GA_ID,
   });
 }
 
