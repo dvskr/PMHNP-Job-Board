@@ -100,7 +100,7 @@ export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
           gtag('js', new Date());
           
           gtag('config', '${GA_MEASUREMENT_ID}', {
-            send_page_view: false,
+            send_page_view: true,
             page_path: window.location.pathname,
             cookie_flags: 'SameSite=None;Secure',
             cookie_domain: 'auto',

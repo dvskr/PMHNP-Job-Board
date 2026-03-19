@@ -63,9 +63,11 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Junk URL Cleanup ──────────────────────────────────────────────
-    // Redirect garbage paths that got crawled to homepage
+    // Redirect only specific garbage paths that got crawled to homepage
+    // NOTE: Do NOT use broad regex here — /_next/data/ starts with non-letter
+    // and would get caught, breaking Next.js client-side navigation.
     const junkPaths = ['/$', '/&', '/year', '/undefined', '/null', '/%24', '/%26'];
-    if (junkPaths.includes(pathname) || pathname.match(/^\/[^a-zA-Z]/)) {
+    if (junkPaths.includes(pathname)) {
         url.pathname = '/';
         return NextResponse.redirect(url, 301);
     }

@@ -70,22 +70,27 @@ function push(data: Record<string, unknown>) {
 
 function gtag(...args: unknown[]) {
   if (typeof window === 'undefined') return;
-  // CRITICAL: Must use the global gtag() function defined in the script tag,
-  // NOT push arrays to dataLayer directly. GA4/gtag.js only processes
-  // Arguments objects (created by `function gtag(){dataLayer.push(arguments)}`),
-  // not plain Array instances. Pushing plain arrays is silently ignored.
+  // Use the global gtag() function when available — it pushes Arguments
+  // objects to dataLayer which GA4 processes. Plain arrays are ignored.
   if (typeof window.gtag === 'function') {
     window.gtag(...args);
   } else {
-    // Fallback: gtag.js hasn't loaded yet, queue via dataLayer
+    // Fallback before gtag.js loads: push via dataLayer using the
+    // standard gtag pattern. We create a wrapper function so that
+    // `arguments` is the real Arguments object GA4 expects.
     window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push(arguments);
+    // eslint-disable-next-line prefer-spread
+    Function.prototype.apply.call(
+      function() { window.dataLayer.push(arguments); },
+      null,
+      args
+    );
   }
 }
 
 // ── Consent Mode v2 ─────────────────────────────────────────────
-// Must be called BEFORE gtag loads — sets defaults to "denied"
-// so no cookies are set until user consents.
+// analytics_storage is 'granted' by default for US users.
+// Ad-related consent stays 'denied' until cookie consent accepted.
 
 export function initConsentDefaults() {
   gtag('consent', 'default', {
@@ -140,14 +145,11 @@ export function setUserProperties(props: UserProperties) {
 
 export function trackPageView(path: string, title?: string) {
   if (!GA_ID) return;
-  // Use gtag('event') instead of gtag('config') — calling config with
-  // send_page_view:false set on init suppresses ALL subsequent page_views.
-  // Explicit event fire always works.
-  gtag('event', 'page_view', {
+  // Standard GA4 SPA page view tracking via gtag config call
+  gtag('config', GA_ID, {
     page_path: path,
     page_title: title || (typeof document !== 'undefined' ? document.title : ''),
     page_location: typeof window !== 'undefined' ? window.location.href : '',
-    send_to: GA_ID,
   });
 }
 
