@@ -145,7 +145,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     return {
         title: `${stats.totalJobs} Telehealth PMHNP Jobs — Virtual Psych NP Positions ($130K-200K)`,
         description: `Find ${stats.totalJobs} telehealth PMHNP and telepsychiatry jobs paying $130K-$200K+. Work from home as a psychiatric nurse practitioner — flexible hours, no commute, video-visit roles from top employers. Updated daily.`,
-        keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner'],
+        keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner', 'behavioral health NP telehealth', 'telepsychiatry nurse practitioner jobs', 'remote psych NP telehealth'],
         openGraph: {
             title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
             description: 'Browse telehealth and telepsychiatry psychiatric mental health nurse practitioner positions. Work from home, competitive pay.',

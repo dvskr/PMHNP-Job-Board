@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Plane, Briefcase, DollarSign, Calendar, MapPin, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, GraduationCap } from 'lucide-react';
+import { Plane, Clock, DollarSign, Globe, MapPin, Building2, Lightbulb, Bell, Wifi, Video, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -10,7 +10,7 @@ import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 0;
 
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {
@@ -24,18 +24,25 @@ interface ProcessedEmployer {
   count: number;
 }
 
+// Locum tenens job filter
+const LOCUM_FILTER = {
+  isPublished: true,
+  OR: [
+    { title: { contains: 'locum', mode: 'insensitive' as const } },
+    { title: { contains: 'locums', mode: 'insensitive' as const } },
+    { title: { contains: 'travel', mode: 'insensitive' as const } },
+    { title: { contains: 'temporary', mode: 'insensitive' as const } },
+    { title: { contains: 'assignment', mode: 'insensitive' as const } },
+    { title: { contains: 'contract', mode: 'insensitive' as const } },
+  ],
+};
+
 /**
- * Fetch travel/locum jobs with pagination
+ * Fetch locum tenens jobs with pagination
  */
-async function getTravelJobs(skip: number = 0, take: number = 20) {
+async function getLocumJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
-    where: {
-      isPublished: true,
-      OR: [
-        { title: { contains: 'travel', mode: 'insensitive' } },
-        { title: { contains: 'locum', mode: 'insensitive' } },
-      ],
-    },
+    where: LOCUM_FILTER,
     orderBy: [
       { isFeatured: 'desc' },
       { qualityScore: 'desc' },
@@ -45,33 +52,18 @@ async function getTravelJobs(skip: number = 0, take: number = 20) {
     skip,
     take,
   });
-
   return jobs;
 }
 
 /**
- * Fetch travel job statistics
+ * Fetch locum tenens job statistics
  */
-async function getTravelStats() {
-  // Total travel/locum jobs
-  const totalJobs = await prisma.job.count({
-    where: {
-      isPublished: true,
-      OR: [
-        { title: { contains: 'travel', mode: 'insensitive' } },
-        { title: { contains: 'locum', mode: 'insensitive' } },
-      ],
-    },
-  });
+async function getLocumStats() {
+  const totalJobs = await prisma.job.count({ where: LOCUM_FILTER });
 
-  // Average salary for travel positions
   const salaryData = await prisma.job.aggregate({
     where: {
-      isPublished: true,
-      OR: [
-        { title: { contains: 'travel', mode: 'insensitive' } },
-        { title: { contains: 'locum', mode: 'insensitive' } },
-      ],
+      ...LOCUM_FILTER,
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
     },
@@ -85,71 +77,49 @@ async function getTravelStats() {
   const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
   const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
 
-  // Companies hiring for travel positions
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: {
-      isPublished: true,
-      OR: [
-        { title: { contains: 'travel', mode: 'insensitive' } },
-        { title: { contains: 'locum', mode: 'insensitive' } },
-      ],
-    },
-    _count: {
-      employer: true,
-    },
-    orderBy: {
-      _count: {
-        employer: 'desc',
-      },
-    },
+    where: LOCUM_FILTER,
+    _count: { employer: true },
+    orderBy: { _count: { employer: 'desc' } },
     take: 8,
   });
 
-  // Process with explicit typing
   const processedEmployers = topEmployers.map((e: EmployerGroupResult) => ({
     name: e.employer,
     count: e._count.employer,
   }));
 
-  return {
-    totalJobs,
-    avgSalary,
-    topEmployers: processedEmployers,
-  };
+  return { totalJobs, avgSalary, topEmployers: processedEmployers };
 }
 
 /**
  * Generate metadata for SEO
  */
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const [stats, params] = await Promise.all([getTravelStats(), searchParams]);
+  const [stats, params] = await Promise.all([getLocumStats(), searchParams]);
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens Psych NP | $80-150/hr`,
-    description: `Find ${stats.totalJobs} travel PMHNP and locum tenens psychiatric nurse practitioner jobs paying $80-150/hr. Housing stipends, flexible nationwide assignments, and premium pay. Travel behavioral health NP positions updated daily.`,
-    keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'locum tenens psychiatric nurse practitioner', 'travel psychiatric NP', 'travel behavioral health nurse practitioner', 'locum psych NP assignments', 'traveling PMHNP positions'],
+    title: `${stats.totalJobs} Locum Tenens PMHNP Jobs — Travel Psych NP ($85-150/hr)`,
+    description: `Find ${stats.totalJobs} locum tenens PMHNP jobs paying $85-$150+/hour. Travel psychiatric nurse practitioner assignments with housing, malpractice coverage, and premium pay. Browse locum psych NP positions updated daily.`,
+    keywords: ['locum tenens pmhnp', 'travel pmhnp jobs', 'locum psychiatric nurse practitioner', 'psych NP travel assignments', 'temporary pmhnp positions', 'locum tenens psych nurse practitioner'],
     openGraph: {
-      title: `${stats.totalJobs} Travel PMHNP Jobs - Locum Tenens Positions`,
-      description: 'Browse travel and locum tenens psychiatric mental health nurse practitioner positions. Higher pay, flexible assignments, nationwide opportunities.',
+      title: `${stats.totalJobs} Locum Tenens PMHNP Jobs - Travel Assignments`,
+      description: 'Browse locum tenens and travel psychiatric mental health nurse practitioner positions. Premium pay, housing, and malpractice coverage.',
       type: 'website',
       images: [{
-        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Travel PMHNP Jobs`)}&subtitle=${encodeURIComponent('Locum tenens psychiatric NP positions with premium pay')}`,
+        url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Locum Tenens PMHNP Jobs`)}&subtitle=${encodeURIComponent('Travel psych NP assignments with premium pay')}`,
         width: 1200,
         height: 630,
-        alt: 'Travel PMHNP Jobs',
+        alt: 'Locum Tenens PMHNP Jobs',
       }],
     },
     alternates: {
-      canonical: 'https://pmhnphiring.com/jobs/travel',
+      canonical: 'https://pmhnphiring.com/jobs/locum-tenens',
     },
-    // Prevent Google from indexing paginated variants as separate pages
     ...(page > 1 && {
-      robots: {
-        index: false,
-        follow: true,
-      },
+      robots: { index: false, follow: true },
     }),
   };
 }
@@ -159,20 +129,44 @@ interface PageProps {
 }
 
 /**
- * Travel jobs page
+ * Locum tenens jobs page
  */
-export default async function TravelJobsPage({ searchParams }: PageProps) {
+export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page || '1'));
   const limit = 10;
   const skip = (page - 1) * limit;
 
   const [jobs, stats] = await Promise.all([
-    getTravelJobs(skip, limit),
-    getTravelStats(),
+    getLocumJobs(skip, limit),
+    getLocumStats(),
   ]);
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
+
+  // Locum tenens FAQ schema
+  const locumFaqs = [
+    {
+      question: "What is a locum tenens PMHNP?",
+      answer: "A locum tenens PMHNP is a psychiatric nurse practitioner who fills temporary staffing needs at healthcare facilities. Assignments typically last 2-13 weeks and include housing stipends, travel reimbursement, malpractice coverage, and premium hourly rates of $85-$150+."
+    },
+    {
+      question: "How much do locum tenens psychiatric nurse practitioners earn?",
+      answer: "Locum tenens PMHNPs earn $85-$150+ per hour, translating to $150,000-$250,000+ annually. This is 20-50% higher than permanent positions. Additionally, locum PMHNPs receive tax-free housing stipends ($1,500-$3,500/month), travel reimbursement, and malpractice coverage."
+    },
+    {
+      question: "Do locum tenens PMHNPs get benefits?",
+      answer: "Most locum tenens staffing agencies offer benefits including health insurance, 401(k) plans, malpractice coverage, CEU reimbursement, housing stipends, and travel allowances. Benefits vary by agency and assignment length. Some agencies also offer completion bonuses."
+    },
+    {
+      question: "What are the licensing requirements for locum tenens PMHNP work?",
+      answer: "Locum tenens PMHNPs need an active APRN license in the state of each assignment. States participating in the Nurse Licensure Compact (NLC) make multi-state practice easier. Most staffing agencies assist with state licensure and credentialing for new assignments."
+    },
+    {
+      question: "Is locum tenens work good for new grad PMHNPs?",
+      answer: "Locum tenens can work for new grads who are confident in their clinical skills, but most agencies prefer 1-2 years of experience. New grads may find short-term assignments challenging due to rapid onboarding. Consider starting with permanent positions that offer mentorship before transitioning to locum work."
+    },
+  ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -180,9 +174,27 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
         { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
-        { name: "Travel", url: "https://pmhnphiring.com/jobs/travel" }
+        { name: "Locum Tenens", url: "https://pmhnphiring.com/jobs/locum-tenens" }
       ]} />
-      {/* ItemList Schema — enables job carousels in Google search */}
+      {/* FAQ Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: locumFaqs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
+              },
+            })),
+          }),
+        }}
+      />
+      {/* ItemList Schema */}
       {jobs.length > 0 && (
         <script
           type="application/ld+json"
@@ -190,7 +202,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'ItemList',
-              name: 'Travel PMHNP Jobs',
+              name: 'Locum Tenens PMHNP Jobs',
               numberOfItems: stats.totalJobs,
               itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
                 '@type': 'ListItem',
@@ -202,40 +214,40 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
           }}
         />
       )}
-      <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Travel PMHNP Jobs" />
+      <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Locum Tenens PMHNP Jobs" />
       {/* Hero Section */}
       <section className="bg-teal-600 text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Plane className="h-8 w-8" />
-              <Briefcase className="h-8 w-8" />
+              <DollarSign className="h-8 w-8" />
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Travel PMHNP Jobs - Locum Tenens
+              Locum Tenens PMHNP Jobs
             </h1>
             <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Travel & locum tenens PMHNP positions
+              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | {stats.totalJobs} locum tenens psych NP assignments available
             </p>
             <p className="text-lg md:text-xl text-teal-100 mb-6">
-              Discover {stats.totalJobs} travel and locum psychiatric nurse practitioner positions
+              Discover {stats.totalJobs} travel and temporary psychiatric nurse practitioner assignments
             </p>
 
             {/* Stats Bar */}
             <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
               <div className="text-center">
                 <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-teal-100">Travel Positions</div>
+                <div className="text-sm text-teal-100">Locum Positions</div>
               </div>
               {stats.avgSalary > 0 && (
                 <div className="text-center">
                   <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                  <div className="text-sm text-teal-100">Avg. Salary</div>
+                  <div className="text-sm text-teal-100">Avg. Annual Pay</div>
                 </div>
               )}
               <div className="text-center">
-                <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                <div className="text-sm text-teal-100">Hiring Agencies</div>
+                <div className="text-3xl font-bold">$85-150</div>
+                <div className="text-sm text-teal-100">Hourly Rate Range</div>
               </div>
             </div>
           </div>
@@ -248,7 +260,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
           <div className="mb-8 md:mb-12">
             <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
               <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                Why Choose Travel PMHNP Work?
+                Why Choose Locum Tenens Psych NP Work?
               </h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="flex gap-4">
@@ -258,35 +270,35 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Higher Pay</h3>
+                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Premium Pay Rates</h3>
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      Travel and locum positions typically offer 20-40% higher compensation than permanent roles, plus housing stipends and travel reimbursement.
+                      Earn $85-$150+/hour — 20-50% more than permanent positions, plus tax-free housing and travel stipends.
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                      <Calendar className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
+                      <Globe className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Flexible Assignments</h3>
+                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Explore New Locations</h3>
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      Choose contract lengths that fit your lifestyle—from 4-week assignments to 6-month contracts. Take breaks between assignments as needed.
+                      Work across multiple states, experience different practice settings, and build a diverse clinical resume.
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                      <MapPin className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
+                      <Clock className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Explore New Places</h3>
+                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Schedule Flexibility</h3>
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      Work in different cities and states while building your career. Experience diverse healthcare settings and patient populations.
+                      Choose 2-13 week assignments, take time off between contracts, and control your work-life balance.
                     </p>
                   </div>
                 </div>
@@ -299,7 +311,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
             <div className="lg:col-span-3">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  All Travel Positions ({stats.totalJobs})
+                  All Locum Tenens Positions ({stats.totalJobs})
                 </h2>
                 <Link
                   href="/jobs"
@@ -314,17 +326,17 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                 <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <Plane className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
                   <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    No travel jobs available
+                    No locum tenens jobs available
                   </h3>
                   <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                    We don&apos;t have any active travel PMHNP positions right now. Check back soon!
+                    We don&apos;t have any active locum tenens PMHNP positions right now. Check back soon!
                   </p>
                   <Link
-                    href="/jobs"
+                    href="/jobs/travel"
                     className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                   >
-                    Browse All Jobs
+                    Browse Travel Jobs
                   </Link>
                 </div>
               ) : (
@@ -340,7 +352,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                     <div className="mt-8 flex items-center justify-center gap-4">
                       {page > 1 ? (
                         <Link
-                          href={`/jobs/travel?page=${page - 1}`}
+                          href={`/jobs/locum-tenens?page=${page - 1}`}
                           className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
                           style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                         >
@@ -358,7 +370,7 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
 
                       {page < totalPages ? (
                         <Link
-                          href={`/jobs/travel?page=${page + 1}`}
+                          href={`/jobs/locum-tenens?page=${page + 1}`}
                           className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
                           style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                         >
@@ -381,10 +393,10 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
               <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
                 <Bell className="h-8 w-8 mb-3" />
                 <h3 className="text-lg font-bold mb-2">
-                  Get Travel Job Alerts
+                  Get Locum Tenens Alerts
                 </h3>
                 <p className="text-sm text-teal-100 mb-4">
-                  Be the first to know about new travel and locum PMHNP positions.
+                  Be the first to know about new locum tenens PMHNP assignments.
                 </p>
                 <Link
                   href="/job-alerts"
@@ -394,12 +406,12 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                 </Link>
               </div>
 
-              {/* Companies Hiring for Travel */}
+              {/* Top Staffing Agencies */}
               {stats.topEmployers.length > 0 && (
                 <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <div className="flex items-center gap-2 mb-4">
                     <Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Agencies</h3>
+                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Employers</h3>
                   </div>
                   <ul className="space-y-3">
                     {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
@@ -416,166 +428,78 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
                 </div>
               )}
 
-              {/* Salary Insights */}
-              {stats.avgSalary > 0 && (
-                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Salary Insights</h3>
-                  </div>
-                  <div className="mb-4">
-                    <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                      ${stats.avgSalary}k
-                    </div>
-                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      Average annual salary
-                    </div>
-                  </div>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    Based on travel PMHNP positions with salary data. Many also include housing and travel stipends.
-                  </p>
-                </div>
-              )}
-
-              {/* Travel Work Tips */}
+              {/* Locum Tenens Tips */}
               <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="flex items-center gap-2 mb-4">
                   <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Travel Tips</h3>
+                  <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Locum Tenens Tips</h3>
                 </div>
                 <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                   <li className="flex gap-2">
                     <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Maintain active licenses in multiple states</span>
+                    <span>Work with multiple staffing agencies to maximize options</span>
                   </li>
                   <li className="flex gap-2">
                     <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Keep credentials updated and easily accessible</span>
+                    <span>Negotiate your hourly rate based on location and demand</span>
                   </li>
                   <li className="flex gap-2">
                     <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Work with reputable staffing agencies</span>
+                    <span>Maintain licenses in high-demand states</span>
                   </li>
                   <li className="flex gap-2">
                     <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Negotiate housing and travel stipends</span>
+                    <span>Confirm housing and travel stipends before accepting</span>
                   </li>
                   <li className="flex gap-2">
                     <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Build relationships for repeat assignments</span>
+                    <span>Keep detailed records for tax deductions</span>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* Additional Resources Section */}
+          {/* Locum vs Permanent */}
           <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              Travel PMHNP Career Resources
+              Locum Tenens vs Permanent PMHNP Positions
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Assignment Types
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>
+                  ✈️ Locum Tenens (This Page)
                 </h3>
                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  Travel assignments range from crisis coverage (2-4 weeks) to long-term contracts (6-12 months).
-                  Locum tenens often fill temporary gaps while facilities recruit permanent staff.
+                  Temporary 2-13 week assignments with premium pay ($85-$150+/hr), housing stipends, malpractice coverage, and schedule flexibility. <strong>Ideal for experienced PMHNPs who want variety, higher income, and the freedom to choose when and where they work.</strong>
                 </p>
               </div>
               <div>
                 <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Compensation Packages
+                  🏢 <Link href="/jobs" className="hover:underline" style={{ color: 'var(--color-primary)' }}>Permanent PMHNP Jobs →</Link>
                 </h3>
                 <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  Travel PMHNP pay includes base hourly rates, tax-free housing stipends, travel reimbursement,
-                  and often completion bonuses. Total compensation can exceed $200k annually.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Licensure Requirements
-                </h3>
-                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  Many travel positions require state-specific licensure. Consider joining the Nurse Licensure
-                  Compact (NLC) for multi-state privileges, or work with agencies that handle licensing.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Getting Started
-                </h3>
-                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  Start by gaining 1-2 years of experience in a permanent role. Then partner with 2-3 staffing
-                  agencies to find the best opportunities. Keep your CV and credentials always up to date.
+                  Full-time or part-time positions with stable income, employer-sponsored benefits (health insurance, 401k, PTO), career advancement, and community connection. <strong>Better for PMHNPs who value stability and long-term patient relationships.</strong>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Compensation Breakdown */}
+          {/* FAQ Section */}
           <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              Travel PMHNP Compensation Breakdown
+            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
+              Locum Tenens PMHNP FAQs
             </h2>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-              Travel psychiatric nurse practitioner pay is structured differently from permanent positions. Your total compensation package typically includes multiple components:
-            </p>
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$80–$150/hr</div>
-                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Base Hourly Rate</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Varies by location, acuity, and urgency of need</div>
+            {locumFaqs.map((faq, idx) => (
+              <div key={idx} className="mb-6 last:mb-0">
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+                  {faq.question}
+                </h3>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  {faq.answer}
+                </p>
               </div>
-              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$2,000–$4,000/mo</div>
-                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Housing Stipend</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Tax-free if you maintain a tax home</div>
-              </div>
-              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$500–$1,200</div>
-                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Travel Reimbursement</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Per assignment — flights, mileage, or lump sum</div>
-              </div>
-              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                <div className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>$3,000–$10,000</div>
-                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Completion Bonus</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Paid after finishing your contract term</div>
-              </div>
-            </div>
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              Total annual compensation for travel psych NPs can exceed <strong>$200K–$250K</strong> when factoring in tax-free stipends. See our <Link href="/salary-guide" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>2026 PMHNP Salary Guide</Link> for permanent position comparisons.
-            </p>
-          </div>
-
-          {/* Travel vs Permanent */}
-          <div className="mt-8 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              Travel vs Permanent PMHNP Positions
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>✈️ Travel / Locum Tenens</h3>
-                <ul className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <li>• Higher total compensation ($200K+)</li>
-                  <li>• Tax-free housing and travel stipends</li>
-                  <li>• Flexibility to take breaks between assignments</li>
-                  <li>• Exposure to different practice settings</li>
-                  <li>• No office politics — you&apos;re temporary</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>🏠 Permanent Positions</h3>
-                <ul className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <li>• Stable income and benefits (health, retirement)</li>
-                  <li>• Build long-term patient relationships</li>
-                  <li>• CME budget and paid conference time</li>
-                  <li>• No re-credentialing every 3–6 months</li>
-                  <li>• Opportunity for advancement and leadership</li>
-                </ul>
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
@@ -615,37 +539,21 @@ export default async function TravelJobsPage({ searchParams }: PageProps) {
       </div>
       <section className="mt-12 mb-8 container mx-auto px-4">
         <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Resources</h2>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link href="/salary-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 2026 Salary Guide</h3>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Average PMHNP salary is $155,000+. See pay by state, experience, and setting.</p>
           </Link>
-
           <Link href="/jobs/locations" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 Jobs by Location</h3>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse PMHNP positions by state and city.</p>
           </Link>
-
-          <Link href="/jobs/remote" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏠 Remote Jobs</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Telehealth and work-from-home PMHNP positions.</p>
-          </Link>
-
-          <Link href="/jobs/new-grad" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🎓 New Grad Jobs</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Entry-level PMHNP opportunities.</p>
-          </Link>
-
-          <Link href="/jobs/telehealth" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💻 Telehealth Jobs</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care positions.</p>
+          <Link href="/jobs/travel" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>✈️ Travel Jobs</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>More travel and short-term assignment positions.</p>
           </Link>
         </div>
       </section>
-
-      {/* FAQ Section with structured data */}
-      <CategoryFAQ category="travel" totalJobs={stats.totalJobs} />
     </div>
   );
 }

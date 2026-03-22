@@ -34,7 +34,7 @@ const US_STATES = [
 ]
 
 const SETTING_SLUGS = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel']
-const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem']
+const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem', 'locum-tenens', 'correctional', '1099']
 const JOB_TYPE_SLUGS = ['full-time', 'part-time', 'contract']
 const EXPERIENCE_SLUGS = ['entry-level', 'mid-career', 'senior']
 const EMPLOYER_SLUGS = ['hospital', 'private-practice', 'community-health', 'va']
@@ -108,6 +108,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/salary-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/resources`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/jobs/locations`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/resources/fpa-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/resources/private-practice-guide`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/resources/1099-vs-w2`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.8 },
   ]
 
   // State pages
