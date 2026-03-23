@@ -19,6 +19,14 @@ interface UserProfile {
     headline?: string | null;
 }
 
+interface ScreeningQuestion {
+    id: string;
+    questionText: string;
+    questionType: 'boolean' | 'text' | 'select' | 'number';
+    options: string[];
+    isRequired: boolean;
+}
+
 export default function InPlatformApplyForm({
     jobId,
     jobTitle,
@@ -39,6 +47,8 @@ export default function InPlatformApplyForm({
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [consentGiven, setConsentGiven] = useState(false);
     const [similarJobs, setSimilarJobs] = useState<Array<{ id: string; title: string; employer: string; location: string; slug: string | null }>>([]);
+    const [screeningQuestions, setScreeningQuestions] = useState<ScreeningQuestion[]>([]);
+    const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({});
 
     // Load user profile data
     useEffect(() => {
@@ -59,7 +69,23 @@ export default function InPlatformApplyForm({
             }
         }
         loadProfile();
-    }, []);
+
+        // Fetch screening questions for this job
+        async function loadScreeningQuestions() {
+            try {
+                const res = await fetch(`/api/jobs/${jobId}/screening-questions`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.questions?.length > 0) {
+                        setScreeningQuestions(data.questions);
+                    }
+                }
+            } catch {
+                // Non-critical — form works without questions
+            }
+        }
+        loadScreeningQuestions();
+    }, [jobId]);
 
     const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -166,6 +192,12 @@ export default function InPlatformApplyForm({
                     coverLetterUrl: coverLetterMode === 'upload' ? coverLetterUrl : null,
                     resumeUrl: resumeUrl || null,
                     consent: consentGiven,
+                    screeningAnswers: screeningQuestions.length > 0
+                        ? screeningQuestions.map(q => ({
+                            questionId: q.id,
+                            answer: screeningAnswers[q.id] || '',
+                        }))
+                        : undefined,
                 }),
             });
 
@@ -373,6 +405,74 @@ export default function InPlatformApplyForm({
                         />
                     </label>
                 </div>
+
+                {/* Screening Questions */}
+                {screeningQuestions.length > 0 && (
+                    <div>
+                        <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>
+                            Screening Questions
+                        </label>
+                        <div className="space-y-3">
+                            {screeningQuestions.map((q) => (
+                                <div key={q.id} className="p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                                    <p className="text-sm mb-2" style={{ color: 'var(--text-primary)' }}>
+                                        {q.questionText}
+                                        {q.isRequired && <span className="text-red-500 ml-1">*</span>}
+                                    </p>
+                                    {q.questionType === 'boolean' ? (
+                                        <div className="flex gap-3">
+                                            {['Yes', 'No'].map((opt) => (
+                                                <button
+                                                    key={opt}
+                                                    type="button"
+                                                    onClick={() => setScreeningAnswers(prev => ({ ...prev, [q.id]: opt.toLowerCase() }))}
+                                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                                                    style={{
+                                                        backgroundColor: screeningAnswers[q.id] === opt.toLowerCase() ? '#0d9488' : 'var(--bg-tertiary)',
+                                                        color: screeningAnswers[q.id] === opt.toLowerCase() ? '#fff' : 'var(--text-secondary)',
+                                                        border: `1px solid ${screeningAnswers[q.id] === opt.toLowerCase() ? '#0d9488' : 'var(--border-color)'}`,
+                                                    }}
+                                                >
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : q.questionType === 'number' ? (
+                                        <input
+                                            type="number"
+                                            value={screeningAnswers[q.id] || ''}
+                                            onChange={(e) => setScreeningAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
+                                            style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                            placeholder="Enter a number"
+                                        />
+                                    ) : q.questionType === 'select' && q.options.length > 0 ? (
+                                        <select
+                                            value={screeningAnswers[q.id] || ''}
+                                            onChange={(e) => setScreeningAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
+                                            style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                        >
+                                            <option value="">Select an option...</option>
+                                            {q.options.map((opt) => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={screeningAnswers[q.id] || ''}
+                                            onChange={(e) => setScreeningAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
+                                            style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                                            placeholder="Your answer"
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Cover Letter */}
                 <div>

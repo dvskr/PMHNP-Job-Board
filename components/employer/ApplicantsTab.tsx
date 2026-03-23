@@ -25,6 +25,10 @@ interface Applicant {
     resumeUrl: string | null;
     appliedAt: string;
     statusUpdatedAt: string | null;
+    aiMatchScore: number | null;
+    aiMatchReasons: string[];
+    aiMissingItems: string[];
+    screeningAnswers: { questionId: string; questionText: string; answer: string }[] | null;
     candidate: {
         id: string;
         name: string;
@@ -34,6 +38,13 @@ interface Applicant {
         yearsExperience: number | null;
         certifications: string | null;
         licenseStates: string | null;
+        specialties: string | null;
+        bio: string | null;
+        skills: string[];
+        education: { degreeType: string; fieldOfStudy: string | null; schoolName: string; graduationDate: string | null }[];
+        workExperience: { jobTitle: string; employerName: string; startDate: string | null; endDate: string | null; isCurrent: boolean; practiceSetting: string | null }[];
+        certificationRecords: { name: string; body: string | null; expirationDate: string | null }[];
+        licenses: { type: string; state: string; status: string }[];
     };
     job: {
         id: string;
@@ -57,9 +68,12 @@ export default function ApplicantsTab() {
     const [notesValue, setNotesValue] = useState('');
     const [messagingApplicant, setMessagingApplicant] = useState<Applicant | null>(null);
     const [expandedCoverLetter, setExpandedCoverLetter] = useState<string | null>(null);
-    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'status'>('newest');
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'status' | 'aiScore'>('newest');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkUpdating, setBulkUpdating] = useState(false);
+    const [expandedInsights, setExpandedInsights] = useState<string | null>(null);
+    const [expandedScreening, setExpandedScreening] = useState<string | null>(null);
+    const [expandedProfile, setExpandedProfile] = useState<string | null>(null);
 
     const fetchApplicants = useCallback(async () => {
         setLoading(true);
@@ -256,8 +270,9 @@ export default function ApplicantsTab() {
                             border: '1px solid var(--border-color)',
                         }}
                     >
-                        <option value="newest">Newest First</option>
+                    <option value="newest">Newest First</option>
                         <option value="oldest">Oldest First</option>
+                        <option value="aiScore">AI Score (Highest)</option>
                         <option value="name">Name A-Z</option>
                         <option value="status">By Status</option>
                     </select>
@@ -308,6 +323,8 @@ export default function ApplicantsTab() {
                                 const statusOrder: string[] = STATUSES.map(s => s.value);
                                 return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
                             }
+                            case 'aiScore':
+                                return (b.aiMatchScore ?? -1) - (a.aiMatchScore ?? -1);
                             default: // newest
                                 return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
                         }
@@ -388,6 +405,23 @@ export default function ApplicantsTab() {
                                                     >
                                                         {statusInfo.label}
                                                     </span>
+                                                    {app.aiMatchScore !== null && (
+                                                        <span
+                                                            className="px-2 py-0.5 rounded-full text-xs font-bold"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    app.aiMatchScore >= 80 ? 'rgba(5,150,105,0.12)' :
+                                                                    app.aiMatchScore >= 50 ? 'rgba(217,119,6,0.12)' :
+                                                                    'rgba(220,38,38,0.12)',
+                                                                color:
+                                                                    app.aiMatchScore >= 80 ? '#059669' :
+                                                                    app.aiMatchScore >= 50 ? '#D97706' :
+                                                                    '#DC2626',
+                                                            }}
+                                                        >
+                                                            {app.aiMatchScore >= 80 ? '🟢' : app.aiMatchScore >= 50 ? '🟡' : '🔴'} {app.aiMatchScore}% match
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {app.candidate.headline && (
@@ -559,6 +593,148 @@ export default function ApplicantsTab() {
                                         >
                                             {app.coverLetter}
                                         </div>
+                                    )}
+
+                                    {/* Row 4: AI Insights (expandable) */}
+                                    {(app.aiMatchReasons?.length > 0 || app.aiMissingItems?.length > 0) && (
+                                        <>
+                                            <button
+                                                onClick={() => setExpandedInsights(expandedInsights === app.id ? null : app.id)}
+                                                className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-purple-600"
+                                                style={{ color: '#7C3AED' }}
+                                            >
+                                                <ChevronDown size={12} className={`transition-transform ${expandedInsights === app.id ? 'rotate-180' : ''}`} />
+                                                {expandedInsights === app.id ? 'Hide' : 'View'} AI Insights
+                                            </button>
+                                            {expandedInsights === app.id && (
+                                                <div className="mt-2 p-3 rounded-lg text-sm space-y-2" style={{ backgroundColor: 'rgba(124,58,237,0.04)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                                                    {app.aiMatchReasons.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold mb-1" style={{ color: '#059669' }}>✅ Strengths</p>
+                                                            {app.aiMatchReasons.map((r, i) => (
+                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>• {r}</p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {app.aiMissingItems.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold mb-1" style={{ color: '#D97706' }}>⚠️ Gaps</p>
+                                                            {app.aiMissingItems.map((m, i) => (
+                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>• {m}</p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Row 5: Screening Answers (expandable) */}
+                                    {app.screeningAnswers && Array.isArray(app.screeningAnswers) && app.screeningAnswers.length > 0 && (
+                                        <>
+                                            <button
+                                                onClick={() => setExpandedScreening(expandedScreening === app.id ? null : app.id)}
+                                                className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-orange-600"
+                                                style={{ color: '#EA580C' }}
+                                            >
+                                                <ChevronDown size={12} className={`transition-transform ${expandedScreening === app.id ? 'rotate-180' : ''}`} />
+                                                {expandedScreening === app.id ? 'Hide' : 'View'} Screening Answers ({app.screeningAnswers.length})
+                                            </button>
+                                            {expandedScreening === app.id && (
+                                                <div className="mt-2 p-3 rounded-lg text-sm space-y-2" style={{ backgroundColor: 'rgba(234,88,12,0.04)', border: '1px solid rgba(234,88,12,0.15)' }}>
+                                                    {(app.screeningAnswers as { questionText: string; answer: string }[]).map((sa, i) => (
+                                                        <div key={i} className="flex items-start gap-2">
+                                                            <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>Q:</span>
+                                                            <div>
+                                                                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{sa.questionText}</p>
+                                                                <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>→ {sa.answer || '(no answer)'}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Row 6: Candidate Profile Details (expandable) */}
+                                    {(app.candidate.education?.length > 0 || app.candidate.workExperience?.length > 0 || app.candidate.certificationRecords?.length > 0 || app.candidate.licenses?.length > 0 || app.candidate.specialties || app.candidate.skills?.length > 0) && (
+                                        <>
+                                            <button
+                                                onClick={() => setExpandedProfile(expandedProfile === app.id ? null : app.id)}
+                                                className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-teal-600"
+                                                style={{ color: '#0d9488' }}
+                                            >
+                                                <ChevronDown size={12} className={`transition-transform ${expandedProfile === app.id ? 'rotate-180' : ''}`} />
+                                                {expandedProfile === app.id ? 'Hide' : 'View'} Profile Details
+                                            </button>
+                                            {expandedProfile === app.id && (
+                                                <div className="mt-2 p-3 rounded-lg text-sm space-y-3" style={{ backgroundColor: 'rgba(13,148,136,0.04)', border: '1px solid rgba(13,148,136,0.15)' }}>
+                                                    {/* Specialties & Skills */}
+                                                    {(app.candidate.specialties || app.candidate.skills?.length > 0) && (
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {app.candidate.specialties && app.candidate.specialties.split(',').map((s, i) => (
+                                                                <span key={`s-${i}`} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(124,58,237,0.08)', color: '#7C3AED' }}>{s.trim()}</span>
+                                                            ))}
+                                                            {app.candidate.skills?.map((s, i) => (
+                                                                <span key={`sk-${i}`} className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'rgba(107,114,128,0.08)', color: 'var(--text-tertiary)' }}>{s}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Education */}
+                                                    {app.candidate.education?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>📚 Education</p>
+                                                            {app.candidate.education.map((edu, i) => (
+                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                    {edu.degreeType}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''} — {edu.schoolName}
+                                                                    {edu.graduationDate && ` (${new Date(edu.graduationDate).getFullYear()})`}
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Work Experience */}
+                                                    {app.candidate.workExperience?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>💼 Experience</p>
+                                                            {app.candidate.workExperience.map((exp, i) => (
+                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                    {exp.jobTitle} at {exp.employerName}
+                                                                    {exp.startDate && ` (${new Date(exp.startDate).getFullYear()} - ${exp.isCurrent ? 'Present' : exp.endDate ? new Date(exp.endDate).getFullYear() : '?'})`}
+                                                                    {exp.practiceSetting && ` · ${exp.practiceSetting}`}
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Certifications */}
+                                                    {app.candidate.certificationRecords?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>🏅 Certifications</p>
+                                                            {app.candidate.certificationRecords.map((cert, i) => (
+                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                    {cert.name}{cert.body ? ` (${cert.body})` : ''}
+                                                                    {cert.expirationDate && ` · Exp: ${new Date(cert.expirationDate).toLocaleDateString()}`}
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Licenses */}
+                                                    {app.candidate.licenses?.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>🔑 Licenses</p>
+                                                            {app.candidate.licenses.map((lic, i) => (
+                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                    {lic.type} — {lic.state} ({lic.status})
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             );

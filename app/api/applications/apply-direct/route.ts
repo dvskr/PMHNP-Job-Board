@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
         // 2. Parse & validate body
         const body = await request.json();
-        const { jobId, coverLetter, coverLetterUrl, resumeUrl, consent } = body;
+        const { jobId, coverLetter, coverLetterUrl, resumeUrl, consent, screeningAnswers } = body;
 
         if (!jobId || typeof jobId !== 'string') {
             return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
@@ -173,7 +173,58 @@ export async function POST(request: NextRequest) {
         // Use provided (validated) resume URL, or fall back to profile resume
         const applicationResumeUrl = validResumeUrl || profile.resumeUrl || null;
 
-        // 5. Upsert the application (don't duplicate if user already applied)
+        // 5a. Validate screening answers (if the job has questions)
+        let validatedAnswers: { questionId: string; questionText: string; answer: string }[] | null = null;
+        let autoReject = false;
+        let autoRejectReason = '';
+
+        const questions = await prisma.jobScreeningQuestion.findMany({
+            where: { jobId },
+            orderBy: { sortOrder: 'asc' },
+        });
+
+        if (questions.length > 0 && Array.isArray(screeningAnswers)) {
+            validatedAnswers = [];
+
+            for (const q of questions) {
+                const answer = screeningAnswers.find(
+                    (a: { questionId: string }) => a.questionId === q.id
+                );
+
+                // Check required questions
+                if (q.isRequired && (!answer || !answer.answer || String(answer.answer).trim() === '')) {
+                    return NextResponse.json(
+                        { error: `Please answer: "${q.questionText}"` },
+                        { status: 400 }
+                    );
+                }
+
+                const answerValue = answer ? String(answer.answer).trim() : '';
+
+                // Check knockout answers
+                if (q.isKnockout && q.knockoutAnswer && answerValue.toLowerCase() === q.knockoutAnswer.toLowerCase()) {
+                    autoReject = true;
+                    autoRejectReason = `Does not meet requirement: ${q.questionText}`;
+                }
+
+                validatedAnswers.push({
+                    questionId: q.id,
+                    questionText: q.questionText,
+                    answer: answerValue,
+                });
+            }
+        } else if (questions.length > 0) {
+            // Job has questions but no answers submitted — check if any are required
+            const hasRequired = questions.some(q => q.isRequired);
+            if (hasRequired) {
+                return NextResponse.json(
+                    { error: 'Please answer the required screening questions' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 5b. Upsert the application (don't duplicate if user already applied)
         const application = await prisma.jobApplication.upsert({
             where: {
                 userId_jobId: { userId: user.id, jobId },
@@ -185,6 +236,12 @@ export async function POST(request: NextRequest) {
                 consentGiven: true,
                 consentGivenAt: new Date(),
                 withdrawnAt: null, // un-withdraw if re-applying
+                ...(validatedAnswers && { screeningAnswers: validatedAnswers }),
+                ...(autoReject && {
+                    status: 'rejected',
+                    notes: `Auto-rejected: ${autoRejectReason}`,
+                    statusUpdatedAt: new Date(),
+                }),
             },
             create: {
                 userId: user.id,
@@ -195,6 +252,12 @@ export async function POST(request: NextRequest) {
                 sourceUrl: 'platform',
                 consentGiven: true,
                 consentGivenAt: new Date(),
+                ...(validatedAnswers && { screeningAnswers: validatedAnswers }),
+                ...(autoReject && {
+                    status: 'rejected',
+                    notes: `Auto-rejected: ${autoRejectReason}`,
+                    statusUpdatedAt: new Date(),
+                }),
             },
         });
 
@@ -243,9 +306,17 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // 8. Trigger AI candidate scoring in background (fire-and-forget)
+        if (!autoReject) {
+            import('@/lib/candidate-scorer')
+                .then(({ scoreCandidate }) => scoreCandidate(application.id, jobId, user.id))
+                .catch(err => logger.error('AI candidate scoring failed', err));
+        }
+
         return NextResponse.json({
             success: true,
             applicationId: application.id,
+            ...(autoReject && { autoRejected: true, autoRejectReason }),
         });
     } catch (error) {
         logger.error('Error in apply-direct:', error);

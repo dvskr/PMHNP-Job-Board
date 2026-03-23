@@ -72,6 +72,13 @@ export async function GET(req: NextRequest) {
                     yearsExperience: true,
                     certifications: true,
                     licenseStates: true,
+                    specialties: true,
+                    bio: true,
+                    skills: true,
+                    education: { orderBy: { graduationDate: 'desc' }, take: 3 },
+                    workExperience: { orderBy: { startDate: 'desc' }, take: 3 },
+                    certificationRecords: { take: 5 },
+                    licenses: { take: 5 },
                 },
             },
             job: {
@@ -107,6 +114,12 @@ export async function GET(req: NextRequest) {
             resumeUrl: signedResumeUrl,
             appliedAt: app.appliedAt.toISOString(),
             statusUpdatedAt: app.statusUpdatedAt?.toISOString() || null,
+            // AI Scoring
+            aiMatchScore: app.aiMatchScore ?? null,
+            aiMatchReasons: app.aiMatchReasons || [],
+            aiMissingItems: app.aiMissingItems || [],
+            // Screening Answers
+            screeningAnswers: app.screeningAnswers || null,
             candidate: {
                 id: app.user.supabaseId,
                 name: [app.user.firstName, app.user.lastName].filter(Boolean).join(' ') || 'PMHNP Candidate',
@@ -116,6 +129,33 @@ export async function GET(req: NextRequest) {
                 yearsExperience: app.user.yearsExperience,
                 certifications: app.user.certifications,
                 licenseStates: app.user.licenseStates,
+                specialties: app.user.specialties,
+                bio: app.user.bio,
+                skills: app.user.skills || [],
+                education: app.user.education?.map(e => ({
+                    degreeType: e.degreeType,
+                    fieldOfStudy: e.fieldOfStudy,
+                    schoolName: e.schoolName,
+                    graduationDate: e.graduationDate?.toISOString() || null,
+                })) || [],
+                workExperience: app.user.workExperience?.map(w => ({
+                    jobTitle: w.jobTitle,
+                    employerName: w.employerName,
+                    startDate: w.startDate?.toISOString() || null,
+                    endDate: w.endDate?.toISOString() || null,
+                    isCurrent: w.isCurrent,
+                    practiceSetting: w.practiceSetting,
+                })) || [],
+                certificationRecords: app.user.certificationRecords?.map(c => ({
+                    name: c.certificationName,
+                    body: c.certifyingBody,
+                    expirationDate: c.expirationDate?.toISOString() || null,
+                })) || [],
+                licenses: app.user.licenses?.map(l => ({
+                    type: l.licenseType,
+                    state: l.licenseState,
+                    status: l.status,
+                })) || [],
             },
             job: {
                 id: app.job.id,

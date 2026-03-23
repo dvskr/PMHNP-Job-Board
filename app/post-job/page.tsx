@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { config } from '@/lib/config';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
 import 'react-quill-new/dist/quill.snow.css';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
@@ -842,6 +843,11 @@ function PostJobContent() {
                       <strong style={{ color: 'var(--text-primary)' }}>Great choice!</strong> Candidates will apply directly on this platform. You&apos;ll receive email notifications for each new application and can manage all applicants from your employer dashboard.
                     </p>
                   </div>
+                )}
+
+                {/* Screening Questions — only when using platform apply */}
+                {watch('applyOnPlatform') && (
+                  <ScreeningQuestionsBuilder />
                 )}
               </div>
             </div>

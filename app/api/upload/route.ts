@@ -65,6 +65,18 @@ export async function POST(request: NextRequest) {
         where: { supabaseId: user.id },
         data: { resumeUrl: result.path },
       });
+
+      // Trigger AI resume parsing in the background (fire-and-forget)
+      // This auto-fills empty profile fields from the resume content
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      fetch(`${baseUrl}/api/resume/parse`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || '',
+        },
+        body: JSON.stringify({ resumeUrl: result.path }),
+      }).catch(err => logger.error('Background resume parse trigger failed', err));
     } else {
       result = await uploadAvatar(buffer, file.name, file.type, user.id);
 

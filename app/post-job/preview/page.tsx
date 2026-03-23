@@ -27,6 +27,7 @@ interface JobFormData {
   setting?: string;
   population?: string;
   companyLogoUrl?: string;
+  screeningQuestions?: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[];
 }
 
 export default function PreviewPage() {
@@ -47,6 +48,13 @@ export default function PreviewPage() {
 
     try {
       const data = JSON.parse(stored) as JobFormData;
+      // Also load screening questions from separate localStorage key
+      try {
+        const storedQuestions = localStorage.getItem('jobScreeningQuestions');
+        if (storedQuestions) {
+          data.screeningQuestions = JSON.parse(storedQuestions);
+        }
+      } catch { /* ignore */ }
       setFormData(data);
     } catch (error) {
       console.error('Error parsing form data:', error);
@@ -95,6 +103,7 @@ export default function PreviewPage() {
             setting: formData.setting,
             population: formData.population,
             companyLogoUrl: formData.companyLogoUrl,
+            screeningQuestions: formData.screeningQuestions || [],
           }),
         });
 
@@ -103,6 +112,7 @@ export default function PreviewPage() {
         if (result.success) {
           // Clear localStorage
           localStorage.removeItem('jobFormData');
+          localStorage.removeItem('jobScreeningQuestions');
           // Redirect to success
           router.push('/success?free=true');
         } else {

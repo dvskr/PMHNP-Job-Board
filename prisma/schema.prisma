@@ -35,6 +35,7 @@ model Job {
   displaySalary       String?      @map("display_salary")
   applyLink           String?      @map("apply_link")
   applyOnPlatform     Boolean      @default(false) @map("apply_on_platform")
+  screeningQuestions   JobScreeningQuestion[]
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
   isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
@@ -275,6 +276,11 @@ model UserProfile {
   specialties       String?       @map("specialties")
   bio               String?       @map("bio")
   linkedinUrl       String?       @map("linkedin_url")
+  skills            String[]      @default([])
+
+  // AI Resume Parsing
+  resumeParsedAt    DateTime?     @map("resume_parsed_at")
+  resumeParseStatus String?       @map("resume_parse_status") // pending, completed, failed
 
   // Job preferences
   preferredWorkMode String?       @map("preferred_work_mode")
@@ -357,6 +363,15 @@ model JobApplication {
   consentGiven    Boolean     @default(false) @map("consent_given")
   consentGivenAt  DateTime?   @map("consent_given_at")
   withdrawnAt     DateTime?   @map("withdrawn_at")
+
+  // AI Candidate Scoring
+  aiMatchScore    Int?         @map("ai_match_score")       // 0-100
+  aiMatchReasons  String[]     @default([]) @map("ai_match_reasons")
+  aiMissingItems  String[]     @default([]) @map("ai_missing_items")
+
+  // Screening Question Answers
+  screeningAnswers Json?       @map("screening_answers")    // [{ questionId, questionText, answer }]
+
   user            UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
   job             Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
@@ -633,6 +648,27 @@ model CandidateReference {
 
   @@index([userId])
   @@map("candidate_references")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Employer Screening Questions — per-job custom questions
+// ═══════════════════════════════════════════════════════════════
+
+model JobScreeningQuestion {
+  id              String   @id @default(cuid())
+  jobId           String   @map("job_id")
+  questionText    String   @map("question_text")
+  questionType    String   @map("question_type")  // boolean, text, select, number
+  options         String[] @default([])            // for 'select' type
+  isRequired      Boolean  @default(false) @map("is_required")
+  isKnockout      Boolean  @default(false) @map("is_knockout")
+  knockoutAnswer  String?  @map("knockout_answer")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_screening_questions")
 }
 
 model AutofillUsage {

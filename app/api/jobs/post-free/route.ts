@@ -294,6 +294,32 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create screening questions (if any, only for platform-apply jobs)
+    if (applyOnPlatform && Array.isArray(body.screeningQuestions)) {
+      const questions = body.screeningQuestions.slice(0, 5); // max 5 questions
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q?.text || typeof q.text !== 'string') continue;
+
+        const validTypes = ['boolean', 'text', 'select', 'number'];
+        const qType = validTypes.includes(q.type) ? q.type : 'boolean';
+
+        await prisma.jobScreeningQuestion.create({
+          data: {
+            jobId: job.id,
+            questionText: sanitizeText(q.text, 200),
+            questionType: qType,
+            options: Array.isArray(q.options) ? q.options.map((o: string) => sanitizeText(String(o), 100)).slice(0, 10) : [],
+            isRequired: !!q.required,
+            isKnockout: !!q.knockout,
+            knockoutAnswer: q.knockoutAnswer ? sanitizeText(String(q.knockoutAnswer), 100) : null,
+            sortOrder: i,
+          },
+        });
+      }
+      logger.info('Screening questions created', { jobId: job.id, count: questions.length });
+    }
+
     // Send confirmation email with dashboard token
     try {
       await sendConfirmationEmail(
