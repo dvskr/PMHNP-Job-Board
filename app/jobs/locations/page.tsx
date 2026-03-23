@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 // Force dynamic rendering - don't try to statically generate during build
-export const dynamic = 'force-dynamic';
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
 export const revalidate = 3600; // Revalidate every hour
 
 // Type definitions for Prisma groupBy results

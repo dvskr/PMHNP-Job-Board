@@ -7,8 +7,8 @@ import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
+export const revalidate = 3600; // ISR: cache for 1 hour
 
 interface EmployerGroupResult {
   employer: string;

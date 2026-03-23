@@ -137,9 +137,7 @@ export async function buildSettingStateMetadata(
     ...(page > 1 && {
       robots: { index: false, follow: true },
     }),
-    ...(stats.totalJobs === 0 && {
-      robots: { index: false, follow: true },
-    }),
+    // 0-job pages now return 404 in the component, so no need for metadata-level noindex
   };
 }
 
@@ -173,6 +171,13 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
     getJobs(config, stateName!, skip, limit),
     getStats(config, stateName!),
   ]);
+
+  // SEO Fix: Return real 404 for category×state combos with no matching jobs.
+  // Previously rendered 200 + noindex → Google still crawled and wasted budget.
+  if (stats.totalJobs === 0) {
+    const { notFound: notFoundFn } = await import('next/navigation');
+    notFoundFn();
+  }
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
   const neighbors = NEIGHBORING_STATES[stateName!] || [];

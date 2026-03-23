@@ -9,8 +9,8 @@ import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
+export const revalidate = 3600; // ISR: cache for 1 hour to reduce DB load under crawl pressure
 
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {

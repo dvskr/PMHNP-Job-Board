@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import SettingStatePage, { buildSettingStateMetadata, buildSettingStateStaticParams } from '@/lib/pseo/setting-state-template';
 import { resolveStateSlug } from '@/lib/pseo/setting-state-config';
 
-export const dynamic = 'force-dynamic';
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
 export const revalidate = 3600;
 
 const SETTING_KEY = 'outpatient';

@@ -129,48 +129,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  // Category × State pages — DB-driven, only include combos with ≥1 active job
-  // Previously: 26 categories × 51 states = 1,326 static pages (most empty → GSC issues)
-  let categoryStatePages: MetadataRoute.Sitemap = [];
-  try {
-    // Get all state values that have at least 1 published, non-expired job
-    const jobsByState = await prisma.job.groupBy({
-      by: ['state'],
-      where: ACTIVE_JOB_WHERE,
-      _count: { state: true },
-    });
-
-    // Build a set of states with jobs for quick lookup
-    const statesWithJobs = new Set(
-      jobsByState
-        .filter(s => s.state)
-        .map(s => s.state!.toLowerCase().replace(/\s+/g, '-'))
-    );
-
-    // Only include category×state combos where the state has active jobs
-    // (This is a conservative filter — individual category×state combos
-    // may still have 0 jobs, but it eliminates ~60% of empty pages)
-    categoryStatePages = ALL_CATEGORY_SLUGS.flatMap(category =>
-      US_STATES
-        .filter(state => statesWithJobs.has(state))
-        .map(state => ({
-          url: `${baseUrl}/jobs/${category}/${state}`,
-          lastModified: latestJobDate,
-          changeFrequency: 'weekly' as const,
-          priority: 0.7,
-        }))
-    );
-  } catch {
-    // Fallback to static list if DB fails
-    categoryStatePages = ALL_CATEGORY_SLUGS.flatMap(category =>
-      US_STATES.map(state => ({
-        url: `${baseUrl}/jobs/${category}/${state}`,
-        lastModified: latestJobDate,
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      }))
-    );
-  }
+  // Category × State pages — REMOVED from sitemap
+  // Previously: 26 categories × ~45 states with jobs = ~1,170 sitemap URLs,
+  // most pointing to pages with 0 matching jobs that now 404.
+  // These pages are reachable via internal links (category page → state links,
+  // state page → category links). Google will discover them naturally.
+  // Submitting them in the sitemap was causing 7K+ "discovered-not-indexed" issues.
+  const categoryStatePages: MetadataRoute.Sitemap = [];
 
   try {
     // Blog pages

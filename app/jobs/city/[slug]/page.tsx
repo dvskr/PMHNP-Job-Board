@@ -9,7 +9,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Job } from '@/lib/types';
 
 // Force dynamic rendering - don't try to statically generate during build
-export const dynamic = 'force-dynamic';
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
 export const revalidate = 3600; // Revalidate every hour
 
 // ─── State mappings ──────────────────────────────────────────────────────────
@@ -332,6 +332,13 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         getCityStats(cityName, stateName, stateCode),
         getRelatedCities(stateName, stateCode, cityName),
     ]);
+
+    // SEO Fix: Return real 404 for cities with 0 jobs.
+    // Previously rendered 200 + "No jobs right now" → Google flagged as soft 404.
+    // Clean 404 stops crawl budget waste and eliminates soft 404 GSC errors.
+    if (stats.totalJobs === 0) {
+        notFound();
+    }
 
     const stateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
 
