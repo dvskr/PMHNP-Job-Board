@@ -76,57 +76,53 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   if (filters.postedWithin && filters.postedWithin !== 'all') {
     const now = new Date();
 
-    if (filters.postedWithin === '24h') {
-      // "Past 24 hours" — prioritize originalPostedAt, fallback to createdAt when null
-      const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      andConditions.push({
-        OR: [
-          { originalPostedAt: { gte: cutoff } },
-          {
-            AND: [
-              { originalPostedAt: null },
-              { createdAt: { gte: cutoff } },
-            ],
-          },
-        ]
-      });
-    } else if (filters.postedWithin === '3d') {
-      const cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-      andConditions.push({
-        OR: [
-          { originalPostedAt: { gte: cutoff } },
-          {
-            AND: [
-              { originalPostedAt: null },
-              { createdAt: { gte: cutoff } },
-            ],
-          },
-        ]
-      });
-    } else {
-      let cutoff: Date;
-      switch (filters.postedWithin) {
-        case '7d':
-          cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '30d':
-          cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        default:
-          cutoff = new Date(0);
-      }
-      andConditions.push({
-        OR: [
-          { originalPostedAt: { gte: cutoff } },
-          {
-            AND: [
-              { originalPostedAt: null },
-              { createdAt: { gte: cutoff } }
-            ]
-          }
-        ]
-      });
+    // Source-specific rule: fantastic-jobs-db reports originalPostedAt 4-7 days
+    // behind actual ingestion. If the gap is ≤ 7 days, use createdAt instead.
+    const SLOW_SOURCE_GAP_DAYS = 7;
+    const slowSourceGapCutoff = new Date(now.getTime() - SLOW_SOURCE_GAP_DAYS * 24 * 60 * 60 * 1000);
+
+    // Helper: build postedWithin condition with source-specific handling
+    const buildPostedWithinCondition = (cutoff: Date): Prisma.JobWhereInput => ({
+      OR: [
+        // 1. originalPostedAt is within the filter window (all sources)
+        { originalPostedAt: { gte: cutoff } },
+        // 2. No originalPostedAt — fallback to createdAt (all sources)
+        {
+          AND: [
+            { originalPostedAt: null },
+            { createdAt: { gte: cutoff } },
+          ],
+        },
+        // 3. fantastic-jobs-db: if originalPostedAt is within 7d of ingestion,
+        //    treat as newly posted — use createdAt for the filter window
+        {
+          AND: [
+            { sourceProvider: 'fantastic-jobs-db' },
+            { createdAt: { gte: cutoff } },
+            { originalPostedAt: { gte: slowSourceGapCutoff } },
+          ],
+        },
+      ],
+    });
+
+    let cutoff: Date;
+    switch (filters.postedWithin) {
+      case '24h':
+        cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '3d':
+        cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        cutoff = new Date(0);
     }
+    andConditions.push(buildPostedWithinCondition(cutoff));
   }
 
   // Location

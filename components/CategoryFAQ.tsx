@@ -9,7 +9,7 @@ interface FAQItem {
 }
 
 interface CategoryFAQProps {
-    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction';
+    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health';
     totalJobs: number;
     avgSalary?: number;
 }
@@ -186,6 +186,26 @@ const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
         },
     ],
     addiction: (props) => CATEGORY_FAQS['substance-abuse'](props),
+    'behavioral-health': ({ totalJobs, avgSalary }) => [
+        {
+            question: 'How many behavioral health NP jobs are available?',
+            answer: `There are currently ${totalJobs} behavioral health nurse practitioner positions available. These span outpatient clinics, inpatient units, community mental health centers, telehealth platforms, and integrated care settings.`,
+        },
+        {
+            question: 'What is the average salary for behavioral health NPs?',
+            answer: avgSalary
+                ? `Behavioral health NP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Salaries vary by setting, experience, and geographic location, with private practice and specialty roles earning significantly more.`
+                : 'Behavioral health NP salaries typically range from $130,000 to $200,000+ per year. Private practice owners and specialty providers (addiction, forensic, child/adolescent) can earn $200K-$300K+.',
+        },
+        {
+            question: 'What settings do behavioral health NPs work in?',
+            answer: 'Behavioral health NPs work in diverse settings including outpatient mental health clinics, hospitals (inpatient psychiatry), community mental health centers (CMHCs), FQHCs, telehealth platforms, residential treatment facilities, correctional facilities, VA medical centers, schools, and private practice.',
+        },
+        {
+            question: 'What qualifications are needed for behavioral health NP roles?',
+            answer: 'You need a PMHNP-BC certification from ANCC, an active APRN license in your state, and a master\'s or doctoral degree in psychiatric-mental health nursing. Most positions also require DEA registration for prescribing controlled substances. Experience requirements vary from new-grad friendly to 3+ years depending on the role.',
+        },
+    ],
 };
 
 export default function CategoryFAQ({ category, totalJobs, avgSalary }: CategoryFAQProps) {
@@ -205,6 +225,7 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary }: Category
         'substance-abuse': 'Substance Abuse',
         'child-adolescent': 'Child & Adolescent',
         addiction: 'Addiction',
+        'behavioral-health': 'Behavioral Health',
     };
 
     // FAQ Schema for structured data (FAQPage)

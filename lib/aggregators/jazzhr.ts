@@ -53,12 +53,8 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
         // Parse job listings from the HTML widget
         // JazzHR widget uses <li> elements with class "resumator-job" or similar
         const jobs: JazzHRJobRaw[] = [];
-
-        // Try to find job entries — JazzHR uses various HTML patterns
-        // Pattern 1: Direct link parsing with job titles
-        const jobRegex = /<a[^>]*href="(https?:\/\/[^"]*applytojob\.com[^"]*)"[^>]*>([^<]+)<\/a>/gi;
-        let match;
         const seen = new Set<string>();
+
 
         // Also try to find the JSON data embedded in the page
         const jsonMatch = html.match(/var\s+jobs\s*=\s*(\[[\s\S]*?\]);/);
@@ -96,14 +92,37 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
             }
         }
 
-        // Fall back to HTML link parsing
-        while ((match = jobRegex.exec(html)) !== null) {
-            const applyLink = match[1];
-            const title = match[2].trim();
+        // Fall back to HTML parsing — extract structured job blocks
+        // JazzHR widget structure:
+        //   <div class="resumator-job">
+        //     <div class="resumator-job-title">Job Title</div>
+        //     <div class="resumator-job-info"><span class="resumator-job-location">Location: </span>City, ST</div>
+        //     <div class="resumator-job-view-details"><a href="...applytojob.com/apply/{id}/{Slug}">+ View details</a></div>
+        //   </div>
+
+        // Strategy: find each resumator-job block and extract title + location + link
+        const jobBlockRegex = /class="resumator-job[\s"][^>]*>([\s\S]*?)(?=<div[^>]*class="resumator-job[\s"]|<div[^>]*class="resumator-department|$)/gi;
+        let blockMatch;
+
+        while ((blockMatch = jobBlockRegex.exec(html)) !== null) {
+            const block = blockMatch[1];
+
+            // Extract title from resumator-job-title
+            const titleMatch = block.match(/class="[^"]*resumator-job-title[^"]*"[^>]*>([^<]+)<\/div>/i);
+            if (!titleMatch) continue;
+            const title = titleMatch[1].trim();
+
+            // Extract location from resumator-job-location
+            const locMatch = block.match(/class="[^"]*resumator-job-location[^"]*"[^>]*>[^<]*<\/span>([^<]+)/i);
+            const location = locMatch ? locMatch[1].trim() : 'United States';
+
+            // Extract apply link
+            const linkMatch = block.match(/href="(https?:\/\/[^"]*applytojob\.com\/apply\/[^"]+)"/i);
+            if (!linkMatch) continue;
+            const applyLink = linkMatch[1];
 
             if (seen.has(applyLink)) continue;
             seen.add(applyLink);
-
 
             // Extract job ID from URL
             const idMatch = applyLink.match(/\/apply\/([a-zA-Z0-9]+)/);
@@ -113,33 +132,34 @@ async function fetchCompanyJobs(company: { slug: string; name: string }): Promis
                 externalId: `jazzhr-${company.slug}-${jobId}`,
                 title,
                 company: company.name,
-                location: 'United States', // JazzHR widget doesn't always show location
-                description: '', // Will be filled by normalizer if needed
+                location,
+                description: '',
                 applyLink,
             });
         }
 
-        // Also try the newer pattern with data attributes
-        const dataRegex = /data-title="([^"]+)"[^>]*data-url="([^"]+)"/gi;
-        while ((match = dataRegex.exec(html)) !== null) {
-            const title = match[1].trim();
-            const applyLink = match[2];
+        // Final fallback: if no block matches, extract titles from URL slugs
+        if (jobs.length === 0) {
+            const slugRegex = /href="(https?:\/\/[^"]*applytojob\.com\/apply\/([a-zA-Z0-9]+)\/([^?"]+))[^"]*"/gi;
+            let slugMatch;
+            while ((slugMatch = slugRegex.exec(html)) !== null) {
+                const applyLink = slugMatch[1];
+                const jobId = slugMatch[2];
+                const slugTitle = slugMatch[3].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-            if (seen.has(applyLink)) continue;
-            seen.add(applyLink);
+                if (jobId === 'embed') continue; // skip embed/form links
+                if (seen.has(applyLink)) continue;
+                seen.add(applyLink);
 
-
-            const idMatch = applyLink.match(/\/apply\/([a-zA-Z0-9]+)/);
-            const jobId = idMatch ? idMatch[1] : title.replace(/\s+/g, '-').toLowerCase();
-
-            jobs.push({
-                externalId: `jazzhr-${company.slug}-${jobId}`,
-                title,
-                company: company.name,
-                location: 'United States',
-                description: '',
-                applyLink,
-            });
+                jobs.push({
+                    externalId: `jazzhr-${company.slug}-${jobId}`,
+                    title: slugTitle,
+                    company: company.name,
+                    location: 'United States',
+                    description: '',
+                    applyLink,
+                });
+            }
         }
 
         console.log(`[JazzHR] ${company.name}: ${jobs.length} PMHNP jobs found via HTML (total links parsed: ${seen.size})`);
