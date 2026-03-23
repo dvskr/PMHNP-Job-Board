@@ -9,7 +9,7 @@ import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
-export const dynamic = 'force-dynamic';
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
 export const revalidate = 3600; // Revalidate every hour
 
 // Type definition for Prisma groupBy result
@@ -128,7 +128,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
   return {
     title: `${stats.totalJobs} Travel PMHNP Jobs — Locum Tenens Psych NP | $80-150/hr`,
-    description: `Find ${stats.totalJobs} travel PMHNP and locum tenens psychiatric nurse practitioner jobs paying $80-150/hr. Housing stipends, flexible nationwide assignments, and premium pay. Browse travel psych NP positions updated daily.`,
+    description: `Find ${stats.totalJobs} travel PMHNP and locum tenens psychiatric nurse practitioner jobs paying $80-150/hr. Housing stipends, flexible nationwide assignments, and premium pay. Travel behavioral health NP positions updated daily.`,
+    keywords: ['travel pmhnp jobs', 'locum tenens psych NP', 'locum tenens psychiatric nurse practitioner', 'travel psychiatric NP', 'travel behavioral health nurse practitioner', 'locum psych NP assignments', 'traveling PMHNP positions'],
     openGraph: {
       title: `${stats.totalJobs} Travel PMHNP Jobs - Locum Tenens Positions`,
       description: 'Browse travel and locum tenens psychiatric mental health nurse practitioner positions. Higher pay, flexible assignments, nationwide opportunities.',

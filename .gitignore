@@ -94,3 +94,7 @@ https___pmhnphiring.com_-*/
 
 # NotebookLM prompts (local only)
 notebooklm-*.md
+
+/videos/
+/videos_backup/
+/thumbnails/

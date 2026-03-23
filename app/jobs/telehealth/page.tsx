@@ -9,7 +9,7 @@ import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
-export const dynamic = 'force-dynamic';
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
 export const revalidate = 3600; // Revalidate every hour
 
 // Type definition for Prisma groupBy result
@@ -145,7 +145,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     return {
         title: `${stats.totalJobs} Telehealth PMHNP Jobs — Virtual Psych NP Positions ($130K-200K)`,
         description: `Find ${stats.totalJobs} telehealth PMHNP and telepsychiatry jobs paying $130K-$200K+. Work from home as a psychiatric nurse practitioner — flexible hours, no commute, video-visit roles from top employers. Updated daily.`,
-        keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner'],
+        keywords: ['telehealth pmhnp', 'telepsychiatry jobs', 'virtual pmhnp', 'telemedicine psychiatric nurse practitioner', 'behavioral health NP telehealth', 'telepsychiatry nurse practitioner jobs', 'remote psych NP telehealth'],
         openGraph: {
             title: `${stats.totalJobs} Telehealth PMHNP Jobs - Virtual Psychiatric Care`,
             description: 'Browse telehealth and telepsychiatry psychiatric mental health nurse practitioner positions. Work from home, competitive pay.',

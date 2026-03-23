@@ -6,7 +6,7 @@ import CategoryCityPage, {
 } from '@/lib/pseo/category-city-template';
 import { getCityBySlug } from '@/lib/pseo/city-data/cities';
 
-export const dynamic = 'force-dynamic';
+// force-dynamic removed: it overrides revalidate and defeats ISR caching
 export const revalidate = 3600;
 
 const CATEGORY_KEY = 'remote';

@@ -26,6 +26,12 @@ import { getPostBySlug } from '@/lib/blog';
 import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
 
+// ISR: Cache job detail pages for 30 minutes.
+// Each job page runs 10-12 DB queries (relatedJobs, companyInfo, salaryData, blogPosts, etc.).
+// Without caching, Googlebot crawling thousands of pages simultaneously exhausts the DB
+// connection pool → 5xx errors. 1800s is a good balance: jobs rarely change but stay fresh.
+export const revalidate = 1800;
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
 interface JobPageProps {

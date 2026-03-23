@@ -926,6 +926,15 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     getCityStats(config, city!),
   ]);
 
+  // SEO Fix: Return real 404 for low-quality category×city pages.
+  // Previously rendered 200 + noindex → Google flagged as soft 404 and wasted crawl budget.
+  // Pages with quality score < 25 (no matching jobs + small city) are not worth rendering.
+  const qualityScore = getPageQualityScore(city!, stats.totalJobs);
+  if (qualityScore < 25 || (page > 1 && stats.totalJobs === 0)) {
+    const { notFound: notFoundFn } = await import('next/navigation');
+    notFoundFn();
+  }
+
   const totalPages = Math.ceil(stats.totalJobs / limit);
   const demand = getMarketDemandScore(city!, stats.totalJobs);
   const basePath = `/jobs/${config.slug}/city/${citySlug}`;

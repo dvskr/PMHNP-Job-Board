@@ -82,6 +82,33 @@ const resources = [
     readTime: '4 min read',
     color: 'bg-gray-50 text-gray-600',
   },
+  {
+    href: '/resources/fpa-guide',
+    icon: FileText,
+    title: 'Full Practice Authority Guide 2026',
+    description: 'State-by-state FPA classifications, prescriptive authority matrix, and how practice authority impacts PMHNP salary and job demand.',
+    category: 'Licensing',
+    readTime: '12 min read',
+    color: 'bg-indigo-50 text-indigo-600',
+  },
+  {
+    href: '/resources/private-practice-guide',
+    icon: TrendingUp,
+    title: 'How to Start a PMHNP Private Practice',
+    description: 'Step-by-step guide: LLC formation, insurance credentialing, EHR setup, malpractice insurance, and income projections.',
+    category: 'Private Practice',
+    readTime: '15 min read',
+    color: 'bg-emerald-50 text-emerald-600',
+  },
+  {
+    href: '/resources/1099-vs-w2',
+    icon: DollarSign,
+    title: '1099 vs W2 for PMHNPs',
+    description: 'Complete comparison of independent contractor vs employee compensation, tax strategies, and which model maximizes your income.',
+    category: 'Compensation',
+    readTime: '10 min read',
+    color: 'bg-amber-50 text-amber-600',
+  },
 ];
 
 export default function ResourcesPage() {

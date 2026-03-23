@@ -58,46 +58,49 @@ const API_HOST = 'active-jobs-db.p.rapidapi.com';
 const BASE_URL = `https://${API_HOST}/active-ats-7d`;
 const PAGE_SIZE = 100;
 
-// PMHNP-specific search filters using the API's title_filter syntax
-// Uses OR operator (|) to search across multiple title variations in one request
-// DEEP expansion: covers credentials, specialties, clinical settings, and every
-// way an employer might write a PMHNP job title in their ATS
+// PMHNP-specific search filters — ONE term per entry (API does NOT support | OR syntax)
+// The API treats "|" as a literal character, so compound filters return 0 results.
+// Each term gets its own API call. Overlap is handled by seenUrls dedup.
 const TITLE_FILTERS = [
-    // ── Core PMHNP titles & credentials ──
-    'PMHNP | PMHNP-BC | PMH-NP | PMHCNS | Psychiatric Mental Health Nurse Practitioner',
-    'Psychiatric Nurse Practitioner | Psychiatric Mental Health Nurse | Psych Mental Health NP',
+    // ── Core credentials & titles ──
+    'PMHNP',
+    'PMHNP-BC',
+    'Psychiatric Mental Health Nurse Practitioner',
+    'Psychiatric Nurse Practitioner',
+    'Psychiatric NP',
+    'Psych NP',
 
-    // ── Behavioral / Mental Health NP variations ──
-    'Mental Health NP | Mental Health Nurse Practitioner | Behavioral Health NP',
-    'Behavioral Health Nurse Practitioner | Psych NP | Psychiatric NP',
+    // ── Behavioral / Mental Health NP ──
+    'Mental Health Nurse Practitioner',
+    'Behavioral Health Nurse Practitioner',
+    'Mental Health NP',
+    'Behavioral Health NP',
 
-    // ── APRN / APN in psychiatry ──
-    'Psychiatric APRN | APRN Psychiatry | Psych APRN | Mental Health APRN | Behavioral Health APRN',
-    'APN Psychiatry | Advanced Practice Nurse Psychiatry | Advanced Practice Psychiatric',
+    // ── APRN in psychiatry ──
+    'Psychiatric APRN',
+    'Mental Health APRN',
 
-    // ── Prescriber / provider titles ──
-    'Psychiatric Prescriber | Psychiatric Provider | Mental Health Prescriber',
-    'Psychiatry Nurse Practitioner | Nurse Practitioner Psychiatry | NP Psychiatry',
+    // ── Prescriber / provider ──
+    'Psychiatric Prescriber',
+    'Psychiatry Nurse Practitioner',
 
-    // ── Medication management & clinical roles ──
-    'Psychiatric Medication Management | Psych Medication Management | Psychiatric Evaluator',
-    'Psychotropic Prescriber | Medication Management NP | Medication Management Mental Health',
+    // ── Telepsychiatry ──
+    'Telepsychiatry',
+    'Remote PMHNP',
 
-    // ── Telepsychiatry & telehealth ──
-    'Telepsychiatry | Tele Psychiatry | Telemental Health | Tele Mental Health NP',
-    'Remote Psychiatric NP | Remote PMHNP | Virtual Psychiatry NP',
+    // ── Addiction / MAT ──
+    'MAT Nurse Practitioner',
+    'Addiction Nurse Practitioner',
+    'Suboxone Nurse Practitioner',
 
-    // ── Addiction / MAT / Substance abuse ──
-    'Suboxone NP | Suboxone Nurse Practitioner | MAT Nurse Practitioner | MAT Provider NP',
-    'Addiction NP | Addiction Nurse Practitioner | Substance Abuse NP | Substance Use NP',
+    // ── Specialty settings ──
+    'Inpatient Psychiatry NP',
+    'Outpatient Psychiatry NP',
+    'Forensic Psychiatry NP',
+    'Child Psychiatry NP',
 
-    // ── Specialty populations & settings ──
-    'Child Psychiatry NP | Adolescent Psychiatry NP | Pediatric Psychiatry NP | Geriatric Psychiatry NP',
-    'Inpatient Psychiatry NP | Outpatient Psychiatry NP | Correctional Psychiatry | Forensic Psychiatry NP',
-
-    // ── Broader catch-all psychiatric nursing ──
-    'Psych Nurse | Psychiatric Nurse | Mental Health Nurse | Outpatient Mental Health NP',
-    'Community Mental Health NP | Crisis Mental Health | Psychiatric Clinical Nurse',
+    // ── Broader psychiatric nursing ──
+    'Psychiatric Nurse',
 ];
 
 // ── Budget Protection ──
