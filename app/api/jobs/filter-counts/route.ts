@@ -115,23 +115,13 @@ export async function POST(request: NextRequest) {
         },
       }),
 
-      // Posted Within — all filters prioritize originalPostedAt, fallback to createdAt when null
+      // Posted Within — using createdAt (when job appeared on PMHNPHiring.com)
       // Past 24h
       prisma.job.count({
         where: {
           AND: [
             postedBase,
-            {
-              OR: [
-                { originalPostedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-                {
-                  AND: [
-                    { originalPostedAt: null },
-                    { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-                  ],
-                },
-              ],
-            },
+            { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
           ],
         },
       }),
@@ -140,17 +130,7 @@ export async function POST(request: NextRequest) {
         where: {
           AND: [
             postedBase,
-            {
-              OR: [
-                { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
-                {
-                  AND: [
-                    { originalPostedAt: null },
-                    { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
-                  ],
-                },
-              ],
-            },
+            { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
           ],
         },
       }),
@@ -158,17 +138,7 @@ export async function POST(request: NextRequest) {
         where: {
           AND: [
             postedBase,
-            {
-              OR: [
-                { originalPostedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
-                {
-                  AND: [
-                    { originalPostedAt: null },
-                    { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
-                  ],
-                },
-              ],
-            },
+            { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
           ],
         },
       }),
@@ -176,17 +146,7 @@ export async function POST(request: NextRequest) {
         where: {
           AND: [
             postedBase,
-            {
-              OR: [
-                { originalPostedAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
-                {
-                  AND: [
-                    { originalPostedAt: null },
-                    { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
-                  ],
-                },
-              ],
-            },
+            { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
           ],
         },
       }),

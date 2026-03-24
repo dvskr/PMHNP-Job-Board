@@ -72,38 +72,11 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     });
   }
 
-  // Posted Within
+  // Posted Within — uses createdAt (when the job appeared on PMHNPHiring.com)
+  // for all sources. This ensures newly ingested jobs always show under the
+  // correct time window regardless of the source site's original post date.
   if (filters.postedWithin && filters.postedWithin !== 'all') {
     const now = new Date();
-
-    // Source-specific rule: fantastic-jobs-db reports originalPostedAt 4-7 days
-    // behind actual ingestion. If the gap is ≤ 7 days, use createdAt instead.
-    const SLOW_SOURCE_GAP_DAYS = 7;
-    const slowSourceGapCutoff = new Date(now.getTime() - SLOW_SOURCE_GAP_DAYS * 24 * 60 * 60 * 1000);
-
-    // Helper: build postedWithin condition with source-specific handling
-    const buildPostedWithinCondition = (cutoff: Date): Prisma.JobWhereInput => ({
-      OR: [
-        // 1. originalPostedAt is within the filter window (all sources)
-        { originalPostedAt: { gte: cutoff } },
-        // 2. No originalPostedAt — fallback to createdAt (all sources)
-        {
-          AND: [
-            { originalPostedAt: null },
-            { createdAt: { gte: cutoff } },
-          ],
-        },
-        // 3. fantastic-jobs-db: if originalPostedAt is within 7d of ingestion,
-        //    treat as newly posted — use createdAt for the filter window
-        {
-          AND: [
-            { sourceProvider: 'fantastic-jobs-db' },
-            { createdAt: { gte: cutoff } },
-            { originalPostedAt: { gte: slowSourceGapCutoff } },
-          ],
-        },
-      ],
-    });
 
     let cutoff: Date;
     switch (filters.postedWithin) {
@@ -122,7 +95,7 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
       default:
         cutoff = new Date(0);
     }
-    andConditions.push(buildPostedWithinCondition(cutoff));
+    andConditions.push({ createdAt: { gte: cutoff } });
   }
 
   // Location
