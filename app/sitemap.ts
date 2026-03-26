@@ -2,6 +2,9 @@ import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getAllPublishedSlugs } from '@/lib/blog'
+import { getAllMetroSlugs } from '@/lib/metro-data'
+
+const METRO_SLUGS = getAllMetroSlugs();
 
 // Type for job query result
 interface JobSitemapData {
@@ -93,6 +96,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/terms`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/privacy`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/pricing`, lastModified: STATIC_CONTENT_DATE, changeFrequency: 'monthly', priority: 0.7 },
+    // Content hub pages
+    { url: `${baseUrl}/new-grad`, lastModified: latestJobDate, changeFrequency: 'weekly', priority: 0.9 },
+    // Metro landing pages
+    ...METRO_SLUGS.map(slug => ({
+      url: `${baseUrl}/jobs/metro/${slug}`,
+      lastModified: latestJobDate,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
   ]
 
   // Category landing pages
@@ -188,25 +200,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
       .filter((c): c is NonNullable<typeof c> => c !== null)
 
-    // Company pages — only include companies with ≥3 active jobs
-    // (fewer jobs = thin page = "crawled but not indexed" in GSC)
-    const companies = await prisma.job.groupBy({
-      by: ['employer'],
-      where: { ...ACTIVE_JOB_WHERE, employer: { not: '' } },
-      _count: { employer: true },
-      having: { employer: { _count: { gte: 3 } } },
-    })
-    const companyPages: MetadataRoute.Sitemap = companies
-      .filter(c => c.employer)
-      .map(c => {
-        const slug = c.employer!.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-        return {
-          url: `${baseUrl}/companies/${slug}`,
-          lastModified: latestJobDate,
-          changeFrequency: 'weekly' as const,
-          priority: 0.6,
-        }
-      })
+    // Company pages — only include companies that:
+    // 1. Actually exist in the Company table (so normalizedName matches what the page uses)
+    // 2. Have ≥3 active jobs (fewer = thin page → GSC soft 404)
+    // GSC Fix: Previously generated slugs from job.employer via regex, causing slug mismatches
+    // with Company.normalizedName → 2,265 dead 404s in GSC.
+    const companiesWithJobs = await prisma.company.findMany({
+      where: {
+        jobs: {
+          some: ACTIVE_JOB_WHERE,
+        },
+      },
+      select: {
+        normalizedName: true,
+        _count: {
+          select: {
+            jobs: {
+              where: ACTIVE_JOB_WHERE,
+            },
+          },
+        },
+      },
+    });
+    const companyPages: MetadataRoute.Sitemap = companiesWithJobs
+      .filter(c => c._count.jobs >= 3) // Only companies with ≥3 active jobs
+      .map(c => ({
+        url: `${baseUrl}/companies/${c.normalizedName}`,
+        lastModified: latestJobDate,
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      }))
 
     return [
       ...staticPages,

@@ -10,13 +10,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 
-const SETTING_SLUGS = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel'];
-const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem'];
-const JOB_TYPE_SLUGS = ['full-time', 'part-time', 'contract'];
-const EXPERIENCE_SLUGS = ['entry-level', 'mid-career', 'senior'];
-const EMPLOYER_SLUGS = ['hospital', 'private-practice', 'community-health', 'va'];
-const POPULATION_SLUGS = ['geriatric', 'veterans', 'lgbtq', 'crisis'];
-const ALL_CATEGORIES = [...SETTING_SLUGS, ...SPECIALTY_SLUGS, ...JOB_TYPE_SLUGS, ...EXPERIENCE_SLUGS, ...EMPLOYER_SLUGS, ...POPULATION_SLUGS];
+// GSC Fix: Reduced from 24 categories to 8 broad ones.
+// Must match SITEMAP_CATEGORIES in cities/[batch]/route.ts
+const SITEMAP_CATEGORIES = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel', 'full-time', 'part-time', 'contract'];
 
 const BATCH_SIZE = 10000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
@@ -49,7 +45,7 @@ export async function GET() {
     );
 
     // Count matching category×city URLs
-    for (const _category of ALL_CATEGORIES) {
+    for (const _category of SITEMAP_CATEGORIES) {
       for (const city of CITIES) {
         const key = `${city.name.toLowerCase().trim()}|${city.state.toLowerCase().trim()}`;
         if (cityStateSet.has(key)) totalUrls++;
@@ -57,7 +53,7 @@ export async function GET() {
     }
   } catch {
     // Fallback: estimate conservatively
-    totalUrls = ALL_CATEGORIES.length * Math.min(CITIES.length, 500);
+    totalUrls = SITEMAP_CATEGORIES.length * Math.min(CITIES.length, 500);
   }
 
   const totalBatches = Math.max(1, Math.ceil(totalUrls / BATCH_SIZE));

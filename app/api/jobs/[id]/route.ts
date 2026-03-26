@@ -47,10 +47,19 @@ export async function GET(
     // Only count views from real users — filter out bots/crawlers
     const userAgent = request.headers.get('user-agent');
     if (!isBot(userAgent)) {
-      await prisma.job.update({
-        where: { id: job.id },
-        data: { viewCount: { increment: 1 } },
-      });
+      await Promise.all([
+        prisma.job.update({
+          where: { id: job.id },
+          data: { viewCount: { increment: 1 } },
+        }),
+        prisma.jobViewEvent.create({
+          data: {
+            jobId: job.id,
+            referrer: request.headers.get('referer') || undefined,
+            userAgent: userAgent || undefined,
+          },
+        }),
+      ]);
     }
 
     return NextResponse.json(job);

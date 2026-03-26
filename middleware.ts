@@ -79,6 +79,37 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Content-Security-Policy', cspHeader);
     response.headers.set('x-nonce', nonce);
 
+    // ── PERMANENT Canonical URL Fix ─────────────────────────────────
+    // GSC Fix: Sets Link rel="canonical" HTTP header on EVERY response.
+    // This is the catch-all that prevents "Duplicate without user-selected
+    // canonical" — even if a page forgets to set canonical in generateMetadata(),
+    // this header covers it. Google honors both HTML and HTTP header canonicals.
+    // Uses clean URL: https, no query params, no trailing slash.
+    const canonicalPath = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
+    const canonicalUrl = `https://pmhnphiring.com${canonicalPath}`;
+    response.headers.set('Link', `<${canonicalUrl}>; rel="canonical"`);
+
+    // ── Noindex for Robots.txt-Blocked Paths ────────────────────────
+    // GSC Fix: robots.txt only prevents CRAWLING, not INDEXING.
+    // Google can still index URLs from internal links even without crawling.
+    // Adding X-Robots-Tag: noindex ensures these pages are dropped from the index.
+    const noindexPaths = [
+        '/login', '/signup', '/forgot-password', '/reset-password',
+        '/saved', '/settings', '/email-preferences', '/success',
+        '/post-job/checkout', '/post-job/preview',
+        '/job-alerts/manage', '/job-alerts/unsubscribe',
+        '/unauthorized', '/unsubscribe', '/messages', '/my-applications',
+    ];
+    const isNoindexPath = noindexPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
+        || pathname.startsWith('/employer/')
+        || pathname.startsWith('/admin/')
+        || pathname.startsWith('/dashboard/')
+        || pathname.startsWith('/auth/')
+        || pathname.startsWith('/jobs/edit/');
+    if (isNoindexPath) {
+        response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     return response;
 }
 

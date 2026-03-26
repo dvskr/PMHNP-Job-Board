@@ -289,12 +289,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         style={{
           backgroundColor: 'var(--bg-secondary)',
           borderRadius: '16px',
-          border: '1px solid var(--border-color)',
+          border: job.isFeatured ? '1.5px solid var(--color-primary)' : '1px solid var(--border-color)',
           padding: '20px',
           display: 'flex', flexDirection: 'column', gap: '10px',
           width: '100%', height: '100%',
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           opacity: viewed ? 0.75 : 1,
+          position: 'relative',
         }}
       >
         {/* Title row: title + actions */}
@@ -342,36 +343,14 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
-        {/* Salary - own row */}
+        {/* Salary - prominent, right after title */}
         {salaryDisplay && (
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#2DD4BF' }}>
+          <span style={{
+            fontSize: '15px', fontWeight: 700, color: '#2DD4BF',
+            letterSpacing: '-0.01em',
+          }}>
             {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
           </span>
-        )}
-
-        {/* Badges */}
-        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer || directApply) && (
-          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-            {isNew && <Badge variant="warning" size="sm">New</Badge>}
-            {viewed && !applied && (
-              <Badge variant="secondary" size="sm"><Eye size={12} /> Viewed</Badge>
-            )}
-            {applied && (
-              <Badge variant="success" size="sm">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-                Applied
-              </Badge>
-            )}
-            {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
-            {job.isVerifiedEmployer && (
-              <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
-            )}
-            {directApply && (
-              <Badge variant="primary" size="sm"><ExternalLink size={11} /> Direct Apply</Badge>
-            )}
-          </div>
         )}
 
         {/* Company Name */}
@@ -398,32 +377,73 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </div>
         </div>
 
+        {/* Badges */}
+        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer || directApply) && (
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            {isNew && <Badge variant="warning" size="sm">New</Badge>}
+            {viewed && !applied && (
+              <Badge variant="secondary" size="sm"><Eye size={12} /> Viewed</Badge>
+            )}
+            {applied && (
+              <Badge variant="success" size="sm">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                Applied
+              </Badge>
+            )}
+            {job.isFeatured && <Badge variant="featured" size="sm">Featured</Badge>}
+            {job.isVerifiedEmployer && (
+              <Badge variant="success" size="sm"><CheckCircle size={12} /> Verified</Badge>
+            )}
+            {directApply && (
+              <Badge variant="primary" size="sm"><ExternalLink size={11} /> Direct Apply</Badge>
+            )}
+          </div>
+        )}
 
-
-        {/* Description Summary */}
+        {/* Description Summary — 1 line to keep compact */}
         {cleanSummary && (
           <p style={{
-            fontSize: '14px', color: 'rgba(var(--text-primary-rgb), 0.78)',
-            margin: '4px 0 0', lineHeight: 1.6,
+            fontSize: '13px', color: 'var(--text-tertiary)',
+            margin: '2px 0 0', lineHeight: 1.5,
             overflow: 'hidden', textOverflow: 'ellipsis',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
           }}>
             {cleanSummary}
           </p>
         )}
 
-        {/* Freshness */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto' }}>
-          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>{freshness}</p>
-          {ageIndicator && (
-            <span style={{
-              fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
-              backgroundColor: ageIndicator.color, color: ageIndicator.textColor,
-            }}>
-              {ageIndicator.text}
-            </span>
-          )}
+        {/* CTA Footer — clear action + timestamp */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginTop: 'auto', paddingTop: '8px',
+          borderTop: '1px solid var(--border-color)',
+        }}>
+          <p style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)', margin: 0 }}>
+            {freshness}
+            {ageIndicator && (
+              <span style={{
+                fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
+                backgroundColor: ageIndicator.color, color: ageIndicator.textColor,
+                marginLeft: '6px',
+              }}>
+                {ageIndicator.text}
+              </span>
+            )}
+          </p>
+          <span
+            className="jc-cta"
+            style={{
+              fontSize: '13px', fontWeight: 700, color: 'var(--color-primary)',
+              display: 'flex', alignItems: 'center', gap: '4px',
+              transition: 'gap 0.2s ease',
+            }}
+          >
+            View Job <span className="jc-cta-arrow" style={{ transition: 'transform 0.2s ease' }}>→</span>
+          </span>
         </div>
+
         {showShareMenu && (
           <ShareModal
             url={fullJobUrl}
@@ -440,6 +460,12 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           box-shadow: 0 4px 16px var(--shadow-color, rgba(0,0,0,0.1));
           position: relative;
           z-index: 1;
+        }
+        .jc-card:hover .jc-cta {
+          gap: 8px !important;
+        }
+        .jc-card:hover .jc-cta-arrow {
+          transform: translateX(3px);
         }
         .jc-share-btn:hover {
           color: var(--text-primary) !important;

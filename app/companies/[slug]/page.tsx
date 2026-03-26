@@ -13,61 +13,86 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
 
-    const company = await prisma.company.findUnique({
-        where: { normalizedName: slug },
-        select: { name: true, description: true },
-    });
+    try {
+        const company = await prisma.company.findUnique({
+            where: { normalizedName: slug },
+            select: { name: true, description: true },
+        });
 
-    if (!company) return { title: 'Company Not Found' };
+        if (!company) return { title: 'Company Not Found' };
 
-    return {
-        title: `${company.name} PMHNP Jobs | PMHNP Hiring`,
-        description: company.description
-            ? `${company.description.substring(0, 150)}... View open PMHNP positions at ${company.name}.`
-            : `Browse open Psychiatric Mental Health Nurse Practitioner (PMHNP) positions at ${company.name}. Find salary info, locations, and apply today.`,
-        openGraph: {
-            title: `${company.name} — PMHNP Jobs`,
-            description: `Open PMHNP positions at ${company.name}`,
-            url: `https://pmhnphiring.com/companies/${slug}`,
-        },
-        alternates: {
-            canonical: `https://pmhnphiring.com/companies/${slug}`,
-        },
-    };
+        // GSC Fix: Check if company has any active jobs.
+        // Companies with 0 active jobs get noindexed to prevent soft 404 flags.
+        const activeJobCount = await prisma.job.count({
+            where: {
+                company: { normalizedName: slug },
+                isPublished: true,
+                expiresAt: { gt: new Date() },
+            },
+        });
+
+        return {
+            title: `${company.name} PMHNP Jobs | PMHNP Hiring`,
+            description: company.description
+                ? `${company.description.substring(0, 150)}... View open PMHNP positions at ${company.name}.`
+                : `Browse open Psychiatric Mental Health Nurse Practitioner (PMHNP) positions at ${company.name}. Find salary info, locations, and apply today.`,
+            openGraph: {
+                title: `${company.name} — PMHNP Jobs`,
+                description: `Open PMHNP positions at ${company.name}`,
+                url: `https://pmhnphiring.com/companies/${slug}`,
+            },
+            alternates: {
+                canonical: `https://pmhnphiring.com/companies/${slug}`,
+            },
+            // GSC Fix: noindex companies with 0 active jobs (prevents soft 404)
+            ...(activeJobCount === 0 && {
+                robots: { index: false, follow: true },
+            }),
+        };
+    } catch (error) {
+        console.error(`[companies] Failed to generate metadata for ${slug}:`, error);
+        return { title: 'Company' };
+    }
 }
 
 export default async function CompanyPage({ params }: Props) {
     const { slug } = await params;
 
-    const company = await prisma.company.findUnique({
-        where: { normalizedName: slug },
-        include: {
-            jobs: {
-                where: {
-                    isPublished: true,
-                    expiresAt: { gt: new Date() },
-                },
-                orderBy: [
-                    { isFeatured: 'desc' },
-                    { createdAt: 'desc' },
-                ],
-                select: {
-                    id: true,
-                    title: true,
-                    slug: true,
-                    location: true,
-                    jobType: true,
-                    mode: true,
-                    displaySalary: true,
-                    isFeatured: true,
-                    isRemote: true,
-                    createdAt: true,
-                    city: true,
-                    state: true,
+    let company;
+    try {
+        company = await prisma.company.findUnique({
+            where: { normalizedName: slug },
+            include: {
+                jobs: {
+                    where: {
+                        isPublished: true,
+                        expiresAt: { gt: new Date() },
+                    },
+                    orderBy: [
+                        { isFeatured: 'desc' },
+                        { createdAt: 'desc' },
+                    ],
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        location: true,
+                        jobType: true,
+                        mode: true,
+                        displaySalary: true,
+                        isFeatured: true,
+                        isRemote: true,
+                        createdAt: true,
+                        city: true,
+                        state: true,
+                    },
                 },
             },
-        },
-    });
+        });
+    } catch (error) {
+        console.error(`[companies] Failed to fetch company ${slug}:`, error);
+        notFound();
+    }
 
     if (!company) {
         notFound();

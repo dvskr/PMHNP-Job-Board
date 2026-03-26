@@ -45,11 +45,25 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     ? (job.expiresAt instanceof Date ? job.expiresAt : new Date(job.expiresAt))
     : thirtyDaysFromNow;
 
+  // GSC Fix: Guard against empty/whitespace description — fallback chain
+  const description = (job.description && job.description.trim())
+    || (job.descriptionSummary && job.descriptionSummary.trim())
+    || `${job.title} position at ${job.employer}${job.city ? ` in ${job.city}, ${job.stateCode || job.state}` : ''}`;
+
+  // GSC Fix: Construct address fields from available data for non-remote jobs
+  const hasLocation = !job.isRemote && (job.city || job.state);
+  const addressLocality = hasLocation ? (job.city || undefined) : undefined;
+  const addressRegion = hasLocation ? (job.stateCode || job.state || undefined) : undefined;
+  // streetAddress: use "City, State" format when no street-level data exists
+  const streetAddress = hasLocation && job.city && (job.stateCode || job.state)
+    ? `${job.city}, ${job.stateCode || job.state}`
+    : undefined;
+
   const structuredData = stripUndefined({
     "@context": "https://schema.org",
     "@type": "JobPosting",
     "title": job.title,
-    "description": job.description,
+    "description": description,
     "datePosted": datePosted.toISOString(),
     "validThrough": validThrough.toISOString(),
     "employmentType": mapJobType(job.jobType),
@@ -61,8 +75,9 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
       "@type": "Place",
       "address": stripUndefined({
         "@type": "PostalAddress",
-        "addressLocality": job.isRemote ? undefined : (job.city || undefined),
-        "addressRegion": job.isRemote ? undefined : (job.stateCode || job.state || undefined),
+        "streetAddress": streetAddress,
+        "addressLocality": addressLocality,
+        "addressRegion": addressRegion,
         "addressCountry": "US",
       }),
     },
@@ -72,14 +87,14 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
       "@type": "Country",
       "name": "US",
     } : undefined,
-    // Salary
-    "baseSalary": job.normalizedMinSalary ? {
+    // GSC Fix: Use != null instead of truthy check (0 is a valid salary but falsy)
+    "baseSalary": job.normalizedMinSalary != null ? {
       "@type": "MonetaryAmount",
       "currency": "USD",
       "value": {
         "@type": "QuantitativeValue",
         "minValue": job.normalizedMinSalary,
-        "maxValue": job.normalizedMaxSalary || job.normalizedMinSalary,
+        "maxValue": job.normalizedMaxSalary ?? job.normalizedMinSalary,
         "unitText": "YEAR",
       },
     } : undefined,

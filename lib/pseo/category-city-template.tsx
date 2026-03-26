@@ -772,46 +772,58 @@ export function getAllCategorySlugs(): string[] {
 // ─── Data Fetching ─────────────────────────────────────────────────────────────
 
 async function getCityJobs(config: CategoryConfig, city: CityData, skip = 0, take = 10) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where = config.buildWhere(city.state, city.name) as any;
-  return prisma.job.findMany({
-    where,
-    orderBy: [
-      { isFeatured: 'desc' },
-      { qualityScore: 'desc' },
-      { originalPostedAt: 'desc' },
-      { createdAt: 'desc' },
-    ],
-    skip,
-    take,
-  });
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = config.buildWhere(city.state, city.name) as any;
+    return await prisma.job.findMany({
+      where,
+      orderBy: [
+        { isFeatured: 'desc' },
+        { qualityScore: 'desc' },
+        { originalPostedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      skip,
+      take,
+    });
+  } catch (error) {
+    console.error(`[category-city] Failed to fetch jobs for ${config.slug}/${city.slug}:`, error);
+    return [];
+  }
 }
 
+const EMPTY_STATS = { totalJobs: 0, rawAvgSalary: 0, colAdjustedSalary: 0 };
+
 async function getCityStats(config: CategoryConfig, city: CityData) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where = config.buildWhere(city.state, city.name) as any;
-  
-  const totalJobs = await prisma.job.count({ where });
-  
-  const salaryData = await prisma.job.aggregate({
-    where: {
-      ...where,
-      normalizedMinSalary: { not: null },
-      normalizedMaxSalary: { not: null },
-    },
-    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
-  });
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = config.buildWhere(city.state, city.name) as any;
+    
+    const totalJobs = await prisma.job.count({ where });
+    
+    const salaryData = await prisma.job.aggregate({
+      where: {
+        ...where,
+        normalizedMinSalary: { not: null },
+        normalizedMaxSalary: { not: null },
+      },
+      _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    });
 
-  const rawAvg = Math.round(
-    ((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000
-  );
+    const rawAvg = Math.round(
+      ((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000
+    );
 
-  // Cost-of-living adjusted salary
-  const colAdjustedSalary = rawAvg > 0
-    ? Math.round(rawAvg * (100 / city.costOfLivingIndex))
-    : 0;
+    // Cost-of-living adjusted salary
+    const colAdjustedSalary = rawAvg > 0
+      ? Math.round(rawAvg * (100 / city.costOfLivingIndex))
+      : 0;
 
-  return { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary };
+    return { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary };
+  } catch (error) {
+    console.error(`[category-city] Failed to fetch stats for ${config.slug}/${city.slug}:`, error);
+    return EMPTY_STATS;
+  }
 }
 
 // ─── Market Demand Score ───────────────────────────────────────────────────────
@@ -847,18 +859,21 @@ function getMarketDemandScore(city: CityData, totalJobs: number): { score: numbe
   return { score, label: 'Growing', color: '#6b7280' };
 }
 
-// ─── Quality Score (for noindex gating) ────────────────────────────────────────
-// Pages need score ≥ 25 to be indexed. This ensures pages with at least
-// 2 enrichment signals (e.g., population ≥25K + healthcare systems) are indexed.
-// Any page with ≥1 matching job automatically gets +50 → always indexed.
+// ─── Quality Score (for rendering gate) ─────────────────────────────────────
+// GSC Fix: Pages with 0 matching jobs ALWAYS return 404.
+// Previously, big cities (Tampa, NYC) could pass the ≥25 threshold with 0 jobs
+// and render an empty shell → Google flagged as soft 404, wasting crawl budget.
+// Now: totalJobs === 0 → hard 404. No exceptions.
+// The quality score is still used for noindex gating on pages WITH jobs
+// (e.g., a small city with 1 job but no healthcare systems → noindex).
 
 function getPageQualityScore(city: CityData, totalJobs: number): number {
-  let score = 0;
-  if (totalJobs > 0) score += 50;         // Job match = always indexed
+  if (totalJobs === 0) return 0; // Always 404 for empty pages
+  let score = 50; // Has jobs = base score 50
   if (city.healthcareSystems.length > 0) score += 15;
   if (city.metroArea) score += 10;
   if (city.population >= 25000) score += 15;
-  if (city.population >= 10000) score += 5; // All cities in dataset pass this
+  if (city.population >= 10000) score += 5;
   if (city.mentalHealthShortage) score += 10;
   return score; // Pages with score >= 25 get indexed
 }
@@ -874,6 +889,7 @@ export async function buildCategoryCityMetadata(
   const city = getCityBySlug(citySlug);
   if (!config || !city) return { title: 'Not Found' };
 
+  // getCityStats is already try-catch protected — returns EMPTY_STATS on failure
   const stats = await getCityStats(config, city);
   const basePath = `/jobs/${config.slug}/city/${citySlug}`;
 
@@ -921,16 +937,18 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   const limit = 10;
   const skip = (page - 1) * limit;
 
+  // Both getCityJobs and getCityStats are individually try-catch protected.
+  // On DB failure they return [] and EMPTY_STATS respectively, so this
+  // Promise.all will never throw — preventing 5xx for Googlebot.
   const [jobs, stats] = await Promise.all([
     getCityJobs(config, city!, skip, limit),
     getCityStats(config, city!),
   ]);
 
-  // SEO Fix: Return real 404 for low-quality category×city pages.
-  // Previously rendered 200 + noindex → Google flagged as soft 404 and wasted crawl budget.
-  // Pages with quality score < 25 (no matching jobs + small city) are not worth rendering.
-  const qualityScore = getPageQualityScore(city!, stats.totalJobs);
-  if (qualityScore < 25 || (page > 1 && stats.totalJobs === 0)) {
+  // GSC Fix: Hard 404 for ANY page with 0 matching jobs.
+  // This eliminates all empty pSEO pages that Google was flagging as soft 404s.
+  // Also 404 for paginated pages beyond available results.
+  if (stats.totalJobs === 0 || (page > 1 && jobs.length === 0)) {
     const { notFound: notFoundFn } = await import('next/navigation');
     notFoundFn();
   }

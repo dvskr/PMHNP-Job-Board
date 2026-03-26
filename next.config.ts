@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   // Native/WASM packages that must not be bundled by Turbopack
-  serverExternalPackages: ['@resvg/resvg-js'],
+  serverExternalPackages: ['@resvg/resvg-js', '@napi-rs/canvas', 'pdf-parse'],
 
   // Image optimization
   images: {

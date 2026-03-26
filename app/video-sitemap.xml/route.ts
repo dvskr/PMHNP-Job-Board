@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getAllPageVideos } from '@/lib/video-seo';
 import { createClient } from '@supabase/supabase-js';
 
 const BASE_URL = 'https://pmhnphiring.com';
@@ -9,28 +8,17 @@ export const revalidate = 86400; // daily
 
 /**
  * Generates a video sitemap following Google's video sitemap extension.
- * Includes both static page scroll videos and dynamic YouTube blog videos.
+ *
+ * GSC Fix: Removed static page scroll videos — Google requires videos to be
+ * the PRIMARY content of the page. Scroll recordings/animations embedded as
+ * secondary content will never pass the "video isn't the main content" filter.
+ * Only YouTube blog videos are included — they're on dedicated blog pages
+ * where the video IS primary content.
+ *
  * @see https://developers.google.com/search/docs/crawling-indexing/sitemaps/video-sitemaps
  */
 export async function GET() {
-    // 1. Static page videos (scroll recordings)
-    const pageVideos = getAllPageVideos();
-    const staticEntries = pageVideos.map(
-        (entry) => `  <url>
-    <loc>${BASE_URL}${entry.url}</loc>
-    <video:video>
-      <video:thumbnail_loc>${BASE_URL}${entry.thumbnail}</video:thumbnail_loc>
-      <video:title>${escapeXml(entry.title)}</video:title>
-      <video:description>${escapeXml(entry.description)}</video:description>
-      <video:content_loc>${BASE_URL}${entry.video}</video:content_loc>
-      <video:duration>${entry.duration}</video:duration>
-      <video:publication_date>${entry.uploadDate}</video:publication_date>
-      <video:family_friendly>yes</video:family_friendly>
-    </video:video>
-  </url>`
-    );
-
-    // 2. Dynamic YouTube blog videos (from database)
+    // YouTube blog videos (from database) — on pages where video is primary content
     let blogEntries: string[] = [];
     try {
         const supabase = createClient(
@@ -65,7 +53,7 @@ export async function GET() {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-${[...staticEntries, ...blogEntries].join('\n')}
+${blogEntries.join('\n')}
 </urlset>`;
 
     return new NextResponse(xml, {

@@ -71,11 +71,16 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
     });
     if (!jobWithRelation) return { status: 'not_found' };
 
-    // Increment view count (fire-and-forget)
-    prisma.job.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    }).catch(() => { });
+    // Increment view count AND create view event for analytics funnel
+    Promise.all([
+      prisma.job.update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      }),
+      prisma.jobViewEvent.create({
+        data: { jobId: id },
+      }),
+    ]).catch(() => { });
 
     // Attach employer logo to the job object for rendering
     const jobData = {
@@ -628,6 +633,28 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
             </AnimatedContainer>
 
+            {/* GSC Fix: Unique Content Section — differentiates this page from the same job on Indeed/ZipRecruiter.
+                Google crawls 1,059+ job pages and doesn't index them because the description is identical to the
+                source aggregator. This section adds location/salary/employer context unique to pmhnphiring.com. */}
+            <AnimatedContainer animation="fade-in-up" delay={180}>
+              <div className="rounded-2xl p-5 md:p-6 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Quick Overview</h2>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  {job.employer} is hiring a <strong>{job.title}</strong>
+                  {job.city && job.stateCode ? ` in ${job.city}, ${job.stateCode}` : job.isRemote ? ' (Remote)' : ''}
+                  {job.jobType ? ` as a ${job.jobType.toLowerCase()} position` : ''}
+                  {job.mode ? ` with a ${job.mode.toLowerCase()} work arrangement` : ''}.
+                  {salary ? ` The compensation range is ${salary}.` : ''}
+                  {job.state && stateAvgSalary > 0 ? ` The average PMHNP salary in ${job.state} is $${Math.round(stateAvgSalary / 1000)}K/year.` : ''}
+                  {employerJobCount > 1 ? ` ${job.employer} currently has ${employerJobCount} open PMHNP positions on our platform.` : ''}
+                </p>
+                {job.descriptionSummary && (
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    {job.descriptionSummary}
+                  </p>
+                )}
+              </div>
+            </AnimatedContainer>
 
 
             {/* Description Section */}

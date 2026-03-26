@@ -6,6 +6,11 @@
  * thousands of empty pages to Google (which was the root cause of most GSC
  * coverage issues).
  * 
+ * GSC Fix: Reduced from 24 categories to 8 broad ones. Narrow categories
+ * (addiction, crisis, lgbtq, geriatric, etc.) rarely have jobs in any
+ * specific city and were inflating the sitemap 3x. Those pages are still
+ * reachable via internal links but don't need to be in the sitemap.
+ * 
  * Routes:
  *   /api/sitemaps/cities/0 → first 10K URLs
  *   /api/sitemaps/cities/1 → next 10K URLs
@@ -15,13 +20,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 
-const SETTING_SLUGS = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel'];
-const SPECIALTY_SLUGS = ['addiction', 'child-adolescent', 'substance-abuse', 'new-grad', 'per-diem'];
-const JOB_TYPE_SLUGS = ['full-time', 'part-time', 'contract'];
-const EXPERIENCE_SLUGS = ['entry-level', 'mid-career', 'senior'];
-const EMPLOYER_SLUGS = ['hospital', 'private-practice', 'community-health', 'va'];
-const POPULATION_SLUGS = ['geriatric', 'veterans', 'lgbtq', 'crisis'];
-const ALL_CATEGORIES = [...SETTING_SLUGS, ...SPECIALTY_SLUGS, ...JOB_TYPE_SLUGS, ...EXPERIENCE_SLUGS, ...EMPLOYER_SLUGS, ...POPULATION_SLUGS];
+// GSC Fix: Only broad categories that are likely to have jobs in most cities.
+// Narrow specialty/population/experience/employer categories excluded from sitemap
+// to prevent crawl budget waste. Those pages 404 when empty (per category-city-template fix).
+const SITEMAP_CATEGORIES = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel', 'full-time', 'part-time', 'contract'];
 
 const BATCH_SIZE = 10000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
@@ -65,7 +67,7 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
   const citiesWithJobs = await getCitiesWithJobs();
   const urls: string[] = [];
 
-  for (const category of ALL_CATEGORIES) {
+  for (const category of SITEMAP_CATEGORIES) {
     for (const city of CITIES) {
       const stateKey = city.state.toLowerCase().trim();
       const cityKey = city.name.toLowerCase().trim();
