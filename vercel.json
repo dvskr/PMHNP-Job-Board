@@ -98,7 +98,7 @@
     },
     {
       "path": "/api/cron/cleanup-expired",
-      "schedule": "10 12 * * *"
+      "schedule": "10 12,18 * * *"
     },
     {
       "path": "/api/cron/freshness-decay",
@@ -119,6 +119,10 @@
     {
       "path": "/api/cron/index-urls",
       "schedule": "15 13 * * *"
+    },
+    {
+      "path": "/api/cron/deindex-expired",
+      "schedule": "45 12,18 * * *"
     },
     {
       "path": "/api/cron/send-alerts",

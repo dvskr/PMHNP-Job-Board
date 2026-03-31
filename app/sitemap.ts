@@ -4,6 +4,10 @@ import { logger } from '@/lib/logger'
 import { getAllPublishedSlugs } from '@/lib/blog'
 import { getAllMetroSlugs } from '@/lib/metro-data'
 
+// GSC Fix: Cache sitemap for 1 hour. Without this, every Googlebot request to
+// /sitemap.xml triggers a full DB scan across jobs, companies, and blog tables.
+export const revalidate = 3600;
+
 const METRO_SLUGS = getAllMetroSlugs();
 
 // Type for job query result
@@ -160,10 +164,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     // Job detail pages — only published AND non-expired jobs
+    // Ordered by quality score so Google crawls the best pages first.
+    // No cap — all active jobs are in the sitemap. The deindex-expired cron
+    // ensures expired URLs are proactively removed from Google's index.
     const jobs = await prisma.job.findMany({
       where: ACTIVE_JOB_WHERE,
       select: { id: true, title: true, updatedAt: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { qualityScore: 'desc' },
+        { createdAt: 'desc' },
+      ],
     })
 
     const jobPages: MetadataRoute.Sitemap = jobs.map((job: JobSitemapData) => {
@@ -186,6 +196,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const cityPages: MetadataRoute.Sitemap = topCities
       .filter(c => c.city && c.state)
+      // GSC Fix: Only include cities with ≥3 active jobs to prevent submitting
+      // thin city pages that get flagged as soft 404 or crawled-not-indexed.
+      .filter(c => c._count.city >= 3)
       .map(c => {
         const stateVal = c.state!.trim();
         const code = stateVal.length === 2 ? stateVal.toUpperCase() : STATE_NAME_TO_CODE[stateVal] || null;
@@ -202,7 +215,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Company pages — only include companies that:
     // 1. Actually exist in the Company table (so normalizedName matches what the page uses)
-    // 2. Have ≥3 active jobs (fewer = thin page → GSC soft 404)
+    // 2. Have ≥5 active jobs (fewer = thin page → GSC soft 404)
     // GSC Fix: Previously generated slugs from job.employer via regex, causing slug mismatches
     // with Company.normalizedName → 2,265 dead 404s in GSC.
     const companiesWithJobs = await prisma.company.findMany({
@@ -223,7 +236,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     });
     const companyPages: MetadataRoute.Sitemap = companiesWithJobs
-      .filter(c => c._count.jobs >= 3) // Only companies with ≥3 active jobs
+      .filter(c => c._count.jobs >= 8) // Only companies with ≥8 active jobs (tightened from 5 to reduce thin pages)
       .map(c => ({
         url: `${baseUrl}/companies/${c.normalizedName}`,
         lastModified: latestJobDate,

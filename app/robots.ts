@@ -25,6 +25,10 @@ export default function robots(): MetadataRoute.Robots {
           // Block all other API routes (must come after allows — Google uses
           // longest-match rule, so /api/sitemaps/ will still be allowed)
           '/api/',
+          // Explicitly block specific API sub-paths for clarity and belt-and-suspenders
+          '/api/cron/',
+          '/api/webhooks/',
+          '/api/admin/',
           '/_next/',
           '/jobs/edit/',
           '/employer/',

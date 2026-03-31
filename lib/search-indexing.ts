@@ -247,15 +247,18 @@ export async function pingAllSearchEngines(url: string): Promise<IndexResult[]> 
 
 /**
  * Ping all configured search engines for multiple URLs in batch.
+ * Uses the CREATION quota (100/day) — for new/updated jobs only.
  */
 export async function pingAllSearchEnginesBatch(urls: string[]): Promise<{
     google: IndexResult[];
     bing: IndexResult[];
     indexNow: IndexResult[];
 }> {
-    // Google: must be individual (no batch API) — cap at 200/day
-    const GOOGLE_DAILY_CAP = 200;
-    const googleUrls = urls.slice(0, GOOGLE_DAILY_CAP);
+    // Google: must be individual (no batch API)
+    // GSC Fix: Split 200/day quota — 100 for new jobs, 100 for expired.
+    // This ensures expired jobs are ALWAYS de-indexed, not starved by new submissions.
+    const GOOGLE_CREATION_CAP = 100;
+    const googleUrls = urls.slice(0, GOOGLE_CREATION_CAP);
     const googleResults: IndexResult[] = [];
     for (const url of googleUrls) {
         const result = await pingGoogle(url);
@@ -273,6 +276,33 @@ export async function pingAllSearchEnginesBatch(urls: string[]): Promise<{
     return {
         google: googleResults,
         bing: bingResults,
+        indexNow: indexNowResults,
+    };
+}
+
+/**
+ * Ping all search engines to DE-INDEX expired URLs.
+ * Uses the DELETION quota (100/day) — kept separate from creation quota
+ * so expired jobs are always reliably removed from Google.
+ */
+export async function pingAllSearchEnginesBatchDeleted(urls: string[]): Promise<{
+    google: IndexResult[];
+    indexNow: IndexResult[];
+}> {
+    const GOOGLE_DELETION_CAP = 100;
+    const googleUrls = urls.slice(0, GOOGLE_DELETION_CAP);
+    const googleResults: IndexResult[] = [];
+    for (const url of googleUrls) {
+        const result = await pingGoogle(url, 'URL_DELETED');
+        googleResults.push(result);
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // IndexNow for batch de-indexing (Bing, Yandex, etc.)
+    const indexNowResults = await pingIndexNow(urls);
+
+    return {
+        google: googleResults,
         indexNow: indexNowResults,
     };
 }

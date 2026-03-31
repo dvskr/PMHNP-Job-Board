@@ -20,10 +20,13 @@ if (!globalForPrisma.pool) {
 
   globalForPrisma.pool = new Pool({
     connectionString,
-    max: 5, // Keep low for serverless - PgBouncer handles pooling
+    max: 10, // Increased from 5 for better concurrency under crawl pressure.
+             // PgBouncer handles external pooling, this is the local pool.
     idleTimeoutMillis: 20000, // 20 seconds
     connectionTimeoutMillis: 10000, // 10 seconds to connect
     allowExitOnIdle: true, // Allow cleanup in serverless
+    // NOTE: statement_timeout is NOT supported by PgBouncer in transaction mode.
+    // connectionTimeoutMillis handles connection-level timeouts instead.
   })
 
   // Handle pool errors gracefully

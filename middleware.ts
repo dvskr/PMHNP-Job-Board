@@ -36,6 +36,23 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
+    // ── URL Case Normalization ────────────────────────────────────────
+    // GSC Fix: /jobs/Remote and /jobs/remote are different URLs to Google.
+    // 301 redirect any path containing uppercase letters to its lowercase
+    // equivalent. Excludes _next/ paths and API routes with tokens.
+    if (/[A-Z]/.test(pathname) && !pathname.startsWith('/_next')) {
+        url.pathname = pathname.toLowerCase();
+        return NextResponse.redirect(url, 301);
+    }
+
+    // ── Page=1 Stripping ─────────────────────────────────────────────
+    // GSC Fix: /jobs/remote?page=1 is a duplicate of /jobs/remote.
+    // Strip ?page=1 to consolidate canonical authority.
+    if (url.searchParams.get('page') === '1') {
+        url.searchParams.delete('page');
+        return NextResponse.redirect(url, 301);
+    }
+
     // ── UTM Parameter Stripping ──────────────────────────────────────
     // Google Jobs appends ?utm_source=google_jobs_apply&utm_campaign=...
     // to job URLs, creating ~800+ duplicate pages in GSC.
@@ -72,6 +89,13 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 301);
     }
 
+    // GSC Fix: Catch malformed job URLs with "undefined" in the slug
+    // These generate 404s in GSC (e.g., /jobs/undefined-undefined-GUID)
+    if (pathname.startsWith('/jobs/undefined') || pathname.startsWith('/jobs/null')) {
+        url.pathname = '/jobs';
+        return NextResponse.redirect(url, 301);
+    }
+
     // Refresh the Supabase session (keeps auth cookies alive)
     const response = await updateSession(request);
 
@@ -105,7 +129,8 @@ export async function middleware(request: NextRequest) {
         || pathname.startsWith('/admin/')
         || pathname.startsWith('/dashboard/')
         || pathname.startsWith('/auth/')
-        || pathname.startsWith('/jobs/edit/');
+        || pathname.startsWith('/jobs/edit/')
+        || (pathname.startsWith('/api/') && !pathname.startsWith('/api/og') && !pathname.startsWith('/api/sitemaps'));
     if (isNoindexPath) {
         response.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }

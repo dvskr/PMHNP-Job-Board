@@ -26,11 +26,11 @@ import { getPostBySlug } from '@/lib/blog';
 import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
 
-// ISR: Cache job detail pages for 30 minutes.
+// ISR: Cache job detail pages for 1 hour.
 // Each job page runs 10-12 DB queries (relatedJobs, companyInfo, salaryData, blogPosts, etc.).
 // Without caching, Googlebot crawling thousands of pages simultaneously exhausts the DB
-// connection pool → 5xx errors. 1800s is a good balance: jobs rarely change but stay fresh.
-export const revalidate = 1800;
+// connection pool → 5xx errors. 3600s trades freshness for stability.
+export const revalidate = 3600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 
@@ -348,11 +348,21 @@ export async function generateMetadata({ params }: JobPageProps) {
     notFound();
   }
 
-  // A9: Expired jobs → proper 404 signal for Google
-  // Previously returned 200 + noindex + thin content → Google flagged as soft 404.
-  // Clean 404 is a better signal and doesn't waste crawl budget.
+  // GSC Fix: Expired jobs → noindex page with rich content instead of bare 404.
+  // Previously used notFound() which inflated the 2,682 "Not found (404)" count in GSC.
+  // A 200 + noindex + rich content (links to similar jobs) tells Google to de-index
+  // the URL without wasting crawl budget re-crawling 404s.
   if (result.status === 'expired') {
-    notFound();
+    const expiredTitle = result.title || 'PMHNP Position';
+    const expiredEmployer = result.employer || 'Employer';
+    return {
+      title: `${expiredTitle} — Position Filled | PMHNP Hiring`,
+      description: `This ${expiredTitle} position at ${expiredEmployer} is no longer available. Browse similar PMHNP jobs on PMHNP Hiring.`,
+      robots: {
+        index: false,
+        follow: true,
+      },
+    };
   }
 
   const job = result.job;
@@ -459,9 +469,75 @@ export default async function JobPage({ params }: JobPageProps) {
     notFound();
   }
 
-  // Job exists but expired/unpublished → 404 for clean Google signal
+  // Job exists but expired/unpublished → render rich expired page
+  // (not notFound() — see generateMetadata for rationale)
   if (result.status === 'expired') {
-    notFound();
+    const expiredTitle = result.title || 'PMHNP Position';
+    const expiredEmployer = result.employer || 'an employer';
+
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-16" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="max-w-2xl w-full text-center">
+          {/* Status Badge */}
+          <div className="mb-6">
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '8px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: 700,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff',
+            }}>
+              Position Filled
+            </span>
+          </div>
+
+          {/* Heading */}
+          <h1 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+            This Position Is No Longer Available
+          </h1>
+
+          {/* Details */}
+          <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <strong>{expiredTitle}</strong> at <strong>{expiredEmployer}</strong>
+          </p>
+          <p className="text-base mb-8" style={{ color: 'var(--text-tertiary)' }}>
+            This job has been filled or the listing has expired. Don&apos;t worry — we have hundreds of similar PMHNP positions available.
+          </p>
+
+          {/* Action Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-lg mx-auto">
+            <a href="/jobs" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+              <div className="text-2xl mb-2">🔍</div>
+              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Browse All Jobs</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>View all open PMHNP positions</div>
+            </a>
+            <a href="/jobs/remote" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+              <div className="text-2xl mb-2">🏠</div>
+              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Work-from-home positions</div>
+            </a>
+            <a href="/jobs/telehealth" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+              <div className="text-2xl mb-2">💻</div>
+              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care</div>
+            </a>
+            <a href="/job-alerts" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+              <div className="text-2xl mb-2">🔔</div>
+              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Job Alerts</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Get notified of new positions</div>
+            </a>
+          </div>
+
+          {/* Salary Guide CTA */}
+          <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+              While you&apos;re here, check out the latest PMHNP salary data:
+            </p>
+            <a href="/salary-guide" className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--color-primary)' }}>
+              2026 PMHNP Salary Guide →
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const job = result.job;

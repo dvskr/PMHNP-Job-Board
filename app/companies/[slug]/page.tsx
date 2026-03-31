@@ -5,6 +5,10 @@ import { formatDate } from '@/lib/utils';
 import type { Metadata } from 'next';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
+// GSC Fix: ISR caching prevents DB pool exhaustion when Googlebot crawls company pages.
+// Previously defaulted to dynamic (no cache) → every crawl hit the DB.
+export const revalidate = 3600;
+
 interface Props {
     params: Promise<{ slug: string }>;
 }
@@ -99,6 +103,13 @@ export default async function CompanyPage({ params }: Props) {
     }
 
     const activeJobCount = company.jobs.length;
+
+    // GSC Fix: Companies with 0 active jobs → proper 404 instead of 200 + "No open positions".
+    // Google flags these as soft 404 because the page renders but has no meaningful content.
+    // A clean 404 stops crawl budget waste on empty company profiles.
+    if (activeJobCount === 0) {
+        notFound();
+    }
 
     return (
         <>

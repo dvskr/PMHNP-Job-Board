@@ -26,7 +26,7 @@ import { collectEmployerEmails } from './employer-email-collector';
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
 let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> jobId
-import { pingAllSearchEnginesBatch, pingGoogle, pingIndexNow } from './search-indexing';
+import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
 export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'ashby' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'smartrecruiters' | 'icims' | 'jazzhr';
@@ -682,32 +682,24 @@ export async function cleanupExpiredJobs(): Promise<number> {
     console.log(`[Cleanup] Total: ${expiredResult.count} expired + ${agedOutResult.count} aged-out = ${total}`);
 
     // Notify search engines to de-index expired job URLs
+    // Uses dedicated deletion quota (100/day Google, unlimited IndexNow)
     const allExpiredJobs = [...jobsToExpire];
     if (allExpiredJobs.length > 0) {
       try {
         const { slugify } = await import('./utils');
+        const { pingAllSearchEnginesBatchDeleted } = await import('./search-indexing');
         const expiredUrls = allExpiredJobs.map(job => {
           const slug = slugify(job.title, job.id);
           return `https://pmhnphiring.com/jobs/${slug}`;
         });
 
-        console.log(`[Cleanup] Sending URL_DELETED for ${expiredUrls.length} expired jobs...`);
+        console.log(`[Cleanup] De-indexing ${expiredUrls.length} expired jobs via dedicated deletion quota...`);
 
-        // Send URL_DELETED to Google (individual, capped at 200/day)
-        const GOOGLE_CAP = 200;
-        const googleUrls = expiredUrls.slice(0, GOOGLE_CAP);
-        let googleOk = 0;
-        for (const url of googleUrls) {
-          const result = await pingGoogle(url, 'URL_DELETED');
-          if (result.success) googleOk++;
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        const results = await pingAllSearchEnginesBatchDeleted(expiredUrls);
+        const googleOk = results.google.filter(r => r.success).length;
+        const indexNowOk = results.indexNow.filter(r => r.success).length;
 
-        // IndexNow for batch de-indexing (Bing, Yandex, etc.)
-        const indexNowResults = await pingIndexNow(expiredUrls);
-        const indexNowOk = indexNowResults.filter(r => r.success).length;
-
-        console.log(`[Cleanup] De-index results: Google ${googleOk}/${googleUrls.length}, IndexNow ${indexNowOk}/${expiredUrls.length}`);
+        console.log(`[Cleanup] De-index results: Google ${googleOk}/${results.google.length}, IndexNow ${indexNowOk}/${expiredUrls.length}`);
       } catch (indexError) {
         console.error('[Cleanup] Failed to notify search engines about expired jobs:', indexError);
       }
