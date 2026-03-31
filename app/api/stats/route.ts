@@ -1,9 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting — 60 req/min (used by homepage, needs to be generous)
+    const rateLimitResult = await rateLimit(request, 'stats', { limit: 60, windowSeconds: 60 });
+    if (rateLimitResult) return rateLimitResult;
+
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

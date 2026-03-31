@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { logger } from '@/lib/logger';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting — 30 req/min to prevent mass scraping
+    const rateLimitResult = await rateLimit(request, 'jobs-list', { limit: 30, windowSeconds: 60 });
+    if (rateLimitResult) return rateLimitResult;
+
     const { searchParams } = new URL(request.url);
 
     // If specific IDs are requested, return exactly those jobs (for saved/applied pages)
@@ -45,7 +50,10 @@ export async function GET(request: NextRequest) {
     }
 
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const rawLimit = parseInt(searchParams.get('limit') || '20');
+    // Security: Cap limit to 50 max to prevent mass data extraction
+    // (a scraper could request limit=100000 and get everything in one call)
+    const limit = Math.min(Math.max(1, rawLimit), 50);
     const skip = (page - 1) * limit;
 
     // Parse filters from URL
@@ -104,7 +112,9 @@ export async function GET(request: NextRequest) {
           isVerifiedEmployer: true,
           mode: true,
           originalPostedAt: true,
-          applyLink: true,
+          // NOTE: applyLink intentionally excluded from listing API
+          // to prevent mass link harvesting by scrapers.
+          // Apply links are only exposed on individual job detail pages.
           employerJobs: { select: { companyLogoUrl: true } },
         },
       }),

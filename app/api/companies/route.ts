@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { linkAllJobsToCompanies, mergeCompanies } from '@/lib/company-normalizer';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * GET /api/companies
@@ -9,12 +10,16 @@ import { linkAllJobsToCompanies, mergeCompanies } from '@/lib/company-normalizer
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting — 30 req/min to prevent mass scraping
+    const rateLimitResult = await rateLimit(request, 'companies-list', { limit: 30, windowSeconds: 60 });
+    if (rateLimitResult) return rateLimitResult;
+
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50');
     const sort = searchParams.get('sort') || 'jobCount';
 
-    // Validate limit
-    const validLimit = Math.min(Math.max(limit, 1), 500);
+    // Security: Cap limit to 100 max
+    const validLimit = Math.min(Math.max(limit, 1), 100);
 
     // Determine sort order
     let orderBy: 

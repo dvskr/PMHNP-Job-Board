@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 import { buildSalaryGuideHtml } from '@/lib/email-service';
+import { rateLimit } from '@/lib/rate-limit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
@@ -13,6 +14,10 @@ const PDF_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.su
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting — 5 req/min (sends emails, must be strict)
+    const rateLimitResult = await rateLimit(request, 'salary-guide', { limit: 5, windowSeconds: 60 });
+    if (rateLimitResult) return rateLimitResult;
+
     const body = await request.json();
     const { email } = body;
 
