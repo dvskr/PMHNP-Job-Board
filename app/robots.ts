@@ -29,7 +29,9 @@ export default function robots(): MetadataRoute.Robots {
           '/api/cron/',
           '/api/webhooks/',
           '/api/admin/',
-          '/_next/',
+          // Allow /_next/static/ (Google needs JS/CSS to render pages!)
+          // Only block /_next/data/ (internal Next.js client-side navigation data)
+          '/_next/data/',
           '/jobs/edit/',
           '/employer/',
           '/email-preferences',
@@ -51,6 +53,8 @@ export default function robots(): MetadataRoute.Robots {
           '/auth/',
           '/messages',
           '/my-applications',
+          // Block raw video/media assets from crawling
+          '/videos/',
         ],
       },
       // AI search crawlers — same blocks for API/admin/dashboard/auth

@@ -44,6 +44,55 @@ export async function middleware(request: NextRequest) {
         return new NextResponse('Forbidden', { status: 403 });
     }
 
+    // ── 410 Gone for Deleted/Expired Job URLs ─────────────────────────
+    // GSC Fix: Returns HTTP 410 for job detail pages where the job no longer
+    // exists or is unpublished. This tells Google to permanently de-index
+    // the URL and stop wasting crawl budget recrawling it.
+    // Previously returned 404 (via notFound()) which Google keeps recrawling.
+    if (pathname.startsWith('/jobs/') && pathname.split('/').length === 3) {
+        const slug = pathname.split('/')[2];
+        // Only check job detail pages (slugs ending with a UUID)
+        const uuidMatch = slug.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
+        if (uuidMatch) {
+            const jobId = uuidMatch[1];
+            try {
+                // Lightweight edge-compatible check via Supabase REST API
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.PROD_SUPABASE_URL;
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
+                if (supabaseUrl && supabaseKey) {
+                    const res = await fetch(
+                        `${supabaseUrl}/rest/v1/jobs?id=eq.${jobId}&select=id,is_published`,
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                            },
+                        }
+                    );
+                    if (res.ok) {
+                        const rows = await res.json();
+                        // Job doesn't exist OR is unpublished → 410 Gone
+                        if (rows.length === 0 || !rows[0].is_published) {
+                            return new NextResponse(
+                                `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>Position Removed</title></head><body><h1>410 Gone</h1><p>This job listing has been permanently removed.</p><p><a href="/jobs">Browse current PMHNP jobs</a></p></body></html>`,
+                                {
+                                    status: 410,
+                                    headers: {
+                                        'Content-Type': 'text/html',
+                                        'X-Robots-Tag': 'noindex, nofollow',
+                                        'Cache-Control': 'public, max-age=86400',
+                                    },
+                                }
+                            );
+                        }
+                    }
+                }
+            } catch {
+                // If DB check fails, fall through to normal page rendering
+            }
+        }
+    }
+
     // ── CSP Nonce Generation ──────────────────────────────────────────
     // Generate a unique nonce per request for Content-Security-Policy
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
@@ -167,15 +216,14 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-    // ── PERMANENT Canonical URL Fix ─────────────────────────────────
-    // GSC Fix: Sets Link rel="canonical" HTTP header on EVERY response.
-    // This is the catch-all that prevents "Duplicate without user-selected
-    // canonical" — even if a page forgets to set canonical in generateMetadata(),
-    // this header covers it. Google honors both HTML and HTTP header canonicals.
-    // Uses clean URL: https, no query params, no trailing slash.
-    const canonicalPath = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
-    const canonicalUrl = `https://pmhnphiring.com${canonicalPath}`;
-    response.headers.set('Link', `<${canonicalUrl}>; rel="canonical"`);
+    // ── REMOVED: Middleware Canonical URL Header ──────────────────────
+    // Previously set Link: <canonical>; rel="canonical" HTTP header on every
+    // response. REMOVED because it caused 7,236 "Duplicate without canonical"
+    // GSC errors. The middleware stripped query params, so /jobs?page=2 and
+    // /jobs?sort=newest both got canonical=/jobs — making Google see thousands
+    // of "duplicate" pages. All pages already set canonical correctly via
+    // alternates.canonical in generateMetadata(). The double signal (HTTP header
+    // + HTML tag) was causing conflicts where Google chose its own canonical (617 pages).
 
     // ── Noindex for Robots.txt-Blocked Paths ────────────────────────
     // GSC Fix: robots.txt only prevents CRAWLING, not INDEXING.

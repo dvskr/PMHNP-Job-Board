@@ -886,3 +886,18 @@ model EmailSend {
   @@index([createdAt(sort: Desc)])
   @@map("email_sends")
 }
+
+// ─── Programmatic SEO Stats ──────────────────────────────────────────
+model PseoStats {
+  id                String   @id @default(cuid())
+  type              String
+  categorySlug      String
+  locationSlug      String
+  totalJobs         Int      @default(0)
+  rawAvgSalary      Int      @default(0)
+  colAdjustedSalary Int      @default(0)
+  updatedAt         DateTime @updatedAt
+  @@unique([type, categorySlug, locationSlug])
+  @@index([type, locationSlug])
+  @@index([categorySlug])
+}

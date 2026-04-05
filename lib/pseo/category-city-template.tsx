@@ -796,30 +796,25 @@ const EMPTY_STATS = { totalJobs: 0, rawAvgSalary: 0, colAdjustedSalary: 0 };
 
 async function getCityStats(config: CategoryConfig, city: CityData) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where = config.buildWhere(city.state, city.name) as any;
-    
-    const totalJobs = await prisma.job.count({ where });
-    
-    const salaryData = await prisma.job.aggregate({
+    const stats = await prisma.pseoStats.findUnique({
       where: {
-        ...where,
-        normalizedMinSalary: { not: null },
-        normalizedMaxSalary: { not: null },
-      },
-      _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+        type_categorySlug_locationSlug: {
+          type: 'category-city',
+          categorySlug: config.slug,
+          locationSlug: city.slug,
+        }
+      }
     });
 
-    const rawAvg = Math.round(
-      ((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000
-    );
-
-    // Cost-of-living adjusted salary
-    const colAdjustedSalary = rawAvg > 0
-      ? Math.round(rawAvg * (100 / city.costOfLivingIndex))
-      : 0;
-
-    return { totalJobs, rawAvgSalary: rawAvg, colAdjustedSalary };
+    if (stats) {
+      return {
+        totalJobs: stats.totalJobs,
+        rawAvgSalary: stats.rawAvgSalary,
+        colAdjustedSalary: stats.colAdjustedSalary,
+      };
+    }
+    
+    return EMPTY_STATS;
   } catch (error) {
     console.error(`[category-city] Failed to fetch stats for ${config.slug}/${city.slug}:`, error);
     return EMPTY_STATS;
@@ -937,18 +932,22 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   const limit = 10;
   const skip = (page - 1) * limit;
 
-  // Both getCityJobs and getCityStats are individually try-catch protected.
-  // On DB failure they return [] and EMPTY_STATS respectively, so this
-  // Promise.all will never throw — preventing 5xx for Googlebot.
-  const [jobs, stats] = await Promise.all([
-    getCityJobs(config, city!, skip, limit),
-    getCityStats(config, city!),
-  ]);
+  // 1. Instantly fetch pre-calculated stats (single indexed row lookup ~2ms)
+  const stats = await getCityStats(config, city!);
 
   // GSC Fix: Hard 404 for ANY page with 0 matching jobs.
-  // This eliminates all empty pSEO pages that Google was flagging as soft 404s.
-  // Also 404 for paginated pages beyond available results.
-  if (stats.totalJobs === 0 || (page > 1 && jobs.length === 0)) {
+  // This eliminates all empty pSEO pages that Google was flagging as soft 404s
+  // AND stops the server from proceeding to fetch empty jobs.
+  if (stats.totalJobs === 0) {
+    const { notFound: notFoundFn } = await import('next/navigation');
+    notFoundFn();
+  }
+
+  // 2. Only fetch actual job rows if we know jobs exist
+  const jobs = await getCityJobs(config, city!, skip, limit);
+
+  // 404 for paginated pages beyond available results.
+  if (page > 1 && jobs.length === 0) {
     const { notFound: notFoundFn } = await import('next/navigation');
     notFoundFn();
   }

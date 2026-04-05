@@ -58,28 +58,25 @@ async function getJobs(config: SettingConfig, stateName: string, skip = 0, take 
   });
 }
 
-async function getStats(config: SettingConfig, stateName: string): Promise<Stats> {
+async function getStats(config: SettingConfig, stateName: string, stateSlug: string): Promise<Stats> {
+  const pseo = await prisma.pseoStats.findUnique({
+    where: {
+      type_categorySlug_locationSlug: {
+        type: 'setting-state',
+        categorySlug: config.slug,
+        locationSlug: stateSlug,
+      }
+    }
+  });
+
+  if (!pseo || pseo.totalJobs === 0) {
+    return { totalJobs: 0, avgSalary: 0, topEmployers: [] };
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where = config.buildWhere(stateName) as any;
 
-  const totalJobs = await prisma.job.count({ where });
-
-  const salaryData = await prisma.job.aggregate({
-    where: {
-      ...where,
-      normalizedMinSalary: { not: null },
-      normalizedMaxSalary: { not: null },
-    },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
-  });
-
-  const avgSalary = Math.round(
-    ((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000
-  );
-
+  // Only run the heavy groupBy query if we know jobs exist
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
     where,
@@ -89,8 +86,8 @@ async function getStats(config: SettingConfig, stateName: string): Promise<Stats
   });
 
   return {
-    totalJobs,
-    avgSalary,
+    totalJobs: pseo.totalJobs,
+    avgSalary: pseo.rawAvgSalary,
     topEmployers: topEmployers.map((e: EmployerGroupResult) => ({
       name: e.employer,
       count: e._count.employer,
@@ -109,7 +106,7 @@ export async function buildSettingStateMetadata(
   const stateName = resolveStateSlug(stateSlug);
   if (!config || !stateName) return { title: 'Not Found' };
 
-  const stats = await getStats(config, stateName);
+  const stats = await getStats(config, stateName, stateSlug);
   const basePath = `/jobs/${config.slug}/${stateSlug}`;
 
   return {
@@ -167,17 +164,18 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   const limit = 10;
   const skip = (page - 1) * limit;
 
-  const [jobs, stats] = await Promise.all([
-    getJobs(config, stateName!, skip, limit),
-    getStats(config, stateName!),
-  ]);
+  // 1. Fetch fast pre-calculated stats
+  const stats = await getStats(config, stateName!, stateSlug);
 
   // SEO Fix: Return real 404 for category×state combos with no matching jobs.
-  // Previously rendered 200 + noindex → Google still crawled and wasted budget.
+  // Stops the server from trying to fetch jobs that don't exist.
   if (stats.totalJobs === 0) {
     const { notFound: notFoundFn } = await import('next/navigation');
     notFoundFn();
   }
+
+  // 2. Fetch jobs only if they exist
+  const jobs = await getJobs(config, stateName!, skip, limit);
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
   const neighbors = NEIGHBORING_STATES[stateName!] || [];

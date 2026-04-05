@@ -101,6 +101,10 @@
       "schedule": "10 12,18 * * *"
     },
     {
+      "path": "/api/cron/aggregate-pseo",
+      "schedule": "15 12,18 * * *"
+    },
+    {
       "path": "/api/cron/freshness-decay",
       "schedule": "20 12 * * *"
     },

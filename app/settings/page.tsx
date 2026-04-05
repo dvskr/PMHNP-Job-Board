@@ -59,6 +59,8 @@ interface Profile {
   role: string
   avatarUrl: string | null
   resumeUrl: string | null
+  resumeParseStatus: string | null
+  resumeParsedAt: string | null
   headline: string | null
   yearsExperience: number | null
   certifications: string | null
@@ -251,6 +253,32 @@ function SettingsPageInner() {
     }
     fetchEmployerData()
   }, [router])
+
+  // Poll for profile updates if resume parsing is pending
+  useEffect(() => {
+    if (profile?.resumeParseStatus === 'pending') {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/auth/profile')
+          if (res.ok) {
+            const data = await res.json()
+            setProfile(p => p ? { ...p, ...data } : data)
+            if (data.resumeParseStatus !== 'pending') {
+              clearInterval(interval)
+              if (data.resumeParseStatus === 'completed') {
+                setMessage({ type: 'success', text: '✨ Resume analyzed and profile auto-filled!' })
+                setTimeout(() => setMessage(null), 6000)
+              }
+            }
+          }
+        } catch {
+          // ignore error during poll
+        }
+      }, 3000)
+      return () => clearInterval(interval)
+    }
+    return undefined
+  }, [profile?.resumeParseStatus])
 
   // ── Handlers ──
   const handleAvatarUpload = async (url: string) => {
@@ -649,6 +677,7 @@ function SettingsPageInner() {
               </p>
               <ResumeUpload
                 currentResumeUrl={profile.resumeUrl}
+                resumeParseStatus={profile.resumeParseStatus}
                 onUploadComplete={handleResumeUpload}
                 onRemove={handleResumeRemove}
               />

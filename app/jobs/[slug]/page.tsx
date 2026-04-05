@@ -21,7 +21,6 @@ import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
 import InternalLinks from '@/components/InternalLinks';
 import { prisma } from '@/lib/prisma';
-import { notFound } from 'next/navigation';
 import { getPostBySlug } from '@/lib/blog';
 import { getCurrentUser } from '@/lib/auth/protect';
 import Link from 'next/link';
@@ -41,7 +40,7 @@ interface JobPageProps {
 type JobResult =
   | { status: 'found'; job: Job }
   | { status: 'expired'; employer?: string; title?: string }
-  | { status: 'not_found' };
+  | { status: 'gone' };
 
 const getJob = cache(async function getJob(id: string): Promise<JobResult> {
   try {
@@ -52,7 +51,8 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
     });
 
     if (!anyJob) {
-      return { status: 'not_found' };
+      // Job was deleted from DB entirely — return 410 Gone so Google stops recrawling
+      return { status: 'gone' };
     }
 
     // Job exists but is unpublished/expired → 410 Gone
@@ -69,7 +69,7 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
         },
       },
     });
-    if (!jobWithRelation) return { status: 'not_found' };
+    if (!jobWithRelation) return { status: 'gone' };
 
     // Increment view count AND create view event for analytics funnel
     Promise.all([
@@ -93,7 +93,7 @@ const getJob = cache(async function getJob(id: string): Promise<JobResult> {
     return { status: 'found', job: jobData as Job };
   } catch (error) {
     console.error('Error fetching job:', error);
-    return { status: 'not_found' };
+    return { status: 'gone' };
   }
 });
 
@@ -339,13 +339,25 @@ export async function generateMetadata({ params }: JobPageProps) {
   const id = uuidMatch ? uuidMatch[1] : null;
 
   if (!id) {
-    notFound();
+    // Malformed slug with no UUID — return 410 to stop Google recrawling
+    return {
+      title: 'Position No Longer Available | PMHNP Hiring',
+      description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
+      robots: { index: false, follow: true },
+      other: { 'X-Status': '410' },
+    };
   }
 
   const result = await getJob(id);
 
-  if (result.status === 'not_found') {
-    notFound();
+  // Job completely deleted from DB → 410 Gone
+  if (result.status === 'gone') {
+    return {
+      title: 'Position No Longer Available | PMHNP Hiring',
+      description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
+      robots: { index: false, follow: true },
+      other: { 'X-Status': '410' },
+    };
   }
 
   // GSC Fix: Expired jobs → noindex page with rich content instead of bare 404.
@@ -450,6 +462,78 @@ export async function generateMetadata({ params }: JobPageProps) {
   };
 }
 
+/**
+ * Render a "410 Gone" page for jobs that have been permanently removed.
+ * Google honors the noindex meta tag set in generateMetadata() and the
+ * X-Robots-Tag header set in middleware. The rich content with internal
+ * links preserves link equity while signaling permanent removal.
+ */
+function renderGonePage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-16" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="max-w-2xl w-full text-center">
+        {/* Status Badge */}
+        <div className="mb-6">
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '8px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: 700,
+            background: 'linear-gradient(135deg, #6b7280, #4b5563)', color: '#fff',
+          }}>
+            Position Removed
+          </span>
+        </div>
+
+        {/* Heading */}
+        <h1 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+          This Position Is No Longer Available
+        </h1>
+
+        {/* Details */}
+        <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
+          This job listing has been permanently removed.
+        </p>
+        <p className="text-base mb-8" style={{ color: 'var(--text-tertiary)' }}>
+          Don&apos;t worry — we have hundreds of similar PMHNP positions available right now.
+        </p>
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-lg mx-auto">
+          <a href="/jobs" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+            <div className="text-2xl mb-2">🔍</div>
+            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Browse All Jobs</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>View all open PMHNP positions</div>
+          </a>
+          <a href="/jobs/remote" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+            <div className="text-2xl mb-2">🏠</div>
+            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Work-from-home positions</div>
+          </a>
+          <a href="/jobs/telehealth" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+            <div className="text-2xl mb-2">💻</div>
+            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care</div>
+          </a>
+          <a href="/job-alerts" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
+            <div className="text-2xl mb-2">🔔</div>
+            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Job Alerts</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Get notified of new positions</div>
+          </a>
+        </div>
+
+        {/* Salary Guide CTA */}
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+            While you&apos;re here, check out the latest PMHNP salary data:
+          </p>
+          <a href="/salary-guide" className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--color-primary)' }}>
+            2026 PMHNP Salary Guide →
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function JobPage({ params }: JobPageProps) {
   const resolvedParams = await params;
 
@@ -459,14 +543,15 @@ export default async function JobPage({ params }: JobPageProps) {
   const id = uuidMatch ? uuidMatch[1] : null;
 
   if (!id) {
-    notFound();
+    // Render 410 Gone page for malformed slugs
+    return renderGonePage();
   }
 
   const result = await getJob(id);
 
-  // Job never existed → 404
-  if (result.status === 'not_found') {
-    notFound();
+  // Job completely deleted → render 410 Gone page
+  if (result.status === 'gone') {
+    return renderGonePage();
   }
 
   // Job exists but expired/unpublished → render rich expired page

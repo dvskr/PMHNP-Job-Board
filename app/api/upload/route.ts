@@ -63,7 +63,10 @@ export async function POST(request: NextRequest) {
       // Store the permanent storage path (not the signed URL which expires)
       await prisma.userProfile.update({
         where: { supabaseId: user.id },
-        data: { resumeUrl: result.path },
+        data: { 
+          resumeUrl: result.path,
+          resumeParseStatus: 'pending'
+        },
       });
 
       // Trigger AI resume parsing in the background (fire-and-forget)
