@@ -1,22 +1,12 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
 
 import { prisma } from '@/lib/prisma';
-import StatsSection from '@/components/StatsSection';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
-import WhyUs from '@/components/WhyUs';
-import Testimonial from '@/components/Testimonial';
-import StayConnected from '@/components/StayConnected';
-import BrowseByStateSection from '@/components/BrowseByStateSection';
 import TopStatesSection from '@/components/TopStatesSection';
-import Comparison from '@/components/Comparison';
-import ScrollReveal from '@/components/ScrollReveal';
 import WhyLoveUs from '@/components/WhyLoveUs';
 import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
-import TrustedByEmployers from '@/components/TrustedByEmployers';
-import PostJobCTA from '@/components/PostJobCTA';
 import ExitIntentPopup from '@/components/ExitIntentPopup';
 import StickyEmailBar from '@/components/StickyEmailBar';
 import HomepageBlogSection from '@/components/HomepageBlogSection';
@@ -84,9 +74,9 @@ export default async function Home() {
     : totalJobs.toLocaleString();
 
   return (
-    <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
+    <>
+      {/* Structured data — outside content div to prevent hydration mismatch */}
       <VideoJsonLd pathname="/" />
-      {/* Site-wide Organization schema with social sameAs links */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -107,7 +97,6 @@ export default async function Home() {
           }),
         }}
       />
-      {/* Homepage FAQ Schema for featured snippets */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -215,25 +204,29 @@ export default async function Home() {
           }),
         }}
       />
-      {/* 1. Hero — above the fold */}
-      <HomepageHero jobCountDisplay={jobCountDisplay} />
 
-      {/* 2. Employer Clay Dough Strip */}
-      <EmployerTrustSection />
+      {/* Main content */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
+        {/* 1. Hero — above the fold */}
+        <HomepageHero jobCountDisplay={jobCountDisplay} />
 
-      {/* 3. Why Love Us — Dual CTA */}
-      <WhyLoveUs />
+        {/* 2. Employer Clay Dough Strip */}
+        <EmployerTrustSection />
 
-      {/* ── Remaining sections (being redesigned) ── */}
-      <FeaturedJobsSection />
+        {/* 3. Why Love Us — Dual CTA */}
+        <WhyLoveUs />
 
-      {/* 4. Top States */}
-      <TopStatesSection />
+        {/* ── Remaining sections (being redesigned) ── */}
+        <FeaturedJobsSection />
 
-      <HomepageBlogSection />
+        {/* 4. Top States */}
+        <TopStatesSection />
 
-      <ExitIntentPopup />
-      <StickyEmailBar />
-    </div>
+        <HomepageBlogSection />
+
+        <ExitIntentPopup />
+        <StickyEmailBar />
+      </div>
+    </>
   );
 }
