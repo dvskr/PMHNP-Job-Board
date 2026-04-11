@@ -58,20 +58,14 @@ export default function PostJobCTA() {
             </div>
 
             <style>{`
-                /* Dark mode (default) */
-                :root, html.dark {
-                    --postjob-cta-bg: linear-gradient(135deg, #060E18 0%, #0c1929 50%, #060E18 100%);
-                    --postjob-cta-border: rgba(45,212,191,0.15);
-                }
-                /* Light mode */
-                html.light {
+                :root {
                     --postjob-cta-bg: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 50%, #F0FDFA 100%);
                     --postjob-cta-border: rgba(13,148,136,0.2);
                 }
                 .post-job-cta-block:hover {
                     transform: translateY(-3px);
-                    border-color: rgba(45,212,191,0.3) !important;
-                    box-shadow: 0 10px 40px rgba(45,212,191,0.1);
+                    border-color: rgba(13,148,136,0.35) !important;
+                    box-shadow: 0 10px 40px rgba(13,148,136,0.1);
                 }
             `}</style>
         </section>

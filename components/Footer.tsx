@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-import { Twitter, Facebook, Instagram, Linkedin, Youtube } from 'lucide-react';
+
+/* ──────────────────────────────────────────────
+ *  Footer — Dark, clean, professional
+ *  Uses inline styles for background/color to
+ *  bypass Tailwind compilation issues.
+ * ────────────────────────────────────────────── */
 
 const linkColumns = [
   {
@@ -12,37 +15,29 @@ const linkColumns = [
       { label: 'Browse Jobs', href: '/jobs' },
       { label: 'Saved Jobs', href: '/saved' },
       { label: 'Job Alerts', href: '/job-alerts' },
-      { label: 'Resources', href: '/resources' },
       { label: 'Salary Guide', href: '/salary-guide' },
+      { label: 'Post a Job', href: '/post-job' },
     ],
   },
   {
-    title: 'Job Categories',
+    title: 'Categories',
     links: [
-      { label: 'Remote Jobs', href: '/jobs/remote' },
+      { label: 'Remote', href: '/jobs/remote' },
       { label: 'Telehealth', href: '/jobs/telehealth' },
       { label: 'Inpatient', href: '/jobs/inpatient' },
       { label: 'Outpatient', href: '/jobs/outpatient' },
-      { label: 'Travel Jobs', href: '/jobs/travel' },
-    ],
-  },
-  {
-    title: 'More Categories',
-    links: [
       { label: 'New Grad', href: '/jobs/new-grad' },
-      { label: 'Per Diem', href: '/jobs/per-diem' },
-      { label: 'Addiction', href: '/jobs/substance-abuse' },
-      { label: 'Child/Adolescent', href: '/jobs/child-adolescent' },
+      { label: 'Travel', href: '/jobs/travel' },
     ],
   },
   {
-    title: 'Popular States',
+    title: 'Locations',
     links: [
-      { label: 'Massachusetts', href: '/jobs/state/massachusetts' },
       { label: 'New York', href: '/jobs/metro/new-york-ny' },
       { label: 'California', href: '/jobs/metro/los-angeles-ca' },
       { label: 'Florida', href: '/jobs/metro/jacksonville-fl' },
       { label: 'Texas', href: '/jobs/metro/dallas-tx' },
+      { label: 'Massachusetts', href: '/jobs/state/massachusetts' },
       { label: 'All States', href: '/jobs/locations' },
     ],
   },
@@ -50,185 +45,275 @@ const linkColumns = [
     title: 'Resources',
     links: [
       { label: 'Blog', href: '/blog' },
-      { label: 'New Grad PMHNP Guide', href: '/new-grad' },
-      { label: 'How to Become a PMHNP', href: '/blog/how-to-become-a-pmhnp' },
-      { label: 'PMHNP vs Psychiatrist', href: '/blog/pmhnp-vs-psychiatrist' },
+      { label: 'New Grad Guide', href: '/new-grad' },
       { label: 'For Employers', href: '/for-employers' },
-      { label: 'Post a Job', href: '/post-job' },
       { label: 'FAQ', href: '/faq' },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
       { label: 'About', href: '/about' },
       { label: 'Contact', href: '/contact' },
-      { label: 'Privacy', href: '/privacy' },
-      { label: 'Terms', href: '/terms' },
     ],
   },
 ];
 
-const socialLinks = [
-  { icon: Twitter, href: 'https://x.com/pmhnphiring', label: 'X' },
-  { icon: Facebook, href: 'https://www.facebook.com/pmhnphiring', label: 'Facebook' },
-  { icon: Instagram, href: 'https://www.instagram.com/pmhnphiring', label: 'Instagram' },
-  { icon: Linkedin, href: 'https://www.linkedin.com/company/pmhnpjobs', label: 'LinkedIn' },
-  { icon: Youtube, href: 'https://www.youtube.com/@pmhnphiring', label: 'YouTube' },
-];
+const columnTitleStyle: React.CSSProperties = {
+  fontSize: '13px',
+  fontWeight: 600,
+  fontFamily: 'var(--font-lora), Georgia, serif',
+  color: '#2D3748',
+  marginBottom: '20px',
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase' as const,
+};
+
+const linkStyle: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#4A5568',
+  textDecoration: 'none',
+  display: 'block',
+  paddingTop: '4px',
+  paddingBottom: '4px',
+  transition: 'color 0.15s ease',
+};
 
 export default function Footer() {
-  const pathname = usePathname();
-  const isHomepage = pathname === '/';
-
-  const socialRowClass = isHomepage ? 'footer-social-homepage' : '';
-
   return (
-    <footer aria-label="Site footer" style={{
-      backgroundColor: 'var(--bg-secondary)',
-      borderTop: '1px solid var(--border-color)',
-    }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px 0' }}>
-
-        {/* Link columns */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(6, 1fr)',
-          gap: '24px',
-          marginBottom: '28px',
-        }}>
-          {linkColumns.map((col) => (
-            <div key={col.title}>
-              <h4 style={{
-                fontSize: '14px', fontWeight: 700,
-                color: 'var(--text-primary)', margin: '0 0 14px',
-                whiteSpace: 'nowrap',
-              }}>
-                {col.title}
-              </h4>
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {col.links.map((link) => (
-                  <li key={link.href + link.label}>
-                    <Link
-                      href={link.href}
-                      className="footer-link"
-                      style={{
-                        fontSize: '13px', fontWeight: 500,
-                        color: 'var(--text-secondary)',
-                        textDecoration: 'none', whiteSpace: 'nowrap',
-                        transition: 'color 0.2s',
-                      }}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <>
+      {/* ── CTA Banner ── */}
+      <section
+        style={{
+          textAlign: 'center',
+          padding: '80px 24px',
+          marginTop: '80px',
+        }}
+      >
+        <h2
+          className="font-heading"
+          style={{
+            fontSize: 'clamp(1.75rem, 3.5vw, 2.75rem)',
+            fontWeight: 700,
+            color: '#2D3748',
+            lineHeight: 1.15,
+            letterSpacing: '-0.02em',
+            margin: '0 0 16px',
+          }}
+        >
+          Your next chapter starts here.
+        </h2>
+        <p
+          style={{
+            fontSize: '17px',
+            color: '#718096',
+            maxWidth: '520px',
+            margin: '0 auto 32px',
+            lineHeight: 1.6,
+          }}
+        >
+          The only job board built exclusively for Psychiatric Mental Health
+          Nurse Practitioners. Every listing verified.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <Link
+            href="/jobs"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 32px',
+              backgroundColor: '#0D9488',
+              color: '#FFFFFF',
+              fontSize: '15px',
+              fontWeight: 500,
+              borderRadius: '999px',
+              textDecoration: 'none',
+              transition: 'background-color 0.15s ease',
+            }}
+          >
+            Browse Jobs →
+          </Link>
+          <Link
+            href="/post-job"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '12px 32px',
+              backgroundColor: '#FFFFFF',
+              color: '#2D3748',
+              fontSize: '15px',
+              fontWeight: 500,
+              borderRadius: '999px',
+              textDecoration: 'none',
+              border: '1px solid #CBD5E0',
+              transition: 'border-color 0.15s ease',
+            }}
+          >
+            Post a Job
+          </Link>
         </div>
+      </section>
 
-        {/* Social media icons row — hidden on homepage desktop (floating icons visible) */}
-        <style>{`
-          @media (min-width: 768px) {
-            .footer-social-homepage { display: none !important; }
-          }
-        `}</style>
-        <div className={socialRowClass} style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          gap: '20px', padding: '16px 0',
-          borderTop: '1px solid var(--border-color)',
-        }}>
-          {socialLinks.map((s) => {
-            const Icon = s.icon;
-            return (
-              <a
-                key={s.label}
-                href={s.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={s.label}
-                className="footer-social-icon"
-                style={{
-                  color: 'var(--text-tertiary)',
-                  transition: 'color 0.2s, transform 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Icon size={18} strokeWidth={1.5} />
-              </a>
-            );
-          })}
-        </div>
+      {/* ── Footer ── */}
+      <footer
+        style={{
+          backgroundColor: '#E6EDEA',
+          color: '#2D3748',
+          paddingBottom: '20px',
+        }}
+        aria-label="Site footer"
+      >
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            padding: '0 32px',
+          }}
+        >
+          {/* Main grid */}
+          {/* Main grid (Links only) */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '48px 40px',
+              paddingTop: '64px',
+              paddingBottom: '64px',
+              alignItems: 'start',
+            }}
+          >
 
-        {/* Bottom bar */}
-        <div className="footer-bottom-bar" style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '16px 0 20px', borderTop: '1px solid var(--border-color)',
-          flexWrap: 'wrap', gap: '12px',
-        }}>
-          {/* Left: logo + tagline */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-              <Image
-                src="/logo.png"
-                alt="PMHNP Hiring - Psychiatric NP Job Board"
-                width={32}
-                height={32}
-                style={{ width: '32px', height: '32px', filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' }}
-              />
-            </Link>
-            <span style={{
-              fontSize: '13px', fontWeight: 500,
-              color: 'var(--text-secondary)',
-              borderLeft: '1px solid var(--border-color)',
-              paddingLeft: '8px', marginLeft: '2px',
-            }}>
-              The #1 job board for psychiatric NPs
-            </span>
+            {/* Link columns */}
+            {linkColumns.map((col) => (
+              <div key={col.title}>
+                <h4 style={columnTitleStyle}>{col.title}</h4>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {col.links.map((link) => {
+                    const isExternal = link.href.startsWith('http');
+                    if (isExternal) {
+                      return (
+                        <li key={link.href + link.label}>
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={linkStyle}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = '#0D9488'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = '#4A5568'; }}
+                          >
+                            {link.label}
+                          </a>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={link.href + link.label}>
+                        <Link
+                          href={link.href}
+                          style={linkStyle}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = '#0D9488'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = '#4A5568'; }}
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
 
-          {/* Right: copyright */}
-          <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-tertiary)', margin: 0 }}>
-            © {new Date().getFullYear()} PMHNP Hiring
-          </p>
-        </div>
-      </div>
+          {/* Centered Brand Block (Above Bottom Bar) */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              paddingBottom: '40px',
+            }}
+          >
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+                marginBottom: '12px',
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt="PMHNP Hiring"
+                width="100"
+                height="100"
+                style={{
+                  width: 100,
+                  height: 100,
+                  objectFit: 'contain',
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                className="font-heading"
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#2D3748',
+                  letterSpacing: '-0.02em',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1, 
+                  transform: 'translateY(4px)',
+                  marginLeft: '-24px', // Perfectly tight, backed off from overlapping the face
+                }}
+              >
+                PMHNP Hiring
+              </span>
+            </Link>
+            <p
+              style={{
+                fontSize: '15px',
+                color: '#718096',
+                margin: 0,
+                textAlign: 'center',
+              }}
+            >
+              The #1 specialized job board for psychiatric nurse practitioners.
+            </p>
+          </div>
 
-      {/* Responsive + hover */}
-      <style>{`
-        .footer-link:hover {
-          color: var(--color-primary) !important;
-        }
-        .footer-social-icon:hover {
-          color: var(--color-primary) !important;
-          transform: translateY(-2px);
-        }
-        @media (max-width: 1024px) {
-          footer > div > div:first-child {
-            grid-template-columns: repeat(3, 1fr) !important;
-          }
-        }
-        @media (max-width: 768px) {
-          footer > div > div:first-child {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-        @media (max-width: 480px) {
-          footer > div > div:first-child {
-            grid-template-columns: 1fr !important;
-          }
-          .footer-bottom-bar {
-            flex-direction: column !important;
-            justify-content: center !important;
-            align-items: center !important;
-            text-align: center;
-            gap: 8px !important;
-          }
-        }
-      `}</style>
-    </footer>
+          {/* Bottom bar */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '24px 0',
+              borderTop: '1px solid rgba(13,148,136,0.15)',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', gap: '24px' }}>
+              <Link
+                href="/privacy"
+                style={{ fontSize: '13px', color: '#4A5568', textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#0D9488'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#4A5568'; }}
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                style={{ fontSize: '13px', color: '#4A5568', textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#0D9488'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#4A5568'; }}
+              >
+                Terms
+              </Link>
+            </div>
+            <p style={{ fontSize: '13px', color: '#718096', margin: 0 }}>
+              © {new Date().getFullYear()} PMHNP Hiring. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }

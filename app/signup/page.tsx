@@ -29,7 +29,7 @@ export default async function SignUpPage({
       <div className="w-full max-w-md relative">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="font-heading text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
             Create your account
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-tertiary)' }}>

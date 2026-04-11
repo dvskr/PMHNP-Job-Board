@@ -286,7 +286,7 @@ export default async function BlogPostPage({ params }: Props) {
     } : null;
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
+        <div className="min-h-screen pb-20" style={{ backgroundColor: 'var(--bg-primary)' }}>
             {/* BlogPosting Schema */}
             <script
                 type="application/ld+json"
@@ -345,7 +345,7 @@ export default async function BlogPostPage({ params }: Props) {
             />
 
             {/* Header */}
-            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 py-12 px-4">
+            <header className="py-12 px-4" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
                 <div className="max-w-4xl mx-auto">
                     <Link
                         href="/blog"
@@ -358,7 +358,7 @@ export default async function BlogPostPage({ params }: Props) {
                             {categoryLabel}
                         </span>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
+                    <h1 className="font-heading text-3xl md:text-5xl font-bold mb-6 leading-tight" style={{ color: 'var(--text-primary)' }}>
                         {post.title}
                     </h1>
                     <div className="flex items-center text-gray-500 text-sm gap-6">
@@ -523,7 +523,7 @@ export default async function BlogPostPage({ params }: Props) {
 
                 {/* Existing CTA Section */}
                 <div className="mt-8 bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-8 text-white text-center">
-                    <h3 className="text-2xl font-bold mb-3">
+                    <h3 className="font-heading text-2xl font-bold mb-3">
                         Ready to Find Your Next PMHNP Position?
                     </h3>
                     <p className="text-teal-100 mb-6 max-w-lg mx-auto">
@@ -577,7 +577,7 @@ export default async function BlogPostPage({ params }: Props) {
                 {/* Related Posts */}
                 {relatedPosts.length > 0 && (
                     <div className="mt-12">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+                        <h3 className="font-heading text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
                             Related Articles
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

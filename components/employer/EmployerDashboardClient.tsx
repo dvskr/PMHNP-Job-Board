@@ -264,7 +264,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Employer Dashboard</h1>
+                        <h1 className="font-heading text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Employer Dashboard</h1>
                         <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
                             {employerName}{isTokenAccess ? ` · ${employerEmail}` : ''}
                         </p>
@@ -306,7 +306,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                     👥
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                                    <h3 className="font-heading font-bold text-base" style={{ color: 'var(--text-primary)' }}>
                                         Browse PMHNP Talent Pool
                                     </h3>
                                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -589,7 +589,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                         <Mail size={20} style={{ color: '#14B8A6' }} />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                                        <h3 className="font-heading text-base font-bold" style={{ color: 'var(--text-primary)' }}>
                                             Employer Newsletter
                                         </h3>
                                         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -636,7 +636,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                         <Bell size={20} style={{ color: '#14B8A6' }} />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                                        <h3 className="font-heading text-base font-bold" style={{ color: 'var(--text-primary)' }}>
                                             Application Notifications
                                         </h3>
                                         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -735,10 +735,10 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                 {/* Renewal Modal */}
                 {config.isPaidPostingEnabled && showRenewModal && selectedJob && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="fixed inset-0 flex items-center justify-center p-4 z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                         <div className="rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in-up" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                             <div className="mb-4">
-                                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Renew Job Posting</h3>
+                                <h3 className="font-heading text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Renew Job Posting</h3>
                                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedJob.title}</p>
                             </div>
 

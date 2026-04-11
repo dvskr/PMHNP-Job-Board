@@ -78,7 +78,7 @@ export default function HomepageJobAlertForm() {
               <CheckCircle className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="font-semibold text-gray-900">You&apos;re all set!</p>
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>You&apos;re all set!</p>
               <p className="text-sm text-gray-600">{message.text}</p>
             </div>
           </div>

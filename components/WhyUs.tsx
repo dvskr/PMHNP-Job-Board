@@ -94,7 +94,7 @@ export default function WhyUs() {
             <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 20px' }}>
                 {/* Header — centered */}
                 <div style={{ marginBottom: '56px', textAlign: 'center' }}>
-                    <h2 style={{
+                    <h2 className="font-heading" style={{
                         fontSize: '28px', fontWeight: 700,
                         color: 'var(--text-primary)', margin: '0 0 8px',
                     }}>
@@ -150,7 +150,7 @@ export default function WhyUs() {
 
                             {/* Text */}
                             <div style={{ paddingTop: '2px' }}>
-                                <h3 style={{
+                                <h3 className="font-heading" style={{
                                     fontSize: '18px', fontWeight: 700,
                                     color: 'var(--text-primary)', margin: '0 0 8px',
                                 }}>
@@ -170,7 +170,7 @@ export default function WhyUs() {
                                 textAlign: 'right', paddingTop: '2px',
                                 display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
                             }}>
-                                <span className="wu-stat" style={{
+                                <span className="wu-stat font-heading" style={{
                                     fontSize: '28px', fontWeight: 800,
                                     color: f.color, lineHeight: 1,
                                 }}>

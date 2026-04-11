@@ -80,7 +80,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         aria-label="Share on LinkedIn"
       >
         <LinkedInIcon size={20} />
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-[#44403C] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           Share on LinkedIn
         </span>
       </button>
@@ -92,7 +92,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         aria-label="Share on X"
       >
         <XIcon size={20} />
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-[#44403C] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           Share on X
         </span>
       </button>
@@ -107,7 +107,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         aria-label="Share on Facebook"
       >
         <FacebookIcon size={20} />
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-[#44403C] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           Share on Facebook
         </span>
       </button>
@@ -120,7 +120,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         aria-label="Share on WhatsApp"
       >
         <WhatsAppIcon size={20} />
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-[#44403C] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           Share on WhatsApp
         </span>
       </button>
@@ -133,7 +133,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         aria-label="Share via Email"
       >
         <Mail size={20} />
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-[#44403C] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           Share via Email
         </span>
       </a>
@@ -149,7 +149,7 @@ export default function ShareButtons({ url, title, company }: ShareButtonsProps)
         aria-label={copied ? 'Copied!' : 'Copy link'}
       >
         {copied ? <Check size={20} /> : <Link2 size={20} />}
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-[#44403C] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           {copied ? 'Copied!' : 'Copy link'}
         </span>
       </button>

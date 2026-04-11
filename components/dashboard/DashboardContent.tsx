@@ -75,6 +75,7 @@ const cardBase: React.CSSProperties = {
 const sectionHeading: React.CSSProperties = {
     fontSize: '16px',
     fontWeight: 700,
+    fontFamily: 'var(--font-lora), Georgia, serif',
     color: 'var(--text-primary)',
     marginBottom: '16px',
     display: 'flex',
@@ -216,7 +217,7 @@ function NewsletterCard({ initialOptIn, email }: { initialOptIn: boolean; email?
                     <Send size={20} style={{ color: '#14B8A6' }} />
                 </div>
                 <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', margin: 0, color: 'var(--text-primary)' }}>
                         Email Newsletter
                     </h3>
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
@@ -348,7 +349,7 @@ export default function DashboardContent() {
                     flexWrap: 'wrap', gap: '16px',
                 }}>
                     <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        <h1 style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', margin: 0 }}>
                             Welcome back{profile.firstName ? `, ${profile.firstName}` : ''}! 👋
                         </h1>
                         {profile.headline && (
@@ -413,7 +414,7 @@ export default function DashboardContent() {
                                 }}>
                                     <Icon size={18} style={{ color: s.color }} />
                                 </div>
-                                <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1 }}>
+                                <p style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', margin: 0, lineHeight: 1 }}>
                                     {s.value}
                                 </p>
                             </div>

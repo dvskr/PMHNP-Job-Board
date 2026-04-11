@@ -28,6 +28,9 @@ export default function ScrollReveal({ children, delay = 0, style, className }: 
         return () => obs.disconnect();
     }, [onIntersect]);
 
+    /* Delay is in seconds from the prop, convert to ms for CSS */
+    const delayMs = typeof delay === 'number' && delay < 10 ? delay * 1000 : delay;
+
     return (
         <div
             ref={ref}
@@ -35,7 +38,7 @@ export default function ScrollReveal({ children, delay = 0, style, className }: 
             style={{
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'translateY(0)' : 'translateY(20px)',
-                transition: `opacity 0.6s ease-out ${delay}ms, transform 0.6s ease-out ${delay}ms`,
+                transition: `opacity 0.55s cubic-bezier(0.25,0.46,0.45,0.94) ${delayMs}ms, transform 0.55s cubic-bezier(0.25,0.46,0.45,0.94) ${delayMs}ms`,
                 ...style,
             }}
         >

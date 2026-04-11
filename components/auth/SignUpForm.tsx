@@ -171,7 +171,7 @@ export default function SignUpForm() {
         >
           <CheckCircle className="w-8 h-8 text-emerald-500" />
         </div>
-        <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Check your email</h3>
+        <h3 className="font-heading text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Check your email</h3>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           We&apos;ve sent a confirmation link to <strong>{email}</strong>
         </p>

@@ -44,7 +44,7 @@ export default function EmployerCTA() {
 
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-                    <h2 style={{
+                    <h2 className="font-heading" style={{
                         fontSize: '28px', fontWeight: 700,
                         color: 'var(--text-primary)', margin: '0 0 8px',
                     }}>
@@ -105,7 +105,7 @@ export default function EmployerCTA() {
                                 transition: 'all 0.25s',
                             }}
                         >
-                            <h3 style={{
+                            <h3 className="font-heading" style={{
                                 fontSize: '16px', fontWeight: 700,
                                 color: 'var(--text-primary)', margin: '0 0 6px',
                             }}>

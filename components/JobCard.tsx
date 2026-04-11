@@ -155,6 +155,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                   <h3 style={{
                     fontSize: '16px', fontWeight: 700,
+                    fontFamily: 'var(--font-lora), Georgia, serif',
                     color: 'var(--text-primary)',
                     margin: 0, lineHeight: 1.3,
                   }}>
@@ -234,7 +235,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {/* Right Side - Salary and Share */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                 {salaryDisplay && (
-                  <div style={{ fontSize: '17px', fontWeight: 700, color: '#2DD4BF', textAlign: 'right' }}>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-primary)', textAlign: 'right' }}>
                     {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
                   </div>
                 )}
@@ -304,6 +305,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         }}>
           <h3 style={{
             fontSize: '16px', fontWeight: 700,
+            fontFamily: 'var(--font-lora), Georgia, serif',
             color: 'var(--text-primary)',
             margin: 0, lineHeight: 1.35,
             flex: 1, minWidth: 0,
@@ -346,7 +348,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         {/* Salary - prominent, right after title */}
         {salaryDisplay && (
           <span style={{
-            fontSize: '15px', fontWeight: 700, color: '#2DD4BF',
+            fontSize: '15px', fontWeight: 700, color: 'var(--color-primary)',
             letterSpacing: '-0.01em',
           }}>
             {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
@@ -457,7 +459,8 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
       <style>{`
         .jc-card:hover {
           border-color: var(--color-primary) !important;
-          box-shadow: 0 4px 16px var(--shadow-color, rgba(0,0,0,0.1));
+          box-shadow: var(--shadow-hover);
+          transform: translateY(-2px);
           position: relative;
           z-index: 1;
         }

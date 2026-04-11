@@ -3,21 +3,23 @@ import Link from 'next/link';
 
 import { prisma } from '@/lib/prisma';
 import StatsSection from '@/components/StatsSection';
-import EmployerMarqueeSection from '@/components/EmployerMarqueeSection';
+import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import WhyUs from '@/components/WhyUs';
 import Testimonial from '@/components/Testimonial';
 import StayConnected from '@/components/StayConnected';
-import EmployerCTA from '@/components/EmployerCTA';
 import BrowseByStateSection from '@/components/BrowseByStateSection';
+import TopStatesSection from '@/components/TopStatesSection';
 import Comparison from '@/components/Comparison';
 import ScrollReveal from '@/components/ScrollReveal';
+import WhyLoveUs from '@/components/WhyLoveUs';
 import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import TrustedByEmployers from '@/components/TrustedByEmployers';
 import PostJobCTA from '@/components/PostJobCTA';
 import ExitIntentPopup from '@/components/ExitIntentPopup';
 import StickyEmailBar from '@/components/StickyEmailBar';
+import HomepageBlogSection from '@/components/HomepageBlogSection';
 
 
 
@@ -82,7 +84,7 @@ export default async function Home() {
     : totalJobs.toLocaleString();
 
   return (
-    <div>
+    <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
       <VideoJsonLd pathname="/" />
       {/* Site-wide Organization schema with social sameAs links */}
       <script
@@ -213,64 +215,24 @@ export default async function Home() {
           }),
         }}
       />
-      {/* 1. Hero Section — no scroll reveal (above the fold) */}
+      {/* 1. Hero — above the fold */}
       <HomepageHero jobCountDisplay={jobCountDisplay} />
 
-      {/* B2: Featured Jobs moved right below hero (6 latest job cards) */}
-      <ScrollReveal>
-        <FeaturedJobsSection />
-      </ScrollReveal>
+      {/* 2. Employer Clay Dough Strip */}
+      <EmployerTrustSection />
 
-      {/* 2. Stats Counter (animated numbers) */}
-      <ScrollReveal>
-        <StatsSection />
-      </ScrollReveal>
+      {/* 3. Why Love Us — Dual CTA */}
+      <WhyLoveUs />
 
-      {/* B4: Trusted By Employers trust signal */}
-      <ScrollReveal>
-        <TrustedByEmployers />
-      </ScrollReveal>
+      {/* ── Remaining sections (being redesigned) ── */}
+      <FeaturedJobsSection />
 
-      {/* 3. Employer Marquee (scrolling company names) */}
-      <ScrollReveal>
-        <EmployerMarqueeSection />
-      </ScrollReveal>
+      {/* 4. Top States */}
+      <TopStatesSection />
 
+      <HomepageBlogSection />
 
-
-
-      {/* B10: Post a Job CTA */}
-      <ScrollReveal>
-        <PostJobCTA />
-      </ScrollReveal>
-
-      {/* 7. Testimonial (Sarah M. quote) */}
-      <ScrollReveal>
-        <Testimonial />
-      </ScrollReveal>
-
-      {/* 8. Browse by Location (state cards with job counts) */}
-      <ScrollReveal>
-        <BrowseByStateSection />
-      </ScrollReveal>
-
-      {/* 9. Comparison Cards (Us vs Indeed vs LinkedIn vs ZipRecruiter) */}
-      <ScrollReveal>
-        <Comparison />
-      </ScrollReveal>
-
-
-
-
-      {/* 12. Employer CTA (new design) */}
-      <ScrollReveal>
-        <EmployerCTA />
-      </ScrollReveal>
-
-      {/* B7: Exit-intent popup */}
       <ExitIntentPopup />
-
-      {/* B8: Sticky email bar */}
       <StickyEmailBar />
     </div>
   );

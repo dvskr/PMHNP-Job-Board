@@ -94,10 +94,13 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     return () => subscription.unsubscribe()
   }, [])
 
+  // Shared nav link classes
+  const navLinkClass = "px-4 py-2 text-[15px] font-medium text-gray-500 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-50"
+
   if (loading) {
     return (
-      <div className="flex items-center gap-4">
-        <div className="w-20 h-8 bg-gray-200 animate-pulse rounded" />
+      <div className="flex items-center gap-3">
+        <div className="w-16 h-8 bg-gray-100 animate-pulse rounded-lg" />
       </div>
     )
   }
@@ -105,11 +108,8 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
   if (user && profile) {
     if (profile.role === 'admin') {
       return (
-        <div className="flex items-center gap-4">
-          <Link
-            href="/admin"
-            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
-          >
+        <div className="flex items-center gap-1">
+          <Link href="/admin" className={navLinkClass}>
             Admin
           </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
@@ -118,17 +118,11 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     }
     if (profile.role === 'employer') {
       return (
-        <div className="flex items-center gap-4">
-          <Link
-            href="/employer/dashboard"
-            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
-          >
+        <div className="flex items-center gap-1">
+          <Link href="/employer/dashboard" className={navLinkClass}>
             Dashboard
           </Link>
-          <Link
-            href="/employer/candidates"
-            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
-          >
+          <Link href="/employer/candidates" className={navLinkClass}>
             Candidates
           </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
@@ -136,18 +130,8 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
       )
     }
     return (
-      <div className="flex items-center justify-center gap-4 w-full">
-        <Link
-          href="/dashboard"
-          className="nav-link"
-          style={{
-            padding: '8px 14px',
-            borderRadius: '10px',
-            fontSize: '13px',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
-        >
+      <div className="flex items-center gap-1">
+        <Link href="/dashboard" className={navLinkClass}>
           Dashboard
         </Link>
         <UserMenu user={profile} profileCompleteness={profileCompleteness} isMobile={!!onNavigate} />
@@ -156,23 +140,25 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
   }
 
   return (
-    <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
+    <div className="flex items-center gap-2">
       <Link
         href="/login"
         onClick={onNavigate}
-        className="hdr-signin font-semibold text-base lg:text-[13px] text-center lg:text-left py-4 lg:py-2 px-4 lg:px-3 rounded-xl touch-manipulation"
-        style={{ color: 'rgba(var(--text-primary-rgb, 255,255,255), 0.55)' }}
+        className={navLinkClass}
       >
-        Sign in
+        Log in
       </Link>
       <Link
         href="/signup"
         onClick={onNavigate}
-        className="hdr-signup px-6 lg:px-5 py-4 lg:py-2 rounded-xl font-semibold text-base lg:text-[13px] text-center touch-manipulation"
+        className="inline-flex items-center justify-center rounded-lg transition-colors shadow-sm"
         style={{
-          color: 'var(--text-primary)',
-          backgroundColor: 'rgba(var(--text-primary-rgb, 255,255,255), 0.08)',
-          border: '1px solid rgba(var(--text-primary-rgb, 255,255,255), 0.12)',
+          padding: '0 20px',
+          height: '40px',
+          fontSize: '15px',
+          fontWeight: 600,
+          backgroundColor: '#0D9488',
+          color: '#FFFFFF',
         }}
       >
         Sign up
@@ -180,4 +166,3 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     </div>
   )
 }
-
