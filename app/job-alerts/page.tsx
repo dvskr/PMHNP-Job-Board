@@ -36,6 +36,14 @@ function JobAlertsContent() {
   const [message, setMessage] = useState<{ type: 'success' | 'error' | ''; text: string }>({ type: '', text: '' });
   const [emailError, setEmailError] = useState('');
 
+  // Pre-fill email for logged-in users
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.email && !email) setEmail(data.email);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Watch for searchParams changes (e.g., from quick links)
   useEffect(() => {
     setLocation(searchParams.get('location') || '');

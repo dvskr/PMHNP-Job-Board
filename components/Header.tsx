@@ -63,8 +63,8 @@ export default function Header() {
         ].join(' ')}
         style={{
           height: 80,
-          backgroundColor: '#E6EDEA',
-          borderColor: scrolled ? 'var(--border-color)' : 'transparent',
+          backgroundColor: '#1c1917',
+          borderColor: scrolled ? 'rgba(255,255,255,0.08)' : 'transparent',
         }}
         suppressHydrationWarning
       >
@@ -76,7 +76,7 @@ export default function Header() {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden p-2 -ml-2 transition-colors rounded-lg"
-              style={{ color: 'var(--text-tertiary)' }}
+              style={{ color: '#CBD5E1' }}
               aria-label="Toggle menu"
             >
               {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -95,7 +95,7 @@ export default function Header() {
                 style={{
                   fontSize: '28px',
                   fontWeight: 700,
-                  color: 'var(--text-primary)',
+                  color: '#FFFFFF',
                   letterSpacing: '-0.02em',
                   whiteSpace: 'nowrap',
                   lineHeight: 1,
@@ -117,7 +117,7 @@ export default function Header() {
                   href={link.href}
                   className="nav-link-hover px-4 py-2 text-[15px] font-medium transition-colors rounded-lg"
                   style={{
-                    color: isActive(link.href) ? 'var(--color-primary)' : 'var(--text-secondary)',
+                    color: isActive(link.href) ? '#2DD4BF' : '#CBD5E1',
                     fontWeight: isActive(link.href) ? 600 : 500,
                   }}
                 >
@@ -127,7 +127,7 @@ export default function Header() {
             </nav>
 
             {/* Divider */}
-            <div className="w-px h-5 mx-3" style={{ backgroundColor: 'var(--border-color)' }} />
+            <div className="w-px h-5 mx-3" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
 
             {/* Auth */}
             <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
@@ -148,7 +148,7 @@ export default function Header() {
           >
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: 'rgba(250, 251, 248, 0.97)' }}
+              style={{ backgroundColor: 'rgba(28, 25, 23, 0.98)' }}
               onClick={() => setIsMenuOpen(false)}
             />
             <div className="relative px-8 pt-6 pb-8">
@@ -160,16 +160,16 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                     className="py-4 text-lg font-medium transition-colors"
                     style={{
-                      color: isActive(link.href) ? 'var(--color-primary)' : 'var(--text-secondary)',
+                      color: isActive(link.href) ? '#2DD4BF' : '#CBD5E1',
                       fontWeight: isActive(link.href) ? 600 : 500,
-                      borderBottom: '1px solid var(--border-color)',
+                      borderBottom: '1px solid rgba(255,255,255,0.08)',
                     }}
                   >
                     {link.label}
                   </Link>
                 ))}
               </nav>
-              <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
               </div>
             </div>

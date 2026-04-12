@@ -95,7 +95,7 @@ export default function ContactPage() {
         { name: 'Contact', url: 'https://pmhnphiring.com/contact' },
       ]} />
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-16 px-4">
+      <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-16 px-4" style={{ marginTop: -80, paddingTop: 120 }}>
         <div className="max-w-7xl mx-auto text-center">
           <Mail className="w-16 h-16 mx-auto mb-6 opacity-90" />
           <h1 className="text-4xl md:text-5xl font-bold mb-4">

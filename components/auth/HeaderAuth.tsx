@@ -95,12 +95,13 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
   }, [])
 
   // Shared nav link classes
-  const navLinkClass = "px-4 py-2 text-[15px] font-medium text-gray-500 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-50"
+  const navLinkClass = "px-4 py-2 text-[15px] font-medium transition-colors rounded-lg"
+  const navLinkStyle = { color: '#CBD5E1' }
 
   if (loading) {
     return (
       <div className="flex items-center gap-3">
-        <div className="w-16 h-8 bg-gray-100 animate-pulse rounded-lg" />
+        <div className="w-16 h-8 animate-pulse rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
       </div>
     )
   }
@@ -109,7 +110,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     if (profile.role === 'admin') {
       return (
         <div className="flex items-center gap-1">
-          <Link href="/admin" className={navLinkClass}>
+          <Link href="/admin" className={navLinkClass} style={navLinkStyle}>
             Admin
           </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
@@ -119,10 +120,10 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     if (profile.role === 'employer') {
       return (
         <div className="flex items-center gap-1">
-          <Link href="/employer/dashboard" className={navLinkClass}>
+          <Link href="/employer/dashboard" className={navLinkClass} style={navLinkStyle}>
             Dashboard
           </Link>
-          <Link href="/employer/candidates" className={navLinkClass}>
+          <Link href="/employer/candidates" className={navLinkClass} style={navLinkStyle}>
             Candidates
           </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
@@ -131,7 +132,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     }
     return (
       <div className="flex items-center gap-1">
-        <Link href="/dashboard" className={navLinkClass}>
+        <Link href="/dashboard" className={navLinkClass} style={navLinkStyle}>
           Dashboard
         </Link>
         <UserMenu user={profile} profileCompleteness={profileCompleteness} isMobile={!!onNavigate} />
@@ -145,6 +146,7 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
         href="/login"
         onClick={onNavigate}
         className={navLinkClass}
+        style={navLinkStyle}
       >
         Log in
       </Link>

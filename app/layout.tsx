@@ -210,7 +210,7 @@ export default async function RootLayout({
         className={`${inter.variable} ${lora.variable} font-sans antialiased`}
         suppressHydrationWarning
         style={{
-          backgroundColor: '#F2CBBA',
+          backgroundColor: '#FAFBF8',
           color: '#2D3748',
         }}
       >

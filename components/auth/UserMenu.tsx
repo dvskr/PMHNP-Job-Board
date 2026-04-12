@@ -107,14 +107,14 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
         )}
         <span className="hidden md:block" style={{
           fontSize: '14px', fontWeight: 500,
-          color: 'var(--text-secondary)',
+          color: '#CBD5E1',
           maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {displayName}
         </span>
         <ChevronDown style={{
           width: '16px', height: '16px',
-          color: 'var(--text-tertiary)',
+          color: '#94A3B8',
           transition: 'transform 0.2s',
           transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
         }} />
@@ -124,7 +124,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
             position: 'absolute', top: '4px', right: '4px',
             width: '10px', height: '10px', borderRadius: '50%',
             background: '#F97316',
-            border: '2px solid var(--bg-secondary)',
+            border: '2px solid #1c1917',
           }} />
         )}
       </button>
@@ -287,7 +287,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
       )}
 
       <style>{`
-        .um-trigger:hover { background: var(--bg-tertiary) !important; }
+        .um-trigger:hover { background: rgba(255,255,255,0.08) !important; }
         .um-menu-item:hover { background: var(--bg-tertiary) !important; }
       `}</style>
     </div>
