@@ -50,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
       images: [
         {
-          url: '/images/pages/pmhnp-job-board-homepage.webp',
+          url: 'https://pmhnphiring.com/images/pages/pmhnp-job-board-homepage.webp',
           width: 1280,
           height: 900,
           alt: 'PMHNP Hiring job board homepage showing 10,000 plus psychiatric nurse practitioner jobs from 3,000 plus companies across 50 states',
@@ -59,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      images: ['/images/pages/pmhnp-job-board-homepage.webp'],
+      images: ['https://pmhnphiring.com/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
       canonical: 'https://pmhnphiring.com',

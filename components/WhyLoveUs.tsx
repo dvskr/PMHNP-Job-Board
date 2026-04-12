@@ -195,7 +195,7 @@ export default function WhyLoveUs() {
                                 Learn more
                             </Link>
                             <Link
-                                href="/for-employers#post"
+                                href="/post-job"
                                 className="inline-flex items-center px-5 py-2.5 text-sm font-medium rounded-full bg-teal-600 text-white hover:bg-teal-700 transition-colors"
                                 style={{ textDecoration: 'none' }}
                             >

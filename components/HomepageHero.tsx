@@ -291,7 +291,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         Browse Jobs →
                     </Link>
                     <Link
-                        href="/employers"
+                        href="/post-job"
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
