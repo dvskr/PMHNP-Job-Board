@@ -120,150 +120,121 @@ export default function HomepageBlogSection() {
                 ))}
             </motion.div>
 
-            {/* ═══ Exact Wellfound CSS ═══ */}
+            {/* ═══ Branded CSS ═══ */}
             <style jsx global>{`
-                /* Link wrapper */
                 .wf-link {
                     text-decoration: none;
                     display: block;
                     color: inherit;
                 }
-
-                /* Row container: flex, padding 40px, transition 0.3s */
                 .wf-row {
                     padding: 40px 48px;
                     transition: all 0.3s ease;
                     display: flex;
                     position: relative;
-                    align-items: flex-start;
-                    border-top: 1px solid #eee;
+                    align-items: center;
+                    border-top: 1px solid #e8e2db;
                 }
-
-                /* HOVER: bg #fff4f6, border-radius 12px, padding EXPANDS to 64px */
                 .wf-link:hover .wf-row {
-                    background-color: #fff4f6;
-                    border-radius: 12px;
-                    padding-top: 64px;
-                    padding-bottom: 64px;
+                    background-color: #faf5f0;
+                    border-radius: 16px;
+                    padding-top: 56px;
+                    padding-bottom: 56px;
                     border-top-color: transparent;
                 }
-
-                /* Title turns red on hover */
                 .wf-link:hover .wf-title {
                     color: #ec2e3a;
                 }
-
-                /* Arrow tab scales on hover */
                 .wf-link:hover .wf-arrow-tab {
-                    transform: rotate(-90deg) scale(1.1);
+                    transform: translateX(4px) scale(1.08);
+                    background-color: #c81e2b;
                 }
-
-                /* Col1: Category — 150px, ml 24px, mr 64px */
                 .wf-col1 {
-                    width: 150px;
+                    width: 140px;
                     flex-shrink: 0;
                     margin-left: 24px;
-                    margin-right: 64px;
-                    padding-top: 6px;
+                    margin-right: 48px;
                 }
-
-                /* Col2: Title — flex 1, max-w 550px, mr 80px */
                 .wf-col2 {
                     flex: 1 1 0%;
-                    max-width: 550px;
-                    margin-right: 80px;
+                    max-width: 520px;
+                    margin-right: 64px;
                 }
-
-                /* Col3: Description — flex 1, mr 100px */
                 .wf-col3 {
                     flex: 1 1 0%;
-                    margin-right: 100px;
+                    margin-right: 80px;
                 }
-
-                /* Category: 16px, 600, #000 */
                 .wf-category {
-                    font-size: 16px;
+                    font-size: 12px;
                     font-weight: 600;
-                    line-height: 18px;
-                    color: #000;
+                    line-height: 1;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                    color: #ec2e3a;
+                    background: rgba(236,46,58,0.07);
+                    padding: 6px 14px;
+                    border-radius: 100px;
+                    display: inline-block;
                 }
-
-                /* Title: 30px, 600, ls -0.4px, #000, mb 16px */
                 .wf-title {
-                    font-size: 30px;
-                    font-weight: 600;
-                    line-height: 39px;
-                    letter-spacing: -0.4px;
-                    color: #000;
-                    margin: 0 0 16px 0;
+                    font-size: 26px;
+                    font-weight: 700;
+                    line-height: 34px;
+                    letter-spacing: -0.3px;
+                    color: #1c1917;
+                    margin: 0 0 12px 0;
                     transition: color 0.3s ease;
                 }
-
-                /* Description: 14px, 400, #000 */
                 .wf-desc {
                     font-size: 14px;
                     font-weight: 400;
-                    line-height: 19.6px;
-                    color: #000;
+                    line-height: 21px;
+                    color: #78716c;
                     margin: 0;
                 }
-
-                /* Arrow: full red circle, right side */
                 .wf-arrow-tab {
                     background-color: #ec2e3a;
                     color: white;
                     border-radius: 50%;
                     justify-content: center;
                     align-items: center;
-                    width: 48px;
-                    height: 48px;
+                    width: 44px;
+                    height: 44px;
                     display: flex;
                     flex-shrink: 0;
                     margin-left: auto;
-                    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                                background-color 0.3s ease;
                 }
-
-                .wf-link:hover .wf-arrow-tab {
-                    transform: scale(1.1);
-                }
-
-                /* More posts button */
                 .wf-more-btn {
                     padding: 8px 20px;
                     font-size: 13px;
                     font-weight: 600;
-                    color: #1a1a1a;
+                    color: #1c1917;
                     text-decoration: none;
-                    border: 1.5px solid #1a1a1a;
+                    border: 1.5px solid #d6d3d1;
                     border-radius: 100px;
                     background: transparent;
                     transition: all 0.2s ease;
                 }
                 .wf-more-btn:hover {
-                    background: #1a1a1a;
+                    background: #ec2e3a;
                     color: #fff;
+                    border-color: #ec2e3a;
                 }
-
-                /* ═══ Responsive ═══ */
                 @media (max-width: 991px) {
-                    .wf-title { font-size: 23px; line-height: 30px; }
-                    .wf-col1 { margin-right: 32px; }
-                    .wf-col2 { margin-right: 40px; }
-                    .wf-col3 { margin-right: 40px; }
+                    .wf-title { font-size: 22px; line-height: 30px; }
+                    .wf-col1 { margin-right: 24px; }
+                    .wf-col2 { margin-right: 32px; }
+                    .wf-col3 { margin-right: 32px; }
                 }
                 @media (max-width: 768px) {
-                    .wf-row {
-                        flex-wrap: wrap;
-                        padding: 28px 24px;
-                    }
-                    .wf-col1 { width: 100%; margin: 0 0 8px 0; }
+                    .wf-row { flex-wrap: wrap; padding: 28px 24px; }
+                    .wf-col1 { width: 100%; margin: 0 0 10px 0; }
                     .wf-col2 { width: 100%; max-width: none; margin: 0 0 8px 0; }
                     .wf-col3 { display: none; }
                     .wf-arrow-tab { display: none; }
-                    .wf-link:hover .wf-row {
-                        padding-top: 36px;
-                        padding-bottom: 36px;
-                    }
+                    .wf-link:hover .wf-row { padding-top: 36px; padding-bottom: 36px; }
                 }
                 @media (max-width: 479px) {
                     .wf-title { font-size: 20px; line-height: 26px; }

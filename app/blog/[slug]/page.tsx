@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
-        title: `${post.title} (2026) | PMHNP Hiring`,
+        title: `${post.title} (2026)`,
         description: post.meta_description || post.title,
         keywords: post.target_keyword ? [post.target_keyword] : undefined,
         openGraph: {

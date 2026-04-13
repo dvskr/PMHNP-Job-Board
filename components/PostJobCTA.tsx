@@ -16,8 +16,10 @@ export default function PostJobCTA() {
                     href="/post-job"
                     className="post-job-cta-block block rounded-2xl p-8 sm:p-10 text-center transition-all duration-300"
                     style={{
-                        background: 'var(--postjob-cta-bg)',
-                        border: '1px solid var(--postjob-cta-border)',
+                        backgroundColor: '#F0FDFA',
+                        borderRadius: '24px',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                        boxShadow: '8px 8px 18px rgba(0,0,0,0.06), -4px -4px 10px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6)',
                         textDecoration: 'none',
                         position: 'relative',
                         overflow: 'hidden',
@@ -47,8 +49,10 @@ export default function PostJobCTA() {
                         <span
                             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-all"
                             style={{
-                                background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
-                                boxShadow: '0 4px 15px rgba(45,212,191,0.3)',
+                                backgroundColor: '#0D9488',
+                                borderRadius: '16px',
+                                border: '1px solid rgba(0,0,0,0.08)',
+                                boxShadow: '4px 4px 10px rgba(13,148,136,0.25), -2px -2px 6px rgba(255,255,255,0.15), inset 1px 1px 2px rgba(255,255,255,0.2)',
                             }}
                         >
                             Post Your First Job Free <ArrowRight size={16} />
@@ -59,13 +63,12 @@ export default function PostJobCTA() {
 
             <style>{`
                 :root {
-                    --postjob-cta-bg: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 50%, #F0FDFA 100%);
-                    --postjob-cta-border: rgba(13,148,136,0.2);
+                    --postjob-cta-bg: #F0FDFA;
+                    --postjob-cta-border: rgba(0,0,0,0.06);
                 }
                 .post-job-cta-block:hover {
                     transform: translateY(-3px);
-                    border-color: rgba(13,148,136,0.35) !important;
-                    box-shadow: 0 10px 40px rgba(13,148,136,0.1);
+                    box-shadow: 10px 10px 22px rgba(0,0,0,0.08), -5px -5px 12px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6) !important;
                 }
             `}</style>
         </section>

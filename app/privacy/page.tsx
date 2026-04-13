@@ -4,7 +4,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | PMHNP Hiring',
+  title: 'Privacy Policy',
   description: 'Privacy Policy for PMHNP Hiring. Learn how we collect, use, and protect your information.',
   openGraph: {
     images: [{ url: '/images/pages/pmhnp-hiring-privacy-policy.webp', width: 1280, height: 900, alt: 'PMHNP Hiring privacy policy page detailing data collection, security measures, and user privacy rights' }],

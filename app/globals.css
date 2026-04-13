@@ -206,6 +206,126 @@ body {
 
 }
 
+/* ══════ CLAY CHECKBOX — Puffy toggle ══════ */
+input[type="checkbox"].li-checkbox,
+input[type="checkbox"].clay-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  background: #EDF2EE !important;
+  box-shadow:
+    3px 3px 6px rgba(0,0,0,0.08),
+    -2px -2px 4px rgba(255,255,255,0.9),
+    inset 1px 1px 3px rgba(255,255,255,0.7),
+    inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  position: relative;
+  flex-shrink: 0;
+}
+input[type="checkbox"].li-checkbox:checked,
+input[type="checkbox"].clay-check:checked {
+  background: #0D9488 !important;
+  border-color: rgba(0,0,0,0.1) !important;
+  box-shadow:
+    2px 2px 4px rgba(13,148,136,0.25),
+    -1px -1px 3px rgba(255,255,255,0.5),
+    inset 2px 2px 4px rgba(0,0,0,0.15),
+    inset -1px -1px 2px rgba(255,255,255,0.2) !important;
+}
+input[type="checkbox"].li-checkbox:checked::after,
+input[type="checkbox"].clay-check:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ══════ CLAY BUTTON UTILITY ══════ */
+.clay-btn {
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,0.5) !important;
+  box-shadow:
+    5px 5px 12px rgba(0,0,0,0.08),
+    -3px -3px 8px rgba(255,255,255,0.9),
+    inset 2px 2px 4px rgba(255,255,255,0.6),
+    inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+  transition: all 0.2s ease !important;
+}
+.clay-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    7px 7px 16px rgba(0,0,0,0.10),
+    -4px -4px 10px rgba(255,255,255,0.9),
+    inset 2px 2px 5px rgba(255,255,255,0.7),
+    inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+}
+.clay-btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    2px 2px 5px rgba(0,0,0,0.06),
+    inset 3px 3px 6px rgba(0,0,0,0.08),
+    inset -2px -2px 4px rgba(255,255,255,0.3) !important;
+}
+
+/* ══════ CLAY CARD UTILITY ══════ */
+.clay-card {
+  background: #F7FBF8;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow:
+    8px 8px 20px rgba(0,0,0,0.08),
+    -4px -4px 12px rgba(255,255,255,0.9),
+    inset 2px 2px 4px rgba(255,255,255,0.6),
+    inset -1px -1px 2px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
+}
+.clay-card:hover {
+  box-shadow:
+    10px 10px 25px rgba(0,0,0,0.10),
+    -5px -5px 15px rgba(255,255,255,0.9),
+    inset 2px 2px 5px rgba(255,255,255,0.7),
+    inset -1px -1px 2px rgba(0,0,0,0.02);
+  transform: translateY(-2px);
+}
+
+/* ══════ GLOBAL CLAY HOVER EFFECTS ══════ */
+.jp-alert-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 7px 7px 16px rgba(13,148,136,0.18), -4px -4px 10px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+}
+.jp-alert-btn:active {
+  transform: translateY(1px) !important;
+  box-shadow: 2px 2px 5px rgba(13,148,136,0.10), inset 3px 3px 6px rgba(0,0,0,0.06), inset -2px -2px 4px rgba(255,255,255,0.3) !important;
+}
+.jp-mobile-filter-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 7px 7px 16px rgba(0,0,0,0.10), -4px -4px 10px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+}
+.jp-sort-select:hover {
+  box-shadow: 6px 6px 14px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+}
+.jp-view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.06), -2px -2px 4px rgba(255,255,255,0.7) !important;
+}
+.apply-btn:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 8px 8px 20px rgba(13,148,136,0.35), -4px -4px 12px rgba(255,255,255,0.25), inset 2px 2px 5px rgba(255,255,255,0.3), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
+}
+.apply-btn:active {
+  transform: translateY(1px) !important;
+  box-shadow: 2px 2px 6px rgba(13,148,136,0.2), inset 3px 3px 6px rgba(0,0,0,0.12), inset -2px -2px 4px rgba(255,255,255,0.15) !important;
+}
+
 /* Apply antialiasing to all text elements */
 * {
   -webkit-font-smoothing: antialiased;
@@ -240,15 +360,15 @@ body {
 
 /* ══════ PRECISION CARD SYSTEM ══════ */
 .card-precision {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  background: #F7FBF8;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 20px;
   padding: var(--space-5);
-  transition: border-color var(--transition-normal), box-shadow 0.25s ease, transform 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 6px 6px 14px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6);
 }
 .card-precision:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-hover);
+  box-shadow: 8px 8px 18px rgba(0,0,0,0.08), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6);
   transform: translateY(-2px);
 }
 
@@ -260,29 +380,32 @@ body {
   gap: 8px;
   font-weight: 600;
   font-size: 14px;
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   padding: 10px 20px;
   cursor: pointer;
-  transition: all var(--transition-normal);
-  border: none;
+  transition: all 0.2s;
+  border: 1px solid rgba(0,0,0,0.06);
   text-decoration: none;
 }
 .btn-primary {
-  background: var(--color-primary);
+  background: #0D9488;
   color: #FFFFFF;
+  box-shadow: 3px 3px 8px rgba(13,148,136,0.2), -1px -1px 4px rgba(255,255,255,0.1), inset 1px 1px 2px rgba(255,255,255,0.15);
 }
 .btn-primary:hover {
-  background: var(--color-primary-dark);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  background: #0F766E;
+  box-shadow: 4px 4px 12px rgba(13,148,136,0.25), -2px -2px 6px rgba(255,255,255,0.15), inset 1px 1px 3px rgba(255,255,255,0.2);
+  transform: translateY(-1px);
 }
 .btn-secondary {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: #F1F5F2;
+  color: #374151;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6);
 }
 .btn-secondary:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: #0D9488;
+  box-shadow: 4px 4px 8px rgba(0,0,0,0.06), -2px -2px 5px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5);
+  transform: translateY(-1px);
 }
 .btn-ghost {
   background: transparent;
@@ -692,17 +815,18 @@ input[type="url"]:not(.hero-search-input),
 input[type="number"]:not(.hero-search-input),
 textarea,
 select {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background-color: #F1F5F2;
   color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: inset 1px 1px 2px rgba(255,255,255,0.6), 2px 2px 4px rgba(0,0,0,0.03);
 }
 input:focus:not(.hero-search-input),
 textarea:focus,
 select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+  border-color: #0D9488;
+  box-shadow: inset 1px 1px 2px rgba(255,255,255,0.6), 0 0 0 3px rgba(13, 148, 136, 0.1);
   outline: none;
 }
 input:not(.hero-search-input)::placeholder,
@@ -757,15 +881,15 @@ textarea::placeholder {
 
 /* ══════ CARD HOVER — Lift + teal border accent ══════ */
 .card-hover {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  background: #F7FBF8;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 20px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 6px 6px 14px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6);
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
-  border-color: var(--color-primary);
+  box-shadow: 8px 8px 18px rgba(0,0,0,0.08), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6);
 }
 
 /* ══════ BUTTON SYSTEM — Large variants ══════ */
@@ -776,22 +900,24 @@ textarea::placeholder {
   gap: 10px;
   font-weight: 600;
   font-size: 16px;
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   padding: 14px 28px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: none;
+  border: 1px solid rgba(0,0,0,0.08);
   text-decoration: none;
-  background: var(--color-primary);
+  background: #0D9488;
   color: #FFFFFF;
+  box-shadow: 4px 4px 10px rgba(13,148,136,0.25), -2px -2px 6px rgba(255,255,255,0.15), inset 1px 1px 2px rgba(255,255,255,0.2);
 }
 .btn-primary-lg:hover {
-  background: var(--color-primary-dark);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
-  transform: translateY(-1px);
+  background: #0F766E;
+  box-shadow: 6px 6px 14px rgba(13,148,136,0.3), -3px -3px 8px rgba(255,255,255,0.2), inset 1px 1px 3px rgba(255,255,255,0.25);
+  transform: translateY(-2px);
 }
 .btn-primary-lg:active {
   transform: translateY(0);
+  box-shadow: 2px 2px 6px rgba(13,148,136,0.2), inset 2px 2px 4px rgba(0,0,0,0.1);
 }
 
 .btn-ghost-lg {
@@ -801,52 +927,55 @@ textarea::placeholder {
   gap: 10px;
   font-weight: 600;
   font-size: 16px;
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   padding: 14px 28px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none;
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-color-dark);
+  background: #F1F5F2;
+  color: #374151;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6);
 }
 .btn-ghost-lg:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: rgba(13, 148, 136, 0.04);
+  color: #0D9488;
+  box-shadow: 4px 4px 8px rgba(0,0,0,0.06), -2px -2px 5px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5);
+  transform: translateY(-1px);
 }
 
-/* ══════ BADGE PILLS ══════ */
+/* ══════ BADGE PILLS — Clay ══════ */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.03), inset 1px 1px 2px rgba(255,255,255,0.5);
 }
 .badge-teal {
-  background: rgba(13, 148, 136, 0.1);
-  color: #0D9488;
+  background: #CCFBF1;
+  color: #0F766E;
 }
 .badge-peach {
-  background: rgba(249, 115, 22, 0.1);
-  color: #EA580C;
+  background: #FFEDD5;
+  color: #C2410C;
 }
 .badge-blue {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563EB;
+  background: #DBEAFE;
+  color: #1D4ED8;
 }
 .badge-green {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16A34A;
+  background: #DCFCE7;
+  color: #15803D;
 }
 .badge-gray {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  background: #F1F5F2;
+  color: #6B7280;
 }
 
 /* ══════ SCROLL REVEAL ANIMATIONS ══════ */
@@ -988,4 +1117,185 @@ textarea::placeholder {
 }
 .gradient-dark {
   background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+}
+
+/* ══════ AUTH CLAY THEME ══════
+   Claymorphic styling for all auth form elements.
+   Apply `.auth-clay` to the form wrapper to activate.
+   ─────────────────────────────────────── */
+
+/* ── The wrapper card itself ── */
+.auth-clay {
+  background: #F7FBF8;
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow:
+    8px 8px 20px rgba(0, 60, 50, 0.08),
+    -4px -4px 12px rgba(255, 255, 255, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(213, 232, 224, 0.5);
+}
+
+/* ── Inputs: deeply recessed clay ── */
+.auth-clay input[type="text"],
+.auth-clay input[type="email"],
+.auth-clay input[type="password"],
+.auth-clay input[type="tel"] {
+  background: #EDF5F0 !important;
+  border: 1.5px solid #C5DDD5 !important;
+  border-radius: 14px !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 40, 30, 0.08),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.85) !important;
+  transition: all 0.2s ease;
+  color: #1A2E35 !important;
+  -webkit-text-fill-color: #1A2E35 !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.auth-clay input[type="text"]:focus,
+.auth-clay input[type="email"]:focus,
+.auth-clay input[type="password"]:focus,
+.auth-clay input[type="tel"]:focus {
+  border-color: #0D9488 !important;
+  background: #E8F5F0 !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 40, 30, 0.08),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.85),
+    0 0 0 4px rgba(13, 148, 136, 0.12) !important;
+  outline: none !important;
+}
+
+/* ── Labels ── */
+.auth-clay label {
+  color: #2A4A5A !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.01em;
+}
+
+/* ── Primary buttons: raised puffy clay ── */
+.auth-clay button[type="submit"] {
+  background: linear-gradient(145deg, #10B981, #0D9488) !important;
+  border-radius: 14px !important;
+  box-shadow:
+    6px 6px 16px rgba(13, 148, 136, 0.3),
+    -3px -3px 8px rgba(255, 255, 255, 0.15),
+    inset 0 2px 2px rgba(255, 255, 255, 0.25),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1) !important;
+  border: none !important;
+  transition: all 0.2s ease;
+  font-size: 15px !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+}
+
+.auth-clay button[type="submit"]:hover:not(:disabled) {
+  box-shadow:
+    4px 4px 12px rgba(13, 148, 136, 0.35),
+    -2px -2px 6px rgba(255, 255, 255, 0.1),
+    inset 0 2px 2px rgba(255, 255, 255, 0.25),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(1px);
+}
+
+.auth-clay button[type="submit"]:active:not(:disabled) {
+  box-shadow:
+    inset 3px 3px 8px rgba(0, 0, 0, 0.2),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(2px);
+}
+
+/* ── Google / SSO button: raised clay ── */
+.auth-clay button[type="button"] {
+  border-radius: 14px !important;
+  background: #fff !important;
+  border: 1.5px solid #D5E8E0 !important;
+  box-shadow:
+    4px 4px 10px rgba(0, 40, 30, 0.06),
+    -2px -2px 6px rgba(255, 255, 255, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.2s ease;
+}
+
+.auth-clay button[type="button"]:hover {
+  box-shadow:
+    2px 2px 6px rgba(0, 40, 30, 0.08),
+    -1px -1px 4px rgba(255, 255, 255, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(1px);
+}
+
+/* ── Role toggle container: recessed tray ── */
+.auth-clay .flex.rounded-lg {
+  border-radius: 16px !important;
+  background: #E0EDE6 !important;
+  border: 1.5px solid #C5DDD5 !important;
+  box-shadow:
+    inset 4px 4px 8px rgba(0, 40, 30, 0.07),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.9) !important;
+  padding: 5px !important;
+  overflow: hidden;
+}
+
+/* ── Role toggle active pill: raised clay ── */
+.auth-clay .flex.rounded-lg button {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease;
+}
+
+/* ── Checkboxes ── */
+.auth-clay input[type="checkbox"] {
+  accent-color: #0D9488 !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 5px !important;
+}
+
+/* ── Divider (OR line) ── */
+.auth-clay .relative span {
+  background: #F7FBF8 !important;
+  color: #8A9EA8 !important;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* ── Newsletter / opt-in card ── */
+.auth-clay .rounded-xl,
+.auth-clay [class*="rounded-xl"] {
+  border-radius: 16px !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 40, 30, 0.05),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.7) !important;
+}
+
+/* ── Error box ── */
+.auth-clay [class*="bg-red"],
+.auth-clay [style*="rgba(239,68,68"] {
+  border-radius: 14px !important;
+  box-shadow:
+    inset 2px 2px 5px rgba(239, 68, 68, 0.08),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ── Success box ── */
+.auth-clay [class*="bg-green"] {
+  border-radius: 14px !important;
+  box-shadow:
+    inset 2px 2px 5px rgba(16, 185, 129, 0.08),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ── Links within auth ── */
+.auth-clay a {
+  color: #0D9488;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.auth-clay a:hover {
+  color: #0F766E;
 }

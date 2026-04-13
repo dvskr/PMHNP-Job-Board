@@ -20,6 +20,7 @@ import { JobViewTracker } from '@/components/analytics/ViewTrackers';
 import SalaryComparisonWidget from '@/components/SalaryComparisonWidget';
 import RelatedBlogPosts, { getRelevantBlogSlugs } from '@/components/RelatedBlogPosts';
 import InternalLinks from '@/components/InternalLinks';
+import { CareerPulseCard, ApplicationTipsCard } from '@/components/jobs/SidebarVisualCards';
 import { prisma } from '@/lib/prisma';
 import { getPostBySlug } from '@/lib/blog';
 import { getCurrentUser } from '@/lib/auth/protect';
@@ -341,7 +342,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   if (!id) {
     // Malformed slug with no UUID — return 410 to stop Google recrawling
     return {
-      title: 'Position No Longer Available | PMHNP Hiring',
+      title: 'Position No Longer Available',
       description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
       robots: { index: false, follow: true },
       other: { 'X-Status': '410' },
@@ -353,7 +354,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   // Job completely deleted from DB → 410 Gone
   if (result.status === 'gone') {
     return {
-      title: 'Position No Longer Available | PMHNP Hiring',
+      title: 'Position No Longer Available',
       description: 'This PMHNP position is no longer available. Browse current job openings on PMHNP Hiring.',
       robots: { index: false, follow: true },
       other: { 'X-Status': '410' },
@@ -368,7 +369,7 @@ export async function generateMetadata({ params }: JobPageProps) {
     const expiredTitle = result.title || 'PMHNP Position';
     const expiredEmployer = result.employer || 'Employer';
     return {
-      title: `${expiredTitle} — Position Filled | PMHNP Hiring`,
+      title: `${expiredTitle} — Position Filled`,
       description: `This ${expiredTitle} position at ${expiredEmployer} is no longer available. Browse similar PMHNP jobs on PMHNP Hiring.`,
       robots: {
         index: false,
@@ -432,7 +433,7 @@ export async function generateMetadata({ params }: JobPageProps) {
   const canonicalUrl = `https://pmhnphiring.com/jobs/${slug}`;
 
   return {
-    title: `${job.title} at ${job.employer} | PMHNP Hiring`,
+    title: `${job.title} at ${job.employer}`,
     description,
     openGraph: {
       title: `${job.title} at ${job.employer}`,
@@ -706,14 +707,14 @@ export default async function JobPage({ params }: JobPageProps) {
           <div className="min-w-0">
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
-              <div className="rounded-2xl overflow-hidden mb-5 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', position: 'relative', padding: '16px 20px 20px', }}>
+              <div className="rounded-2xl overflow-hidden mb-5 lg:mb-6" style={{ backgroundColor: '#F7FBF8', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '20px', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', position: 'relative', padding: '24px 24px 28px', }}>
                 {/* Report Button - Top Right */}
                 <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
                   <ReportJobButton jobId={job.id} jobTitle={job.title} />
                 </div>
 
                 {/* Title */}
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 leading-tight" style={{ color: 'var(--text-primary)', paddingRight: '40px' }}>{job.title}</h1>
+                <h1 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', marginBottom: '16px', lineHeight: 1.2, paddingRight: '40px' }}>{job.title}</h1>
 
                 {/* Company Info Row: Logo + Name + Location */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -721,7 +722,7 @@ export default async function JobPage({ params }: JobPageProps) {
                     <img
                       src={job.companyLogoUrl}
                       alt={`${job.employer} logo`}
-                      style={{ width: '40px', height: '40px', borderRadius: '10px', objectFit: 'contain', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                      style={{ width: '52px', height: '52px', borderRadius: '14px', objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)', flexShrink: 0, boxShadow: '2px 2px 6px rgba(0,0,0,0.05)' }}
                     />
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -746,17 +747,16 @@ export default async function JobPage({ params }: JobPageProps) {
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '5px',
                       padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                      background: 'linear-gradient(135deg, #f59e0b, #ea580c)', color: '#fff',
-                      letterSpacing: '0.02em',
+                      background: '#FEF3C7', color: '#92400E',
                     }}>
-                      ⭐ Featured
+                      ⚡ Featured
                     </span>
                   )}
                   {job.isVerifiedEmployer && (
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '5px',
                       padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                      background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff',
+                      background: '#CCFBF1', color: '#0F766E',
                     }}>
                       <CheckCircle size={13} /> Verified Employer
                     </span>
@@ -765,8 +765,8 @@ export default async function JobPage({ params }: JobPageProps) {
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                       padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
-                      border: '1px solid var(--border-color)',
+                      backgroundColor: '#F3F4F6', color: '#374151',
+                      border: '1px solid rgba(0,0,0,0.08)',
                     }}>
                       <Briefcase size={12} /> {job.jobType}
                     </span>
@@ -775,8 +775,8 @@ export default async function JobPage({ params }: JobPageProps) {
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                       padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                      backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
-                      border: '1px solid var(--border-color)',
+                      backgroundColor: '#F3F4F6', color: '#374151',
+                      border: '1px solid rgba(0,0,0,0.08)',
                     }}>
                       <Monitor size={12} /> {job.mode}
                     </span>
@@ -794,34 +794,11 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
             </AnimatedContainer>
 
-            {/* GSC Fix: Unique Content Section — differentiates this page from the same job on Indeed/ZipRecruiter.
-                Google crawls 1,059+ job pages and doesn't index them because the description is identical to the
-                source aggregator. This section adds location/salary/employer context unique to pmhnphiring.com. */}
-            <AnimatedContainer animation="fade-in-up" delay={180}>
-              <div className="rounded-2xl p-5 md:p-6 mb-4 lg:mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Quick Overview</h2>
-                <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  {job.employer} is hiring a <strong>{job.title}</strong>
-                  {job.city && job.stateCode ? ` in ${job.city}, ${job.stateCode}` : job.isRemote ? ' (Remote)' : ''}
-                  {job.jobType ? ` as a ${job.jobType.toLowerCase()} position` : ''}
-                  {job.mode ? ` with a ${job.mode.toLowerCase()} work arrangement` : ''}.
-                  {salary ? ` The compensation range is ${salary}.` : ''}
-                  {job.state && stateAvgSalary > 0 ? ` The average PMHNP salary in ${job.state} is $${Math.round(stateAvgSalary / 1000)}K/year.` : ''}
-                  {employerJobCount > 1 ? ` ${job.employer} currently has ${employerJobCount} open PMHNP positions on our platform.` : ''}
-                </p>
-                {job.descriptionSummary && (
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {job.descriptionSummary}
-                  </p>
-                )}
-              </div>
-            </AnimatedContainer>
-
 
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
-              <div className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h2 className="text-xl sm:text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>About this role</h2>
+              <div style={{ backgroundColor: '#F7FBF8', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', marginBottom: '16px' }}>About this role</h2>
 
                 {/* Note for external jobs */}
                 {job.sourceType === 'external' && job.sourceProvider && (
@@ -888,41 +865,6 @@ export default async function JobPage({ params }: JobPageProps) {
               </AnimatedContainer>
             )}
 
-            {/* About Employer Section */}
-            <AnimatedContainer animation="fade-in-up" delay={250}>
-              <AboutEmployer
-                employerName={job.employer}
-                company={companyInfo}
-                otherJobsCount={employerJobCount}
-              />
-            </AnimatedContainer>
-
-
-
-            {/* Related Blog Posts */}
-            {relevantBlogPosts.length > 0 && (
-              <AnimatedContainer animation="fade-in-up" delay={350}>
-                <RelatedBlogPosts
-                  posts={relevantBlogPosts}
-                  title="Career Resources for This Role"
-                  context="job"
-                />
-              </AnimatedContainer>
-            )}
-
-            {/* Internal Links for SEO */}
-            <AnimatedContainer animation="fade-in-up" delay={400}>
-              <InternalLinks
-                state={job.state}
-                stateCode={job.stateCode}
-                city={job.city}
-                isRemote={job.isRemote}
-                isTelehealth={isTelehealth}
-                jobType={job.jobType}
-                mode={job.mode}
-              />
-            </AnimatedContainer>
-
             {/* Footer Info */}
             <div className="text-sm px-1 mt-6" style={{ color: 'var(--text-tertiary)' }}>
               <p>{freshness}</p>
@@ -940,7 +882,7 @@ export default async function JobPage({ params }: JobPageProps) {
           {/* Sidebar - Desktop / Below content on mobile */}
           <AnimatedContainer animation="slide-in-right" delay={300}>
             <div className="mt-6 lg:mt-0">
-              <div className="hidden lg:block lg:sticky lg:top-24 rounded-2xl p-5" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
+              <div className="hidden lg:block lg:sticky lg:top-24" style={{ backgroundColor: '#F7FBF8', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)', padding: '24px' }}>
                 {/* Expiry Notice - Desktop */}
                 {!expiryStatus.isExpired && expiryStatus.text && (
                   <div className={`flex items-center gap-2 mb-4 pb-3 ${expiryStatus.isUrgent ? 'text-orange-500' : ''}`} style={{ borderBottom: '1px solid var(--border-color)', color: expiryStatus.isUrgent ? undefined : 'var(--text-tertiary)' }}>
@@ -964,9 +906,9 @@ export default async function JobPage({ params }: JobPageProps) {
                 </div>
 
                 {/* Share Section - Desktop */}
-                <div className="pt-3" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Share this job</p>
-                  <div className="flex items-center gap-2">
+                <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.3)' }}>
+                  <p className="text-xs font-semibold mb-3" style={{ color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Share this job</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <ShareButtons
                       url={`${BASE_URL}/jobs/${slugify(job.title, job.id)}`}
                       title={job.title}
@@ -974,6 +916,55 @@ export default async function JobPage({ params }: JobPageProps) {
                     />
                   </div>
                 </div>
+              </div>
+
+
+              {/* About Employer — separate card */}
+              <div className="hidden lg:block mt-4">
+                <AboutEmployer
+                  employerName={job.employer}
+                  company={companyInfo}
+                  otherJobsCount={employerJobCount}
+                  companyWebsite={(job as any).companyWebsite}
+                />
+              </div>
+
+              {/* 3D Visual Cards */}
+              <div className="hidden lg:block mt-4">
+                <ApplicationTipsCard
+                  isRemote={job.isRemote ?? false}
+                  isTelehealth={job.mode?.toLowerCase().includes('telehealth')}
+                  jobType={job.jobType}
+                  mode={job.mode}
+                />
+              </div>
+
+              <div className="hidden lg:block mt-4">
+                <CareerPulseCard />
+              </div>
+
+              {/* Career Resources — separate card */}
+              {relevantBlogPosts.length > 0 && (
+                <div className="hidden lg:block mt-4">
+                  <RelatedBlogPosts
+                    posts={relevantBlogPosts}
+                    title="Career Resources"
+                    context="job"
+                  />
+                </div>
+              )}
+
+              {/* Explore More — separate card */}
+              <div className="hidden lg:block mt-4">
+                <InternalLinks
+                  state={job.state}
+                  stateCode={job.stateCode}
+                  city={job.city}
+                  isRemote={job.isRemote}
+                  isTelehealth={isTelehealth}
+                  jobType={job.jobType}
+                  mode={job.mode}
+                />
               </div>
 
               {/* Mobile-only share section below content */}

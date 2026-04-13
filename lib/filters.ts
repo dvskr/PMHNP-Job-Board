@@ -144,6 +144,13 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     });
   }
 
+  // Employer
+  if (filters.employer) {
+    andConditions.push({
+      employer: { equals: filters.employer, mode: 'insensitive' },
+    });
+  }
+
   if (andConditions.length > 0) {
     where.AND = andConditions;
   }
@@ -162,6 +169,7 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
+    employer: searchParams.get('employer') || null,
   };
 }
 
@@ -177,6 +185,7 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);
+  if (filters.employer) params.set('employer', filters.employer);
 
   return params;
 }

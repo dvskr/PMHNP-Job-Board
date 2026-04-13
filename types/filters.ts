@@ -7,6 +7,7 @@ export interface FilterState {
   salaryMin: number | null;
   postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
+  employer: string | null;  // filter by employer name
 }
 
 export interface FilterCounts {
@@ -55,5 +56,6 @@ export const DEFAULT_FILTERS: FilterState = {
   salaryMin: null,
   postedWithin: null,
   location: null,
+  employer: null,
 };
 

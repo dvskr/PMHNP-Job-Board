@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Briefcase, Wifi, Video, GraduationCap, Calendar } from 'lucide-react';
 
 interface InternalLinksProps {
@@ -10,6 +11,10 @@ interface InternalLinksProps {
     jobType?: string | null;
     mode?: string | null;
 }
+
+/* ═══ Clay tokens ═══ */
+const clayShadow = '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)';
+const clayPebbleShadow = '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
 
 /**
  * Component to add internal SEO links to job detail pages
@@ -24,7 +29,7 @@ export default function InternalLinks({
     jobType,
     mode,
 }: InternalLinksProps) {
-    const links: { href: string; label: string; icon: React.ReactNode; color: string }[] = [];
+    const links: { href: string; label: string; icon: React.ReactNode }[] = [];
 
     // State page link
     if (state) {
@@ -32,8 +37,7 @@ export default function InternalLinks({
         links.push({
             href: `/jobs/state/${stateSlug}`,
             label: `All PMHNP Jobs in ${state}`,
-            icon: <MapPin className="w-4 h-4" />,
-            color: 'blue',
+            icon: <MapPin style={{ width: '14px', height: '14px' }} />,
         });
     }
 
@@ -42,8 +46,7 @@ export default function InternalLinks({
         links.push({
             href: '/jobs/remote',
             label: 'More Remote PMHNP Jobs',
-            icon: <Wifi className="w-4 h-4" />,
-            color: 'purple',
+            icon: <Wifi style={{ width: '14px', height: '14px' }} />,
         });
     }
 
@@ -52,8 +55,7 @@ export default function InternalLinks({
         links.push({
             href: '/jobs/telehealth',
             label: 'Browse Telehealth Positions',
-            icon: <Video className="w-4 h-4" />,
-            color: 'teal',
+            icon: <Video style={{ width: '14px', height: '14px' }} />,
         });
     }
 
@@ -62,8 +64,7 @@ export default function InternalLinks({
         links.push({
             href: '/jobs/per-diem',
             label: 'View Per Diem PMHNP Jobs',
-            icon: <Calendar className="w-4 h-4" />,
-            color: 'green',
+            icon: <Calendar style={{ width: '14px', height: '14px' }} />,
         });
     }
 
@@ -71,68 +72,100 @@ export default function InternalLinks({
         links.push({
             href: '/jobs/travel',
             label: 'Explore Travel PMHNP Positions',
-            icon: <Briefcase className="w-4 h-4" />,
-            color: 'orange',
+            icon: <Briefcase style={{ width: '14px', height: '14px' }} />,
         });
     }
 
-    // New grad friendly detection (simple heuristic)
-    // This would ideally be a field on the job, but we can detect from title/description
-
     if (links.length === 0) {
-        // Add default links if no specific ones apply
         links.push({
             href: '/jobs',
             label: 'Browse All PMHNP Jobs',
-            icon: <Briefcase className="w-4 h-4" />,
-            color: 'blue',
+            icon: <Briefcase style={{ width: '14px', height: '14px' }} />,
         });
     }
 
-    // Limit to 3 most relevant links
     const displayLinks = links.slice(0, 3);
 
-    const colorClasses: Record<string, { bg: string; text: string; hover: string }> = {
-        blue: { bg: 'bg-teal-50', text: 'text-teal-700', hover: 'hover:bg-teal-100' },
-        purple: { bg: 'bg-purple-50', text: 'text-purple-700', hover: 'hover:bg-purple-100' },
-        teal: { bg: 'bg-teal-50', text: 'text-teal-700', hover: 'hover:bg-teal-100' },
-        green: { bg: 'bg-green-50', text: 'text-green-700', hover: 'hover:bg-green-100' },
-        orange: { bg: 'bg-orange-50', text: 'text-orange-700', hover: 'hover:bg-orange-100' },
-    };
-
     return (
-        <section className="mt-6">
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: '12px' }}>Explore More Opportunities</h3>
-            <div className="flex flex-wrap gap-2">
-                {displayLinks.map((link) => (
-                    <Link
-                        key={link.href}
-                        href={link.href}
-                        className="il-btn"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 12px',
-                            borderRadius: '10px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: 'var(--color-primary)',
-                            backgroundColor: 'var(--bg-tertiary)',
-                            border: '1px solid var(--border-color)',
-                            textDecoration: 'none',
-                            transition: 'all 0.2s',
-                        }}
-                    >
-                        {link.icon}
-                        {link.label}
-                    </Link>
-                ))}
+        <section style={{
+            backgroundColor: '#F7FBF8',
+            borderRadius: '22px',
+            border: '1px solid rgba(255,255,255,0.6)',
+            boxShadow: clayShadow,
+            overflow: 'hidden',
+        }}>
+            {/* 3D Clay Island Diorama */}
+            <div style={{
+                position: 'relative',
+                width: '100%',
+                height: '150px',
+                backgroundColor: '#E8F4FD',
+                overflow: 'hidden',
+            }}>
+                <Image
+                    src="/illustrations/clay-island-explore.png"
+                    alt="Explore PMHNP locations"
+                    fill
+                    style={{ objectFit: 'cover' }}
+                />
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '18px 20px 20px' }}>
+                <h3 style={{
+                    fontSize: '14px', fontWeight: 700,
+                    fontFamily: 'var(--font-lora), Georgia, serif',
+                    color: '#1F2937', margin: '0 0 4px',
+                }}>Explore More Opportunities</h3>
+                <p style={{ fontSize: '12px', color: '#6B7280', margin: '0 0 14px', lineHeight: 1.4 }}>
+                    Discover roles by location and type
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {displayLinks.map((link) => (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            className="il-btn"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '10px 14px',
+                                borderRadius: '14px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#0D9488',
+                                backgroundColor: '#F0FAF8',
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s ease',
+                                boxShadow: clayPebbleShadow,
+                            }}
+                        >
+                            <span style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                width: 28, height: 28, borderRadius: 9, flexShrink: 0,
+                                backgroundColor: '#D5F5F1',
+                                boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.04), 2px 2px 4px rgba(0,0,0,0.05)',
+                                border: '1px solid rgba(255,255,255,0.6)',
+                            }}>
+                                {link.icon}
+                            </span>
+                            {link.label}
+                        </Link>
+                    ))}
+                </div>
             </div>
             <style>{`
                 .il-btn:hover {
-                    border-color: var(--color-primary) !important;
-                    background-color: var(--bg-secondary) !important;
+                    transform: translateY(-2px) !important;
+                    background-color: #E6FAF8 !important;
+                    box-shadow: 6px 6px 14px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+                }
+                .il-btn:active {
+                    transform: translateY(0) !important;
+                    box-shadow: 1px 1px 3px rgba(0,0,0,0.04), inset 2px 2px 4px rgba(0,0,0,0.06) !important;
                 }
             `}</style>
         </section>

@@ -154,12 +154,12 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         style={{
                             display: 'flex',
                             alignItems: 'stretch',
-                            border: '2px solid #0D9488',
-                            borderRadius: '14px',
+                            borderRadius: '20px',
                             overflow: 'hidden',
                             background: 'rgba(255,255,255,0.95)',
                             backdropFilter: 'blur(12px)',
-                            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                            border: '1px solid rgba(255,255,255,0.6)',
+                            boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.02)',
                         }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1 }}>
@@ -189,6 +189,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                         </div>
                         <button
                             type="submit"
+                            className="hero-search-btn"
                             style={{
                                 background: '#0D9488',
                                 color: 'white',
@@ -198,10 +199,11 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 border: 'none',
                                 cursor: 'pointer',
                                 flexShrink: 0,
-                                transition: 'background 0.2s',
+                                transition: 'all 0.2s ease',
+                                boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.08)',
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#0f766e'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#0D9488'; }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#0f766e'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#0D9488'; e.currentTarget.style.transform = 'scale(1)'; }}
                         >
                             Search
                         </button>
@@ -219,19 +221,31 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             <Link
                                 key={filter.label}
                                 href={`/jobs?q=${encodeURIComponent(filter.query)}`}
+                                className="hero-filter-badge"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '5px',
-                                    padding: '7px 16px',
+                                    padding: '8px 18px',
                                     borderRadius: '24px',
                                     fontSize: '13px',
                                     fontWeight: 500,
-                                    background: 'rgba(13,148,136,0.08)',
-                                    color: '#0f766e',
+                                    background: '#D5F5F1',
+                                    color: '#0F766E',
                                     textDecoration: 'none',
-                                    transition: 'background 0.2s',
-                                    backdropFilter: 'blur(8px)',
+                                    border: '1px solid rgba(255,255,255,0.5)',
+                                    boxShadow: '4px 4px 10px rgba(13,148,136,0.10), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#99F6E4';
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '6px 6px 14px rgba(13,148,136,0.15), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#D5F5F1';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '4px 4px 10px rgba(13,148,136,0.10), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
                                 }}
                             >
                                 <Icon size={14} />
@@ -241,17 +255,33 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     })}
                     <Link
                         href="/jobs"
+                        className="hero-filter-badge"
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '5px',
-                            padding: '7px 18px',
+                            padding: '8px 20px',
                             borderRadius: '24px',
                             fontSize: '13px',
                             fontWeight: 600,
-                            background: 'rgba(13,148,136,0.12)',
-                            color: '#0f766e',
+                            background: '#B2F5EA',
+                            color: '#0F766E',
                             textDecoration: 'none',
+                            border: '1px solid rgba(255,255,255,0.5)',
+                            boxShadow: '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                            transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#5EEAD4';
+                            e.currentTarget.style.color = '#064E3B';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '7px 7px 16px rgba(13,148,136,0.18), -4px -4px 10px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#B2F5EA';
+                            e.currentTarget.style.color = '#0F766E';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
                         }}
                     >
                         Browse all <ArrowRight size={14} />

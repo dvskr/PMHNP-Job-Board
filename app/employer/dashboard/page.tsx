@@ -7,7 +7,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import EmployerDashboardClient from '@/components/employer/EmployerDashboardClient';
 
 export const metadata: Metadata = {
-    title: 'Employer Dashboard — PMHNP Hiring',
+    title: 'Employer Dashboard',
     description: 'Manage your PMHNP job postings, track applicants, and view analytics.',
     robots: { index: false, follow: false },
 };

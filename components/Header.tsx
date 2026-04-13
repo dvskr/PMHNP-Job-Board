@@ -47,6 +47,10 @@ export default function Header() {
     return pathname.startsWith(href);
   };
 
+  // Hide header on auth pages — they have their own branding
+  const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password', '/employer/login', '/employer/signup'];
+  if (AUTH_ROUTES.some(r => pathname?.startsWith(r))) return null;
+
   return (
     <>
       {/* Spacer */}
@@ -63,8 +67,9 @@ export default function Header() {
         ].join(' ')}
         style={{
           height: 80,
-          backgroundColor: '#1c1917',
-          borderColor: scrolled ? 'rgba(255,255,255,0.08)' : 'transparent',
+          backgroundColor: '#F7FBF8',
+          borderColor: scrolled ? 'rgba(255,255,255,0.5)' : 'transparent',
+          boxShadow: scrolled ? '0 6px 20px rgba(0,0,0,0.08), 0 -2px 8px rgba(255,255,255,0.9) inset, inset 0 -1px 0 rgba(255,255,255,0.6)' : 'none',
         }}
         suppressHydrationWarning
       >
@@ -75,8 +80,17 @@ export default function Header() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-2 -ml-2 transition-colors rounded-lg"
-              style={{ color: '#CBD5E1' }}
+              className="lg:hidden transition-all"
+              style={{
+                padding: '8px',
+                marginLeft: '-8px',
+                borderRadius: '12px',
+                color: '#374151',
+                backgroundColor: '#EDF2EE',
+                border: '1px solid rgba(255,255,255,0.5)',
+                boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                cursor: 'pointer',
+              }}
               aria-label="Toggle menu"
             >
               {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -95,7 +109,7 @@ export default function Header() {
                 style={{
                   fontSize: '28px',
                   fontWeight: 700,
-                  color: '#FFFFFF',
+                  color: '#1F2937',
                   letterSpacing: '-0.02em',
                   whiteSpace: 'nowrap',
                   lineHeight: 1,
@@ -110,15 +124,46 @@ export default function Header() {
 
           {/* ═══ RIGHT: Nav + Divider + Auth ═══ */}
           <div className="hidden lg:flex items-center gap-1">
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-2">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="nav-link-hover px-4 py-2 text-[15px] font-medium transition-colors rounded-lg"
+                  className="nav-link-clay"
                   style={{
-                    color: isActive(link.href) ? '#2DD4BF' : '#CBD5E1',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '8px 16px',
+                    borderRadius: '14px',
+                    fontSize: '14px',
                     fontWeight: isActive(link.href) ? 600 : 500,
+                    color: isActive(link.href) ? '#0D9488' : '#374151',
+                    backgroundColor: isActive(link.href) ? '#D5F5F1' : 'transparent',
+                    border: isActive(link.href) ? '1px solid rgba(255,255,255,0.5)' : '1px solid transparent',
+                    boxShadow: isActive(link.href)
+                      ? '4px 4px 10px rgba(13,148,136,0.10), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)'
+                      : 'none',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive(link.href)) {
+                      e.currentTarget.style.backgroundColor = '#E6FAF8';
+                      e.currentTarget.style.color = '#0D9488';
+                      e.currentTarget.style.border = '1px solid rgba(255,255,255,0.5)';
+                      e.currentTarget.style.boxShadow = '4px 4px 10px rgba(13,148,136,0.10), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive(link.href)) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.border = '1px solid transparent';
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
                   }}
                 >
                   {link.label}
@@ -127,7 +172,7 @@ export default function Header() {
             </nav>
 
             {/* Divider */}
-            <div className="w-px h-5 mx-3" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+            <div className="w-px h-5 mx-3" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }} />
 
             {/* Auth */}
             <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
@@ -148,7 +193,7 @@ export default function Header() {
           >
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: 'rgba(28, 25, 23, 0.98)' }}
+              style={{ backgroundColor: 'rgba(247, 251, 248, 0.98)' }}
               onClick={() => setIsMenuOpen(false)}
             />
             <div className="relative px-8 pt-6 pb-8">
@@ -160,16 +205,16 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                     className="py-4 text-lg font-medium transition-colors"
                     style={{
-                      color: isActive(link.href) ? '#2DD4BF' : '#CBD5E1',
+                      color: isActive(link.href) ? '#0D9488' : '#374151',
                       fontWeight: isActive(link.href) ? 600 : 500,
-                      borderBottom: '1px solid rgba(255,255,255,0.08)',
+                      borderBottom: '1px solid rgba(0,0,0,0.06)',
                     }}
                   >
                     {link.label}
                   </Link>
                 ))}
               </nav>
-              <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
               </div>
             </div>

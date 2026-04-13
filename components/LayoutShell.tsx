@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 
-const BARE_ROUTES = ['/admin', '/employer/dashboard'];
+const BARE_ROUTES = ['/admin', '/employer/dashboard', '/login', '/signup', '/forgot-password', '/reset-password', '/employer/login', '/employer/signup'];
 
 /**
  * Wraps main-site chrome (Header, Footer, BottomNav, etc.)

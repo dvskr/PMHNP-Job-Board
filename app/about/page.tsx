@@ -6,7 +6,7 @@ import VideoJsonLd from '@/components/VideoJsonLd';
 import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, Briefcase, MapPin, RefreshCw, Database, FileText, Shield, BarChart3 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About Us | PMHNP Hiring - The #1 Job Board for Psychiatric NPs',
+  title: 'About Us - The #1 Job Board for Psychiatric NPs',
   description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. Thousands of jobs from thousands of companies across all 50 states.',
   openGraph: {
     images: [

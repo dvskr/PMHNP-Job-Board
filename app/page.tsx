@@ -4,12 +4,12 @@ import { prisma } from '@/lib/prisma';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import TopStatesSection from '@/components/TopStatesSection';
-import WhyLoveUs from '@/components/WhyLoveUs';
 import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import ExitIntentPopup from '@/components/ExitIntentPopup';
 import StickyEmailBar from '@/components/StickyEmailBar';
 import HomepageBlogSection from '@/components/HomepageBlogSection';
+import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 
 
 
@@ -213,14 +213,15 @@ export default async function Home() {
         {/* 2. Employer Clay Dough Strip */}
         <EmployerTrustSection />
 
-        {/* 3. Why Love Us — Dual CTA */}
-        <WhyLoveUs />
 
         {/* ── Remaining sections (being redesigned) ── */}
         <FeaturedJobsSection />
 
         {/* 4. Top States */}
         <TopStatesSection />
+
+        {/* 5. Employer How It Works */}
+        <EmployerHowItWorks />
 
         <HomepageBlogSection />
 

@@ -4,7 +4,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | PMHNP Hiring',
+  title: 'Terms of Service',
   description: 'Read the Terms of Service for PMHNP Hiring. Understand your rights, responsibilities, and our policies for using the #1 PMHNP job board.',
   openGraph: {
     images: [{ url: '/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],

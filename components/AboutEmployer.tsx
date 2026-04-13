@@ -17,74 +17,117 @@ interface AboutEmployerProps {
     employerName: string;
     company?: Company | null;
     otherJobsCount?: number;
+    companyWebsite?: string | null;
 }
+
+/* ═══ Clay card tokens ═══ */
+const clayCard: React.CSSProperties = {
+    backgroundColor: '#F7FBF8',
+    borderRadius: '20px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '6px 6px 14px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
+    padding: '22px 24px',
+    marginBottom: '16px',
+};
+
+const iconContainer: React.CSSProperties = {
+    width: '48px', height: '48px',
+    borderRadius: '14px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+    backgroundColor: '#E0F2F1',
+    boxShadow: '2px 2px 5px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.7)',
+};
 
 export default function AboutEmployer({
     employerName,
     company,
-    otherJobsCount = 0
+    otherJobsCount = 0,
+    companyWebsite,
 }: AboutEmployerProps) {
+    // Resolve website: prefer company record, fall back to job-level data
+    const websiteUrl = company?.website || companyWebsite || null;
+    const displayName = company?.name || employerName;
+
+    // Employer jobs link — uses the employer filter param which is handled by the filter system
+    const employerLink = `/jobs?employer=${encodeURIComponent(displayName)}`;
+
     // If we have company data from the database
     if (company && company.description) {
         return (
-            <section
-                className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6"
-                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-            >
-                <div className="flex items-start gap-4 mb-4">
+            <section style={clayCard}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '14px' }}>
                     {company.logoUrl ? (
                         <img
                             src={company.logoUrl}
                             alt={`${company.name} logo`}
-                            className="w-16 h-16 object-contain rounded-lg"
-                            style={{ border: '1px solid var(--border-color)' }}
+                            style={{
+                                width: '52px', height: '52px', objectFit: 'contain',
+                                borderRadius: '14px',
+                                border: '1px solid rgba(0,0,0,0.06)',
+                                boxShadow: '2px 2px 5px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                            }}
                         />
                     ) : (
-                        <div
-                            className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: 'var(--bg-tertiary)' }}
-                        >
-                            <Building2 className="w-8 h-8" style={{ color: '#2DD4BF' }} />
+                        <div style={iconContainer}>
+                            <Building2 style={{ width: '24px', height: '24px', color: '#0D9488' }} />
                         </div>
                     )}
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <h2 style={{
+                            fontSize: '18px', fontWeight: 700,
+                            fontFamily: 'var(--font-lora), Georgia, serif',
+                            color: 'var(--text-primary)',
+                            margin: 0, lineHeight: 1.3,
+                        }}>
                             About {company.name}
-                            {company.isVerified && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                                    Verified Employer
-                                </span>
-                            )}
                         </h2>
-                        {company.website && (
+                        {company.isVerified && (
+                            <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
+                                backgroundColor: '#CCFBF1', color: '#0F766E',
+                                boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.5), 1px 1px 2px rgba(0,0,0,0.03)',
+                                marginTop: '4px',
+                            }}>
+                                ✓ Verified Employer
+                            </span>
+                        )}
+                        {websiteUrl && (
                             <a
-                                href={company.website}
+                                href={websiteUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm flex items-center gap-1 mt-1 hover:underline"
-                                style={{ color: '#2DD4BF' }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                    fontSize: '12px', color: '#0D9488', marginTop: '4px',
+                                    textDecoration: 'none',
+                                }}
                             >
-                                <Globe className="w-3.5 h-3.5" />
-                                {company.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                <ExternalLink className="w-3 h-3" />
+                                <Globe style={{ width: '12px', height: '12px' }} />
+                                {websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                                <ExternalLink style={{ width: '10px', height: '10px' }} />
                             </a>
                         )}
                     </div>
                 </div>
 
-                <p className="leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+                <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--text-secondary)', margin: '0 0 14px' }}>
                     {company.description}
                 </p>
 
-                {company.jobCount > 1 && (
-                    <div className="pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                {otherJobsCount > 0 && (
+                    <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                         <Link
-                            href={`/jobs?employer=${encodeURIComponent(company.name)}`}
-                            className="inline-flex items-center gap-2 font-medium hover:underline"
-                            style={{ color: '#2DD4BF' }}
+                            href={employerLink}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                fontSize: '13px', fontWeight: 600, color: '#0D9488',
+                                textDecoration: 'none',
+                            }}
                         >
-                            <Briefcase className="w-4 h-4" />
-                            View all {company.jobCount} jobs from {company.name}
+                            <Briefcase style={{ width: '14px', height: '14px' }} />
+                            View {otherJobsCount} other job{otherJobsCount > 1 ? 's' : ''} from {company.name}
                         </Link>
                     </div>
                 )}
@@ -94,38 +137,56 @@ export default function AboutEmployer({
 
     // Fallback: Generic employer section when no company data
     return (
-        <section
-            className="rounded-2xl p-5 md:p-6 lg:p-8 mb-4 lg:mb-6"
-            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-        >
-            <div className="flex items-start gap-4 mb-4">
-                <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: 'var(--bg-tertiary)' }}
-                >
-                    <Building2 className="w-6 h-6" style={{ color: 'var(--text-tertiary)' }} />
+        <section style={clayCard}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '14px' }}>
+                <div style={iconContainer}>
+                    <Building2 style={{ width: '24px', height: '24px', color: '#0D9488' }} />
                 </div>
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                    <h2 style={{
+                        fontSize: '18px', fontWeight: 700,
+                        fontFamily: 'var(--font-lora), Georgia, serif',
+                        color: 'var(--text-primary)',
+                        margin: 0,
+                    }}>
                         About {employerName}
                     </h2>
+                    {websiteUrl && (
+                        <a
+                            href={websiteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                fontSize: '12px', color: '#0D9488', marginTop: '4px',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <Globe style={{ width: '12px', height: '12px' }} />
+                            {websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                            <ExternalLink style={{ width: '10px', height: '10px' }} />
+                        </a>
+                    )}
                 </div>
             </div>
 
-            <p className="leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+            <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--text-secondary)', margin: '0 0 14px' }}>
                 {employerName} is hiring for this PMHNP position. Psychiatric Mental Health Nurse Practitioners
                 play a critical role in addressing the growing demand for mental health services across the United States.
                 This employer is actively seeking qualified candidates to join their team.
             </p>
 
             {otherJobsCount > 0 && (
-                <div className="pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                     <Link
-                        href={`/jobs?employer=${encodeURIComponent(employerName)}`}
-                        className="inline-flex items-center gap-2 font-medium hover:underline"
-                        style={{ color: '#2DD4BF' }}
+                        href={employerLink}
+                        style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            fontSize: '13px', fontWeight: 600, color: '#0D9488',
+                            textDecoration: 'none',
+                        }}
                     >
-                        <Briefcase className="w-4 h-4" />
+                        <Briefcase style={{ width: '14px', height: '14px' }} />
                         View {otherJobsCount} other job{otherJobsCount > 1 ? 's' : ''} from this employer
                     </Link>
                 </div>

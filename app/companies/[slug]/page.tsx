@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         });
 
         return {
-            title: `${company.name} PMHNP Jobs | PMHNP Hiring`,
+            title: `${company.name} PMHNP Jobs`,
             description: company.description
                 ? `${company.description.substring(0, 150)}... View open PMHNP positions at ${company.name}.`
                 : `Browse open Psychiatric Mental Health Nurse Practitioner (PMHNP) positions at ${company.name}. Find salary info, locations, and apply today.`,

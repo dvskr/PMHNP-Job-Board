@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ShieldX, ArrowLeft, Home } from 'lucide-react'
 
 export const metadata = {
-  title: 'Unauthorized | PMHNP Hiring',
+  title: 'Unauthorized',
 }
 
 export default function UnauthorizedPage() {
