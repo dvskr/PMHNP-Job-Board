@@ -834,7 +834,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             Hiring Tips
                         </h3>
                         <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 10px', lineHeight: 1.5 }}>
-                            Featured job postings get 3x more qualified applicants. Upgrade to stand out.
+                            Featured job postings get 3x more qualified applicants. Your first 2 posts are free.
                         </p>
                         <Link href="/post-job" className="emp-cta-card" style={{
                             fontSize: '12px', fontWeight: 600, color: '#fff',
