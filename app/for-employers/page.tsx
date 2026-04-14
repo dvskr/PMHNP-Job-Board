@@ -45,15 +45,17 @@ async function getEmployerStats() {
   }
 }
 
-const comparisonRows = [
-  { feature: 'PMHNP-Only Audience', us: true, indeed: false, linkedin: false },
-  { feature: 'Only Qualified PMHNPs Apply', us: true, indeed: false, linkedin: false },
-  { feature: 'First 2 Posts Free', us: true, indeed: false, linkedin: false },
-  { feature: 'Daily Job Alert Emails', us: true, indeed: false, linkedin: true },
-  { feature: 'SEO-Optimized Listing', us: true, indeed: false, linkedin: false },
-  { feature: 'Salary Transparency', us: true, indeed: false, linkedin: false },
-  { feature: 'Candidate Database', us: true, indeed: true, linkedin: true },
-  { feature: 'Flat-Rate Pricing', us: true, indeed: false, linkedin: true },
+const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
+  { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
+  { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
+  { feature: 'First 2 Posts Free (No Card)', us: true, indeed: false, linkedin: false },
+  { feature: 'Flat $199/Post — No Bidding', us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
+  { feature: '60-Day Listing Duration', us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
+  { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
+  { feature: 'Candidate Profile Unlocks', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
+  { feature: 'Built-In Screening Questions', us: true, indeed: true, linkedin: false },
+  { feature: 'Daily Niche Job Alerts', us: true, indeed: 'partial', linkedin: 'partial', note: 'Others: generic alerts' },
+  { feature: 'Instant Apply Notifications', us: true, indeed: true, linkedin: true },
 ];
 
 export default async function ForEmployersPage() {
@@ -283,98 +285,110 @@ export default async function ForEmployersPage() {
 
           </div>
         </section>
+      </div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION 4: COMPARISON TABLE
-            ═══════════════════════════════════════════════════════════════ */}
-        <section style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 64px' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
-            Competitive Advantage
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 4: COMPARISON TABLE (separate section, own bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E8EDF2 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '860px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Why Switch
           </p>
-          <h2 className="font-lora" style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 36px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
             How We Compare
           </h2>
-          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '420px', margin: '0 auto 28px', lineHeight: 1.6 }}>
-            See why specialized beats generalist — every time.
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '440px', margin: '0 auto 36px', lineHeight: 1.6 }}>
+            An honest look at what you get — no cherry-picking.
           </p>
           <div style={{ ...clayCard, padding: '0', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
               <thead>
-                <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.06), rgba(13,148,136,0.02))' }}>
-                  <th style={{ width: '40%', padding: '14px 20px', textAlign: 'left', fontWeight: 600, color: '#8B7B73', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>Feature</th>
-                  <th style={{ width: '20%', padding: '14px 20px', textAlign: 'center', fontWeight: 700, color: '#0D9488', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>PMHNP Hiring</th>
-                  <th style={{ width: '20%', padding: '14px 20px', textAlign: 'center', fontWeight: 600, color: '#B0BEC5', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>Indeed</th>
-                  <th style={{ width: '20%', padding: '14px 20px', textAlign: 'center', fontWeight: 600, color: '#B0BEC5', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>LinkedIn</th>
+                <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(13,148,136,0.02))' }}>
+                  <th style={{ width: '40%', padding: '16px 24px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature</th>
+                  <th style={{ width: '20%', padding: '16px 20px', textAlign: 'center', fontWeight: 800, color: '#0D9488', borderBottom: '2px solid rgba(13,148,136,0.2)', fontSize: '13px' }}>PMHNP Hiring</th>
+                  <th style={{ width: '20%', padding: '16px 20px', textAlign: 'center', fontWeight: 600, color: '#94A3B8', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '13px' }}>Indeed</th>
+                  <th style={{ width: '20%', padding: '16px 20px', textAlign: 'center', fontWeight: 600, color: '#94A3B8', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '13px' }}>LinkedIn</th>
                 </tr>
               </thead>
               <tbody>
-                {comparisonRows.map((row, i) => (
-                  <tr key={row.feature} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
-                    <td style={{ padding: '12px 20px', color: '#1A2E35', fontWeight: 500, borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{row.feature}</td>
-                    <td style={{ padding: '12px 20px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      {row.us ? <Check size={16} style={{ color: '#0D9488', display: 'block', margin: '0 auto' }} /> : <X size={16} style={{ color: '#D1D5DB', display: 'block', margin: '0 auto' }} />}
-                    </td>
-                    <td style={{ padding: '12px 20px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      {row.indeed ? <Check size={16} style={{ color: '#B0BEC5', display: 'block', margin: '0 auto' }} /> : <X size={16} style={{ color: '#D1D5DB', display: 'block', margin: '0 auto' }} />}
-                    </td>
-                    <td style={{ padding: '12px 20px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      {row.linkedin ? <Check size={16} style={{ color: '#B0BEC5', display: 'block', margin: '0 auto' }} /> : <X size={16} style={{ color: '#D1D5DB', display: 'block', margin: '0 auto' }} />}
-                    </td>
-                  </tr>
-                ))}
+                {comparisonRows.map((row, i) => {
+                  const renderCell = (val: true | false | 'partial', isUs: boolean) => {
+                    if (val === true) return <Check size={16} style={{ color: isUs ? '#0D9488' : '#94A3B8', display: 'block', margin: '0 auto' }} />;
+                    if (val === 'partial') return <span style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 600 }}>Partial</span>;
+                    return <X size={16} style={{ color: '#D1D5DB', display: 'block', margin: '0 auto' }} />;
+                  };
+                  return (
+                    <tr key={row.feature} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                      <td style={{ padding: '14px 24px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <span style={{ color: '#1A2E35', fontWeight: 500 }}>{row.feature}</span>
+                        {row.note && <span style={{ display: 'block', fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{row.note}</span>}
+                      </td>
+                      <td style={{ padding: '14px 20px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(13,148,136,0.03)' }}>
+                        {renderCell(row.us, true)}
+                      </td>
+                      <td style={{ padding: '14px 20px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        {renderCell(row.indeed, false)}
+                      </td>
+                      <td style={{ padding: '14px 20px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        {renderCell(row.linkedin, false)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION 5: BOTTOM CTA
-            ═══════════════════════════════════════════════════════════════ */}
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px 64px' }}>
-          <div className="emp-cta-grid" style={{
-            ...clayCard, padding: '0', overflow: 'hidden',
-            display: 'grid', gridTemplateColumns: '1.3fr 1fr', alignItems: 'center',
-          }}>
-            <div style={{ padding: '40px 48px' }}>
-              <h2 className="font-lora" style={{
-                fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 700,
-                color: '#1A2E35', margin: '0 0 12px',
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 5: BOTTOM CTA
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '64px 20px' }}>
+        <div className="emp-cta-grid" style={{
+          ...clayCard, padding: '0', overflow: 'hidden',
+          display: 'grid', gridTemplateColumns: '1.3fr 1fr', alignItems: 'center',
+        }}>
+          <div style={{ padding: '40px 48px' }}>
+            <h2 className="font-lora" style={{
+              fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 700,
+              color: '#1A2E35', margin: '0 0 12px',
+            }}>
+              Ready to Hire Your{' '}
+              <span style={{ color: '#0D9488' }}>Next PMHNP</span>?
+            </h2>
+            <p style={{ fontSize: '15px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 24px', maxWidth: '400px' }}>
+              First 2 posts free — all features included. After that, just ${config.postingPrice}/post. Simple pricing, real results.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <Link href="/post-job" style={{
+                padding: '14px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
+                background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                boxShadow: '6px 6px 16px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
               }}>
-                Ready to Hire Your{' '}
-                <span style={{ color: '#0D9488' }}>Next PMHNP</span>?
-              </h2>
-              <p style={{ fontSize: '15px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 24px', maxWidth: '400px' }}>
-                First 2 posts free — all features included. After that, just ${config.postingPrice}/post. Simple pricing, real results.
-              </p>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <Link href="/post-job" style={{
-                  padding: '14px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
-                  background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  boxShadow: '6px 6px 16px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
-                }}>
-                  Post a Job — First 2 Free <ArrowRight size={16} />
-                </Link>
-                <Link href="/contact" style={{
-                  padding: '14px 28px', borderRadius: '14px', fontWeight: 600, fontSize: '15px',
-                  ...clayCard, color: '#1A2E35', textDecoration: 'none',
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                }}>
-                  Contact Us
-                </Link>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
-              <Image
-                src="/images/employers/cta-illustration.png"
-                alt="Successful PMHNP hiring celebration"
-                width={380} height={320}
-                style={{ width: '100%', maxWidth: '380px', height: 'auto', borderRadius: '16px' }}
-              />
+                Post a Job — First 2 Free <ArrowRight size={16} />
+              </Link>
+              <Link href="/contact" style={{
+                padding: '14px 28px', borderRadius: '14px', fontWeight: 600, fontSize: '15px',
+                ...clayCard, color: '#1A2E35', textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+              }}>
+                Contact Us
+              </Link>
             </div>
           </div>
-        </section>
-      </div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+            <Image
+              src="/images/employers/cta-illustration.png"
+              alt="Successful PMHNP hiring celebration"
+              width={380} height={320}
+              style={{ width: '100%', maxWidth: '380px', height: 'auto', borderRadius: '16px' }}
+            />
+          </div>
+        </div>
+      </section>
 
       {/* ═══ Responsive overrides ═══ */}
       <style>{`
