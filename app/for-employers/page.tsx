@@ -6,7 +6,7 @@ import { config } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import {
   Check, Sparkles, Crown, ArrowRight, Users, TrendingUp, BarChart,
-  Target, Clock, DollarSign, Mail, Briefcase, Eye,
+  Target, Clock, DollarSign, Mail, Briefcase,
   X, Search, Building2, ArrowUpRight,
 } from 'lucide-react';
 
@@ -40,15 +40,14 @@ const clayIconWrap = (gradient: string): React.CSSProperties => ({
 
 async function getEmployerStats() {
   try {
-    const [totalJobs, totalSubscribers, totalCompanies, avgViews] = await Promise.all([
+    const [totalJobs, totalSubscribers, totalCompanies] = await Promise.all([
       prisma.job.count({ where: { isPublished: true } }),
       prisma.emailLead.count({ where: { isSubscribed: true } }),
       prisma.job.groupBy({ by: ['employer'], where: { isPublished: true } }).then((r) => r.length),
-      prisma.job.aggregate({ where: { isPublished: true, viewCount: { gt: 0 } }, _avg: { viewCount: true } }).then((r) => Math.round(r._avg.viewCount || 0)),
     ]);
-    return { totalJobs, totalSubscribers, totalCompanies, avgViews };
+    return { totalJobs, totalSubscribers, totalCompanies };
   } catch {
-    return { totalJobs: 0, totalSubscribers: 0, totalCompanies: 0, avgViews: 0 };
+    return { totalJobs: 0, totalSubscribers: 0, totalCompanies: 0 };
   }
 }
 
@@ -136,7 +135,6 @@ export default async function ForEmployersPage() {
               { value: fmt(stats.totalJobs), label: 'Active Jobs', icon: Search, bg: '#D4F5E9', iconBg: '#34D399', color: '#065F46' },
               { value: fmt(stats.totalSubscribers), label: 'Job Seekers', icon: Users, bg: '#FFE0D3', iconBg: '#F97316', color: '#7C2D12' },
               { value: fmt(stats.totalCompanies), label: 'Hiring Companies', icon: Building2, bg: '#E8DAFE', iconBg: '#A855F7', color: '#4C1D95' },
-              { value: fmt(stats.avgViews), label: 'Avg Views/Post', icon: Eye, bg: '#DBEAFE', iconBg: '#3B82F6', color: '#1E3A5F' },
             ].map(s => {
               const SIcon = s.icon;
               return (
