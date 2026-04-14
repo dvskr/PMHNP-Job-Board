@@ -568,7 +568,7 @@ export async function sendConfirmationEmail(
               </table>
 
               <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
-                Your listing is active for <strong style="color: ${C.textPrimary};">${config.isPaidPostingEnabled ? '30' : '60'} days</strong>. We'll notify you when it's time to renew.
+                Your listing is active for <strong style="color: ${C.textPrimary};">${config.durationDays} days</strong>. We'll notify you when it's time to renew.
               </p>
 
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
@@ -797,9 +797,7 @@ export async function sendExpiryWarningEmail(
               `, C.amber)}
 
               <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${config.isPaidPostingEnabled
-        ? 'Renew now to keep it active and continue receiving applicants.'
-        : 'Renew now to keep it active — <strong style="color: ' + C.emerald + ';">FREE during our launch period!</strong>'}
+                ${'Renew now to keep it active and continue receiving applicants. Renewals are just <strong style="color: ' + C.emerald + ';">$' + config.renewalPrice + '</strong> (20% off).'}
               </p>
 
               <!-- Performance Stats -->

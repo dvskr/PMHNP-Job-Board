@@ -85,43 +85,43 @@ export default function PreviewPage() {
     setIsLoading(true);
     setError(null);
     try {
-      if (config.isPaidPostingEnabled) {
+      // Always try free posting first — API checks if employer has free posts remaining
+      if (!formData) return;
+      const response = await fetch('/api/jobs/post-free', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          employer: formData.companyName,
+          location: formData.location,
+          mode: formData.mode,
+          jobType: formData.jobType,
+          description: formData.description,
+          applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
+          applyOnPlatform: formData.applyOnPlatform || false,
+          contactEmail: formData.contactEmail,
+          minSalary: formData.salaryMin,
+          maxSalary: formData.salaryMax,
+          salaryPeriod: formData.salaryPeriod || 'annual',
+          companyWebsite: formData.companyWebsite,
+          pricing: 'growth',
+          benefits: formData.benefits,
+          setting: formData.setting,
+          population: formData.population,
+          companyLogoUrl: formData.companyLogoUrl,
+          screeningQuestions: formData.screeningQuestions || [],
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        localStorage.removeItem('jobFormData');
+        localStorage.removeItem('jobScreeningQuestions');
+        router.push('/success?free=true');
+      } else if (result.requiresPayment) {
+        // Free posts exhausted — redirect to checkout
         router.push('/post-job/checkout');
       } else {
-        if (!formData) return;
-        const response = await fetch('/api/jobs/post-free', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: formData.title,
-            employer: formData.companyName,
-            location: formData.location,
-            mode: formData.mode,
-            jobType: formData.jobType,
-            description: formData.description,
-            applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
-            applyOnPlatform: formData.applyOnPlatform || false,
-            contactEmail: formData.contactEmail,
-            minSalary: formData.salaryMin,
-            maxSalary: formData.salaryMax,
-            salaryPeriod: formData.salaryPeriod || 'annual',
-            companyWebsite: formData.companyWebsite,
-            pricing: formData.pricingTier,
-            benefits: formData.benefits,
-            setting: formData.setting,
-            population: formData.population,
-            companyLogoUrl: formData.companyLogoUrl,
-            screeningQuestions: formData.screeningQuestions || [],
-          }),
-        });
-        const result = await response.json();
-        if (result.success) {
-          localStorage.removeItem('jobFormData');
-          localStorage.removeItem('jobScreeningQuestions');
-          router.push('/success?free=true');
-        } else {
-          setError(result.error || 'Failed to post job');
-        }
+        setError(result.error || 'Failed to post job');
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -144,10 +144,7 @@ export default function PreviewPage() {
   }
 
   const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
-  const effectiveTier = config.isPaidPostingEnabled ? formData.pricingTier : 'growth';
-  const isFeatured = config.isFeaturedTier(effectiveTier as 'starter' | 'growth' | 'premium');
-  const price = config.isPaidPostingEnabled ? config.getPostingPrice(formData.pricingTier) : 0;
-  const priceLabel = config.formatPrice(price);
+  const isFeatured = true; // All posts are featured in single-tier model
 
   return (
     <div style={{ background: '#F5F6F8', minHeight: '100vh', padding: '24px 16px 80px' }}>
@@ -305,47 +302,23 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        {/* Section 3: Pricing Summary */}
-        {config.isPaidPostingEnabled ? (
-          <div style={{ ...cardBase, padding: '24px', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 16px' }}>Pricing Summary</h2>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid rgba(0,0,0,0.06)', marginBottom: '12px' }}>
-              <div>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>
-                  {effectiveTier === 'premium' ? 'Premium' : effectiveTier === 'growth' ? 'Growth' : 'Starter'} Job Post
-                </p>
-                <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '4px 0 0' }}>
-                  {effectiveTier === 'premium' ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days'
-                    : effectiveTier === 'growth' ? '✓ Priority placement ✓ Featured badge ✓ 60 days'
-                    : '✓ 30 days active ✓ Email to subscribers'}
-                </p>
-              </div>
-              <span style={{ fontSize: '24px', fontWeight: 700, color: '#0D9488' }}>{priceLabel}</span>
+        {/* Section 3: Features Summary */}
+        <div style={{ ...cardBase, padding: '20px', marginBottom: '24px', background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)',
+              boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
+            }}>
+              <Check size={18} color="#fff" />
             </div>
-            <div style={{ fontSize: '12px', color: '#8A9BA6', lineHeight: 1.7 }}>
-              <p style={{ margin: '0' }}>• Your job will go live immediately after payment</p>
-              <p style={{ margin: '0' }}>• Edit or update your listing anytime via email link</p>
-              <p style={{ margin: '0' }}>• Reach thousands of qualified PMHNPs actively looking</p>
+            <div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package Included</p>
+              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>60-day listing · Featured badge · Top placement · Analytics · 25 unlocks · 25 InMails</p>
             </div>
           </div>
-        ) : (
-          <div style={{ ...cardBase, padding: '20px', marginBottom: '24px', background: '#F0FDFA', border: '1px solid #99F6E4' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '12px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
-              }}>
-                <Check size={18} color="#fff" />
-              </div>
-              <div>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Growth Package — Free during launch</p>
-                <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>Your job goes live immediately with all Growth features included.</p>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* Error */}
         {error && (
@@ -374,10 +347,8 @@ export default function PreviewPage() {
           }}>
             {isLoading ? (
               <><Loader2 size={16} className="animate-spin" /> Processing...</>
-            ) : config.isPaidPostingEnabled ? (
-              <>Looks Good — Continue to Payment <ChevronRight size={16} /></>
             ) : (
-              <>Looks Good — Post Job (Free) <ChevronRight size={16} /></>
+              <>Looks Good — Post Job <ChevronRight size={16} /></>
             )}
           </button>
         </div>

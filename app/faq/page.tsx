@@ -51,27 +51,15 @@ export default function FAQPage() {
   const employerFaqs = [
     {
       question: "How much does it cost to post a job?",
-      answer: config.isPaidPostingEnabled
-        ? "We offer three posting tiers: Starter ($199) for a 30-day listing, Growth ($299) with featured placement and 25 candidate unlocks/posting, and Premium ($399) with 90-day listing, unlimited unlocks, and social media promotion."
-        : "During our launch period, job postings are completely FREE! This includes all tiers. Take advantage of this limited-time offer to get your positions in front of qualified PMHNPs."
+      answer: "Your first 2 job posts are completely FREE with all features included — no credit card required. After that, each additional post costs $199 flat. Renewals are discounted at $159 (20% off)."
     },
     {
-      question: "Is there a free trial?",
-      answer: config.isPaidPostingEnabled
-        ? "We don't offer a free trial, but our pricing is straightforward with no hidden fees. You only pay when you post a job, and your listing stays active for 30 days."
-        : "Even better - we're currently offering FREE job postings during our launch period! No credit card required. Simply create your listing and it goes live immediately."
-    },
-    {
-      question: "What are the differences between tiers?",
-      answer: config.isPaidPostingEnabled
-        ? "Starter gets you a 30-day listing with basic analytics and 5 candidate unlocks/posting. Growth adds a featured badge, top search placement, 25 candidate unlocks/posting, and 25 InMails/posting for 60 days. Premium extends to 90 days with unlimited unlocks, unlimited InMails, social media promotion, and dedicated support."
-        : "Growth jobs appear at the top of search results, are highlighted in job alerts, and display a prominent 'Featured' badge. During our free launch period, all tiers are free - we recommend choosing Growth for maximum visibility!"
+      question: "What features are included?",
+      answer: "Every job post — free or paid — gets the same features: 60-day listing, Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, 25 candidate profile views, 25 InMails, up to 5 screening questions, and apply-on-platform."
     },
     {
       question: "How long do job postings last?",
-      answer: config.isPaidPostingEnabled
-        ? "Starter postings are active for 30 days. Growth postings are active for 60 days. Premium postings are active for 90 days. You can renew your posting at any time from your employer dashboard before or after it expires."
-        : "All postings are active for 30 days. You can renew your posting at any time from your employer dashboard before or after it expires - completely free during our launch period!"
+      answer: "All job postings are active for 60 days. You can renew your posting at any time from your employer dashboard for $159 (20% off the regular price)."
     },
     {
       question: "Can I edit my job posting?",
@@ -79,9 +67,7 @@ export default function FAQPage() {
     },
     {
       question: "How do I access my employer dashboard?",
-      answer: config.isPaidPostingEnabled
-        ? "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, renew listings, and manage all your job postings in one place. If you've lost the link, contact us at support@pmhnphiring.com."
-        : "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, and renew listings for free during our launch period. If you've lost the link, contact us at support@pmhnphiring.com."
+      answer: "Check your confirmation email for a dashboard link. The dashboard allows you to view analytics, edit your posting, browse candidates, and manage all your job postings in one place. If you've lost the link, contact us at support@pmhnphiring.com."
     },
     {
       question: "Do you offer refunds?",

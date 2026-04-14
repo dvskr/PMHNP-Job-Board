@@ -604,7 +604,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     {isExpiringSoon(job) && ' ⚠️'}
                                                 </span>
                                             )}
-                                            {config.isPaidPostingEnabled && job.paymentStatus === 'paid' && (
+                                            {job.paymentStatus === 'paid' && (
                                                 <a
                                                     href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
                                                     target="_blank"
@@ -641,24 +641,8 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
                                                 </button>
                                             )}
-                                            {mounted && config.isPaidPostingEnabled && !job.isFeatured && job.isPublished && !isExpired(job) && (
-                                                <button
-                                                    onClick={() => handleUpgradeClick(job)}
-                                                    disabled={upgradingJobId === job.id}
-                                                    className="emp-action-btn"
-                                                    style={{
-                                                        ...clayBtn,
-                                                        background: 'linear-gradient(145deg, #8B5CF6, #6366F1)',
-                                                        color: '#fff', border: 'none',
-                                                        boxShadow: '3px 3px 8px rgba(99,102,241,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-                                                        opacity: upgradingJobId === job.id ? 0.6 : 1,
-                                                    }}
-                                                >
-                                                    <Shield size={14} />
-                                                    {upgradingJobId === job.id ? 'Processing...' : 'Upgrade - $100'}
-                                                </button>
-                                            )}
-                                            {mounted && config.isPaidPostingEnabled && shouldShowRenew(job) && (
+                                            {/* Upgrade button removed — single-tier model */}
+                                            {mounted && shouldShowRenew(job) && (
                                                 <button
                                                     onClick={() => handleRenewClick(job)}
                                                     disabled={renewingJobId === job.id}
@@ -786,7 +770,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 )}
 
                 {/* ═══ Renewal Modal ═══ */}
-                {config.isPaidPostingEnabled && showRenewModal && selectedJob && (
+                {showRenewModal && selectedJob && (
                     <div style={{
                         position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
@@ -803,51 +787,21 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '20px' }}>{selectedJob.title}</p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                                {/* Starter */}
-                                <button onClick={() => handleRenewCheckout('starter')} className="emp-tier-btn" style={{
-                                    ...cardRecessed, padding: '14px 16px', cursor: 'pointer',
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                                    textAlign: 'left', transition: 'all 0.2s',
-                                }}>
-                                    <div>
-                                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>Starter Renewal</p>
-                                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0, lineHeight: 1.5 }}>✓ 30 days · 5 unlocks</p>
-                                    </div>
-                                    <span style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35' }}>{config.isPaidPostingEnabled ? '$199' : 'FREE'}</span>
-                                </button>
-
-                                {/* Growth (popular) */}
+                                {/* Single-tier renewal */}
                                 <button onClick={() => handleRenewCheckout('growth')} className="emp-tier-btn" style={{
                                     ...cardBase, padding: '14px 16px', cursor: 'pointer',
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                                     textAlign: 'left', transition: 'all 0.2s',
                                     background: '#CCFBF1', border: '2px solid #0D9488',
-                                    position: 'relative',
-                                }}>
-                                    <span style={{
-                                        position: 'absolute', top: '-8px', right: '12px',
-                                        background: '#0D9488', color: '#fff', fontSize: '9px', fontWeight: 700,
-                                        padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase',
-                                    }}>Most Popular</span>
-                                    <div>
-                                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#134E4A', margin: '0 0 4px' }}>Growth Renewal</p>
-                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ 60 days · Featured · 25 unlocks · 25 InMails</p>
-                                    </div>
-                                    <span style={{ fontSize: '20px', fontWeight: 800, color: '#134E4A' }}>{config.isPaidPostingEnabled ? '$299' : 'FREE'}</span>
-                                </button>
-
-                                {/* Premium */}
-                                <button onClick={() => handleRenewCheckout('premium')} className="emp-tier-btn" style={{
-                                    ...cardRecessed, padding: '14px 16px', cursor: 'pointer',
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                                    textAlign: 'left', transition: 'all 0.2s',
-                                    background: '#EDE9FE', border: '1px solid #C4B5FD',
                                 }}>
                                     <div>
-                                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#5B21B6', margin: '0 0 4px' }}>Premium Renewal</p>
-                                        <p style={{ fontSize: '11px', color: '#7C3AED', margin: 0, lineHeight: 1.5 }}>✓ 90 days · All Growth perks · Unlimited unlocks & InMails · Social promo</p>
+                                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#134E4A', margin: '0 0 4px' }}>Renew Listing</p>
+                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ 60 more days · Featured · 25 unlocks · 25 InMails</p>
                                     </div>
-                                    <span style={{ fontSize: '20px', fontWeight: 800, color: '#5B21B6' }}>{config.isPaidPostingEnabled ? '$399' : 'FREE'}</span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span style={{ fontSize: '20px', fontWeight: 800, color: '#134E4A' }}>${config.renewalPrice}</span>
+                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 20%</p>
+                                    </div>
                                 </button>
                             </div>
 

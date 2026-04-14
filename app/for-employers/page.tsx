@@ -127,18 +127,16 @@ export default async function ForEmployersPage() {
                     background: '#0D9488', color: '#fff',
                     textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
                   }}>
-                    Post a Job {!config.isPaidPostingEnabled ? '— Free' : ''} <ArrowRight size={17} />
+                    Post a Job — First 2 Free <ArrowRight size={17} />
                   </Link>
-                  {config.isPaidPostingEnabled && (
-                    <Link href="/pricing" className="clay-btn" style={{
-                      padding: '16px 36px', borderRadius: '16px', fontWeight: 600, fontSize: '15px',
-                      background: '#FFFFFF',
-                      color: '#1A2E35', textDecoration: 'none',
-                      display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    }}>
-                      View Pricing
-                    </Link>
-                  )}
+                  <Link href="/pricing" className="clay-btn" style={{
+                    padding: '16px 36px', borderRadius: '16px', fontWeight: 600, fontSize: '15px',
+                    background: '#FFFFFF',
+                    color: '#1A2E35', textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  }}>
+                    View Pricing
+                  </Link>
                 </div>
               </div>
 
@@ -327,21 +325,20 @@ export default async function ForEmployersPage() {
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
 
-        {/* ─── WHAT'S INCLUDED (Free Launch) ─── */}
-        {!config.isPaidPostingEnabled && (
+        {/* ─── WHAT'S INCLUDED ─── */}
           <section style={{ maxWidth: '900px', margin: '0 auto', padding: '64px 20px 48px' }}>
             <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
-              Free During Launch
+              First 2 Posts Free
             </p>
             <h2 className="font-lora" style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
-              What&apos;s Included — Growth Package
+              Every Post Gets Full Features
             </h2>
             <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-              Every job posting includes our $299 Growth package — completely free during launch.
+              Your first 2 posts are free. After that, it&apos;s a flat <strong style={{ color: '#0D9488' }}>$199/post</strong>. Same features either way.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               {[
-                { icon: Sparkles, label: '60-day job listing (2× longer)', gradient: 'linear-gradient(145deg, #E86C2C, #F59E0B)' },
+                { icon: Sparkles, label: '60-day job listing', gradient: 'linear-gradient(145deg, #E86C2C, #F59E0B)' },
                 { icon: Crown, label: '"Featured" badge on listing', gradient: 'linear-gradient(145deg, #8B5CF6, #A855F7)' },
                 { icon: TrendingUp, label: 'Top placement in search results', gradient: 'linear-gradient(145deg, #0D9488, #10B981)' },
                 { icon: Mail, label: 'Highlighted in daily job alerts', gradient: 'linear-gradient(145deg, #E86C2C, #F59E0B)' },
@@ -358,64 +355,7 @@ export default async function ForEmployersPage() {
               ))}
             </div>
           </section>
-        )}
 
-        {/* ─── PRICING (Paid Mode) ─── */}
-        {config.isPaidPostingEnabled && (
-          <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '64px 20px 48px' }}>
-            <h2 className="font-lora" style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
-              Simple, Transparent Pricing
-            </h2>
-            <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-              Your first Standard post is <strong style={{ color: '#0D9488' }}>completely free</strong> — no credit card required.
-            </p>
-            <div className="emp-pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-              {plans.map((plan) => {
-                const PIcon = plan.icon;
-                return (
-                  <div key={plan.name} style={{
-                    ...clayCard, padding: '28px', position: 'relative',
-                    border: plan.popular ? '2px solid #E86C2C' : '1px solid rgba(255,255,255,0.5)',
-                  }}>
-                    {plan.popular && (
-                      <div style={{
-                        position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
-                        padding: '4px 16px', borderRadius: '12px', fontSize: '11px', fontWeight: 700,
-                        background: plan.gradient, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px',
-                      }}>MOST POPULAR</div>
-                    )}
-                    <div style={{ ...clayIconWrap(plan.gradient), width: '40px', height: '40px', marginBottom: '14px' }}>
-                      <PIcon size={18} color="#fff" />
-                    </div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>{plan.name}</h3>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '36px', fontWeight: 800, color: '#1A2E35' }}>${plan.price}</span>
-                      <span style={{ fontSize: '13px', color: '#8B7B73' }}>{plan.period}</span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#0D9488', fontWeight: 600, marginBottom: '16px' }}>{plan.duration} listing</div>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px' }}>
-                      {plan.features.map(f => (
-                        <li key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', fontSize: '13px', color: '#5A4A42' }}>
-                          <Check size={14} style={{ color: '#0D9488', flexShrink: 0 }} /> {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link href="/post-job" style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                      padding: '12px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', textDecoration: 'none',
-                      background: plan.popular ? plan.gradient : '#FFFFFF',
-                      color: plan.popular ? '#fff' : '#1A2E35',
-                      border: plan.popular ? 'none' : '1px solid rgba(0,0,0,0.08)',
-                      boxShadow: plan.popular ? '4px 4px 12px rgba(232,108,44,0.2)' : 'none',
-                    }}>
-                      {plan.cta} <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         {/* ─── COMPARISON TABLE ─── */}
         <section style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 64px' }}>
@@ -473,9 +413,9 @@ export default async function ForEmployersPage() {
                 <span style={{ color: '#0D9488' }}>Next PMHNP</span>?
               </h2>
               <p style={{ fontSize: '15px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 24px', maxWidth: '400px' }}>
-                {config.isPaidPostingEnabled
-                  ? 'Simple pricing, real results. Post your job and start receiving qualified candidates today.'
-                  : 'Post your job for free. No credit card required. Go live in under 5 minutes and start receiving candidates.'}
+                {config.postingPrice
+                  ? 'First 2 posts free. After that, just $199/post. Simple pricing, real results.'
+                  : 'Post your job and start receiving qualified candidates today.'}
               </p>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 <Link href="/post-job" style={{
@@ -484,7 +424,7 @@ export default async function ForEmployersPage() {
                   textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
                   boxShadow: '6px 6px 16px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
                 }}>
-                  Post a Job {!config.isPaidPostingEnabled ? '— Free' : ''} <ArrowRight size={16} />
+                  Post a Job — First 2 Free <ArrowRight size={16} />
                 </Link>
                 <Link href="/contact" style={{
                   padding: '14px 28px', borderRadius: '14px', fontWeight: 600, fontSize: '15px',

@@ -942,78 +942,41 @@ function PostJobContent() {
             </div>
           )}
 
-          {/* ═══ STEP 5: Plan Selection ═══ */}
+          {/* ═══ STEP 5: Review Features ═══ */}
           {currentStep === 5 && (
             <div style={{ ...cardBase, padding: '28px 24px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
-                Choose Your Plan
+                Your Posting Includes
               </h2>
-              <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 24px' }}>Select the listing tier that fits your hiring needs</p>
+              <p style={{ fontSize: '13px', color: '#8A9BA6', margin: '0 0 24px' }}>Every job post gets the full package — free or paid</p>
 
-              {config.isPaidPostingEnabled ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {[
-                    { key: 'starter', name: 'Starter', price: config.pricing.starter, features: ['30-day listing', 'Shown in job feed', 'Email alerts to subscribers', '5 candidate unlocks'], badge: null },
-                    { key: 'growth', name: 'Growth', price: config.pricing.growth, features: ['60-day listing', '⭐ Featured badge', 'Top search placement', '25 candidate unlocks', '25 InMails'], badge: 'MOST POPULAR' },
-                    { key: 'premium', name: 'Premium', price: config.pricing.premium, features: ['90-day listing', 'Everything in Growth', 'Unlimited candidate unlocks', 'Unlimited InMails'], badge: null },
-                  ].map((plan) => (
-                    <label key={plan.key} style={{
-                      ...cardBase, padding: '20px', cursor: 'pointer', position: 'relative',
-                      border: selectedPricingTier === plan.key ? '2px solid #0D9488' : '1px solid rgba(0,0,0,0.06)',
-                      background: selectedPricingTier === plan.key ? '#F0FDFA' : '#fff',
-                    }}>
-                      <input type="radio" value={plan.key} {...register('pricingTier')} style={{ display: 'none' }} />
-                      {plan.badge && (
-                        <span style={{
-                          position: 'absolute', top: '-10px', right: '16px',
-                          background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                          fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px',
-                          boxShadow: '2px 2px 6px rgba(13,148,136,0.2)',
-                        }}>{plan.badge}</span>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>{plan.name}</h3>
-                          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                            {plan.features.map(f => (
-                              <li key={f} style={{ fontSize: '12px', color: '#6B7F8A', padding: '1px 0' }}>• {f}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <span style={{ fontSize: '24px', fontWeight: 700, color: '#0D9488', whiteSpace: 'nowrap' }}>${plan.price}</span>
-                      </div>
-                    </label>
+              <div style={{
+                ...cardBase, padding: '20px',
+                background: '#F0FDFA', border: '1px solid #99F6E4',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '12px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                    boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
+                  }}>
+                    <Check size={18} color="#fff" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package — Every Post</h3>
+                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>First 2 posts free, then ${config.postingPrice}/post</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {['60-day listing', 'Featured badge', 'Top placement', 'Email alerts', '25 candidate unlocks', '25 InMails', 'Analytics'].map(f => (
+                    <span key={f} style={{
+                      fontSize: '11px', fontWeight: 500, padding: '4px 10px',
+                      borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',
+                    }}>✓ {f}</span>
                   ))}
                 </div>
-              ) : (
-                <div style={{
-                  ...cardBase, padding: '20px',
-                  background: '#F0FDFA', border: '1px solid #99F6E4',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-                    <div style={{
-                      width: '40px', height: '40px', borderRadius: '12px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                      boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
-                    }}>
-                      <Check size={18} color="#fff" />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Growth Package — Free during launch</h3>
-                      <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>All Growth features included at no cost</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {['60-day listing', 'Featured badge', 'Top placement', 'Email alerts', '25 candidate unlocks', '25 InMails', 'Analytics'].map(f => (
-                      <span key={f} style={{
-                        fontSize: '11px', fontWeight: 500, padding: '4px 10px',
-                        borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',
-                      }}>✓ {f}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
         </form>
