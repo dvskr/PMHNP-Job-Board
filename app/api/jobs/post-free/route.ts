@@ -174,18 +174,28 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
 
-    // Check free post eligibility: count existing posts by this email
+    // Free post gate: count existing FREE posts by company DOMAIN
+    // Prevents abuse via john+1@acme.com, sarah@acme.com, etc.
     const existingPostCount = await prisma.employerJob.count({
       where: {
-        contactEmail: sanitized.contactEmail,
-        paymentStatus: { in: ['paid', 'free'] },
+        contactEmail: {
+          endsWith: `@${emailDomain}`,
+          mode: 'insensitive',
+        },
+        paymentStatus: 'free',
       },
     });
 
     if (existingPostCount >= config.freePostsPerEmail) {
+      logger.info('Free post limit reached for domain', {
+        domain: emailDomain,
+        email: sanitized.contactEmail,
+        existingCount: existingPostCount,
+        limit: config.freePostsPerEmail,
+      });
       return NextResponse.json(
         {
-          error: `You have used all ${config.freePostsPerEmail} free posts. Additional posts cost $${config.postingPrice}.`,
+          error: `Your organization (${emailDomain}) has used all ${config.freePostsPerEmail} free posts. Additional posts cost $${config.postingPrice}.`,
           requiresPayment: true,
           freePostsUsed: existingPostCount,
           freePostsLimit: config.freePostsPerEmail,
