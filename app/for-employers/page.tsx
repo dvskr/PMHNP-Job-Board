@@ -92,18 +92,19 @@ export default async function ForEmployersPage() {
 
               {/* CTA Buttons */}
               <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <Link href="/post-job" className="clay-btn" style={{
+                <Link href="/post-job" className="clay-btn emp-cta-primary" style={{
                   padding: '16px 36px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
                   background: '#0D9488', color: '#fff',
                   textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px',
                 }}>
                   Post a Job — First 2 Free <ArrowRight size={17} />
                 </Link>
-                <Link href="/pricing" className="clay-btn" style={{
+                <Link href="/pricing" className="clay-btn emp-cta-secondary" style={{
                   padding: '16px 36px', borderRadius: '16px', fontWeight: 600, fontSize: '15px',
                   background: '#FFFFFF',
                   color: '#1A2E35', textDecoration: 'none',
                   display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  border: '1px solid rgba(0,0,0,0.06)',
                 }}>
                   View Pricing
                 </Link>
@@ -134,7 +135,7 @@ export default async function ForEmployersPage() {
             ].map(s => {
               const SIcon = s.icon;
               return (
-                <div key={s.label} style={{
+                <div key={s.label} className="emp-stat-pill" style={{
                   display: 'inline-flex', alignItems: 'center', gap: '10px',
                   padding: '10px 20px 10px 10px', borderRadius: '40px',
                   background: s.bg,
@@ -187,7 +188,7 @@ export default async function ForEmployersPage() {
           }}>
 
             {/* ROW 1: 60-Day Listing (8 cols) + Featured Badge (4 cols) */}
-            <div className="bento-hero-1" style={{
+            <div className="bento-hero-1 emp-bento-card" style={{
               ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
               display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
             }}>
@@ -203,7 +204,7 @@ export default async function ForEmployersPage() {
               </div>
             </div>
 
-            <div className="bento-hero-2" style={{
+            <div className="bento-hero-2 emp-bento-card" style={{
               ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden',
               display: 'flex', flexDirection: 'column',
             }}>
@@ -220,32 +221,32 @@ export default async function ForEmployersPage() {
             </div>
 
             {/* ROW 2: 4 compact cards (3 cols each) — CENTERED */}
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+            <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/employers/clay-trending.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Search Placement</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Featured listings rank higher — more visibility, more clicks.</p>
             </div>
 
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+            <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/employers/clay-envelope.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Daily Job Alerts</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Highlighted in daily email digests to opted-in PMHNPs.</p>
             </div>
 
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+            <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/employers/clay-people.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 Candidate Unlocks</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>View full profiles — contact info, resume, LinkedIn.</p>
             </div>
 
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+            <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/employers/clay-briefcase.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 InMails</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
             </div>
 
             {/* ROW 3: Analytics (8 cols) + Pricing (4 cols) */}
-            <div className="bento-hero-3" style={{
+            <div className="bento-hero-3 emp-bento-card" style={{
               ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
               display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
             }}>
@@ -261,7 +262,7 @@ export default async function ForEmployersPage() {
               </div>
             </div>
 
-            <div className="bento-pricing" style={{
+            <div className="bento-pricing emp-bento-card" style={{
               ...clayCard, gridColumn: 'span 4',
               padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
               background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
@@ -273,7 +274,7 @@ export default async function ForEmployersPage() {
                 First 2 posts free. Then ${config.postingPrice}/post.<br />
                 Renewals just ${config.renewalPrice}. No hidden fees.
               </p>
-              <Link href="/post-job" style={{
+              <Link href="/post-job" className="emp-cta-primary" style={{
                 padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
                 background: '#0D9488', color: '#fff', textDecoration: 'none',
                 display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content',
@@ -306,7 +307,7 @@ export default async function ForEmployersPage() {
           <div className="emp-compare-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', alignItems: 'start' }}>
 
             {/* LEFT — Comparison Table */}
-            <div style={{ ...clayCard, padding: '0', overflow: 'hidden' }}>
+            <div className="emp-compare-table" style={{ ...clayCard, padding: '0', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
                 <thead>
                   <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(13,148,136,0.02))' }}>
@@ -376,7 +377,7 @@ export default async function ForEmployersPage() {
                   First 2 posts free — all features included. Then just ${config.postingPrice}/post.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <Link href="/post-job" style={{
+                  <Link href="/post-job" className="emp-cta-primary" style={{
                     padding: '12px 24px', borderRadius: '12px', fontWeight: 700, fontSize: '14px',
                     background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
                     textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -384,7 +385,7 @@ export default async function ForEmployersPage() {
                   }}>
                     Post a Job — First 2 Free <ArrowRight size={15} />
                   </Link>
-                  <Link href="/contact" style={{
+                  <Link href="/contact" className="emp-cta-secondary" style={{
                     padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',
                     background: '#fff', color: '#1A2E35', textDecoration: 'none',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -403,6 +404,45 @@ export default async function ForEmployersPage() {
 
       {/* ═══ Responsive overrides ═══ */}
       <style>{`
+        /* ─── Hover effects ─── */
+        .emp-cta-primary {
+          transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+        }
+        .emp-cta-primary:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 32px rgba(13,148,136,0.35), inset 1px 1px 2px rgba(255,255,255,0.2) !important;
+          filter: brightness(1.05);
+        }
+        .emp-cta-secondary {
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .emp-cta-secondary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
+          border-color: rgba(13,148,136,0.3) !important;
+        }
+        .emp-bento-card {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .emp-bento-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important;
+        }
+        .emp-compare-table tr {
+          transition: background 0.2s ease;
+        }
+        .emp-compare-table tbody tr:hover {
+          background: rgba(13,148,136,0.04) !important;
+        }
+        .emp-stat-pill {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .emp-stat-pill:hover {
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important;
+        }
+
+        /* ─── Responsive ─── */
         @media (max-width: 768px) {
           .emp-hero-grid { grid-template-columns: 1fr !important; }
           .emp-compare-grid { grid-template-columns: 1fr !important; }
