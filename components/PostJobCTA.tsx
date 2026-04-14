@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 /**
- * "Post a Job — First One Free" CTA banner
+ * "Post a Job — First 2 Free" CTA banner
  * Standalone section for the homepage between WhyUs and Testimonials.
  * Theme-aware — works in both dark and light mode.
  */
@@ -39,7 +39,7 @@ export default function PostJobCTA() {
                         </span>
 
                         <h3 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
-                            Post a Job — First One Free
+                            Post a Job — First 2 Free
                         </h3>
 
                         <p className="text-sm mb-6" style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto 24px' }}>

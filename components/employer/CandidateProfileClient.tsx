@@ -410,10 +410,10 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                             Unlock Full Candidate Access
                         </h3>
                         <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '4px', lineHeight: 1.6 }}>
-                            Contact info, resume, and LinkedIn access is available to employers with an active <strong>Featured</strong> job posting.
+                            Contact info, resume, and LinkedIn access requires an active job posting with remaining unlocks.
                         </p>
                         <p style={{ fontSize: '12px', color: '#B0C4BC', marginBottom: '18px' }}>
-                            Free job postings do not include candidate unlocking.
+                            Post a job to unlock candidate profiles (first 2 posts are free).
                         </p>
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '18px' }}>
                             {[

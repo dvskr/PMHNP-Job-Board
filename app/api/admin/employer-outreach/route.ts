@@ -1,7 +1,7 @@
 /**
  * POST /api/admin/employer-outreach
  *
- * Sends a personalized email to every employer explaining the free Growth package.
+ * Sends a personalized email to every employer explaining the free posting offer.
  * Auth: Authorization: Bearer CRON_SECRET
  * Query: ?dry=true for preview mode (no emails sent)
  */
@@ -35,7 +35,7 @@ function buildEmail(): string {
 <body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
 
 <div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#ffffff;">
-  Your $299 Growth package is active — Featured listings, candidate unlocks, InMails &amp; more included free &#8199;&#65279;&#847;
+  Your first 2 job posts are free — all features included: Featured badge, 25 unlocks, 25 InMails &amp; more &#8199;&#65279;&#847;
 </div>
 
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;">
@@ -65,12 +65,12 @@ function buildEmail(): string {
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(145deg,#0f766e 0%,#134e4a 100%);border-radius:16px;overflow:hidden;">
         <tr>
           <td style="padding:48px 40px 44px;">
-            <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);">Free During Launch</p>
+            <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);">For Employers</p>
             <h1 class="hero-title" style="margin:0 0 14px;font-size:36px;font-weight:800;color:#ffffff;line-height:1.15;letter-spacing:-0.5px;">
-              Your Growth Package<br/>is active.
+              First 2 Posts Free.<br/>Full Package Included.
             </h1>
             <p style="margin:0;font-size:16px;color:rgba(255,255,255,0.75);line-height:1.55;">
-              Every job you post includes our $299 Growth tier — at no cost to you. Here's what that means.
+              Every job you post gets the same premium features. Your first 2 are on us — here's what's included.
             </p>
           </td>
         </tr>
@@ -165,12 +165,12 @@ function buildEmail(): string {
       <!--[if mso]>
       <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${BASE}/post-job" style="height:50px;v-text-anchor:middle;width:280px;" arcsize="16%" fillcolor="#0d9488">
         <w:anchorlock/>
-        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">Post a Job — Free</center>
+        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">Post a Job — First 2 Free</center>
       </v:roundrect>
       <![endif]-->
       <!--[if !mso]><!-->
       <a href="${BASE}/post-job" class="cta" style="display:inline-block;background:#0d9488;color:#ffffff;text-decoration:none;padding:15px 48px;border-radius:10px;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2px;">
-        Post a Job — Free
+        Post a Job — First 2 Free
       </a>
       <!--<![endif]-->
     </td>
@@ -310,7 +310,7 @@ export async function POST(request: Request) {
         from: 'PMHNP Hiring <hello@pmhnphiring.com>',
         to: r.email,
         replyTo: 'hello@pmhnphiring.com',
-        subject: 'Your free Growth package is waiting',
+        subject: 'Your first 2 job posts are free — all features included',
         html,
         text,
       }));
@@ -339,7 +339,7 @@ export async function POST(request: Request) {
         data: {
           to: 'campaign@employer-outreach',
           emailType: 'employer_outreach_campaign',
-          subject: 'Employer outreach — Growth package announcement',
+          subject: 'Employer outreach — free posting announcement',
           status: failed === 0 ? 'sent' : 'partial',
           metadata: { sent, failed, totalRecipients: recipients.length, errors } as any,
         },

@@ -14,7 +14,7 @@ const stagger = {
 };
 
 const STEPS = [
-    { img: '/images/step-employer-post.png', title: 'Post Your Listing', desc: 'Fill out job details, preview, and publish — live in under 5 minutes. Free during launch.' },
+    { img: '/images/step-employer-post.png', title: 'Post Your Listing', desc: 'Fill out job details, preview, and publish — live in under 5 minutes. First 2 posts free.' },
     { img: '/images/step-employer-reach.png', title: 'Reach Every PMHNP', desc: 'Your listing is emailed to thousands via daily job alerts and indexed on Google with its own SEO page.' },
     { img: '/images/step-employer-browse.png', title: 'Browse & Message', desc: 'Search our talent pool of qualified PMHNPs. Save top candidates and reach out directly with InMail.' },
     { img: '/images/step-employer-track.png', title: 'Track & Hire', desc: 'Real-time analytics on views, clicks, and applications. Get notified instantly when candidates apply.' },
@@ -204,7 +204,7 @@ export default function EmployerHowItWorks() {
                             e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,90,120,0.3)';
                         }}
                     >
-                        Post a Job — Free <ArrowUpRight size={15} />
+                        Post a Job — First 2 Free <ArrowUpRight size={15} />
                     </Link>
                 </motion.div>
             </motion.div>
