@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Bell, Search } from 'lucide-react'
 import UserMenu from './UserMenu'
 import { User } from '@supabase/supabase-js'
 import { calculateCompleteness, ProfileData } from '@/lib/profile-completeness'
@@ -178,27 +179,30 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     }
     if (profile.role === 'employer') {
       return (
-        <div className="flex items-center gap-2">
-          <Link href="/employer/dashboard" style={clayNavPill}
-            onMouseEnter={handleHoverIn} onMouseLeave={handleHoverOut}
-          >
-            Dashboard
-          </Link>
-          <Link href="/employer/candidates" style={clayNavPill}
-            onMouseEnter={handleHoverIn} onMouseLeave={handleHoverOut}
-          >
-            Candidates
+        <div className="flex items-center gap-3">
+          <Link href="/messages" aria-label="Notifications" style={{
+            position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '38px', height: '38px', borderRadius: '50%',
+            background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
+            boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.7)',
+            color: '#4A5E6A', textDecoration: 'none',
+          }}>
+            <Bell size={17} />
           </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
         </div>
       )
     }
     return (
-      <div className="flex items-center gap-2">
-        <Link href="/dashboard" style={clayNavPill}
-          onMouseEnter={handleHoverIn} onMouseLeave={handleHoverOut}
-        >
-          Dashboard
+      <div className="flex items-center gap-3">
+        <Link href="/messages" aria-label="Notifications" style={{
+          position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '38px', height: '38px', borderRadius: '50%',
+          background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
+          boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.7)',
+          color: '#4A5E6A', textDecoration: 'none',
+        }}>
+          <Bell size={17} />
         </Link>
         <UserMenu user={profile} profileCompleteness={profileCompleteness} isMobile={!!onNavigate} />
       </div>

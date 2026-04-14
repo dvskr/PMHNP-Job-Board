@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         const savedJobIds = savedJobIdsParam ? savedJobIdsParam.split(',').filter(Boolean) : []
 
         // Run all queries in parallel
-        const [profile, applicationCount, applications, alertCount, savedJobs, recommendedJobs, emailLead] =
+        const [profile, applicationCount, applications, alertCount, savedJobs, recommendedJobs, emailLead, unreadMessages] =
             await Promise.all([
                 // 1. User profile
                 prisma.userProfile.findUnique({
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
                 // 4. Active alerts count
                 prisma.jobAlert.count({
                     where: {
-                        email: user.email!,
+                        email: { equals: user.email!, mode: 'insensitive' },
                         isActive: true,
                     },
                 }),
@@ -110,6 +110,14 @@ export async function GET(request: Request) {
                     where: { email: user.email! },
                     select: { newsletterOptIn: true },
                 }),
+
+                // 8. Unread messages count
+                prisma.employerMessage.count({
+                    where: {
+                        recipientId: user.id,
+                        readAt: null,
+                    },
+                }),
             ])
 
         // Note: dashboard is primarily for job seekers but accessible to all authenticated users
@@ -128,6 +136,7 @@ export async function GET(request: Request) {
             applications,
             savedJobs,
             recommendedJobs,
+            unreadMessages: unreadMessages || 0,
         })
     } catch (error) {
         console.error('Dashboard API error:', error)
@@ -187,7 +196,7 @@ async function getRecommendedJobs(userId: string) {
         where.id = { notIn: appliedJobIds.map(a => a.jobId) }
     }
 
-    return prisma.job.findMany({
+    const jobs = await prisma.job.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: 5,
@@ -200,7 +209,41 @@ async function getRecommendedJobs(userId: string) {
             jobType: true,
             mode: true,
             displaySalary: true,
+            salaryRange: true,
+            normalizedMinSalary: true,
+            normalizedMaxSalary: true,
+            salaryPeriod: true,
             isRemote: true,
+            createdAt: true,
+            isFeatured: true,
+            isVerifiedEmployer: true,
+            applyLink: true,
+            employerJobs: { select: { companyLogoUrl: true } },
         },
+    })
+    return jobs.map(j => {
+        // Build salary display (same logic as browse page JobCard)
+        let salary = j.displaySalary
+        if (!salary) {
+            const min = j.normalizedMinSalary
+            const max = j.normalizedMaxSalary
+            const fmt = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n.toLocaleString()}`
+            const period = j.salaryPeriod === 'hourly' ? '/hr' : '/yr'
+            if (min && max && min !== max) salary = `${fmt(min)}-${fmt(max)}${period}`
+            else if (min) salary = `${fmt(min)}${period}`
+            else if (max) salary = `${fmt(max)}${period}`
+            else salary = j.salaryRange || null
+        }
+        return {
+            ...j,
+            displaySalary: salary,
+            companyLogoUrl: j.employerJobs?.companyLogoUrl || null,
+            // Remove raw fields not needed by frontend
+            employerJobs: undefined,
+            salaryRange: undefined,
+            normalizedMinSalary: undefined,
+            normalizedMaxSalary: undefined,
+            salaryPeriod: undefined,
+        }
     })
 }

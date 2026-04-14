@@ -129,18 +129,20 @@ const ALERT_SPECIALTY_PRESETS = [
   'OCD', 'Bipolar', 'Schizophrenia', 'General Adult',
 ]
 
-// ── Shared card styles ──
+// ── Shared card styles (Clay Design System) ──
 const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-secondary)',
-  border: '1px solid var(--border-color)',
-  borderRadius: '16px',
+  background: '#F7FBF8',
+  border: '1px solid rgba(213, 232, 224, 0.6)',
+  borderRadius: '20px',
   padding: '28px',
   marginBottom: '20px',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.05), -3px -3px 10px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.01)',
 }
 const cardTitle: React.CSSProperties = {
   fontSize: '18px',
-  fontWeight: 700,
-  color: 'var(--text-primary)',
+  fontWeight: 800,
+  fontFamily: 'var(--font-lora), Georgia, serif',
+  color: '#1A2E35',
   marginBottom: '20px',
   display: 'flex',
   alignItems: 'center',
@@ -149,20 +151,21 @@ const cardTitle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
-  borderRadius: '10px',
-  borderWidth: '1.5px',
+  borderRadius: '12px',
+  borderWidth: '1px',
   borderStyle: 'solid',
-  borderColor: 'var(--border-color)',
-  background: 'var(--bg-primary)',
-  color: 'var(--text-primary)',
+  borderColor: 'rgba(213, 232, 224, 0.6)',
+  background: '#EDF2EE',
+  color: '#1A2E35',
   fontSize: '14px',
   outline: 'none',
-  transition: 'border-color 0.2s',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+  boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.04), inset -1px -1px 3px rgba(255,255,255,0.6)',
 }
 const labelStyle: React.CSSProperties = {
-  color: 'var(--text-secondary)',
+  color: '#4A5E6A',
   fontSize: '14px',
-  fontWeight: 500,
+  fontWeight: 600,
   marginBottom: '6px',
   display: 'block',
 }
@@ -530,24 +533,27 @@ function SettingsPageInner() {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            Profile Settings
-          </h1>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
+              Settings
+            </h1>
+            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>Manage your profile and preferences</p>
+          </div>
           <button
             onClick={handleSave}
             disabled={saving}
             style={{
               padding: '10px 24px',
-              borderRadius: '12px',
-              background: saving ? 'rgba(45,212,191,0.3)' : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+              borderRadius: '14px',
+              background: saving ? '#88CCBF' : '#0D9488',
               color: '#fff',
               fontSize: '14px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: saving ? 'not-allowed' : 'pointer',
-              border: 'none',
+              border: '1px solid rgba(255,255,255,0.3)',
               display: 'inline-flex', alignItems: 'center', gap: '8px',
-              boxShadow: '0 2px 12px rgba(45,212,191,0.25)',
-              transition: 'all 0.3s',
+              boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.2)',
+              transition: 'all 0.2s ease',
             }}
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -563,7 +569,7 @@ function SettingsPageInner() {
           return (
             <div style={{ ...cardStyle, padding: '24px', marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35' }}>
                   Profile Completeness
                 </span>
                 <span style={{ fontSize: '22px', fontWeight: 800, color }}>

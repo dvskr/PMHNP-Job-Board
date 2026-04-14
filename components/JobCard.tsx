@@ -283,6 +283,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </span>
               {job.applyLink && (
                 <button
+                  className="jc-apply-btn"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
                   style={{
                     padding: '8px 16px', borderRadius: '14px',
@@ -293,6 +294,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                     border: '1px solid rgba(255,255,255,0.3)',
                     boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.06)',
                     cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   Apply
@@ -313,14 +315,19 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         )}
 
         <style>{`
-          .jc-card:hover {
-            box-shadow: 10px 10px 25px rgba(0,0,0,0.10), -5px -5px 15px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.02) !important;
-            transform: translateY(-4px);
-          }
           .jc-save-btn:hover {
             color: var(--color-primary) !important;
             transform: translateY(-1px);
             box-shadow: 6px 6px 14px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+          }
+          .jc-apply-btn:hover {
+            background-color: #0F766E !important;
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 16px rgba(13,148,136,0.30), -3px -3px 8px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
+          }
+          .jc-apply-btn:active {
+            transform: translateY(1px);
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15), inset -2px -2px 4px rgba(255,255,255,0.1) !important;
           }
         `}</style>
       </Link>
@@ -520,6 +527,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             </span>
             {job.applyLink && (
               <button
+                className="jc-apply-btn"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
                 style={{
                   fontSize: '13px', fontWeight: 700, color: '#fff',
@@ -549,12 +557,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
       </div>
 
       <style>{`
-        .jc-card:hover {
-          box-shadow: 10px 10px 25px rgba(0,0,0,0.10), -5px -5px 15px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.02) !important;
-          transform: translateY(-4px);
-          position: relative;
-          z-index: 1;
-        }
         .jc-card:hover .jc-cta {
           gap: 8px !important;
           box-shadow: 6px 6px 14px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
@@ -572,6 +574,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           color: var(--color-primary) !important;
           transform: translateY(-1px);
           box-shadow: 6px 6px 14px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+        }
+        .jc-apply-btn:hover {
+          background-color: #0F766E !important;
+          transform: translateY(-2px);
+          box-shadow: 6px 6px 16px rgba(13,148,136,0.30), -3px -3px 8px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
+        }
+        .jc-apply-btn:active {
+          transform: translateY(1px);
+          box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15), inset -2px -2px 4px rgba(255,255,255,0.1) !important;
         }
       `}</style>
     </Link>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -16,6 +16,7 @@ import HeaderAuth from '@/components/auth/HeaderAuth';
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -35,12 +36,37 @@ export default function Header() {
     document.body.style.overflow = '';
   }, [pathname]);
 
-  const navLinks = [
-    { href: '/jobs', label: 'Find Jobs' },
-    { href: '/salary-guide', label: 'Salary Guide' },
-    { href: '/for-employers', label: 'Employers' },
-    { href: '/resources', label: 'Resources' },
+  // Public nav — shown when NOT logged in
+  const publicNavLinks = [
+    { href: '/jobs', label: 'Browse Jobs', icon: Search },
+    { href: '/salary-guide', label: 'Salary Guide', icon: DollarSign },
+    { href: '/for-employers', label: 'Employers', icon: Building2 },
+    { href: '/resources', label: 'Resources', icon: BookOpen },
   ];
+
+  // Logged-in job seeker nav — minimal, app-focused
+  const seekerNavLinks = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/jobs', label: 'Browse Jobs', icon: Briefcase },
+    { href: '/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
+
+  // Logged-in employer nav — minimal, app-focused
+  const employerNavLinks = [
+    { href: '/employer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/settings', label: 'Settings', icon: Settings },
+  ];
+
+  // Pick the right nav set
+  const navLinks = userRole === 'job_seeker'
+    ? seekerNavLinks
+    : userRole === 'employer'
+      ? employerNavLinks
+      : userRole === 'admin'
+        ? [{ href: '/admin', label: 'Admin', icon: LayoutDashboard }, { href: '/messages', label: 'Messages', icon: MessageSquare }, { href: '/settings', label: 'Settings', icon: Settings }]
+        : publicNavLinks;
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -125,7 +151,9 @@ export default function Header() {
           {/* ═══ RIGHT: Nav + Divider + Auth ═══ */}
           <div className="hidden lg:flex items-center gap-1">
             <nav className="flex items-center gap-2">
-              {navLinks.map((link) => (
+              {navLinks.map((link) => {
+                const NavIcon = link.icon;
+                return (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -133,6 +161,7 @@ export default function Header() {
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
+                    gap: '6px',
                     padding: '8px 16px',
                     borderRadius: '14px',
                     fontSize: '14px',
@@ -166,16 +195,18 @@ export default function Header() {
                     }
                   }}
                 >
+                  <NavIcon size={16} />
                   {link.label}
                 </Link>
-              ))}
+                );
+              })}
             </nav>
 
             {/* Divider */}
             <div className="w-px h-5 mx-3" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }} />
 
             {/* Auth */}
-            <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
+            <HeaderAuth onRoleChange={(role) => setUserRole(role)} />
           </div>
         </div>
       </header>
@@ -198,7 +229,9 @@ export default function Header() {
             />
             <div className="relative px-8 pt-6 pb-8">
               <nav className="flex flex-col">
-                {navLinks.map((link) => (
+                {navLinks.map((link) => {
+                  const MobileIcon = link.icon;
+                  return (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -208,14 +241,19 @@ export default function Header() {
                       color: isActive(link.href) ? '#0D9488' : '#374151',
                       fontWeight: isActive(link.href) ? 600 : 500,
                       borderBottom: '1px solid rgba(0,0,0,0.06)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
                     }}
                   >
+                    <MobileIcon size={20} />
                     {link.label}
                   </Link>
-                ))}
+                  );
+                })}
               </nav>
               <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                <HeaderAuth onNavigate={() => setIsMenuOpen(false)} />
+                <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
               </div>
             </div>
           </motion.div>

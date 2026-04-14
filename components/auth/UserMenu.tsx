@@ -107,7 +107,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
         )}
         <span className="hidden md:block" style={{
           fontSize: '14px', fontWeight: 500,
-          color: '#CBD5E1',
+          color: '#4A5E6A',
           maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {displayName}
@@ -124,7 +124,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
             position: 'absolute', top: '4px', right: '4px',
             width: '10px', height: '10px', borderRadius: '50%',
             background: '#F97316',
-            border: '2px solid #1c1917',
+            border: '2px solid #F7FBF8',
           }} />
         )}
       </button>
@@ -149,31 +149,31 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: '280px',
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '14px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+            backgroundColor: '#FAFCFA',
+            border: '1px solid rgba(213, 232, 224, 0.6)',
+            borderRadius: '18px',
+            boxShadow: '8px 8px 24px rgba(0,0,0,0.12), -4px -4px 12px rgba(255,255,255,0.6)',
             overflow: 'hidden',
             zIndex: 1000,
           } : {
-            position: 'absolute', left: '50%', transform: 'translateX(-50%)', marginTop: '8px',
+            position: 'absolute', right: 0, marginTop: '8px',
             width: '260px',
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '14px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+            backgroundColor: '#FAFCFA',
+            border: '1px solid rgba(213, 232, 224, 0.6)',
+            borderRadius: '18px',
+            boxShadow: '8px 8px 24px rgba(0,0,0,0.10), -4px -4px 12px rgba(255,255,255,0.6), inset 2px 2px 4px rgba(255,255,255,0.5)',
             overflow: 'hidden',
             zIndex: 100,
           }}>
             {/* User info header */}
             <div style={{
               padding: '16px',
-              borderBottom: '1px solid var(--border-color)',
+              borderBottom: '1px solid rgba(213, 232, 224, 0.6)',
             }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>
                 {displayName}
               </p>
-              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>
                 {user.email}
               </p>
               <span style={{
@@ -194,7 +194,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
                 onClick={() => setIsOpen(false)}
                 style={{
                   display: 'block', padding: '10px 16px',
-                  borderBottom: '1px solid var(--border-color)',
+                  borderBottom: '1px solid rgba(213, 232, 224, 0.6)',
                   textDecoration: 'none',
                 }}
               >
@@ -202,7 +202,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   marginBottom: '6px',
                 }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#4A5E6A' }}>
                     Profile
                   </span>
                   <span style={{
@@ -214,7 +214,7 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
                 </div>
                 <div style={{
                   width: '100%', height: '4px', borderRadius: '2px',
-                  background: 'var(--bg-tertiary)',
+                  background: '#E8F0EB',
                   overflow: 'hidden',
                 }}>
                   <div style={{
@@ -228,36 +228,6 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
 
             {/* Menu items */}
             <div style={{ padding: '4px 0' }}>
-              <Link
-                href="/dashboard"
-                onClick={() => setIsOpen(false)}
-                className="um-menu-item"
-                style={menuItemStyle}
-              >
-                <LayoutDashboard style={{ width: '16px', height: '16px' }} />
-                Dashboard
-              </Link>
-
-              <Link
-                href="/messages"
-                onClick={() => setIsOpen(false)}
-                className="um-menu-item"
-                style={menuItemStyle}
-              >
-                <MessageSquare style={{ width: '16px', height: '16px' }} />
-                Messages
-              </Link>
-
-              <Link
-                href="/settings"
-                onClick={() => setIsOpen(false)}
-                className="um-menu-item"
-                style={menuItemStyle}
-              >
-                <Settings style={{ width: '16px', height: '16px' }} />
-                Settings
-              </Link>
-
               {user.role === 'admin' && (
                 <Link
                   href="/admin/jobs"
@@ -269,10 +239,20 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
                   Admin Panel
                 </Link>
               )}
+
+              <Link
+                href="/settings"
+                onClick={() => setIsOpen(false)}
+                className="um-menu-item"
+                style={menuItemStyle}
+              >
+                <Settings style={{ width: '16px', height: '16px' }} />
+                Complete Profile
+              </Link>
             </div>
 
             {/* Sign out */}
-            <div style={{ borderTop: '1px solid var(--border-color)', padding: '4px 0' }}>
+            <div style={{ borderTop: '1px solid rgba(213, 232, 224, 0.6)', padding: '4px 0' }}>
               <button
                 onClick={handleSignOut}
                 className="um-menu-item"
@@ -287,8 +267,8 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
       )}
 
       <style>{`
-        .um-trigger:hover { background: rgba(255,255,255,0.08) !important; }
-        .um-menu-item:hover { background: var(--bg-tertiary) !important; }
+        .um-trigger:hover { background: rgba(13,148,136,0.06) !important; }
+        .um-menu-item:hover { background: #EDF5F0 !important; }
       `}</style>
     </div>
   )

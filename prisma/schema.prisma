@@ -758,6 +758,7 @@ model SavedCandidate {
   candidateId   String       @map("candidate_id")
   employerJobId String?      @map("employer_job_id")
   note          String?
+  tags          String[]     @default([])
   savedAt       DateTime     @default(now()) @map("saved_at")
   employer      UserProfile  @relation("SavedByEmployer", fields: [employerId], references: [id], onDelete: Cascade)
   candidate     UserProfile  @relation("SavedAsCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
@@ -767,6 +768,18 @@ model SavedCandidate {
   @@index([employerId])
   @@index([employerJobId])
   @@map("saved_candidates")
+}
+
+model CandidateTag {
+  id         String      @id @default(cuid())
+  employerId String      @map("employer_id")
+  name       String
+  color      String      @default("#0D9488")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@unique([employerId, name])
+  @@index([employerId])
+  @@map("candidate_tags")
 }
 
 model EmployerCandidateAlert {

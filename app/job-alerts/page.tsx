@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Bell, MapPin, Briefcase, Zap, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bell, MapPin, Briefcase, Zap, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
 // US States array for dropdown
 const US_STATES = [
@@ -22,6 +22,45 @@ const WORK_MODES = ['Remote', 'Hybrid', 'In-Person'];
 
 // Job type options
 const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'];
+
+/* ═══════════════════════════════════════════
+   CLAY DESIGN TOKENS
+   ═══════════════════════════════════════════ */
+const cardBase: React.CSSProperties = {
+  background: '#F7FBF8',
+  borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+};
+
+const cardRecessed: React.CSSProperties = {
+  background: '#EDF5F0',
+  borderRadius: '14px',
+  border: '1px solid #D5E8E0',
+  boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.5)',
+};
+
+const clayInput: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 14px',
+  fontSize: '14px',
+  borderRadius: '12px',
+  border: '1px solid #D5E8E0',
+  background: '#EDF5F0',
+  color: '#1A2E35',
+  boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)',
+  outline: 'none',
+  transition: 'all 0.2s',
+};
+
+const clayPill: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '5px',
+  padding: '6px 14px', borderRadius: '20px',
+  fontSize: '12px', fontWeight: 600,
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
+  cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none',
+};
 
 function JobAlertsContent() {
   const searchParams = useSearchParams();
@@ -117,377 +156,332 @@ function JobAlertsContent() {
     return parts.length > 0 ? parts.join(' · ') : 'All PMHNP jobs';
   };
 
-  const inputCls = "w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500";
-  const inputSty = {
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    borderColor: 'var(--border-color-dark)',
-  };
-
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      {/* Hero Section - Compact */}
-      <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full" style={{ background: 'var(--bg-tertiary)' }}>
-              <Bell className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                Never Miss Your Dream PMHNP Job
-              </h1>
-              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                Get personalized job alerts delivered to your inbox.
-              </p>
-            </div>
+    <div style={{ minHeight: '100vh', background: '#F0F5F2' }}>
+      {/* ═══ Hero Section ═══ */}
+      <div style={{
+        padding: '32px 16px 24px',
+        background: 'linear-gradient(180deg, #E8F5EE 0%, #F0F5F2 100%)',
+        borderBottom: '1px solid #D5E8E0',
+      }}>
+        <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Bell icon in clay pebble */}
+          <div style={{
+            width: '52px', height: '52px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: '16px', background: '#DCFCE7',
+            border: '1px solid rgba(255,255,255,0.5)',
+            boxShadow: '5px 5px 12px rgba(0,0,0,0.06), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.7)',
+            color: '#0D9488', flexShrink: 0,
+          }}>
+            <Bell size={24} />
+          </div>
+          <div>
+            <h1 style={{
+              fontSize: '26px', fontWeight: 800,
+              fontFamily: 'var(--font-lora), Georgia, serif',
+              color: '#1A2E35', margin: '0 0 4px',
+            }}>
+              Never Miss Your Dream PMHNP Job
+            </h1>
+            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
+              Get personalized job alerts delivered to your inbox.
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex flex-wrap gap-6">
-          {/* Main Form Card */}
-          <div className="flex-1 min-w-[300px]">
-            <div
-              className="rounded-xl shadow-sm border p-5 sm:p-6"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
-            >
-              <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Create Your Job Alert
-              </h2>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+      {/* ═══ Main Content ═══ */}
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 16px 40px' }}>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+
+          {/* ─── Form Card ─── */}
+          <div style={{ flex: '1 1 340px', minWidth: 0 }}>
+            <div style={{ ...cardBase, padding: '24px' }}>
+              <h2 style={{
+                fontSize: '18px', fontWeight: 700,
+                fontFamily: 'var(--font-lora), Georgia, serif',
+                color: '#1A2E35', marginBottom: '6px',
+              }}>Create Your Job Alert</h2>
+              <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '24px', lineHeight: 1.5 }}>
                 Enter your details below and we&apos;ll notify you when matching jobs are posted.
               </p>
 
-              {/* Success Message */}
+              {/* Success */}
               {message.type === 'success' && (
-                <div
-                  className="mb-6 rounded-lg p-4 flex items-start gap-3"
-                  style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}
-                >
-                  <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                <div style={{
+                  ...cardRecessed, padding: '14px 16px', marginBottom: '20px',
+                  background: '#D1FAE5', border: '1px solid #A7F3D0',
+                  display: 'flex', alignItems: 'flex-start', gap: '10px',
+                }}>
+                  <CheckCircle size={18} style={{ color: '#059669', flexShrink: 0, marginTop: '1px' }} />
                   <div>
-                    <p className="text-sm font-medium text-emerald-500">{message.text}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                      You can{' '}
-                      <Link href="/job-alerts/manage" className="underline hover:no-underline" style={{ color: 'var(--color-primary)' }}>
-                        manage your alerts
-                      </Link>{' '}
-                      anytime.
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#059669', margin: '0 0 4px' }}>{message.text}</p>
+                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: 0 }}>
+                      You can <Link href="/job-alerts/manage" style={{ color: '#0D9488', textDecoration: 'underline' }}>manage your alerts</Link> anytime.
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Error Message */}
+              {/* Error */}
               {message.type === 'error' && (
-                <div
-                  className="mb-6 rounded-lg p-4 flex items-start gap-3"
-                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-                >
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-500">{message.text}</p>
+                <div style={{
+                  ...cardRecessed, padding: '14px 16px', marginBottom: '20px',
+                  background: '#FEE2E2', border: '1px solid #FECACA',
+                  display: 'flex', alignItems: 'flex-start', gap: '10px',
+                }}>
+                  <AlertCircle size={18} style={{ color: '#DC2626', flexShrink: 0, marginTop: '1px' }} />
+                  <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{message.text}</p>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Email Field */}
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (emailError) setEmailError('');
-                    }}
-                    placeholder="you@example.com"
-                    className={inputCls}
-                    style={{
-                      ...inputSty,
-                      borderColor: emailError ? '#ef4444' : 'var(--border-color-dark)',
-                    }}
-                  />
-                  {emailError && (
-                    <p className="mt-1.5 text-xs text-red-500">{emailError}</p>
-                  )}
-                </div>
-
-                {/* Location Dropdown */}
-                <div>
-                  <label htmlFor="location" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Location <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
-                  </label>
-                  <select
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className={inputCls}
-                    style={inputSty}
-                  >
-                    <option value="">Any Location</option>
-                    <optgroup label="Work Arrangement">
-                      <option value="Remote">Remote Only</option>
-                    </optgroup>
-                    <optgroup label="US States">
-                      {US_STATES.map((state) => (
-                        <option key={state} value={state}>
-                          {state}
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
-
-                {/* Work Mode Dropdown */}
-                <div>
-                  <label htmlFor="mode" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Work Mode <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
-                  </label>
-                  <select
-                    id="mode"
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value)}
-                    className={inputCls}
-                    style={inputSty}
-                  >
-                    <option value="">Any Work Mode</option>
-                    {WORK_MODES.map((workMode) => (
-                      <option key={workMode} value={workMode}>
-                        {workMode}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Job Type Dropdown */}
-                <div>
-                  <label htmlFor="jobType" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Job Type <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
-                  </label>
-                  <select
-                    id="jobType"
-                    value={jobType}
-                    onChange={(e) => setJobType(e.target.value)}
-                    className={inputCls}
-                    style={inputSty}
-                  >
-                    <option value="">Any Job Type</option>
-                    {JOB_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Frequency Selection */}
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                    How often would you like to receive alerts?
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="frequency"
-                        value="daily"
-                        checked={frequency === 'daily'}
-                        onChange={(e) => setFrequency(e.target.value)}
-                        className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                        style={{ borderColor: 'var(--border-color-dark)' }}
-                      />
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Daily digest</span>
+              <form onSubmit={handleSubmit}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  {/* Email */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
+                      Email Address <span style={{ color: '#EF4444' }}>*</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="frequency"
-                        value="weekly"
-                        checked={frequency === 'weekly'}
-                        onChange={(e) => setFrequency(e.target.value)}
-                        className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                        style={{ borderColor: 'var(--border-color-dark)' }}
-                      />
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Weekly digest</span>
-                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
+                      placeholder="you@example.com"
+                      style={{
+                        ...clayInput,
+                        borderColor: emailError ? '#EF4444' : '#D5E8E0',
+                      }}
+                    />
+                    {emailError && (
+                      <p style={{ fontSize: '11px', color: '#EF4444', marginTop: '4px' }}>{emailError}</p>
+                    )}
                   </div>
-                </div>
 
-                {/* Alert Preview */}
-                <div
-                  className="rounded-lg border px-4 py-3"
-                  style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}
-                >
-                  <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
-                    You&apos;ll receive alerts for
+                  {/* Location */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
+                      Location <span style={{ fontWeight: 400, color: '#B0C4BC' }}>(optional)</span>
+                    </label>
+                    <select
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      style={clayInput}
+                    >
+                      <option value="">Any Location</option>
+                      <optgroup label="Work Arrangement">
+                        <option value="Remote">Remote Only</option>
+                      </optgroup>
+                      <optgroup label="US States">
+                        {US_STATES.map((state) => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </div>
+
+                  {/* Work Mode */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
+                      Work Mode <span style={{ fontWeight: 400, color: '#B0C4BC' }}>(optional)</span>
+                    </label>
+                    <select
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value)}
+                      style={clayInput}
+                    >
+                      <option value="">Any Work Mode</option>
+                      {WORK_MODES.map((workMode) => (
+                        <option key={workMode} value={workMode}>{workMode}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Job Type */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '6px' }}>
+                      Job Type <span style={{ fontWeight: 400, color: '#B0C4BC' }}>(optional)</span>
+                    </label>
+                    <select
+                      value={jobType}
+                      onChange={(e) => setJobType(e.target.value)}
+                      style={clayInput}
+                    >
+                      <option value="">Any Job Type</option>
+                      {JOB_TYPES.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Frequency */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6B7F8A', marginBottom: '8px' }}>
+                      How often would you like to receive alerts?
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {['daily', 'weekly'].map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setFrequency(f)}
+                          style={{
+                            padding: '8px 18px', borderRadius: '12px',
+                            fontSize: '13px', fontWeight: 600,
+                            cursor: 'pointer', transition: 'all 0.2s',
+                            background: frequency === f ? '#0D9488' : '#EDF5F0',
+                            color: frequency === f ? '#fff' : '#6B7F8A',
+                            border: `1px solid ${frequency === f ? 'rgba(255,255,255,0.3)' : '#D5E8E0'}`,
+                            boxShadow: frequency === f
+                              ? '4px 4px 10px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)'
+                              : 'inset 2px 2px 5px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)',
+                          }}
+                        >
+                          {f === 'daily' ? '📬 Daily Digest' : '📅 Weekly Digest'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preview */}
+                  <div style={{
+                    ...cardRecessed, padding: '12px 16px',
+                  }}>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#B0C4BC', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                      You&apos;ll receive alerts for
+                    </p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>
+                      {buildCriteriaSummary()}
+                    </p>
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="clay-submit-btn"
+                    style={{
+                      width: '100%', padding: '12px',
+                      borderRadius: '14px', border: 'none',
+                      background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                      color: '#fff', fontSize: '14px', fontWeight: 700,
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      opacity: isSubmitting ? 0.6 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      boxShadow: '4px 4px 12px rgba(13,148,136,0.25), -2px -2px 8px rgba(255,255,255,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Creating Alert...
+                      </>
+                    ) : (
+                      <>
+                        <Bell size={16} />
+                        Create Job Alert
+                      </>
+                    )}
+                  </button>
+
+                  <p style={{ fontSize: '11px', color: '#B0C4BC', textAlign: 'center', margin: 0 }}>
+                    You can unsubscribe anytime from the email or{' '}
+                    <Link href="/job-alerts/manage" style={{ color: '#0D9488', textDecoration: 'underline' }}>
+                      manage your alerts
+                    </Link>.
                   </p>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{buildCriteriaSummary()}</p>
                 </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg px-4 py-3 text-sm font-semibold text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{ background: 'var(--color-primary)' }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Creating Alert...
-                    </>
-                  ) : (
-                    <>
-                      <Bell className="w-4 h-4" />
-                      Create Job Alert
-                    </>
-                  )}
-                </button>
-
-                <p className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
-                  You can unsubscribe anytime from the email or{' '}
-                  <Link href="/job-alerts/manage" className="hover:underline" style={{ color: 'var(--color-primary)' }}>
-                    manage your alerts
-                  </Link>
-                  .
-                </p>
               </form>
             </div>
           </div>
 
-          {/* Benefits Sidebar */}
-          <div className="flex-1 min-w-[250px] flex flex-col gap-4">
-            {/* Benefits Card */}
-            <div
-              className="rounded-xl shadow-sm border p-5"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
-            >
-              <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Why Set Up Alerts?</h3>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(16,185,129,0.15)' }}>
-                    <Zap className="w-3 h-3 text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Be First to Apply</p>
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Get notified as soon as new jobs are posted</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(20,184,166,0.15)' }}>
-                    <Bell className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Personalized Matches</p>
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Only receive jobs that match your criteria</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'rgba(168,85,247,0.15)' }}>
-                    <Briefcase className="w-3 h-3 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Save Time</p>
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No need to check the site daily</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
+          {/* ─── Sidebar ─── */}
+          <div style={{ flex: '0 1 280px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* Quick Links Card */}
-            <div
-              className="rounded-xl shadow-sm border p-6"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
-            >
-              <h3 className="font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Popular Alert Filters</h3>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/job-alerts?mode=Remote"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
-                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                >
-                  <MapPin className="w-3 h-3" />
-                  Remote
-                </Link>
-                <Link
-                  href="/job-alerts?jobType=Full-Time"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
-                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                >
-                  <Briefcase className="w-3 h-3" />
-                  Full-Time
-                </Link>
-                <Link
-                  href="/job-alerts?location=California"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
-                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                >
-                  California
-                </Link>
-                <Link
-                  href="/job-alerts?location=Texas"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
-                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                >
-                  Texas
-                </Link>
-                <Link
-                  href="/job-alerts?location=New York"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors"
-                  style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                >
-                  New York
-                </Link>
+            {/* Benefits */}
+            <div style={{ ...cardBase, padding: '20px' }}>
+              <h3 style={{
+                fontSize: '15px', fontWeight: 700,
+                fontFamily: 'var(--font-lora), Georgia, serif',
+                color: '#1A2E35', marginBottom: '16px',
+              }}>Why Set Up Alerts?</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {[
+                  { icon: <Zap size={14} />, bg: '#DCFCE7', color: '#059669', title: 'Be First to Apply', desc: 'Get notified as soon as new jobs are posted' },
+                  { icon: <Bell size={14} />, bg: '#CCFBF1', color: '#0D9488', title: 'Personalized Matches', desc: 'Only receive jobs that match your criteria' },
+                  { icon: <Briefcase size={14} />, bg: '#EDE9FE', color: '#7C3AED', title: 'Save Time', desc: 'No need to check the site daily' },
+                ].map((item) => (
+                  <div key={item.title} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '10px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: item.bg, color: item.color, flexShrink: 0,
+                      border: '1px solid rgba(255,255,255,0.5)',
+                      boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
+                    }}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>{item.title}</p>
+                      <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0, lineHeight: 1.4 }}>{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Stats Card */}
-            <div
-              className="rounded-xl border p-6"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color-dark)' }}
-            >
-              <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-primary)' }}>Trusted by PMHNPs</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>200+</p>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>New jobs daily</p>
+            {/* Quick Links */}
+            <div style={{ ...cardBase, padding: '20px' }}>
+              <h3 style={{
+                fontSize: '15px', fontWeight: 700,
+                fontFamily: 'var(--font-lora), Georgia, serif',
+                color: '#1A2E35', marginBottom: '12px',
+              }}>Popular Alert Filters</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  { label: 'Remote', icon: <MapPin size={12} />, href: '/job-alerts?mode=Remote' },
+                  { label: 'Full-Time', icon: <Briefcase size={12} />, href: '/job-alerts?jobType=Full-Time' },
+                  { label: 'California', href: '/job-alerts?location=California' },
+                  { label: 'Texas', href: '/job-alerts?location=Texas' },
+                  { label: 'New York', href: '/job-alerts?location=New+York' },
+                ].map((link) => (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    style={{
+                      ...clayPill,
+                      background: '#EDF5F0', color: '#6B7F8A',
+                    }}
+                  >
+                    {link.icon}{link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{ ...cardBase, padding: '20px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Trusted by PMHNPs
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ ...cardRecessed, padding: '12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', margin: '0 0 2px' }}>200+</p>
+                  <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>New jobs daily</p>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>10,000+</p>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Active listings</p>
+                <div style={{ ...cardRecessed, padding: '12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488', margin: '0 0 2px' }}>10,000+</p>
+                  <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>Active listings</p>
                 </div>
               </div>
             </div>
 
-            {/* Already have alerts? */}
-            <div className="text-center py-4">
-              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            {/* Manage link */}
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+              <p style={{ fontSize: '12px', color: '#8A9BA6' }}>
                 Already have alerts?{' '}
-                <Link href="/job-alerts/manage" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
+                <Link href="/job-alerts/manage" style={{ color: '#0D9488', fontWeight: 600, textDecoration: 'underline' }}>
                   Manage them here
                 </Link>
               </p>
@@ -495,31 +489,69 @@ function JobAlertsContent() {
           </div>
         </div>
 
-        {/* Browse Jobs Link */}
-        <div className="mt-6 text-center pb-4">
-          <Link
-            href="/jobs"
-            className="inline-flex items-center gap-2 font-medium"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
+        {/* Browse link */}
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <Link href="/jobs" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            fontSize: '13px', fontWeight: 600, color: '#6B7F8A',
+            textDecoration: 'none',
+          }}>
+            <ArrowLeft size={14} />
             Browse all jobs instead
           </Link>
         </div>
       </div>
+
+      {/* ═══ Hover styles ═══ */}
+      <style>{`
+        .clay-submit-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 6px 6px 16px rgba(13,148,136,0.30), -3px -3px 10px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+        }
+        .clay-submit-btn:active:not(:disabled) {
+          transform: translateY(1px);
+          box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15), inset -2px -2px 4px rgba(255,255,255,0.1) !important;
+        }
+      `}</style>
     </div>
   );
 }
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-      <div className="flex items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary)' }}></div>
-        <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+    <div style={{ minHeight: '100vh', background: '#F0F5F2', display: 'flex', flexDirection: 'column' }}>
+      {/* Shimmer hero */}
+      <div style={{ padding: '32px 16px 24px', background: '#E8F5EE', borderBottom: '1px solid #D5E8E0' }}>
+        <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="skel-shimmer" style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#DCFCE7', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div className="skel-shimmer" style={{ height: '22px', width: '60%', borderRadius: '8px', background: '#E8F0EB', marginBottom: '8px' }} />
+            <div className="skel-shimmer" style={{ height: '14px', width: '40%', borderRadius: '6px', background: '#EDF5F0' }} />
+          </div>
+        </div>
       </div>
+      {/* Shimmer form */}
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 16px', width: '100%' }}>
+        <div style={{ ...cardBase, padding: '24px', maxWidth: '500px' }}>
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} style={{ marginBottom: '18px' }}>
+              <div className="skel-shimmer" style={{ height: '12px', width: '80px', borderRadius: '6px', background: '#EDF5F0', marginBottom: '8px' }} />
+              <div className="skel-shimmer" style={{ height: '40px', width: '100%', borderRadius: '12px', background: '#EDF5F0' }} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skel-shimmer {
+          background: linear-gradient(90deg, #EDF5F0 25%, #F7FBF8 50%, #EDF5F0 75%) !important;
+          background-size: 200% 100% !important;
+          animation: shimmer 1.5s ease-in-out infinite !important;
+        }
+      `}</style>
     </div>
   );
 }

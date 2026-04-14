@@ -73,9 +73,9 @@ export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Pr
                     style={{
                         position: 'absolute', left: 0, top: 0, bottom: 0, zIndex: 2,
                         width: '32px', border: 'none', cursor: 'pointer',
-                        background: 'linear-gradient(90deg, var(--bg-primary, #0a0f1a) 40%, transparent)',
+                        background: 'linear-gradient(90deg, #F0F5F1 40%, transparent)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#2DD4BF',
+                        color: '#0D9488',
                     }}
                 >
                     <ChevronLeft size={16} />
@@ -89,9 +89,9 @@ export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Pr
                     style={{
                         position: 'absolute', right: 0, top: 0, bottom: 0, zIndex: 2,
                         width: '32px', border: 'none', cursor: 'pointer',
-                        background: 'linear-gradient(270deg, var(--bg-primary, #0a0f1a) 40%, transparent)',
+                        background: 'linear-gradient(270deg, #F0F5F1 40%, transparent)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#2DD4BF',
+                        color: '#0D9488',
                     }}
                 >
                     <ChevronRight size={16} />
@@ -104,7 +104,7 @@ export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Pr
                 className="settings-tabs-scroll-v2"
                 style={{
                     display: 'flex', gap: '2px', overflowX: 'auto', paddingBottom: '6px',
-                    borderBottom: '1px solid var(--border-color)',
+                    borderBottom: '1px solid rgba(213,232,224,0.6)',
                     scrollbarWidth: 'none',
                     WebkitOverflowScrolling: 'touch',
                 }}
@@ -122,10 +122,12 @@ export default function SettingsTabs({ activeTab, onTabChange, isJobSeeker }: Pr
                             onClick={() => onTabChange(tab.key)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '10px 12px', fontSize: '13px', fontWeight: isActive ? 700 : 500,
-                                color: isActive ? '#2DD4BF' : 'var(--text-secondary)',
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                borderBottom: isActive ? '2px solid #2DD4BF' : '2px solid transparent',
+                                padding: '8px 14px', fontSize: '13px', fontWeight: isActive ? 700 : 500,
+                                color: isActive ? '#0D9488' : '#6B7F8A',
+                                background: isActive ? '#D5F5F1' : 'transparent',
+                                border: 'none', cursor: 'pointer',
+                                borderRadius: '10px',
+                                boxShadow: isActive ? '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)' : 'none',
                                 transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0,
                             }}
                         >

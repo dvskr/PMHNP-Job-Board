@@ -30,7 +30,7 @@ html,
 body {
   overflow-x: hidden;
   max-width: 100vw;
-  background-color: #FAFBF8 !important;
+  background-color: #F5F6F8 !important;
   scrollbar-width: none !important;
   /* Firefox */
   -ms-overflow-style: none !important;
@@ -110,12 +110,12 @@ html.dark select:-webkit-autofill {
   --color-accent-light: #FCE4EC;
 
   /* ══════ BACKGROUNDS — Diorama Palette ══════ */
-  --bg-primary: #FAFBF8;
+  --bg-primary: #F5F6F8;
   --bg-secondary: #F3F2EF;
   --bg-secondary-rgb: 243, 242, 239;
   --bg-tertiary: #FFFFFF;
   --bg-shell: #1c1917; /* header, footer — warm near-black */
-  --bg-panel-alt: #FAFBF8; /* unified with body — no alt panels */
+  --bg-panel-alt: #F5F6F8; /* unified with body — no alt panels */
 
   /* ══════ TEXT — Deep Charcoal ══════ */
   --text-primary: #2D3748;
@@ -1298,4 +1298,29 @@ textarea::placeholder {
 
 .auth-clay a:hover {
   color: #0F766E;
+}
+
+/* ═════════════════════════════════════════════════════
+   DASHBOARD — Hover Effects (buttons only)
+   ═════════════════════════════════════════════════════ */
+
+/* Quick action pills — press effect on hover */
+.clay-action-pill {
+  transition: all 0.2s ease !important;
+}
+.clay-action-pill:hover {
+  transform: translateY(-2px) !important;
+  background: #E6FAF8 !important;
+  color: #0D9488 !important;
+  box-shadow:
+    5px 5px 14px rgba(13, 148, 136, 0.12),
+    -3px -3px 8px rgba(255, 255, 255, 0.8),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.7),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+.clay-action-pill:active {
+  transform: translateY(1px) !important;
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 40, 30, 0.08),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.6) !important;
 }
