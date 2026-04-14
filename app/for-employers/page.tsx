@@ -6,8 +6,8 @@ import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 import { config } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import {
-  Check, Sparkles, Crown, ArrowRight, Users, TrendingUp, BarChart,
-  Target, Clock, DollarSign, Mail, Briefcase,
+  Check, Sparkles, ArrowRight, Users, TrendingUp, BarChart,
+  Clock, DollarSign, Mail, Briefcase,
   X, Search, Building2,
 } from 'lucide-react';
 
@@ -169,40 +169,141 @@ export default async function ForEmployersPage() {
       <EmployerHowItWorks />
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 3: WHAT EVERY POST INCLUDES (merged features)
+          SECTION 3: BENTO GRID FEATURES
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '960px', margin: '0 auto', padding: '72px 20px 56px' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '80px 20px 56px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
             First 2 Posts Free · Then ${config.postingPrice}/post
           </p>
-          <h2 className="font-lora" style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
             Every Post Gets the Full Package
           </h2>
-          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '520px', margin: '0 auto 40px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>
             No tiers. No feature gates. Free or paid — every listing gets the same premium treatment.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-            {[
-              { icon: Clock, title: '60-Day Listing', desc: 'Double the industry standard. Your job stays visible for 2 full months.', gradient: 'linear-gradient(145deg, #0D9488, #10B981)' },
-              { icon: Sparkles, title: 'Featured Badge', desc: 'Stand out with a prominent Featured tag on your listing and in search.', gradient: 'linear-gradient(145deg, #E86C2C, #F59E0B)' },
-              { icon: TrendingUp, title: 'Top Search Placement', desc: 'Featured listings rank higher in search results — more visibility, more clicks.', gradient: 'linear-gradient(145deg, #8B5CF6, #A855F7)' },
-              { icon: Mail, title: 'Daily Job Alerts', desc: 'Your listing is highlighted in daily email digests to opted-in PMHNPs.', gradient: 'linear-gradient(145deg, #F59E0B, #FBBF24)' },
-              { icon: Users, title: '25 Candidate Unlocks', desc: 'View full profiles of interested applicants — contact info, resume, LinkedIn.', gradient: 'linear-gradient(145deg, #10B981, #34D399)' },
-              { icon: Briefcase, title: '25 InMails', desc: 'Message candidates directly through the platform — no guessing emails.', gradient: 'linear-gradient(145deg, #3B82F6, #60A5FA)' },
-              { icon: BarChart, title: 'Live Analytics', desc: 'Track views, clicks, and applications in real time from your dashboard.', gradient: 'linear-gradient(145deg, #E86C2C, #F59E0B)' },
-              { icon: Target, title: '100% PMHNP Audience', desc: 'Every visitor is a psychiatric nurse practitioner. Zero unqualified noise.', gradient: 'linear-gradient(145deg, #0D9488, #10B981)' },
-              { icon: DollarSign, title: 'No Surprises', desc: `First 2 free. After that, flat $${config.postingPrice}. Renewals just $${config.renewalPrice}.`, gradient: 'linear-gradient(145deg, #8B5CF6, #A855F7)' },
-            ].map(({ icon: Icon, title, desc, gradient }) => (
-              <div key={title} style={{ ...clayCard, padding: '22px' }}>
-                <div style={{ ...clayIconWrap(gradient), width: '38px', height: '38px', borderRadius: '12px', marginBottom: '14px' }}>
-                  <Icon size={16} color="#fff" />
+          {/* ─── Bento Grid ─── */}
+          <div className="bento-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(12, 1fr)',
+            gridTemplateRows: 'auto',
+            gap: '14px',
+          }}>
+
+            {/* ROW 1: 60-Day Listing (8 cols) + Featured Badge (4 cols) */}
+            <div className="bento-hero-1" style={{
+              ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
+              display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
+            }}>
+              <div style={{ padding: '32px 28px' }}>
+                <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)'), marginBottom: '16px' }}>
+                  <Clock size={20} color="#fff" />
                 </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{title}</h3>
-                <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>{desc}</p>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>60-Day Listing</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                  Double the industry standard. Your job stays visible for 2 full months — no daily budget, no bidding.
+                </p>
               </div>
-            ))}
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
+                <Image src="/images/employers/bento-60day.png" alt="60-day job listing calendar" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              </div>
+            </div>
+
+            <div className="bento-hero-2" style={{
+              ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Image src="/images/employers/bento-featured.png" alt="Featured badge on job listing" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+              </div>
+              <div style={{ padding: '24px 22px', flex: 1 }}>
+                <div style={{ ...clayIconWrap('linear-gradient(145deg, #E86C2C, #F59E0B)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '12px' }}>
+                  <Sparkles size={16} color="#fff" />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Featured Badge</h3>
+                <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                  Stand out with a prominent Featured tag on your listing and in search results.
+                </p>
+              </div>
+            </div>
+
+            {/* ROW 2: 4 compact cards (3 cols each) */}
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
+              <div style={{ ...clayIconWrap('linear-gradient(145deg, #8B5CF6, #A855F7)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
+                <TrendingUp size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Search Placement</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Featured listings rank higher — more visibility, more clicks.</p>
+            </div>
+
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
+              <div style={{ ...clayIconWrap('linear-gradient(145deg, #F59E0B, #FBBF24)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
+                <Mail size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Daily Job Alerts</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Highlighted in daily email digests to opted-in PMHNPs.</p>
+            </div>
+
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
+              <div style={{ ...clayIconWrap('linear-gradient(145deg, #10B981, #34D399)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
+                <Users size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 Candidate Unlocks</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>View full profiles — contact info, resume, LinkedIn.</p>
+            </div>
+
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
+              <div style={{ ...clayIconWrap('linear-gradient(145deg, #3B82F6, #60A5FA)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
+                <Briefcase size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 InMails</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
+            </div>
+
+            {/* ROW 3: Analytics (8 cols) + Pricing (4 cols) */}
+            <div className="bento-hero-3" style={{
+              ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
+              display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
+            }}>
+              <div style={{ padding: '32px 28px' }}>
+                <div style={{ ...clayIconWrap('linear-gradient(145deg, #E86C2C, #F59E0B)'), marginBottom: '16px' }}>
+                  <BarChart size={20} color="#fff" />
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Live Analytics</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                  Track views, clicks, and applications in real time. See exactly where your candidates come from.
+                </p>
+              </div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
+                <Image src="/images/employers/bento-analytics.png" alt="Analytics dashboard with charts" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              </div>
+            </div>
+
+            <div className="bento-pricing" style={{
+              ...clayCard, gridColumn: 'span 4',
+              padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
+              border: '2px solid rgba(13,148,136,0.15)',
+            }}>
+              <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
+                <DollarSign size={16} color="#fff" />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Simple Pricing</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
+                First 2 posts free. Then ${config.postingPrice}/post.<br />
+                Renewals just ${config.renewalPrice}. No hidden fees.
+              </p>
+              <Link href="/post-job" style={{
+                padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                background: '#0D9488', color: '#fff', textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content',
+                boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
+              }}>
+                Post a Job <ArrowRight size={14} />
+              </Link>
+            </div>
+
           </div>
         </section>
 
@@ -304,6 +405,22 @@ export default async function ForEmployersPage() {
           .emp-hero-grid { grid-template-columns: 1fr !important; }
           .emp-cta-grid { grid-template-columns: 1fr !important; }
           .emp-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .bento-grid { grid-template-columns: 1fr !important; }
+          .bento-hero-1, .bento-hero-2, .bento-hero-3, .bento-pricing {
+            grid-column: span 1 !important;
+          }
+          .bento-hero-1, .bento-hero-3 {
+            grid-template-columns: 1fr !important;
+          }
+          .bento-grid > div { grid-column: span 1 !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+          .bento-hero-1, .bento-hero-3 { grid-column: span 6 !important; }
+          .bento-hero-2, .bento-pricing { grid-column: span 6 !important; }
+          .bento-grid > div:not(.bento-hero-1):not(.bento-hero-2):not(.bento-hero-3):not(.bento-pricing) {
+            grid-column: span 3 !important;
+          }
         }
       `}</style>
     </>
