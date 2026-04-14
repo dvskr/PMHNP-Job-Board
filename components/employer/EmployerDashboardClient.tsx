@@ -781,28 +781,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </div>
                         )}
 
-                        {/* Footer */}
-                        <div style={{
-                            marginTop: '32px', paddingTop: '16px',
-                            borderTop: '1px solid #D5E8E0',
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            fontSize: '12px', color: '#8A9BA6',
-                        }}>
-                            <span>&copy; {new Date().getFullYear()} PMHNP Hiring.</span>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                <Link href="/contact" style={{ color: '#8A9BA6', textDecoration: 'none' }}>Contact Support</Link>
-                                {!isTokenAccess && (
-                                    <form action="/auth/signout" method="post" style={{ display: 'inline' }}>
-                                        <button type="submit" style={{
-                                            background: 'none', border: 'none', cursor: 'pointer',
-                                            color: '#DC2626', fontWeight: 600, fontSize: '12px',
-                                        }}>
-                                            Sign Out
-                                        </button>
-                                    </form>
-                                )}
-                            </div>
-                        </div>
+
                     </>
                 )}
 

@@ -92,7 +92,6 @@ const selectBase: React.CSSProperties = {
     background: '#FFFFFF',
     color: '#374151',
     appearance: 'auto' as const,
-    WebkitAppearance: 'auto' as const,
 };
 
 export default function ApplicantsTab() {

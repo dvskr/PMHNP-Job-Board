@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       salaryMin: raw.salaryMin ?? null,
       postedWithin: raw.postedWithin ?? null,
       location: raw.location ?? null,
+      employer: raw.employer ?? null,
     };
 
     // Base filters for all counts (excludes the specific category being counted)
