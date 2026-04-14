@@ -163,7 +163,7 @@ export default async function ForEmployersPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 2: HOW IT WORKS (dark band)
+          SECTION 2: HOW EMPLOYERS HIRE (dark band — 4-step horizontal)
           ═══════════════════════════════════════════════════════════════ */}
       <section style={{
         background: 'linear-gradient(175deg, #2A0E1E 0%, #3A1228 35%, #220B18 100%)',
@@ -184,53 +184,72 @@ export default async function ForEmployersPage() {
             Built for Hiring Managers
           </p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 12px' }}>
-            How It Works
+            How Employers Hire
           </h2>
-          <p style={{ fontSize: '15px', color: 'rgba(248,232,236,0.5)', textAlign: 'center', maxWidth: '420px', margin: '0 auto 48px', lineHeight: 1.6 }}>
-            Three simple steps to find your next PMHNP hire.
+          <p style={{ fontSize: '15px', color: 'rgba(248,232,236,0.5)', textAlign: 'center', maxWidth: '480px', margin: '0 auto 56px', lineHeight: 1.6 }}>
+            Four simple steps from posting to hiring. No approval queues, no waiting.
           </p>
 
-          <div className="emp-steps-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '48px', alignItems: 'center' }}>
-            {/* Left — Illustration */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Image
-                src="/images/employers/how-it-works.png"
-                alt="Three stages of posting a PMHNP job listing"
-                width={440} height={360}
-                style={{ width: '100%', maxWidth: '440px', height: 'auto', borderRadius: '20px' }}
-              />
-            </div>
-
-            {/* Right — 3 Steps */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {[
-                { num: '1', title: 'Create Your Listing', desc: 'Fill out the simple job posting form with your requirements, salary details, and application info. Takes under 5 minutes.', gradient: 'linear-gradient(135deg, #e8788c, #c05a7a)' },
-                { num: '2', title: 'Preview & Publish', desc: 'Review your posting with our live preview, then publish instantly. Your listing goes live immediately and is included in the next daily job alert.', gradient: 'linear-gradient(135deg, #c05a7a, #a8456a)' },
-                { num: '3', title: 'Receive Candidates', desc: 'Track views, apply clicks, and applications from your employer dashboard. Only verified PMHNPs see your listing — zero noise.', gradient: 'linear-gradient(135deg, #a8456a, #e8788c)' },
-              ].map(({ num, title, desc, gradient }) => (
-                <div key={num} style={{
-                  padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start',
-                  background: 'rgba(255,255,255,0.04)', borderRadius: '16px',
+          {/* 4-Step Horizontal Cards */}
+          <div className="emp-steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+            {[
+              {
+                num: '1', title: 'Post Your Listing', img: '/images/employers/step-create.png',
+                desc: 'Fill out job details, preview, and publish — live in under 5 minutes. First 2 posts free.',
+                dot: '#e8788c',
+              },
+              {
+                num: '2', title: 'Reach Every PMHNP', img: '/images/employers/step-reach.png',
+                desc: 'Your listing is emailed to thousands via daily job alerts and indexed on Google with its own SEO page.',
+                dot: '#c05a7a',
+              },
+              {
+                num: '3', title: 'Browse & Message', img: '/images/employers/step-publish.png',
+                desc: 'Search our talent pool of qualified PMHNPs. Save top candidates and reach out directly with InMail.',
+                dot: '#a8456a',
+              },
+              {
+                num: '4', title: 'Track & Hire', img: '/images/employers/step-hire.png',
+                desc: 'Real-time analytics on views, clicks, and applications. Get notified instantly when candidates apply.',
+                dot: '#e8788c',
+              },
+            ].map(({ num, title, desc, img, dot }) => (
+              <div key={num} style={{ textAlign: 'center' }}>
+                {/* Image */}
+                <div style={{
+                  borderRadius: '16px', overflow: 'hidden', marginBottom: '16px',
+                  background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(220,120,140,0.1)',
                 }}>
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: gradient, boxShadow: '0 0 12px rgba(220,120,140,0.3)',
-                    fontSize: '16px', fontWeight: 800, color: '#fff',
-                  }}>
-                    {num}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8e8ec', margin: '0 0 6px' }}>{title}</h3>
-                    <p style={{ fontSize: '13px', color: 'rgba(248,232,236,0.4)', margin: 0, lineHeight: 1.6 }}>{desc}</p>
-                  </div>
+                  <Image
+                    src={img}
+                    alt={title}
+                    width={260} height={200}
+                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                  />
                 </div>
-              ))}
-            </div>
+
+                {/* Step dot */}
+                <div style={{
+                  width: '12px', height: '12px', borderRadius: '50%',
+                  background: dot, margin: '0 auto 14px',
+                  boxShadow: `0 0 8px ${dot}60`,
+                }} />
+
+                {/* Title */}
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f8e8ec', margin: '0 0 8px' }}>
+                  {title}
+                </h3>
+
+                {/* Description */}
+                <p style={{ fontSize: '12.5px', color: 'rgba(248,232,236,0.4)', margin: 0, lineHeight: 1.6, padding: '0 4px' }}>
+                  {desc}
+                </p>
+              </div>
+            ))}
           </div>
 
-          {/* CTA in dark section */}
+          {/* CTA */}
           <div style={{ textAlign: 'center', marginTop: '48px' }}>
             <Link href="/post-job" style={{
               display: 'inline-flex', alignItems: 'center', gap: '10px',
@@ -380,9 +399,12 @@ export default async function ForEmployersPage() {
       <style>{`
         @media (max-width: 768px) {
           .emp-hero-grid { grid-template-columns: 1fr !important; }
-          .emp-steps-layout { grid-template-columns: 1fr !important; }
+          .emp-steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .emp-cta-grid { grid-template-columns: 1fr !important; }
           .emp-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 480px) {
+          .emp-steps-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </>
