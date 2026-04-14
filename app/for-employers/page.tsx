@@ -6,8 +6,7 @@ import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 import { config } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import {
-  Check, Sparkles, ArrowRight, Users, TrendingUp, BarChart,
-  Clock, DollarSign, Mail, Briefcase,
+  Check, ArrowRight, Users,
   X, Search, Building2,
 } from 'lucide-react';
 
@@ -31,13 +30,7 @@ const clayCard: React.CSSProperties = {
   boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
 };
 
-const clayIconWrap = (gradient: string): React.CSSProperties => ({
-  width: '44px', height: '44px', borderRadius: '14px',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  background: gradient,
-  boxShadow: '4px 4px 10px rgba(0,0,0,0.08), inset 1px 1px 2px rgba(255,255,255,0.2)',
-  flexShrink: 0,
-});
+
 
 async function getEmployerStats() {
   try {
@@ -197,9 +190,7 @@ export default async function ForEmployersPage() {
               display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
             }}>
               <div style={{ padding: '32px 28px' }}>
-                <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)'), marginBottom: '16px' }}>
-                  <Clock size={20} color="#fff" />
-                </div>
+                <Image src="/images/employers/clay-calendar.png" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>60-Day Listing</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                   Double the industry standard. Your job stays visible for 2 full months — no daily budget, no bidding.
@@ -218,9 +209,7 @@ export default async function ForEmployersPage() {
                 <Image src="/images/employers/bento-featured.png" alt="Featured badge on job listing" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
               </div>
               <div style={{ padding: '24px 22px', flex: 1 }}>
-                <div style={{ ...clayIconWrap('linear-gradient(145deg, #E86C2C, #F59E0B)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '12px' }}>
-                  <Sparkles size={16} color="#fff" />
-                </div>
+                <Image src="/images/employers/clay-star.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '12px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Featured Badge</h3>
                 <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
                   Stand out with a prominent Featured tag on your listing and in search results.
@@ -228,35 +217,27 @@ export default async function ForEmployersPage() {
               </div>
             </div>
 
-            {/* ROW 2: 4 compact cards (3 cols each) */}
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
-              <div style={{ ...clayIconWrap('linear-gradient(145deg, #8B5CF6, #A855F7)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
-                <TrendingUp size={16} color="#fff" />
-              </div>
+            {/* ROW 2: 4 compact cards (3 cols each) — CENTERED */}
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/employers/clay-trending.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Search Placement</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Featured listings rank higher — more visibility, more clicks.</p>
             </div>
 
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
-              <div style={{ ...clayIconWrap('linear-gradient(145deg, #F59E0B, #FBBF24)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
-                <Mail size={16} color="#fff" />
-              </div>
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/employers/clay-envelope.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Daily Job Alerts</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Highlighted in daily email digests to opted-in PMHNPs.</p>
             </div>
 
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
-              <div style={{ ...clayIconWrap('linear-gradient(145deg, #10B981, #34D399)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
-                <Users size={16} color="#fff" />
-              </div>
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/employers/clay-people.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 Candidate Unlocks</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>View full profiles — contact info, resume, LinkedIn.</p>
             </div>
 
-            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '22px' }}>
-              <div style={{ ...clayIconWrap('linear-gradient(145deg, #3B82F6, #60A5FA)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
-                <Briefcase size={16} color="#fff" />
-              </div>
+            <div style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/employers/clay-briefcase.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 InMails</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
             </div>
@@ -267,9 +248,7 @@ export default async function ForEmployersPage() {
               display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
             }}>
               <div style={{ padding: '32px 28px' }}>
-                <div style={{ ...clayIconWrap('linear-gradient(145deg, #E86C2C, #F59E0B)'), marginBottom: '16px' }}>
-                  <BarChart size={20} color="#fff" />
-                </div>
+                <Image src="/images/employers/clay-chart.png" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Live Analytics</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
                   Track views, clicks, and applications in real time. See exactly where your candidates come from.
@@ -286,9 +265,7 @@ export default async function ForEmployersPage() {
               background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
               border: '2px solid rgba(13,148,136,0.15)',
             }}>
-              <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)'), width: '36px', height: '36px', borderRadius: '10px', marginBottom: '14px' }}>
-                <DollarSign size={16} color="#fff" />
-              </div>
+              <Image src="/images/employers/clay-dollar.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Simple Pricing</h3>
               <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
                 First 2 posts free. Then ${config.postingPrice}/post.<br />
