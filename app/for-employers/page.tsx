@@ -2,12 +2,13 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 import { config } from '@/lib/config';
 import { prisma } from '@/lib/prisma';
 import {
   Check, Sparkles, Crown, ArrowRight, Users, TrendingUp, BarChart,
   Target, Clock, DollarSign, Mail, Briefcase,
-  X, Search, Building2, ArrowUpRight,
+  X, Search, Building2,
 } from 'lucide-react';
 
 export const revalidate = 3600;
@@ -163,107 +164,9 @@ export default async function ForEmployersPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 2: HOW EMPLOYERS HIRE (dark band — 4-step horizontal)
+          SECTION 2: HOW EMPLOYERS HIRE (shared component from homepage)
           ═══════════════════════════════════════════════════════════════ */}
-      <section style={{
-        background: 'linear-gradient(175deg, #2A0E1E 0%, #3A1228 35%, #220B18 100%)',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Ambient glow decorations */}
-        <div style={{
-          position: 'absolute', top: '-200px', left: '-100px', width: '500px', height: '500px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(220,120,140,0.06) 0%, transparent 70%)', pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-150px', right: '-80px', width: '400px', height: '400px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(180,100,160,0.05) 0%, transparent 70%)', pointerEvents: 'none',
-        }} />
-
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '72px 20px', position: 'relative', zIndex: 1 }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#e8788c', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '12px', textAlign: 'center' }}>
-            Built for Hiring Managers
-          </p>
-          <h2 className="font-lora" style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 12px' }}>
-            How Employers Hire
-          </h2>
-          <p style={{ fontSize: '15px', color: 'rgba(248,232,236,0.5)', textAlign: 'center', maxWidth: '480px', margin: '0 auto 56px', lineHeight: 1.6 }}>
-            Four simple steps from posting to hiring. No approval queues, no waiting.
-          </p>
-
-          {/* 4-Step Horizontal Cards */}
-          <div className="emp-steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
-            {[
-              {
-                num: '1', title: 'Post Your Listing', img: '/images/employers/step-create.png',
-                desc: 'Fill out job details, preview, and publish — live in under 5 minutes. First 2 posts free.',
-                dot: '#e8788c',
-              },
-              {
-                num: '2', title: 'Reach Every PMHNP', img: '/images/employers/step-reach.png',
-                desc: 'Your listing is emailed to thousands via daily job alerts and indexed on Google with its own SEO page.',
-                dot: '#c05a7a',
-              },
-              {
-                num: '3', title: 'Browse & Message', img: '/images/employers/step-publish.png',
-                desc: 'Search our talent pool of qualified PMHNPs. Save top candidates and reach out directly with InMail.',
-                dot: '#a8456a',
-              },
-              {
-                num: '4', title: 'Track & Hire', img: '/images/employers/step-hire.png',
-                desc: 'Real-time analytics on views, clicks, and applications. Get notified instantly when candidates apply.',
-                dot: '#e8788c',
-              },
-            ].map(({ num, title, desc, img, dot }) => (
-              <div key={num} style={{ textAlign: 'center' }}>
-                {/* Image */}
-                <div style={{
-                  borderRadius: '16px', overflow: 'hidden', marginBottom: '16px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(220,120,140,0.1)',
-                }}>
-                  <Image
-                    src={img}
-                    alt={title}
-                    width={260} height={200}
-                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                  />
-                </div>
-
-                {/* Step dot */}
-                <div style={{
-                  width: '12px', height: '12px', borderRadius: '50%',
-                  background: dot, margin: '0 auto 14px',
-                  boxShadow: `0 0 8px ${dot}60`,
-                }} />
-
-                {/* Title */}
-                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f8e8ec', margin: '0 0 8px' }}>
-                  {title}
-                </h3>
-
-                {/* Description */}
-                <p style={{ fontSize: '12.5px', color: 'rgba(248,232,236,0.4)', margin: 0, lineHeight: 1.6, padding: '0 4px' }}>
-                  {desc}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div style={{ textAlign: 'center', marginTop: '48px' }}>
-            <Link href="/post-job" style={{
-              display: 'inline-flex', alignItems: 'center', gap: '10px',
-              padding: '13px 32px', fontSize: '13px', fontWeight: 700, color: '#fff',
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-              background: 'linear-gradient(135deg, #c05a7a, #e8788c)',
-              borderRadius: '12px', boxShadow: '0 4px 20px rgba(200,90,120,0.3)',
-              textDecoration: 'none',
-            }}>
-              Post a Job — First 2 Free <ArrowUpRight size={15} />
-            </Link>
-          </div>
-        </div>
-      </section>
+      <EmployerHowItWorks />
 
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 3: WHAT EVERY POST INCLUDES (merged features)
@@ -399,12 +302,8 @@ export default async function ForEmployersPage() {
       <style>{`
         @media (max-width: 768px) {
           .emp-hero-grid { grid-template-columns: 1fr !important; }
-          .emp-steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .emp-cta-grid { grid-template-columns: 1fr !important; }
           .emp-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-        @media (max-width: 480px) {
-          .emp-steps-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </>
