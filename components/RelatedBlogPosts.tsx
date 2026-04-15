@@ -52,7 +52,7 @@ export default function RelatedBlogPosts({
                 overflow: 'hidden',
             }}>
                 <Image
-                    src="/images/vector-resources-v3.png"
+                    src="/illustrations/vector-resources-v3.png"
                     alt="Career Resources"
                     fill
                     style={{ objectFit: 'cover' }}

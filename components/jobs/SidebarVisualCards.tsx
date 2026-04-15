@@ -126,7 +126,7 @@ export function CareerPulseCard() {
         overflow: 'hidden',
       }}>
         <Image
-          src="/images/vector-career-pulse-v3.png"
+          src="/illustrations/vector-career-pulse-v3.png"
           alt="PMHNP Career Growth"
           fill
           style={{ objectFit: 'cover' }}
@@ -211,7 +211,7 @@ export function ApplicationTipsCard({
         overflow: 'hidden',
       }}>
         <Image
-          src="/images/vector-pro-tips.png"
+          src="/illustrations/vector-pro-tips.png"
           alt="Application Tips"
           fill
           style={{ objectFit: 'cover' }}
