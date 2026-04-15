@@ -41,12 +41,12 @@ const clayCard: React.CSSProperties = {
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   career_opportunities: { label: 'Career', color: '#6366F1', bg: '#EEF2FF', icon: '/images/employers/clay-trending.png' },
   salary_negotiation: { label: 'Salary', color: '#0D9488', bg: '#F0FDFA', icon: '/images/employers/clay-dollar.png' },
-  job_seeker_attraction: { label: 'Job Search', color: '#3B82F6', bg: '#EFF6FF', icon: '/images/employers/clay-briefcase.png' },
-  career_myths: { label: 'Education', color: '#A855F7', bg: '#FAF5FF', icon: '/images/employers/clay-star.png' },
+  job_seeker_attraction: { label: 'Job Search', color: '#3B82F6', bg: '#EFF6FF', icon: '/images/blog/icon-job-search.png' },
+  career_myths: { label: 'Education', color: '#A855F7', bg: '#FAF5FF', icon: '/images/blog/icon-education.png' },
   community_lifestyle: { label: 'Lifestyle', color: '#F59E0B', bg: '#FFFBEB', icon: '/images/employers/clay-people.png' },
-  employer_facing: { label: 'Employers', color: '#EF4444', bg: '#FEF2F2', icon: '/images/employers/clay-envelope.png' },
-  product_lead_gen: { label: 'Product', color: '#0D9488', bg: '#F0FDFA', icon: '/images/employers/clay-chart.png' },
-  industry_awareness: { label: 'Industry', color: '#8B5CF6', bg: '#F5F3FF', icon: '/images/employers/clay-trending.png' },
+  employer_facing: { label: 'Employers', color: '#EF4444', bg: '#FEF2F2', icon: '/images/blog/icon-employers.png' },
+  product_lead_gen: { label: 'Product', color: '#0D9488', bg: '#F0FDFA', icon: '/images/blog/icon-product.png' },
+  industry_awareness: { label: 'Industry', color: '#8B5CF6', bg: '#F5F3FF', icon: '/images/blog/icon-industry.png' },
 };
 
 /* ─── Featured guides data ─── */
