@@ -241,13 +241,13 @@ export default function UserMenu({ user, profileCompleteness = 100, isMobile = f
               )}
 
               <Link
-                href="/settings"
+                href={user.role === 'employer' ? '/employer/settings' : '/settings'}
                 onClick={() => setIsOpen(false)}
                 className="um-menu-item"
                 style={menuItemStyle}
               >
                 <Settings style={{ width: '16px', height: '16px' }} />
-                Complete Profile
+                {user.role === 'employer' ? 'Settings' : 'Complete Profile'}
               </Link>
             </div>
 

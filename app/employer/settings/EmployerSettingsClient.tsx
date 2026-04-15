@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Save, Loader2, Globe, Mail,
-    Phone, CheckCircle, AlertTriangle, FileText,
+    Phone, CheckCircle, AlertTriangle, FileText, Lock,
 } from 'lucide-react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
