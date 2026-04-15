@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUpRight, ArrowRight, HelpCircle, TrendingUp, DollarSign, MapPin, Briefcase, Building2, GraduationCap, Shield, Award } from 'lucide-react';
+import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -111,14 +111,6 @@ const clayCard: React.CSSProperties = {
   boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
 };
 
-const clayIconWrap = (bg: string): React.CSSProperties => ({
-  width: '44px', height: '44px', borderRadius: '14px',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  background: bg,
-  boxShadow: '3px 3px 8px rgba(0,0,0,0.08), inset 1px 1px 2px rgba(255,255,255,0.2)',
-  flexShrink: 0,
-});
-
 /* ═══ Experience / Setting / Specialty data ═══ */
 const experienceData = [
   { exp: 'New Grad (0-1 yr)', range: '$115,000 - $145,000', roles: 'Staff PMHNP, Outpatient Clinic' },
@@ -148,12 +140,12 @@ const specialtyData = [
 ];
 
 const factorCards = [
-  { icon: MapPin, title: 'Geographic Location', desc: 'States with higher cost of living and greater demand (CA, NY, MA) typically offer 20-40% higher salaries than rural areas.', bg: '#E0F2FE', iconBg: '#0EA5E9' },
-  { icon: GraduationCap, title: 'Experience Level', desc: 'Entry-level PMHNPs start around $115-145k. With 5+ years experience, salaries can reach $180-210k or more.', bg: '#F3E8FF', iconBg: '#A855F7' },
-  { icon: Building2, title: 'Practice Setting', desc: 'Private practice and telehealth positions often pay more than hospital or community health settings.', bg: '#D1FAE5', iconBg: '#10B981' },
-  { icon: Briefcase, title: 'Employment Type', desc: '1099 contractors and travel PMHNPs often earn 20-50% more than W2 employees, though without traditional benefits.', bg: '#FEF3C7', iconBg: '#F59E0B' },
-  { icon: TrendingUp, title: 'Specialization', desc: 'Subspecialties like addiction psychiatry, child/adolescent, or forensic psychiatry can command premium pay (+10-25%).', bg: '#FFE4E6', iconBg: '#F43F5E' },
-  { icon: DollarSign, title: 'Negotiation', desc: 'PMHNPs who negotiate can often secure 5-15% higher starting salaries plus signing bonuses ($5,000-$30,000).', bg: '#E0E7FF', iconBg: '#6366F1' },
+  { img: '/images/clay-icon-match.png', title: 'Geographic Location', desc: 'States with higher cost of living and greater demand (CA, NY, MA) typically offer 20-40% higher salaries than rural areas.' },
+  { img: '/images/employers/clay-calendar.png', title: 'Experience Level', desc: 'Entry-level PMHNPs start around $115-145k. With 5+ years experience, salaries can reach $180-210k or more.' },
+  { img: '/images/employers/clay-briefcase.png', title: 'Practice Setting', desc: 'Private practice and telehealth positions often pay more than hospital or community health settings.' },
+  { img: '/images/employers/clay-people.png', title: 'Employment Type', desc: '1099 contractors and travel PMHNPs often earn 20-50% more than W2 employees, though without traditional benefits.' },
+  { img: '/images/employers/clay-trending.png', title: 'Specialization', desc: 'Subspecialties like addiction psychiatry, child/adolescent, or forensic psychiatry can command premium pay (+10-25%).' },
+  { img: '/images/employers/clay-dollar.png', title: 'Negotiation', desc: 'PMHNPs who negotiate can often secure 5-15% higher starting salaries plus signing bonuses ($5,000-$30,000).' },
 ];
 
 const faqData = [
@@ -301,9 +293,7 @@ export default async function SalaryGuidePage() {
               border: '2px solid rgba(13,148,136,0.10)',
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
-                <div style={clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)')}>
-                  <DollarSign size={20} color="#fff" />
-                </div>
+                <Image src="/images/employers/clay-dollar.png" alt="Salary" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0 }} />
                 <div>
                   <h2 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Quick Answer: PMHNP Salary in {currentYear}</h2>
                   <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>
@@ -433,9 +423,7 @@ export default async function SalaryGuidePage() {
             {/* Experience Level (8 cols) */}
             <div className="sal-bento-exp emp-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden' }}>
               <div style={{ padding: '24px 28px 8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={clayIconWrap('#E0E7FF')}>
-                  <GraduationCap size={20} color="#6366F1" />
-                </div>
+                <Image src="/images/employers/clay-calendar.png" alt="Experience" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>By Experience Level</h3>
               </div>
               <div style={{ padding: '0 0 0' }}>
@@ -463,9 +451,7 @@ export default async function SalaryGuidePage() {
             {/* Practice Setting (4 cols) */}
             <div className="sal-bento-setting emp-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '24px 22px', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-                <div style={clayIconWrap('#D1FAE5')}>
-                  <Building2 size={20} color="#10B981" />
-                </div>
+                <Image src="/images/employers/clay-briefcase.png" alt="Setting" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>By Setting</h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -488,9 +474,7 @@ export default async function SalaryGuidePage() {
             {/* Specialty Premiums (6 cols) */}
             <div className="sal-bento-spec emp-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '0', overflow: 'hidden' }}>
               <div style={{ padding: '24px 28px 8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={clayIconWrap('#FEF3C7')}>
-                  <Award size={20} color="#F59E0B" />
-                </div>
+                <Image src="/images/employers/clay-star.png" alt="Specialty" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Specialty Premiums</h3>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
@@ -510,9 +494,7 @@ export default async function SalaryGuidePage() {
               ...clayCard, gridColumn: 'span 6', padding: '24px 22px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <div style={clayIconWrap('#E0F2FE')}>
-                  <Shield size={20} color="#0EA5E9" />
-                </div>
+                <Image src="/images/employers/clay-chart.png" alt="Practice Authority" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Full Practice Authority</h3>
               </div>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 16px' }}>
@@ -607,18 +589,13 @@ export default async function SalaryGuidePage() {
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-            {factorCards.map(card => {
-              const FIcon = card.icon;
-              return (
+            {factorCards.map(card => (
                 <div key={card.title} className="emp-bento-card" style={{ ...clayCard, padding: '28px 24px' }}>
-                  <div style={{ ...clayIconWrap(card.bg), marginBottom: '16px' }}>
-                    <FIcon size={20} color={card.iconBg} />
-                  </div>
+                  <Image src={card.img} alt={card.title} width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '16px' }} />
                   <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>{card.title}</h3>
                   <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>{card.desc}</p>
                 </div>
-              );
-            })}
+            ))}
           </div>
         </div>
       </div>
@@ -642,15 +619,7 @@ export default async function SalaryGuidePage() {
                   display: 'flex', alignItems: 'center', gap: '12px',
                   fontSize: '15px', fontWeight: 600, color: '#1A2E35', listStyle: 'none',
                 }}>
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '8px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                    boxShadow: '2px 2px 5px rgba(13,148,136,0.12)',
-                    flexShrink: 0,
-                  }}>
-                    <HelpCircle size={14} color="#fff" />
-                  </div>
+                  <Image src="/images/employers/clay-envelope.png" alt="FAQ" width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0 }} />
                   {q}
                 </summary>
                 <div style={{ padding: '0 24px 18px 64px', fontSize: '14px', color: '#5A4A42', lineHeight: 1.65 }}>{a}</div>
