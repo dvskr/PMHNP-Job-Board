@@ -263,33 +263,36 @@ export default async function ResourcesPage() {
           </div>
 
           {/* ─── Browse All States Grid ─── */}
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '20px' }}>
             Or Browse All States
           </p>
           <div className="res-state-grid" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px',
+            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px',
           }}>
             {sortedStates.map(s => {
               if (!s) return null;
               const slug = s.name.toLowerCase().replace(/\s+/g, '-');
+              const salaryInfo = stateSalaries.find(sal => sal.state === s.name);
               return (
                 <Link key={s.name} href={`/blog/${s.slug}`} className="emp-bento-card" style={{
-                  ...clayCard, padding: '0', textDecoration: 'none',
-                  borderRadius: '16px', overflow: 'hidden',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center',
                 }}>
                   <div style={{
-                    width: '100%', height: '80px', overflow: 'hidden',
-                    background: 'linear-gradient(145deg, #FDE8D8, #FFF5EE)',
+                    width: '100%', aspectRatio: '1', borderRadius: '20px', overflow: 'hidden',
+                    background: 'linear-gradient(145deg, #F5BFA0, #F0A882)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '12px', marginBottom: '10px',
+                    boxShadow: '4px 4px 12px rgba(0,0,0,0.06), inset 1px 1px 3px rgba(255,255,255,0.3)',
                   }}>
-                    <Image src={`/images/states/${slug}.png`} alt={s.name} width={100} height={80}
-                      style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                    <Image src={`/images/states/${slug}.png`} alt={s.name} width={180} height={180}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
-                  <div style={{ padding: '10px 14px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#1A2E35' }}>{s.name}</span>
-                    <ArrowUpRight size={12} style={{ color: '#0D9488', flexShrink: 0 }} />
-                  </div>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', textAlign: 'center' }}>{s.name}</span>
+                  {salaryInfo && (
+                    <span style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                      {salaryInfo.jobCount} openings
+                    </span>
+                  )}
                 </Link>
               );
             })}
