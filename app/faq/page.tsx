@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import FAQAccordion from '@/components/FAQAccordion';
@@ -205,16 +206,23 @@ export default function FAQPage() {
         }}
       />
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-20 px-4" style={{ marginTop: -80, paddingTop: 120 }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <HelpCircle className="w-16 h-16 mx-auto mb-6 opacity-90" />
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Frequently Asked Questions
-          </h1>
-          <p className="text-xl text-teal-100 max-w-3xl mx-auto">
-            Find answers to common questions about PMHNP Jobs, careers, salary, and credentials
-          </p>
-        </div>
+      <section style={{ padding: '80px 16px 64px', maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '32px', alignItems: 'center' }} className="faq-hero-grid">
+              <div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: '#FFF1F2', color: '#E11D48', borderRadius: '20px', fontSize: '13px', fontWeight: 700, marginBottom: '24px' }}>
+                      <HelpCircle size={14} /> Knowledge Base
+                  </div>
+                  <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '16px', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                      Frequently Asked <span style={{ color: '#E11D48' }}>Questions</span>
+                  </h1>
+                  <p style={{ fontSize: '20px', color: '#6B7F8A', lineHeight: 1.6, margin: 0, maxWidth: '500px' }}>
+                      Find answers to common questions about PMHNP Jobs, platform features, salary benchmarks, and clinical credentials.
+                  </p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <Image src="/images/pages/clay_hero_faq.png" alt="FAQ PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+              </div>
+          </div>
       </section>
 
       {/* Main Content */}
@@ -305,6 +313,13 @@ export default function FAQPage() {
           </Card>
         </section>
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+          @media (max-width: 768px) {
+              .faq-hero-grid { grid-template-columns: 1fr !important; text-align: center; }
+              .faq-hero-grid > div:last-child { order: -1; }
+              .faq-hero-grid > div:first-child p { margin-left: auto; margin-right: auto; }
+          }
+      ` }} />
     </div>
   );
 }

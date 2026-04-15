@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
+import Image from 'next/image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle, ChevronDown, Send, Loader2, ArrowRight } from 'lucide-react';
 
@@ -74,13 +75,22 @@ export default function ContactPage() {
             ]} />
 
             {/* Hero */}
-            <section style={{ padding: '80px 16px 48px', textAlign: 'center' }}>
-                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                    <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)'), width: '56px', height: '56px', borderRadius: '18px', margin: '0 auto 20px' }}>
-                        <Mail size={24} color="#fff" />
+            <section style={{ padding: '80px 16px 64px', maxWidth: '1000px', margin: '0 auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '32px', alignItems: 'center' }} className="contact-hero-grid">
+                    <div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: '#E6F4F1', color: '#0D9488', borderRadius: '20px', fontSize: '13px', fontWeight: 700, marginBottom: '24px' }}>
+                            <Mail size={14} /> Contact Us
+                        </div>
+                        <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '16px', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                            We&apos;d love to <span style={{ color: '#0D9488' }}>hear from you</span>
+                        </h1>
+                        <p style={{ fontSize: '20px', color: '#6B7F8A', lineHeight: 1.6, margin: 0, maxWidth: '500px' }}>
+                            Whether you represent a clinic seeking your next top-tier PMHNP, or you&apos;re a candidate looking for the perfect match, our team is standing by.
+                        </p>
                     </div>
-                    <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '12px', lineHeight: 1.15 }}>Contact Us</h1>
-                    <p style={{ fontSize: '17px', color: '#6B7F8A', lineHeight: 1.6, margin: 0 }}>We&apos;re here to help. Reach out with any questions.</p>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <Image src="/images/pages/clay_hero_contact.png" alt="Contact PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+                    </div>
                 </div>
             </section>
 
@@ -243,6 +253,9 @@ export default function ContactPage() {
                     section > div[style*="grid-template-columns: 2fr 1fr"] {
                         grid-template-columns: 1fr !important;
                     }
+                    .contact-hero-grid { grid-template-columns: 1fr !important; text-align: center; }
+                    .contact-hero-grid > div:last-child { order: -1; }
+                    .contact-hero-grid > div:first-child p { margin-left: auto; margin-right: auto; }
                 }
             `}</style>
         </div>

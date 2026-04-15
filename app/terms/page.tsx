@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import Image from 'next/image';
 import { FileText } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -40,12 +41,21 @@ export default function TermsPage() {
       <article style={{ ...clayCard, maxWidth: '760px', margin: '0 auto', padding: '48px 40px' }}>
 
         {/* Header */}
-        <header style={{ marginBottom: '40px', paddingBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-            <div style={clayIconWrap}><FileText size={22} color="#fff" /></div>
-            <h1 style={{ fontSize: '28px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Terms of Service</h1>
+        <header style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px', gap: '24px', alignItems: 'center' }} className="legal-hero-grid">
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: '#F0F9FF', color: '#0284C7', borderRadius: '20px', fontSize: '13px', fontWeight: 700, marginBottom: '16px' }}>
+                  <FileText size={14} /> Legal Documentation
+              </div>
+              <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px 0', lineHeight: 1.15 }}>
+                Terms of <span style={{ color: '#0284C7' }}>Service</span>
+              </h1>
+              <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: January 1, 2026</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <Image src="/images/pages/clay_hero_terms.png" alt="Terms of Service" width={140} height={140} style={{ objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.12))' }} priority />
+            </div>
           </div>
-          <p style={{ fontSize: '13px', color: '#B0BEC5', margin: 0 }}>Last updated: January 1, 2026</p>
         </header>
 
         <div>
@@ -155,6 +165,12 @@ export default function TermsPage() {
           ))}
         </footer>
       </article>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-width: 600px) {
+          .legal-hero-grid { grid-template-columns: 1fr !important; text-align: center; }
+          .legal-hero-grid > div:last-child { display: none; } /* Hide 3D icon on super small screens to save space */
+        }
+      `}} />
     </div>
   );
 }
