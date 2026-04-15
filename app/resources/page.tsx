@@ -261,11 +261,24 @@ export default async function ResourcesPage() {
               practiceAuthority={STATE_PRACTICE_AUTHORITY}
             />
           </div>
+        </div>
+      </section>
 
-          {/* ─── Browse All States Grid ─── */}
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '20px' }}>
-            Or Browse All States
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 3B: BROWSE ALL STATE GUIDES (warm peach bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ background: 'linear-gradient(180deg, #FDE8D8 0%, #F5D0B5 50%, #FDE8D8 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Browse by State
           </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '12px' }}>
+            50-State Licensure Guides
+          </h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '500px', margin: '0 auto 36px', lineHeight: 1.6 }}>
+            Select any state for requirements, board links, salary data, and step-by-step instructions.
+          </p>
+
           <div className="res-state-grid" style={{
             display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px',
           }}>
