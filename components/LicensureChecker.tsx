@@ -350,6 +350,20 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
         </div>
       )}
 
+      {/* ─── Citation Footer ─── */}
+      <div style={{
+        padding: '14px 32px', borderTop: '1px solid rgba(0,0,0,0.06)',
+        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
+        background: 'rgba(0,0,0,0.015)',
+      }}>
+        <p style={{ fontSize: '10.5px', color: '#94A3B8', margin: 0, lineHeight: 1.5 }}>
+          Sources: <a href="https://www.aanp.org/advocacy/state/state-practice-environment" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'underline' }}>American Association of Nurse Practitioners (AANP)</a>, State Boards of Nursing, <a href="https://www.ncsbn.org/nursing-regulation/practice/aprn.page" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'underline' }}>NCSBN APRN Consensus Model</a>
+        </p>
+        <p style={{ fontSize: '10.5px', color: '#CBD5E1', margin: 0 }}>
+          Last updated: April 2026
+        </p>
+      </div>
+
       <style>{`
         .lic-select:focus {
           border-color: rgba(13,148,136,0.5) !important;
