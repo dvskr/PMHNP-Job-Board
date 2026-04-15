@@ -222,106 +222,116 @@ export default async function SalaryGuidePage() {
       }) }} />
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 1: HERO (warm cream bg)
+          SECTION 1: HERO BENTO (warm cream bg)
           ═══════════════════════════════════════════════════════════════ */}
-      <div style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 40%, #FFF5EE 100%)' }}>
-        <section style={{ padding: '80px 20px 0', textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '8px' }}>
-            {currentYear} Salary Data
-          </p>
-          <h1 className="font-lora" style={{
-            fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, lineHeight: 1.15,
-            color: '#1A2E35', marginBottom: '16px',
-          }}>
-            PMHNP Salary Guide
-          </h1>
-          <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-            National average <strong>$155,000+</strong> per year. State-by-state breakdown, experience levels, practice settings, and tips to maximize earnings.
-          </p>
+      <div style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 40%, #FFF5EE 100%)', paddingBottom: '64px' }}>
+        <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '80px 20px 0' }}>
+          {/* Title */}
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '8px' }}>
+              {currentYear} Salary Data
+            </p>
+            <h1 className="font-lora" style={{
+              fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, lineHeight: 1.15,
+              color: '#1A2E35', marginBottom: '16px',
+            }}>
+              PMHNP Salary Guide
+            </h1>
+            <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
+              National average <strong>$155,000+</strong> per year. State-by-state breakdown, experience levels, practice settings, and tips to maximize earnings.
+            </p>
+          </div>
 
-          {/* Stat Pills */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
-            {[
-              { value: '$155K+', label: 'National Avg', bg: '#D4F5E9', color: '#065F46' },
-              { value: '$115K', label: 'Entry Level', bg: '#E0E7FF', color: '#3730A3' },
-              { value: '$210K+', label: 'Top 10%', bg: '#FEF3C7', color: '#92400E' },
-              { value: '45%', label: 'Job Growth', bg: '#FFE0D3', color: '#7C2D12' },
-            ].map(s => (
-              <div key={s.label} className="sal-stat-pill" style={{
-                display: 'inline-flex', alignItems: 'center', gap: '8px',
-                padding: '10px 20px 10px 16px', borderRadius: '40px',
-                background: s.bg,
-                boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)',
+          {/* ─── Bento Grid ─── */}
+          <div className="sal-hero-bento" style={{
+            display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px',
+          }}>
+
+            {/* Calculator (8 cols) */}
+            <div className="sal-hero-calc" style={{ gridColumn: 'span 8' }}>
+              <SalaryCalculator
+                stateSalaries={stateSalaries.map(s => ({ state: s.state, stateCode: s.stateCode, avgSalary: s.avgSalary, minSalary: s.minSalary, maxSalary: s.maxSalary }))}
+                nationalAvg={overallStats.avgSalary}
+              />
+            </div>
+
+            {/* Right sidebar (4 cols): Stats + PDF */}
+            <div className="sal-hero-sidebar" style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+              {/* Stat pills — vertical stack */}
+              <div className="emp-bento-card" style={{
+                ...clayCard, padding: '24px 22px', flex: 1,
+                display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px',
               }}>
-                <span style={{ fontSize: '20px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</span>
-                <span style={{ fontSize: '12px', color: s.color, opacity: 0.7, fontWeight: 500 }}>{s.label}</span>
+                <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Key Numbers</h3>
+                {[
+                  { value: '$155K+', label: 'National Avg', bg: '#D4F5E9', color: '#065F46' },
+                  { value: '$115K', label: 'Entry Level', bg: '#E0E7FF', color: '#3730A3' },
+                  { value: '$210K+', label: 'Top 10%', bg: '#FEF3C7', color: '#92400E' },
+                  { value: '45%', label: 'Job Growth', bg: '#FFE0D3', color: '#7C2D12' },
+                ].map(s => (
+                  <div key={s.label} className="sal-stat-pill" style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 16px', borderRadius: '14px',
+                    background: s.bg,
+                    boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                  }}>
+                    <span style={{ fontSize: '20px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</span>
+                    <span style={{ fontSize: '12px', color: s.color, opacity: 0.7, fontWeight: 500 }}>{s.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* PDF Download */}
-          <div style={{ ...clayCard, maxWidth: '480px', margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <SalaryGuideForm />
-          </div>
-
-          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '12px' }}>
-            Sources: BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth — Updated Feb {currentYear}
-          </p>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION 2: SALARY CALCULATOR (still on cream bg)
-            ═══════════════════════════════════════════════════════════════ */}
-        <section style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 20px 0' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
-            Calculate Your Pay
-          </p>
-          <h2 className="font-lora" style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '28px' }}>
-            What Should You Be Earning?
-          </h2>
-          <SalaryCalculator
-            stateSalaries={stateSalaries.map(s => ({ state: s.state, stateCode: s.stateCode, avgSalary: s.avgSalary, minSalary: s.minSalary, maxSalary: s.maxSalary }))}
-            nationalAvg={overallStats.avgSalary}
-          />
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION 3: QUICK ANSWER (still on cream bg)
-            ═══════════════════════════════════════════════════════════════ */}
-        <section style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 20px 64px' }}>
-          <div className="quick-answer-box emp-bento-card" style={{
-            ...clayCard, padding: '32px', border: '2px solid rgba(13,148,136,0.12)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
-              <div style={clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)')}>
-                <DollarSign size={20} color="#fff" />
-              </div>
-              <div>
-                <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Quick Answer: PMHNP Salary in {currentYear}</h2>
-                <p style={{ fontSize: '15px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>
-                  The average PMHNP salary is <strong>$155,000+ per year</strong> in {currentYear}. The top 10% earn <strong>$210,000+</strong>.
-                  New graduates start at $115,000-$145,000, while experienced PMHNPs (7-15 years) earn $180,000-$210,000.
-                  Private practice owners can earn $180,000-$300,000+. The highest-paying state is Idaho at $205,080,
-                  followed by New Jersey ($182,022) and California ($181,670).
+              {/* PDF download card */}
+              <div className="emp-bento-card" style={{
+                ...clayCard, padding: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
+                border: '1.5px solid rgba(13,148,136,0.12)',
+              }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>📄 Download Free PDF Guide</h3>
+                <SalaryGuideForm />
+                <p style={{ fontSize: '10px', color: '#94A3B8', marginTop: '8px', marginBottom: 0 }}>
+                  Sources: BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth
                 </p>
               </div>
             </div>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
-              paddingTop: '20px', borderTop: '1px solid rgba(0,0,0,0.06)',
-            }} className="sal-quick-stats">
-              {[
-                { value: '$155,000+', label: 'National Average', color: '#0D9488' },
-                { value: '$210,000+', label: 'Top 10% Earn', color: '#0D9488' },
-                { value: '45%', label: 'Job Growth by 2032', color: '#F59E0B' },
-                { value: '10,000+', label: 'Jobs Analyzed', color: '#F59E0B' },
-              ].map(s => (
-                <div key={s.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '22px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{s.label}</div>
+
+            {/* Quick Answer (full-width 12 cols) */}
+            <div className="quick-answer-box emp-bento-card" style={{
+              ...clayCard, gridColumn: 'span 12', padding: '28px 32px',
+              border: '2px solid rgba(13,148,136,0.10)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
+                <div style={clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)')}>
+                  <DollarSign size={20} color="#fff" />
                 </div>
-              ))}
+                <div>
+                  <h2 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Quick Answer: PMHNP Salary in {currentYear}</h2>
+                  <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>
+                    The average PMHNP salary is <strong>$155,000+ per year</strong> in {currentYear}. The top 10% earn <strong>$210,000+</strong>.
+                    New graduates start at $115,000-$145,000, while experienced PMHNPs (7-15 years) earn $180,000-$210,000.
+                    Private practice owners can earn $180,000-$300,000+. The highest-paying state is Idaho at $205,080,
+                    followed by New Jersey ($182,022) and California ($181,670).
+                  </p>
+                </div>
+              </div>
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
+                paddingTop: '18px', borderTop: '1px solid rgba(0,0,0,0.06)',
+              }} className="sal-quick-stats">
+                {[
+                  { value: '$155,000+', label: 'National Average', color: '#0D9488' },
+                  { value: '$210,000+', label: 'Top 10% Earn', color: '#0D9488' },
+                  { value: '45%', label: 'Job Growth by 2032', color: '#F59E0B' },
+                  { value: '10,000+', label: 'Jobs Analyzed', color: '#F59E0B' },
+                ].map(s => (
+                  <div key={s.label} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
+
           </div>
         </section>
       </div>
@@ -761,6 +771,9 @@ export default async function SalaryGuidePage() {
         }
 
         @media (max-width: 768px) {
+          .sal-hero-bento { grid-template-columns: 1fr !important; }
+          .sal-hero-calc, .sal-hero-sidebar { grid-column: span 1 !important; }
+          .sal-hero-bento .quick-answer-box { grid-column: span 1 !important; }
           .sal-bento { grid-template-columns: 1fr !important; }
           .sal-bento > div { grid-column: span 1 !important; }
           .sal-cta-grid { grid-template-columns: 1fr !important; }
@@ -769,6 +782,9 @@ export default async function SalaryGuidePage() {
           .sal-roles-col { display: none; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
+          .sal-hero-bento { grid-template-columns: repeat(12, 1fr) !important; }
+          .sal-hero-calc { grid-column: span 7 !important; }
+          .sal-hero-sidebar { grid-column: span 5 !important; }
           .sal-bento { grid-template-columns: repeat(6, 1fr) !important; }
           .sal-bento-exp { grid-column: span 6 !important; }
           .sal-bento-setting { grid-column: span 6 !important; }
