@@ -115,7 +115,7 @@ export default async function ForJobSeekersPage() {
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
-                <Image src="/images/employers/bento-analytics.png" alt="AI match scoring" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="/images/job-seekers/bento-match.png" alt="AI match scoring" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
@@ -124,7 +124,7 @@ export default async function ForJobSeekersPage() {
               display: 'flex', flexDirection: 'column',
             }}>
               <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Image src="/images/employers/bento-featured.png" alt="Salary transparency" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                <Image src="/images/job-seekers/bento-salary.png" alt="Salary transparency" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
               </div>
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <Image src="/images/job-seekers/icon-salary.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '12px' }} />
@@ -173,7 +173,7 @@ export default async function ForJobSeekersPage() {
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
-                <Image src="/images/employers/bento-60day.png" alt="50-state licensure guides" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="/images/job-seekers/bento-guides.png" alt="50-state licensure guides" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
@@ -307,7 +307,7 @@ export default async function ForJobSeekersPage() {
                 padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Image
-                  src="/images/employers/cta-illustration.png"
+                  src="/images/job-seekers/cta-dream-role.png"
                   alt="Start your PMHNP job search"
                   width={280} height={220}
                   style={{ width: '100%', maxWidth: '260px', height: 'auto', borderRadius: '14px' }}
