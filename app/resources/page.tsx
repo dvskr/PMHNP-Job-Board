@@ -267,17 +267,32 @@ export default async function ResourcesPage() {
             Or Browse All States
           </p>
           <div className="res-state-grid" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px',
+            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px',
           }}>
-            {sortedStates.map(s => s && (
-              <Link key={s.name} href={`/blog/${s.slug}`} className="emp-bento-card" style={{
-                ...clayCard, padding: '14px 16px', textDecoration: 'none',
-                borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35' }}>{s.name}</span>
-                <ArrowUpRight size={13} style={{ color: '#0D9488', flexShrink: 0 }} />
-              </Link>
-            ))}
+            {sortedStates.map(s => {
+              if (!s) return null;
+              const slug = s.name.toLowerCase().replace(/\s+/g, '-');
+              return (
+                <Link key={s.name} href={`/blog/${s.slug}`} className="emp-bento-card" style={{
+                  ...clayCard, padding: '0', textDecoration: 'none',
+                  borderRadius: '16px', overflow: 'hidden',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                }}>
+                  <div style={{
+                    width: '100%', height: '80px', overflow: 'hidden',
+                    background: 'linear-gradient(145deg, #FDE8D8, #FFF5EE)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Image src={`/images/states/${slug}.png`} alt={s.name} width={100} height={80}
+                      style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                  </div>
+                  <div style={{ padding: '10px 14px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#1A2E35' }}>{s.name}</span>
+                    <ArrowUpRight size={12} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

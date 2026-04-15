@@ -115,24 +115,34 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
 
   const stateList = Object.keys(practiceAuthority).sort();
 
+  // Convert state name to slug for diorama image path
+  const stateSlug = selectedState.toLowerCase().replace(/\s+/g, '-');
+
   return (
     <div style={{ ...clayCard, padding: '0', overflow: 'hidden', border: '2px solid rgba(13,148,136,0.12)' }}>
       {/* ─── Header ─── */}
       <div style={{
         background: 'linear-gradient(145deg, #0D9488, #059669)',
-        padding: '28px 32px',
+        padding: '24px 32px',
         display: 'flex', alignItems: 'center', gap: '16px',
+        position: 'relative', overflow: 'hidden',
       }}>
+        {/* State diorama in header when selected */}
+        {selectedState && (
+          <div style={{ position: 'absolute', right: '-20px', top: '-20px', bottom: '-20px', width: '200px', opacity: 0.18 }}>
+            <Image src={`/images/states/${stateSlug}.png`} alt="" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        )}
         <Image src="/images/employers/clay-chart.png" alt="Licensure Checker" width={52} height={52} style={{
           width: '52px', height: '52px', borderRadius: '16px',
-          boxShadow: '4px 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '4px 4px 12px rgba(0,0,0,0.15)', position: 'relative', zIndex: 1,
         }} />
-        <div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
           <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2 }}>
-            PMHNP Licensure Checker
+            {selectedState ? `${selectedState} Licensure` : 'PMHNP Licensure Checker'}
           </h2>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', margin: '4px 0 0' }}>
-            Select your state to see requirements, timeline, and salary data
+            {selectedState ? 'Requirements, timeline, and salary data' : 'Select your state to see requirements, timeline, and salary data'}
           </p>
         </div>
       </div>
@@ -175,8 +185,23 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
       ) : (
         <div className="lic-results-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0' }}>
 
-          {/* LEFT: Practice Authority + Requirements */}
+          {/* LEFT: State Diorama + Practice Authority + Requirements */}
           <div style={{ padding: '28px 32px', borderRight: '1px solid rgba(0,0,0,0.05)' }}>
+            {/* State Diorama */}
+            <div style={{
+              borderRadius: '16px', overflow: 'hidden', marginBottom: '20px',
+              background: 'linear-gradient(145deg, #FDE8D8, #FFF5EE)',
+              border: '1px solid rgba(0,0,0,0.04)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '16px',
+            }}>
+              <Image
+                src={`/images/states/${stateSlug}.png`}
+                alt={`${selectedState} 3D illustration`}
+                width={200} height={200}
+                style={{ width: '160px', height: '160px', objectFit: 'contain' }}
+              />
+            </div>
             {/* Authority Badge */}
             <div style={{
               padding: '16px 20px', borderRadius: '16px',
