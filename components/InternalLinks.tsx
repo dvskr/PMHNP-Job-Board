@@ -94,21 +94,6 @@ export default function InternalLinks({
             boxShadow: clayShadow,
             overflow: 'hidden',
         }}>
-            {/* 3D Clay Island Diorama */}
-            <div style={{
-                position: 'relative',
-                width: '100%',
-                height: '150px',
-                backgroundColor: '#E8F4FD',
-                overflow: 'hidden',
-            }}>
-                <Image
-                    src="/illustrations/clay-island-explore.png"
-                    alt="Explore PMHNP locations"
-                    fill
-                    style={{ objectFit: 'cover' }}
-                />
-            </div>
 
             {/* Content */}
             <div style={{ padding: '18px 20px 20px' }}>
