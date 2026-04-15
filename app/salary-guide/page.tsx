@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import VideoJsonLd from '@/components/VideoJsonLd';
+import Image from 'next/image';
 import Link from 'next/link';
-import { DollarSign, TrendingUp, MapPin, Briefcase, Building2, GraduationCap, ArrowUpRight, Clock, Users, BarChart3, Shield, Award } from 'lucide-react';
+import { ArrowUpRight, ArrowRight, HelpCircle, TrendingUp, DollarSign, MapPin, Briefcase, Building2, GraduationCap, Shield, Award } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -39,9 +40,6 @@ interface StateSalary {
   slug: string;
 }
 
-/**
- * Fetch salary data by state from database
- */
 async function getSalaryByState(): Promise<StateSalary[]> {
   const stateData = await prisma.job.groupBy({
     by: ['state'],
@@ -50,19 +48,10 @@ async function getSalaryByState(): Promise<StateSalary[]> {
       state: { not: null },
       normalizedMinSalary: { not: null },
     },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
-    _min: {
-      normalizedMinSalary: true,
-    },
-    _max: {
-      normalizedMaxSalary: true,
-    },
-    _count: {
-      id: true,
-    },
+    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    _min: { normalizedMinSalary: true },
+    _max: { normalizedMaxSalary: true },
+    _count: { id: true },
   });
 
   return stateData
@@ -79,28 +68,13 @@ async function getSalaryByState(): Promise<StateSalary[]> {
     .sort((a, b) => b.avgSalary - a.avgSalary);
 }
 
-/**
- * Get overall salary statistics
- */
 async function getOverallStats() {
   const stats = await prisma.job.aggregate({
-    where: {
-      isPublished: true,
-      normalizedMinSalary: { not: null },
-    },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
-    _min: {
-      normalizedMinSalary: true,
-    },
-    _max: {
-      normalizedMaxSalary: true,
-    },
-    _count: {
-      id: true,
-    },
+    where: { isPublished: true, normalizedMinSalary: { not: null } },
+    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+    _min: { normalizedMinSalary: true },
+    _max: { normalizedMaxSalary: true },
+    _count: { id: true },
   });
 
   const avgMin = stats._avg.normalizedMinSalary || 120000;
@@ -126,10 +100,68 @@ export const metadata: Metadata = {
     images: [{ url: '/images/pages/pmhnp-salary-guide-2026.webp', width: 1280, height: 900, alt: 'PMHNP salary guide 2026 showing psychiatric nurse practitioner pay by state with interactive salary comparison table' }],
   },
   twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-salary-guide-2026.webp'] },
-  alternates: {
-    canonical: 'https://pmhnphiring.com/salary-guide',
-  },
+  alternates: { canonical: 'https://pmhnphiring.com/salary-guide' },
 };
+
+/* ═══ Clay Design Tokens ═══ */
+const clayCard: React.CSSProperties = {
+  background: '#FFFFFF', borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const clayIconWrap = (bg: string): React.CSSProperties => ({
+  width: '44px', height: '44px', borderRadius: '14px',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: bg,
+  boxShadow: '3px 3px 8px rgba(0,0,0,0.08), inset 1px 1px 2px rgba(255,255,255,0.2)',
+  flexShrink: 0,
+});
+
+/* ═══ Experience / Setting / Specialty data ═══ */
+const experienceData = [
+  { exp: 'New Grad (0-1 yr)', range: '$115,000 - $145,000', roles: 'Staff PMHNP, Outpatient Clinic' },
+  { exp: 'Early Career (1-3 yrs)', range: '$145,000 - $165,000', roles: 'Staff PMHNP, Telehealth Provider' },
+  { exp: 'Mid-Career (3-7 yrs)', range: '$165,000 - $185,000', roles: 'Senior PMHNP, Team Lead' },
+  { exp: 'Experienced (7-15 yrs)', range: '$180,000 - $210,000', roles: 'Clinical Director, Supervisor' },
+  { exp: 'Expert (15+ yrs)', range: '$200,000 - $250,000+', roles: 'Director, Consultant, Private Practice' },
+];
+
+const settingData = [
+  { setting: 'Private Practice (Owner)', range: '$180,000 - $300,000+', notes: 'Highest earning potential, requires business skills', color: '#0D9488' },
+  { setting: 'Travel / Locum Tenens', range: '$150,000 - $250,000', notes: 'Includes housing, travel, higher hourly rates', color: '#8B5CF6' },
+  { setting: 'Telehealth / Remote', range: '$130,000 - $180,000', notes: 'Growing rapidly, flexible schedules', color: '#3B82F6' },
+  { setting: 'Outpatient Clinic', range: '$120,000 - $160,000', notes: 'Most common setting, steady patient load', color: '#F59E0B' },
+  { setting: 'Hospital / Inpatient', range: '$115,000 - $150,000', notes: 'Often includes shift differentials, benefits', color: '#EF4444' },
+  { setting: 'Community Mental Health', range: '$100,000 - $130,000', notes: 'May qualify for loan forgiveness programs', color: '#6B7280' },
+];
+
+const specialtyData = [
+  { specialty: 'Addiction / MAT', premium: '+15-20%', notes: 'High demand, MAT certification' },
+  { specialty: 'Child & Adolescent', premium: '+10-15%', notes: 'Specialized training required' },
+  { specialty: 'Forensic Psychiatry', premium: '+15-25%', notes: 'Correctional facilities, courts' },
+  { specialty: 'Emergency / Crisis', premium: '+10-20%', notes: 'Dynamic environment, flexible scheduling' },
+  { specialty: 'Geriatric Psychiatry', premium: '+5-10%', notes: 'Growing aging population' },
+  { specialty: 'Private Practice (Owner)', premium: '+20-40%', notes: 'Higher risk, no benefits' },
+  { specialty: 'Rural / Underserved', premium: '+10-15%', notes: 'Often includes loan repayment' },
+];
+
+const factorCards = [
+  { icon: MapPin, title: 'Geographic Location', desc: 'States with higher cost of living and greater demand (CA, NY, MA) typically offer 20-40% higher salaries than rural areas.', bg: '#E0F2FE', iconBg: '#0EA5E9' },
+  { icon: GraduationCap, title: 'Experience Level', desc: 'Entry-level PMHNPs start around $115-145k. With 5+ years experience, salaries can reach $180-210k or more.', bg: '#F3E8FF', iconBg: '#A855F7' },
+  { icon: Building2, title: 'Practice Setting', desc: 'Private practice and telehealth positions often pay more than hospital or community health settings.', bg: '#D1FAE5', iconBg: '#10B981' },
+  { icon: Briefcase, title: 'Employment Type', desc: '1099 contractors and travel PMHNPs often earn 20-50% more than W2 employees, though without traditional benefits.', bg: '#FEF3C7', iconBg: '#F59E0B' },
+  { icon: TrendingUp, title: 'Specialization', desc: 'Subspecialties like addiction psychiatry, child/adolescent, or forensic psychiatry can command premium pay (+10-25%).', bg: '#FFE4E6', iconBg: '#F43F5E' },
+  { icon: DollarSign, title: 'Negotiation', desc: 'PMHNPs who negotiate can often secure 5-15% higher starting salaries plus signing bonuses ($5,000-$30,000).', bg: '#E0E7FF', iconBg: '#6366F1' },
+];
+
+const faqData = [
+  { q: 'How much do PMHNPs make in 2026?', a: 'The national average PMHNP salary is $155,000+ per year in 2026, based on data from BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, and CompHealth. The top 10% earn $210,000 or more. New graduates start at $115,000-$145,000, while experienced PMHNPs earn $180,000-$210,000.' },
+  { q: 'Which state pays PMHNPs the most?', a: 'Idaho offers the highest PMHNP salary at $205,080 per year, followed by New Jersey ($182,022), California ($181,670), Rhode Island ($175,530), and Washington ($173,331). When adjusted for cost of living, Idaho, Louisiana, Pennsylvania, Arkansas, and Missouri offer the best value.' },
+  { q: 'Do telehealth PMHNPs make less than in-person?', a: 'Telehealth PMHNPs earn $130,000 to $175,000, while in-person PMHNPs earn $145,000 to $185,000. However, telehealth offers excellent flexibility and some companies like Talkiatry pay $180,000-$215,000+ for experienced PMHNPs with multi-state licenses.' },
+  { q: 'How can I increase my PMHNP salary?', a: 'Top strategies include: specializing in high-demand areas like addiction psychiatry (+15-20% premium) or forensic psychiatry (+15-25%), practicing in Full Practice Authority states (+12-15% premium), considering private practice ownership ($180,000-$300,000+), working in rural/underserved areas for loan repayment incentives, and always negotiating total compensation.' },
+  { q: 'How much do travel PMHNPs make?', a: 'Travel and locum tenens PMHNPs typically earn 20-50% more than permanent positions, with compensation ranging from $150,000 to $250,000+ including housing stipends and travel allowances.' },
+];
 
 export default async function SalaryGuidePage() {
   const [stateSalaries, overallStats] = await Promise.all([
@@ -139,51 +171,16 @@ export default async function SalaryGuidePage() {
 
   const currentYear = new Date().getFullYear();
 
-  // FAQ Schema - Updated with authoritative industry data
+  // FAQ Schema
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'What is the average PMHNP salary in 2026?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The average PMHNP salary in 2026 ranges from $140,000 to $175,000 annually, depending on state, experience, and practice setting. Top earners in states like California and New York can exceed $200,000.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Which state pays PMHNPs the most?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'California pays PMHNPs the highest average salary at $175,000+, followed by New York, New Jersey, and Massachusetts. However, cost of living should be factored in when comparing states.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Do telehealth PMHNPs make more than in-person?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Telehealth PMHNP salaries are competitive with in-person roles, often ranging from $130,000 to $180,000 annually. Some telehealth positions offer higher hourly rates due to flexible scheduling, while in-person roles may include better benefits packages.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'How much do new grad PMHNPs make?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'New graduate PMHNPs typically start between $115,000 and $140,000 annually. Salaries increase significantly with 2-3 years of experience, often reaching $155,000+ within the first few years.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'Are PMHNP salaries increasing?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Yes. PMHNP salaries have increased approximately 12% over the past two years, driven by the mental health provider shortage. With 123 million Americans living in designated shortage areas, demand for PMHNPs continues to outpace supply.',
-        },
-      },
+      { '@type': 'Question', name: 'What is the average PMHNP salary in 2026?', acceptedAnswer: { '@type': 'Answer', text: 'The average PMHNP salary in 2026 ranges from $140,000 to $175,000 annually, depending on state, experience, and practice setting. Top earners in states like California and New York can exceed $200,000.' } },
+      { '@type': 'Question', name: 'Which state pays PMHNPs the most?', acceptedAnswer: { '@type': 'Answer', text: 'California pays PMHNPs the highest average salary at $175,000+, followed by New York, New Jersey, and Massachusetts. However, cost of living should be factored in when comparing states.' } },
+      { '@type': 'Question', name: 'Do telehealth PMHNPs make more than in-person?', acceptedAnswer: { '@type': 'Answer', text: 'Telehealth PMHNP salaries are competitive with in-person roles, often ranging from $130,000 to $180,000 annually. Some telehealth positions offer higher hourly rates due to flexible scheduling, while in-person roles may include better benefits packages.' } },
+      { '@type': 'Question', name: 'How much do new grad PMHNPs make?', acceptedAnswer: { '@type': 'Answer', text: 'New graduate PMHNPs typically start between $115,000 and $140,000 annually. Salaries increase significantly with 2-3 years of experience, often reaching $155,000+ within the first few years.' } },
+      { '@type': 'Question', name: 'Are PMHNP salaries increasing?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. PMHNP salaries have increased approximately 12% over the past two years, driven by the mental health provider shortage. With 123 million Americans living in designated shortage areas, demand for PMHNPs continues to outpace supply.' } },
     ],
   };
 
@@ -196,668 +193,572 @@ export default async function SalaryGuidePage() {
     "image": "https://pmhnphiring.com/images/pages/pmhnp-salary-guide-2026.webp",
     "datePublished": "2026-01-01T00:00:00Z",
     "dateModified": new Date().toISOString(),
-    "author": {
-      "@type": "Organization",
-      "name": "PMHNP Hiring",
-      "url": "https://pmhnphiring.com",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://pmhnphiring.com/logo.png"
-      }
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "PMHNP Hiring",
-      "url": "https://pmhnphiring.com",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://pmhnphiring.com/logo.svg"
-      }
-    },
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": "https://pmhnphiring.com/salary-guide"
-    }
+    "author": { "@type": "Organization", "name": "PMHNP Hiring", "url": "https://pmhnphiring.com", "logo": { "@type": "ImageObject", "url": "https://pmhnphiring.com/logo.png" } },
+    "publisher": { "@type": "Organization", "name": "PMHNP Hiring", "url": "https://pmhnphiring.com", "logo": { "@type": "ImageObject", "url": "https://pmhnphiring.com/logo.svg" } },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": "https://pmhnphiring.com/salary-guide" }
   };
 
-  // Sanitize JSON for safe injection into script tag (escape < to prevent XSS)
   const sanitizeJson = (obj: object): string => {
     return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
   };
 
+  const fmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary, #FFFFFF)' }}>
+    <>
       <VideoJsonLd pathname="/salary-guide" />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: sanitizeJson(articleSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJson(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJson(articleSchema) }} />
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
         { name: "Salary Guide", url: "https://pmhnphiring.com/salary-guide" }
       ]} />
-      {/* Speakable Schema — targets the Quick Answer for voice assistants */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: sanitizeJson({
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          "name": `${currentYear} PMHNP Salary Guide`,
-          "speakable": {
-            "@type": "SpeakableSpecification",
-            "cssSelector": [".quick-answer-box", "h1"]
-          },
-          "url": "https://pmhnphiring.com/salary-guide"
-        }) }}
-      />
-      {/* Last Updated Notice */}
-      <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderBottom: '1px solid var(--border-color, #E5E7EB)', padding: '8px 16px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-tertiary, #6B7280)', fontSize: '0.75rem', margin: 0 }}>
-            Last Updated: February 2026 | Sources: BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth
-          </p>
-        </div>
-      </div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sanitizeJson({
+        "@context": "https://schema.org", "@type": "WebPage",
+        "name": `${currentYear} PMHNP Salary Guide`,
+        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".quick-answer-box", "h1"] },
+        "url": "https://pmhnphiring.com/salary-guide"
+      }) }} />
 
-      {/* Hero Section - Compact with Industry Stats */}
-      <section style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)', color: 'white', padding: '20px 0' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-            {/* Left - Title and Stats */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <DollarSign style={{ height: '28px', width: '28px' }} />
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
-                  {currentYear} PMHNP Salary Guide
-                </h1>
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 1: HERO (warm cream bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <div style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 40%, #FFF5EE 100%)' }}>
+        <section style={{ padding: '80px 20px 0', textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '8px' }}>
+            {currentYear} Salary Data
+          </p>
+          <h1 className="font-lora" style={{
+            fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, lineHeight: 1.15,
+            color: '#1A2E35', marginBottom: '16px',
+          }}>
+            PMHNP Salary Guide
+          </h1>
+          <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto 32px', lineHeight: 1.6 }}>
+            National average <strong>$155,000+</strong> per year. State-by-state breakdown, experience levels, practice settings, and tips to maximize earnings.
+          </p>
+
+          {/* Stat Pills */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
+            {[
+              { value: '$155K+', label: 'National Avg', bg: '#D4F5E9', color: '#065F46' },
+              { value: '$115K', label: 'Entry Level', bg: '#E0E7FF', color: '#3730A3' },
+              { value: '$210K+', label: 'Top 10%', bg: '#FEF3C7', color: '#92400E' },
+              { value: '45%', label: 'Job Growth', bg: '#FFE0D3', color: '#7C2D12' },
+            ].map(s => (
+              <div key={s.label} className="sal-stat-pill" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                padding: '10px 20px 10px 16px', borderRadius: '40px',
+                background: s.bg,
+                boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)',
+              }}>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</span>
+                <span style={{ fontSize: '12px', color: s.color, opacity: 0.7, fontWeight: 500 }}>{s.label}</span>
               </div>
-              <div style={{ height: '24px', width: '1px', background: 'rgba(255,255,255,0.3)', display: 'none' }} className="hidden sm:block" />
-              {/* Quick Stats Row - Industry Data */}
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>$155,000+</span>
-                  <span style={{ fontSize: '0.7rem', color: '#a7f3d0' }}>avg</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>$115,000</span>
-                  <span style={{ fontSize: '0.7rem', color: '#a7f3d0' }}>entry</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>$210,000+</span>
-                  <span style={{ fontSize: '0.7rem', color: '#a7f3d0' }}>top 10%</span>
-                </div>
-              </div>
-            </div>
-            {/* Right - PDF Download Form */}
+            ))}
+          </div>
+
+          {/* PDF Download */}
+          <div style={{ ...clayCard, maxWidth: '480px', margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <SalaryGuideForm />
           </div>
-        </div>
-      </section>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
-        <div style={{ maxWidth: '1024px', margin: '0 auto' }}>
-          {/* Quick Answer Box */}
-          <section style={{ marginBottom: '24px' }}>
-            <div className="quick-answer-box" style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '24px' }}>
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex-shrink-0" style={{ width: '40px', height: '40px', backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <BarChart3 className="h-5 w-5 text-teal-600" />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary, #111827)', marginBottom: '8px' }}>Quick Answer: PMHNP Salary in 2026</h2>
-                  <p style={{ color: 'var(--text-secondary, #374151)', lineHeight: '1.625' }}>
-                    The average PMHNP salary is <strong>$155,000+ per year</strong> in 2026. The top 10% earn <strong>$210,000+</strong>.
-                    New graduates start at $115,000-$145,000, while experienced PMHNPs (7-15 years) earn $180,000-$210,000.
-                    Private practice owners can earn $180,000-$300,000+. The highest-paying state is Idaho at $205,080,
-                    followed by New Jersey ($182,022) and California ($181,670).
-                  </p>
-                </div>
-              </div>
-              {/* Stats Row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color, #E5E7EB)' }}>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">$155,000+</div>
-                  <div className="text-sm text-gray-600 " style={{ color: 'var(--text-tertiary)' }}>National Average</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">$210,000+</div>
-                  <div className="text-sm text-gray-600 " style={{ color: 'var(--text-tertiary)' }}>Top 10% Earn</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">45%</div>
-                  <div className="text-sm text-gray-600 " style={{ color: 'var(--text-tertiary)' }}>Job Growth by 2032</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">10,000+</div>
-                  <div className="text-sm text-gray-600 " style={{ color: 'var(--text-tertiary)' }}>Jobs Analyzed</div>
-                </div>
-              </div>
-            </div>
-          </section>
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '12px' }}>
+            Sources: BLS, ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth — Updated Feb {currentYear}
+          </p>
+        </section>
 
-          {/* Overview Section */}
-          <section style={{ marginBottom: '24px' }}>
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)', marginBottom: '16px' }}>
-                How Much Do PMHNPs Make in {currentYear}?
-              </h2>
-              <div className="prose prose-gray max-w-none">
-                <p style={{ color: 'var(--text-secondary, #374151)', lineHeight: '1.625', marginBottom: '16px' }}>
-                  Psychiatric Mental Health Nurse Practitioners (PMHNPs) are among the highest-paid
-                  nursing specialties in the United States. The national average PMHNP salary is <strong>$155,000+ per year</strong> in 2026,
-                  with the top 10% earning <strong>$210,000 or more</strong>. Job growth is projected at 45% through 2032,
-                  making it one of the fastest-growing healthcare professions.
-                </p>
-                <p style={{ color: 'var(--text-tertiary, #6B7280)', fontSize: '0.875rem', fontStyle: 'italic' }}>
-                  Salary data compiled from the Bureau of Labor Statistics (BLS), ZipRecruiter, Indeed, PayScale,
-                  Glassdoor, and CompHealth (January 2026).
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION 2: QUICK ANSWER (still on cream bg)
+            ═══════════════════════════════════════════════════════════════ */}
+        <section style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 20px 64px' }}>
+          <div className="quick-answer-box emp-bento-card" style={{
+            ...clayCard, padding: '32px', border: '2px solid rgba(13,148,136,0.12)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
+              <div style={clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)')}>
+                <DollarSign size={20} color="#fff" />
+              </div>
+              <div>
+                <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Quick Answer: PMHNP Salary in {currentYear}</h2>
+                <p style={{ fontSize: '15px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>
+                  The average PMHNP salary is <strong>$155,000+ per year</strong> in {currentYear}. The top 10% earn <strong>$210,000+</strong>.
+                  New graduates start at $115,000-$145,000, while experienced PMHNPs (7-15 years) earn $180,000-$210,000.
+                  Private practice owners can earn $180,000-$300,000+. The highest-paying state is Idaho at $205,080,
+                  followed by New Jersey ($182,022) and California ($181,670).
                 </p>
               </div>
             </div>
-          </section>
-
-          {/* Salary by State Table */}
-          {stateSalaries.length > 0 && (
-            <section className="mb-6">
-              <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color, #E5E7EB)' }}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="h-6 w-6 text-emerald-600" />
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>PMHNP Salary by State</h2>
-                  </div>
-                  <p style={{ color: 'var(--text-secondary, #374151)', marginBottom: '12px' }}>
-                    See how PMHNP salaries compare across different states. Click any state to view available jobs.
-                  </p>
-                  <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '12px' }}>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', margin: 0 }}>
-                      <strong>Note:</strong> The table below shows real-time salary data from active PMHNP job postings on our platform.
-                      For comprehensive state-by-state data including cost-of-living adjustments and practice authority status,
-                      download our full 2026 PMHNP Salary Guide PDF.
-                    </p>
-                  </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
+              paddingTop: '20px', borderTop: '1px solid rgba(0,0,0,0.06)',
+            }} className="sal-quick-stats">
+              {[
+                { value: '$155,000+', label: 'National Average', color: '#0D9488' },
+                { value: '$210,000+', label: 'Top 10% Earn', color: '#0D9488' },
+                { value: '45%', label: 'Job Growth by 2032', color: '#F59E0B' },
+                { value: '10,000+', label: 'Jobs Analyzed', color: '#F59E0B' },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{s.label}</div>
                 </div>
-                <div className="overflow-x-auto" suppressHydrationWarning>
-                  <table className="w-full" suppressHydrationWarning>
-                    <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                          State
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                          Avg. Salary
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider hidden sm:table-cell">
-                          Salary Range
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                          Jobs
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"><span className="sr-only">Actions</span></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200" suppressHydrationWarning>
-                      {stateSalaries.map((state, index) => (
-                        <tr key={state.state} className={index < 3 ? '' : 'hover:bg-gray-50'} style={index < 3 ? { backgroundColor: 'rgba(251, 191, 36, 0.08)' } : undefined}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              {index < 3 && (
-                                <span className="flex items-center justify-center w-6 h-6 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
-                                  {index + 1}
-                                </span>
-                              )}
-                              <div>
-                                <div className="font-medium text-gray-900 dark:text-gray-100">{state.state}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400">{state.stateCode}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">
-                              ${Math.round(state.avgSalary / 1000)}k
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600 dark:text-gray-300 hidden sm:table-cell">
-                            ${Math.round(state.minSalary / 1000)}k - ${Math.round(state.maxSalary / 1000)}k
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                              {state.jobCount}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <Link
-                              href={`/jobs/state/${state.slug}`}
-                              className="inline-flex items-center text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                            >
-                              View Jobs
-                              <ArrowUpRight className="ml-1 h-4 w-4" />
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-          )}
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
 
-          {/* Salary by Experience Level */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <div className="flex items-center gap-2 mb-4">
-                <GraduationCap className="h-6 w-6 text-emerald-600" />
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>PMHNP Salary by Experience Level</h2>
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 3: STATE SALARY TABLE (slate bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      {stateSalaries.length > 0 && (
+        <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E8EDF2 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+              Salary by Location
+            </p>
+            <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+              PMHNP Salary by State
+            </h2>
+            <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '500px', margin: '0 auto 12px', lineHeight: 1.6 }}>
+              See how PMHNP salaries compare across different states. Click any state to view available jobs.
+            </p>
+
+            {/* Note */}
+            <div style={{
+              ...clayCard, maxWidth: '680px', margin: '0 auto 28px', padding: '14px 20px',
+              background: '#F0FDFA', border: '1px solid #99F6E4',
+            }}>
+              <p style={{ fontSize: '12px', color: '#134E4A', margin: 0, lineHeight: 1.5 }}>
+                <strong>Note:</strong> Real-time salary data from active PMHNP job postings.
+                For comprehensive state-by-state data including cost-of-living adjustments, download our full PDF guide above.
+              </p>
+            </div>
+
+            {/* Table */}
+            <div className="emp-compare-table" style={{ ...clayCard, padding: '0', overflow: 'hidden' }}>
+              <table role="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(13,148,136,0.02))' }}>
+                    <th style={{ width: '35%', padding: '14px 20px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>State</th>
+                    <th style={{ width: '20%', padding: '14px 16px', textAlign: 'right', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Avg. Salary</th>
+                    <th className="sal-range-col" style={{ width: '25%', padding: '14px 16px', textAlign: 'right', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Range</th>
+                    <th style={{ width: '10%', padding: '14px 16px', textAlign: 'right', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Jobs</th>
+                    <th style={{ width: '10%', padding: '14px 16px', textAlign: 'right', borderBottom: '2px solid rgba(0,0,0,0.06)' }}><span style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stateSalaries.map((state, i) => (
+                    <tr key={state.state} style={{ background: i < 3 ? 'rgba(251,191,36,0.06)' : i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {i < 3 && (
+                            <span style={{
+                              width: '22px', height: '22px', borderRadius: '50%',
+                              background: '#FEF3C7', color: '#92400E', fontSize: '11px', fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>{i + 1}</span>
+                          )}
+                          <div>
+                            <span style={{ fontWeight: 600, color: '#1A2E35' }}>{state.state}</span>
+                            <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '6px' }}>{state.stateCode}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.04)', fontWeight: 700, color: '#1A2E35' }}>
+                        ${fmt(state.avgSalary)}
+                      </td>
+                      <td className="sal-range-col" style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.04)', fontSize: '12px', color: '#64748B' }}>
+                        ${fmt(state.minSalary)} - ${fmt(state.maxSalary)}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.04)', fontSize: '13px', color: '#64748B' }}>
+                        {state.jobCount}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <Link href={`/jobs/state/${state.slug}`} style={{ fontSize: '12px', color: '#0D9488', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                          Jobs <ArrowUpRight size={12} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 4: SALARY BREAKDOWN BENTO (cream bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <div style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 50%, #FFF5EE 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Salary Breakdown
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '36px' }}>
+            What Impacts Your Earnings
+          </h2>
+
+          <div className="sal-bento" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+
+            {/* Experience Level (8 cols) */}
+            <div className="sal-bento-exp emp-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '24px 28px 8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={clayIconWrap('#E0E7FF')}>
+                  <GraduationCap size={20} color="#6366F1" />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>By Experience Level</h3>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
+              <div style={{ padding: '0 0 0' }}>
+                <table className="emp-compare-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase" style={{ color: 'var(--text-tertiary)' }}>Experience</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase" style={{ color: 'var(--text-tertiary)' }}>Salary Range</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase hidden md:table-cell" style={{ color: 'var(--text-tertiary)' }}>Typical Roles</th>
+                      <th style={{ padding: '12px 28px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Experience</th>
+                      <th style={{ padding: '12px 24px', textAlign: 'right', fontWeight: 600, color: '#64748B', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Salary Range</th>
+                      <th className="sal-roles-col" style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '1px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Typical Roles</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {[
-                      { exp: 'New Grad (0-1 yr)', range: '$115,000 - $145,000', roles: 'Staff PMHNP, Outpatient Clinic' },
-                      { exp: 'Early Career (1-3 yrs)', range: '$145,000 - $165,000', roles: 'Staff PMHNP, Telehealth Provider' },
-                      { exp: 'Mid-Career (3-7 yrs)', range: '$165,000 - $185,000', roles: 'Senior PMHNP, Team Lead' },
-                      { exp: 'Experienced (7-15 yrs)', range: '$180,000 - $210,000', roles: 'Clinical Director, Supervisor' },
-                      { exp: 'Expert (15+ yrs)', range: '$200,000 - $250,000+', roles: 'Director, Consultant, Private Practice' },
-                    ].map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                        <td className="px-4 py-3 font-medium" style={{ color: 'var(--text-primary)' }}>{item.exp}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{item.range}</td>
-                        <td className="px-4 py-3 hidden md:table-cell" style={{ color: 'var(--text-secondary)' }}>{item.roles}</td>
+                  <tbody>
+                    {experienceData.map((item, i) => (
+                      <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                        <td style={{ padding: '12px 28px', fontWeight: 500, color: '#1A2E35', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{item.exp}</td>
+                        <td style={{ padding: '12px 24px', textAlign: 'right', fontWeight: 700, color: '#0D9488', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{item.range}</td>
+                        <td className="sal-roles-col" style={{ padding: '12px 24px', color: '#64748B', borderBottom: '1px solid rgba(0,0,0,0.04)', fontSize: '12px' }}>{item.roles}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </section>
 
-          {/* Salary by Setting */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary, #111827)', marginBottom: '16px' }}>PMHNP Salary by Setting</h2>
-              <div className="space-y-4">
-                {[
-                  { setting: 'Private Practice (Owner)', range: '$180,000 - $300,000+', notes: 'Highest earning potential, requires business skills' },
-                  { setting: 'Telehealth / Remote', range: '$130,000 - $180,000', notes: 'Growing rapidly, flexible schedules' },
-                  { setting: 'Travel / Locum Tenens', range: '$150,000 - $250,000', notes: 'Includes housing, travel, higher hourly rates' },
-                  { setting: 'Outpatient Clinic', range: '$120,000 - $160,000', notes: 'Most common setting, steady patient load' },
-                  { setting: 'Hospital / Inpatient', range: '$115,000 - $150,000', notes: 'Often includes shift differentials, benefits' },
-                  { setting: 'Community Mental Health', range: '$100,000 - $130,000', notes: 'May qualify for loan forgiveness programs' },
-                ].map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
+            {/* Practice Setting (4 cols) */}
+            <div className="sal-bento-setting emp-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '24px 22px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+                <div style={clayIconWrap('#D1FAE5')}>
+                  <Building2 size={20} color="#10B981" />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>By Setting</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {settingData.map((item, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', borderRadius: '12px',
+                    background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.04)',
+                  }}>
                     <div>
-                      <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.setting}</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>{item.notes}</p>
+                      <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#1A2E35' }}>{item.setting}</div>
+                      <div style={{ fontSize: '10.5px', color: '#94A3B8', marginTop: '1px' }}>{item.notes}</div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{item.range}</span>
-                    </div>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: item.color, whiteSpace: 'nowrap', marginLeft: '8px' }}>{item.range}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </section>
 
-          {/* Specialty Premiums */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Award className="h-6 w-6 text-emerald-600" />
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>PMHNP Specialty Salary Premiums</h2>
+            {/* Specialty Premiums (6 cols) */}
+            <div className="sal-bento-spec emp-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '24px 28px 8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={clayIconWrap('#FEF3C7')}>
+                  <Award size={20} color="#F59E0B" />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Specialty Premiums</h3>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Specialty</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Premium</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase hidden md:table-cell">Notes</th>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <tbody>
+                  {specialtyData.map((item, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                      <td style={{ padding: '10px 28px', fontWeight: 500, color: '#1A2E35', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{item.specialty}</td>
+                      <td style={{ padding: '10px 20px', textAlign: 'right', fontWeight: 700, color: '#0D9488', borderBottom: '1px solid rgba(0,0,0,0.04)', whiteSpace: 'nowrap' }}>{item.premium}</td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {[
-                      { specialty: 'Addiction/Substance Abuse (MAT)', premium: '+15-20%', notes: 'High demand, MAT certification' },
-                      { specialty: 'Child & Adolescent', premium: '+10-15%', notes: 'Specialized training required' },
-                      { specialty: 'Forensic Psychiatry', premium: '+15-25%', notes: 'Correctional facilities, courts' },
-                      { specialty: 'Emergency/Crisis', premium: '+10-20%', notes: 'Dynamic environment, flexible scheduling' },
-                      { specialty: 'Geriatric Psychiatry', premium: '+5-10%', notes: 'Growing aging population' },
-                      { specialty: 'Private Practice (Owner)', premium: '+20-40%', notes: 'Higher risk, no benefits' },
-                      { specialty: 'Rural/Underserved', premium: '+10-15%', notes: 'Often includes loan repayment' },
-                    ].map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{item.specialty}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{item.premium}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden md:table-cell">{item.notes}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </section>
 
-          {/* Full Practice Authority Impact */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Shield className="h-6 w-6 text-emerald-600" />
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>Full Practice Authority (FPA) Impact on PMHNP Salary</h2>
+            {/* FPA Impact (6 cols) */}
+            <div className="sal-bento-fpa emp-bento-card" style={{
+              ...clayCard, gridColumn: 'span 6', padding: '24px 22px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <div style={clayIconWrap('#E0F2FE')}>
+                  <Shield size={20} color="#0EA5E9" />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Full Practice Authority</h3>
               </div>
-              <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
-                <strong>34 states plus DC</strong> now have Full Practice Authority. PMHNPs in FPA states earn <strong>12-15% more</strong> on average.
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 16px' }}>
+                <strong>34 states + DC</strong> have FPA. PMHNPs in FPA states earn <strong style={{ color: '#0D9488' }}>12-15% more</strong> on average.
               </p>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '16px' }}>
-                  <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>✓ Full Practice Authority</h3>
-                  <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                    <li>• +12-15% salary premium</li>
-                    <li>• Can own practice independently</li>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ padding: '14px 16px', borderRadius: '14px', background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0D9488', margin: '0 0 8px' }}>✓ Full Practice Authority</h4>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '11.5px', color: '#5A4A42' }}>
+                    <li style={{ marginBottom: '3px' }}>• +12-15% salary premium</li>
+                    <li style={{ marginBottom: '3px' }}>• Can own practice independently</li>
                     <li>• Full clinical independence</li>
                   </ul>
                 </div>
-                <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '16px' }}>
-                  <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Restricted/Reduced Practice</h3>
-                  <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                    <li>• Baseline salary</li>
-                    <li>• Requires physician collaboration</li>
+                <div style={{ padding: '14px 16px', borderRadius: '14px', background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', margin: '0 0 8px' }}>Restricted / Reduced</h4>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '11.5px', color: '#5A4A42' }}>
+                    <li style={{ marginBottom: '3px' }}>• Baseline salary</li>
+                    <li style={{ marginBottom: '3px' }}>• Requires physician collaboration</li>
                     <li>• Physician oversight required</li>
                   </ul>
                 </div>
               </div>
             </div>
-          </section>
 
-          {/* 2026 Market Trends */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="h-6 w-6 text-emerald-600" />
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>2026 PMHNP Market Trends</h2>
-              </div>
-              <div className="overflow-x-auto mb-4">
-                <table className="w-full">
-                  <thead style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)' }}>
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Metric</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">2024</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">2025</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">2026</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    <tr className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Average Salary</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">$158,000</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">$162,000</td>
-                      <td className="px-4 py-3 text-center font-semibold text-emerald-600 dark:text-emerald-400">$165,000</td>
-                    </tr>
-                    <tr className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Job Postings (Monthly)</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">12,500</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">14,200</td>
-                      <td className="px-4 py-3 text-center font-semibold text-emerald-600 dark:text-emerald-400">15,800</td>
-                    </tr>
-                    <tr className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Telehealth %</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">48%</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">55%</td>
-                      <td className="px-4 py-3 text-center font-semibold text-emerald-600 dark:text-emerald-400">62%</td>
-                    </tr>
-                    <tr className="hover:bg-gray-50 dark:hover:bg-slate-700">
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">Time to Fill (days)</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">45</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">38</td>
-                      <td className="px-4 py-3 text-center font-semibold text-emerald-600 dark:text-emerald-400">32</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '16px' }}>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--color-primary)' }}>Why Demand is High</h3>
-                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>• <strong>123 million</strong> Americans in areas seeking more mental health providers</li>
-                  <li>• <strong>6,203</strong> additional providers needed to meet demand</li>
-                  <li>• <strong>45%</strong> projected NP job growth through 2032</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          {/* Factors Affecting Salary */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="h-6 w-6 text-emerald-600" />
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary, #111827)' }}>Factors Affecting PMHNP Salary</h2>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
-                <div style={{ flex: '1 1 280px', minWidth: '250px' }}>
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
-                      <MapPin className="h-5 w-5 text-teal-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Geographic Location</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        States with higher cost of living and greater demand (CA, NY, MA) typically
-                        offer 20-40% higher salaries than rural areas.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <GraduationCap className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Experience Level</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Entry-level PMHNPs start around $115-145k. With 5+ years experience,
-                        salaries can reach $180-210k or more.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <Briefcase className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Employment Type</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        1099 contractors and travel PMHNPs often earn 20-50% more than W2 employees,
-                        though without traditional benefits.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ flex: '1 1 280px', minWidth: '250px' }}>
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Practice Setting</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Private practice and telehealth positions often pay more than hospital or
-                        community health settings.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Specialization</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Subspecialties like addiction psychiatry, child/adolescent, or forensic
-                        psychiatry can command premium pay (+10-25%).
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Negotiation</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        PMHNPs who negotiate can often secure 5-15% higher starting salaries
-                        plus signing bonuses ($5,000-$30,000) and better benefits.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* FAQ Section */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                Frequently Asked Questions About PMHNP Salary
-              </h2>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    How much do PMHNPs make in 2026?
-                  </h3>
-                  <p className="" style={{ color: 'var(--text-secondary)' }}>
-                    The national average PMHNP salary is <strong>$155,000+ per year</strong> in 2026, based on data from BLS,
-                    ZipRecruiter, Indeed, PayScale, Glassdoor, and CompHealth. The top 10% earn <strong>$210,000 or more</strong>.
-                    New graduates start at $115,000-$145,000, while experienced PMHNPs earn $180,000-$210,000.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    Which state pays PMHNPs the most?
-                  </h3>
-                  <p className="" style={{ color: 'var(--text-secondary)' }}>
-                    Idaho offers the highest PMHNP salary at <strong>$205,080 per year</strong>, followed by New Jersey ($182,022),
-                    California ($181,670), Rhode Island ($175,530), and Washington ($173,331). When adjusted for cost of living,
-                    Idaho, Louisiana, Pennsylvania, Arkansas, and Missouri offer the best value.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    Do telehealth PMHNPs make less than in-person?
-                  </h3>
-                  <p className="" style={{ color: 'var(--text-secondary)' }}>
-                    Telehealth PMHNPs earn $130,000 to $175,000, while in-person PMHNPs earn $145,000 to $185,000.
-                    However, telehealth offers excellent flexibility and some companies like Talkiatry pay
-                    <strong> $180,000-$215,000+</strong> for experienced PMHNPs with multi-state licenses.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    How can I increase my PMHNP salary?
-                  </h3>
-                  <p className="" style={{ color: 'var(--text-secondary)' }}>
-                    Top strategies include: specializing in high-demand areas like addiction psychiatry (+15-20% premium)
-                    or forensic psychiatry (+15-25%), practicing in Full Practice Authority states (+12-15% premium),
-                    considering private practice ownership ($180,000-$300,000+), working in rural/underserved areas
-                    for loan repayment incentives, and always negotiating total compensation including sign-on bonuses
-                    ($5,000-$30,000), CME allowance, and PTO.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    How much do travel PMHNPs make?
-                  </h3>
-                  <p className="" style={{ color: 'var(--text-secondary)' }}>
-                    Travel and locum tenens PMHNPs typically earn <strong>20-50% more</strong> than permanent positions,
-                    with compensation ranging from $150,000 to $250,000+ including housing stipends and travel allowances.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Data Sources & Methodology */}
-          <section className="mb-6">
-            <div style={{ backgroundColor: 'var(--bg-tertiary, #F3F4F6)', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                <strong>Data Sources & Methodology:</strong> Salary data compiled from Bureau of Labor Statistics (BLS),
-                ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth, and analysis of 10,000+ active PMHNP job postings
-                on PMHNP Hiring. Industry data updated January 2026. Real-time job posting data updated daily.
-              </p>
-            </div>
-          </section>
-
-          {/* Cite This Page */}
-          <div style={{ backgroundColor: 'var(--bg-secondary, #F9FAFB)', border: '1px solid var(--border-color, #E5E7EB)', borderRadius: '8px', padding: '24px', marginBottom: '32px', marginTop: '32px' }}>
-            <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>📋 Cite This Page</h3>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Use the following citation when referencing data from this salary guide:</p>
-
-            <CopyCitation citation={`PMHNP Hiring. "2026 PMHNP Salary Guide: Psychiatric NP Pay by State." PMHNP Hiring, February 2026, pmhnphiring.com/salary-guide.`} />
-
-            <p className="text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>For media inquiries or custom data requests, contact press@pmhnphiring.com</p>
           </div>
-
-          {/* CTA Section */}
-          <section>
-            <div style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)', borderRadius: '8px', padding: '24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', color: 'white' }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 4px 0' }}>
-                  Find Your Next High-Paying PMHNP Job
-                </h2>
-                <p style={{ color: '#a7f3d0', margin: 0, fontSize: '0.875rem' }}>
-                  Browse positions with competitive salaries. Filter by location, salary, and work type.
-                </p>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                <Link
-                  href="/jobs"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'white', color: '#047857', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
-                >
-                  Browse Jobs
-                </Link>
-                <Link
-                  href="/jobs/remote"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
-                >
-                  Remote
-                </Link>
-                <Link
-                  href="/jobs/telehealth"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
-                >
-                  Telehealth
-                </Link>
-                <Link
-                  href="/jobs/travel"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
-                >
-                  Travel
-                </Link>
-                <Link
-                  href="/jobs/new-grad"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
-                >
-                  New Grad
-                </Link>
-                <Link
-                  href="/jobs/per-diem"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', fontSize: '0.875rem' }}
-                >
-                  Per Diem
-                </Link>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
-    </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 5: MARKET TRENDS (slate bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E8EDF2 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Market Intelligence
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '36px' }}>
+            {currentYear} PMHNP Market Trends
+          </h2>
+
+          <div className="emp-compare-table" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(13,148,136,0.02))' }}>
+                  <th style={{ padding: '14px 24px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>Metric</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 600, color: '#94A3B8', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>2024</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 600, color: '#94A3B8', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '11px', textTransform: 'uppercase' }}>2025</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'center', fontWeight: 800, color: '#0D9488', borderBottom: '2px solid rgba(13,148,136,0.2)', fontSize: '11px', textTransform: 'uppercase' }}>2026</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { metric: 'Average Salary', v24: '$158,000', v25: '$162,000', v26: '$165,000' },
+                  { metric: 'Job Postings (Monthly)', v24: '12,500', v25: '14,200', v26: '15,800' },
+                  { metric: 'Telehealth %', v24: '48%', v25: '55%', v26: '62%' },
+                  { metric: 'Time to Fill (days)', v24: '45', v25: '38', v26: '32' },
+                ].map((row, i) => (
+                  <tr key={row.metric} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                    <td style={{ padding: '12px 24px', fontWeight: 500, color: '#1A2E35', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{row.metric}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{row.v24}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', color: '#94A3B8', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>{row.v25}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'center', fontWeight: 700, color: '#0D9488', borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(13,148,136,0.03)' }}>{row.v26}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Why Demand is High */}
+          <div style={{ ...clayCard, padding: '22px 28px', background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>Why Demand is High</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontSize: '13px', color: '#5A4A42' }}>
+              <li>• <strong>123 million</strong> Americans in shortage areas</li>
+              <li>• <strong>6,203</strong> additional providers needed</li>
+              <li>• <strong>45%</strong> projected NP job growth through 2032</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 6: FACTORS (cream bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <div style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 50%, #FFF5EE 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Maximize Your Pay
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '36px' }}>
+            Factors Affecting PMHNP Salary
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+            {factorCards.map(card => {
+              const FIcon = card.icon;
+              return (
+                <div key={card.title} className="emp-bento-card" style={{ ...clayCard, padding: '28px 24px' }}>
+                  <div style={{ ...clayIconWrap(card.bg), marginBottom: '16px' }}>
+                    <FIcon size={20} color={card.iconBg} />
+                  </div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>{card.title}</h3>
+                  <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>{card.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 7: FAQ (white bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '80px 20px', background: '#fff' }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Common Questions
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '32px' }}>
+            Frequently Asked Questions
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {faqData.map(({ q, a }) => (
+              <details key={q} style={{ ...clayCard, padding: 0, overflow: 'hidden' }}>
+                <summary style={{
+                  padding: '18px 24px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  fontSize: '15px', fontWeight: 600, color: '#1A2E35', listStyle: 'none',
+                }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '8px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                    boxShadow: '2px 2px 5px rgba(13,148,136,0.12)',
+                    flexShrink: 0,
+                  }}>
+                    <HelpCircle size={14} color="#fff" />
+                  </div>
+                  {q}
+                </summary>
+                <div style={{ padding: '0 24px 18px 64px', fontSize: '14px', color: '#5A4A42', lineHeight: 1.65 }}>{a}</div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 8: CITATION + CTA (slate bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E8EDF2 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          {/* Citation */}
+          <div style={{ ...clayCard, padding: '24px 28px', marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>📋 Cite This Page</h3>
+            <p style={{ fontSize: '13px', color: '#5A4A42', marginBottom: '14px' }}>Use the following citation when referencing data from this salary guide:</p>
+            <CopyCitation citation={`PMHNP Hiring. "2026 PMHNP Salary Guide: Psychiatric NP Pay by State." PMHNP Hiring, February 2026, pmhnphiring.com/salary-guide.`} />
+            <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '10px' }}>For media inquiries or custom data requests, contact press@pmhnphiring.com</p>
+          </div>
+
+          {/* Data Sources */}
+          <div style={{ ...clayCard, padding: '16px 24px', background: 'rgba(0,0,0,0.02)', marginBottom: '24px', textAlign: 'center' }}>
+            <p style={{ fontSize: '12px', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+              <strong>Data Sources & Methodology:</strong> Bureau of Labor Statistics (BLS), ZipRecruiter, Indeed, PayScale, Glassdoor, CompHealth, and analysis of 10,000+ active PMHNP job postings. Industry data updated January {currentYear}. Real-time job posting data updated daily.
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div className="sal-cta-grid emp-bento-card" style={{
+            ...clayCard, padding: '0', overflow: 'hidden',
+            display: 'grid', gridTemplateColumns: '1fr 320px', alignItems: 'center',
+          }}>
+            <div style={{ padding: '36px 32px' }}>
+              <h2 className="font-lora" style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>
+                Find Your Next High-Paying{' '}
+                <span style={{ color: '#0D9488' }}>PMHNP Job</span>
+              </h2>
+              <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 20px', maxWidth: '380px' }}>
+                Browse positions with competitive salaries. Filter by location, salary, and work type.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <Link href="/jobs" className="emp-cta-primary" style={{
+                  padding: '12px 24px', borderRadius: '12px', fontWeight: 700, fontSize: '14px',
+                  background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  boxShadow: '4px 4px 12px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                }}>
+                  Browse All Jobs <ArrowRight size={15} />
+                </Link>
+                {[
+                  { label: 'Remote', href: '/jobs/remote' },
+                  { label: 'Telehealth', href: '/jobs/telehealth' },
+                  { label: 'Travel', href: '/jobs/travel' },
+                ].map(l => (
+                  <Link key={l.label} href={l.href} className="emp-cta-secondary" style={{
+                    padding: '12px 18px', borderRadius: '12px', fontWeight: 600, fontSize: '13px',
+                    background: '#fff', color: '#1A2E35', textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    boxShadow: '2px 2px 6px rgba(0,0,0,0.04)',
+                  }}>
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
+              <Image
+                src="/images/employers/cta-illustration.png"
+                alt="Find high-paying PMHNP jobs"
+                width={280} height={220}
+                style={{ width: '100%', maxWidth: '260px', height: 'auto', borderRadius: '14px' }}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ Responsive + Hover ═══ */}
+      <style>{`
+        .emp-cta-primary {
+          transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+        }
+        .emp-cta-primary:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 32px rgba(13,148,136,0.35), inset 1px 1px 2px rgba(255,255,255,0.2) !important;
+          filter: brightness(1.05);
+        }
+        .emp-cta-secondary {
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .emp-cta-secondary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
+          border-color: rgba(13,148,136,0.3) !important;
+        }
+        .emp-bento-card {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .emp-bento-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important;
+        }
+        .emp-compare-table tr {
+          transition: background 0.2s ease;
+        }
+        .emp-compare-table tbody tr:hover {
+          background: rgba(13,148,136,0.04) !important;
+        }
+        .sal-stat-pill {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .sal-stat-pill:hover {
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important;
+        }
+
+        @media (max-width: 768px) {
+          .sal-bento { grid-template-columns: 1fr !important; }
+          .sal-bento > div { grid-column: span 1 !important; }
+          .sal-cta-grid { grid-template-columns: 1fr !important; }
+          .sal-quick-stats { grid-template-columns: repeat(2, 1fr) !important; }
+          .sal-range-col { display: none; }
+          .sal-roles-col { display: none; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .sal-bento { grid-template-columns: repeat(6, 1fr) !important; }
+          .sal-bento-exp { grid-column: span 6 !important; }
+          .sal-bento-setting { grid-column: span 6 !important; }
+          .sal-bento-spec { grid-column: span 6 !important; }
+          .sal-bento-fpa { grid-column: span 6 !important; }
+        }
+      `}</style>
+    </>
   );
 }
