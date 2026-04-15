@@ -239,7 +239,33 @@ export default async function ResourcesPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 3: STATE LICENSURE — TOOL + DIORAMA GRID (warm peach)
+          SECTION 3A: LICENSURE CHECKER TOOL (cool slate bg)
+          ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Interactive Tool
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '12px' }}>
+            PMHNP Licensure Checker
+          </h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '550px', margin: '0 auto 44px', lineHeight: 1.6 }}>
+            Select your state to instantly see requirements, practice authority, salary data, and timeline.
+          </p>
+
+          {/* ─── Licensure Checker Tool ─── */}
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            <LicensureChecker
+              stateGuides={sortedStates.filter(Boolean).map(s => ({ name: s!.name, slug: s!.slug }))}
+              stateSalaries={stateSalaries}
+              practiceAuthority={STATE_PRACTICE_AUTHORITY}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 3B: BROWSE ALL STATE GUIDES (warm peach bg)
           ═══════════════════════════════════════════════════════════════ */}
       <section style={{ background: 'linear-gradient(180deg, #FDE8D8 0%, #F5D0B5 40%, #FDE8D8 100%)', padding: '80px 20px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -247,24 +273,10 @@ export default async function ResourcesPage() {
             50-State Coverage
           </p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '12px' }}>
-            PMHNP Licensure Guides by State
+            Browse All Licensure Guides
           </h2>
-          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '550px', margin: '0 auto 44px', lineHeight: 1.6 }}>
-            Requirements, steps, salary data, and board of nursing links — one guide for every state.
-          </p>
-
-          {/* ─── Licensure Checker Tool ─── */}
-          <div style={{ maxWidth: '1000px', margin: '0 auto 60px' }}>
-            <LicensureChecker
-              stateGuides={sortedStates.filter(Boolean).map(s => ({ name: s!.name, slug: s!.slug }))}
-              stateSalaries={stateSalaries}
-              practiceAuthority={STATE_PRACTICE_AUTHORITY}
-            />
-          </div>
-
-          {/* ─── Browse All States Diorama Grid ─── */}
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '24px' }}>
-            Browse All States
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '500px', margin: '0 auto 36px', lineHeight: 1.6 }}>
+            Requirements, board links, salary data, and step-by-step instructions for every state.
           </p>
 
           <div className="res-state-grid" style={{
