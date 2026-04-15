@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import CopyCitation from '@/components/CopyCitation';
 
 interface StateGuide {
   name: string;
@@ -350,18 +351,15 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
         </div>
       )}
 
-      {/* ─── Citation Footer ─── */}
+      {/* ─── Cite This Page ─── */}
       <div style={{
-        padding: '14px 32px', borderTop: '1px solid rgba(0,0,0,0.06)',
-        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px',
+        padding: '24px 32px', borderTop: '1px solid rgba(0,0,0,0.06)',
         background: 'rgba(0,0,0,0.015)',
       }}>
-        <p style={{ fontSize: '10.5px', color: '#94A3B8', margin: 0, lineHeight: 1.5 }}>
-          Sources: <a href="https://www.aanp.org/advocacy/state/state-practice-environment" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'underline' }}>American Association of Nurse Practitioners (AANP)</a>, State Boards of Nursing, <a href="https://www.ncsbn.org/nursing-regulation/practice/aprn.page" target="_blank" rel="noopener noreferrer" style={{ color: '#64748B', textDecoration: 'underline' }}>NCSBN APRN Consensus Model</a>
-        </p>
-        <p style={{ fontSize: '10.5px', color: '#CBD5E1', margin: 0 }}>
-          Last updated: April 2026
-        </p>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>📋 Cite This Page</h3>
+        <p style={{ fontSize: '13px', color: '#5A4A42', marginBottom: '14px' }}>Use the following citation when referencing data from this licensure tool:</p>
+        <CopyCitation citation={`PMHNP Hiring. "2026 PMHNP State Licensure Checker: Practice Authority & Requirements by State." PMHNP Hiring, April 2026, pmhnphiring.com/resources.`} />
+        <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '10px' }}>For media inquiries or custom data requests, contact press@pmhnphiring.com</p>
       </div>
 
       <style>{`
