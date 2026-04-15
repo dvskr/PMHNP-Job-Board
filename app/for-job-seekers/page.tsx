@@ -346,30 +346,69 @@ export default async function ForJobSeekersPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════
-          SECTION 7: RESOURCES CTA (teal gradient)
+          SECTION 7: CAREER RESOURCES (clay cards on warm bg)
           ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'linear-gradient(145deg, #0D9488, #10B981)', padding: '64px 20px' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
-            Free Resources to Boost Your Career
-          </h2>
-          <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.8)', maxWidth: '440px', margin: '0 auto 36px', lineHeight: 1.6 }}>
-            Salary data, licensure guides, and career advice — all built for PMHNPs.
+      <section style={{ background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 50%, #FFF5EE 100%)', padding: '80px 20px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Career Resources
           </p>
-          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 36px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+            Tools Built for Your PMHNP Career
+          </h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '450px', margin: '0 auto 44px', lineHeight: 1.6 }}>
+            Research salaries, check licensure requirements, and plan your next move — all in one place.
+          </p>
+
+          <div className="seeker-resource-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
             {[
-              { label: 'Salary Guide', href: '/salary-guide' },
-              { label: 'Licensure Guides', href: '/resources' },
-              { label: 'Career Blog', href: '/blog' },
-              { label: 'FPA Guide', href: '/resources/fpa-guide' },
-            ].map(l => (
-              <Link key={l.label} href={l.href} style={{
-                padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',
-                background: 'rgba(255,255,255,0.15)', color: '#fff', textDecoration: 'none',
-                border: '1px solid rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)',
-                transition: 'background 0.2s, transform 0.2s',
+              {
+                title: '2026 PMHNP Salary Guide',
+                desc: 'State-by-state salary data, experience-based ranges, and negotiation strategies. See what PMHNPs actually earn.',
+                href: '/salary-guide',
+                icon: '/images/employers/clay-dollar.png',
+                gradient: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
+                cta: 'View Salary Data',
+              },
+              {
+                title: '50-State Licensure Guides',
+                desc: 'Step-by-step requirements, board links, practice authority status, and processing times for every state.',
+                href: '/resources',
+                icon: '/images/employers/clay-chart.png',
+                gradient: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)',
+                cta: 'Check Your State',
+              },
+              {
+                title: 'PMHNP Career Blog',
+                desc: 'Interview tips, resume advice, CE requirements, and industry trends — written by PMHNPs, for PMHNPs.',
+                href: '/blog',
+                icon: '/images/employers/clay-envelope.png',
+                gradient: 'linear-gradient(145deg, #EEF2FF, #E0E7FF)',
+                cta: 'Read Articles',
+              },
+              {
+                title: 'Full Practice Authority Guide',
+                desc: 'Which states let you practice independently? Understand FPA, reduced, and restricted practice levels.',
+                href: '/resources/fpa-guide',
+                icon: '/images/employers/clay-star.png',
+                gradient: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)',
+                cta: 'Learn About FPA',
+              },
+            ].map(r => (
+              <Link key={r.title} href={r.href} className="emp-bento-card" style={{
+                ...clayCard, padding: '0', overflow: 'hidden', textDecoration: 'none',
+                display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center',
               }}>
-                {l.label}
+                <div style={{ background: r.gradient, padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <Image src={r.icon} alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+                </div>
+                <div style={{ padding: '20px 22px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{r.title}</h3>
+                  <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: '0 0 10px', lineHeight: 1.55 }}>{r.desc}</p>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#0D9488', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {r.cta} <ArrowRight size={12} />
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
@@ -411,6 +450,7 @@ export default async function ForJobSeekersPage() {
         @media (max-width: 768px) {
           .seeker-compare-grid { grid-template-columns: 1fr !important; }
           .seeker-types-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .seeker-resource-grid { grid-template-columns: 1fr !important; }
           .seeker-bento { grid-template-columns: 1fr !important; }
           .seeker-bento-hero-1, .seeker-bento-hero-2, .seeker-bento-hero-3, .seeker-bento-free {
             grid-column: span 1 !important;
