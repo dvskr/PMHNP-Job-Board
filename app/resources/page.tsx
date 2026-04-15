@@ -267,32 +267,36 @@ export default async function ResourcesPage() {
             Or Browse All States
           </p>
           <div className="res-state-grid" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px',
+            display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px',
           }}>
             {sortedStates.map(s => {
               if (!s) return null;
               const slug = s.name.toLowerCase().replace(/\s+/g, '-');
-              const salaryInfo = stateSalaries.find(sal => sal.state === s.name);
               return (
-                <Link key={s.name} href={`/blog/${s.slug}`} className="emp-bento-card" style={{
-                  textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center',
-                }}>
-                  <div style={{
-                    width: '100%', aspectRatio: '1', borderRadius: '20px', overflow: 'hidden',
-                    background: 'linear-gradient(145deg, #F5BFA0, #F0A882)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '12px', marginBottom: '10px',
-                    boxShadow: '4px 4px 12px rgba(0,0,0,0.06), inset 1px 1px 3px rgba(255,255,255,0.3)',
-                  }}>
-                    <Image src={`/images/states/${slug}.png`} alt={s.name} width={180} height={180}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <Link key={s.name} href={`/blog/${s.slug}`}
+                  className="res-diorama-card"
+                  style={{ textDecoration: 'none', display: 'block' }}
+                >
+                  <div
+                    className="res-diorama-img"
+                    style={{
+                      position: 'relative', overflow: 'hidden', aspectRatio: '1',
+                      borderRadius: '24px', marginBottom: '8px',
+                      boxShadow: 'inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 6px 20px rgba(0,0,0,0.1)',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    }}
+                  >
+                    <Image
+                      src={`/images/states/${slug}.png`}
+                      alt={`${s.name} PMHNP licensure guide`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+                    />
                   </div>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', textAlign: 'center' }}>{s.name}</span>
-                  {salaryInfo && (
-                    <span style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-                      {salaryInfo.jobCount} openings
-                    </span>
-                  )}
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', textAlign: 'center', margin: '0 0 2px', transition: 'color 0.2s ease' }}
+                    className="res-diorama-name">{s.name}</p>
+                  <p style={{ fontSize: '11px', color: '#6366F1', textAlign: 'center', margin: 0, fontWeight: 500 }}>Read Guide →</p>
                 </Link>
               );
             })}
@@ -467,6 +471,13 @@ export default async function ResourcesPage() {
         .sal-stat-pill:hover {
           transform: translateY(-2px) scale(1.02);
           box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important;
+        }
+        .res-diorama-card:hover .res-diorama-img {
+          transform: translateY(-6px) scale(1.03);
+          box-shadow: inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 14px 32px rgba(0,0,0,0.16) !important;
+        }
+        .res-diorama-card:hover .res-diorama-name {
+          color: #0D9488 !important;
         }
         @media (max-width: 768px) {
           .res-feat-grid { grid-template-columns: 1fr !important; }
