@@ -623,10 +623,10 @@ export default function DashboardContent() {
     const completeness = calculateCompleteness(profile)
 
     const statCards = [
-        { label: 'jobs saved', value: stats.savedJobs, icon: Bookmark, color: '#818CF8', href: '/saved', illustration: '/illustrations/clay-stat-saved.png' },
-        { label: 'applications sent', value: stats.applied, icon: Send, color: '#0D9488', href: null, illustration: '/illustrations/clay-stat-applied.png' },
-        { label: 'profile views', value: stats.profileViews, icon: Eye, color: '#F59E0B', href: null, illustration: '/illustrations/clay-stat-views.png' },
-        { label: 'active alert', value: stats.activeAlerts, icon: Bell, color: '#E879A8', href: '/job-alerts/manage', illustration: '/illustrations/clay-stat-alerts.png' },
+        { label: 'jobs saved', value: stats.savedJobs, icon: Bookmark, color: '#818CF8', href: '/saved', illustration: '/images/clay-stat-saved.png' },
+        { label: 'applications sent', value: stats.applied, icon: Send, color: '#0D9488', href: null, illustration: '/images/clay-stat-applied.png' },
+        { label: 'profile views', value: stats.profileViews, icon: Eye, color: '#F59E0B', href: null, illustration: '/images/clay-stat-views.png' },
+        { label: 'active alert', value: stats.activeAlerts, icon: Bell, color: '#E879A8', href: '/job-alerts/manage', illustration: '/images/clay-stat-alerts.png' },
     ]
 
     return (
@@ -826,7 +826,7 @@ export default function DashboardContent() {
                             textAlign: 'center', padding: '32px 16px',
                             ...cardRecessed,
                         }}>
-                            <img src="/illustrations/empty-applications.png" alt="" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
+                            <img src="/images/empty-applications.png" alt="" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
                             <p style={{ fontSize: '14px', fontWeight: 600, color: '#4A5E6A', marginBottom: '4px' }}>
                                 No applications yet
                             </p>
@@ -890,7 +890,7 @@ export default function DashboardContent() {
                             textAlign: 'center', padding: '32px 16px',
                             ...cardRecessed,
                         }}>
-                            <img src="/illustrations/empty-saved.png" alt="" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
+                            <img src="/images/empty-saved.png" alt="" style={{ width: '80px', height: '80px', margin: '0 auto 12px', objectFit: 'contain', opacity: 0.85 }} />
                             <p style={{ fontSize: '14px', fontWeight: 600, color: '#4A5E6A', marginBottom: '4px' }}>
                                 No saved jobs
                             </p>
@@ -1195,7 +1195,7 @@ export default function DashboardContent() {
                     overflow: 'hidden',
                 }}>
                     <img
-                        src="/illustrations/vector-feedback-v4.png"
+                        src="/images/vector-feedback-v4.png"
                         alt="Share your feedback"
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -1211,7 +1211,7 @@ export default function DashboardContent() {
                     overflow: 'hidden',
                 }}>
                     <img
-                        src="/illustrations/vector-share-story-v3.png"
+                        src="/images/vector-share-story-v3.png"
                         alt="Share your story"
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -1227,7 +1227,7 @@ export default function DashboardContent() {
                     overflow: 'hidden',
                 }}>
                     <img
-                        src="/illustrations/vector-support-v3.png"
+                        src="/images/vector-support-v3.png"
                         alt="Get support"
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -1272,7 +1272,7 @@ export default function DashboardContent() {
                     overflow: 'hidden',
                 }}>
                     <img
-                        src="/illustrations/vector-career-pulse-v3.png"
+                        src="/images/vector-career-pulse-v3.png"
                         alt="Job market trends"
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -1294,7 +1294,7 @@ export default function DashboardContent() {
                     overflow: 'hidden',
                 }}>
                     <img
-                        src="/illustrations/vector-resources-v3.png"
+                        src="/images/vector-resources-v3.png"
                         alt="Career resources"
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />

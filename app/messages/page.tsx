@@ -439,7 +439,7 @@ export default function MessagesPage() {
                     backgroundColor: '#F7FBF8', border: borderVal, borderRadius: '20px',
                     boxShadow: '6px 6px 16px rgba(0,0,0,0.05), -3px -3px 10px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6)',
                 }}>
-                    <img src="/illustrations/empty-messages.png" alt="" style={{ width: '100px', height: '100px', margin: '0 auto 16px', objectFit: 'contain', opacity: 0.85 }} />
+                    <img src="/images/empty-messages.png" alt="" style={{ width: '100px', height: '100px', margin: '0 auto 16px', objectFit: 'contain', opacity: 0.85 }} />
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
                         No messages yet
                     </h2>

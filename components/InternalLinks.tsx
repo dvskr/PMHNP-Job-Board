@@ -103,7 +103,7 @@ export default function InternalLinks({
                 overflow: 'hidden',
             }}>
                 <Image
-                    src="/illustrations/clay-island-explore.png"
+                    src="/images/clay-island-explore.png"
                     alt="Explore PMHNP locations"
                     fill
                     style={{ objectFit: 'cover' }}

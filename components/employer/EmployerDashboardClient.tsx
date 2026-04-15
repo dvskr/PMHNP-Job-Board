@@ -825,7 +825,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ── Hiring Tips ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <img
-                        src="/illustrations/employer-hiring.png"
+                        src="/images/employer-hiring.png"
                         alt="Hiring tips"
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -851,7 +851,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ── Talent Pool ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <img
-                        src="/illustrations/employer-talent.png"
+                        src="/images/employer-talent.png"
                         alt="Browse talent"
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -878,7 +878,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ── Star Rating ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <img
-                        src="/illustrations/employer-feedback.png"
+                        src="/images/employer-feedback.png"
                         alt="Rate your experience"
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -890,7 +890,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ── Share Your Story ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <img
-                        src="/illustrations/employer-story.png"
+                        src="/images/employer-story.png"
                         alt="Share your story"
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
@@ -902,7 +902,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                 {/* ── Support & Help ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <img
-                        src="/illustrations/employer-support.png"
+                        src="/images/employer-support.png"
                         alt="Get support"
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />

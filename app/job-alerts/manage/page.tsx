@@ -480,7 +480,7 @@ function ManageAlertsContent() {
         {/* ═══ Empty State ═══ */}
         {!loading && alerts.length === 0 && !error && (
           <div style={{ ...cardBase, padding: '48px 24px', textAlign: 'center' }}>
-            <img src="/illustrations/spot-alerts-empty.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginInline: 'auto', display: 'block', marginBottom: '16px' }} />
+            <img src="/images/spot-alerts-empty.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginInline: 'auto', display: 'block', marginBottom: '16px' }} />
             <h2 style={{
               fontSize: '18px', fontWeight: 700,
               fontFamily: 'var(--font-lora), Georgia, serif',

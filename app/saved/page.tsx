@@ -387,7 +387,7 @@ export default function SavedJobsPage() {
                 ...cardBase,
                 textAlign: 'center', padding: '60px 24px',
             }}>
-                <img src="/illustrations/spot-saved.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
+                <img src="/images/spot-saved.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
                 <h2 style={{
                     fontSize: '18px', fontWeight: 700,
                     fontFamily: 'var(--font-lora), Georgia, serif',
@@ -421,7 +421,7 @@ export default function SavedJobsPage() {
                 ...cardBase,
                 textAlign: 'center', padding: '60px 24px',
             }}>
-                <img src="/illustrations/spot-applied.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
+                <img src="/images/spot-applied.png" alt="" style={{ width: '120px', height: '120px', objectFit: 'contain', marginBottom: '16px', marginInline: 'auto', display: 'block' }} />
                 <h2 style={{
                     fontSize: '18px', fontWeight: 700,
                     fontFamily: 'var(--font-lora), Georgia, serif',

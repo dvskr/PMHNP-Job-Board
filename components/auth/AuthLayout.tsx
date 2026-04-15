@@ -20,7 +20,7 @@ const VARIANT_CONFIG: Record<AuthVariant, {
   login: {
     headline: 'Welcome back',
     subline: 'Sign in to your account',
-    illustration: '/illustrations/auth-login.png',
+    illustration: '/images/auth-login.png',
     testimonial: {
       quote: '"I found my dream remote PMHNP position in less than a week. The job matching was incredibly accurate."',
       name: 'Sarah M., PMHNP-BC',
@@ -31,7 +31,7 @@ const VARIANT_CONFIG: Record<AuthVariant, {
   signup: {
     headline: 'Create your account',
     subline: 'Join thousands of PMHNPs finding their perfect role',
-    illustration: '/illustrations/auth-signup.png',
+    illustration: '/images/auth-signup.png',
     testimonial: {
       quote: '"Setting up my profile took 2 minutes, and I was getting matched with relevant positions the same day."',
       name: 'James R., PMHNP',
@@ -42,21 +42,21 @@ const VARIANT_CONFIG: Record<AuthVariant, {
   forgot: {
     headline: 'Reset your password',
     subline: "Enter your email and we'll send you a reset link",
-    illustration: '/illustrations/auth-forgot.png',
+    illustration: '/images/auth-forgot.png',
     testimonial: null,
     rightLink: null,
   },
   reset: {
     headline: 'Set new password',
     subline: 'Choose a strong password to secure your account',
-    illustration: '/illustrations/auth-forgot.png',
+    illustration: '/images/auth-forgot.png',
     testimonial: null,
     rightLink: null,
   },
   employer_login: {
     headline: 'Employer Login',
     subline: 'Manage your job listings and applicants',
-    illustration: '/illustrations/auth-employer.png',
+    illustration: '/images/auth-employer.png',
     testimonial: {
       quote: '"We filled three PMHNP positions in under two weeks. The candidate quality was outstanding compared to general job boards."',
       name: 'Dr. Lisa Chen',
@@ -67,7 +67,7 @@ const VARIANT_CONFIG: Record<AuthVariant, {
   employer_signup: {
     headline: 'Create Employer Account',
     subline: 'Start hiring qualified PMHNPs today',
-    illustration: '/illustrations/auth-employer-signup.png',
+    illustration: '/images/auth-employer-signup.png',
     testimonial: {
       quote: '"The specialized talent pool here is unmatched. We connected with board-certified PMHNPs who were ready to start immediately."',
       name: 'Mark R., MBA',
