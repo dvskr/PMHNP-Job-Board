@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    Building, Save, Loader2, User, CreditCard, Globe, Mail,
-    Phone, CheckCircle, AlertTriangle, FileText, Lock, Bell,
+    Save, Loader2, Globe, Mail,
+    Phone, CheckCircle, AlertTriangle, FileText,
 } from 'lucide-react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 interface CompanyInfo {
@@ -104,16 +105,17 @@ const clayPill = (selected: boolean, accent: string): React.CSSProperties => ({
 });
 
 const clayTabActive: React.CSSProperties = {
-    ...clayBtn, padding: '10px 18px', fontSize: '13px',
+    ...clayBtn, padding: '16px', fontSize: '14px',
     background: '#FFFFFF', color: '#1A2E35',
+    width: '100%', justifyContent: 'flex-start',
     boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
     border: '1px solid rgba(0,0,0,0.05)',
 };
 
 const clayTabInactive: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: '8px',
-    padding: '10px 18px', borderRadius: '14px',
-    fontSize: '13px', fontWeight: 500,
+    display: 'flex', alignItems: 'center', gap: '12px',
+    padding: '16px', borderRadius: '14px', width: '100%', justifyContent: 'flex-start',
+    fontSize: '14px', fontWeight: 500,
     background: 'transparent', color: '#8A9BA6',
     border: 'none', cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -252,10 +254,10 @@ export default function EmployerSettingsClient() {
     if (!profile) return null;
 
     const sections = [
-        { key: 'company' as const, label: 'Company', icon: Building, gradient: 'linear-gradient(145deg, #0D9488, #10B981)' },
-        { key: 'billing' as const, label: 'Billing', icon: CreditCard, gradient: 'linear-gradient(145deg, #F59E0B, #EAB308)' },
-        { key: 'alerts' as const, label: 'Alerts', icon: Bell, gradient: 'linear-gradient(145deg, #8B5CF6, #A855F7)' },
-        { key: 'account' as const, label: 'Account', icon: User, gradient: 'linear-gradient(145deg, #3B82F6, #60A5FA)' },
+        { key: 'company' as const, label: 'Company Profile', icon: '/images/employers/clay-icon-office.png', desc: 'Brand & info' },
+        { key: 'billing' as const, label: 'Billing & Plans', icon: '/images/employers/clay-icon-credit-card.png', desc: 'Payment history' },
+        { key: 'alerts' as const, label: 'Candidate Alerts', icon: '/images/employers/clay-icon-bell.png', desc: 'Match notifications' },
+        { key: 'account' as const, label: 'Account Security', icon: '/images/employers/clay-icon-shield.png', desc: 'Password reset' },
     ];
 
     const Label = ({ children }: { children: React.ReactNode }) => (
@@ -265,7 +267,7 @@ export default function EmployerSettingsClient() {
     );
 
     return (
-        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 16px' }}>
+        <div style={{ maxWidth: '1040px', margin: '0 auto', padding: '40px 20px', display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Toast */}
             {message && (
                 <div style={{
@@ -282,55 +284,57 @@ export default function EmployerSettingsClient() {
                 </div>
             )}
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h1 style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>
-                    Employer Settings
+            {/* Sidebar Navigation */}
+            <div className="settings-sidebar" style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <h1 style={{ fontSize: '26px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 16px' }}>
+                    Settings
                 </h1>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="clay-save-btn"
-                    style={{
-                        ...clayBtn,
-                        background: saving ? 'rgba(13,148,136,0.3)' : 'linear-gradient(145deg, #0D9488, #10B981)',
-                        color: '#fff',
-                        boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
-                        cursor: saving ? 'not-allowed' : 'pointer',
-                        opacity: saving ? 0.6 : 1,
-                    }}
-                >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    {saving ? 'Saving...' : 'Save Changes'}
-                </button>
+                
+                <div style={{ ...clayCard, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {sections.map(s => (
+                        <button
+                            key={s.key}
+                            onClick={() => setActiveSection(s.key)}
+                            style={activeSection === s.key ? clayTabActive : clayTabInactive}
+                        >
+                            <Image src={s.icon} alt={s.label} width={32} height={32} style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
+                            <div style={{ textAlign: 'left' }}>
+                                <div style={{ fontSize: '14px', fontWeight: 700, color: activeSection === s.key ? '#1A2E35' : '#8A9BA6' }}>{s.label}</div>
+                                <div style={{ fontSize: '11.5px', color: '#B0BEC5', fontWeight: 500, marginTop: '2px' }}>{s.desc}</div>
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Section Nav */}
-            <div style={{
-                ...clayCard, padding: '6px', marginBottom: '20px',
-                display: 'flex', gap: '4px',
-            }}>
-                {sections.map(s => (
+            {/* Main Content Area */}
+            <div className="settings-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Header Actions */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
                     <button
-                        key={s.key}
-                        onClick={() => setActiveSection(s.key)}
-                        style={activeSection === s.key ? { ...clayTabActive, flex: 1 } : { ...clayTabInactive, flex: 1 }}
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="clay-save-btn"
+                        style={{
+                            ...clayBtn,
+                            background: saving ? 'rgba(13,148,136,0.3)' : 'linear-gradient(145deg, #0D9488, #10B981)',
+                            color: '#fff',
+                            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            opacity: saving ? 0.6 : 1,
+                        }}
                     >
-                        <s.icon size={15} />
-                        {s.label}
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {saving ? 'Saving...' : 'Save Changes'}
                     </button>
-                ))}
-            </div>
+                </div>
 
             {/* ═══ Company Section ═══ */}
             {activeSection === 'company' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div style={clayCard}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                            <div style={{ ...clayIconWrap, background: 'linear-gradient(145deg, #0D9488, #10B981)' }}>
-                                <Building size={18} color="#fff" />
-                            </div>
-                            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>
+                        <div style={{ marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
                                 Company Information
                             </h3>
                         </div>
@@ -405,11 +409,8 @@ export default function EmployerSettingsClient() {
 
                     {/* Contact Info */}
                     <div style={clayCard}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                            <div style={{ ...clayIconWrap, background: 'linear-gradient(145deg, #8B5CF6, #A855F7)' }}>
-                                <User size={18} color="#fff" />
-                            </div>
-                            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>
+                        <div style={{ marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
                                 Contact Information
                             </h3>
                         </div>
@@ -444,11 +445,8 @@ export default function EmployerSettingsClient() {
             {/* ═══ Billing Section ═══ */}
             {activeSection === 'billing' && (
                 <div style={clayCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                        <div style={{ ...clayIconWrap, background: 'linear-gradient(145deg, #F59E0B, #EAB308)' }}>
-                            <CreditCard size={18} color="#fff" />
-                        </div>
-                        <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>
+                    <div style={{ marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
                             Payment History
                         </h3>
                     </div>
@@ -511,15 +509,10 @@ export default function EmployerSettingsClient() {
             {/* ═══ Alerts Section ═══ */}
             {activeSection === 'alerts' && (
                 <div style={clayCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ ...clayIconWrap, background: 'linear-gradient(145deg, #8B5CF6, #A855F7)' }}>
-                                <Bell size={18} color="#fff" />
-                            </div>
-                            <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>
-                                Candidate Alerts
-                            </h3>
-                        </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
+                            Candidate Alerts
+                        </h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <label style={{ fontSize: '13px', color: '#8A9BA6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <input type="checkbox" checked={alertPrefs.isActive} onChange={(e) => setAlertPrefs(prev => ({ ...prev, isActive: e.target.checked }))} style={{ accentColor: '#0D9488', width: '16px', height: '16px' }} />
@@ -610,11 +603,8 @@ export default function EmployerSettingsClient() {
             {/* ═══ Account Section ═══ */}
             {activeSection === 'account' && (
                 <div style={clayCard}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                        <div style={{ ...clayIconWrap, background: 'linear-gradient(145deg, #EF4444, #F87171)' }}>
-                            <Lock size={18} color="#fff" />
-                        </div>
-                        <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>
+                    <div style={{ marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
                             Security
                         </h3>
                     </div>
@@ -640,7 +630,13 @@ export default function EmployerSettingsClient() {
                 </div>
             )}
 
+            </div>
+
             <style>{`
+                @media (max-width: 768px) {
+                    .settings-sidebar { width: 100% !important; margin-bottom: 20px; }
+                    .settings-main { flex: none; width: 100% !important; }
+                }
                 .clay-save-btn:hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
                 .clay-reset-btn:hover { transform: translateY(-1px); }
             `}</style>
