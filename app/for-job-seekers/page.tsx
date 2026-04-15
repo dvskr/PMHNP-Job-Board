@@ -219,16 +219,16 @@ export default async function ForJobSeekersPage() {
 
           <div className="seeker-types-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             {[
-              { title: 'Remote / Telehealth', desc: 'Work from anywhere with telepsychiatry', href: '/jobs?mode=Remote', icon: '/images/employers/clay-trending.png', gradient: '#CCFBF1' },
-              { title: 'In-Person Clinical', desc: 'Hospital, clinic, and outpatient roles', href: '/jobs?mode=In-Person', icon: '/images/employers/clay-briefcase.png', gradient: '#D4F5E9' },
-              { title: 'Private Practice', desc: 'Start or join a psychiatric practice', href: '/resources/private-practice-guide', icon: '/images/employers/clay-chart.png', gradient: '#FFFBEB' },
-              { title: 'Part-Time / PRN', desc: 'Flexible schedules and per diem', href: '/jobs?jobType=Part-Time', icon: '/images/employers/clay-calendar.png', gradient: '#FFE0D3' },
+              { title: 'Remote / Telehealth', desc: 'Work from anywhere with telepsychiatry', href: '/jobs?mode=Remote', img: '/images/job-seekers/remote-telehealth.png' },
+              { title: 'In-Person Clinical', desc: 'Hospital, clinic, and outpatient roles', href: '/jobs?mode=In-Person', img: '/images/job-seekers/clinical-inperson.png' },
+              { title: 'Private Practice', desc: 'Start or join a psychiatric practice', href: '/resources/private-practice-guide', img: '/images/job-seekers/private-practice.png' },
+              { title: 'Part-Time / PRN', desc: 'Flexible schedules and per diem', href: '/jobs?jobType=Part-Time', img: '/images/job-seekers/parttime-prn.png' },
             ].map(t => (
               <Link key={t.title} href={t.href} className="emp-bento-card" style={{
                 ...clayCard, padding: '0', overflow: 'hidden', textDecoration: 'none', display: 'block',
               }}>
-                <div style={{ background: t.gradient, padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Image src={t.icon} alt={t.title} width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+                <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden' }}>
+                  <Image src={t.img} alt={t.title} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
                 </div>
                 <div style={{ padding: '20px 18px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{t.title}</h3>
