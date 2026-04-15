@@ -2,212 +2,116 @@
 
 import { useEffect } from 'react';
 
+/* ═══ Clay Tokens ═══ */
+const clayShadow = '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)';
+const clayCard = {
+    background: '#FFFFFF',
+    borderRadius: '24px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: clayShadow,
+    overflow: 'hidden' as const,
+};
+
 interface GlobalErrorProps {
   error: Error & { digest?: string };
   reset: () => void;
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
-  // Log error to console for debugging
   useEffect(() => {
-    // Note: logger is server-only, so we use console.error here (client side)
     console.error('Global application error:', error);
   }, [error]);
 
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-        <div
-          style={{
+      <body style={{ margin: 0, padding: 0, fontFamily: 'system-ui, -apple-system, sans-serif', background: 'linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%)' }}>
+        <div style={{
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#f9fafb',
-            padding: '1rem',
-          }}
-        >
-          <div
-            style={{
-              maxWidth: '32rem',
-              width: '100%',
-              textAlign: 'center',
-              padding: '2rem',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-            }}
-          >
-            {/* Icon */}
-            <div
-              style={{
-                width: '96px',
-                height: '96px',
-                margin: '0 auto 1.5rem',
-                backgroundColor: '#fef3c7',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '48px',
-              }}
-            >
-              ⚠️
-            </div>
+            padding: '60px 20px',
+        }}>
+          <div style={{ maxWidth: '640px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            <div style={{
+                ...clayCard,
+                position: 'relative',
+                padding: '50px 40px',
+                textAlign: 'center',
+                background: 'linear-gradient(145deg, #FFFFFF, #FFF1F2)',
+            }}>
+                <div style={{
+                    width: '72px', height: '72px', borderRadius: '20px',
+                    background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.8), 2px 2px 8px rgba(217,119,6,0.15)',
+                    margin: '0 auto 24px',
+                    fontSize: '32px'
+                }}>
+                    ⚠️
+                </div>
 
-            {/* Heading */}
-            <h1
-              style={{
-                fontSize: '2rem',
-                fontWeight: 'bold',
-                color: '#111827',
-                marginBottom: '1rem',
-              }}
-            >
-              Something went wrong
-            </h1>
-
-            {/* Subtext */}
-            <p
-              style={{
-                fontSize: '1.125rem',
-                color: '#4b5563',
-                marginBottom: '2rem',
-                lineHeight: '1.6',
-              }}
-            >
-              We&apos;re sorry, a critical error occurred. Please try again or reload the page.
-            </p>
-
-            {/* Buttons */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem',
-                marginBottom: '2rem',
-              }}
-            >
-              {/* Try Again Button */}
-              <button
-                onClick={reset}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: 'white',
-                  backgroundColor: '#0d9488',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0f766e';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0d9488';
-                }}
-              >
-                🔄 Try Again
-              </button>
-
-              {/* Reload Button */}
-              <button
-                onClick={() => window.location.href = '/'}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: '#0d9488',
-                  backgroundColor: 'white',
-                  border: '2px solid #0d9488',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f0fdfa';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                }}
-              >
-                🏠 Go to Homepage
-              </button>
-            </div>
-
-            {/* Dev Mode Error Details */}
-            {process.env.NODE_ENV === 'development' && (
-              <div
-                style={{
-                  padding: '1rem',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '8px',
-                  textAlign: 'left',
-                  marginBottom: '1.5rem',
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: '0.75rem',
-                    fontFamily: 'monospace',
-                    color: '#7f1d1d',
-                    wordBreak: 'break-all',
-                    margin: 0,
-                  }}
-                >
-                  <strong>Dev Mode Error:</strong>
-                  <br />
-                  {error.message}
+                <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>
+                    Critical Global Failure
+                </h1>
+                
+                <p style={{ fontSize: '15px', color: '#64748B', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 30px' }}>
+                    The application root encountered an unrecoverable exception.
                 </p>
-                {error.digest && (
-                  <p
-                    style={{
-                      fontSize: '0.75rem',
-                      fontFamily: 'monospace',
-                      color: '#991b1b',
-                      marginTop: '0.5rem',
-                      marginBottom: 0,
-                    }}
-                  >
-                    Error ID: {error.digest}
-                  </p>
-                )}
-              </div>
-            )}
 
-            {/* Support Text */}
-            <div
-              style={{
-                paddingTop: '1.5rem',
-                borderTop: '1px solid #e5e7eb',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: '0.875rem',
-                  color: '#6b7280',
-                  margin: 0,
-                }}
-              >
-                If this keeps happening, please email us at{' '}
-                <a
-                  href="mailto:support@pmhnphiring.com"
-                  style={{
-                    color: '#0d9488',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  support@pmhnphiring.com
-                </a>
-              </p>
+                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button onClick={reset} style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 24px', borderRadius: '16px',
+                        fontSize: '15px', fontWeight: 600, color: '#FFFFFF',
+                        background: 'linear-gradient(135deg, #0D9488, #0F766E)',
+                        boxShadow: '0 4px 12px rgba(13,148,136,0.3), inset 1px 1px 3px rgba(255,255,255,0.3)',
+                        border: 'none', cursor: 'pointer', transition: 'all 0.2s ease'
+                    }}>
+                        ↻ Restart Engine
+                    </button>
+                    <button onClick={() => window.location.href = '/'} style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 24px', borderRadius: '16px',
+                        fontSize: '15px', fontWeight: 600, color: '#334155',
+                        background: '#FFFFFF',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                        boxShadow: '4px 4px 10px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7)',
+                        cursor: 'pointer', transition: 'all 0.2s ease'
+                    }}>
+                        🏠 Return Home
+                    </button>
+                </div>
             </div>
+
+            {process.env.NODE_ENV === 'development' && (
+                <div style={{
+                    ...clayCard,
+                    padding: '24px',
+                    background: '#FFF5F5',
+                    border: '1px solid #FECACA',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.8)',
+                    textAlign: 'left'
+                }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#991B1B', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Stack Trace
+                    </h3>
+                    <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: '12px', border: '1px dashed #FCA5A5' }}>
+                        <p style={{ fontSize: '13px', fontFamily: 'monospace', color: '#B91C1C', wordBreak: 'break-all', margin: 0 }}>
+                            {error.message}
+                        </p>
+                        {error.digest && (
+                            <p style={{ fontSize: '11px', fontFamily: 'monospace', color: '#DC2626', marginTop: '12px', opacity: 0.8, margin: '12px 0 0 0' }}>
+                                DIGEST: {error.digest}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
           </div>
         </div>
       </body>
     </html>
   );
 }
-
