@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Search, Home, Briefcase, ChevronRight } from 'lucide-react';
 
-export default function NotFound() {
+export default function CatchAllNotFound() {
   return (
     <main style={{ 
         minHeight: '100vh', 
