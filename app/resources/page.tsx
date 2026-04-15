@@ -5,7 +5,9 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import ResourceDownloadGate from '@/components/ResourceDownloadGate';
+import LicensureChecker from '@/components/LicensureChecker';
 import { prisma } from '@/lib/prisma';
+import { STATE_PRACTICE_AUTHORITY } from '@/lib/state-practice-authority';
 
 export const revalidate = 86400;
 
@@ -76,11 +78,32 @@ const featuredGuides = [
 ];
 
 export default async function ResourcesPage() {
-  const blogPosts = await prisma.blogPost.findMany({
-    where: { status: 'published' },
-    select: { slug: true, title: true, category: true, metaDescription: true, imageUrl: true, publishDate: true },
-    orderBy: { publishDate: 'desc' },
-  });
+  const [blogPosts, stateSalaryData] = await Promise.all([
+    prisma.blogPost.findMany({
+      where: { status: 'published' },
+      select: { slug: true, title: true, category: true, metaDescription: true, imageUrl: true, publishDate: true },
+      orderBy: { publishDate: 'desc' },
+    }),
+    prisma.job.groupBy({
+      by: ['state'],
+      where: { isPublished: true, state: { not: null }, normalizedMinSalary: { not: null } },
+      _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
+      _min: { normalizedMinSalary: true },
+      _max: { normalizedMaxSalary: true },
+      _count: { id: true },
+    }),
+  ]);
+
+  const stateSalaries = stateSalaryData
+    .filter(s => s.state && s._avg.normalizedMinSalary)
+    .map(s => ({
+      state: s.state!,
+      avgSalary: Math.round(((s._avg.normalizedMinSalary || 0) + (s._avg.normalizedMaxSalary || 0)) / 2),
+      minSalary: Math.round(s._min.normalizedMinSalary || 0),
+      maxSalary: Math.round(s._max.normalizedMaxSalary || 0),
+      jobCount: s._count.id,
+    }))
+    .sort((a, b) => b.avgSalary - a.avgSalary);
 
   // Split state_spotlight from other articles
   const stateGuides = blogPosts.filter(p => p.category === 'state_spotlight');
@@ -230,16 +253,29 @@ export default async function ResourcesPage() {
             Requirements, steps, salary data, and board of nursing links — one guide for every state.
           </p>
 
+          {/* ─── Licensure Checker Tool ─── */}
+          <div style={{ maxWidth: '1000px', margin: '0 auto 48px' }}>
+            <LicensureChecker
+              stateGuides={sortedStates.filter(Boolean).map(s => ({ name: s!.name, slug: s!.slug }))}
+              stateSalaries={stateSalaries}
+              practiceAuthority={STATE_PRACTICE_AUTHORITY}
+            />
+          </div>
+
+          {/* ─── Browse All States Grid ─── */}
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center', marginBottom: '16px' }}>
+            Or Browse All States
+          </p>
           <div className="res-state-grid" style={{
             display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px',
           }}>
             {sortedStates.map(s => s && (
               <Link key={s.name} href={`/blog/${s.slug}`} className="emp-bento-card" style={{
-                ...clayCard, padding: '16px 18px', textDecoration: 'none',
+                ...clayCard, padding: '14px 16px', textDecoration: 'none',
                 borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#1A2E35' }}>{s.name}</span>
-                <ArrowUpRight size={14} style={{ color: '#0D9488', flexShrink: 0 }} />
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35' }}>{s.name}</span>
+                <ArrowUpRight size={13} style={{ color: '#0D9488', flexShrink: 0 }} />
               </Link>
             ))}
           </div>
