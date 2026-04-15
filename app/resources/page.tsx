@@ -139,6 +139,7 @@ export default async function ResourcesPage() {
 
   return (
     <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', background: '#F8FAFC' }}>
       <VideoJsonLd pathname="/resources" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
@@ -504,6 +505,7 @@ export default async function ResourcesPage() {
           .res-article-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
+      </div>
     </>
   );
 }
