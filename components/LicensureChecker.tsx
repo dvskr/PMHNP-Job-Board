@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ChevronDown, ArrowRight, CheckCircle2, AlertTriangle, ShieldX, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -26,12 +25,12 @@ interface Props {
 
 /* ─── Requirements per state (common baseline + state-specific) ─── */
 const COMMON_REQUIREMENTS = [
-  { step: 1, text: 'MSN or DNP from accredited program', icon: '🎓' },
-  { step: 2, text: 'ANCC PMHNP-BC certification', icon: '📋' },
-  { step: 3, text: 'State APRN license application', icon: '📄' },
-  { step: 4, text: 'NPI number registration', icon: '🏥' },
-  { step: 5, text: 'DEA registration for prescribing', icon: '💊' },
-  { step: 6, text: 'State-specific CE requirements', icon: '📚' },
+  { step: 1, text: 'MSN or DNP from accredited program', img: '/images/employers/clay-star.png' },
+  { step: 2, text: 'ANCC PMHNP-BC certification', img: '/images/employers/clay-envelope.png' },
+  { step: 3, text: 'State APRN license application', img: '/images/employers/clay-briefcase.png' },
+  { step: 4, text: 'NPI number registration', img: '/images/employers/clay-people.png' },
+  { step: 5, text: 'DEA registration for prescribing', img: '/images/employers/clay-dollar.png' },
+  { step: 6, text: 'State-specific CE requirements', img: '/images/employers/clay-calendar.png' },
 ];
 
 const TIMELINE_MAP: Record<string, string> = {
@@ -46,24 +45,21 @@ const AUTHORITY_CONFIG = {
     color: '#10B981',
     bg: '#D1FAE5',
     border: '#6EE7B7',
-    desc: 'Independent practice — no physician oversight required',
-    Icon: CheckCircle2,
+    img: '/images/employers/clay-chart.png',
   },
   reduced: {
     label: 'Reduced Practice',
     color: '#F59E0B',
     bg: '#FEF3C7',
     border: '#FCD34D',
-    desc: 'Collaborative agreement with a physician required',
-    Icon: AlertTriangle,
+    img: '/images/employers/clay-calendar.png',
   },
   restricted: {
     label: 'Restricted Practice',
     color: '#EF4444',
     bg: '#FEE2E2',
     border: '#FCA5A5',
-    desc: 'Physician supervision and protocol agreement required',
-    Icon: ShieldX,
+    img: '/images/employers/clay-trending.png',
   },
 };
 
@@ -75,6 +71,24 @@ const clayCard: React.CSSProperties = {
 
 function fmt(n: number) {
   return n.toLocaleString('en-US');
+}
+
+/* Simple inline arrow SVG (no Lucide dependency) */
+function ArrowSvg({ size = 16, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+    </svg>
+  );
+}
+
+/* Simple inline chevron SVG */
+function ChevronSvg() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
 }
 
 export default function LicensureChecker({ stateGuides, stateSalaries, practiceAuthority }: Props) {
@@ -93,8 +107,8 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
 
     // Extra requirement for non-FPA states
     const extraReqs = auth.authority === 'full' ? [] :
-      auth.authority === 'reduced' ? [{ step: 7, text: 'Secure collaborative physician agreement', icon: '🤝' }] :
-      [{ step: 7, text: 'Secure supervising physician agreement', icon: '👨‍⚕️' }];
+      auth.authority === 'reduced' ? [{ step: 7, text: 'Secure collaborative physician agreement', img: '/images/clay-icon-connect.png' }] :
+      [{ step: 7, text: 'Secure supervising physician agreement', img: '/images/clay-icon-connect.png' }];
 
     return { auth, salary, guide, config, timeline, extraReqs };
   }, [selectedState, practiceAuthority, stateSalaries, stateGuides]);
@@ -109,13 +123,10 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
         padding: '28px 32px',
         display: 'flex', alignItems: 'center', gap: '16px',
       }}>
-        <div style={{
+        <Image src="/images/employers/clay-chart.png" alt="Licensure Checker" width={52} height={52} style={{
           width: '52px', height: '52px', borderRadius: '16px',
-          background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.2)',
-        }}>
-          <Sparkles size={26} color="#fff" />
-        </div>
+          boxShadow: '4px 4px 12px rgba(0,0,0,0.15)',
+        }} />
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.2 }}>
             PMHNP Licensure Checker
@@ -150,14 +161,14 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <ChevronDown size={18} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+          <ChevronSvg />
         </div>
       </div>
 
       {/* ─── Results ─── */}
       {!result ? (
         <div style={{ padding: '48px 32px', textAlign: 'center' }}>
-          <Image src="/images/employers/clay-chart.png" alt="Select a state" width={64} height={64} style={{ width: '64px', height: '64px', margin: '0 auto 16px', opacity: 0.5 }} />
+          <Image src="/images/clay-icon-match.png" alt="Select a state" width={72} height={72} style={{ width: '72px', height: '72px', margin: '0 auto 16px', opacity: 0.4 }} />
           <p style={{ fontSize: '16px', fontWeight: 600, color: '#94A3B8', margin: '0 0 4px' }}>Select a state above</p>
           <p style={{ fontSize: '13px', color: '#CBD5E1', margin: 0 }}>to see licensure requirements, practice authority, salary, and timeline</p>
         </div>
@@ -173,7 +184,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               marginBottom: '24px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                <result.config.Icon size={20} color={result.config.color} />
+                <Image src={result.config.img} alt={result.config.label} width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '8px' }} />
                 <span style={{ fontSize: '15px', fontWeight: 800, color: result.config.color }}>{result.config.label}</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#5A4A42', margin: 0, lineHeight: 1.5 }}>
@@ -192,7 +203,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                   padding: '10px 14px', borderRadius: '12px',
                   background: 'rgba(0,0,0,0.015)', border: '1px solid rgba(0,0,0,0.04)',
                 }}>
-                  <span style={{ fontSize: '18px', lineHeight: 1 }}>{req.icon}</span>
+                  <Image src={req.img} alt={`Step ${req.step}`} width={28} height={28} style={{ width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#0D9488' }}>STEP {req.step}</span>
                     <p style={{ fontSize: '13px', color: '#1A2E35', margin: '2px 0 0', fontWeight: 500 }}>{req.text}</p>
@@ -209,16 +220,20 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               padding: '20px', borderRadius: '16px',
               background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
               border: '1.5px solid rgba(13,148,136,0.12)',
+              display: 'flex', alignItems: 'center', gap: '16px',
             }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>
-                Estimated Timeline
-              </p>
-              <div style={{ fontSize: '32px', fontWeight: 800, color: '#134E4A', lineHeight: 1 }}>
-                {result.timeline}
+              <Image src="/images/employers/clay-calendar.png" alt="Timeline" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 2px' }}>
+                  Estimated Timeline
+                </p>
+                <div style={{ fontSize: '28px', fontWeight: 800, color: '#134E4A', lineHeight: 1 }}>
+                  {result.timeline}
+                </div>
+                <p style={{ fontSize: '11px', color: '#5A4A42', margin: '4px 0 0' }}>
+                  From application to active license
+                </p>
               </div>
-              <p style={{ fontSize: '12px', color: '#5A4A42', margin: '6px 0 0' }}>
-                From application to active license
-              </p>
             </div>
 
             {/* Salary Data */}
@@ -227,17 +242,22 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                 padding: '20px', borderRadius: '16px',
                 background: '#FAFAFA', border: '1px solid rgba(0,0,0,0.06)',
               }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' }}>
-                  Average Salary in {selectedState}
-                </p>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>
-                  ${fmt(result.salary.avgSalary)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                  <Image src="/images/employers/clay-dollar.png" alt="Salary" width={36} height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                      Average Salary in {selectedState}
+                    </p>
+                    <div style={{ fontSize: '28px', fontWeight: 800, color: '#1A2E35', lineHeight: 1.1 }}>
+                      ${fmt(result.salary.avgSalary)}
+                    </div>
+                  </div>
                 </div>
-                <p style={{ fontSize: '12px', color: '#94A3B8', margin: '6px 0 0' }}>
+                <p style={{ fontSize: '12px', color: '#94A3B8', margin: '0 0 12px' }}>
                   Range: ${fmt(result.salary.minSalary)} – ${fmt(result.salary.maxSalary)}
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div style={{ padding: '10px 14px', borderRadius: '10px', background: '#F0FDFA' }}>
                     <div style={{ fontSize: '18px', fontWeight: 800, color: '#0D9488' }}>{fmt(result.salary.jobCount)}</div>
                     <div style={{ fontSize: '10px', color: '#64748B' }}>Active Jobs</div>
@@ -253,18 +273,27 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
             )}
 
             {/* Key Info */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[
-                { label: 'Certification Exam', value: 'ANCC PMHNP-BC ($395)' },
-                { label: 'DEA Registration', value: '$888 / 3 years' },
-                { label: 'License Renewal', value: 'Every 2-3 years' },
-                { label: 'CE Hours', value: '25-50 hours / cycle' },
-              ].map(kv => (
-                <div key={kv.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
-                  <span style={{ color: '#64748B' }}>{kv.label}</span>
-                  <span style={{ fontWeight: 700, color: '#1A2E35' }}>{kv.value}</span>
-                </div>
-              ))}
+            <div style={{
+              padding: '16px 18px', borderRadius: '14px',
+              background: 'rgba(0,0,0,0.015)', border: '1px solid rgba(0,0,0,0.04)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Image src="/images/employers/clay-star.png" alt="Info" width={24} height={24} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Key Costs</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { label: 'Certification Exam', value: 'ANCC PMHNP-BC ($395)' },
+                  { label: 'DEA Registration', value: '$888 / 3 years' },
+                  { label: 'License Renewal', value: 'Every 2-3 years' },
+                  { label: 'CE Hours', value: '25-50 hours / cycle' },
+                ].map(kv => (
+                  <div key={kv.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
+                    <span style={{ color: '#64748B' }}>{kv.label}</span>
+                    <span style={{ fontWeight: 700, color: '#1A2E35' }}>{kv.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* CTAs */}
@@ -278,7 +307,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                   boxShadow: '0 4px 16px rgba(13,148,136,0.3)',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }} className="lic-cta-primary">
-                  Read Full {selectedState} Guide <ArrowRight size={16} />
+                  Read Full {selectedState} Guide <ArrowSvg size={16} />
                 </Link>
               )}
               <Link href={`/jobs/state/${selectedState.toLowerCase().replace(/\s+/g, '-')}`} style={{
@@ -288,7 +317,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                 border: '1.5px solid rgba(13,148,136,0.2)', textDecoration: 'none',
                 transition: 'border-color 0.2s ease, transform 0.2s ease',
               }} className="lic-cta-secondary">
-                Browse {selectedState} Jobs <ArrowRight size={14} />
+                Browse {selectedState} Jobs <ArrowSvg size={14} color="#0D9488" />
               </Link>
             </div>
           </div>
