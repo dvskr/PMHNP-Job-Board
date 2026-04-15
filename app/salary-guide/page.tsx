@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import SalaryGuideForm from '@/components/SalaryGuideForm';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CopyCitation from '@/components/CopyCitation';
+import SalaryCalculator from '@/components/SalaryCalculator';
 
 // Enable ISR with daily revalidation
 export const revalidate = 86400;
@@ -269,7 +270,23 @@ export default async function SalaryGuidePage() {
         </section>
 
         {/* ═══════════════════════════════════════════════════════════════
-            SECTION 2: QUICK ANSWER (still on cream bg)
+            SECTION 2: SALARY CALCULATOR (still on cream bg)
+            ═══════════════════════════════════════════════════════════════ */}
+        <section style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 20px 0' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Calculate Your Pay
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '28px' }}>
+            What Should You Be Earning?
+          </h2>
+          <SalaryCalculator
+            stateSalaries={stateSalaries.map(s => ({ state: s.state, stateCode: s.stateCode, avgSalary: s.avgSalary, minSalary: s.minSalary, maxSalary: s.maxSalary }))}
+            nationalAvg={overallStats.avgSalary}
+          />
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION 3: QUICK ANSWER (still on cream bg)
             ═══════════════════════════════════════════════════════════════ */}
         <section style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 20px 64px' }}>
           <div className="quick-answer-box emp-bento-card" style={{
