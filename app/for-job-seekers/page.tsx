@@ -4,7 +4,6 @@ import Image from 'next/image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import HomepageHero from '@/components/HomepageHero';
-import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import { prisma } from '@/lib/prisma';
 import {
@@ -81,13 +80,8 @@ export default async function ForJobSeekersPage() {
         <HomepageHero jobCountDisplay={jobCountDisplay} />
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          SECTION 2: HOW IT WORKS (dark section with latest openings)
-          ═══════════════════════════════════════════════════════════════ */}
-      <EmployerHowItWorks />
 
-      {/* ═══════════════════════════════════════════════════════════════
-          SECTION 3: FEATURED JOBS
+
           ═══════════════════════════════════════════════════════════════ */}
       <FeaturedJobsSection />
 
