@@ -80,9 +80,7 @@ export default async function ForJobSeekersPage() {
         <HomepageHero jobCountDisplay={jobCountDisplay} />
       </div>
 
-
-
-          ═══════════════════════════════════════════════════════════════ */}
+      {/* ═══ FEATURED JOBS ═══ */}
       <FeaturedJobsSection />
 
       {/* ═══════════════════════════════════════════════════════════════
