@@ -66,7 +66,7 @@ export default function PricingPage() {
             ]} />
 
             {/* ═══════════════════════════════════════════════════════════════
-                SECTION 1: HERO + PRICING CARD
+                SECTION 1: HERO + BENTO GRID (pricing card is the first bento card)
                 ═══════════════════════════════════════════════════════════════ */}
             <div style={{
                 background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 40%, #FFF5EE 100%)',
@@ -89,84 +89,8 @@ export default function PricingPage() {
                     </div>
                 </section>
 
-                {/* Pricing Card */}
-                <section style={{ padding: '0 16px', maxWidth: '700px', margin: '0 auto' }}>
-                    <div style={{ ...clayCard, padding: '40px 36px', position: 'relative', border: '2px solid rgba(13,148,136,0.2)' }}>
-                        <div style={{
-                            position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)',
-                            background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                            fontSize: '11px', fontWeight: 700, padding: '6px 20px', borderRadius: '999px',
-                            textTransform: 'uppercase', letterSpacing: '0.06em',
-                            boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
-                        }}>One Simple Plan</div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '24px', alignItems: 'center', marginBottom: '28px' }}>
-                            <div>
-                                <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', marginBottom: '6px' }}>Full Package — Every Post</h2>
-                                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.5 }}>
-                                    No tiers. No downgrades. Free or paid, you get everything.
-                                </p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                                    <span style={{ fontSize: '48px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${config.postingPrice}</span>
-                                    <span style={{ fontSize: '14px', color: '#5A4A42' }}>/post</span>
-                                </div>
-                                <p style={{ fontSize: '13px', color: '#0D9488', fontWeight: 600, marginTop: '4px' }}>First 2 posts FREE</p>
-                            </div>
-                        </div>
-
-                        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            {[
-                                `${config.durationDays}-day listing`,
-                                '★ Featured badge',
-                                'Top search placement',
-                                'Highlighted in job alerts',
-                                '25 candidate unlocks',
-                                '25 InMails',
-                                'Full analytics dashboard',
-                                'Up to 5 screening questions',
-                            ].map(feat => (
-                                <li key={feat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#1A2E35' }}>
-                                    <Check size={16} style={{ color: '#0D9488', flexShrink: 0 }} /> {feat}
-                                </li>
-                            ))}
-                        </ul>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', background: '#F0FDFA', borderRadius: '12px', border: '1px solid #99F6E4', marginBottom: '24px' }}>
-                            <RefreshCw size={16} style={{ color: '#0D9488', flexShrink: 0 }} />
-                            <p style={{ fontSize: '13px', color: '#134E4A', margin: 0 }}>
-                                <strong>Renewals: ${config.renewalPrice}</strong> (20% off) — extend your listing for another {config.durationDays} days
-                            </p>
-                        </div>
-
-                        <Link href="/post-job" className="emp-cta-primary" style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                            padding: '16px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '16px',
-                            background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                            textDecoration: 'none',
-                            boxShadow: '6px 6px 16px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
-                        }}>
-                            Start Posting — First 2 Free <ArrowRight size={16} />
-                        </Link>
-                    </div>
-                </section>
-
-                {/* ═══════════════════════════════════════════════════════════════
-                    SECTION 2: BENTO GRID — What Every Post Includes
-                    ═══════════════════════════════════════════════════════════════ */}
-                <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '64px 20px 0' }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
-                        What&apos;s Included
-                    </p>
-                    <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
-                        Every Post Gets the Full Package
-                    </h2>
-                    <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '440px', margin: '0 auto 36px', lineHeight: 1.6 }}>
-                        The same premium features whether it&apos;s your free post or your 10th paid one.
-                    </p>
-
-                    {/* ─── Bento Grid ─── */}
+                {/* ─── Bento Grid with Pricing as Hero Card ─── */}
+                <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 20px' }}>
                     <div className="bento-grid" style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(12, 1fr)',
@@ -174,7 +98,79 @@ export default function PricingPage() {
                         gap: '14px',
                     }}>
 
-                        {/* ROW 1: 60-Day Listing (8 cols) + Featured Badge (4 cols) */}
+                        {/* ═══ ROW 0: PRICING HERO (full-width 12 cols) ═══ */}
+                        <div className="bento-pricing-hero emp-bento-card" style={{
+                            ...clayCard, gridColumn: 'span 12', padding: '0', overflow: 'hidden',
+                            border: '2px solid rgba(13,148,136,0.15)',
+                            position: 'relative',
+                        }}>
+                            {/* "One Simple Plan" badge */}
+                            <div style={{
+                                position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)',
+                                background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                fontSize: '11px', fontWeight: 700, padding: '6px 24px', borderRadius: '0 0 12px 12px',
+                                textTransform: 'uppercase', letterSpacing: '0.06em',
+                                boxShadow: '0 4px 12px rgba(13,148,136,0.2)',
+                            }}>One Simple Plan</div>
+
+                            <div className="pricing-hero-inner" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '0' }}>
+                                {/* Left — Price block */}
+                                <div style={{
+                                    background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
+                                    padding: '44px 36px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                                    borderRight: '1px solid rgba(13,148,136,0.1)',
+                                }}>
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                            <span style={{ fontSize: '56px', fontWeight: 800, color: '#134E4A', lineHeight: 1 }}>${config.postingPrice}</span>
+                                            <span style={{ fontSize: '16px', color: '#0D9488', fontWeight: 500 }}>/post</span>
+                                        </div>
+                                        <p style={{ fontSize: '14px', color: '#0D9488', fontWeight: 700, marginTop: '6px' }}>First 2 posts FREE — no card required</p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'rgba(255,255,255,0.7)', borderRadius: '10px', border: '1px solid rgba(13,148,136,0.1)', marginBottom: '20px' }}>
+                                        <RefreshCw size={14} style={{ color: '#0D9488', flexShrink: 0 }} />
+                                        <p style={{ fontSize: '12px', color: '#134E4A', margin: 0, lineHeight: 1.4 }}>
+                                            <strong>Renewals: ${config.renewalPrice}</strong> (20% off) — another {config.durationDays} days
+                                        </p>
+                                    </div>
+
+                                    <Link href="/post-job" className="emp-cta-primary" style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                        padding: '14px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
+                                        background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                        textDecoration: 'none',
+                                        boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                                    }}>
+                                        Start Posting — First 2 Free <ArrowRight size={16} />
+                                    </Link>
+                                </div>
+
+                                {/* Right — Feature checklist */}
+                                <div style={{ padding: '44px 36px 36px' }}>
+                                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Full Package — Every Post</h2>
+                                    <p style={{ fontSize: '13px', color: '#5A4A42', margin: '0 0 20px', lineHeight: 1.5 }}>No tiers. No downgrades. Free or paid, you get everything.</p>
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
+                                        {[
+                                            `${config.durationDays}-day listing`,
+                                            '★ Featured badge',
+                                            'Top search placement',
+                                            'Highlighted in job alerts',
+                                            '25 candidate unlocks',
+                                            '25 InMails',
+                                            'Full analytics dashboard',
+                                            'Up to 5 screening questions',
+                                        ].map(feat => (
+                                            <li key={feat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', color: '#1A2E35' }}>
+                                                <Check size={15} style={{ color: '#0D9488', flexShrink: 0 }} /> {feat}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ═══ ROW 1: 60-Day Listing (8 cols) + Featured Badge (4 cols) ═══ */}
                         <div className="bento-hero-1 emp-bento-card" style={{
                             ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
                             display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
@@ -207,7 +203,7 @@ export default function PricingPage() {
                             </div>
                         </div>
 
-                        {/* ROW 2: 4 compact cards (3 cols each) — CENTERED */}
+                        {/* ═══ ROW 2: 4 compact cards ═══ */}
                         <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
                             <Image src="/images/employers/clay-trending.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
                             <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Search Placement</h3>
@@ -232,9 +228,9 @@ export default function PricingPage() {
                             <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
                         </div>
 
-                        {/* ROW 3: Analytics (8 cols) + Renewal (4 cols) */}
+                        {/* ═══ ROW 3: Analytics (12 cols full-width) ═══ */}
                         <div className="bento-hero-3 emp-bento-card" style={{
-                            ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
+                            ...clayCard, gridColumn: 'span 12', padding: '0', overflow: 'hidden',
                             display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
                         }}>
                             <div style={{ padding: '32px 28px' }}>
@@ -247,28 +243,6 @@ export default function PricingPage() {
                             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
                                 <Image src="/images/employers/bento-analytics.png" alt="Analytics dashboard with charts" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
                             </div>
-                        </div>
-
-                        <div className="bento-pricing emp-bento-card" style={{
-                            ...clayCard, gridColumn: 'span 4',
-                            padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                            background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
-                            border: '2px solid rgba(13,148,136,0.15)',
-                        }}>
-                            <Image src="/images/employers/clay-dollar.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
-                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Easy Renewals</h3>
-                            <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
-                                Just ${config.renewalPrice} to renew (20% off).<br />
-                                Boosted back to the top of search.
-                            </p>
-                            <Link href="/post-job" className="emp-cta-primary" style={{
-                                padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
-                                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                                display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content',
-                                boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
-                            }}>
-                                Post a Job <ArrowRight size={14} />
-                            </Link>
                         </div>
 
                     </div>
@@ -450,19 +424,25 @@ export default function PricingPage() {
                 @media (max-width: 768px) {
                     .emp-compare-grid { grid-template-columns: 1fr !important; }
                     .bento-grid { grid-template-columns: 1fr !important; }
-                    .bento-hero-1, .bento-hero-2, .bento-hero-3, .bento-pricing {
+                    .bento-hero-1, .bento-hero-2, .bento-hero-3, .bento-pricing-hero {
                         grid-column: span 1 !important;
                     }
                     .bento-hero-1, .bento-hero-3 {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .pricing-hero-inner {
                         grid-template-columns: 1fr !important;
                     }
                     .bento-grid > div { grid-column: span 1 !important; }
                 }
                 @media (min-width: 769px) and (max-width: 1024px) {
                     .bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
-                    .bento-hero-1, .bento-hero-3 { grid-column: span 6 !important; }
-                    .bento-hero-2, .bento-pricing { grid-column: span 6 !important; }
-                    .bento-grid > div:not(.bento-hero-1):not(.bento-hero-2):not(.bento-hero-3):not(.bento-pricing) {
+                    .bento-hero-1, .bento-hero-3, .bento-pricing-hero { grid-column: span 6 !important; }
+                    .bento-hero-2 { grid-column: span 6 !important; }
+                    .pricing-hero-inner {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .bento-grid > div:not(.bento-hero-1):not(.bento-hero-2):not(.bento-hero-3):not(.bento-pricing-hero) {
                         grid-column: span 3 !important;
                     }
                 }
