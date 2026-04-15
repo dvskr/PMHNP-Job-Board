@@ -139,7 +139,6 @@ export default async function ResourcesPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', background: '#F8FAFC' }}>
       <VideoJsonLd pathname="/resources" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
@@ -242,7 +241,7 @@ export default async function ResourcesPage() {
       {/* ═══════════════════════════════════════════════════════════════
           SECTION 3A: LICENSURE CHECKER TOOL (cool slate bg)
           ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+      <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%)', padding: '80px 20px', marginTop: '24px' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
             Interactive Tool
@@ -505,7 +504,6 @@ export default async function ResourcesPage() {
           .res-article-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
-      </div>
     </>
   );
 }
