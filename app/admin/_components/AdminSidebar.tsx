@@ -42,6 +42,11 @@ const navItems = [
     icon: FileText,
   },
   {
+    name: 'Cron Health',
+    href: '/admin/cron',
+    icon: Activity,
+  },
+  {
     name: 'Settings',
     href: '/admin/settings',
     icon: Settings,
