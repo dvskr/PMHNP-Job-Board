@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from 'next/headers';
-import { Inter, Lora } from "next/font/google";
+import { Inter, Lora, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -30,6 +30,18 @@ const inter = Inter({
 
 const lora = Lora({
   variable: "--font-lora",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
   display: 'swap',
 });
@@ -207,7 +219,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${lora.variable} font-sans antialiased`}
+        className={`${inter.variable} ${lora.variable} ${newsreader.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         suppressHydrationWarning
         style={{
           backgroundColor: '#F5F6F8',

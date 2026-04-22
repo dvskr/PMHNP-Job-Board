@@ -123,7 +123,7 @@ export default function CronHealthDashboard() {
                         {items.map(cron => {
                             const state = triggerState[cron.path];
                             const isIngest = cron.path.includes('ingest?source=');
-                            const name = isIngest ? \`Ingest: \${new URLSearchParams(cron.path.split('?')[1]).get('source')}\` : cron.path.split('/').pop()?.split('?')[0];
+                            const name = isIngest ? `Ingest: ${new URLSearchParams(cron.path.split('?')[1]).get('source')}` : cron.path.split('/').pop()?.split('?')[0];
                             const chunk = cron.path.includes('chunk=') ? new URLSearchParams(cron.path.split('?')[1]).get('chunk') : null;
 
                             return (

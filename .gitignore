@@ -98,3 +98,6 @@ notebooklm-*.md
 /videos/
 /videos_backup/
 /thumbnails/
+
+# Recovery artifacts (not production code)
+/_recovery/
