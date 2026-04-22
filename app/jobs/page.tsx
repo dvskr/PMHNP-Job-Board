@@ -33,9 +33,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   // Get total job count
   const whereClause = buildWhereClause(filters);
   const totalJobs = await prisma.job.count({ where: whereClause });
-  const jobCountDisplay = totalJobs > 1000
-    ? `${(Math.floor(totalJobs / 100) * 100).toLocaleString()}+`
-    : totalJobs.toLocaleString();
+  const jobCountDisplay = totalJobs.toLocaleString();
 
   // Build dynamic title and description based on filters
   let title = `Browse ${jobCountDisplay} PMHNP & Psychiatric NP Jobs Near Me`;
@@ -173,6 +171,21 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
 
     // Map employer logo onto job objects
     const jobs = rawJobs.map(j => ({ ...j, companyLogoUrl: j.employerJobs?.companyLogoUrl || null, employerJobs: undefined }));
+
+    // Search relevance re-ranking: when search is active and sort is "best",
+    // promote title matches above employer/location-only matches
+    if (sort === 'best' && filters.search) {
+      const q = filters.search.toLowerCase();
+      jobs.sort((a, b) => {
+        const aTitle = a.title.toLowerCase().includes(q) ? 2 : 0;
+        const bTitle = b.title.toLowerCase().includes(q) ? 2 : 0;
+        const aEmployer = a.employer.toLowerCase().includes(q) ? 1 : 0;
+        const bEmployer = b.employer.toLowerCase().includes(q) ? 1 : 0;
+        const aScore = aTitle + aEmployer + (a.isFeatured ? 0.5 : 0);
+        const bScore = bTitle + bEmployer + (b.isFeatured ? 0.5 : 0);
+        return bScore - aScore;
+      });
+    }
 
     return (
       <>
