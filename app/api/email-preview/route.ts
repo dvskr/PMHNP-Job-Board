@@ -105,10 +105,47 @@ interface TemplateEntry {
 
 const templates: Record<string, TemplateEntry> = {
 
-  // 1. Welcome (Job Alert Subscription) — V2
+  // 1. Welcome (Job Alert Subscription) — V1 (pending V2 migration)
   welcome: {
     label: 'Welcome (Alert Subscription)',
     desc: 'Sent when a user subscribes to job alerts',
+    fn: () => emailShell(`
+          ${headerBlock('Welcome to PMHNP Hiring!', 'Your job alerts are now active')}
+          <tr>
+            <td class="content-pad" style="padding: 32px 40px;">
+              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
+                You're all set! We'll send you personalized job matches so you never miss a great opportunity.
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                ${featureRow('\ud83d\udd0d', 'Smart Matching', 'Jobs curated to your location, specialty, and salary preferences')}
+                ${featureRow('\ud83d\udcb0', 'Salary Intel', 'Real compensation data from 10,000+ listings nationwide')}
+                ${featureRow('\u26a1', 'First to Know', 'Alerts delivered daily \u2014 before positions get filled')}
+              </table>
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr class="stack">
+                  <td style="padding-right: 12px;">
+                    ${primaryButton('Browse Jobs \u2192', `${BASE_URL}/jobs`)}
+                  </td>
+                  <td>
+                    ${secondaryButton('Manage Alerts', `${BASE_URL}/job-alerts`)}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`,
+      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
+        <a href="${BASE_URL}/email-preferences?token=sample" style="color: ${C.textFaded}; text-decoration: none;">Manage preferences</a>
+        &nbsp;\u00b7&nbsp;
+        <a href="${BASE_URL}/unsubscribe?token=sample" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
+      </p>`,
+      'Your PMHNP job alerts are active \u2014 personalized matches coming your way!'
+    ),
+  },
+
+  // 2a. Signup - Job Seeker — V2
+  'signup-seeker': {
+    label: 'Signup Welcome (Job Seeker)',
+    desc: 'Sent when a new job seeker creates an account',
     fn: () => {
       const IMG = `${BASE_URL}/images/email`;
       return emailShellV2(`
@@ -129,7 +166,7 @@ const templates: Record<string, TemplateEntry> = {
                     <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">
                       You have unlocked a new way to find your perfect role.
                       Search curated positions, get matched by AI, and connect
-                      directly with hiring managers — no recruiters, no middlemen.
+                      directly with hiring managers \u2014 no recruiters, no middlemen.
                     </p>
                   </td>
                 </tr>
@@ -225,44 +262,9 @@ const templates: Record<string, TemplateEntry> = {
                 ${spacerV2(48)}
           ${closeContentV2()}`,
         unsubscribeFooterV2('sample'),
-        'Welcome to PMHNP Hiring — your new way to find your perfect PMHNP role!'
+        'Welcome to PMHNP Hiring \u2014 your new way to find your perfect PMHNP role!'
       );
     },
-  },
-
-  // 2a. Signup - Job Seeker
-  'signup-seeker': {
-    label: 'Signup Welcome (Job Seeker)',
-    desc: 'Sent when a new job seeker creates an account',
-    fn: () => emailShell(`
-          ${headerBlock('Welcome, Sarah!', 'Your PMHNP career starts here')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Welcome to the #1 job board built exclusively for Psychiatric Mental Health Nurse Practitioners.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('🔍', 'Browse 10,000+ Jobs', 'Remote, travel, full-time, per diem — all PMHNP specialties')}
-                ${featureRow('🔔', 'Smart Alerts', 'Get notified instantly when matching jobs are posted')}
-                ${featureRow('📄', 'One-Click Apply', 'Save jobs, track applications, and apply fast')}
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Browse Jobs →', `${BASE_URL}/jobs`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Set Up Alerts', `${BASE_URL}/job-alerts`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      'Welcome Sarah — browse 10,000+ PMHNP jobs now!'
-    ),
   },
 
   // 2b. Signup - Employer
