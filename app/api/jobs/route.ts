@@ -124,21 +124,6 @@ export async function GET(request: NextRequest) {
     // Map employer logo onto job objects
     const jobsWithLogo = jobs.map(j => ({ ...j, companyLogoUrl: j.employerJobs?.companyLogoUrl || null, employerJobs: undefined }));
 
-    // Search relevance re-ranking: when search is active and sort is "best",
-    // promote title matches above employer/location-only matches
-    if (sort === 'best' && filters.search) {
-      const q = filters.search.toLowerCase();
-      jobsWithLogo.sort((a, b) => {
-        const aTitle = a.title.toLowerCase().includes(q) ? 2 : 0;
-        const bTitle = b.title.toLowerCase().includes(q) ? 2 : 0;
-        const aEmployer = a.employer.toLowerCase().includes(q) ? 1 : 0;
-        const bEmployer = b.employer.toLowerCase().includes(q) ? 1 : 0;
-        const aScore = aTitle + aEmployer + (a.isFeatured ? 0.5 : 0);
-        const bScore = bTitle + bEmployer + (b.isFeatured ? 0.5 : 0);
-        return bScore - aScore; // Higher relevance first
-      });
-    }
-
     return NextResponse.json({
       jobs: jobsWithLogo,
       total,

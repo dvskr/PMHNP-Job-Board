@@ -8,20 +8,15 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
 
   const andConditions: Prisma.JobWhereInput[] = [];
 
-  // Search — title, employer, location, setting, and population fields only.
-  // Description is excluded: it's 500-2000 words of HTML that produces massive
-  // false positives (e.g. "child" matches 1,342 jobs via boilerplate mentions).
-  // setting (clinical_setting) and population (patient_population) are short,
-  // structured tags extracted during ingestion — ideal for targeted searches.
+  // Search
   if (filters.search && filters.search.trim()) {
     andConditions.push({
       OR: [
         { title: { contains: filters.search, mode: 'insensitive' } },
         { employer: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
         { city: { contains: filters.search, mode: 'insensitive' } },
         { state: { contains: filters.search, mode: 'insensitive' } },
-        { setting: { contains: filters.search, mode: 'insensitive' } },
-        { population: { contains: filters.search, mode: 'insensitive' } },
       ],
     });
   }

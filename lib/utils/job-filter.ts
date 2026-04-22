@@ -286,11 +286,7 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
     const isWrongRole = NEGATIVE_KEYWORDS.some(neg => {
         if (!titleLower.includes(neg)) return false;
 
-        // Exception: Allow "psychiatrist" in title ONLY if the TITLE ITSELF
-        // contains an NP indicator (dual-role postings like "Psychiatrist / PMHNP").
-        // Previously checked combinedText (title + description), which let pure MD/DO
-        // roles through whenever the description mentioned NPs in a supervisory context
-        // (e.g., "supervises nurse practitioners"). Fixed 2026-04-21.
+        // Exception: Allow "psychiatrist" in title if it's a dual-role or collaborative post
         if (neg === 'psychiatrist') {
             const hasPMHNPIndicator = [
                 'pmhnp',
@@ -298,11 +294,8 @@ export function isRelevantJob(title: string = '', description: string = ''): boo
                 'np-bc',
                 'aprn',
                 'arnp',
-                'psych np',
-                ' np ',
-                ' np/',
-                '/np ',
-            ].some(indicator => titleLower.includes(indicator));
+                'psych np'
+            ].some(indicator => combinedText.includes(indicator));
 
             return !hasPMHNPIndicator;
         }
