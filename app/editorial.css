@@ -8,6 +8,13 @@
    Tailwind v4's CSS layer processing / tree-shaking.
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── Sticky fix: override body overflow-x so sticky sidebars work ── */
+html:has(.ed-page),
+html:has(.ed-page) body {
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+
 /* ── Design Tokens ── */
 .ed-page {
   --paper: #F5F1E8;
@@ -476,8 +483,6 @@
   align-self: start;
   position: sticky;
   top: 90px;
-  max-height: calc(100vh - 110px);
-  overflow-y: auto;
 }
 
 .ed-toolbar {
@@ -1597,3 +1602,92 @@
     padding-top: 0;
   }
 }
+
+/* ── Video Play Button (hero overlay) ── */
+.ed-video-play-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 10px 14px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 5;
+}
+.ed-video-play-btn:hover {
+  background: rgba(13, 148, 136, 0.85);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.3);
+}
+.ed-video-play-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Video Lightbox Overlay ── */
+.ed-video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: edFadeIn 0.2s ease;
+}
+@keyframes edFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ed-video-modal {
+  position: relative;
+  width: 90vw;
+  max-width: 960px;
+  animation: edScaleIn 0.25s ease;
+}
+@keyframes edScaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ed-video-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ed-video-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ed-video-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  background: #000;
+}
+.ed-video-wrapper video {
+  display: block;
+  width: 100%;
+  max-height: 80vh;
+  outline: none;
+}
+

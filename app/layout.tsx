@@ -228,7 +228,7 @@ export default async function RootLayout({
       >
         <ThemeProvider>
           <ToastProvider>
-            <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: '100%', maxWidth: '100vw', position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
               <GoogleAnalytics nonce={nonce} />
               <SpeedInsights />
               <LayoutShell>

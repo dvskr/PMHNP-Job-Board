@@ -143,7 +143,7 @@ export async function getRelatedPosts(
 
     const { data, error } = await supabase
         .from('blog_posts')
-        .select('id, title, slug, meta_description, category, publish_date')
+        .select('id, title, slug, meta_description, category, publish_date, image_url')
         .eq('status', 'published')
         .eq('category', category)
         .neq('slug', currentSlug)
