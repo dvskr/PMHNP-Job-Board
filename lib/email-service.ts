@@ -16,7 +16,7 @@ const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwl
 const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>';
 const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
-const EMAIL_REPLY_TO = 'hello@pmhnphiring.com';
+const EMAIL_REPLY_TO = 'support@pmhnphiring.com';
 
 // Marketing email types — these use the marketing sender address
 const MARKETING_EMAIL_TYPES = new Set([
@@ -498,7 +498,7 @@ export async function sendSignupWelcomeEmail(
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       isEmployer ? 'Your employer account is ready — start posting jobs today!' : `Welcome ${firstName || ''} — browse 10,000+ PMHNP jobs now!`
     );
@@ -590,7 +590,7 @@ export async function sendConfirmationEmail(
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       `Your job "${jobTitle}" is now live on PMHNP Hiring!`
     );
@@ -823,7 +823,7 @@ export async function sendExpiryWarningEmail(
           </tr>`,
       `${unsubscribeToken ? unsubscribeFooter(unsubscribeToken) : ''}
       <p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       `Your job "${jobTitle}" expires in ${daysUntilExpiry} days — renew now to keep receiving applicants!`
     );
@@ -886,7 +886,7 @@ export async function sendDraftSavedEmail(
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       'Your job posting draft has been saved — continue anytime!'
     );
@@ -1125,7 +1125,7 @@ export async function sendEmployerMessageNotification(
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       `${fromLine} sent you a message${jobTitle ? ` about "${jobTitle}"` : ''} — view it now!`
     );
@@ -1194,7 +1194,7 @@ export async function sendCandidateInquiryNotification(
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       `${escapeHtml(candidateName)} has a question about your "${jobTitle || 'job'}" posting — reply now!`
     );
@@ -1315,7 +1315,7 @@ export function buildBroadcastHtml(body: string, preheaderText: string = '', uns
     `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
         <a href="${unsubscribeToken ? `${BASE_URL}/unsubscribe?token=${unsubscribeToken}` : `${BASE_URL}/unsubscribe`}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
         &nbsp;·&nbsp;
-        <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">Contact us</a>
+        <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">Contact us</a>
       </p>`,
     preheaderText || 'A message from PMHNP Hiring'
   );
@@ -1401,7 +1401,7 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
             </td>
           </tr>`,
       `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
       </p>`,
       `${candidateName} applied for "${jobTitle}" — view their application now!`
     );

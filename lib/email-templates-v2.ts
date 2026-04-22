@@ -121,7 +121,7 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
               <p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:${V2.textMuted};">
                 &copy; ${new Date().getFullYear()} PMHNP Hiring &nbsp;&middot;&nbsp;
                 <a href="${BASE_URL}" style="color:${V2.textMuted};text-decoration:underline;">pmhnphiring.com</a> &nbsp;&middot;&nbsp;
-                <a href="mailto:hello@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">hello@pmhnphiring.com</a>
+                <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">support@pmhnphiring.com</a>
               </p>
             </td>
           </tr>
@@ -391,6 +391,6 @@ export function unsubscribeFooterV2(unsubscribeToken: string): string {
 
 export function contactFooterV2(): string {
   return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">support@pmhnphiring.com</a>
       </p>`;
 }

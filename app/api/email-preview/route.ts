@@ -10,8 +10,15 @@ import {
   buildContactNotificationHtml,
   buildSalaryGuideHtml,
 } from '@/lib/email-service';
+import {
+  emailShellV2, headerBlockV2,
+  primaryButtonV2, secondaryButtonV2,
+  featureRowV2, spacerV2, closeContentV2,
+  unsubscribeFooterV2,
+  V2, SANS, SERIF,
+} from '@/lib/email-templates-v2';
 
-const BASE_URL = 'https://pmhnphiring.com';
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const F = "Arial, Helvetica, sans-serif";
 
 // Color tokens (mirror email-service.ts)
@@ -98,41 +105,129 @@ interface TemplateEntry {
 
 const templates: Record<string, TemplateEntry> = {
 
-  // 1. Welcome (Job Alert Subscription)
+  // 1. Welcome (Job Alert Subscription) — V2
   welcome: {
     label: 'Welcome (Alert Subscription)',
     desc: 'Sent when a user subscribes to job alerts',
-    fn: () => emailShell(`
-          ${headerBlock('Welcome to PMHNP Hiring!', 'Your job alerts are now active')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                You're all set! We'll send you personalized job matches so you never miss a great opportunity.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('🔍', 'Smart Matching', 'Jobs curated to your location, specialty, and salary preferences')}
-                ${featureRow('💰', 'Salary Intel', 'Real compensation data from 10,000+ listings nationwide')}
-                ${featureRow('⚡', 'First to Know', 'Alerts delivered daily — before positions get filled')}
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Browse Jobs →', `${BASE_URL}/jobs`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Manage Alerts', `${BASE_URL}/job-alerts`)}
+    fn: () => {
+      const IMG = `${BASE_URL}/images/email`;
+      return emailShellV2(`
+          ${headerBlockV2('Welcome to PMHNP Hiring', '')}
+
+                <!-- Hero illustration -->
+                <tr>
+                  <td style="padding:0 40px;">
+                    <img src="${IMG}/welcome-email-hero.png" alt="PMHNP Hiring community" width="520" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;" />
                   </td>
                 </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${BASE_URL}/email-preferences?token=sample" style="color: ${C.textFaded}; text-decoration: none;">Manage preferences</a>
-        &nbsp;·&nbsp;
-        <a href="${BASE_URL}/unsubscribe?token=sample" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
-      </p>`,
-      'Your PMHNP job alerts are active — personalized matches coming your way!'
-    ),
+
+                ${spacerV2(28)}
+
+                <!-- Welcome body text -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;">
+                    <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">
+                      You have unlocked a new way to find your perfect role.
+                      Search curated positions, get matched by AI, and connect
+                      directly with hiring managers — no recruiters, no middlemen.
+                    </p>
+                  </td>
+                </tr>
+
+                ${spacerV2(36)}
+
+                <!-- Roadmap heading -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;">
+                    <p style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">
+                      Here is how to get started
+                    </p>
+                  </td>
+                </tr>
+
+                ${spacerV2(20)}
+
+                <!-- Step 1 -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;">
+                          <img src="${IMG}/step-build-profile.png" alt="Build profile" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" />
+                        </td>
+                        <td valign="middle">
+                          <p style="margin:0 0 4px;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">Build your profile</p>
+                          <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.5;">Take 60 seconds to add your credentials, specialties, and location preferences.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                ${spacerV2(16)}
+
+                <!-- Step 2 -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;">
+                          <img src="${IMG}/step-ai-alerts.png" alt="AI alerts" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" />
+                        </td>
+                        <td valign="middle">
+                          <p style="margin:0 0 4px;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">Turn on AI alerts</p>
+                          <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.5;">Get pinged the exact minute a perfectly matched role lands on the board.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                ${spacerV2(16)}
+
+                <!-- Step 3 -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;">
+                          <img src="${IMG}/step-connect.png" alt="Connect directly" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" />
+                        </td>
+                        <td valign="middle">
+                          <p style="margin:0 0 4px;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">Connect directly</p>
+                          <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.5;">Connect to hiring managers directly, no recruiters involved.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                ${spacerV2(32)}
+
+                <!-- CTA button -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;text-align:center;">
+                    ${primaryButtonV2('Explore Your Dashboard', `${BASE_URL}/dashboard`)}
+                  </td>
+                </tr>
+
+                ${spacerV2(20)}
+
+                <!-- Salary guide link -->
+                <tr>
+                  <td class="content-pad" style="padding:0 40px;text-align:center;">
+                    <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.6;">
+                      Want the data first? <a href="${BASE_URL}/salary-guide" style="color:${V2.teal};text-decoration:underline;">Download the 2026 Salary Guide</a>.
+                    </p>
+                  </td>
+                </tr>
+
+                ${spacerV2(48)}
+          ${closeContentV2()}`,
+        unsubscribeFooterV2('sample'),
+        'Welcome to PMHNP Hiring — your new way to find your perfect PMHNP role!'
+      );
+    },
   },
 
   // 2a. Signup - Job Seeker
