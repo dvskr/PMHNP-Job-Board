@@ -316,7 +316,7 @@ function divider(): string {
 function unsubscribeFooter(unsubscribeToken: string): string {
   return `
               <p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-                <a href="${BASE_URL}/email-preferences?token=${unsubscribeToken}" style="color: ${C.textFaded}; text-decoration: none;">Manage preferences</a>
+                <a href="${BASE_URL}/dashboard/settings" style="color: ${C.textFaded}; text-decoration: none;">Manage preferences</a>
                 &nbsp;·&nbsp;
                 <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
               </p>`;
