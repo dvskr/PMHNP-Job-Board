@@ -141,6 +141,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'job-alert': {
     label: 'Job Alert (Matching Jobs)',
     desc: 'Sent when new jobs match alert criteria',
+    fn: () => {
       const jobs = [
         { t: 'Remote PMHNP \u2014 Telehealth', o: 'MindPath Health', l: 'Remote', s: '$145k\u2013$175k', type: 'Full-time', mode: 'Remote', fresh: '2 hours ago', color: '#4DB6AC' },
         { t: 'Psychiatric NP \u2014 Outpatient Clinic', o: 'Valley Behavioral', l: 'Austin, TX', s: '$135k\u2013$160k', type: 'Full-time', mode: 'On-site', fresh: '5 hours ago', color: '#E8937A' },
