@@ -17,6 +17,36 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Use env var for email links (falls back to production)
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
+const IMG = `${BASE_URL}/images/email`;
+
+/** Icon-beside-text layout — matches the v2-templates.ts simple() pattern */
+function simpleBlock(iconFile: string, bodyHtml: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+    <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;">
+      <img src="${IMG}/${iconFile}" alt="" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;" />
+    </td>
+    <td valign="top">
+      <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${bodyHtml}</p>
+    </td>
+  </tr></table>
+</td></tr>`;
+}
+
+/** Step row — icon + title + description (matches v2 step pattern) */
+function stepBlock(iconFile: string, title: string, desc: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/${iconFile}" alt="${title}" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${title}</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">${desc}</p></td></tr></table></td></tr>`;
+}
+
+/** Section heading — matches v2 sectionHead */
+function sectionHeadV2(text: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;text-align:center;"><h2 style="margin:0;font-family:${SERIF_V2};font-size:22px;font-weight:700;color:${V2.textHeading};letter-spacing:-0.3px;">${text}</h2></td></tr>`;
+}
+
+/** Stat card — matches v2 stat */
+function statBlockV2(value: string, label: string): string {
+  return `<td width="33%" style="padding:16px 12px;background:#ffffff;text-align:center;border-radius:12px;border:1px solid #E8ECE9;box-shadow:0 2px 6px rgba(0,0,0,0.04);"><div style="font-family:${SANS_V2};font-size:30px;font-weight:800;color:${V2.teal};letter-spacing:-0.5px;">${value}</div><div style="font-family:${SANS_V2};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">${label}</div></td>`;
+}
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 // ── Sender addresses — separate transactional from marketing ──
@@ -1410,54 +1440,15 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
     const html = emailShellV2(`
       ${headerBlockV2('New Application Received', '')}
       ${spacerV2(12)}
-      ${bodyTextV2(`${greeting} a candidate has applied for your job posting on PMHNP Hiring.`)}
-      ${spacerV2(20)}
-      <!-- Applicant card -->
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-              <td width="48" valign="top" style="padding-right:16px;">
-                <div style="width:48px;height:48px;border-radius:50%;background:#7C8CF5;color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">${initial}</div>
-              </td>
-              <td valign="middle" style="width:100%;">
-                <p style="margin:0;font-family:${SANS_V2};font-size:16px;font-weight:700;color:${V2.textHeading};">${escapeHtml(candidateName)}</p>
-                ${candidateHeadline ? `<p style="margin:3px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">${escapeHtml(candidateHeadline)}</p>` : ''}
-                ${candidateExperience ? `<p style="margin:3px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">${candidateExperience}+ years experience</p>` : ''}
-              </td>
-            </tr></table>
-          </td></tr>
-          <tr><td style="padding:16px 24px;border-bottom:1px solid #F0F3F1;">
-            <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-              <td style="padding-right:8px;">
-                <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;background:${hasResume ? '#ECFDF5' : '#FEF2F2'};color:${hasResume ? '#065F46' : '#991B1B'};border:1px solid ${hasResume ? '#A7F3D0' : '#FECACA'};">${hasResume ? '\u2713 Resume' : '\u2717 No Resume'}</span>
-              </td>
-              <td>
-                <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;background:${hasCoverLetter ? '#ECFDF5' : '#F3F6F4'};color:${hasCoverLetter ? '#065F46' : '#6B7280'};border:1px solid ${hasCoverLetter ? '#A7F3D0' : '#E0E5E1'};">${hasCoverLetter ? '\u2713 Cover Letter' : '\u2014 No Cover Letter'}</span>
-              </td>
-            </tr></table>
-          </td></tr>
-          <tr><td style="padding:14px 24px;background:#FAFBFA;">
-            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Applied For</p>
-            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)}</p>
-          </td></tr>
-        </table>
-      </td></tr>
-      ${spacerV2(24)}
+      ${simpleBlock('hero-new-application.png', `A new application has been submitted for <strong>${escapeHtml(jobTitle)}</strong>.${candidateHeadline ? ` The candidate ${escapeHtml(candidateHeadline)}.` : ''}${candidateExperience ? ` ${candidateExperience}+ years of experience.` : ''}`)}
+      ${spacerV2(32)}
       <tr><td align="center" style="padding:0 40px;">
-        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-          <td style="padding-right:10px;">
-            ${primaryButtonV2('View Applicant', `${BASE_URL}/employer/dashboard`)}
-          </td>
-          <td>
-            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:12px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">All Applications</a>
-          </td>
-        </tr></table>
+        ${primaryButtonV2('Review Application', `${BASE_URL}/employer/dashboard`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
-      `${escapeHtml(candidateName)} applied for "${escapeHtml(jobTitle)}" \u2014 view their application now!`
+      `New application received for your job posting.`
     );
 
     await sendAndLog({
@@ -1506,44 +1497,17 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
     const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
 
     const html = emailShellV2(`
-      ${headerBlockV2('Application Received', '')}
+      ${headerBlockV2('Application Submitted', '')}
       ${spacerV2(12)}
+      ${simpleBlock('hero-app-confirm.png', `Your application for <strong>${escapeHtml(jobTitle)}</strong> at ${escapeHtml(employerName)} has been submitted successfully. The employer will review your profile and respond if there is a match.`)}
+      ${spacerV2(32)}
       <tr><td align="center" style="padding:0 40px;">
-        <div style="display:inline-block;padding:10px 24px;border-radius:30px;background:#ECFDF5;border:1px solid #A7F3D0;">
-          <span style="font-family:${SANS_V2};font-size:14px;font-weight:600;color:#065F46;">&#10003; Application submitted</span>
-        </div>
-      </td></tr>
-      ${spacerV2(20)}
-      ${bodyTextV2(`${greeting} your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(employerName)}</strong> has been submitted successfully.`)}
-      ${spacerV2(20)}
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-          <tr><td style="padding:16px 24px;border-bottom:1px solid #F0F3F1;">
-            <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-              <td style="padding-right:8px;">
-                <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;background:${hasResume ? '#ECFDF5' : '#F3F6F4'};color:${hasResume ? '#065F46' : '#6B7280'};border:1px solid ${hasResume ? '#A7F3D0' : '#E0E5E1'};">${hasResume ? '\u2713 Resume' : '\u2014 No Resume'}</span>
-              </td>
-              <td>
-                <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;background:${hasCoverLetter ? '#ECFDF5' : '#F3F6F4'};color:${hasCoverLetter ? '#065F46' : '#6B7280'};border:1px solid ${hasCoverLetter ? '#A7F3D0' : '#E0E5E1'};">${hasCoverLetter ? '\u2713 Cover Letter' : '\u2014 No Cover Letter'}</span>
-              </td>
-            </tr></table>
-          </td></tr>
-          <tr><td style="padding:14px 24px;background:#FAFBFA;">
-            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Applied For</p>
-            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)} at ${escapeHtml(employerName)}</p>
-          </td></tr>
-        </table>
-      </td></tr>
-      ${spacerV2(16)}
-      ${bodyTextV2('<span style="color:#9CA3AF;font-size:13px;">The employer has been notified and will review your application. You\u2019ll receive updates when the status changes.</span>')}
-      ${spacerV2(24)}
-      <tr><td align="center" style="padding:0 40px;">
-        ${primaryButtonV2('View My Applications', `${BASE_URL}/my-applications`)}
+        ${primaryButtonV2('Track Your Applications', `${BASE_URL}/my-applications`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
-      `Your application for "${escapeHtml(jobTitle)}" at ${escapeHtml(employerName)} has been received!`
+      `Your application has been submitted successfully.`
     );
 
     await sendAndLog({
@@ -1603,35 +1567,17 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
     const sc = statusColors[newStatus] || statusColors.screening;
 
     const html = emailShellV2(`
-      ${headerBlockV2('Application Update', '')}
+      ${headerBlockV2('Application Status Update', '')}
       ${spacerV2(12)}
+      ${simpleBlock('hero-status-update.png', `There is an update on your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(employerName)}</strong>. Your application has moved to the <strong>${statusInfo.label.toLowerCase()}</strong> stage. ${statusInfo.message}`)}
+      ${spacerV2(32)}
       <tr><td align="center" style="padding:0 40px;">
-        <div style="display:inline-block;padding:10px 24px;border-radius:30px;background:${sc.bg};border:1px solid ${sc.border};">
-          <span style="font-family:${SANS_V2};font-size:14px;font-weight:600;color:${sc.fg};">${statusInfo.emoji} ${statusInfo.label}</span>
-        </div>
-      </td></tr>
-      ${spacerV2(20)}
-      ${bodyTextV2(`${greeting} there's an update on your application.`)}
-      ${spacerV2(16)}
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-          <tr><td style="padding:16px 24px;border-bottom:1px solid #F0F3F1;">
-            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.6;">${statusInfo.message}</p>
-          </td></tr>
-          <tr><td style="padding:14px 24px;background:#FAFBFA;">
-            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Position</p>
-            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)} at ${escapeHtml(employerName)}</p>
-          </td></tr>
-        </table>
-      </td></tr>
-      ${spacerV2(24)}
-      <tr><td align="center" style="padding:0 40px;">
-        ${primaryButtonV2('View My Applications', `${BASE_URL}/my-applications`)}
+        ${primaryButtonV2('View Application Details', `${BASE_URL}/my-applications`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
-      `Your application status for "${escapeHtml(jobTitle)}" has been updated to ${statusInfo.label}.`
+      `Update on your application \u2014 moved to ${statusInfo.label.toLowerCase()} stage.`
     );
 
     await sendAndLog({
@@ -1677,29 +1623,25 @@ export async function sendProfileIncompleteEmail(
     ).join('');
 
     const html = emailShellV2(`
-      ${headerBlockV2('Complete Your Profile', '')}
+      ${headerBlockV2('Your Profile Is Almost There', '')}
       ${spacerV2(12)}
-      <tr><td align="center" style="padding:0 40px;">
-        <div style="display:inline-block;padding:8px 20px;border-radius:30px;background:#FEF3C7;border:1px solid #FDE68A;">
-          <span style="font-family:${SANS_V2};font-size:13px;font-weight:700;color:#92400E;">${completedPercentage}% Complete</span>
-        </div>
-      </td></tr>
+      ${bodyTextV2(`Your profile is ${completedPercentage} percent complete. Candidates with finished profiles receive 3 times more visibility from employers. Take a moment to fill in the remaining details.`)}
+      ${spacerV2(36)}
+      ${sectionHeadV2('What to add next')}
       ${spacerV2(20)}
-      ${bodyTextV2(`Hey ${escapeHtml(name)}! Profiles with <strong style="color:${V2.teal};">80%+ completion get 3\u00D7 more views</strong>. Here\u2019s what\u2019s missing:`)}
+      ${stepBlock('icon-profile-credential.png', 'Add your credentials', 'List your certifications, licenses, and education to stand out.')}
       ${spacerV2(16)}
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-          ${missingListHtml}
-        </table>
-      </td></tr>
-      ${spacerV2(24)}
+      ${stepBlock('icon-profile-location.png', 'Set location preferences', 'Tell us where you want to work so we can match you accurately.')}
+      ${spacerV2(16)}
+      ${stepBlock('icon-profile-specialty.png', 'Choose your specialties', 'Select your areas of focus to receive the most relevant opportunities.')}
+      ${spacerV2(32)}
       <tr><td align="center" style="padding:0 40px;">
         ${primaryButtonV2('Complete Your Profile', `${BASE_URL}/settings/profile`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubToken),
-      `Your profile is ${completedPercentage}% complete \u2014 finish it to get 3\u00D7 more employer views!`
+      `Your profile is ${completedPercentage}% complete \u2014 finish it to boost visibility.`
     );
 
     await sendAndLog({
@@ -1762,29 +1704,14 @@ export async function sendPerformanceReportEmail(
       </td>`;
 
     const html = emailShellV2(`
-      ${headerBlockV2(`${periodLabel} Performance Report`, '')}
+      ${headerBlockV2('Your Monthly Hiring Report', '')}
       ${spacerV2(12)}
-      ${bodyTextV2(`Here\u2019s how your listings performed, ${escapeHtml(employerName)}.`)}
-      ${spacerV2(20)}
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-          <tr>
-            ${statPill(totalViews.toLocaleString(), 'Views')}
-            ${statPill(totalClicks.toLocaleString(), 'Clicks')}
-            ${statPill(totalApps.toLocaleString(), 'Apps')}
-            ${statPill(totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) + '%' : '0%', 'CTR')}
-          </tr>
-        </table>
-      </td></tr>
-      ${spacerV2(16)}
-      <tr><td style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-          ${jobRowsHtml}
-        </table>
-      </td></tr>
+      ${simpleBlock('hero-performance.png', `Here is how your listings performed this ${periodLabel.toLowerCase()}. Use these insights to optimize your postings and attract stronger candidates.`)}
       ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Messages')}</tr></table></td></tr>
+      ${spacerV2(28)}
       <tr><td align="center" style="padding:0 40px;">
-        ${primaryButtonV2('View Full Dashboard', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}
+        ${primaryButtonV2('View Full Report', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
@@ -1848,20 +1775,23 @@ export async function sendSavedJobReminderEmail(
       </td></tr>`;
     }).join('');
 
+    const firstJob = jobs[0];
+    const bodyMsg = jobs.length === 1
+      ? `You saved <strong>${escapeHtml(firstJob.title)}</strong> at ${escapeHtml(firstJob.employer)} recently. This position is still accepting applications \u2014 do not miss your window.`
+      : `You saved <strong>${jobs.length} jobs</strong> recently. These positions are still accepting applications \u2014 do not miss your window.`;
+
     const html = emailShellV2(`
-      ${headerBlockV2('Your Saved Jobs Are Still Open', '')}
+      ${headerBlockV2('Your Saved Job Is Still Open', '')}
       ${spacerV2(12)}
-      ${bodyTextV2(`Hey ${escapeHtml(name)}, you saved these jobs but haven\u2019t applied yet. Don\u2019t let them slip away!`)}
-      ${spacerV2(20)}
-      ${jobCardsHtml}
-      ${spacerV2(24)}
+      ${simpleBlock('hero-saved-job.png', bodyMsg)}
+      ${spacerV2(32)}
       <tr><td align="center" style="padding:0 40px;">
-        ${primaryButtonV2('View All Saved Jobs', `${BASE_URL}/saved`)}
+        ${primaryButtonV2('View and Apply', `${BASE_URL}/saved`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubToken),
-      `${jobs.length} jobs you saved are still open \u2014 apply before they\u2019re filled!`
+      `The job you saved is still open.`
     );
 
     await sendAndLog({
