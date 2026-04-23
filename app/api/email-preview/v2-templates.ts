@@ -147,40 +147,49 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         { t: 'Psychiatric NP \u2014 Outpatient Clinic', o: 'Valley Behavioral', l: 'Austin, TX', s: '$135k\u2013$160k', type: 'Full-time', mode: 'On-site', fresh: '5 hours ago', color: '#E8937A' },
         { t: 'PMHNP \u2014 Pediatric and Adolescent', o: "Children's Mercy Hospital", l: 'Kansas City, MO', s: '$150k\u2013$185k', type: 'Full-time', mode: 'Hybrid', fresh: '8 hours ago', color: '#7C8CF5' },
       ];
-      const badge = (text: string, bg: string, fg: string) =>
-        `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-family:${SANS};font-size:11px;font-weight:600;background:${bg};color:${fg};">${text}</span>`;
-      const jobCards = jobs.map(j => `
+      const badge = (text: string, bg: string, fg: string, border?: string) =>
+        `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};${border ? 'border:1px solid ' + border + ';' : ''}">${text}</span>`;
+      const jobCards = jobs.map((j, i) => `
         <tr><td style="padding:0 40px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F7FBF8;border:1px solid #E5E7EB;border-radius:16px;margin-bottom:12px;">
-            <tr><td style="padding:20px;">
-              <!-- Row 1: Avatar + Title -->
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <!-- Accent stripe top -->
+            <tr><td style="height:4px;background:${j.color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+            <tr><td style="padding:24px 24px 20px;">
+              <!-- Avatar + Title + Salary -->
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-                <td width="44" valign="top" style="padding-right:12px;">
-                  <div style="width:44px;height:44px;border-radius:10px;background:${j.color};color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">${j.o[0]}</div>
+                <td width="48" valign="top" style="padding-right:16px;">
+                  <div style="width:48px;height:48px;border-radius:12px;background:${j.color};color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;letter-spacing:-0.5px;">${j.o[0]}</div>
                 </td>
-                <td valign="top">
-                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:17px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.3;">${j.t}</a>
-                  <p style="margin:3px 0 0;font-family:${SANS};font-size:14px;font-weight:500;color:${V2.textMuted};">${j.o}</p>
+                <td valign="top" style="width:100%;">
+                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">${j.t}</a>
+                  <p style="margin:4px 0 0;font-family:${SANS};font-size:13px;font-weight:500;color:${V2.textMuted};">${j.o}</p>
+                </td>
+                <td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
+                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;letter-spacing:-0.3px;">${j.s}</span>
                 </td>
               </tr></table>
-              <!-- Row 2: Salary Badge -->
-              <div style="margin:12px 0 8px;">
-                ${badge(j.s, '#0d9488', '#fff')}
-              </div>
-              <!-- Row 3: Location + Type + Mode Badges -->
-              <div style="margin-bottom:14px;">
-                ${badge('\u{1F4CD} ' + j.l, '#EDF2EE', '#374151')}
-                ${badge(j.type, '#EDF2EE', '#374151')}
-                ${badge(j.mode, '#EDF2EE', '#374151')}
-              </div>
-              <!-- Row 4: Freshness + CTAs -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid rgba(0,0,0,0.05);padding-top:12px;"><tr>
+              <!-- Divider -->
+              <div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
+              <!-- Meta badges -->
+              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                <td style="padding-right:6px;">${badge(j.l, '#F3F6F4', '#374151', '#E0E5E1')}</td>
+                <td style="padding-right:6px;">${badge(j.type, '#F3F6F4', '#374151', '#E0E5E1')}</td>
+                <td>${badge(j.mode, j.mode === 'Remote' ? '#ECFDF5' : '#F3F6F4', j.mode === 'Remote' ? '#065F46' : '#374151', j.mode === 'Remote' ? '#A7F3D0' : '#E0E5E1')}</td>
+              </tr></table>
+              <!-- Footer: Freshness + CTAs -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
                 <td valign="middle">
-                  <p style="margin:0;font-family:${SANS};font-size:12px;color:${V2.textMuted};">${j.fresh}</p>
+                  <p style="margin:0;font-family:${SANS};font-size:12px;font-weight:500;color:#9CA3AF;">${j.fresh}</p>
                 </td>
                 <td align="right" valign="middle">
-                  <a href="${BASE_URL}/jobs" style="display:inline-block;padding:7px 16px;border-radius:14px;font-family:${SANS};font-size:13px;font-weight:700;color:#374151;background:#EDF2EE;text-decoration:none;margin-right:8px;">View Job \u2192</a><!--
-                  --><a href="${BASE_URL}/jobs" style="display:inline-block;padding:7px 16px;border-radius:14px;font-family:${SANS};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;">Apply</a>
+                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                    <td style="padding-right:8px;">
+                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
+                    </td>
+                    <td>
+                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
+                    </td>
+                  </tr></table>
                 </td>
               </tr></table>
             </td></tr>
