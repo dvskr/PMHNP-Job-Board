@@ -157,7 +157,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
               <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
             </td>
             <td width="70%" valign="top">
-              <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">New positions matching your criteria just posted. Review them before they fill.</p>
+              <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We identified <strong>3 new positions</strong> that align with your saved preferences. These roles were posted within the last 24 hours and are actively accepting applications. Early applicants are 3× more likely to receive a response.</p>
             </td>
           </tr></table>
         </td></tr>
