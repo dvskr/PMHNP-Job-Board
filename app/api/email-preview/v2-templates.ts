@@ -44,10 +44,10 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${spacerV2(12)}
     <tr><td class="content-pad" style="padding:0 40px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-        <td width="18%" valign="top" style="padding-right:16px;">
+        <td width="12%" valign="top" style="padding-right:16px;">
           <img src="${IMG}/${iconFile}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
         </td>
-        <td width="82%" valign="top">
+        <td width="88%" valign="top">
           <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
         </td>
       </tr></table>
@@ -153,10 +153,10 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         ${spacerV2(12)}
         <tr><td class="content-pad" style="padding:0 40px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-            <td width="18%" valign="top" style="padding-right:16px;">
+            <td width="12%" valign="top" style="padding-right:16px;">
               <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
             </td>
-            <td width="82%" valign="top">
+            <td width="88%" valign="top">
               <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We found <strong>3 new positions</strong> matching your preferences. Apply early for the best response rates.</p>
             </td>
           </tr></table>
