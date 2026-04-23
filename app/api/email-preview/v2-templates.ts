@@ -285,7 +285,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       <!-- Confirmation badge -->
       <tr><td align="center" style="padding:0 40px;">
         <div style="display:inline-block;padding:10px 24px;border-radius:30px;background:#ECFDF5;border:1px solid #A7F3D0;">
-          <span style="font-family:${SANS};font-size:14px;font-weight:600;color:#065F46;">&#10003; Message received &mdash; Ticket #PMH-4291</span>
+          <span style="font-family:${SANS};font-size:14px;font-weight:600;color:#065F46;">&#10003; Message received</span>
         </div>
       </td></tr>
       ${spacerV2(24)}
@@ -307,7 +307,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${centeredCta('Browse Jobs While You Wait', `${BASE_URL}/jobs`)}
       ${spacerV2(48)}
       ${closeContentV2()}`, unsubscribeFooterV2('sample'),
-      'We received your message \u2014 Ticket #PMH-4291.'),
+      'We received your message.'),
   },
 
   // 9. Contact Notification (Internal)
