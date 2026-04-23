@@ -120,8 +120,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     desc: 'Sent when a new employer creates an account',
     fn: () => emailShellV2(`
       ${headerBlockV2('Your Employer Account Is Ready', '')}
-      ${hero('hero-employer-welcome.png')}
-      ${spacerV2(28)}
+      ${spacerV2(12)}
       ${bodyText('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners \u2014 all from one dashboard.')}
       ${spacerV2(36)}
       ${sectionHead('Three steps to your first hire')}
