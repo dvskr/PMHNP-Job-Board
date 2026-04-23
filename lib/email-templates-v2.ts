@@ -383,7 +383,7 @@ export function dividerV2(): string {
 
 export function unsubscribeFooterV2(unsubscribeToken: string): string {
   return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
-                <a href="${BASE_URL}/dashboard/settings" style="color:${V2.textMuted};text-decoration:underline;">Manage preferences</a>
+                <a href="${BASE_URL}/settings" style="color:${V2.textMuted};text-decoration:underline;">Manage preferences</a>
                 &nbsp;&middot;&nbsp;
                 <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color:${V2.textMuted};text-decoration:underline;">Unsubscribe</a>
               </p>`;
