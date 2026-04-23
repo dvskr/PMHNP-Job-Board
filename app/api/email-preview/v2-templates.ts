@@ -31,7 +31,7 @@ function step(file: string, title: string, desc: string): string {
 }
 
 function stat(value: string, label: string): string {
-  return `<td width="33%" style="padding:12px;background:${V2.bgCardAlt};text-align:center;border-radius:12px;"><div style="font-family:${SANS};font-size:28px;font-weight:bold;color:${V2.teal};">${value}</div><div style="font-family:${SANS};font-size:11px;font-weight:bold;color:${V2.textMuted};text-transform:uppercase;letter-spacing:1px;margin-top:4px;">${label}</div></td>`;
+  return `<td width="33%" style="padding:16px 12px;background:#ffffff;text-align:center;border-radius:12px;border:1px solid #E8ECE9;box-shadow:0 2px 6px rgba(0,0,0,0.04);"><div style="font-family:${SANS};font-size:30px;font-weight:800;color:${V2.teal};letter-spacing:-0.5px;">${value}</div><div style="font-family:${SANS};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">${label}</div></td>`;
 }
 
 function secondary(text: string): string {
@@ -44,10 +44,10 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${spacerV2(12)}
     <tr><td class="content-pad" style="padding:0 40px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-        <td width="18%" valign="top" style="padding-right:16px;">
+        <td width="22%" valign="top" style="padding-right:16px;">
           <img src="${IMG}/${iconFile}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
         </td>
-        <td width="82%" valign="top">
+        <td width="78%" valign="top">
           <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
         </td>
       </tr></table>
@@ -201,10 +201,10 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
         ${spacerV2(12)}
         <tr><td class="content-pad" style="padding:0 40px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-            <td width="18%" valign="top" style="padding-right:16px;">
+            <td width="22%" valign="top" style="padding-right:16px;">
               <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
             </td>
-            <td width="82%" valign="top">
+            <td width="78%" valign="top">
               <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We found <strong>3 new positions</strong> matching your preferences. Apply early for the best response rates.</p>
             </td>
           </tr></table>
@@ -238,10 +238,10 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       ${spacerV2(12)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-          <td width="18%" valign="top" style="padding-right:16px;">
+          <td width="22%" valign="top" style="padding-right:16px;">
             <img src="${IMG}/hero-expiry-warning.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
           </td>
-          <td width="82%" valign="top">
+          <td width="78%" valign="top">
             <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">Your posting for <strong>Senior PMHNP \u2014 Private Practice</strong> will expire on Wednesday, March 18, 2026. Renew now to maintain visibility and continue receiving applications.</p>
           </td>
         </tr></table>
