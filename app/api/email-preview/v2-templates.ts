@@ -157,7 +157,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
               <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
             </td>
             <td width="82%" valign="top">
-              <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We found <strong>3 new positions</strong> matching your preferences, posted within the last 24 hours. Review the details below and apply early for the best response rates.</p>
+              <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We found <strong>3 new positions</strong> matching your preferences. Apply early for the best response rates.</p>
             </td>
           </tr></table>
         </td></tr>
