@@ -1110,39 +1110,49 @@ export async function sendEmployerMessageNotification(
     const fromLine = senderCompany ? `${escapeHtml(senderName)} from ${escapeHtml(senderCompany)}` : escapeHtml(senderName);
     const preview = messageBody.length > 200 ? escapeHtml(messageBody.substring(0, 200)) + '…' : escapeHtml(messageBody);
 
-    const html = emailShell(`
-          ${headerBlock('New Message from an Employer', fromLine)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} you have a new message about a potential opportunity.
-              </p>
+    const initial = escapeHtml(senderName.charAt(0).toUpperCase());
 
-              ${jobTitle ? infoCard(`
-                    ${sectionLabel('Regarding')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${jobTitle}</p>
-              `, C.tealDarker) : ''}
-
-              ${infoCard(`
-                    ${sectionLabel('Subject')}
-                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${subject}</p>
-                    ${sectionLabel('Message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${preview}</p>
-              `, C.tealDarker)}
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 24px 0 0;">
-                <tr>
-                  <td>
-                    ${primaryButton('View Full Message →', `${BASE_URL}/messages`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
-      </p>`,
-      `${fromLine} sent you a message${jobTitle ? ` about "${jobTitle}"` : ''} — view it now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Message Received', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`${greeting} a candidate has reached out about a potential opportunity. Respond within 24 hours for the best results.`)}
+      ${spacerV2(20)}
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="44" valign="top" style="padding-right:14px;">
+                <div style="width:44px;height:44px;border-radius:50%;background:#7C8CF5;color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">${initial}</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${fromLine}</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;${jobTitle ? 'border-bottom:1px solid #F0F3F1;' : ''}">
+            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.6;"><em>&ldquo;${preview}&rdquo;</em></p>
+          </td></tr>
+          ${jobTitle ? `<tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Regarding</p>
+            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)}</p>
+          </td></tr>` : ''}
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td align="center" style="padding:0 40px;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            ${primaryButtonV2('Reply Now', `${BASE_URL}/messages`)}
+          </td>
+          <td>
+            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:12px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Profile</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `${fromLine} sent you a message${jobTitle ? ` about "${escapeHtml(jobTitle)}"` : ''} \u2014 view it now!`
     );
 
     await sendAndLog({
@@ -1179,39 +1189,49 @@ export async function sendCandidateInquiryNotification(
     const greeting = recipientFirstName ? `Hi ${escapeHtml(recipientFirstName)},` : 'Hi there,';
     const preview = messageBody.length > 200 ? escapeHtml(messageBody.substring(0, 200)) + '…' : escapeHtml(messageBody);
 
-    const html = emailShell(`
-          ${headerBlock('New Inquiry from a Candidate', escapeHtml(candidateName))}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} a candidate has reached out about your job posting.
-              </p>
+    const initial = escapeHtml(candidateName.charAt(0).toUpperCase());
 
-              ${jobTitle ? infoCard(`
-                    ${sectionLabel('Regarding Your Posting')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${escapeHtml(jobTitle)}</p>
-              `, C.tealDarker) : ''}
-
-              ${infoCard(`
-                    ${sectionLabel('Subject')}
-                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${escapeHtml(subject)}</p>
-                    ${sectionLabel('Message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${preview}</p>
-              `, C.tealDarker)}
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 24px 0 0;">
-                <tr>
-                  <td>
-                    ${primaryButton('View & Reply →', `${BASE_URL}/messages`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
-      </p>`,
-      `${escapeHtml(candidateName)} has a question about your "${jobTitle || 'job'}" posting — reply now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Inquiry from a Candidate', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`${greeting} a candidate has reached out about your job posting. Review their message and respond at your convenience.`)}
+      ${spacerV2(20)}
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="44" valign="top" style="padding-right:14px;">
+                <div style="width:44px;height:44px;border-radius:12px;background:#E8937A;color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">${initial}</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${escapeHtml(candidateName)}</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;${jobTitle ? 'border-bottom:1px solid #F0F3F1;' : ''}">
+            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.6;"><em>&ldquo;${preview}&rdquo;</em></p>
+          </td></tr>
+          ${jobTitle ? `<tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Regarding</p>
+            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)}</p>
+          </td></tr>` : ''}
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td align="center" style="padding:0 40px;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            ${primaryButtonV2('View & Reply', `${BASE_URL}/employer/messages`)}
+          </td>
+          <td>
+            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:12px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Listing</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `${escapeHtml(candidateName)} has a question about your "${escapeHtml(jobTitle || 'job')}" posting \u2014 reply now!`
     );
 
     await sendAndLog({
@@ -1385,40 +1405,59 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
 
   try {
     const greeting = employerName ? `Hi ${employerName.split(' ')[0]},` : 'Hi there,';
+    const initial = candidateName.charAt(0).toUpperCase();
 
-    const html = emailShell(`
-          ${headerBlock('New Application Received!', jobTitle)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} a candidate has applied for your job posting on PMHNP Hiring.
-              </p>
-
-              ${infoCard(`
-                    ${sectionLabel('Candidate')}
-                    <p style="margin: 0 0 4px; font-family: ${F}; font-size: 17px; font-weight: bold; color: ${C.textPrimary};">${candidateName}</p>
-                    ${candidateHeadline ? `<p style="margin: 0 0 4px; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateHeadline}</p>` : ''}
-                    ${candidateExperience ? `<p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateExperience}+ years experience</p>` : ''}
-              `, C.tealDarker)}
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow(hasResume ? '✅' : '❌', 'Resume', hasResume ? 'Resume attached' : 'No resume submitted')}
-                ${featureRow(hasCoverLetter ? '✅' : '—', 'Cover Letter', hasCoverLetter ? 'Cover letter included' : 'No cover letter')}
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td>
-                    ${primaryButton('View Applicant →', `${BASE_URL}/employer/dashboard`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
-      </p>`,
-      `${candidateName} applied for "${jobTitle}" — view their application now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Application Received', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`${greeting} a candidate has applied for your job posting on PMHNP Hiring.`)}
+      ${spacerV2(20)}
+      <!-- Applicant card -->
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="48" valign="top" style="padding-right:16px;">
+                <div style="width:48px;height:48px;border-radius:50%;background:#7C8CF5;color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">${initial}</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS_V2};font-size:16px;font-weight:700;color:${V2.textHeading};">${escapeHtml(candidateName)}</p>
+                ${candidateHeadline ? `<p style="margin:3px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">${escapeHtml(candidateHeadline)}</p>` : ''}
+                ${candidateExperience ? `<p style="margin:3px 0 0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">${candidateExperience}+ years experience</p>` : ''}
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+              <td style="padding-right:8px;">
+                <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;background:${hasResume ? '#ECFDF5' : '#FEF2F2'};color:${hasResume ? '#065F46' : '#991B1B'};border:1px solid ${hasResume ? '#A7F3D0' : '#FECACA'};">${hasResume ? '\u2713 Resume' : '\u2717 No Resume'}</span>
+              </td>
+              <td>
+                <span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;background:${hasCoverLetter ? '#ECFDF5' : '#F3F6F4'};color:${hasCoverLetter ? '#065F46' : '#6B7280'};border:1px solid ${hasCoverLetter ? '#A7F3D0' : '#E0E5E1'};">${hasCoverLetter ? '\u2713 Cover Letter' : '\u2014 No Cover Letter'}</span>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Applied For</p>
+            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)}</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td align="center" style="padding:0 40px;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            ${primaryButtonV2('View Applicant', `${BASE_URL}/employer/dashboard`)}
+          </td>
+          <td>
+            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:12px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">All Applications</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `${escapeHtml(candidateName)} applied for "${escapeHtml(jobTitle)}" \u2014 view their application now!`
     );
 
     await sendAndLog({
