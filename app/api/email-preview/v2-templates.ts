@@ -431,25 +431,101 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     },
   },
 
-
   // 12. Employer Message
   'employer-message': {
     label: 'Employer Message Notification',
     desc: 'Sent when a candidate messages an employer',
-    fn: () => simple('hero-message.png', 'New Message Received',
-      'A candidate has sent you a message regarding your posting for <strong>Remote PMHNP \u2014 Telehealth Platform</strong>. Responding within 24 hours significantly increases your chances of securing top talent.',
-      'View Message', `${BASE_URL}/employer/messages`,
-      'You have a new message from a candidate.'),
+    fn: () => emailShellV2(`
+      ${headerBlockV2('New Message Received', '')}
+      ${spacerV2(12)}
+      ${bodyText('A candidate has reached out about your listing. Respond within 24 hours for the best results.')}
+      ${spacerV2(20)}
+      <!-- Message preview card -->
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="44" valign="top" style="padding-right:14px;">
+                <div style="width:44px;height:44px;border-radius:50%;background:#7C8CF5;color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">J</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">Jessica Martinez, PMHNP-BC</p>
+                <p style="margin:2px 0 0;font-family:${SANS};font-size:12px;color:#9CA3AF;">Today at 9:14 AM CT</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;border-bottom:1px solid #F0F3F1;">
+            <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textBody};line-height:1.6;"><em>&ldquo;Hi, I have 5 years of telehealth experience and am very interested in this role. Could you tell me more about the caseload expectations and supervision model?&rdquo;</em></p>
+          </td></tr>
+          <tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Regarding</p>
+            <p style="margin:3px 0 0;font-family:${SERIF};font-size:14px;font-weight:600;color:${V2.textHeading};">Remote PMHNP &mdash; Telehealth Platform</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <!-- Dual CTAs -->
+      <tr><td align="center" style="padding:0 40px;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            <a href="${BASE_URL}/employer/messages" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS};font-size:14px;font-weight:700;color:#fff;background:${V2.teal};text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Reply Now</a>
+          </td>
+          <td>
+            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Profile</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      'New message from Jessica Martinez regarding your listing.'),
   },
 
   // 13. Candidate Inquiry
   'candidate-inquiry': {
     label: 'Candidate Inquiry Notification',
     desc: 'Sent when an employer contacts a candidate',
-    fn: () => simple('hero-envelope.png', 'You Have a New Inquiry',
-      '<strong>Valley Behavioral Health</strong> has a question about your application for <strong>Psychiatric NP \u2014 Outpatient Clinic</strong>. Review their message and respond at your earliest convenience.',
-      'View and Reply', `${BASE_URL}/messages`,
-      'An employer has a question about your application.'),
+    fn: () => emailShellV2(`
+      ${headerBlockV2('You Have a New Inquiry', '')}
+      ${spacerV2(12)}
+      ${bodyText('An employer is interested in connecting with you. Review their message and respond at your convenience.')}
+      ${spacerV2(20)}
+      <!-- Employer message preview card -->
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="44" valign="top" style="padding-right:14px;">
+                <div style="width:44px;height:44px;border-radius:12px;background:#E8937A;color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">V</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS};font-size:15px;font-weight:700;color:${V2.textHeading};">Valley Behavioral Health</p>
+                <p style="margin:2px 0 0;font-family:${SANS};font-size:12px;color:#9CA3AF;">Today at 2:30 PM CT</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;border-bottom:1px solid #F0F3F1;">
+            <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textBody};line-height:1.6;"><em>&ldquo;We reviewed your profile and would love to discuss the Outpatient Clinic position with you. Are you available for a brief call this week?&rdquo;</em></p>
+          </td></tr>
+          <tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Regarding</p>
+            <p style="margin:3px 0 0;font-family:${SERIF};font-size:14px;font-weight:600;color:${V2.textHeading};">Psychiatric NP &mdash; Outpatient Clinic</p>
+          </td></tr>
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td align="center" style="padding:0 40px;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            <a href="${BASE_URL}/messages" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS};font-size:14px;font-weight:700;color:#fff;background:${V2.teal};text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">View &amp; Reply</a>
+          </td>
+          <td>
+            <a href="${BASE_URL}/jobs" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Listing</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+      'Valley Behavioral Health has a question about your application.'),
   },
 
   // 14. New Application
