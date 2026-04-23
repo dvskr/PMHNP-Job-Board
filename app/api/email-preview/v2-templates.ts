@@ -235,9 +235,17 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     desc: 'Sent 3 days before a job posting expires',
     fn: () => emailShellV2(`
       ${headerBlockV2('Your Listing Expires in 3 Days', '')}
-      ${hero('hero-expiry-warning.png')}
-      ${spacerV2(28)}
-      ${bodyText('Your posting for <strong>Senior PMHNP \u2014 Private Practice</strong> will expire on Wednesday, March 18, 2026. Renew now to maintain visibility and continue receiving applications.')}
+      ${spacerV2(12)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+          <td width="18%" valign="top" style="padding-right:16px;">
+            <img src="${IMG}/hero-expiry-warning.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
+          </td>
+          <td width="82%" valign="top">
+            <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">Your posting for <strong>Senior PMHNP \u2014 Private Practice</strong> will expire on Wednesday, March 18, 2026. Renew now to maintain visibility and continue receiving applications.</p>
+          </td>
+        </tr></table>
+      </td></tr>
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${stat('2,847', 'Views')}<td width="8"></td>${stat('186', 'Applies')}<td width="8"></td>${stat('24', 'Saved')}</tr></table></td></tr>
       ${spacerV2(28)}
