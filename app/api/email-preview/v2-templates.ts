@@ -282,14 +282,32 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     fn: () => emailShellV2(`
       ${headerBlockV2('We Received Your Message', '')}
       ${spacerV2(12)}
-      ${bodyText('Thank you for reaching out, Sarah. Our team will review your inquiry and respond within one business day.')}
+      <!-- Confirmation badge -->
+      <tr><td align="center" style="padding:0 40px;">
+        <div style="display:inline-block;padding:10px 24px;border-radius:30px;background:#ECFDF5;border:1px solid #A7F3D0;">
+          <span style="font-family:${SANS};font-size:14px;font-weight:600;color:#065F46;">&#10003; Message received &mdash; Ticket #PMH-4291</span>
+        </div>
+      </td></tr>
       ${spacerV2(24)}
-      ${card(cardRow('Your Subject', 'Question about job posting rates', true))}
+      ${bodyText('Thank you for reaching out, Sarah. Our team will review your inquiry and respond within <strong>one business day</strong>.')}
+      ${spacerV2(20)}
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+          <tr><td style="padding:16px 20px;border-bottom:1px solid #F0F3F1;">
+            <p style="margin:0 0 2px;font-family:${SANS};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Your Subject</p>
+            <p style="margin:0;font-family:${SERIF};font-size:16px;font-weight:600;color:${V2.textHeading};">Question about job posting rates</p>
+          </td></tr>
+          <tr><td style="padding:16px 20px;">
+            <p style="margin:0 0 2px;font-family:${SANS};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Expected Response</p>
+            <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textBody};">Within 24 hours &middot; Mon&ndash;Fri 9AM&ndash;5PM CT</p>
+          </td></tr>
+        </table>
+      </td></tr>
       ${spacerV2(28)}
       ${centeredCta('Browse Jobs While You Wait', `${BASE_URL}/jobs`)}
       ${spacerV2(48)}
       ${closeContentV2()}`, unsubscribeFooterV2('sample'),
-      'We received your message.'),
+      'We received your message \u2014 Ticket #PMH-4291.'),
   },
 
   // 9. Contact Notification (Internal)
