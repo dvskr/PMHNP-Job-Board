@@ -44,10 +44,10 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${spacerV2(12)}
     <tr><td class="content-pad" style="padding:0 40px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-        <td width="12%" valign="top" style="padding-right:16px;">
+        <td width="18%" valign="top" style="padding-right:16px;">
           <img src="${IMG}/${iconFile}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
         </td>
-        <td width="88%" valign="top">
+        <td width="82%" valign="top">
           <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
         </td>
       </tr></table>
@@ -141,29 +141,67 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'job-alert': {
     label: 'Job Alert (Matching Jobs)',
     desc: 'Sent when new jobs match alert criteria',
-    fn: () => {
       const jobs = [
-        { t: 'Remote PMHNP \u2014 Telehealth', o: 'MindPath Health', l: 'Remote', s: '$145k\u2013$175k' },
-        { t: 'Psychiatric NP \u2014 Outpatient Clinic', o: 'Valley Behavioral', l: 'Austin, TX', s: '$135k\u2013$160k' },
-        { t: 'PMHNP \u2014 Pediatric and Adolescent', o: "Children's Mercy Hospital", l: 'Kansas City, MO', s: '$150k\u2013$185k' },
+        { t: 'Remote PMHNP \u2014 Telehealth', o: 'MindPath Health', l: 'Remote', s: '$145k\u2013$175k', type: 'Full-time', mode: 'Remote', fresh: '2 hours ago', color: '#4DB6AC' },
+        { t: 'Psychiatric NP \u2014 Outpatient Clinic', o: 'Valley Behavioral', l: 'Austin, TX', s: '$135k\u2013$160k', type: 'Full-time', mode: 'On-site', fresh: '5 hours ago', color: '#E8937A' },
+        { t: 'PMHNP \u2014 Pediatric and Adolescent', o: "Children's Mercy Hospital", l: 'Kansas City, MO', s: '$150k\u2013$185k', type: 'Full-time', mode: 'Hybrid', fresh: '8 hours ago', color: '#7C8CF5' },
       ];
-      const rows = jobs.map(j => `<tr><td style="padding:16px 20px;border-bottom:1px solid ${V2.borderLight};"><a href="${BASE_URL}/jobs" style="color:${V2.teal};text-decoration:none;font-family:${SANS};font-size:15px;font-weight:bold;">${j.t}</a><p style="margin:4px 0 0;font-family:${SANS};font-size:13px;color:${V2.textMuted};">${j.o} &middot; ${j.l}</p><p style="margin:6px 0 0;"><span style="display:inline-block;background:${V2.teal};color:#fff;padding:3px 10px;border-radius:6px;font-family:${SANS};font-size:11px;font-weight:bold;">${j.s}</span></p></td></tr>`).join('');
+      const badge = (text: string, bg: string, fg: string) =>
+        `<span style="display:inline-block;padding:4px 12px;border-radius:20px;font-family:${SANS};font-size:11px;font-weight:600;background:${bg};color:${fg};">${text}</span>`;
+      const jobCards = jobs.map(j => `
+        <tr><td style="padding:0 40px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F7FBF8;border:1px solid #E5E7EB;border-radius:16px;margin-bottom:12px;">
+            <tr><td style="padding:20px;">
+              <!-- Row 1: Avatar + Title -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+                <td width="44" valign="top" style="padding-right:12px;">
+                  <div style="width:44px;height:44px;border-radius:10px;background:${j.color};color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">${j.o[0]}</div>
+                </td>
+                <td valign="top">
+                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:17px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.3;">${j.t}</a>
+                  <p style="margin:3px 0 0;font-family:${SANS};font-size:14px;font-weight:500;color:${V2.textMuted};">${j.o}</p>
+                </td>
+              </tr></table>
+              <!-- Row 2: Salary Badge -->
+              <div style="margin:12px 0 8px;">
+                ${badge(j.s, '#0d9488', '#fff')}
+              </div>
+              <!-- Row 3: Location + Type + Mode Badges -->
+              <div style="margin-bottom:14px;">
+                ${badge('\u{1F4CD} ' + j.l, '#EDF2EE', '#374151')}
+                ${badge(j.type, '#EDF2EE', '#374151')}
+                ${badge(j.mode, '#EDF2EE', '#374151')}
+              </div>
+              <!-- Row 4: Freshness + CTAs -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid rgba(0,0,0,0.05);padding-top:12px;"><tr>
+                <td valign="middle">
+                  <p style="margin:0;font-family:${SANS};font-size:12px;color:${V2.textMuted};">${j.fresh}</p>
+                </td>
+                <td align="right" valign="middle">
+                  <a href="${BASE_URL}/jobs" style="display:inline-block;padding:7px 16px;border-radius:14px;font-family:${SANS};font-size:13px;font-weight:700;color:#374151;background:#EDF2EE;text-decoration:none;margin-right:8px;">View Job \u2192</a><!--
+                  --><a href="${BASE_URL}/jobs" style="display:inline-block;padding:7px 16px;border-radius:14px;font-family:${SANS};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;">Apply</a>
+                </td>
+              </tr></table>
+            </td></tr>
+          </table>
+        </td></tr>`).join('');
+
       return emailShellV2(`
         ${headerBlockV2('3 New Jobs Match Your Alert', '')}
         ${spacerV2(12)}
         <tr><td class="content-pad" style="padding:0 40px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-            <td width="12%" valign="top" style="padding-right:16px;">
+            <td width="18%" valign="top" style="padding-right:16px;">
               <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
             </td>
-            <td width="88%" valign="top">
+            <td width="82%" valign="top">
               <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">We found <strong>3 new positions</strong> matching your preferences. Apply early for the best response rates.</p>
             </td>
           </tr></table>
         </td></tr>
         ${spacerV2(20)}
-        ${card(rows)}
-        ${spacerV2(28)}
+        ${jobCards}
+        ${spacerV2(20)}
         ${centeredCta('View All Matching Jobs', `${BASE_URL}/jobs`)}
         ${spacerV2(48)}
         ${closeContentV2()}`, unsubscribeFooterV2('sample'),
