@@ -314,15 +314,52 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'contact-notification': {
     label: 'Contact Notification (Internal)',
     desc: 'Sent to support when contact form is submitted',
-    fn: () => emailShellV2(`
-      ${headerBlockV2('New Contact Form Submission', '')}
-      ${spacerV2(12)}
-      ${card(cardRow('Name', 'Sarah Johnson') + cardRow('Email', `<span style="color:${V2.teal}">sarah@example.com</span>`) + cardRow('Subject', 'Question about job posting rates') + `<tr><td style="padding:16px 20px;"><p style="margin:0 0 2px;font-family:${SANS};font-size:12px;color:${V2.textMuted};text-transform:uppercase;">Message</p><p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textBody};line-height:1.6;">I am interested in posting several PMHNP positions. Could you tell me more about pricing?</p></td></tr>`)}
-      ${spacerV2(28)}
-      ${centeredCta('Reply to Sender', 'mailto:sarah@example.com')}
-      ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
-      'New contact form submission from Sarah Johnson.'),
+    fn: () => {
+      const field = (label: string, value: string, isLast = false) =>
+        `<tr><td style="padding:14px 20px;${isLast ? '' : 'border-bottom:1px solid #F0F3F1;'}">
+          <p style="margin:0 0 3px;font-family:${SANS};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">${label}</p>
+          <p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textBody};line-height:1.5;">${value}</p>
+        </td></tr>`;
+      return emailShellV2(`
+        ${headerBlockV2('New Contact Submission', '')}
+        ${spacerV2(12)}
+        <!-- Priority + Timestamp -->
+        <tr><td align="center" style="padding:0 40px;">
+          <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+            <td style="padding-right:10px;">
+              <span style="display:inline-block;padding:6px 14px;border-radius:20px;background:#FEF3C7;border:1px solid #FDE68A;font-family:${SANS};font-size:11px;font-weight:700;color:#92400E;">● New Lead</span>
+            </td>
+            <td>
+              <span style="font-family:${SANS};font-size:12px;color:#9CA3AF;">Apr 23, 2026 &middot; 9:14 AM CT</span>
+            </td>
+          </tr></table>
+        </td></tr>
+        ${spacerV2(20)}
+        <!-- Contact details card -->
+        <tr><td style="padding:0 40px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+            ${field('From', '<strong style="color:' + V2.textHeading + ';">Sarah Johnson</strong>')}
+            ${field('Email', '<a href="mailto:sarah@example.com" style="color:' + V2.teal + ';text-decoration:none;">sarah@example.com</a>')}
+            ${field('Subject', '<strong style="color:' + V2.textHeading + ';">Question about job posting rates</strong>')}
+            ${field('Message', 'I am interested in posting several PMHNP positions. Could you tell me more about pricing?', true)}
+          </table>
+        </td></tr>
+        ${spacerV2(24)}
+        <!-- Dual CTAs -->
+        <tr><td align="center" style="padding:0 40px;">
+          <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+            <td style="padding-right:10px;">
+              <a href="mailto:sarah@example.com" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS};font-size:14px;font-weight:700;color:#fff;background:${V2.teal};text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Reply to Sender</a>
+            </td>
+            <td>
+              <a href="${BASE_URL}/admin" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View in Admin</a>
+            </td>
+          </tr></table>
+        </td></tr>
+        ${spacerV2(48)}
+        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        'New contact form submission from Sarah Johnson.');
+    },
   },
 
   // 10. Salary Guide
