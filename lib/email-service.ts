@@ -7,7 +7,8 @@ import { Prisma } from '@prisma/client';
 import {
   emailShellV2, headerBlockV2,
   primaryButtonV2, spacerV2, closeContentV2,
-  unsubscribeFooterV2,
+  unsubscribeFooterV2, bodyTextV2,
+  sectionLabelV2, infoCardV2,
   V2, SANS as SANS_V2, SERIF as SERIF_V2,
 } from '@/lib/email-templates-v2';
 
@@ -625,73 +626,86 @@ export async function sendJobAlertEmail(
 ): Promise<void> {
   const jobCount = jobs.length;
   const displayJobs = jobs.slice(0, 10);
+  const COLORS = ['#4DB6AC', '#E8937A', '#7C8CF5', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4', '#10B981', '#F97316', '#6366F1'];
 
-  const jobListHtml = displayJobs.map((job, index) => {
-    const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`;
-    const isLast = index === displayJobs.length - 1;
-    const salaryText = job.minSalary ? `$${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? ` – $${(job.maxSalary / 1000).toFixed(0)}k` : '+'}` : '';
+  const v2Badge = (text: string, bg: string, fg: string, border: string) =>
+    `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};border:1px solid ${border};">${escapeHtml(text)}</span>`;
+
+  const jobCardsHtml = displayJobs.map((job, index) => {
+    const jobUrl = `${BASE_URL}/jobs/${job.slug || slugify(job.title, job.id)}`;
+    const salaryText = job.minSalary ? `$${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? `\u2013$${(job.maxSalary / 1000).toFixed(0)}k` : '+'}` : '';
+    const color = COLORS[index % COLORS.length];
+    const initial = escapeHtml(job.employer.charAt(0).toUpperCase());
+    const badges: string[] = [];
+    if (job.mode) badges.push(v2Badge(job.mode, job.mode === 'Remote' ? '#ECFDF5' : '#F3F6F4', job.mode === 'Remote' ? '#065F46' : '#374151', job.mode === 'Remote' ? '#A7F3D0' : '#E0E5E1'));
+    if (job.jobType) badges.push(v2Badge(job.jobType, '#F3F6F4', '#374151', '#E0E5E1'));
 
     return `
-      <tr>
-        <td style="padding: 16px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
-          <a href="${jobUrl}" style="color: ${C.teal}; text-decoration: none; font-family: ${F}; font-size: 15px; font-weight: bold; line-height: 1.4;">
-            ${job.title}
-          </a>
-          <p style="margin: 4px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
-            ${job.employer} · ${job.location}${job.mode ? ` · ${job.mode}` : ''}
-          </p>
-          ${salaryText ? `<p style="margin: 8px 0 0;">${salaryBadge(salaryText)}</p>` : ''}
-        </td>
-      </tr>`;
+        <tr><td style="padding:0 40px ${index < displayJobs.length - 1 ? '16px' : '0'};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <tr><td style="height:4px;background:${color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+            <tr><td style="padding:24px 24px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+                <td width="48" valign="top" style="padding-right:16px;">
+                  <div style="width:48px;height:48px;border-radius:12px;background:${color};color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">${initial}</div>
+                </td>
+                <td valign="top" style="width:100%;">
+                  <a href="${jobUrl}" style="font-family:${SERIF_V2};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">${escapeHtml(job.title)}</a>
+                  <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:13px;font-weight:500;color:${V2.textMuted};">${escapeHtml(job.employer)} &middot; ${escapeHtml(job.location)}</p>
+                </td>
+                ${salaryText ? `<td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
+                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS_V2};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;">${salaryText}</span>
+                </td>` : ''}
+              </tr></table>
+              ${badges.length > 0 ? `<div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
+              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                ${badges.map((b, i) => `<td${i < badges.length - 1 ? ' style="padding-right:6px;"' : ''}>${b}</td>`).join('')}
+              </tr></table>` : ''}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
+                <td align="right" valign="middle">
+                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                    <td style="padding-right:8px;">
+                      <a href="${jobUrl}" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
+                    </td>
+                    <td>
+                      <a href="${jobUrl}" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
+                    </td>
+                  </tr></table>
+                </td>
+              </tr></table>
+            </td></tr>
+          </table>
+        </td></tr>`;
   }).join('');
 
-  const html = emailShell(`
-          ${headerBlock(`${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`)}
-          <tr>
-            <td class="content-pad" style="padding: 24px 40px 8px;">
-              <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.6;">
-                New positions matching your criteria:
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td class="content-pad" style="padding: 12px 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden;">
-                ${jobListHtml}
-              </table>
-            </td>
-          </tr>
-          ${jobCount > 10 ? `
-          <tr>
-            <td class="content-pad" style="padding: 8px 40px 0;">
-              <p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; text-align: center;">
-                + ${jobCount - 10} more matching jobs
-              </p>
-            </td>
-          </tr>` : ''}
-          <tr>
-            <td class="content-pad" style="padding: 24px 40px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                <tr>
-                  <td>
-                    ${primaryButton('View All Matching Jobs →', `${BASE_URL}/jobs`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-    `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-      <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color: ${C.textFaded}; text-decoration: none;">Manage alert</a>
-      &nbsp;·&nbsp;
-      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color: ${C.textFaded}; text-decoration: none;">Delete alert</a>
+  const html = emailShellV2(`
+      ${headerBlockV2(`${jobCount} New Job${jobCount > 1 ? 's' : ''} Match Your Alert`, '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`We found <strong>${jobCount} new position${jobCount > 1 ? 's' : ''}</strong> matching your preferences. Apply early for the best response rates.`)}
+      ${spacerV2(20)}
+      ${jobCardsHtml}
+      ${jobCount > 10 ? `${spacerV2(12)}
+      <tr><td align="center" style="padding:0 40px;">
+        <p style="margin:0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">+ ${jobCount - 10} more matching jobs</p>
+      </td></tr>` : ''}
+      ${spacerV2(28)}
+      <tr><td align="center" style="padding:0 40px;">
+        ${primaryButtonV2('View All Matching Jobs \u2192', `${BASE_URL}/jobs`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+    `<p style="margin:0 0 4px;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">
+      <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Manage alert</a>
+      &nbsp;&middot;&nbsp;
+      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Delete alert</a>
     </p>`,
-    `${jobCount} new PMHNP jobs matching your alert — view them before they're filled!`
+    `${jobCount} new PMHNP jobs matching your alert \u2014 view them before they're filled!`
   );
 
   await sendAndLog({
     from: EMAIL_FROM,
     to: email,
-    subject: `🔔 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
+    subject: `\uD83D\uDD14 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
     html,
   }, 'job_alert', { jobCount }, `${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}`);
 }
