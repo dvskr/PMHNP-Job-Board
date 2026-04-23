@@ -150,9 +150,17 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
       const rows = jobs.map(j => `<tr><td style="padding:16px 20px;border-bottom:1px solid ${V2.borderLight};"><a href="${BASE_URL}/jobs" style="color:${V2.teal};text-decoration:none;font-family:${SANS};font-size:15px;font-weight:bold;">${j.t}</a><p style="margin:4px 0 0;font-family:${SANS};font-size:13px;color:${V2.textMuted};">${j.o} &middot; ${j.l}</p><p style="margin:6px 0 0;"><span style="display:inline-block;background:${V2.teal};color:#fff;padding:3px 10px;border-radius:6px;font-family:${SANS};font-size:11px;font-weight:bold;">${j.s}</span></p></td></tr>`).join('');
       return emailShellV2(`
         ${headerBlockV2('3 New Jobs Match Your Alert', '')}
-        ${hero('hero-job-alert.png')}
-        ${spacerV2(28)}
-        ${bodyText('New positions matching your criteria just posted. Review them before they fill.')}
+        ${spacerV2(12)}
+        <tr><td class="content-pad" style="padding:0 40px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td width="30%" valign="top" style="padding-right:20px;">
+              <img src="${IMG}/hero-job-alert.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
+            </td>
+            <td width="70%" valign="top">
+              <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">New positions matching your criteria just posted. Review them before they fill.</p>
+            </td>
+          </tr></table>
+        </td></tr>
         ${spacerV2(20)}
         ${card(rows)}
         ${spacerV2(28)}
