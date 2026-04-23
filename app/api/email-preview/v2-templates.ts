@@ -44,10 +44,10 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${spacerV2(12)}
     <tr><td class="content-pad" style="padding:0 40px;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-        <td width="22%" valign="top" style="padding-right:16px;">
-          <img src="${IMG}/${iconFile}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
+        <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;">
+          <img src="${IMG}/${iconFile}" alt="" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;" />
         </td>
-        <td width="78%" valign="top">
+        <td valign="top">
           <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
         </td>
       </tr></table>
@@ -584,9 +584,17 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     desc: 'Sent to employers with monthly metrics',
     fn: () => emailShellV2(`
       ${headerBlockV2('Your Monthly Hiring Report', '')}
-      ${hero('hero-performance.png')}
-      ${spacerV2(28)}
-      ${bodyText('Here is how your listings performed this month. Use these insights to optimize your postings and attract stronger candidates.')}
+      ${spacerV2(12)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+          <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;">
+            <img src="${IMG}/hero-performance.png" alt="" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;" />
+          </td>
+          <td valign="top">
+            <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">Here is how your listings performed this month. Use these insights to optimize your postings and attract stronger candidates.</p>
+          </td>
+        </tr></table>
+      </td></tr>
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${stat('8,431', 'Views')}<td width="8"></td>${stat('342', 'Applies')}<td width="8"></td>${stat('28', 'Messages')}</tr></table></td></tr>
       ${spacerV2(28)}
@@ -602,8 +610,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     desc: 'Sent to candidates with incomplete profiles',
     fn: () => emailShellV2(`
       ${headerBlockV2('Your Profile Is Almost There', '')}
-      ${hero('hero-profile-incomplete.png')}
-      ${spacerV2(28)}
+      ${spacerV2(12)}
       ${bodyText('Your profile is 60 percent complete. Candidates with finished profiles receive 3 times more visibility from employers. Take a moment to fill in the remaining details.')}
       ${spacerV2(36)}
       ${sectionHead('What to add next')}
