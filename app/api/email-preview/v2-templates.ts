@@ -38,12 +38,20 @@ function secondary(text: string): string {
   return `<tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS};font-size:14px;color:${V2.textMuted};line-height:1.6;">${text}</p></td></tr>`;
 }
 
-function simple(heroFile: string, heading: string, body: string, cta: string, ctaUrl: string, preheader: string, extra?: string): string {
+function simple(iconFile: string, heading: string, body: string, cta: string, ctaUrl: string, preheader: string, extra?: string): string {
   return emailShellV2(`
     ${headerBlockV2(heading, '')}
-    ${hero(heroFile)}
-    ${spacerV2(28)}
-    ${bodyText(body)}
+    ${spacerV2(12)}
+    <tr><td class="content-pad" style="padding:0 40px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+        <td width="30%" valign="top" style="padding-right:20px;">
+          <img src="${IMG}/${iconFile}" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
+        </td>
+        <td width="70%" valign="top">
+          <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
+        </td>
+      </tr></table>
+    </td></tr>
     ${spacerV2(32)}
     ${centeredCta(cta, ctaUrl)}
     ${extra || ''}
