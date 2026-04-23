@@ -377,18 +377,60 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
   'email-job': {
     label: 'Email Job to Self',
     desc: 'Sent when a user emails a job to themselves',
-    fn: () => emailShellV2(`
-      ${headerBlockV2('Job Saved for Review', '')}
-      ${spacerV2(12)}
-      ${bodyText('You saved this position to review later. Here are the details:')}
-      ${spacerV2(20)}
-      ${card(`<tr><td style="padding:20px;"><p style="margin:0 0 6px;font-family:${SANS};font-size:18px;font-weight:bold;color:${V2.textHeading};">Remote PMHNP \u2014 Telehealth Platform</p><p style="margin:0 0 10px;font-family:${SANS};font-size:14px;color:${V2.textMuted};">MindPath Health &middot; Remote &middot; Full-time</p><p style="margin:0;"><span style="display:inline-block;background:${V2.teal};color:#fff;padding:3px 10px;border-radius:6px;font-family:${SANS};font-size:12px;font-weight:bold;">$145k\u2013$175k</span></p></td></tr>`)}
-      ${spacerV2(28)}
-      ${centeredCta('View Full Listing', `${BASE_URL}/jobs`)}
-      ${spacerV2(48)}
-      ${closeContentV2()}`, unsubscribeFooterV2('sample'),
-      'You saved a job for later review.'),
+    fn: () => {
+      const badge = (text: string, bg: string, fg: string, border?: string) =>
+        `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};${border ? 'border:1px solid ' + border + ';' : ''}">${text}</span>`;
+      return emailShellV2(`
+        ${headerBlockV2('Job Saved for Review', '')}
+        ${spacerV2(12)}
+        ${bodyText('You saved this position to review later.')}
+        ${spacerV2(20)}
+        <tr><td style="padding:0 40px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <tr><td style="height:4px;background:#4DB6AC;border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+            <tr><td style="padding:24px 24px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+                <td width="48" valign="top" style="padding-right:16px;">
+                  <div style="width:48px;height:48px;border-radius:12px;background:#4DB6AC;color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">M</div>
+                </td>
+                <td valign="top" style="width:100%;">
+                  <a href="${BASE_URL}/jobs" style="font-family:${SERIF};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">Remote PMHNP &#8212; Telehealth Platform</a>
+                  <p style="margin:4px 0 0;font-family:${SANS};font-size:13px;font-weight:500;color:${V2.textMuted};">MindPath Health</p>
+                </td>
+                <td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
+                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;">$145k&#8211;$175k</span>
+                </td>
+              </tr></table>
+              <div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
+              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                <td style="padding-right:6px;">${badge('Remote', '#ECFDF5', '#065F46', '#A7F3D0')}</td>
+                <td style="padding-right:6px;">${badge('Full-time', '#F3F6F4', '#374151', '#E0E5E1')}</td>
+                <td>${badge('Telehealth', '#F3F6F4', '#374151', '#E0E5E1')}</td>
+              </tr></table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
+                <td valign="middle">
+                  <p style="margin:0;font-family:${SANS};font-size:12px;font-weight:500;color:#9CA3AF;">Posted 2 days ago</p>
+                </td>
+                <td align="right" valign="middle">
+                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                    <td style="padding-right:8px;">
+                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
+                    </td>
+                    <td>
+                      <a href="${BASE_URL}/jobs" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
+                    </td>
+                  </tr></table>
+                </td>
+              </tr></table>
+            </td></tr>
+          </table>
+        </td></tr>
+        ${spacerV2(48)}
+        ${closeContentV2()}`, unsubscribeFooterV2('sample'),
+        'You saved a job for later review.');
+    },
   },
+
 
   // 12. Employer Message
   'employer-message': {
