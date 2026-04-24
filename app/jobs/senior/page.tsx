@@ -23,6 +23,10 @@ const WHERE_CLAUSE = {
   isPublished: true,
   OR: [
     { title: { contains: 'senior', mode: 'insensitive' as const } },
+    { title: { contains: 'director', mode: 'insensitive' as const } },
+    { title: { contains: 'chief', mode: 'insensitive' as const } },
+    { title: { contains: 'manager', mode: 'insensitive' as const } },
+    { title: { contains: 'supervisor', mode: 'insensitive' as const } },
   ],
 };
 
@@ -145,23 +149,22 @@ export default async function SeniorPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Senior</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Built for Senior Care</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Specialized Care</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Focus on senior psychiatric care with dedicated clinical environments.</p>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Executive Roles</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Chief PMHNP, clinical director, and VP positions.</p>
             </div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Competitive Pay</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Senior PMHNPs earn $160K-220K with benefits, loan repayment, and bonuses.</p>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Compensation</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Senior roles offer $180K-$250K+ with equity and bonuses.</p>
             </div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Growing Demand</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>High demand for senior PMHNPs nationwide with strong job security.</p>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Program Design</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Build and lead psychiatric programs from the ground up.</p>
             </div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Career Growth</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Advance from clinical roles to leadership positions in senior settings.</p>
-            </div>
-          </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Industry Influence</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Shape mental health policy and best practices at scale.</p>
+            </div>          </div>
         </section>
       </div>
 

@@ -23,6 +23,9 @@ const WHERE_CLAUSE = {
   isPublished: true,
   OR: [
     { title: { contains: 'part-time', mode: 'insensitive' as const } },
+    { title: { contains: 'part time', mode: 'insensitive' as const } },
+    { title: { contains: 'PT ', mode: 'insensitive' as const } },
+    { title: { contains: 'PRN', mode: 'insensitive' as const } },
   ],
 };
 
@@ -80,7 +83,7 @@ export default async function PartTimePage({ searchParams }: PageProps) {
               <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
               <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>Part-Time<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
               <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Browse part-time psychiatric nurse practitioner positions with competitive pay and benefits.</p>
-              <Link href="/jobs?q=part+time" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Part-Time Jobs <ArrowRight size={17} /></Link>
+              <Link href="/jobs?q=part+time+PMHNP" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Part-Time Jobs <ArrowRight size={17} /></Link>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '100%', maxWidth: '400px', aspectRatio: '1', borderRadius: '24px', background: 'linear-gradient(145deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -104,7 +107,7 @@ export default async function PartTimePage({ searchParams }: PageProps) {
               <div className="text-center py-12"><p style={{ color: '#7A6A62' }}>No positions right now. Check back soon.</p></div>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=part+time" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Part-Time Jobs <ArrowRight size={16} /></Link>
+              <Link href="/jobs?q=part+time+PMHNP" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Part-Time Jobs <ArrowRight size={16} /></Link>
             </div>
           </div>
           <div className="lg:col-span-1">
@@ -145,23 +148,22 @@ export default async function PartTimePage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Part-Time</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Built for Part-Time Care</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Specialized Care</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Focus on part-time psychiatric care with dedicated clinical environments.</p>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Flexible Hours</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Work 10-30 hours per week on your preferred schedule.</p>
             </div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Competitive Pay</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Part-Time PMHNPs earn $60K-100K with benefits, loan repayment, and bonuses.</p>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Side Income</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Supplement primary income or ease into retirement.</p>
             </div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Growing Demand</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>High demand for part-time PMHNPs nationwide with strong job security.</p>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>PRN Options</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Pick up shifts as needed with no minimum hour commitments.</p>
             </div>
-            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 6', padding: '28px 24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Career Growth</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Advance from clinical roles to leadership positions in part-time settings.</p>
-            </div>
-          </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Work-Life Balance</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Maintain clinical skills while prioritizing personal life.</p>
+            </div>          </div>
         </section>
       </div>
 

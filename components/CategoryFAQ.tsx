@@ -9,7 +9,7 @@ interface FAQItem {
 }
 
 interface CategoryFAQProps {
-    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health';
+    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health' | 'community-health';
     totalJobs: number;
     avgSalary?: number;
 }
@@ -206,6 +206,26 @@ const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
             answer: 'You need a PMHNP-BC certification from ANCC, an active APRN license in your state, and a master\'s or doctoral degree in psychiatric-mental health nursing. Most positions also require DEA registration for prescribing controlled substances. Experience requirements vary from new-grad friendly to 3+ years depending on the role.',
         },
     ],
+    'community-health': ({ totalJobs, avgSalary }) => [
+        {
+            question: 'How many community health PMHNP jobs are available?',
+            answer: `There are currently ${totalJobs} community health PMHNP positions available. These include roles at Federally Qualified Health Centers (FQHCs), community mental health centers, public health clinics, and integrated primary-care settings serving underserved populations.`,
+        },
+        {
+            question: 'What is the average salary for community health PMHNPs?',
+            answer: avgSalary
+                ? `Community health PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Many FQHC and public health roles also include NHSC loan repayment up to $50,000 and PSLF eligibility.`
+                : 'Community health PMHNP salaries typically range from $120,000 to $170,000 per year. Positions at FQHCs often include loan repayment programs, federal benefits, and generous PTO that significantly boost total compensation.',
+        },
+        {
+            question: 'What qualifications are needed for community health PMHNP roles?',
+            answer: 'You need an active PMHNP-BC certification (ANCC), state APRN licensure, DEA registration, and ideally experience working with diverse, underserved populations. Bilingual skills (especially Spanish) are highly valued. Some positions accept new graduates with structured supervision.',
+        },
+        {
+            question: 'Do community health PMHNPs qualify for loan repayment?',
+            answer: 'Yes — many community health positions at FQHCs and nonprofit agencies qualify for National Health Service Corps (NHSC) loan repayment of up to $50,000 for two years of service. Positions at 501(c)(3) employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments.',
+        },
+    ],
 };
 
 export default function CategoryFAQ({ category, totalJobs, avgSalary }: CategoryFAQProps) {
@@ -226,6 +246,7 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary }: Category
         'child-adolescent': 'Child & Adolescent',
         addiction: 'Addiction',
         'behavioral-health': 'Behavioral Health',
+        'community-health': 'Community Health',
     };
 
     // FAQ Schema for structured data (FAQPage)
