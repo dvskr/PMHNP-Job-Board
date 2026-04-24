@@ -8,6 +8,7 @@ export interface FilterState {
   postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
   employer: string | null;  // filter by employer name
+  category: string | null;  // category slug for pre-defined filters (e.g. 'child-adolescent')
 }
 
 export interface FilterCounts {
@@ -57,5 +58,6 @@ export const DEFAULT_FILTERS: FilterState = {
   postedWithin: null,
   location: null,
   employer: null,
+  category: null,
 };
 

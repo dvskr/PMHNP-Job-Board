@@ -122,6 +122,11 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         params.set('postedWithin', filters.postedWithin);
       }
 
+      // Add category (enterprise filter — same as category pages)
+      if (filters.category) {
+        params.set('category', filters.category);
+      }
+
       const url = `/api/jobs?${params.toString()}`;
 
       const response = await fetch(url);
@@ -212,27 +217,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
   return (
     <>
-      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '0 16px' }}>
-
-        {/* Hero Section */}
-        <header style={{ marginBottom: '40px', marginTop: '24px', paddingBottom: '32px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-          <AnimatedContainer animation="fade-in-up" delay={0}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px', gap: '24px', alignItems: 'center' }} className="jobs-hero-grid">
-              <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: '#F0F9FF', color: '#0284C7', borderRadius: '20px', fontSize: '13px', fontWeight: 700, marginBottom: '16px' }}>
-                    <Briefcase size={14} /> Career Search
-                </div>
-                <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px 0', lineHeight: 1.15 }}>
-                  Find Your Next <span style={{ color: '#0284C7' }}>Role</span>
-                </h1>
-                <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Review thousands of Psychiatric Nurse Practitioner openings matching your lifestyle and salary goals.</p>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <Image src="/images/pages/clay_hero_jobs.png" alt="PMHNP Jobs Search" width={140} height={140} style={{ objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.12))' }} priority />
-              </div>
-            </div>
-          </AnimatedContainer>
-        </header>
+      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
 
         {/* Main Content with Sidebar Layout */}
         <div style={{ display: 'flex', gap: '28px' }}>

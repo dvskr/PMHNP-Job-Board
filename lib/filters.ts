@@ -1,6 +1,46 @@
 import { Prisma } from '@prisma/client';
 import { FilterState } from '@/types/filters';
 
+/**
+ * Centralized Category Filter Registry
+ * Single source of truth for all category page filters.
+ * Used by both /jobs/[category]/page.tsx AND /jobs?category=[slug]
+ */
+export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
+  'child-adolescent': [
+    { title: { contains: 'child and adolescent', mode: 'insensitive' } },
+    { title: { contains: 'child/adolescent', mode: 'insensitive' } },
+    { title: { contains: 'child psychiatr', mode: 'insensitive' } },
+    { title: { contains: 'child & adolescent', mode: 'insensitive' } },
+    { title: { contains: 'pediatric psych', mode: 'insensitive' } },
+    { title: { contains: 'pediatric mental', mode: 'insensitive' } },
+    { title: { contains: 'CAPMHNP', mode: 'insensitive' } },
+    { title: { contains: 'adolescent psychiatr', mode: 'insensitive' } },
+  ],
+  'community-health': [
+    { title: { contains: 'community', mode: 'insensitive' } },
+    { title: { contains: 'FQHC', mode: 'insensitive' } },
+    { title: { contains: 'public health', mode: 'insensitive' } },
+  ],
+  'correctional': [
+    { title: { contains: 'correctional', mode: 'insensitive' } },
+    { title: { contains: 'corrections', mode: 'insensitive' } },
+    { title: { contains: 'prison', mode: 'insensitive' } },
+    { title: { contains: 'jail', mode: 'insensitive' } },
+    { title: { contains: 'detention', mode: 'insensitive' } },
+    { title: { contains: 'incarcerat', mode: 'insensitive' } },
+  ],
+  'new-grad': [
+    { title: { contains: 'new grad', mode: 'insensitive' } },
+    { title: { contains: 'new graduate', mode: 'insensitive' } },
+    { title: { contains: 'entry level', mode: 'insensitive' } },
+    { title: { contains: 'fellowship', mode: 'insensitive' } },
+    { title: { contains: 'residency', mode: 'insensitive' } },
+    { title: { contains: 'recent graduate', mode: 'insensitive' } },
+    { title: { contains: 'training program', mode: 'insensitive' } },
+  ],
+};
+
 export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = {
     isPublished: true,
@@ -18,6 +58,13 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
         { city: { contains: filters.search, mode: 'insensitive' } },
         { state: { contains: filters.search, mode: 'insensitive' } },
       ],
+    });
+  }
+
+  // Category filter (enterprise pattern: reuses same filter as category pages)
+  if (filters.category && CATEGORY_FILTERS[filters.category]) {
+    andConditions.push({
+      OR: CATEGORY_FILTERS[filters.category],
     });
   }
 
@@ -170,6 +217,7 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
     employer: searchParams.get('employer') || null,
+    category: searchParams.get('category') || null,
   };
 }
 
@@ -186,6 +234,7 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);
   if (filters.employer) params.set('employer', filters.employer);
+  if (filters.category) params.set('category', filters.category);
 
   return params;
 }

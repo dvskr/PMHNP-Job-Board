@@ -104,7 +104,7 @@ export default function LinkedInFilters() {
     setLocationInput(parsed.location || '');
   }, [searchParams]);
 
-  // Fetch filter counts
+  // Fetch filter counts (includes category param for accurate counts)
   const fetchCounts = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -169,7 +169,7 @@ export default function LinkedInFilters() {
     router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
   };
 
-  // Count active filters
+  // Count active filters (including category)
   const activeFilterCount =
     filters.workMode.length +
     filters.jobType.length +
@@ -178,12 +178,32 @@ export default function LinkedInFilters() {
     (filters.search ? 1 : 0) +
     (filters.location ? 1 : 0) +
     (filters.salaryMin ? 1 : 0) +
-    (filters.postedWithin ? 1 : 0);
+    (filters.postedWithin ? 1 : 0) +
+    (filters.category ? 1 : 0);
+
+  // Human-readable category names
+  const CATEGORY_LABELS: Record<string, string> = {
+    'child-adolescent': 'Child & Adolescent',
+    'community-health': 'Community Health',
+    'correctional': 'Correctional',
+    'new-grad': 'New Grad',
+    'outpatient': 'Outpatient',
+    'substance-abuse': 'Substance Abuse',
+    'travel': 'Travel',
+  };
 
   // Get active filter pills
   const getActiveFilters = () => {
     const pills: { key: string; label: string; onRemove: () => void }[] = [];
 
+    // Category pill (shown first, with distinct styling)
+    if (filters.category) {
+      pills.push({
+        key: 'category',
+        label: CATEGORY_LABELS[filters.category] || filters.category.replace(/-/g, ' '),
+        onRemove: () => setSingleFilter('category', null),
+      });
+    }
     if (filters.search) {
       pills.push({
         key: 'search',
