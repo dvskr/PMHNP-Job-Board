@@ -39,7 +39,151 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'recent graduate', mode: 'insensitive' } },
     { title: { contains: 'training program', mode: 'insensitive' } },
   ],
+  'outpatient': [
+    { title: { contains: 'outpatient', mode: 'insensitive' } },
+    { title: { contains: 'out-patient', mode: 'insensitive' } },
+    { title: { contains: 'private practice', mode: 'insensitive' } },
+    { title: { contains: 'community mental health', mode: 'insensitive' } },
+  ],
+  'substance-abuse': [
+    { title: { contains: 'substance', mode: 'insensitive' } },
+    { title: { contains: 'addiction', mode: 'insensitive' } },
+    { title: { contains: 'suboxone', mode: 'insensitive' } },
+    { title: { contains: 'dual diagnosis', mode: 'insensitive' } },
+    { title: { contains: 'SUD ', mode: 'insensitive' } },
+    { title: { contains: 'medication-assisted', mode: 'insensitive' } },
+    { title: { contains: 'medication assisted treatment', mode: 'insensitive' } },
+    { title: { contains: 'buprenorphine', mode: 'insensitive' } },
+  ],
+  'telehealth': [
+    { title: { contains: 'telehealth', mode: 'insensitive' } },
+    { title: { contains: 'telemedicine', mode: 'insensitive' } },
+    { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
+    { title: { contains: 'virtual', mode: 'insensitive' } },
+  ],
+  'contract': [
+    { title: { contains: 'contract', mode: 'insensitive' } },
+    { title: { contains: 'temp-to-perm', mode: 'insensitive' } },
+    { title: { contains: 'temporary', mode: 'insensitive' } },
+  ],
+  'crisis': [
+    { title: { contains: 'crisis', mode: 'insensitive' } },
+    { title: { contains: 'emergency psych', mode: 'insensitive' } },
+    { title: { contains: 'acute stabilization', mode: 'insensitive' } },
+    { title: { contains: 'urgent', mode: 'insensitive' } },
+  ],
+  'entry-level': [
+    { title: { contains: 'entry level', mode: 'insensitive' } },
+    { title: { contains: 'entry-level', mode: 'insensitive' } },
+    { title: { contains: 'new grad', mode: 'insensitive' } },
+    { title: { contains: 'new graduate', mode: 'insensitive' } },
+  ],
+  'full-time': [
+    { title: { contains: 'full-time', mode: 'insensitive' } },
+    { title: { contains: 'full time', mode: 'insensitive' } },
+    { title: { contains: 'FT ', mode: 'insensitive' } },
+    { title: { contains: 'permanent', mode: 'insensitive' } },
+  ],
+  'geriatric': [
+    { title: { contains: 'geriatric', mode: 'insensitive' } },
+    { title: { contains: 'geropsych', mode: 'insensitive' } },
+    { title: { contains: 'elderly', mode: 'insensitive' } },
+    { title: { contains: 'senior living', mode: 'insensitive' } },
+    { title: { contains: 'nursing home', mode: 'insensitive' } },
+  ],
+  'hospital': [
+    { title: { contains: 'hospital', mode: 'insensitive' } },
+    { title: { contains: 'acute care', mode: 'insensitive' } },
+    { title: { contains: 'acute psych', mode: 'insensitive' } },
+  ],
+  'lgbtq': [
+    { title: { contains: 'LGBTQ', mode: 'insensitive' } },
+    { title: { contains: 'transgender', mode: 'insensitive' } },
+    { title: { contains: 'gender-affirming', mode: 'insensitive' } },
+    { title: { contains: 'gender affirming', mode: 'insensitive' } },
+    { title: { contains: 'gender identity', mode: 'insensitive' } },
+    { title: { contains: 'affirming care', mode: 'insensitive' } },
+  ],
+  'locum-tenens': [
+    { title: { contains: 'locum', mode: 'insensitive' } },
+    { title: { contains: 'locums', mode: 'insensitive' } },
+    { title: { contains: 'temporary assignment', mode: 'insensitive' } },
+  ],
+  'mid-career': [
+    { title: { contains: 'experienced', mode: 'insensitive' } },
+    { title: { contains: 'supervisor', mode: 'insensitive' } },
+    { title: { contains: 'program director', mode: 'insensitive' } },
+    { title: { contains: 'clinical director', mode: 'insensitive' } },
+    { title: { contains: 'lead clinician', mode: 'insensitive' } },
+    { title: { contains: 'lead PMHNP', mode: 'insensitive' } },
+    { title: { contains: 'senior PMHNP', mode: 'insensitive' } },
+    { title: { contains: 'senior NP', mode: 'insensitive' } },
+    { title: { contains: 'senior nurse practitioner', mode: 'insensitive' } },
+  ],
+  'part-time': [
+    { title: { contains: 'part-time', mode: 'insensitive' } },
+    { title: { contains: 'part time', mode: 'insensitive' } },
+    { title: { contains: 'PRN', mode: 'insensitive' } },
+  ],
+  'per-diem': [
+    { title: { contains: 'per diem', mode: 'insensitive' } },
+    { title: { contains: 'per-diem', mode: 'insensitive' } },
+  ],
+  'private-practice': [
+    { title: { contains: 'private practice', mode: 'insensitive' } },
+    { title: { contains: 'group practice', mode: 'insensitive' } },
+    { title: { contains: 'solo practice', mode: 'insensitive' } },
+    { title: { contains: 'independent practice', mode: 'insensitive' } },
+  ],
 };
+
+/**
+ * Category Exclusion Registry
+ * Negative filters to remove false positives from category results.
+ * Each entry is a list of conditions — any matching job is EXCLUDED.
+ */
+export const CATEGORY_EXCLUSIONS: Record<string, Prisma.JobWhereInput[]> = {
+  'new-grad': [
+    { title: { contains: 'director', mode: 'insensitive' } },
+    { title: { contains: 'instructor', mode: 'insensitive' } },
+    { title: { contains: 'no new grad', mode: 'insensitive' } },
+    { title: { contains: 'clinical psychology', mode: 'insensitive' } },
+    { title: { contains: 'fellowship trained', mode: 'insensitive' } },
+    { title: { contains: 'APC Fellowship', mode: 'insensitive' } },
+    { title: { contains: 'Advanced Practice Provider', mode: 'insensitive' } },
+  ],
+  'outpatient': [
+    // Exclude MD Psychiatrist roles that don't mention NP/Nurse/PMHNP/APRN
+    {
+      AND: [
+        { title: { contains: 'Psychiatrist', mode: 'insensitive' } },
+        { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'Practitioner', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      ],
+    },
+  ],
+};
+
+/**
+ * Global Exclusions — applied to EVERY query site-wide.
+ * Removes jobs that should never appear on a PMHNP job board.
+ */
+export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
+  // Exclude pure MD Psychiatrist roles (no NP/Nurse/PMHNP/APRN mention)
+  {
+    AND: [
+      { title: { contains: 'Psychiatrist', mode: 'insensitive' } },
+      { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'Practitioner', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+    ],
+  },
+];
 
 export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = {
@@ -47,6 +191,11 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   };
 
   const andConditions: Prisma.JobWhereInput[] = [];
+
+  // Apply global exclusions (removes non-PMHNP jobs from all queries)
+  GLOBAL_EXCLUSIONS.forEach(exclusion => {
+    andConditions.push({ NOT: exclusion });
+  });
 
   // Search
   if (filters.search && filters.search.trim()) {
@@ -66,6 +215,12 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     andConditions.push({
       OR: CATEGORY_FILTERS[filters.category],
     });
+    // Apply exclusions to remove false positives
+    if (CATEGORY_EXCLUSIONS[filters.category]) {
+      CATEGORY_EXCLUSIONS[filters.category].forEach(exclusion => {
+        andConditions.push({ NOT: exclusion });
+      });
+    }
   }
 
   // Work Mode (OR within category)

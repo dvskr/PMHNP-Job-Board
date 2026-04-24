@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -19,40 +20,40 @@ export const revalidate = 3600;
 interface EmployerGroupResult { employer: string; _count: { employer: number }; }
 interface ProcessedEmployer { name: string; count: number; }
 
-const WHERE_CLAUSE = {
+const CR_FILTER = {
   isPublished: true,
-  OR: [
-    { title: { contains: 'crisis', mode: 'insensitive' as const } },
-    { title: { contains: 'emergency psych', mode: 'insensitive' as const } },
-    { title: { contains: 'acute stabilization', mode: 'insensitive' as const } },
-    { title: { contains: 'urgent', mode: 'insensitive' as const } },
+  OR: CATEGORY_FILTERS['crisis'],
+  AND: [
+    ...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
+    ...(CATEGORY_EXCLUSIONS['crisis'] || []).map((e: any) => ({ NOT: e })),
   ],
 };
 
 async function getJobs(skip = 0, take = 20) {
-  return prisma.job.findMany({ where: WHERE_CLAUSE, orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }], skip, take });
+  return prisma.job.findMany({ where: CR_FILTER, orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }], skip, take });
 }
 
 async function getStats() {
-  const totalJobs = await prisma.job.count({ where: WHERE_CLAUSE });
-  const salaryData = await prisma.job.aggregate({ where: { ...WHERE_CLAUSE, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
+  const totalJobs = await prisma.job.count({ where: CR_FILTER });
+  const salaryData = await prisma.job.aggregate({ where: { ...CR_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } }, _avg: { normalizedMinSalary: true, normalizedMaxSalary: true } });
   const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
-  const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: WHERE_CLAUSE, _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
+  const topEmployers = await prisma.job.groupBy({ by: ['employer'], where: CR_FILTER, _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8 });
   return { totalJobs, avgSalary, topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })) };
 }
 
 const crisisFaqs = [
-  { question: 'What is a Crisis PMHNP role?', answer: 'Crisis PMHNP positions focus on psychiatric mental health care in crisis settings, offering specialized clinical opportunities.' },
-  { question: 'What does a Crisis PMHNP earn?', answer: 'Crisis PMHNPs typically earn $140K-200K annually depending on location, experience, and setting.' },
-  { question: 'What qualifications are needed?', answer: 'You need an active PMHNP-BC certification, state APRN licensure, DEA registration, and relevant clinical experience.' },
-  { question: 'How do I find crisis positions?', answer: 'Browse our curated crisis job listings above, set up alerts, and apply directly through our platform.' },
+  { question: 'What is a Crisis PMHNP role?', answer: 'Crisis PMHNPs provide acute psychiatric interventions in emergency departments, crisis stabilization units, and mobile crisis teams. You assess, de-escalate, and stabilize patients experiencing psychiatric emergencies.' },
+  { question: 'What does a Crisis PMHNP earn?', answer: 'Crisis PMHNPs earn $140K-200K+ annually due to the high-acuity nature of the work. Night/weekend differentials and on-call premiums can add 15-25% to base pay.' },
+  { question: 'What qualifications are needed?', answer: 'Active PMHNP-BC, state APRN licensure, DEA registration, and experience with acute psychiatric populations. Crisis intervention training (CIT) and de-escalation certifications are highly valued.' },
+  { question: 'What settings do crisis PMHNPs work in?', answer: 'Emergency departments, psychiatric emergency services (PES), crisis stabilization units, mobile crisis teams, 988 crisis centers, and urgent behavioral health clinics.' },
+  { question: 'What does a typical crisis shift look like?', answer: 'Crisis shifts are fast-paced: rapid psychiatric assessments, medication management for acute agitation, safety planning, involuntary hold evaluations, and coordinating dispositions with inpatient units.' },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
   return {
     title: `${stats.totalJobs} Crisis PMHNP Jobs ($140K-200K)`,
-    description: `Find ${stats.totalJobs} crisis PMHNP jobs paying $140K-200K+. Browse psychiatric nurse practitioner positions.`,
+    description: `Find ${stats.totalJobs} crisis PMHNP jobs paying $140K-200K+. Emergency psychiatric care, crisis stabilization, and urgent behavioral health positions.`,
     alternates: { canonical: 'https://pmhnphiring.com/jobs/crisis' },
   };
 }
@@ -76,19 +77,17 @@ export default async function CrisisPage({ searchParams }: PageProps) {
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Crisis Jobs" />
 
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#e5c8c8', padding: '72px 0 56px' }}>
+      <section style={{ background: '#dbafac', padding: '72px 0 56px' }}>
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
           <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
               <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>Crisis<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Browse crisis psychiatric nurse practitioner positions with competitive pay and benefits.</p>
-              <Link href="/jobs?q=crisis+PMHNP" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Crisis Jobs <ArrowRight size={17} /></Link>
+              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Acute psychiatric intervention roles in ERs, crisis units, and mobile teams. High-impact, high-demand positions.</p>
+              <Link href="/jobs?category=crisis" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Crisis Jobs <ArrowRight size={17} /></Link>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '100%', maxWidth: '400px', aspectRatio: '1', borderRadius: '24px', background: 'linear-gradient(145deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '120px' }}>🏥</span>
-              </div>
+              <Image src="/images/categories/hero_wc_crisis.png" alt="Crisis PMHNP intervention scene" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
             </div>
           </div>
         </div>
@@ -107,14 +106,14 @@ export default async function CrisisPage({ searchParams }: PageProps) {
               <div className="text-center py-12"><p style={{ color: '#7A6A62' }}>No positions right now. Check back soon.</p></div>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=crisis+PMHNP" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Crisis Jobs <ArrowRight size={16} /></Link>
+              <Link href="/jobs?category=crisis" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Crisis Jobs <ArrowRight size={16} /></Link>
             </div>
           </div>
           <div className="lg:col-span-1">
             <div style={{ ...clayCard, padding: '24px', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
               <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
               <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>Crisis Alerts</h3>
-              <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px' }}>New listings delivered daily.</p>
+              <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px' }}>New crisis listings delivered daily.</p>
               <Link href="/job-alerts" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none' }}>Create Alert</Link>
             </div>
             {stats.topEmployers.length > 0 && (
@@ -148,22 +147,57 @@ export default async function CrisisPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Crisis</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Built for Crisis Care</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1 */}
+            <div className="cat-bento-hero-1" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Acute Intervention</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Stabilize patients in psychiatric emergencies, manage acute agitation, and coordinate safe dispositions to inpatient or outpatient care.</p>
+              </div>
+              <Image src="/images/categories/bento_cr_intervention.png" alt="Crisis intervention" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <Image src="/images/categories/bento_cr_team.png" alt="Crisis response team" width={200} height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
+              <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Team-Based Response</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Work alongside ER physicians, social workers, and crisis counselors.</p>
+            </div>
+            {/* ROW 2: Icon Cards */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_cr_response.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Rapid Response</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Provide acute psychiatric interventions in high-acuity environments.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_cr_lifesaving.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Life-Saving Work</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>De-escalate crises and prevent psychiatric emergencies.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_cr_team.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Team-Based</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Work alongside ER physicians, social workers, and crisis counselors.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_cr_demand.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>In Demand</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Crisis PMHNPs are critically needed as mental health emergencies rise.</p>
-            </div>          </div>
+            </div>
+            {/* ROW 3 */}
+            <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Premium Crisis Pay</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average crisis PMHNP salary:</p>
+                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+              </div>
+              <Image src="/images/categories/bento_cr_salary.png" alt="Crisis PMHNP pay" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
+              <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+              <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>Get Crisis Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', lineHeight: 1.6, margin: '0 0 20px' }}>New crisis positions delivered daily.</p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{ padding: '12px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 10px rgba(13,148,136,0.2)' }}>Create Alert</Link>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -173,26 +207,18 @@ export default async function CrisisPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1' }}>01</span>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginTop: '12px', marginBottom: '8px' }}>PMHNP-BC</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Active PMHNP-BC certification through ANCC.</p>
-            </div>
-            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1' }}>02</span>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginTop: '12px', marginBottom: '8px' }}>State License</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>APRN licensure and prescriptive authority.</p>
-            </div>
-            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1' }}>03</span>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginTop: '12px', marginBottom: '8px' }}>DEA Number</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>DEA registration for controlled substances.</p>
-            </div>
-            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1' }}>04</span>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginTop: '12px', marginBottom: '8px' }}>Experience</h3>
-              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Clinical experience in psychiatric settings.</p>
-            </div>
+            {[
+              { num: '01', title: 'PMHNP-BC', desc: 'Active PMHNP-BC certification through ANCC.' },
+              { num: '02', title: 'Crisis Training', desc: 'CIT certification and de-escalation training.' },
+              { num: '03', title: 'DEA & License', desc: 'DEA registration and state APRN licensure.' },
+              { num: '04', title: 'Acute Experience', desc: 'Experience with psychiatric emergencies and high-acuity patients.' },
+            ].map(item => (
+              <div key={item.num} className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1' }}>{item.num}</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginTop: '12px', marginBottom: '8px' }}>{item.title}</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>{item.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
       </div>
@@ -204,15 +230,14 @@ export default async function CrisisPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: '50 states', emoji: '📍' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data' },
+              { href: '/jobs/locations', label: 'By Location', sub: '50 states' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -237,20 +262,27 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         </section>
       </div>
 
+      {/* ═══ RESPONSIVE CSS ═══ */}
       <style>{`
-        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; }
+        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
         .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1) !important; }
+        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
         @media (max-width: 768px) {
           .cat-hero-grid { grid-template-columns: 1fr !important; }
           .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
           .cat-bento-grid > div { grid-column: span 1 !important; }
           .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
           .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
-          .cat-bento-grid > div { grid-column: span 3 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
+          .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
+          .cat-bento-grid > div:not(.cat-bento-hero-1):not(.cat-bento-hero-2):not(.cat-bento-hero-3):not(.cat-bento-cta) { grid-column: span 3 !important; }
         }
       `}</style>
     </div>

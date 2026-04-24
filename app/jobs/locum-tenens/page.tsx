@@ -3,10 +3,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -29,15 +29,7 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const LOCUM_FILTER = {
-  isPublished: true,
-  OR: [
-    { title: { contains: 'locum', mode: 'insensitive' as const } },
-    { title: { contains: 'locums', mode: 'insensitive' as const } },
-    { title: { contains: 'travel', mode: 'insensitive' as const } },
-    { title: { contains: 'temporary assignment', mode: 'insensitive' as const } },
-  ],
-};
+const LOCUM_FILTER = { isPublished: true, OR: CATEGORY_FILTERS['locum-tenens'], AND: [...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })), ...(CATEGORY_EXCLUSIONS['locum-tenens'] || []).map((e: any) => ({ NOT: e }))] };
 
 async function getLocumJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
@@ -219,7 +211,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
               <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
                 Travel assignments with premium hourly rates, housing stipends, and schedule flexibility.
               </p>
-              <Link href="/jobs?q=locum+tenens" className="clay-btn cat-cta-primary" style={{
+              <Link href="/jobs?category=locum-tenens" className="clay-btn cat-cta-primary" style={{
                 padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
                 background: '#0D9488', color: '#fff', textDecoration: 'none',
                 display: 'inline-flex', alignItems: 'center', gap: '10px',
@@ -257,7 +249,7 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
               </>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=locum+tenens" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=locum-tenens" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All Locum Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -431,16 +423,8 @@ export default async function LocumTenensJobsPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-            {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
-            ].map(c => (
+            {[{ href: '/jobs/travel', label: 'Travel', sub: 'Travel NP roles' }, { href: '/jobs/contract', label: 'Contract', sub: 'Fixed-term positions' }, { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Daily assignments' }, { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' }, { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data' }, { href: '/jobs/locations', label: 'By Location', sub: '50 states' }].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>

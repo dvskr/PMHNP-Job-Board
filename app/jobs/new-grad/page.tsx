@@ -1,12 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { GraduationCap, Sparkles, Users, BookOpen, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Plane, Calendar , ArrowRight } from 'lucide-react';
+import { GraduationCap, TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import CategoryFAQ from '@/components/CategoryFAQ';
+
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -35,20 +36,15 @@ interface ProcessedEmployer {
 /**
  * Fetch new grad jobs with pagination
  */
+const NEW_GRAD_FILTER = {
+  isPublished: true,
+  OR: CATEGORY_FILTERS['new-grad'],
+  NOT: CATEGORY_EXCLUSIONS['new-grad'] || [],
+};
+
 async function getNewGradJobs(skip: number = 0, take: number = 20) {
     const jobs = await prisma.job.findMany({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
-            ],
-        },
+        where: NEW_GRAD_FILTER,
         orderBy: [
             { isFeatured: 'desc' },
             { createdAt: 'desc' },
@@ -65,34 +61,12 @@ async function getNewGradJobs(skip: number = 0, take: number = 20) {
  */
 async function getNewGradStats() {
     // Total new grad jobs
-    const totalJobs = await prisma.job.count({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
-            ],
-        },
-    });
+    const totalJobs = await prisma.job.count({ where: NEW_GRAD_FILTER });
 
     // Average salary for new grad positions
     const salaryData = await prisma.job.aggregate({
         where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
-            ],
+            ...NEW_GRAD_FILTER,
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
@@ -109,18 +83,7 @@ async function getNewGradStats() {
     // Companies hiring new grads
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'new grad', mode: 'insensitive' } },
-                { title: { contains: 'new graduate', mode: 'insensitive' } },
-                { title: { contains: 'entry level', mode: 'insensitive' } },
-                { title: { contains: 'fellowship', mode: 'insensitive' } },
-                { title: { contains: 'residency', mode: 'insensitive' } },
-                { title: { contains: 'recent graduate', mode: 'insensitive' } },
-                { title: { contains: 'training program', mode: 'insensitive' } },
-            ],
-        },
+        where: NEW_GRAD_FILTER,
         _count: {
             employer: true,
         },
@@ -211,17 +174,30 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#c8d6e5', padding: '72px 0 56px' }}>
+      <section style={{ background: '#99a7d4', padding: '72px 0 56px' }}>
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
           <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>New Grad<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Entry-level positions with mentorship, structured onboarding, and clinical supervision.</p>
-              <Link href="/jobs?q=new+grad" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse New Grad Jobs <ArrowRight size={17} /></Link>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#E8EAF6', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
+                {stats.totalJobs}+ Open Positions
+              </p>
+              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#FFFFFF', margin: '0 0 20px' }}>
+                New Grad <span style={{ color: '#1A2E35' }}>PMHNP Jobs</span>
+              </h1>
+              <p style={{ fontSize: '16px', color: '#E8EAF6', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
+                Entry-level positions with structured mentorship, clinical supervision, fellowships, and clear paths to independent practice.
+              </p>
+              <Link href="/jobs?category=new-grad" className="cat-cta-primary" style={{
+                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
+                background: '#0D9488', color: '#fff', textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: '10px',
+                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
+              }}>
+                Browse New Grad Jobs <ArrowRight size={17} />
+              </Link>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Image src="/images/categories/hero_v2_newgrad.png" alt="New Grad PMHNP" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Image src="/images/categories/hero_wc_newgrad.png" alt="New grad PMHNP career launch" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
             </div>
           </div>
         </div>
@@ -240,7 +216,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
               <div className="text-center py-12"><p>No positions at this time. Check back soon.</p></div>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=new+grad" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All New Grad Jobs <ArrowRight size={16} /></Link>
+              <Link href="/jobs?category=new-grad" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All New Grad Jobs <ArrowRight size={16} /></Link>
             </div>
           </div>
           <div className="lg:col-span-1">
@@ -281,6 +257,23 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose New Grad</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Built for New Graduates</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1 */}
+            <div className="cat-bento-hero-1" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+                <div>
+                  <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Mentorship Programs</h3>
+                  <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>Structured clinical supervision with experienced psychiatric providers. Graduate from supervised practice to independent caseload management.</p>
+                </div>
+                <Image src="/images/categories/bento_newgrad_mentorship.png" alt="PMHNP mentorship" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+              </div>
+            </div>
+            <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FEF3C7, #FDE68A)', textAlign: 'center' }}>
+              <GraduationCap size={36} style={{ color: '#D97706', marginBottom: '14px' }} />
+              <div style={{ fontSize: '36px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>{stats.totalJobs}+</div>
+              <div style={{ fontSize: '13px', color: '#92400E', fontWeight: 600, marginTop: '6px' }}>Entry-Level Openings</div>
+            </div>
+
+            {/* ROW 2: Icon Cards */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/categories/icon_newgrad_diploma.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>New Grad Welcome</h3>
@@ -300,6 +293,24 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
               <Image src="/images/categories/icon_newgrad_cert.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Get Certified</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Support for specialty certifications and CE credits.</p>
+            </div>
+
+            {/* ROW 3 */}
+            <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+                <div>
+                  <TrendingUp size={24} style={{ color: '#0D9488', marginBottom: '10px' }} />
+                  <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Starting Salary</h3>
+                  <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>New grad PMHNPs typically earn ${stats.avgSalary}k+ with rapid salary growth after year one. Many roles include signing bonuses and loan repayment.</p>
+                </div>
+                <Image src="/images/categories/bento_newgrad_salary.png" alt="New grad PMHNP salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+              </div>
+            </div>
+            <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', textAlign: 'center' }}>
+              <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>Get Notified</h3>
+              <p style={{ fontSize: '12px', color: '#0D9488', marginBottom: '16px' }}>New grad roles delivered daily.</p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{ padding: '10px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none' }}>Set Alerts</Link>
             </div>
           </div>
         </section>
@@ -380,15 +391,21 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
         .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
         .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
         @media (max-width: 768px) {
           .cat-hero-grid { grid-template-columns: 1fr !important; }
           .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
           .cat-bento-grid > div { grid-column: span 1 !important; }
           .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
           .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
-          .cat-bento-grid > div { grid-column: span 3 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
+          .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
+          .cat-bento-grid > div:not(.cat-bento-hero-1):not(.cat-bento-hero-2):not(.cat-bento-hero-3):not(.cat-bento-cta) { grid-column: span 3 !important; }
         }
       `}</style>
     </div>

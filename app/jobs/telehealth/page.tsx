@@ -1,12 +1,12 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Video, Monitor, Globe, Clock, TrendingUp, Building2, Lightbulb, Bell, Wifi, Plane, GraduationCap, Calendar , ArrowRight } from 'lucide-react';
+import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering - don't try to statically generate during build
@@ -34,111 +34,37 @@ interface ProcessedEmployer {
 /**
  * Fetch telehealth jobs with pagination
  */
-async function getTelehealthJobs(skip: number = 0, take: number = 10) {
-    const jobs = await prisma.job.findMany({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-        },
-        orderBy: [
-            { isFeatured: 'desc' },
-            { qualityScore: 'desc' },
-            { originalPostedAt: 'desc' },
-            { createdAt: 'desc' },
-        ],
-        skip,
-        take,
-    });
+const TH_FILTER = {
+  isPublished: true,
+  OR: CATEGORY_FILTERS['telehealth'],
+  AND: [
+    ...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
+    ...(CATEGORY_EXCLUSIONS['telehealth'] || []).map((e: any) => ({ NOT: e })),
+  ],
+};
 
-    return jobs;
+async function getTelehealthJobs(skip: number = 0, take: number = 10) {
+    return prisma.job.findMany({
+        where: TH_FILTER,
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
+        skip, take,
+    });
 }
 
-/**
- * Fetch telehealth job statistics
- */
 async function getTelehealthStats() {
-    // Total telehealth jobs
-    const totalJobs = await prisma.job.count({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-        },
-    });
-
-    // Average salary for telehealth positions
+    const totalJobs = await prisma.job.count({ where: TH_FILTER });
     const salaryData = await prisma.job.aggregate({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-            normalizedMinSalary: { not: null },
-            normalizedMaxSalary: { not: null },
-        },
-        _avg: {
-            normalizedMinSalary: true,
-            normalizedMaxSalary: true,
-        },
+        where: { ...TH_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
     });
-
-    const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-    const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-    const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
-
-    // Top telehealth employers
+    const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
     const topEmployers = await prisma.job.groupBy({
-        by: ['employer'],
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-        },
-        _count: {
-            employer: true,
-        },
-        orderBy: {
-            _count: {
-                employer: 'desc',
-            },
-        },
-        take: 8,
+        by: ['employer'], where: TH_FILTER,
+        _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
     });
-
-    // Process with explicit typing
-    const processedEmployers = topEmployers.map((e: EmployerGroupResult) => ({
-        name: e.employer,
-        count: e._count.employer,
-    }));
-
     return {
-        totalJobs,
-        avgSalary,
-        topEmployers: processedEmployers,
+        totalJobs, avgSalary,
+        topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })),
     };
 }
 
@@ -227,7 +153,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
             )}
             <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Telehealth PMHNP Jobs" />
             {/* ═══ HERO ═══ */}
-      <section style={{ background: '#ede0c7', padding: '72px 0 56px' }}>
+      <section style={{ background: '#f1d49c', padding: '72px 0 56px' }}>
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
           <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
             <div>
@@ -241,17 +167,10 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
                 Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities.
               </p>
-              <Link href="/jobs?q=telehealth" className="cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All Telehealth Jobs <ArrowRight size={17} />
-              </Link>
+              <Link href="/jobs?category=telehealth" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse All Telehealth Jobs <ArrowRight size={17} /></Link>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_v2_telehealth.png" alt="Telehealth PMHNP virtual practice" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
+              <Image src="/images/categories/hero_wc_th_people.png" alt="Telehealth PMHNP virtual session" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
             </div>
           </div>
         </div>
@@ -279,9 +198,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               </>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=telehealth" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
-                Browse All Telehealth Jobs <ArrowRight size={16} />
-              </Link>
+              <Link href="/jobs?category=telehealth" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Telehealth Jobs <ArrowRight size={16} /></Link>
             </div>
           </div>
           {/* Sidebar */}
@@ -333,6 +250,20 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>Telehealth roles offer location independence, lower overhead, and access to patients across state lines.</p>
 
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1 */}
+            <div className="cat-bento-hero-1" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Virtual Patient Sessions</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Conduct HIPAA-compliant video visits from home, manage medication remotely, and build lasting therapeutic relationships.</p>
+              </div>
+              <Image src="/images/categories/bento_th_videocall.png" alt="Telehealth video consultation" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <Image src="/images/categories/bento_th_multistate.png" alt="Multi-state telehealth reach" width={200} height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
+              <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Multi-State Licensure</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Practice across state lines with PSYPACT or compact licensure.</p>
+            </div>
+            {/* ROW 2: Icons */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/categories/icon_telehealth_laptop.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Work From Home</h3>
@@ -352,6 +283,22 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               <Image src="/images/categories/icon_telehealth_flex.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Flexible Hours</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Schedule sessions around your life — early mornings, evenings, or weekends.</p>
+            </div>
+            {/* ROW 3 */}
+            <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Salary & Benefits</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average telehealth PMHNP salary:</p>
+                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+              </div>
+              <Image src="/images/categories/bento_th_salary.png" alt="Telehealth PMHNP salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
+              <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+              <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>Get Telehealth Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', lineHeight: 1.6, margin: '0 0 20px' }}>New virtual positions delivered daily.</p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{ padding: '12px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 10px rgba(13,148,136,0.2)' }}>Create Alert</Link>
             </div>
           </div>
         </section>
@@ -394,15 +341,14 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles' },
+              { href: '/jobs/substance-abuse', label: 'Substance Abuse', sub: 'Addiction care' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -411,7 +357,29 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
         </section>
       </div>
 
-      {/* ═══ Responsive + Hover CSS ═══ */}
+      {/* ═══ FAQ ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Telehealth PMHNP Questions</h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {[
+              { q: 'Do I need special licensure for telehealth?', a: 'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.' },
+              { q: 'What technology do I need for telehealth?', a: 'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.' },
+              { q: 'What is the salary range for telehealth PMHNPs?', a: 'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.' },
+              { q: 'Can I prescribe controlled substances via telehealth?', a: 'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.' },
+              { q: 'How many patients do telehealth PMHNPs see per day?', a: 'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes. Some platforms allow flexible scheduling.' },
+            ].map((faq, idx) => (
+              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ RESPONSIVE CSS ═══ */}
       <style>{`
         .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
         .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
@@ -421,12 +389,13 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
         .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
         @media (max-width: 768px) {
           .cat-hero-grid { grid-template-columns: 1fr !important; }
-          .cat-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .cat-bento-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
           .cat-bento-grid > div { grid-column: span 1 !important; }
           .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
-      @media (min-width: 769px) and (max-width: 1024px) {
+        @media (min-width: 769px) and (max-width: 1024px) {
           .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
           .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
           .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }

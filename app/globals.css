@@ -187,6 +187,7 @@ html.dark select:-webkit-autofill {
   --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-lora: var(--font-lora), Georgia, 'Times New Roman', serif;
 }
 
 /* ===== BASE STYLES ===== */

@@ -1,12 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Users, Briefcase, DollarSign, Clock, Heart, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, GraduationCap, Calendar, Plane, Building, Shield , ArrowRight } from 'lucide-react';
+import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import CategoryFAQ from '@/components/CategoryFAQ';
+import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -28,79 +29,38 @@ interface ProcessedEmployer {
     count: number;
 }
 
+const OUTPATIENT_FILTER = {
+  isPublished: true,
+  OR: CATEGORY_FILTERS['outpatient'],
+  AND: [
+    ...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
+    ...(CATEGORY_EXCLUSIONS['outpatient'] || []).map((e: any) => ({ NOT: e })),
+  ],
+};
+
 async function getOutpatientJobs(skip: number = 0, take: number = 20) {
     return prisma.job.findMany({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'outpatient', mode: 'insensitive' } },
-                { title: { contains: 'out-patient', mode: 'insensitive' } },
-                { title: { contains: 'clinic', mode: 'insensitive' } },
-                { title: { contains: 'private practice', mode: 'insensitive' } },
-                { title: { contains: 'community mental health', mode: 'insensitive' } },
-                { description: { contains: 'outpatient', mode: 'insensitive' } },
-            ],
-        },
-        orderBy: [
-            { isFeatured: 'desc' },
-            { qualityScore: 'desc' },
-            { originalPostedAt: 'desc' },
-            { createdAt: 'desc' },
-        ],
+        where: OUTPATIENT_FILTER,
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
     });
 }
 
 async function getOutpatientStats() {
-    const totalJobs = await prisma.job.count({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'outpatient', mode: 'insensitive' } },
-                { title: { contains: 'out-patient', mode: 'insensitive' } },
-                { title: { contains: 'clinic', mode: 'insensitive' } },
-                { title: { contains: 'private practice', mode: 'insensitive' } },
-                { title: { contains: 'community mental health', mode: 'insensitive' } },
-                { description: { contains: 'outpatient', mode: 'insensitive' } },
-            ],
-        },
-    });
-
+    const totalJobs = await prisma.job.count({ where: OUTPATIENT_FILTER });
     const salaryData = await prisma.job.aggregate({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'outpatient', mode: 'insensitive' } },
-                { title: { contains: 'out-patient', mode: 'insensitive' } },
-                { title: { contains: 'clinic', mode: 'insensitive' } },
-                { title: { contains: 'private practice', mode: 'insensitive' } },
-                { description: { contains: 'outpatient', mode: 'insensitive' } },
-            ],
-            normalizedMinSalary: { not: null },
-            normalizedMaxSalary: { not: null },
-        },
+        where: { ...OUTPATIENT_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
         _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
     });
-
     const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
-
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'outpatient', mode: 'insensitive' } },
-                { title: { contains: 'clinic', mode: 'insensitive' } },
-                { title: { contains: 'private practice', mode: 'insensitive' } },
-                { description: { contains: 'outpatient', mode: 'insensitive' } },
-            ],
-        },
+        where: OUTPATIENT_FILTER,
         _count: { employer: true },
         orderBy: { _count: { employer: 'desc' } },
         take: 8,
     });
-
     return {
         totalJobs,
         avgSalary,
@@ -166,7 +126,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
               <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
                 Clinic and private practice positions with M-F schedules and long-term patient relationships.
               </p>
-              <Link href="/jobs?q=outpatient" className="cat-cta-primary" style={{
+              <Link href="/jobs?category=outpatient" className="cat-cta-primary" style={{
                 padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
                 background: '#0D9488', color: '#fff', textDecoration: 'none',
                 display: 'inline-flex', alignItems: 'center', gap: '10px',
@@ -204,7 +164,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
               </>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=outpatient" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=outpatient" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All Outpatient Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -250,7 +210,7 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
       </div>
 
 
-            {/* ═══ BENTO — Why Choose Outpatient ═══ */}
+            {/* ═══ BENTO ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
         <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Outpatient</p>
@@ -258,25 +218,57 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>Outpatient roles offer predictable hours, established patient panels, and a sustainable clinical practice.</p>
 
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1 */}
+            <div className="cat-bento-hero-1" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Clinic & Private Practice</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Work in modern outpatient settings with predictable hours, collaborative teams, and long-term patient relationships.</p>
+              </div>
+              <Image src="/images/categories/bento_outpatient_clinic.png" alt="Outpatient clinic" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <Image src="/images/categories/bento_outpatient_panel.png" alt="Patient panel management" width={200} height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
+              <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Patient Panels</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Manage a caseload of 80–120 patients with scheduled follow-ups.</p>
+            </div>
+
+            {/* ROW 2: Icon Cards */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/categories/icon_outpatient_clinic.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Regular Hours</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Monday-Friday schedules with no nights, weekends, or on-call requirements.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Monday-Friday schedules with no nights, weekends, or on-call.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/categories/icon_outpatient_clock.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Patient Continuity</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Build lasting therapeutic relationships with an established patient panel.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Build lasting therapeutic relationships over time.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/categories/icon_outpatient_therapy.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Community Based</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Work in clinics, group practices, and community mental health centers.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Work in clinics, group practices, and CMHCs.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
               <Image src="/images/categories/icon_outpatient_growth.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Work-Life Balance</h3>
-              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Sustainable pace with 15-20 patients per day and minimal documentation burden.</p>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Sustainable pace with 15–20 patients per day.</p>
+            </div>
+
+            {/* ROW 3 */}
+            <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Salary & Benefits</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average outpatient PMHNP salary:</p>
+                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+              </div>
+              <Image src="/images/categories/bento_outpatient_salary.png" alt="Outpatient PMHNP salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
+              <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+              <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>Get Outpatient Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', lineHeight: 1.6, margin: '0 0 20px' }}>New clinic positions delivered daily.</p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{ padding: '12px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 10px rgba(13,148,136,0.2)' }}>Create Alert</Link>
             </div>
           </div>
         </section>
@@ -319,15 +311,14 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles' },
+              { href: '/jobs/community-health', label: 'Community Health', sub: 'FQHC & public' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -336,7 +327,29 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
         </section>
       </div>
 
-      {/* ═══ Responsive + Hover CSS ═══ */}
+      {/* ═══ FAQ ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Outpatient PMHNP Questions</h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {[
+              { q: 'What does a typical outpatient PMHNP schedule look like?', a: 'Most outpatient positions offer Monday-Friday, 8am-5pm schedules with no nights, weekends, or on-call. Some roles include a half-day administrative block for charting and follow-ups.' },
+              { q: 'How many patients will I see per day?', a: 'Outpatient PMHNPs typically see 15-20 patients per day, with a mix of 30-minute follow-ups and 60-minute initial evaluations. Private practice caseloads may be lower.' },
+              { q: 'What is the salary range for outpatient PMHNPs?', a: 'Outpatient PMHNP salaries range from $130K to $190K+, depending on location, experience, and practice setting. Private practice roles may offer higher earning potential through patient volume.' },
+              { q: 'Do outpatient PMHNPs need to be credentialed with insurers?', a: 'In most group practices and clinics, the employer handles insurance credentialing. If you join a private practice, you may need to apply for your own panel memberships.' },
+              { q: 'What EHR systems are common in outpatient settings?', a: 'Common outpatient EHRs include SimplePractice, Valant, TherapyNotes, and Epic Ambulatory. Most employers provide EHR training during onboarding.' },
+            ].map((faq, idx) => (
+              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ RESPONSIVE CSS ═══ */}
       <style>{`
         .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
         .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
@@ -346,12 +359,13 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
         .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
         @media (max-width: 768px) {
           .cat-hero-grid { grid-template-columns: 1fr !important; }
-          .cat-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .cat-bento-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
           .cat-bento-grid > div { grid-column: span 1 !important; }
           .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
-      @media (min-width: 769px) and (max-width: 1024px) {
+        @media (min-width: 769px) and (max-width: 1024px) {
           .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
           .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
           .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
@@ -361,3 +375,4 @@ export default async function OutpatientJobsPage({ searchParams }: PageProps) {
     </div>
   );
 }
+
