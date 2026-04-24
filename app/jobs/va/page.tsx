@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Shield, Award, Clock, Building2, TrendingUp, Lightbulb, Bell, GraduationCap, Calendar, Home, Heart, Briefcase } from 'lucide-react';
+import Image from 'next/image';
+import { Shield, Award, Clock, Building2, TrendingUp, Lightbulb, Bell, GraduationCap, Calendar, Home, Heart, Briefcase , ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -9,6 +10,12 @@ import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
 
 // ISR: cache for 1 hour
+const clayCard: React.CSSProperties = {
+  background: '#FFFFFF', borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
 export const revalidate = 3600;
 
 // Type definition for Prisma groupBy result
@@ -183,7 +190,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil(stats.totalJobs / limit);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
       {/* Breadcrumb Schema */}
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
@@ -212,393 +219,213 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
       )}
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="VA PMHNP Jobs" />
 
-      {/* Hero Section */}
-      <section className="bg-blue-800 text-white py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Shield className="h-8 w-8" />
-              <Award className="h-8 w-8" />
+      {/* ═══ HERO ═══ */}
+      <section style={{ background: '#97b0c9', padding: '72px 0 56px' }}>
+        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
+          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
+                {stats.totalJobs}+ Open Positions
+              </p>
+              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
+                VA PMHNP<br />
+                <span style={{ color: '#0D9488' }}>Jobs</span>
+              </h1>
+              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
+                Federal benefits, EDRP loan repayment up to $200K, pension, and full practice authority nationwide.
+              </p>
+              <Link href="/jobs?q=VA" className="cat-cta-primary" style={{
+                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
+                background: '#0D9488', color: '#fff', textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: '10px',
+                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
+              }}>
+                Browse All VA Jobs <ArrowRight size={17} />
+              </Link>
             </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              VA PMHNP Jobs — Veterans Affairs
-            </h1>
-            <p className="text-sm text-blue-200 text-center mt-2 mb-4">
-              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | {stats.totalJobs} VA PMHNP jobs available
-            </p>
-            <p className="text-lg md:text-xl text-blue-100 mb-6">
-              Federal benefits, EDRP loan repayment up to $200K, and full practice authority nationwide
-            </p>
-
-            {/* Stats Bar */}
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-blue-100">VA Positions</div>
-              </div>
-              {stats.avgSalary > 0 && (
-                <div className="text-center">
-                  <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                  <div className="text-sm text-blue-100">Avg. Salary</div>
-                </div>
-              )}
-              <div className="text-center">
-                <div className="text-3xl font-bold">$200K</div>
-                <div className="text-sm text-blue-100">Max EDRP</div>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Image src="/images/categories/hero_v2_va.png" alt="VA PMHNP Veterans Affairs medical center" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
             </div>
           </div>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-7xl mx-auto">
-          {/* Benefits Section */}
-          <div className="mb-8 md:mb-12">
-            <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                Why Choose VA PMHNP Careers?
-              </h2>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                      <Award className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Federal Benefits</h3>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      FERS pension, TSP with 5% match, FEHB insurance, 5+ weeks PTO, 13 sick days, and 11 federal holidays.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                      <GraduationCap className="h-6 w-6 text-green-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>EDRP Loan Repayment</h3>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      Up to $200,000 in student loan repayment over 5 years through the Education Debt Reduction Program.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                      <Shield className="h-6 w-6 text-purple-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Full Practice Authority</h3>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      VA grants PMHNPs full practice authority nationwide — independent prescribing regardless of state laws.
-                    </p>
-                  </div>
-                </div>
+      {/* ═══ JOB LISTINGS ═══ */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>VA Positions ({stats.totalJobs})</h2>
+              <Link href="/jobs" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>View All Jobs →</Link>
+            </div>
+            {jobs.length === 0 ? (
+              <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No va positions at this time</h3>
+                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>New va openings are added daily.</p>
+                <Link href="/jobs" className="inline-block px-6 py-3 text-white rounded-lg font-medium" style={{ backgroundColor: 'var(--color-primary)' }}>Browse All Jobs</Link>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                  {jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}
+                </div>
+              </>
+            )}
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <Link href="/jobs?q=VA" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+                Browse All VA Jobs <ArrowRight size={16} />
+              </Link>
             </div>
           </div>
-
-          <div className="grid lg:grid-cols-4 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  All VA Positions ({stats.totalJobs})
-                </h2>
-                <Link
-                  href="/jobs"
-                  className="text-sm font-medium hover:opacity-80 transition-opacity"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  View All Jobs →
-                </Link>
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+              <div style={{ padding: '24px' }}>
+                <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>VA Alerts</h3>
+                <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New va listings delivered daily.</p>
+                <Link href="/job-alerts" className="cat-cta-primary" style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>Create Alert</Link>
               </div>
-
-              {jobs.length === 0 ? (
-                <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <Shield className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    No VA jobs available right now
-                  </h3>
-                  <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                    VA positions are posted periodically. Check back soon or set up an alert!
-                  </p>
-                  <Link
-                    href="/jobs"
-                    className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: 'var(--color-primary)' }}
-                  >
-                    Browse All Jobs
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                    {jobs.map((job: Job) => (
-                      <JobCard key={job.id} job={job} />
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="mt-8 flex items-center justify-center gap-4">
-                      {page > 1 ? (
-                        <Link
-                          href={`/jobs/va?page=${page - 1}`}
-                          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-                          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                        >
-                          ← Previous
-                        </Link>
-                      ) : (
-                        <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                          ← Previous
-                        </span>
-                      )}
-
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Page {page} of {totalPages}
-                      </span>
-
-                      {page < totalPages ? (
-                        <Link
-                          href={`/jobs/va?page=${page + 1}`}
-                          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-                          style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                        >
-                          Next →
-                        </Link>
-                      ) : (
-                        <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                          Next →
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
             </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              {/* Job Alert CTA */}
-              <div className="bg-blue-800 rounded-xl p-6 text-white mb-6 shadow-lg">
-                <Bell className="h-8 w-8 mb-3" />
-                <h3 className="text-lg font-bold mb-2">
-                  Get VA Job Alerts
-                </h3>
-                <p className="text-sm text-blue-100 mb-4">
-                  Be the first to know about new VA PMHNP positions.
-                </p>
-                <Link
-                  href="/job-alerts"
-                  className="block w-full text-center px-4 py-2 bg-white text-blue-800 rounded-lg font-medium hover:bg-blue-50 transition-colors"
-                >
-                  Create Alert
-                </Link>
-              </div>
-
-              {/* VA Employers */}
-              {stats.topEmployers.length > 0 && (
-                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>VA Employers</h3>
-                  </div>
-                  <ul className="space-y-3">
-                    {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
-                      <li key={index} className="flex items-center justify-between">
-                        <span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>
-                          {employer.name}
-                        </span>
-                        <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>
-                          {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+            {stats.topEmployers.length > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Building2 size={20} style={{ color: '#0D9488' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Top Employers</h3>
                 </div>
-              )}
-
-              {/* Salary Insights */}
-              {stats.avgSalary > 0 && (
-                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>VA Salary Range</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>NP Level I (New Grad)</div>
-                      <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>$108K-$135K</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>NP Level II (3-7 yrs)</div>
-                      <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>$130K-$155K</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>NP Level III (8+ yrs)</div>
-                      <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>$145K-$175K</div>
-                    </div>
-                  </div>
-                  <p className="text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
-                    + locality pay adjustments of 15-40% in high-cost areas.
-                  </p>
-                </div>
-              )}
-
-              {/* VA Tips */}
-              <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>VA Application Tips</h3>
-                </div>
-                <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <li className="flex gap-2">
-                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Federal resumes must be 5-7 pages (not 1-2)</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Include hours/week and supervisor info for each position</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Apply through USAJobs.gov for federal positions</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Confirm EDRP eligibility during your interview</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                    <span>Federal hiring typically takes 30-90+ days</span>
-                  </li>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
+                    <li key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: index < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: '#5A4A42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{employer.name}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px', whiteSpace: 'nowrap' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
-            </div>
-          </div>
-
-          {/* Federal Benefits Breakdown */}
-          <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              VA Benefits Package: Total Compensation Value
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  🏦 FERS Pension
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Lifetime annuity: 1% × years of service × high-3 salary average. 20 years = 20% of salary for life.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  📈 TSP (Thrift Savings Plan)
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Federal 401(k) equivalent with 5% employer match. Low-fee index funds including the G Fund (government bonds).
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  🏥 FEHB Health Insurance
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Government pays 72-75% of premiums. Value: $8,000-$15,000/year. Continues into retirement.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  🎓 EDRP Loan Repayment
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Up to $200,000 over 5 years ($40K/year max). Most PMHNP positions are EDRP-eligible.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  🏖️ Leave & Holidays
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  13-26 days annual leave (increases with tenure), 13 sick days (unlimited accumulation), 11 federal holidays.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  🛡️ Malpractice Coverage
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Free coverage under the Federal Tort Claims Act. No personal malpractice insurance needed.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Explore Other Job Types */}
-          <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
-            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Explore Other Job Types</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link href="/jobs/remote" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <Home className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
+            )}
+            {stats.avgSalary > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <TrendingUp size={20} style={{ color: '#34D399' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
                 </div>
-                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
-                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Work from home</div>
-              </Link>
-              <Link href="/jobs/new-grad" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <GraduationCap className="h-5 w-5 text-indigo-500 group-hover:text-white transition-colors" />
-                </div>
-                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>New Grad Jobs</div>
-                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Entry level</div>
-              </Link>
-              <Link href="/jobs/inpatient" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-red-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <Heart className="h-5 w-5 text-red-500 group-hover:text-white transition-colors" />
-                </div>
-                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Inpatient Jobs</div>
-                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Hospital-based</div>
-              </Link>
-              <Link href="/jobs/per-diem" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <Calendar className="h-5 w-5 text-green-500 group-hover:text-white transition-colors" />
-                </div>
-                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Per Diem Jobs</div>
-                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Flexible shifts</div>
-              </Link>
-            </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Related Resources */}
-      <section className="mt-12 mb-8 container mx-auto px-4">
-        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>VA PMHNP Resources</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link href="/blog/va-pmhnp-jobs-guide-2026" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏥 VA PMHNP Jobs Guide</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Complete guide: federal benefits, EDRP, how to apply through USAJobs.</p>
-          </Link>
+      {/* ═══ BENTO — Why Choose VA & Government ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose VA & Government</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>Built for Service</h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>VA roles offer federal benefits, student loan repayment, and the honor of serving those who served.</p>
 
-          <Link href="/resources/fpa-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>⚖️ Full Practice Authority Guide</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>VA grants FPA nationwide — understand what this means for your practice.</p>
-          </Link>
+          <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_va_flag.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Serve Veterans</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Provide mental health care to veterans with PTSD, TBI, MST, and combat-related conditions.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_va_pension.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Federal Benefits</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>FERS pension, TSP matching, 26 vacation days, 13 sick days, and 11 federal holidays.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_va_education.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Loan Repayment</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>EDRP provides up to $200,000 in student loan repayment over 5 years.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_va_veteran.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Job Security</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Federal employment with union protection, malpractice coverage under FTCA, and no state license needed.</p>
+            </div>
+          </div>
+        </section>
+      </div>
 
-          <Link href="/blog/pmhnp-resume-ats-guide-2026" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📝 Federal Resume Guide</h3>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Federal resumes are 5-7 pages. Learn the format that gets you hired.</p>
-          </Link>
-        </div>
-      </section>
+      {/* ═══ BEFORE YOU APPLY ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need to Know</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+              <div key="01" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>01</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>USAJobs Account</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Create a USAJobs.gov profile with a federal-format resume — standard CVs are rejected.</p>
+              </div>
+              <div key="02" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>VetPro Credentialing</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Gather all documents for VHA VetPro credentialing — allow 60-90 days for processing.</p>
+              </div>
+              <div key="03" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>03</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Security Clearance</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Prepare for Tier 1 investigation (SF-85) including fingerprinting and background check.</p>
+              </div>
+              <div key="04" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>04</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>EDRP Application</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Apply for Education Debt Reduction Program within 12 months of VA appointment.</p>
+              </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ EXPLORE MORE ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
+          <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {[
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+            ].map(c => (
+              <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ Responsive + Hover CSS ═══ */}
+      <style>{`
+        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
+        .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
+        @media (max-width: 768px) {
+          .cat-hero-grid { grid-template-columns: 1fr !important; }
+          .cat-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .cat-bento-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .cat-bento-grid > div { grid-column: span 1 !important; }
+          .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      @media (min-width: 769px) and (max-width: 1024px) {
+          .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
+          .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
+          .cat-bento-grid > div:not(.cat-bento-hero-1):not(.cat-bento-hero-2):not(.cat-bento-hero-3):not(.cat-bento-cta) { grid-column: span 3 !important; }
+        }
+      `}</style>
     </div>
   );
 }

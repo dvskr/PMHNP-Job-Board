@@ -139,12 +139,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
 
   const ageIndicator = getJobAgeIndicator();
 
+  // Derive correct display mode from boolean fields (mode field can be stale/wrong)
+  const displayMode = job.isRemote ? 'Remote' : job.isHybrid ? 'Hybrid' : (job.mode || 'In-Person');
+
   // List view - Himalayas-style flat rows
   if (viewMode === 'list') {
     // Build dot-separated metadata
     const metaParts: string[] = [];
     if (job.employer) metaParts.push(job.employer);
-    if (job.mode) metaParts.push(job.mode);
+    if (displayMode) metaParts.push(displayMode);
     if (job.location) metaParts.push(job.location);
     if (salaryDisplay) metaParts.push(salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`);
     metaParts.push(freshness);
@@ -218,7 +221,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 {shortLocation}
               </Badge>
               {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
-              {job.mode && <Badge variant="outline" size="sm">{job.mode}</Badge>}
+              {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
             </div>
 
             {/* Status Badges */}
@@ -441,7 +444,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             {shortLocation}
           </Badge>
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
-          {job.mode && <Badge variant="outline" size="sm">{job.mode}</Badge>}
+          {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
         </div>
 
         {/* Row 4: Status Badges */}

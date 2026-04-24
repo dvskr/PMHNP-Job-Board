@@ -1,0 +1,17 @@
+const fs = require('fs');
+const c = fs.readFileSync('app/jobs/locum-tenens/page.tsx', 'utf-8');
+console.log('clayCard:', c.includes('const clayCard'));
+console.log('TrendingUp import:', c.includes("TrendingUp"));
+console.log('jobListings:', c.includes('JOB LISTINGS'));
+console.log('bentoHero:', c.includes('cat-bento-hero-1'));
+console.log('clayIcons48:', c.includes('icon_locum_travel'));
+console.log('row2_margin:', c.includes("margin: '0 auto 14px'"));
+console.log('contextImages:', c.includes('bento_locum_travel') && c.includes('bento_locum_pay') && c.includes('bento_locum_salary'));
+console.log('heroCTA:', c.includes('/jobs?q=locum'));
+console.log('browseAll:', c.includes("padding: '14px 32px'"));
+console.log('faq:', c.includes('Locum Tenens PMHNP Questions'));
+console.log('tabletCSS:', c.includes('min-width: 769px'));
+console.log('beforeApply:', c.includes('BEFORE YOU APPLY'));
+console.log('explore:', c.includes('EXPLORE MORE'));
+console.log('noContract:', !c.includes("contains: 'contract'"));
+console.log('Lines:', c.split('\n').length);

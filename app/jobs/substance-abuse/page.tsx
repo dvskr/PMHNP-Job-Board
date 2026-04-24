@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Pill, Heart, DollarSign, Shield, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Calendar, Plane, Building, Users } from 'lucide-react';
+import Image from 'next/image';
+import { Pill, Heart, DollarSign, Shield, TrendingUp, Building2, Lightbulb, Bell, Wifi, Video, Calendar, Plane, Building, Users , ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
@@ -8,6 +9,13 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
+/* Design Tokens */
+const clayCard: React.CSSProperties = {
+  background: '#FFFFFF', borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
 export const revalidate = 3600;
 
 interface EmployerGroupResult {
@@ -103,6 +111,14 @@ async function getSubstanceAbuseStats() {
     };
 }
 
+
+const substanceFaqs = [
+  { question: 'What is a Substance Abuse PMHNP?', answer: 'A PMHNP specializing in addiction treatment, including medication-assisted treatment (MAT), detox management, and dual-diagnosis care.' },
+  { question: 'What is MAT?', answer: 'Medication-Assisted Treatment uses FDA-approved medications like buprenorphine and naltrexone alongside counseling to treat opioid and alcohol use disorders.' },
+  { question: 'What is the salary range?', answer: 'Substance abuse PMHNPs earn $130K-$180K, with MAT-certified providers commanding premium rates.' },
+  { question: 'What certifications help?', answer: 'DEA registration, buprenorphine prescribing knowledge, and ASAM certification strengthen candidacy for addiction roles.' },
+];
+
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
     const [stats, params] = await Promise.all([getSubstanceAbuseStats(), searchParams]);
     const page = parseInt(params.page || '1');
@@ -140,174 +156,187 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-            <BreadcrumbSchema items={[
-                { name: "Home", url: "https://pmhnphiring.com" },
-                { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
-                { name: "Substance Abuse", url: "https://pmhnphiring.com/jobs/substance-abuse" }
-            ]} />
-
-            <section className="bg-teal-600 text-white py-12 md:py-16">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <div className="flex items-center justify-center gap-2 mb-4">
-                            <Pill className="h-8 w-8" />
-                            <Heart className="h-8 w-8" />
-                        </div>
-                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">Substance Abuse & Addiction PMHNP Jobs</h1>
-                        <p className="text-sm text-teal-200 mt-2 mb-4">Last Updated: March 2026 | MAT, dual diagnosis & addiction treatment</p>
-                        <p className="text-lg md:text-xl text-teal-100 mb-6">Discover {stats.totalJobs} addiction and substance abuse PMHNP positions</p>
-                        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-                            <div className="text-center"><div className="text-3xl font-bold">{stats.totalJobs}</div><div className="text-sm text-teal-100">SUD Positions</div></div>
-                            {stats.avgSalary > 0 && (<div className="text-center"><div className="text-3xl font-bold">${stats.avgSalary}k</div><div className="text-sm text-teal-100">Avg. Salary</div></div>)}
-                            <div className="text-center"><div className="text-3xl font-bold">{stats.topEmployers.length}</div><div className="text-sm text-teal-100">Hiring Organizations</div></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <div className="container mx-auto px-4 py-8 md:py-12">
-                <div className="max-w-7xl mx-auto">
-                    <div className="mb-8 md:mb-12">
-                        <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Why Specialize in Addiction Psychiatry?</h2>
-                            <div className="grid md:grid-cols-3 gap-6">
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0"><div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}><Shield className="h-6 w-6" style={{ color: 'var(--color-primary)' }} /></div></div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Critical Need</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>The opioid crisis and rising substance use disorders have created massive demand for addiction-trained PMHNPs. There are not enough prescribers for MAT nationwide.</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0"><div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}><Heart className="h-6 w-6" style={{ color: 'var(--color-primary)' }} /></div></div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Life-Changing Impact</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Help patients recover from addiction and rebuild their lives. MAT with buprenorphine reduces opioid overdose deaths by 50%+. Your work literally saves lives.</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0"><div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}><DollarSign className="h-6 w-6" style={{ color: 'var(--color-primary)' }} /></div></div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Competitive Pay + Bonuses</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Addiction PMHNP positions often include sign-on bonuses, loan repayment (NHSC), and incentive pay. Many positions qualify for Public Service Loan Forgiveness.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-3">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>All Addiction Positions ({stats.totalJobs})</h2>
-                                <Link href="/jobs" className="text-sm font-medium hover:opacity-80" style={{ color: 'var(--color-primary)' }}>View All Jobs →</Link>
-                            </div>
-                            {jobs.length === 0 ? (
-                                <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <Pill className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
-                                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No substance abuse jobs available</h3>
-                                    <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Check back soon for new addiction PMHNP positions!</p>
-                                    <Link href="/jobs" className="inline-block px-6 py-3 text-white rounded-lg font-medium" style={{ backgroundColor: 'var(--color-primary)' }}>Browse All Jobs</Link>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">{jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}</div>
-                                    {totalPages > 1 && (
-                                        <div className="mt-8 flex items-center justify-center gap-4">
-                                            {page > 1 ? <Link href={`/jobs/substance-abuse?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>← Previous</Link> : <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>← Previous</span>}
-                                            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Page {page} of {totalPages}</span>
-                                            {page < totalPages ? <Link href={`/jobs/substance-abuse?page=${page + 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>Next →</Link> : <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>Next →</span>}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-
-                        <div className="lg:col-span-1">
-                            <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
-                                <Bell className="h-8 w-8 mb-3" />
-                                <h3 className="text-lg font-bold mb-2">Get Addiction Job Alerts</h3>
-                                <p className="text-sm text-teal-100 mb-4">Be the first to know about new substance abuse PMHNP positions.</p>
-                                <Link href="/job-alerts" className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors">Create Alert</Link>
-                            </div>
-                            {stats.topEmployers.length > 0 && (
-                                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <div className="flex items-center gap-2 mb-4"><Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} /><h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Employers</h3></div>
-                                    <ul className="space-y-3">{stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (<li key={index} className="flex items-center justify-between"><span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>{employer.name}</span><span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span></li>))}</ul>
-                                </div>
-                            )}
-                            {stats.avgSalary > 0 && (
-                                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <div className="flex items-center gap-2 mb-4"><TrendingUp className="h-5 w-5 text-green-500" /><h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Salary Insights</h3></div>
-                                    <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>${stats.avgSalary}k</div>
-                                    <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>Average annual salary</div>
-                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Many addiction PMHNP positions qualify for NHSC loan repayment up to $50K and PSLF after 10 years of service.</p>
-                                </div>
-                            )}
-                            <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="flex items-center gap-2 mb-4"><Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} /><h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Addiction Tips</h3></div>
-                                <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    <li className="flex gap-2"><span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span><span>Get X-waiver training for buprenorphine prescribing</span></li>
-                                    <li className="flex gap-2"><span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span><span>Learn motivational interviewing techniques</span></li>
-                                    <li className="flex gap-2"><span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span><span>Consider ASAM certification for career advancement</span></li>
-                                    <li className="flex gap-2"><span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span><span>Explore NHSC loan repayment programs</span></li>
-                                    <li className="flex gap-2"><span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span><span>Build skills in dual diagnosis treatment</span></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Addiction PMHNP Career Resources</h2>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Common Settings</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>MAT clinics, residential rehab, detox centers, opioid treatment programs (OTPs), FQHCs, correctional facilities, and integrated behavioral health settings.</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Key Medications</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Buprenorphine (Suboxone), naltrexone (Vivitrol), methadone management, acamprosate, disulfiram, and psychiatric medications for comorbid conditions (SSRIs, mood stabilizers).</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Certifications & Training</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>DEA X-waiver (now universal), ASAM certification, CARN-AP credential, motivational interviewing training, and evidence-based treatment certifications boost competitiveness.</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Loan Repayment</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Many addiction positions in underserved areas qualify for NHSC loan repayment ($50K for 2 years), PSLF at nonprofit employers, and state-specific loan forgiveness programs.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Explore Other Job Types</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Link href="/jobs/outpatient" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}><Users className="h-5 w-5 text-blue-500 group-hover:text-white transition-colors" /></div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Outpatient</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Clinic-based</div>
-                            </Link>
-                            <Link href="/jobs/inpatient" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-red-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}><Building className="h-5 w-5 text-red-500 group-hover:text-white transition-colors" /></div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Inpatient</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Hospital-based</div>
-                            </Link>
-                            <Link href="/jobs/remote" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}><Wifi className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} /></div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Remote</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Work from home</div>
-                            </Link>
-                            <Link href="/jobs/telehealth" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}><Video className="h-5 w-5 text-purple-500 group-hover:text-white transition-colors" /></div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Telehealth</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Virtual care</div>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+      {/* ═══ HERO ═══ */}
+      <section style={{ background: '#a8c5b8', padding: '72px 0 56px' }}>
+        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
+          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
+              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>Substance Abuse<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
+              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Addiction treatment roles including MAT programs, detox centers, and dual-diagnosis facilities.</p>
+              <Link href="/jobs?q=substance+abuse" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Substance Abuse Jobs <ArrowRight size={17} /></Link>
             </div>
-
-            <CategoryFAQ category="substance-abuse" totalJobs={stats.totalJobs} />
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <Image src="/images/categories/hero_v2_substanceabuse.png" alt="Substance Abuse PMHNP" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
+            </div>
+          </div>
         </div>
-    );
+      </section>
+
+      {/* ═══ JOB LISTINGS ═══ */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3">
+            <h2 className="font-lora mb-6" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>Substance Abuse Positions ({stats.totalJobs})</h2>
+            {jobs.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                {jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}
+              </div>
+            ) : (
+              <div className="text-center py-12"><p>No positions at this time. Check back soon.</p></div>
+            )}
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <Link href="/jobs?q=substance+abuse" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Substance Abuse Jobs <ArrowRight size={16} /></Link>
+            </div>
+          </div>
+          <div className="lg:col-span-1">
+            <div style={{ ...clayCard, padding: '24px', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+              <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+              <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>Substance Abuse Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px' }}>New listings delivered daily.</p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none' }}>Create Alert</Link>
+            </div>
+            {stats.topEmployers.length > 0 && (
+              <div style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <Building2 size={20} style={{ color: '#0D9488', marginBottom: '8px' }} />
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: '0 0 12px' }}>Top Employers</h3>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
+                    <li key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: index < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: '#5A4A42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{employer.name}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px' }}>{employer.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {stats.avgSalary > 0 && (
+              <div style={{ ...clayCard, padding: '24px' }}>
+                <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '8px' }} />
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62' }}>Average salary</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ BENTO ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Substance Abuse</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Built for Addiction Care</h2>
+          <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_sa_recovery.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Recovery Focus</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Help patients achieve lasting recovery from SUD.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_sa_medicine.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>MAT Programs</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Prescribe and manage medication-assisted treatment.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_sa_group.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Group Therapy</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Lead group therapy and peer support programs.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="/images/categories/icon_sa_impact.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Life Impact</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Transform lives through evidence-based addiction care.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ BEFORE YOU APPLY ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need to Know</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>01</span>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>DEA Requirements</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Understand buprenorphine prescribing and current DEA regulations.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>SUD Experience</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Highlight substance use disorder rotation or volunteer experience.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>03</span>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Crisis Skills</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Demonstrate competency in overdose response and de-escalation.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>04</span>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Dual Diagnosis</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Prepare for co-occurring mental health and SUD treatment.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ EXPLORE MORE ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
+          <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {[
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+            ].map(c => (
+              <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ FAQ ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Substance Abuse PMHNP Questions</h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {substanceFaqs.map((faq, idx) => (
+              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.question}</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <style>{`
+        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
+        .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        @media (max-width: 768px) {
+          .cat-hero-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-grid > div { grid-column: span 1 !important; }
+          .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+          .cat-bento-grid > div { grid-column: span 3 !important; }
+        }
+      `}</style>
+    </div>
+  );
 }
