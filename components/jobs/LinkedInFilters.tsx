@@ -190,6 +190,20 @@ export default function LinkedInFilters() {
     'outpatient': 'Outpatient',
     'substance-abuse': 'Substance Abuse',
     'travel': 'Travel',
+    'senior': 'Senior',
+    'telehealth': 'Telehealth',
+    'contract': 'Contract',
+    'crisis': 'Crisis',
+    'entry-level': 'Entry Level',
+    'full-time': 'Full-Time',
+    'geriatric': 'Geriatric',
+    'hospital': 'Hospital',
+    'lgbtq': 'LGBTQ+',
+    'locum-tenens': 'Locum Tenens',
+    'mid-career': 'Mid-Career',
+    'part-time': 'Part-Time',
+    'per-diem': 'Per Diem',
+    'private-practice': 'Private Practice',
   };
 
   // Get active filter pills

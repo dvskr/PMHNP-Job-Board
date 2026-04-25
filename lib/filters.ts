@@ -170,6 +170,12 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { normalizedMinSalary: { gte: 130000 } },
     { normalizedMaxSalary: { gte: 150000 } },
   ],
+  'travel': [
+    { title: { contains: 'travel', mode: 'insensitive' } },
+    { title: { contains: 'locum', mode: 'insensitive' } },
+    { title: { contains: 'traveling', mode: 'insensitive' } },
+    { title: { contains: 'assignment', mode: 'insensitive' } },
+  ],
 };
 
 /**
