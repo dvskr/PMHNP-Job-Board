@@ -51,7 +51,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Private Practice Jobs" />
 
       {/* 1. HERO */}
-      <section style={{ background: '#d3a999', padding: '72px 0 56px' }}>
+      <section style={{ background: '#d4b0a3', padding: '72px 0 56px' }}>
         <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
           <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
             <div>

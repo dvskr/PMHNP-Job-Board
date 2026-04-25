@@ -135,6 +135,41 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'solo practice', mode: 'insensitive' } },
     { title: { contains: 'independent practice', mode: 'insensitive' } },
   ],
+  'senior': [
+    // Title-based leadership keywords
+    { title: { contains: 'senior PMHNP', mode: 'insensitive' } },
+    { title: { contains: 'senior NP', mode: 'insensitive' } },
+    { title: { contains: 'senior nurse practitioner', mode: 'insensitive' } },
+    { title: { contains: 'lead PMHNP', mode: 'insensitive' } },
+    { title: { contains: 'clinical lead', mode: 'insensitive' } },
+    { title: { contains: 'clinical leader', mode: 'insensitive' } },
+    { title: { contains: 'PMHNP supervisor', mode: 'insensitive' } },
+    { title: { contains: 'NP supervisor', mode: 'insensitive' } },
+    { title: { contains: 'nurse practitioner supervisor', mode: 'insensitive' } },
+    { title: { contains: 'medical director', mode: 'insensitive' } },
+    { title: { contains: 'clinical director', mode: 'insensitive' } },
+    { title: { contains: 'program director', mode: 'insensitive' } },
+    { title: { contains: 'chief of mental health', mode: 'insensitive' } },
+    { title: { contains: 'clinic director', mode: 'insensitive' } },
+    { title: { contains: 'director of psych', mode: 'insensitive' } },
+    { title: { contains: 'PMHNP director', mode: 'insensitive' } },
+    { title: { contains: 'vice president', mode: 'insensitive' } },
+    { title: { contains: 'VP ', mode: 'insensitive' } },
+    { title: { contains: 'experienced', mode: 'insensitive' } },
+    // Description-based experience signals
+    { description: { contains: 'years of experience', mode: 'insensitive' } },
+    { description: { contains: 'experienced PMHNP', mode: 'insensitive' } },
+    { description: { contains: 'experienced nurse practitioner', mode: 'insensitive' } },
+    { description: { contains: 'seasoned', mode: 'insensitive' } },
+    { description: { contains: '3+ years', mode: 'insensitive' } },
+    { description: { contains: '5+ years', mode: 'insensitive' } },
+    { description: { contains: '3-5 years', mode: 'insensitive' } },
+    { description: { contains: '5-7 years', mode: 'insensitive' } },
+    { description: { contains: '5-10 years', mode: 'insensitive' } },
+    // Salary-based: above-average compensation = senior-level
+    { normalizedMinSalary: { gte: 130000 } },
+    { normalizedMaxSalary: { gte: 150000 } },
+  ],
 };
 
 /**
@@ -151,6 +186,25 @@ export const CATEGORY_EXCLUSIONS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'fellowship trained', mode: 'insensitive' } },
     { title: { contains: 'APC Fellowship', mode: 'insensitive' } },
     { title: { contains: 'Advanced Practice Provider', mode: 'insensitive' } },
+  ],
+  'senior': [
+    // Exclude non-PMHNP leadership roles
+    { title: { contains: 'Nursing Director', mode: 'insensitive' } },
+    { title: { contains: 'HR Director', mode: 'insensitive' } },
+    { title: { contains: 'IT Director', mode: 'insensitive' } },
+    { title: { contains: 'Finance Director', mode: 'insensitive' } },
+    { title: { contains: 'Rise Director', mode: 'insensitive' } },
+    { title: { contains: 'Non-Supervisory', mode: 'insensitive' } },
+    // Exclude pure psychiatrist roles (no NP/Nurse mention)
+    {
+      AND: [
+        { title: { contains: 'Psychiatrist', mode: 'insensitive' } },
+        { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
+        { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      ],
+    },
   ],
   'outpatient': [
     // Exclude MD Psychiatrist roles that don't mention NP/Nurse/PMHNP/APRN
