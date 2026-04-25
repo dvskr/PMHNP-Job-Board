@@ -330,6 +330,20 @@ export default function CategoryHero({
           justify-content: center;
           align-self: center;
         }
+        .cat-cta-primary {
+          transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease, background 0.25s ease;
+        }
+        .cat-cta-primary:first-child:hover {
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important;
+          filter: brightness(1.08);
+        }
+        .cat-cta-primary:last-child:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+          background: rgba(255,255,255,0.95) !important;
+          border-color: rgba(13,148,136,0.3) !important;
+        }
 
         /* ── Responsive ── */
         @media (max-width: 900px) {

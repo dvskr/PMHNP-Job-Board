@@ -20,7 +20,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
 export async function GET() {
   const lastmod = new Date().toISOString().split('T')[0];
 
-  // DB-driven: count how many category×city URLs actually have jobs
+  // DB-driven: count how many category×city URLs meet quality thresholds
+  // Must match the pruning logic in cities/[batch]/route.ts
+  const MIN_SITEMAP_JOBS = 3;
+  const MIN_SITEMAP_POPULATION = 10000;
   let totalUrls = 0;
   try {
     const citiesWithJobs = await prisma.job.groupBy({
@@ -37,18 +40,20 @@ export async function GET() {
       _count: { city: true },
     });
 
-    // Build city lookup
-    const cityStateSet = new Set(
+    // Build city→count lookup
+    const cityJobCounts = new Map(
       citiesWithJobs
         .filter(r => r.city && r.state)
-        .map(r => `${r.city!.toLowerCase().trim()}|${r.state!.toLowerCase().trim()}`)
+        .map(r => [`${r.city!.toLowerCase().trim()}|${r.state!.toLowerCase().trim()}`, r._count.city])
     );
 
-    // Count matching category×city URLs
+    // Count matching category×city URLs that pass quality gates
     for (const _category of SITEMAP_CATEGORIES) {
       for (const city of CITIES) {
+        if (city.population < MIN_SITEMAP_POPULATION) continue;
         const key = `${city.name.toLowerCase().trim()}|${city.state.toLowerCase().trim()}`;
-        if (cityStateSet.has(key)) totalUrls++;
+        const jobCount = cityJobCounts.get(key) || 0;
+        if (jobCount >= MIN_SITEMAP_JOBS) totalUrls++;
       }
     }
   } catch {
