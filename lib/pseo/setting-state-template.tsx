@@ -1,16 +1,21 @@
-/**
- * Setting × State pSEO Template Factory
+﻿/**
+ * Setting Ã— State pSEO Template Factory
  * 
  * Shared server component used by all /jobs/[setting]/[state] pages.
  * Each setting page just provides the setting key and state slug;
  * this factory handles data fetching, rendering, and SEO metadata.
  */
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
-import { TrendingUp, Building2, Bell, MapPin, Lightbulb } from 'lucide-react';
+import {
+  TrendingUp, Building2, Bell, MapPin, Lightbulb,
+  DollarSign, Users, ArrowRight,
+} from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryHero from '@/components/CategoryHero';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { Job } from '@/lib/types';
 import {
@@ -21,8 +26,9 @@ import {
   NEIGHBORING_STATES,
   getAllStateSlugs,
 } from './setting-state-config';
+import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface EmployerGroupResult {
   employer: string;
@@ -40,7 +46,7 @@ interface Stats {
   topEmployers: ProcessedEmployer[];
 }
 
-// ─── Data Fetching ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Data Fetching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function getJobs(config: SettingConfig, stateName: string, skip = 0, take = 20) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,12 +75,31 @@ async function getStats(config: SettingConfig, stateName: string, stateSlug: str
     }
   });
 
-  if (!pseo || pseo.totalJobs === 0) {
-    return { totalJobs: 0, avgSalary: 0, topEmployers: [] };
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where = config.buildWhere(stateName) as any;
+
+  // Use cached stats if available
+  let totalJobs = pseo?.totalJobs ?? 0;
+  let avgSalary = pseo?.rawAvgSalary ?? 0;
+
+  // Fallback: live count when pseoStats cache is empty/stale
+  if (totalJobs === 0) {
+    const liveCount = await prisma.job.count({ where });
+    if (liveCount > 0) {
+      totalJobs = liveCount;
+      // Quick salary estimate from live data
+      const salaryData = await prisma.job.aggregate({
+        where: { ...where, minSalary: { gt: 0 } },
+        _avg: { minSalary: true, maxSalary: true },
+      });
+      const rawAvg = salaryData._avg?.maxSalary || salaryData._avg?.minSalary || 0;
+      avgSalary = rawAvg > 1000 ? Math.round(rawAvg / 1000) : Math.round(rawAvg);
+    }
+  }
+
+  if (totalJobs === 0) {
+    return { totalJobs: 0, avgSalary: 0, topEmployers: [] };
+  }
 
   // Only run the heavy groupBy query if we know jobs exist
   const topEmployers = await prisma.job.groupBy({
@@ -86,8 +111,8 @@ async function getStats(config: SettingConfig, stateName: string, stateSlug: str
   });
 
   return {
-    totalJobs: pseo.totalJobs,
-    avgSalary: pseo.rawAvgSalary,
+    totalJobs,
+    avgSalary,
     topEmployers: topEmployers.map((e: EmployerGroupResult) => ({
       name: e.employer,
       count: e._count.employer,
@@ -95,7 +120,7 @@ async function getStats(config: SettingConfig, stateName: string, stateSlug: str
   };
 }
 
-// ─── Metadata Generator ────────────────────────────────────────────────────────
+// â”€â”€â”€ Metadata Generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function buildSettingStateMetadata(
   settingKey: string,
@@ -138,13 +163,13 @@ export async function buildSettingStateMetadata(
   };
 }
 
-// ─── Static Params Generator ───────────────────────────────────────────────────
+// â”€â”€â”€ Static Params Generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function buildSettingStateStaticParams() {
   return getAllStateSlugs().map((slug) => ({ state: slug }));
 }
 
-// ─── Page Component ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Page Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface SettingStatePageProps {
   settingKey: string;
@@ -167,7 +192,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   // 1. Fetch fast pre-calculated stats
   const stats = await getStats(config, stateName!, stateSlug);
 
-  // SEO Fix: Return real 404 for category×state combos with no matching jobs.
+  // SEO Fix: Return real 404 for categoryÃ—state combos with no matching jobs.
   // Stops the server from trying to fetch jobs that don't exist.
   if (stats.totalJobs === 0) {
     const { notFound: notFoundFn } = await import('next/navigation');
@@ -183,10 +208,18 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
 
   // Other settings for cross-linking
   const otherSettings = Object.values(SETTING_CONFIGS).filter((s) => s.slug !== config.slug);
+  const assets = CATEGORY_ASSET_REGISTRY[config.slug];
+
+  /* Design Tokens â€” matched to category-city-template */
+  const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+  };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Breadcrumb Schema */}
+    <div style={{ backgroundColor: '#FDFBF7' }}>
+      {/* Schemas */}
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'Jobs', url: 'https://pmhnphiring.com/jobs' },
@@ -194,112 +227,61 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         { name: stateName!, url: `https://pmhnphiring.com${basePath}` },
       ]} />
 
-      {/* Hero Section */}
-      <section className="bg-teal-600 text-white py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              {config.label} PMHNP Jobs in {stateName}
-            </h1>
-            <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | {config.heroSubtitle} in {stateName}
-            </p>
-            <p className="text-lg md:text-xl text-teal-100 mb-6">
-              {stats.totalJobs > 0
-                ? `Discover ${stats.totalJobs} ${config.label.toLowerCase()} psychiatric nurse practitioner positions in ${stateName}`
-                : `${config.label} PMHNP positions in ${stateName} — check back soon for new openings`}
-            </p>
-
-            {/* Stats Bar */}
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-teal-100">{config.label} Positions</div>
-              </div>
-              {stats.avgSalary > 0 && (
-                <div className="text-center">
-                  <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                  <div className="text-sm text-teal-100">Avg. Salary</div>
-                </div>
-              )}
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                <div className="text-sm text-teal-100">Hiring Organizations</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero */}
+      <CategoryHero
+        bgColor={assets?.bgColor || '#0D9488'}
+        heroImage={assets?.heroImage || '/images/categories/hero_wc_remote.png'}
+        heroAlt={`${config.label} PMHNP jobs in ${stateName}`}
+        badgeText={`${stats.totalJobs} live roles Â· updated today`}
+        breadcrumbs={['Careers', config.label, stateName!]}
+        headlineLine1={config.label}
+        headlineLine2="PMHNP"
+        headlineSub={`jobs in ${stateName}.`}
+        stats={[
+          { value: `${stats.totalJobs}`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : config.salaryRange.split('â€“')[0] || '$130K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}`, label: 'employers' },
+        ]}
+        description={`${config.label} psychiatric NP positions in ${stateName}. ${config.heroSubtitle}.`}
+        ctaLabel={`Browse ${config.label} Jobs`}
+        ctaHref={`/jobs/${config.slug}`}
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-7xl mx-auto">
-          {/* Benefits Section */}
-          <div className="mb-8 md:mb-12">
-            <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                Why Choose {config.label} PMHNP Work in {stateName}?
-              </h2>
-              <div className="grid md:grid-cols-3 gap-6">
-                {config.benefits.map((benefit, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                        <MapPin className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{benefit.title}</h3>
-                      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{benefit.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
+          {/* Job Listings */}
           <div className="grid lg:grid-cols-4 gap-8">
-            {/* Main Content */}
             <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  All {config.label} Positions in {stateName} ({stats.totalJobs})
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>
+                  {config.label} Positions in {stateName} ({stats.totalJobs})
                 </h2>
-                <Link href={`/jobs/state/${stateSlug}`} className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>
-                  All {stateName} Jobs →
+                <Link href={`/jobs/${config.slug}`} style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
+                  View All Jobs â†’
                 </Link>
               </div>
 
               {jobs.length === 0 ? (
-                <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <MapPin className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    No {config.label.toLowerCase()} PMHNP jobs in {stateName} right now
+                <div className="text-center py-12 rounded-xl" style={{ ...clayCard, padding: '48px 24px' }}>
+                  <MapPin className="h-12 w-12 mx-auto mb-4" style={{ color: '#7A6A62' }} />
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>
+                    No {config.label.toLowerCase()} positions in {stateName} right now
                   </h3>
-                  <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    Check back soon or browse {config.label.toLowerCase()} jobs in nearby states:
+                  <p style={{ fontSize: '14px', color: '#5A4A42', marginBottom: '16px' }}>
+                    Check back soon or browse nearby states:
                   </p>
                   {neighbors.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-2 mb-6">
                       {neighbors.slice(0, 4).map((neighbor) => (
-                        <Link
-                          key={neighbor}
-                          href={`/jobs/${config.slug}/${stateToSlug(neighbor)}`}
-                          className="px-3 py-1.5 text-sm rounded-lg transition-colors hover:opacity-90"
-                          style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--color-primary)' }}
-                        >
+                        <Link key={neighbor} href={`/jobs/${config.slug}/${stateToSlug(neighbor)}`}
+                          className="px-3 py-1.5 text-sm rounded-lg" style={{ backgroundColor: '#F0FDFA', color: '#0D9488', fontWeight: 600 }}>
                           {neighbor}
                         </Link>
                       ))}
                     </div>
                   )}
-                  <div className="flex flex-wrap justify-center gap-3">
-                    <Link href={`/jobs/${config.slug}`} className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--color-primary)' }}>
-                      All {config.label} Jobs
-                    </Link>
-                    <Link href={`/jobs/state/${stateSlug}`} className="inline-block px-6 py-3 rounded-lg font-medium transition-colors" style={{ color: 'var(--color-primary)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
-                      All {stateName} Jobs
-                    </Link>
-                  </div>
                 </div>
               ) : (
                 <>
@@ -309,29 +291,22 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="mt-8 flex items-center justify-center gap-4">
                       {page > 1 ? (
-                        <Link href={`${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg transition-colors" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                          ← Previous
+                        <Link href={`${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
+                          â† Previous
                         </Link>
                       ) : (
-                        <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                          ← Previous
-                        </span>
+                        <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>â† Previous</span>
                       )}
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Page {page} of {totalPages}
-                      </span>
+                      <span className="text-sm" style={{ color: '#5A4A42' }}>Page {page} of {totalPages}</span>
                       {page < totalPages ? (
-                        <Link href={`${basePath}?page=${page + 1}`} className="px-4 py-2 text-sm font-medium rounded-lg transition-colors" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                          Next →
+                        <Link href={`${basePath}?page=${page + 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
+                          Next â†’
                         </Link>
                       ) : (
-                        <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                          Next →
-                        </span>
+                        <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>Next â†’</span>
                       )}
                     </div>
                   )}
@@ -341,156 +316,211 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              {/* Job Alert CTA */}
-              <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
-                <Bell className="h-8 w-8 mb-3" />
-                <h3 className="text-lg font-bold mb-2">
-                  Get {config.label} Job Alerts
-                </h3>
-                <p className="text-sm text-teal-100 mb-4">
-                  Be the first to know about new {config.label.toLowerCase()} PMHNP positions in {stateName}.
-                </p>
-                <Link href="/job-alerts" className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors">
-                  Create Alert
-                </Link>
+              {/* Alert CTA */}
+              <div style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+                <div style={{ padding: '24px' }}>
+                  <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                  <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>
+                    {config.label} Alerts
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>
+                    New {config.label.toLowerCase()} PMHNP positions in {stateName} â€” delivered daily.
+                  </p>
+                  <Link href="/job-alerts" style={{
+                    display: 'block', width: '100%', textAlign: 'center',
+                    padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                    background: '#0D9488', color: '#fff', textDecoration: 'none',
+                    boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
+                  }}>
+                    Create Alert
+                  </Link>
+                </div>
               </div>
 
               {/* Top Employers */}
               {stats.topEmployers.length > 0 && (
-                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Employers in {stateName}</h3>
+                <div style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <Building2 size={20} style={{ color: '#0D9488' }} />
+                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Top Employers</h3>
                   </div>
-                  <ul className="space-y-3">
-                    {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
-                      <li key={index} className="flex items-center justify-between">
-                        <span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>{employer.name}</span>
-                        <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>
-                          {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
-                        </span>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                    {stats.topEmployers.map((emp: ProcessedEmployer, i: number) => (
+                      <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                        <span style={{ fontSize: '13px', color: '#5A4A42' }}>{emp.name}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>{emp.count}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {/* Salary Insights */}
-              {stats.avgSalary > 0 && (
-                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Salary Insights</h3>
-                  </div>
-                  <div className="mb-4">
-                    <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>${stats.avgSalary}k</div>
-                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Avg. {config.label.toLowerCase()} salary in {stateName}</div>
-                  </div>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    Based on {config.label.toLowerCase()} PMHNP positions with salary data in {stateName}.
-                  </p>
-                  <Link href={`/salary-guide/${stateSlug}`} className="block mt-3 text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
-                    View {stateName} Salary Guide →
-                  </Link>
-                </div>
-              )}
-
               {/* Tips */}
-              <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>{config.label} Tips</h3>
+              <div style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Lightbulb size={20} style={{ color: '#0D9488' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>{config.label} Tips</h3>
                 </div>
-                <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {config.tips.map((tip, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
+                    <li key={i} style={{ display: 'flex', gap: '8px', padding: '6px 0', borderBottom: i < config.tips.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', fontSize: '13px', color: '#5A4A42', lineHeight: 1.5 }}>
+                      <span style={{ color: '#0D9488', fontWeight: 700 }}>â€¢</span>
                       <span>{tip}</span>
                     </li>
                   ))}
                 </ul>
               </div>
+
+              {/* Benefits */}
+              <div style={{ ...clayCard, padding: '24px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', marginBottom: '16px' }}>Why {config.label}?</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {config.benefits.map((b, i) => (
+                    <div key={i}>
+                      <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{b.title}</div>
+                      <p style={{ fontSize: '12px', marginTop: '4px', color: '#5A4A42', lineHeight: 1.5 }}>{b.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Cross-Links: This setting in neighboring states */}
+      {/* Bento Grid */}
+      {assets && (
+        <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '48px 0' }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+              {assets.bentoSectionLabel}
+            </p>
+            <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+              {config.label} Careers in {stateName}
+            </h2>
+            <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>
+              {config.heroSubtitle}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+              {/* ROW 1: Hero card (8col) + Side card (4col) */}
+              <div style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+                <div style={{ padding: '32px 28px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>
+                    {config.label} in {stateName}
+                  </h3>
+                  <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                    {config.heroSubtitle}. {config.tips[0] || ''}
+                  </p>
+                </div>
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
+                  <Image src={assets.bentoImages[0]} alt={`${config.label} PMHNP`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                </div>
+              </div>
+
+              <div style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Image src={assets.bentoImages[1]} alt={`${config.label} growth`} width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                </div>
+                <div style={{ padding: '24px 22px', flex: 1 }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>
+                    Salary & Compensation
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                    {config.label} PMHNPs in {stateName} earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : config.salaryRange} annually.
+                  </p>
+                </div>
+              </div>
+
+              {/* ROW 2: Icon cards */}
+              {config.benefits.map((benefit, i) => (
+                <div key={`icon-${i}`} style={{ ...clayCard, gridColumn: `span ${Math.floor(12 / config.benefits.length)}`, padding: '24px 18px', textAlign: 'center' }}>
+                  {assets.bentoIcons[i] && <Image src={assets.bentoIcons[i]} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />}
+                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{benefit.title}</h3>
+                  <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>{benefit.description}</p>
+                </div>
+              ))}
+
+              {/* ROW 3: Salary card (8col) + Alert CTA (4col) */}
+              {assets.bentoImages[2] && (
+                <div style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+                  <div style={{ padding: '32px 28px' }}>
+                    <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
+                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Growth & Outlook</h3>
+                    <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                      {config.label} PMHNP demand in {stateName} continues to grow with {stats.totalJobs} active positions.
+                    </p>
+                  </div>
+                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
+                    <Image src={assets.bentoImages[2]} alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ ...clayCard, gridColumn: 'span 4', padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+                <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>{config.label} Alerts</h3>
+                <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
+                  New {config.label.toLowerCase()} listings in {stateName} â€” delivered daily.
+                </p>
+                <Link href="/job-alerts" style={{
+                  padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                  background: '#0D9488', color: '#fff', textDecoration: 'none',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content',
+                  boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
+                }}>
+                  Create Alert <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Cross-Links: Nearby States */}
+      <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '40px 0' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
           {neighbors.length > 0 && (
-            <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+            <div style={{ ...clayCard, padding: '32px', marginBottom: '20px' }}>
+              <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px' }}>
                 {config.label} PMHNP Jobs in Nearby States
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
                 {neighbors.map((neighbor) => (
-                  <Link
-                    key={neighbor}
-                    href={`/jobs/${config.slug}/${stateToSlug(neighbor)}`}
-                    className="block p-3 rounded-lg text-center hover:shadow-md transition-all"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                  >
-                    <div className="font-semibold text-sm">{neighbor}</div>
-                    <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                      {config.label} Jobs
-                    </div>
+                  <Link key={neighbor} href={`/jobs/${config.slug}/${stateToSlug(neighbor)}`}
+                    style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none', transition: 'box-shadow 0.2s' }}>
+                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#1A2E35' }}>{neighbor}</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>{config.label} Jobs</div>
                   </Link>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Cross-Links: Other settings in this state */}
-          <div className="mt-8 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+          {/* Other settings in this state */}
+          <div style={{ ...clayCard, padding: '32px' }}>
+            <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px' }}>
               Other PMHNP Job Types in {stateName}
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {otherSettings.map((setting) => (
-                <Link
-                  key={setting.slug}
-                  href={`/jobs/${setting.slug}/${stateSlug}`}
-                  className="block p-3 rounded-lg text-center hover:shadow-md transition-all"
-                  style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                >
-                  <div className="font-semibold text-sm">{setting.label}</div>
-                  <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                    Jobs in {stateName}
-                  </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
+              {otherSettings.slice(0, 12).map((setting) => (
+                <Link key={setting.slug} href={`/jobs/${setting.slug}/${stateSlug}`}
+                  style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none', transition: 'box-shadow 0.2s' }}>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#1A2E35' }}>{setting.label}</div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>in {stateName}</div>
                 </Link>
               ))}
-              <Link
-                href={`/jobs/state/${stateSlug}`}
-                className="block p-3 rounded-lg text-center hover:shadow-md transition-all"
-                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-              >
-                <div className="font-semibold text-sm">All Jobs</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                  in {stateName}
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          {/* Resource Links */}
-          <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--border-color)' }}>
-            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Resources</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link href={`/salary-guide/${stateSlug}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 {stateName} Salary Guide</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>PMHNP salary data for {stateName} by setting and experience.</p>
-              </Link>
-              <Link href={`/jobs/state/${stateSlug}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 All {stateName} Jobs</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse all PMHNP positions in {stateName}.</p>
-              </Link>
-              <Link href={`/jobs/${config.slug}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏥 All {config.label} Jobs</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse all {config.label.toLowerCase()} PMHNP positions nationwide.</p>
+              <Link href={`/jobs/state/${stateSlug}`}
+                style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
+                <div style={{ fontWeight: 700, fontSize: '14px', color: '#0D9488' }}>All Jobs</div>
+                <div style={{ fontSize: '11px', color: '#0D9488', marginTop: '4px' }}>in {stateName}</div>
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* FAQ Section */}
+      {/* FAQ */}
       <CategoryFAQ category={config.faqCategory as 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction'} totalJobs={stats.totalJobs} />
     </div>
   );

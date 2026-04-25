@@ -10,9 +10,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 
-// GSC Fix: Reduced from 24 categories to 8 broad ones.
 // Must match SITEMAP_CATEGORIES in cities/[batch]/route.ts
-const SITEMAP_CATEGORIES = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel', 'full-time', 'part-time', 'contract'];
+const SITEMAP_CATEGORIES = [
+  'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
+  'full-time', 'part-time', 'contract',
+  'addiction', 'new-grad', '1099', 'behavioral-health', 'correctional',
+];
 
 const BATCH_SIZE = 10000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';

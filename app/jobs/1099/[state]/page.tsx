@@ -15,10 +15,11 @@ interface Props {
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { state } = await params;
   const sp = await searchParams;
-  return buildSettingStateMetadata(SETTING_KEY, state, parseInt(sp.page || '1'));
+  const page = parseInt(sp.page || '1');
+  return buildSettingStateMetadata(SETTING_KEY, state, page);
 }
 
-export default async function IC1099StateJobsPage({ params, searchParams }: Props) {
+export default async function IndependentContractorStateJobsPage({ params, searchParams }: Props) {
   const { state } = await params;
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page || '1'));

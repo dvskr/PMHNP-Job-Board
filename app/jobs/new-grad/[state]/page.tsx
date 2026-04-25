@@ -15,7 +15,8 @@ interface Props {
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { state } = await params;
   const sp = await searchParams;
-  return buildSettingStateMetadata(SETTING_KEY, state, parseInt(sp.page || '1'));
+  const page = parseInt(sp.page || '1');
+  return buildSettingStateMetadata(SETTING_KEY, state, page);
 }
 
 export default async function NewGradStateJobsPage({ params, searchParams }: Props) {

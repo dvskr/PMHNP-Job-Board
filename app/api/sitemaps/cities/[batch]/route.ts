@@ -6,10 +6,8 @@
  * thousands of empty pages to Google (which was the root cause of most GSC
  * coverage issues).
  * 
- * GSC Fix: Reduced from 24 categories to 8 broad ones. Narrow categories
- * (addiction, crisis, lgbtq, geriatric, etc.) rarely have jobs in any
- * specific city and were inflating the sitemap 3x. Those pages are still
- * reachable via internal links but don't need to be in the sitemap.
+ * Phase 6: Expanded from 8 to 13 categories (added addiction, new-grad,
+ * 1099, behavioral-health, correctional). Also includes state-level URLs.
  * 
  * Routes:
  *   /api/sitemaps/cities/0 → first 10K URLs
@@ -19,11 +17,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
+import { getAllSettingSlugs, getAllStateSlugs, stateToSlug } from '@/lib/pseo/setting-state-config';
 
-// GSC Fix: Only broad categories that are likely to have jobs in most cities.
-// Narrow specialty/population/experience/employer categories excluded from sitemap
-// to prevent crawl budget waste. Those pages 404 when empty (per category-city-template fix).
-const SITEMAP_CATEGORIES = ['remote', 'telehealth', 'inpatient', 'outpatient', 'travel', 'full-time', 'part-time', 'contract'];
+// Must match SITEMAP_CATEGORIES in index/route.ts
+const SITEMAP_CATEGORIES = [
+  'remote', 'telehealth', 'inpatient', 'outpatient', 'travel',
+  'full-time', 'part-time', 'contract',
+  'addiction', 'new-grad', '1099', 'behavioral-health', 'correctional',
+];
 
 const BATCH_SIZE = 10000;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
@@ -71,10 +72,12 @@ const MIN_SITEMAP_JOBS = 3;
 const MIN_SITEMAP_POPULATION = 10000;
 
 // Generate only URLs where sufficient jobs exist in quality cities
+// Also includes state-level pSEO URLs (/jobs/{setting}/{state})
 async function getActiveCategoryCityUrls(): Promise<string[]> {
   const citiesWithJobs = await getCitiesWithJobCounts();
   const urls: string[] = [];
 
+  // Category × City URLs
   for (const category of SITEMAP_CATEGORIES) {
     for (const city of CITIES) {
       // Population gate — skip small towns
@@ -89,6 +92,15 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
       if (jobCount >= MIN_SITEMAP_JOBS) {
         urls.push(`${BASE_URL}/jobs/${category}/city/${city.slug}`);
       }
+    }
+  }
+
+  // Setting × State URLs (all 13 settings × 51 states)
+  const settingSlugs = getAllSettingSlugs();
+  const stateSlugs = getAllStateSlugs();
+  for (const setting of settingSlugs) {
+    for (const stateSlug of stateSlugs) {
+      urls.push(`${BASE_URL}/jobs/${setting}/${stateSlug}`);
     }
   }
 
