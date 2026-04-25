@@ -125,6 +125,10 @@
       "schedule": "15 13 * * *"
     },
     {
+      "path": "/api/cron/index-pseo",
+      "schedule": "45 13 * * *"
+    },
+    {
       "path": "/api/cron/deindex-expired",
       "schedule": "45 12,18 * * *"
     },
