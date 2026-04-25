@@ -47,9 +47,9 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
     ],
     bentoIcons: [
       '/images/categories/icon_th_demand.png',
-      '/images/categories/icon_telehealth_home.png',
       '/images/categories/icon_th_access.png',
       '/images/categories/icon_telehealth_flex.png',
+      '/images/categories/icon_telehealth_home.png',
     ],
     exploreCards: [
       { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
@@ -93,10 +93,10 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
       '/images/categories/bento_outpatient_salary.png',
     ],
     bentoIcons: [
-      '/images/categories/icon_outpatient_clinic.png',
       '/images/categories/icon_outpatient_clock.png',
       '/images/categories/icon_outpatient_therapy.png',
       '/images/categories/icon_outpatient_growth.png',
+      '/images/categories/icon_outpatient_clinic.png',
     ],
     exploreCards: [
       { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
@@ -117,10 +117,10 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
       '/images/categories/bento_travel_compensation.png',
     ],
     bentoIcons: [
+      '/images/categories/icon_travel_dollar.png',
       '/images/categories/icon_travel_case.png',
       '/images/categories/icon_travel_plane.png',
       '/images/categories/icon_travel_housing.png',
-      '/images/categories/icon_travel_dollar.png',
     ],
     exploreCards: [
       { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
@@ -143,8 +143,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
     bentoIcons: [
       '/images/categories/icon_addiction_demand.png',
       '/images/categories/icon_addiction_dual.png',
-      '/images/categories/icon_addiction_heart.png',
       '/images/categories/icon_addiction_harm.png',
+      '/images/categories/icon_addiction_heart.png',
     ],
     exploreCards: [
       { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
@@ -213,8 +213,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
       '/images/categories/bento_newgrad_salary.png',
     ],
     bentoIcons: [
-      '/images/categories/icon_newgrad_diploma.png',
       '/images/categories/icon_newgrad_bulb.png',
+      '/images/categories/icon_newgrad_diploma.png',
       '/images/categories/icon_newgrad_stairs.png',
       '/images/categories/icon_newgrad_cert.png',
     ],
@@ -309,10 +309,10 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
       '/images/categories/bento_ct_salary.png',
     ],
     bentoIcons: [
-      '/images/categories/icon_ct_terms.png',
       '/images/categories/icon_ct_rates.png',
-      '/images/categories/icon_ct_settings.png',
       '/images/categories/icon_ct_convert.png',
+      '/images/categories/icon_ct_terms.png',
+      '/images/categories/icon_ct_settings.png',
     ],
     exploreCards: [
       { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
@@ -401,8 +401,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
     bentoIcons: [
       '/images/categories/icon_ho_pay.png',
       '/images/categories/icon_ho_team.png',
-      '/images/categories/icon_ho_acute.png',
       '/images/categories/icon_ho_loan.png',
+      '/images/categories/icon_ho_acute.png',
     ],
     exploreCards: [
       { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
@@ -493,8 +493,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
     bentoIcons: [
       '/images/categories/icon_ge_aging.png',
       '/images/categories/icon_ge_brain.png',
-      '/images/categories/icon_ge_home.png',
       '/images/categories/icon_ge_pills.png',
+      '/images/categories/icon_ge_home.png',
     ],
     exploreCards: [
       { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
@@ -540,8 +540,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
     bentoIcons: [
       '/images/categories/icon_lg_affirm.png',
       '/images/categories/icon_lg_gender.png',
-      '/images/categories/icon_lg_safe.png',
       '/images/categories/icon_lg_impact.png',
+      '/images/categories/icon_lg_safe.png',
     ],
     exploreCards: [
       { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
@@ -584,8 +584,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
       '/images/categories/bento_1099_salary.png',
     ],
     bentoIcons: [
-      '/images/categories/icon_1099_schedule.png',
       '/images/categories/icon_1099_autonomy.png',
+      '/images/categories/icon_1099_schedule.png',
       '/images/categories/icon_1099_multi.png',
     ],
     exploreCards: [
@@ -608,8 +608,8 @@ export const CATEGORY_ASSET_REGISTRY: Record<string, CategoryAssets> = {
     ],
     bentoIcons: [
       '/images/categories/icon_bh_team.png',
-      '/images/categories/icon_bh_building.png',
       '/images/categories/icon_bh_growth.png',
+      '/images/categories/icon_bh_building.png',
     ],
     exploreCards: [
       { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },

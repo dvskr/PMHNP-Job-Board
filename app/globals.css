@@ -1325,3 +1325,33 @@ textarea::placeholder {
     inset 3px 3px 6px rgba(0, 40, 30, 0.08),
     inset -2px -2px 4px rgba(255, 255, 255, 0.6) !important;
 }
+
+/* ═════════════════════════════════════════════════════
+   pSEO BENTO CARD — Hover lift + glow
+   Used across category-city and setting-state templates.
+   ═════════════════════════════════════════════════════ */
+.pseo-bento-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+}
+.pseo-bento-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.08),
+    -3px -3px 10px rgba(255, 255, 255, 0.9),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.6),
+    inset -1px -1px 1px rgba(0, 0, 0, 0.02) !important;
+}
+.pseo-bento-card:active {
+  transform: translateY(-1px) !important;
+}
+
+/* CTA button glow on hover */
+.pseo-cta-primary {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.pseo-cta-primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 4px 4px 12px rgba(13, 148, 136, 0.3), -2px -2px 6px rgba(255, 255, 255, 0.2) !important;
+}

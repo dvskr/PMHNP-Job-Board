@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Setting Ã— State pSEO Template Factory
  * 
  * Shared server component used by all /jobs/[setting]/[state] pages.
@@ -219,6 +219,15 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
 
   return (
     <div style={{ backgroundColor: '#FDFBF7' }}>
+      {/* Hover effects — inline to guarantee they load */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .pseo-pill { transition: transform 0.25s ease, box-shadow 0.25s ease; cursor: pointer; }
+        .pseo-pill:hover { transform: translateY(-3px) !important; box-shadow: 6px 6px 16px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .pseo-pill:active { transform: translateY(-1px) !important; }
+        .pseo-resource { transition: transform 0.25s ease, box-shadow 0.25s ease; cursor: pointer; }
+        .pseo-resource:hover { transform: translateY(-4px) !important; box-shadow: 8px 8px 20px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .pseo-resource:active { transform: translateY(-1px) !important; }
+      `}} />
       {/* Schemas */}
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
@@ -477,48 +486,91 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         </section>
       )}
 
-      {/* Cross-Links: Nearby States */}
+      {/* Cross-Links — Consolidated */}
       <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '40px 0' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
-          {neighbors.length > 0 && (
-            <div style={{ ...clayCard, padding: '32px', marginBottom: '20px' }}>
-              <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px' }}>
-                {config.label} PMHNP Jobs in Nearby States
-              </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
-                {neighbors.map((neighbor) => (
-                  <Link key={neighbor} href={`/jobs/${config.slug}/${stateToSlug(neighbor)}`}
-                    style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none', transition: 'box-shadow 0.2s' }}>
-                    <div style={{ fontWeight: 700, fontSize: '14px', color: '#1A2E35' }}>{neighbor}</div>
-                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>{config.label} Jobs</div>
+          <div style={{ ...clayCard, padding: '28px 32px' }}>
+
+            {/* Nearby States — clay pills */}
+            {neighbors.length > 0 && (
+              <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                  {config.label} Jobs Nearby
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {neighbors.map((neighbor) => (
+                    <Link key={neighbor} href={`/jobs/${config.slug}/${stateToSlug(neighbor)}`}
+                      className="pseo-pill"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '12px', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#1A2E35', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                      {neighbor} <ArrowRight size={12} style={{ color: '#0D9488' }} />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other Job Types — clay pills */}
+            <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                More Job Types in {stateName}
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {otherSettings.slice(0, 12).map((setting) => (
+                  <Link key={setting.slug} href={`/jobs/${setting.slug}/${stateSlug}`}
+                    className="pseo-pill"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '12px', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#1A2E35', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                    {setting.label} <ArrowRight size={12} style={{ color: '#0D9488' }} />
                   </Link>
                 ))}
+                <Link href={`/jobs/state/${stateSlug}`}
+                  className="pseo-pill"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '12px', textDecoration: 'none', fontSize: '13px', fontWeight: 700, color: '#0D9488', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '1px solid rgba(13,148,136,0.15)', boxShadow: '3px 3px 8px rgba(13,148,136,0.1), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  All {stateName} Jobs <ArrowRight size={12} />
+                </Link>
               </div>
             </div>
-          )}
 
-          {/* Other settings in this state */}
-          <div style={{ ...clayCard, padding: '32px' }}>
-            <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px' }}>
-              Other PMHNP Job Types in {stateName}
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
-              {otherSettings.slice(0, 12).map((setting) => (
-                <Link key={setting.slug} href={`/jobs/${setting.slug}/${stateSlug}`}
-                  style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none', transition: 'box-shadow 0.2s' }}>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#1A2E35' }}>{setting.label}</div>
-                  <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>in {stateName}</div>
+            {/* Resources — clay row */}
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                Explore More
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <Link href={`/salary-guide/${stateSlug}`}
+                  className="pseo-resource"
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  <DollarSign size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>{stateName} Salary Guide</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '2px' }}>Comp data by setting</div>
+                  </div>
                 </Link>
-              ))}
-              <Link href={`/jobs/state/${stateSlug}`}
-                style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
-                <div style={{ fontWeight: 700, fontSize: '14px', color: '#0D9488' }}>All Jobs</div>
-                <div style={{ fontSize: '11px', color: '#0D9488', marginTop: '4px' }}>in {stateName}</div>
-              </Link>
+                <Link href={`/jobs/state/${stateSlug}`}
+                  className="pseo-resource"
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  <MapPin size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>All {stateName} Jobs</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '2px' }}>Browse all positions</div>
+                  </div>
+                </Link>
+                <Link href={`/jobs/${config.slug}`}
+                  className="pseo-resource"
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  <Users size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>All {config.label} Jobs</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '2px' }}>Nationwide listings</div>
+                  </div>
+                </Link>
+              </div>
             </div>
+
           </div>
         </div>
       </section>
+
+
 
       {/* FAQ */}
       <CategoryFAQ category={config.faqCategory as 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction'} totalJobs={stats.totalJobs} />
