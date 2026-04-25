@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import CategoryHero from '@/components/CategoryHero';
 import { FileText, DollarSign, Scale, Calculator, Building2, Lightbulb, Bell, Briefcase, TrendingUp, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -28,15 +30,7 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const IC_FILTER = {
-  isPublished: true,
-  OR: [
-    { title: { contains: '1099', mode: 'insensitive' as const } },
-    { title: { contains: 'independent contractor', mode: 'insensitive' as const } },
-    { title: { contains: 'independent practice', mode: 'insensitive' as const } },
-    { description: { contains: '1099', mode: 'insensitive' as const } },
-  ],
-};
+const IC_FILTER = buildCategoryWhereClause('1099');
 
 async function getICJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
@@ -172,35 +166,29 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="1099 PMHNP Jobs" />
 
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#d19b99', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                1099 PMHNP<br />
-                <span style={{ color: '#0D9488' }}>Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Independent contractor positions with higher hourly rates, schedule flexibility, and tax advantages.
-              </p>
-              <Link href="/jobs?q=1099" className="clay-btn cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All 1099 Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_v2_1099.png" alt="PMHNP independent contractor workspace" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#d19b99"
+        heroImage="/images/categories/hero_v2_1099.png"
+        heroAlt="PMHNP independent contractor workspace"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', '1099 PMHNP']}
+        indexLabel="№ 01 / 28"
+        headlineLine1="1099"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, on your terms."
+        photoTagTitle="This week"
+        photoTagBody="New 1099 postings across telehealth, group, and private practice."
+        stats={[
+          { value: '$75–150', label: 'per hour' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '—', label: 'avg salary' },
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+        ]}
+        description="Independent contractor PMHNP roles with Schedule C deductions, flexible caseloads, and no non-compete clauses."
+        ctaLabel="Browse jobs"
+        ctaHref="/jobs?category=1099"
+        secondaryCtaLabel="Set alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
             {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -222,7 +210,7 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
               </div>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?type=1099" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=1099" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All 1099 Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -389,15 +377,15 @@ export default async function IndependentContractorJobsPage({ searchParams }: Pa
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/locum-tenens', label: 'Locum Tenens', sub: 'Travel assignments', emoji: '✈️' },
-              { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Flexible shifts', emoji: '📅' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/locum-tenens', label: 'Locum Tenens', sub: 'Travel assignments', icon: '/images/categories/clay_icon_locumtenens.png' },
+              { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Flexible shifts', icon: '/images/categories/clay_icon_perdiem.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>

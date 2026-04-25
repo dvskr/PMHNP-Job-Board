@@ -3,11 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, DollarSign, TrendingUp, Building2, Bell, Briefcase, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // Force dynamic rendering
 /* Design Tokens */
@@ -29,27 +31,11 @@ interface ProcessedEmployer {
     count: number;
 }
 
-const ADDICTION_KEYWORDS = [
-    { title: { contains: 'addiction', mode: 'insensitive' as const } },
-    { title: { contains: 'substance', mode: 'insensitive' as const } },
-    { title: { contains: 'substance use', mode: 'insensitive' as const } },
-    { title: { contains: ' SUD', mode: 'insensitive' as const } },
-    { title: { contains: ' MAT ', mode: 'insensitive' as const } },
-    { title: { contains: 'MAT program', mode: 'insensitive' as const } },
-    { title: { contains: 'MAT &', mode: 'insensitive' as const } },
-    { title: { contains: 'opioid', mode: 'insensitive' as const } },
-    { title: { contains: 'detox', mode: 'insensitive' as const } },
-    { title: { contains: 'recovery', mode: 'insensitive' as const } },
-    { title: { contains: 'suboxone', mode: 'insensitive' as const } },
-    { title: { contains: 'buprenorphine', mode: 'insensitive' as const } },
-    { description: { contains: 'addiction', mode: 'insensitive' as const } },
-    { description: { contains: 'substance use disorder', mode: 'insensitive' as const } },
-    { description: { contains: 'MAT program', mode: 'insensitive' as const } },
-];
+const ADDICTION_FILTER = buildCategoryWhereClause('addiction');
 
 async function getAddictionJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
-        where: { isPublished: true, OR: ADDICTION_KEYWORDS },
+        where: ADDICTION_FILTER,
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
@@ -58,13 +44,12 @@ async function getAddictionJobs(skip = 0, take = 20) {
 
 async function getAddictionStats() {
     const totalJobs = await prisma.job.count({
-        where: { isPublished: true, OR: ADDICTION_KEYWORDS },
+        where: ADDICTION_FILTER,
     });
 
     const salaryData = await prisma.job.aggregate({
         where: {
-            isPublished: true,
-            OR: ADDICTION_KEYWORDS,
+            ...ADDICTION_FILTER,
             normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
@@ -77,7 +62,7 @@ async function getAddictionStats() {
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: { isPublished: true, OR: ADDICTION_KEYWORDS },
+        where: ADDICTION_FILTER,
         _count: { employer: true },
         orderBy: { _count: { employer: 'desc' } },
         take: 8,
@@ -139,37 +124,32 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
                 { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
                 { name: "Addiction", url: "https://pmhnphiring.com/jobs/addiction" }
             ]} />
+            {jobs.length > 0 && (
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Addiction PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+            )}
 
             {/* ═══ HERO ═══ */}
-      <section style={{ background: '#aabe9c', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                Addiction PMHNP<br />
-                <span style={{ color: '#0D9488' }}>Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Substance use disorder and MAT positions with high demand, competitive pay, and life-changing patient impact.
-              </p>
-              <Link href="/jobs?q=addiction" className="clay-btn cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All Addiction Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_v2_addiction.png" alt="PMHNP addiction medicine practice" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#aabe9c"
+        heroImage="/images/categories/hero_v2_addiction.png"
+        heroAlt="PMHNP addiction medicine practice"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Addiction']}
+        indexLabel="№ 15 / 28"
+        headlineLine1="Addiction"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, SUD & MAT roles."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$155K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Substance use disorder and MAT positions with high demand, competitive pay, and life-changing patient impact."
+        ctaLabel="Browse Addiction Jobs"
+        ctaHref="/jobs?category=addiction"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -191,7 +171,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
               </div>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?type=addiction" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=addiction" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All Addiction Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -365,15 +345,15 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -400,6 +380,7 @@ export default async function AddictionJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What does an addiction PMHNP do?",a:"An addiction PMHNP specializes in treating substance use disorders (SUD) and co-occurring mental health conditions. They prescribe medications like buprenorphine and naltrexone for medication-assisted treatment (MAT), manage detox protocols, provide therapy, and coordinate comprehensive recovery plans."},{q:"Do I need special certification for addiction PMHNP work?",a:"While not always required, the DEA X-waiver (now integrated into standard DEA registration) is essential for prescribing buprenorphine. ASAM certification or CARN credentials significantly strengthen your candidacy and are preferred by many employers."},{q:"How much do addiction PMHNPs earn?",a:"Addiction PMHNPs typically earn $130K–$180K annually, with some positions in high-demand areas exceeding $200K. Many roles include loan repayment programs, sign-on bonuses, and relocation assistance."},{q:"Is addiction psychiatry a good PMHNP specialty?",a:"Yes — addiction psychiatry is one of the fastest-growing PMHNP specialties with 40%+ growth in positions. The work is deeply meaningful, with high job security and competitive compensation."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

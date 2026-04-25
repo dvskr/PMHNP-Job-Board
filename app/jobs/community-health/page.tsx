@@ -3,10 +3,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 /* Design Tokens */
 const clayCard: React.CSSProperties = {
@@ -27,14 +29,7 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const COMMUNITY_HEALTH_FILTER = {
-  isPublished: true,
-  OR: [
-    { title: { contains: 'community', mode: 'insensitive' as const } },
-    { title: { contains: 'FQHC', mode: 'insensitive' as const } },
-    { title: { contains: 'public health', mode: 'insensitive' as const } },
-  ],
-};
+const COMMUNITY_HEALTH_FILTER = buildCategoryWhereClause('community-health');
 
 async function getCommunityHealthJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
@@ -166,35 +161,27 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Community Health PMHNP Jobs" />
 
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#5b7455', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#E8F5E9', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#FFFFFF', margin: '0 0 20px' }}>
-                Community Health<br />
-                <span style={{ color: '#A5D6A7' }}>PMHNP Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#E8F5E9', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                FQHC and public health positions with loan repayment, integrated care teams, and meaningful impact on underserved communities.
-              </p>
-              <Link href="/jobs?q=community+health" className="clay-btn cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All Community Health Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_wc_communityhealth_v2.png" alt="Community health PMHNP integrated care" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#5b7455"
+        heroImage="/images/categories/hero_wc_communityhealth_v2.png"
+        heroAlt="Community health PMHNP integrated care"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Community Health']}
+        indexLabel="№ 19 / 28"
+        headlineLine1="Community Health"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, FQHC & public health."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$145K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="FQHC and public health positions with loan repayment, integrated care teams, and meaningful impact on underserved communities."
+        ctaLabel="Browse Community Health Jobs"
+        ctaHref="/jobs?category=community-health"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -219,7 +206,7 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
               </>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=community+health" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=community-health" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All Community Health Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -394,15 +381,15 @@ export default async function CommunityHealthJobsPage({ searchParams }: PageProp
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>

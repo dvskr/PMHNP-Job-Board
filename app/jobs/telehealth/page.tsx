@@ -3,11 +3,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // Force dynamic rendering - don't try to statically generate during build
 /* Design Tokens */
@@ -34,14 +35,7 @@ interface ProcessedEmployer {
 /**
  * Fetch telehealth jobs with pagination
  */
-const TH_FILTER = {
-  isPublished: true,
-  OR: CATEGORY_FILTERS['telehealth'],
-  AND: [
-    ...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
-    ...(CATEGORY_EXCLUSIONS['telehealth'] || []).map((e: any) => ({ NOT: e })),
-  ],
-};
+const TH_FILTER = buildCategoryWhereClause('telehealth');
 
 async function getTelehealthJobs(skip: number = 0, take: number = 10) {
     return prisma.job.findMany({
@@ -153,28 +147,27 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
             )}
             <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Telehealth PMHNP Jobs" />
             {/* ═══ HERO ═══ */}
-      <section style={{ background: '#f1d49c', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                Telehealth PMHNP<br />
-                <span style={{ color: '#0D9488' }}>Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities.
-              </p>
-              <Link href="/jobs?category=telehealth" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse All Telehealth Jobs <ArrowRight size={17} /></Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_wc_th_people.png" alt="Telehealth PMHNP virtual session" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#f1d49c"
+        heroImage="/images/categories/hero_wc_th_people.png"
+        heroAlt="Telehealth PMHNP virtual session"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Telehealth']}
+        indexLabel="№ 03 / 28"
+        headlineLine1="Telehealth"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, virtual care."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'companies' },
+        ]}
+        description="Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities."
+        ctaLabel="Browse All Telehealth Jobs"
+        ctaHref="/jobs?category=telehealth"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -341,14 +334,15 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles' },
-              { href: '/jobs/substance-abuse', label: 'Substance Abuse', sub: 'Addiction care' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/substance-abuse', label: 'Substance Abuse', sub: 'Addiction care', icon: '/images/categories/clay_icon_substance.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -376,6 +370,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'Do I need special licensure for telehealth?',a:'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.'},{q:'What technology do I need for telehealth?',a:'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.'},{q:'What is the salary range for telehealth PMHNPs?',a:'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.'},{q:'Can I prescribe controlled substances via telehealth?',a:'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.'},{q:'How many patients do telehealth PMHNPs see per day?',a:'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

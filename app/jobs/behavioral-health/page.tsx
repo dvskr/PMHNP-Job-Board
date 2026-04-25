@@ -3,11 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, DollarSign, TrendingUp, Building2, Bell, Briefcase, Brain, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // ISR caching
 const clayCard = {
@@ -28,20 +30,11 @@ interface ProcessedEmployer {
     count: number;
 }
 
-const BEHAVIORAL_HEALTH_KEYWORDS = [
-    { title: { contains: 'behavioral health', mode: 'insensitive' as const } },
-    { title: { contains: 'behavioral', mode: 'insensitive' as const } },
-    { title: { contains: 'mental health', mode: 'insensitive' as const } },
-    { title: { contains: 'psychiatric', mode: 'insensitive' as const } },
-    { title: { contains: 'psych NP', mode: 'insensitive' as const } },
-    { title: { contains: 'PMHNP', mode: 'insensitive' as const } },
-    { description: { contains: 'behavioral health', mode: 'insensitive' as const } },
-    { description: { contains: 'behavioral health facility', mode: 'insensitive' as const } },
-];
+const BH_FILTER = buildCategoryWhereClause('behavioral-health');
 
 async function getBehavioralHealthJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
-        where: { isPublished: true, OR: BEHAVIORAL_HEALTH_KEYWORDS },
+        where: BH_FILTER,
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
@@ -50,14 +43,11 @@ async function getBehavioralHealthJobs(skip = 0, take = 20) {
 
 async function getBehavioralHealthStats() {
     const totalJobs = await prisma.job.count({
-        where: { isPublished: true, OR: BEHAVIORAL_HEALTH_KEYWORDS },
+        where: BH_FILTER,
     });
 
     const salaryData = await prisma.job.aggregate({
-        where: {
-            isPublished: true,
-            OR: BEHAVIORAL_HEALTH_KEYWORDS,
-            normalizedMinSalary: { not: null },
+        where: { ...BH_FILTER, normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
         _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
@@ -69,7 +59,7 @@ async function getBehavioralHealthStats() {
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: { isPublished: true, OR: BEHAVIORAL_HEALTH_KEYWORDS },
+        where: BH_FILTER,
         _count: { employer: true },
         orderBy: { _count: { employer: 'desc' } },
         take: 8,
@@ -131,37 +121,32 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
                 { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
                 { name: "Behavioral Health", url: "https://pmhnphiring.com/jobs/behavioral-health" }
             ]} />
+            {jobs.length > 0 && (
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Behavioral Health PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+            )}
 
             {/* ═══ HERO ═══ */}
-      <section style={{ background: '#bda3cd', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                Behavioral Health<br />
-                <span style={{ color: '#0D9488' }}>NP Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Psychiatric and mental health positions across inpatient, outpatient, telehealth, and community settings.
-              </p>
-              <Link href="/jobs?q=behavioral%20health" className="clay-btn cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All BH Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_v2_behavioralhealth.png" alt="Behavioral health nurse practitioner setting" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#bda3cd"
+        heroImage="/images/categories/hero_v2_behavioralhealth.png"
+        heroAlt="Behavioral health nurse practitioner setting"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Behavioral Health']}
+        indexLabel="№ 14 / 28"
+        headlineLine1="Behavioral Health"
+        headlineLine2="NP"
+        headlineSub="jobs, whole-person care."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$155K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Psychiatric and mental health positions across inpatient, outpatient, telehealth, and community settings."
+        ctaLabel="Browse BH Jobs"
+        ctaHref="/jobs?category=behavioral-health"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -183,7 +168,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
               </div>
             )}
           <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=behavioral%20health" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=behavioral-health" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All Behavioral health Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -357,15 +342,15 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -392,6 +377,7 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
               </div>
             ))}
           </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What is behavioral health vs mental health?",a:"Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care."},{q:"What settings do BH PMHNPs work in?",a:"CMHCs, FQHCs, school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms."},{q:"How much do behavioral health PMHNPs earn?",a:"BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs up to $50K."},{q:"What skills are important for BH PMHNPs?",a:"Collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, and trauma-informed care."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

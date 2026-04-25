@@ -3,18 +3,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 const clayCard: React.CSSProperties = { background: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)' };
 export const revalidate = 3600;
 interface EmployerGroupResult { employer: string; _count: { employer: number }; }
 interface ProcessedEmployer { name: string; count: number; }
 
-const PT_FILTER = { isPublished: true, OR: CATEGORY_FILTERS['part-time'], AND: [...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })), ...(CATEGORY_EXCLUSIONS['part-time'] || []).map((e: any) => ({ NOT: e }))] };
+const PT_FILTER = buildCategoryWhereClause('part-time');
 
 async function getJobs(skip = 0, take = 20) { return prisma.job.findMany({ where: PT_FILTER, orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }], skip, take }); }
 async function getStats() {
@@ -49,23 +50,32 @@ export default async function PartTimePage({ searchParams }: PageProps) {
     <div style={{ backgroundColor: '#FDFBF7' }}>
       <BreadcrumbSchema items={[{ name: "Home", url: "https://pmhnphiring.com" }, { name: "Jobs", url: "https://pmhnphiring.com/jobs" }, { name: "Part-Time", url: "https://pmhnphiring.com/jobs/part-time" }]} />
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Part-Time Jobs" />
+      {jobs.length > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Part-Time PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+      )}
 
       {/* 1. HERO */}
-      <section style={{ background: '#c5bc77', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>Part-Time<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Flexible schedules, PRN options, and work-life balance for psychiatric nurse practitioners.</p>
-              <Link href="/jobs?category=part-time" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Part-Time Jobs <ArrowRight size={17} /></Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Image src="/images/categories/hero_wc_parttime.png" alt="Part-time PMHNP leaving clinic" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#c5bc77"
+        heroImage="/images/categories/hero_wc_parttime.png"
+        heroAlt="Part-time PMHNP leaving clinic"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Part-Time']}
+        indexLabel="№ 08 / 28"
+        headlineLine1="Part-Time"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, work on your terms."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$60/hr+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Flexible schedules, PRN options, and work-life balance for psychiatric nurse practitioners."
+        ctaLabel="Browse Part-Time Jobs"
+        ctaHref="/jobs?category=part-time"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* 2. JOB LISTINGS */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -133,8 +143,8 @@ export default async function PartTimePage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-            {[{ href: '/jobs/full-time', label: 'Full-Time', sub: 'Standard schedules' }, { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Daily assignments' }, { href: '/jobs/contract', label: 'Contract', sub: 'Fixed-term roles' }, { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' }, { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data' }, { href: '/jobs/locations', label: 'By Location', sub: '50 states' }].map(c => (
-              <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', textAlign: 'center' }}><span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span><span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span></Link>
+            {[{ href: '/jobs/full-time', label: 'Full-Time', sub: 'Standard schedules', icon: '/images/categories/clay_icon_fulltime.png' }, { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Daily assignments', icon: '/images/categories/clay_icon_perdiem.png' }, { href: '/jobs/contract', label: 'Contract', sub: 'Fixed-term roles', icon: '/images/categories/clay_icon_contract.png' }, { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' }, { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', icon: '/images/categories/clay_icon_salary.png' }, { href: '/jobs/locations', label: 'By Location', sub: '50 states', icon: '/images/categories/clay_icon_location.png' }].map(c => (
+              <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', textAlign: 'center' }}><Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} /><span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span><span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span></Link>
             ))}
           </div>
         </section>
@@ -146,6 +156,7 @@ export default async function PartTimePage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Part-Time PMHNP Questions</h2>
           <div style={{ display: 'grid', gap: '16px' }}>{faqs.map((faq, idx) => (<div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}><h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3><p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p></div>))}</div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 

@@ -3,11 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Building, Briefcase, DollarSign, Shield, TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 /* ═══ Design Tokens — clay card style ═══ */
 const clayCard: React.CSSProperties = {
@@ -28,16 +30,7 @@ interface ProcessedEmployer {
   count: number;
 }
 
-const WHERE_CLAUSE = {
-  isPublished: true,
-  isRemote: { not: true },
-  OR: [
-    { title: { contains: 'inpatient', mode: 'insensitive' as const } },
-    { title: { contains: 'in-patient', mode: 'insensitive' as const } },
-    { title: { contains: 'acute care', mode: 'insensitive' as const } },
-    { title: { contains: 'hospital', mode: 'insensitive' as const } },
-  ],
-};
+const WHERE_CLAUSE = buildCategoryWhereClause('inpatient', { isRemote: { not: true } });
 
 async function getJobs(skip: number = 0, take: number = 20) {
   return prisma.job.findMany({
@@ -103,55 +96,27 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Inpatient PMHNP Jobs" />
 
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#a0b7c4', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                Inpatient PMHNP<br />
-                <span style={{ color: '#0D9488' }}>Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Hospital-based and acute care positions with structured schedules, competitive pay, and multidisciplinary team support.
-              </p>
-              <Link href="/jobs?q=inpatient" className="clay-btn cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All Inpatient Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_v3_inpatient.png" alt="PMHNP working in inpatient hospital setting" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
-            </div>
-          </div>
-          {/* Stat Pills */}
-          <div className="cat-stats-grid" style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', marginTop: '40px' }}>
-            {[
-              { value: `${stats.totalJobs}`, label: 'Inpatient Positions', bg: '#D4F5E9', iconBg: '#34D399', color: '#065F46', Icon: Briefcase },
-              ...(stats.avgSalary > 0 ? [{ value: `$${stats.avgSalary}k`, label: 'Avg. Salary', bg: '#FFE0D3', iconBg: '#F97316', color: '#7C2D12', Icon: DollarSign }] : []),
-              { value: `${stats.topEmployers.length}+`, label: 'Hiring Hospitals', bg: '#E8DAFE', iconBg: '#A855F7', color: '#4C1D95', Icon: Building2 },
-            ].map(s => {
-              const SIcon = s.Icon;
-              return (
-              <div key={s.label} className="cat-stat-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '10px 20px 10px 14px', borderRadius: '40px', background: s.bg, boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '2px 2px 6px rgba(0,0,0,0.1), inset 1px 1px 2px rgba(255,255,255,0.3)' }}>
-                  <SIcon size={16} color="#fff" />
-                </div>
-                <div>
-                  <span style={{ fontSize: '18px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</span>
-                  <span style={{ fontSize: '12px', color: s.color, opacity: 0.7, marginLeft: '6px', fontWeight: 500 }}>{s.label}</span>
-                </div>
-              </div>);
-            })}
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#a0b7c4"
+        heroImage="/images/categories/hero_v3_inpatient.png"
+        heroAlt="PMHNP working in inpatient hospital setting"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Inpatient']}
+        indexLabel="№ 12 / 28"
+        headlineLine1="Inpatient"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, hospital & acute care."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$140K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'hospitals' },
+        ]}
+        description="Hospital-based and acute care positions with structured schedules, competitive pay, and multidisciplinary team support."
+        ctaLabel="Browse Inpatient Jobs"
+        ctaHref="/jobs?category=inpatient"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -176,7 +141,7 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
               </>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?setting=inpatient" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=inpatient" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All Inpatient Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -343,15 +308,15 @@ export default async function InpatientJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based care', emoji: '🏢' },
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/crisis', label: 'Crisis', sub: 'Emergency psych', emoji: '🚨' },
-              { href: '/jobs/correctional', label: 'Correctional', sub: 'Forensic settings', emoji: '🔒' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based care', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/crisis', label: 'Crisis', sub: 'Emergency psych', icon: '/images/categories/clay_icon_crisis.png' },
+              { href: '/jobs/correctional', label: 'Correctional', sub: 'Forensic settings', icon: '/images/categories/clay_icon_correctional.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>

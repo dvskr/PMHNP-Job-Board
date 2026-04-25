@@ -3,11 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Home, Globe, TrendingUp, Building2, Bell, ArrowRight, Briefcase, DollarSign } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { GLOBAL_EXCLUSIONS } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 /* ═══ Design Tokens — matched to employer page ═══ */
 const clayCard: React.CSSProperties = {
@@ -32,15 +34,18 @@ interface ProcessedEmployer {
   count: number;
 }
 
+const REMOTE_FILTER = {
+  isPublished: true,
+  isRemote: true,
+  AND: GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
+};
+
 /**
  * Fetch remote jobs with pagination
  */
 async function getRemoteJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
-    where: {
-      isPublished: true,
-      isRemote: true,
-    },
+    where: REMOTE_FILTER,
     orderBy: [
       { isFeatured: 'desc' },
       { qualityScore: 'desc' },
@@ -60,17 +65,13 @@ async function getRemoteJobs(skip: number = 0, take: number = 20) {
 async function getRemoteStats() {
   // Total remote jobs
   const totalJobs = await prisma.job.count({
-    where: {
-      isPublished: true,
-      isRemote: true,
-    },
+    where: REMOTE_FILTER,
   });
 
   // Average salary for remote positions
   const salaryData = await prisma.job.aggregate({
     where: {
-      isPublished: true,
-      isRemote: true,
+      ...REMOTE_FILTER,
       normalizedMinSalary: { not: null },
       normalizedMaxSalary: { not: null },
     },
@@ -87,10 +88,7 @@ async function getRemoteStats() {
   // Companies hiring remotely
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: {
-      isPublished: true,
-      isRemote: true,
-    },
+    where: REMOTE_FILTER,
     _count: {
       employer: true,
     },
@@ -200,71 +198,27 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
       )}
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Remote PMHNP Jobs" />
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#e8af9b', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="remote-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                Remote PMHNP<br />
-                <span style={{ color: '#0D9488' }}>Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Telehealth and remote positions with competitive pay, flexible schedules, and multi-state reach.
-              </p>
-              <Link href="/jobs?workMode=remote" className="clay-btn remote-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All Remote Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image
-                src="/images/categories/hero_wc_remote.png"
-                alt="PMHNP working remotely from home via telehealth"
-                width={520} height={520}
-                style={{ width: '100%', maxWidth: '500px', height: 'auto' }}
-                priority
-              />
-            </div>
-          </div>
-
-          {/* Stat Pills */}
-          <div className="remote-stats-grid" style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', marginTop: '40px' }}>
-            {[
-              { value: `${stats.totalJobs}`, label: 'Remote Positions', bg: '#D4F5E9', iconBg: '#34D399', color: '#065F46', Icon: Briefcase },
-              ...(stats.avgSalary > 0 ? [{ value: `$${stats.avgSalary}k`, label: 'Avg. Salary', bg: '#FFE0D3', iconBg: '#F97316', color: '#7C2D12', Icon: DollarSign }] : []),
-              { value: `${stats.topEmployers.length}+`, label: 'Hiring Companies', bg: '#E8DAFE', iconBg: '#A855F7', color: '#4C1D95', Icon: Building2 },
-            ].map(s => {
-              const SIcon = s.Icon;
-              return (
-              <div key={s.label} className="remote-stat-pill" style={{
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                padding: '10px 20px 10px 14px', borderRadius: '40px', background: s.bg,
-                boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)',
-              }}>
-                <div style={{
-                  width: '36px', height: '36px', borderRadius: '50%', background: s.iconBg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '2px 2px 6px rgba(0,0,0,0.1), inset 1px 1px 2px rgba(255,255,255,0.3)',
-                }}>
-                  <SIcon size={16} color="#fff" />
-                </div>
-                <div>
-                  <span style={{ fontSize: '18px', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</span>
-                  <span style={{ fontSize: '12px', color: s.color, opacity: 0.7, marginLeft: '6px', fontWeight: 500 }}>{s.label}</span>
-                </div>
-              </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#e8af9b"
+        heroImage="/images/categories/hero_wc_remote.png"
+        heroAlt="PMHNP working remotely from home via telehealth"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Remote']}
+        indexLabel="№ 02 / 28"
+        headlineLine1="Remote"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, work from anywhere."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'companies' },
+        ]}
+        description="Telehealth and remote positions with competitive pay, flexible schedules, and multi-state reach."
+        ctaLabel="Browse All Remote Jobs"
+        ctaHref="/jobs?workMode=remote"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts?mode=Remote"
+      />
 
 
       {/* ═══ JOB LISTINGS ═══ */}
@@ -522,15 +476,15 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
           </h2>
           <div className="remote-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual patient care', emoji: '💻' },
-              { href: '/jobs/travel', label: 'Travel', sub: 'Locum tenens', emoji: '✈️' },
-              { href: '/jobs/new-grad', label: 'New Grad', sub: 'Entry-level roles', emoji: '🎓' },
-              { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Flexible shifts', emoji: '📅' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual patient care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/travel', label: 'Travel', sub: 'Locum tenens', icon: '/images/categories/clay_icon_travel.png' },
+              { href: '/jobs/new-grad', label: 'New Grad', sub: 'Entry-level roles', icon: '/images/categories/clay_icon_newgrad.png' },
+              { href: '/jobs/per-diem', label: 'Per Diem', sub: 'Flexible shifts', icon: '/images/categories/clay_icon_perdiem.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="remote-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>

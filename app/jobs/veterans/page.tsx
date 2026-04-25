@@ -1,12 +1,14 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 const clayCard: React.CSSProperties = {
   background: '#FFFFFF', borderRadius: '20px',
@@ -19,15 +21,7 @@ export const revalidate = 3600;
 interface EmployerGroupResult { employer: string; _count: { employer: number }; }
 interface ProcessedEmployer { name: string; count: number; }
 
-const WHERE_CLAUSE = {
-  isPublished: true,
-  OR: [
-    { title: { contains: 'veteran', mode: 'insensitive' as const } },
-    { title: { contains: 'VA ', mode: 'insensitive' as const } },
-    { title: { contains: 'military', mode: 'insensitive' as const } },
-    { title: { contains: 'VHA', mode: 'insensitive' as const } },
-  ],
-};
+const WHERE_CLAUSE = buildCategoryWhereClause('veterans');
 
 async function getJobs(skip = 0, take = 20) {
   return prisma.job.findMany({ where: WHERE_CLAUSE, orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }], skip, take });
@@ -74,25 +68,32 @@ export default async function VeteransPage({ searchParams }: PageProps) {
         { name: "Veterans", url: "https://pmhnphiring.com/jobs/veterans" }
       ]} />
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Veterans Jobs" />
+      {jobs.length > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Veterans PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+      )}
 
-      {/* ═══ HERO ═══ */}
-      <section style={{ background: '#b8c8d4', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>Veterans<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Browse veterans psychiatric nurse practitioner positions with competitive pay and benefits.</p>
-              <Link href="/jobs?q=VA+PMHNP" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Veterans Jobs <ArrowRight size={17} /></Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '100%', maxWidth: '400px', aspectRatio: '1', borderRadius: '24px', background: 'linear-gradient(145deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '120px' }}>🏥</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            {/* HERO */}
+      <CategoryHero
+        bgColor="#b8c8d4"
+        heroImage="/images/categories/hero_wc_veterans.png"
+        heroAlt="Veterans mental health PMHNP care"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Veterans']}
+        indexLabel="№ 28 / 28"
+        headlineLine1="Veterans"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, veteran mental health."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Serve veterans with specialized psychiatric care for PTSD, TBI, MST, and combat-related conditions."
+        ctaLabel="Browse Veterans Jobs"
+        ctaHref="/jobs?category=veterans"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -107,7 +108,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
               <div className="text-center py-12"><p style={{ color: '#7A6A62' }}>No positions right now. Check back soon.</p></div>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=VA+PMHNP" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Veterans Jobs <ArrowRight size={16} /></Link>
+              <Link href="/jobs?category=veterans" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Veterans Jobs <ArrowRight size={16} /></Link>
             </div>
           </div>
           <div className="lg:col-span-1">
@@ -204,15 +205,15 @@ export default async function VeteransPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: '50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: '50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -234,6 +235,7 @@ export default async function VeteransPage({ searchParams }: PageProps) {
               </div>
             ))}
           </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: veteransFaqs.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) }) }} />
         </section>
       </div>
 

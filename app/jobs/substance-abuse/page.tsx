@@ -3,11 +3,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { CATEGORY_FILTERS, CATEGORY_EXCLUSIONS, GLOBAL_EXCLUSIONS } from '@/lib/filters';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
 /* Design Tokens */
@@ -29,14 +30,7 @@ interface ProcessedEmployer {
     count: number;
 }
 
-const SA_FILTER = {
-  isPublished: true,
-  OR: CATEGORY_FILTERS['substance-abuse'],
-  AND: [
-    ...GLOBAL_EXCLUSIONS.map(e => ({ NOT: e })),
-    ...(CATEGORY_EXCLUSIONS['substance-abuse'] || []).map((e: any) => ({ NOT: e })),
-  ],
-};
+const SA_FILTER = buildCategoryWhereClause('substance-abuse');
 
 async function getSubstanceAbuseJobs(skip: number = 0, take: number = 20) {
     return prisma.job.findMany({
@@ -108,22 +102,31 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      {jobs.length > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Substance Abuse PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+      )}
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#9bb7a5', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>{stats.totalJobs}+ Open Positions</p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>Substance Abuse<br /><span style={{ color: '#0D9488' }}>PMHNP Jobs</span></h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px' }}>Addiction treatment roles including MAT programs, detox centers, and dual-diagnosis facilities.</p>
-              <Link href="/jobs?category=substance-abuse" className="cat-cta-primary" style={{ padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '10px', boxShadow: '4px 4px 14px rgba(13,148,136,0.25)' }}>Browse Substance Abuse Jobs <ArrowRight size={17} /></Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Image src="/images/categories/hero_wc_sa_people.png" alt="Substance Abuse PMHNP counseling session" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#9bb7a5"
+        heroImage="/images/categories/hero_wc_sa_people.png"
+        heroAlt="Substance Abuse PMHNP counseling session"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Substance Abuse']}
+        indexLabel="№ 13 / 28"
+        headlineLine1="Substance Abuse"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, addiction care."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Addiction treatment roles including MAT programs, detox centers, and dual-diagnosis facilities."
+        ctaLabel="Browse Substance Abuse Jobs"
+        ctaHref="/jobs?category=substance-abuse"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -272,14 +275,15 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
@@ -301,6 +305,7 @@ export default async function SubstanceAbuseJobsPage({ searchParams }: PageProps
               </div>
             ))}
           </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: substanceFaqs.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) }) }} />
         </section>
       </div>
 

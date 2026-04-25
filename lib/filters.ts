@@ -26,6 +26,7 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'correctional', mode: 'insensitive' } },
     { title: { contains: 'corrections', mode: 'insensitive' } },
     { title: { contains: 'prison', mode: 'insensitive' } },
+    { title: { contains: 'forensic', mode: 'insensitive' } },
     { title: { contains: 'jail', mode: 'insensitive' } },
     { title: { contains: 'detention', mode: 'insensitive' } },
     { title: { contains: 'incarcerat', mode: 'insensitive' } },
@@ -176,6 +177,61 @@ export const CATEGORY_FILTERS: Record<string, Prisma.JobWhereInput[]> = {
     { title: { contains: 'traveling', mode: 'insensitive' } },
     { title: { contains: 'assignment', mode: 'insensitive' } },
   ],
+  '1099': [
+    { title: { contains: '1099', mode: 'insensitive' } },
+    { title: { contains: 'independent contractor', mode: 'insensitive' } },
+    { title: { contains: 'independent practice', mode: 'insensitive' } },
+    { description: { contains: '1099', mode: 'insensitive' } },
+  ],
+  'addiction': [
+    { title: { contains: 'addiction', mode: 'insensitive' } },
+    { title: { contains: 'substance', mode: 'insensitive' } },
+    { title: { contains: 'substance use', mode: 'insensitive' } },
+    { title: { contains: ' SUD', mode: 'insensitive' } },
+    { title: { contains: ' MAT ', mode: 'insensitive' } },
+    { title: { contains: 'MAT program', mode: 'insensitive' } },
+    { title: { contains: 'MAT &', mode: 'insensitive' } },
+    { title: { contains: 'opioid', mode: 'insensitive' } },
+    { title: { contains: 'detox', mode: 'insensitive' } },
+    { title: { contains: 'recovery', mode: 'insensitive' } },
+    { title: { contains: 'suboxone', mode: 'insensitive' } },
+    { title: { contains: 'buprenorphine', mode: 'insensitive' } },
+    { description: { contains: 'addiction', mode: 'insensitive' } },
+    { description: { contains: 'substance use disorder', mode: 'insensitive' } },
+    { description: { contains: 'MAT program', mode: 'insensitive' } },
+  ],
+  'behavioral-health': [
+    { title: { contains: 'behavioral health', mode: 'insensitive' } },
+    { title: { contains: 'behavioral', mode: 'insensitive' } },
+    { title: { contains: 'mental health', mode: 'insensitive' } },
+    { title: { contains: 'psychiatric', mode: 'insensitive' } },
+    { title: { contains: 'psych NP', mode: 'insensitive' } },
+    { title: { contains: 'PMHNP', mode: 'insensitive' } },
+    { description: { contains: 'behavioral health', mode: 'insensitive' } },
+    { description: { contains: 'behavioral health facility', mode: 'insensitive' } },
+  ],
+  'inpatient': [
+    { title: { contains: 'inpatient', mode: 'insensitive' } },
+    { title: { contains: 'in-patient', mode: 'insensitive' } },
+    { title: { contains: 'acute care', mode: 'insensitive' } },
+    { title: { contains: 'hospital', mode: 'insensitive' } },
+  ],
+  'va': [
+    { employer: { contains: 'Veterans', mode: 'insensitive' } },
+    { employer: { contains: 'VA ', mode: 'insensitive' } },
+    { employer: { startsWith: 'VA ', mode: 'insensitive' } },
+    { title: { contains: 'Veterans', mode: 'insensitive' } },
+    { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
+  ],
+  'veterans': [
+    { title: { contains: 'veteran', mode: 'insensitive' } },
+    { title: { contains: 'VA ', mode: 'insensitive' } },
+    { title: { contains: 'military', mode: 'insensitive' } },
+    { title: { contains: 'VHA', mode: 'insensitive' } },
+  ],
+  'remote': [
+    // Remote uses isRemote boolean, not title-based — see CATEGORY_SPECIAL_FILTERS
+  ],
 };
 
 /**
@@ -244,6 +300,45 @@ export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
     ],
   },
 ];
+
+/**
+ * Build a Prisma WHERE clause for a category page.
+ * Applies: CATEGORY_FILTERS + CATEGORY_EXCLUSIONS + GLOBAL_EXCLUSIONS
+ * This guarantees the same count the main /jobs?category=slug page shows.
+ *
+ * @param slug  Category slug (e.g. '1099', 'addiction')
+ * @param extra Additional Prisma conditions merged at the top level
+ *              (e.g. { isRemote: { not: true } } for inpatient)
+ */
+export function buildCategoryWhereClause(
+  slug: string,
+  extra: Prisma.JobWhereInput = {},
+): Prisma.JobWhereInput {
+  const andConditions: Prisma.JobWhereInput[] = [];
+
+  // Category filter (OR conditions from registry)
+  if (CATEGORY_FILTERS[slug]?.length) {
+    andConditions.push({ OR: CATEGORY_FILTERS[slug] });
+  }
+
+  // Category-specific exclusions
+  if (CATEGORY_EXCLUSIONS[slug]) {
+    CATEGORY_EXCLUSIONS[slug].forEach(exclusion => {
+      andConditions.push({ NOT: exclusion });
+    });
+  }
+
+  // Global exclusions (removes non-PMHNP jobs)
+  GLOBAL_EXCLUSIONS.forEach(exclusion => {
+    andConditions.push({ NOT: exclusion });
+  });
+
+  return {
+    isPublished: true,
+    ...extra,
+    AND: andConditions,
+  };
+}
 
 export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
   const where: Prisma.JobWhereInput = {

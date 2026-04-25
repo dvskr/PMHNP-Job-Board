@@ -3,11 +3,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Shield, Award, Clock, Building2, TrendingUp, Lightbulb, Bell, GraduationCap, Calendar, Home, Heart, Briefcase , ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // ISR: cache for 1 hour
 const clayCard: React.CSSProperties = {
@@ -30,24 +32,14 @@ interface ProcessedEmployer {
   count: number;
 }
 
-// VA-related search terms for filtering
-const VA_KEYWORDS = ['Veterans Health Administration', 'Veterans Affairs', 'Department of Veterans', 'VA Medical Center', 'VA Healthcare'];
+const VA_FILTER = buildCategoryWhereClause('va');
 
 /**
  * Fetch VA jobs with pagination
  */
 async function getVAJobs(skip: number = 0, take: number = 20) {
   const jobs = await prisma.job.findMany({
-    where: {
-      isPublished: true,
-      OR: [
-        { employer: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'VA ', mode: 'insensitive' } },
-        { employer: { startsWith: 'VA ', mode: 'insensitive' } },
-        { title: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
-      ],
-    },
+    where: VA_FILTER,
     orderBy: [
       { isFeatured: 'desc' },
       { qualityScore: 'desc' },
@@ -65,36 +57,11 @@ async function getVAJobs(skip: number = 0, take: number = 20) {
  * Fetch VA job statistics
  */
 async function getVAStats() {
-  const totalJobs = await prisma.job.count({
-    where: {
-      isPublished: true,
-      OR: [
-        { employer: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'VA ', mode: 'insensitive' } },
-        { employer: { startsWith: 'VA ', mode: 'insensitive' } },
-        { title: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
-      ],
-    },
-  });
+  const totalJobs = await prisma.job.count({ where: VA_FILTER });
 
   const salaryData = await prisma.job.aggregate({
-    where: {
-      isPublished: true,
-      OR: [
-        { employer: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'VA ', mode: 'insensitive' } },
-        { employer: { startsWith: 'VA ', mode: 'insensitive' } },
-        { title: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
-      ],
-      normalizedMinSalary: { not: null },
-      normalizedMaxSalary: { not: null },
-    },
-    _avg: {
-      normalizedMinSalary: true,
-      normalizedMaxSalary: true,
-    },
+    where: { ...VA_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+    _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
   });
 
   const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
@@ -103,24 +70,9 @@ async function getVAStats() {
 
   const topEmployers = await prisma.job.groupBy({
     by: ['employer'],
-    where: {
-      isPublished: true,
-      OR: [
-        { employer: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'VA ', mode: 'insensitive' } },
-        { employer: { startsWith: 'VA ', mode: 'insensitive' } },
-        { title: { contains: 'Veterans', mode: 'insensitive' } },
-        { employer: { contains: 'Department of Veterans', mode: 'insensitive' } },
-      ],
-    },
-    _count: {
-      employer: true,
-    },
-    orderBy: {
-      _count: {
-        employer: 'desc',
-      },
-    },
+    where: VA_FILTER,
+    _count: { employer: true },
+    orderBy: { _count: { employer: 'desc' } },
     take: 8,
   });
 
@@ -129,11 +81,7 @@ async function getVAStats() {
     count: e._count.employer,
   }));
 
-  return {
-    totalJobs,
-    avgSalary,
-    topEmployers: processedEmployers,
-  };
+  return { totalJobs, avgSalary, topEmployers: processedEmployers };
 }
 
 /**
@@ -220,35 +168,27 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
       <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="VA PMHNP Jobs" />
 
       {/* ═══ HERO ═══ */}
-      <section style={{ background: '#97b0c9', padding: '72px 0 56px' }}>
-        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: '0 24px' }}>
-          <div className="cat-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#134E4A', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '12px' }}>
-                {stats.totalJobs}+ Open Positions
-              </p>
-              <h1 className="font-lora" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', fontWeight: 800, lineHeight: 1.08, color: '#1A2E35', margin: '0 0 20px' }}>
-                VA PMHNP<br />
-                <span style={{ color: '#0D9488' }}>Jobs</span>
-              </h1>
-              <p style={{ fontSize: '16px', color: '#3D2E26', lineHeight: 1.7, margin: '0 0 36px', maxWidth: '440px', fontWeight: 400 }}>
-                Federal benefits, EDRP loan repayment up to $200K, pension, and full practice authority nationwide.
-              </p>
-              <Link href="/jobs?q=VA" className="cat-cta-primary" style={{
-                padding: '16px 40px', borderRadius: '16px', fontWeight: 700, fontSize: '15px',
-                background: '#0D9488', color: '#fff', textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                boxShadow: '4px 4px 14px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.2)',
-              }}>
-                Browse All VA Jobs <ArrowRight size={17} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Image src="/images/categories/hero_v2_va.png" alt="VA PMHNP Veterans Affairs medical center" width={520} height={520} style={{ width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0px' }} priority />
-            </div>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        bgColor="#97b0c9"
+        heroImage="/images/categories/hero_v2_va.png"
+        heroAlt="VA PMHNP Veterans Affairs medical center"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'VA']}
+        indexLabel="№ 20 / 28"
+        headlineLine1="VA"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, federal benefits."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$150K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Federal benefits, EDRP loan repayment up to $200K, pension, and full practice authority nationwide."
+        ctaLabel="Browse VA Jobs"
+        ctaHref="/jobs?category=va"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
@@ -272,7 +212,7 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
               </>
             )}
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <Link href="/jobs?q=VA" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+              <Link href="/jobs?category=va" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
                 Browse All VA Jobs <ArrowRight size={16} />
               </Link>
             </div>
@@ -387,15 +327,15 @@ export default async function VAJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', emoji: '🏠' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', emoji: '💻' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', emoji: '🏥' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', emoji: '🏢' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', emoji: '💰' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', emoji: '📍' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>{c.emoji}</span>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
                 <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
               </Link>
