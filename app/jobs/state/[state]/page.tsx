@@ -584,13 +584,13 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 )}
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
-                <Image src="/images/categories/hero_wc_states.png" alt={`PMHNP in ${stateName}`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="/images/categories/bento_state_practice.png" alt={`PMHNP practice in ${stateName}`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
             <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Image src="/images/categories/clay_icon_salary.png" alt="" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                <Image src="/images/categories/bento_state_salary.png" alt="Salary data" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
               </div>
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Salary & Compensation</h3>
@@ -600,29 +600,19 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               </div>
             </div>
 
-            {/* ROW 2: Icon cards */}
-            {citiesWithJobs.length > 0 ? citiesWithJobs.slice(0, 4).map((city) => (
-              <Link key={city.slug} href={`/jobs/city/${city.slug}`} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center', textDecoration: 'none' }}>
-                <Image src="/images/categories/clay_icon_location.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{city.name}</h3>
-                <p style={{ fontSize: '12px', color: '#0D9488', margin: 0, fontWeight: 700 }}>{city.count} {city.count === 1 ? 'position' : 'positions'}</p>
-              </Link>
-            )) : (
-              <>
-                {[
-                  { icon: '/images/categories/clay_icon_remote.png', title: 'Remote Options', desc: 'Telehealth positions available statewide' },
-                  { icon: '/images/categories/clay_icon_outpatient.png', title: 'Outpatient', desc: 'Clinic-based psychiatric care roles' },
-                  { icon: '/images/categories/clay_icon_inpatient.png', title: 'Inpatient', desc: 'Hospital and facility positions' },
-                  { icon: '/images/categories/clay_icon_private.png', title: 'Private Practice', desc: 'Independent practice opportunities' },
-                ].map((b, i) => (
-                  <div key={i} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-                    <Image src={b.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
-                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{b.title}</h3>
-                    <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>{b.desc}</p>
-                  </div>
-                ))}
-              </>
-            )}
+            {/* ROW 2: Job type icon cards */}
+            {[
+              { icon: '/images/categories/clay_icon_telehealth.png', title: 'Telehealth', desc: 'Virtual psychiatric care from anywhere in the state' },
+              { icon: '/images/categories/clay_icon_outpatient.png', title: 'Outpatient', desc: 'Clinic-based roles with standard weekday hours' },
+              { icon: '/images/categories/clay_icon_inpatient.png', title: 'Inpatient', desc: 'Hospital and residential facility positions' },
+              { icon: '/images/categories/clay_icon_privatepractice.png', title: 'Private Practice', desc: 'Independent practice and group opportunities' },
+            ].map((b, i) => (
+              <div key={i} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+                <Image src={b.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{b.title}</h3>
+                <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>{b.desc}</p>
+              </div>
+            ))}
 
             {/* ROW 3: Growth (8col) + Alert CTA (4col) */}
             <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
@@ -634,7 +624,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
-                <Image src="/images/categories/hero_wc_states.png" alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="/images/categories/bento_state_growth.png" alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
@@ -650,28 +640,32 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         </div>
       </div>
 
-      {/* ═══ Top Cities ═══ */}
-      {citiesWithJobs.length > 0 && (
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 20px 0' }}>
-          <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px', textAlign: 'center' }}>
-            Top Cities for PMHNP Jobs in {stateName}
-          </h2>
-          <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-            {citiesWithJobs.map((c) => (
-              <Link key={c.slug} href={`/jobs/city/${c.slug}`}
-                className="pseo-pill"
-                style={{ ...clayCard, display: 'block', padding: '14px 10px', textAlign: 'center', textDecoration: 'none' }}>
-                <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{c.name}</div>
-                <div style={{ fontSize: '11px', marginTop: '3px', color: '#7A6A62' }}>{c.count} {c.count === 1 ? 'job' : 'jobs'}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* ═══ EXPLORE — Top Cities + Cross-Links ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Explore</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More PMHNP Opportunities in {stateName}</h2>
 
-      {/* ═══ Cross-Links — Consolidated ═══ */}
-      <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '40px 0' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+          {/* Top Cities */}
+          {citiesWithJobs.length > 0 && (
+            <div style={{ marginBottom: '28px' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '14px' }}>
+                Top Cities
+              </h3>
+              <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                {citiesWithJobs.map((c) => (
+                  <Link key={c.slug} href={`/jobs/city/${c.slug}`}
+                    className="pseo-pill"
+                    style={{ ...clayCard, display: 'block', padding: '14px 10px', textAlign: 'center', textDecoration: 'none' }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{c.name}</div>
+                    <div style={{ fontSize: '11px', marginTop: '3px', color: '#7A6A62' }}>{c.count} {c.count === 1 ? 'job' : 'jobs'}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cross-Links Card */}
           <div style={{ ...clayCard, padding: '28px 32px' }}>
 
             {/* Nearby States — clay pills */}
@@ -757,14 +751,14 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
 
           </div>
         </div>
-      </section>
+      </div>
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
         <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>PMHNP Jobs in {stateName}</h2>
-          <div style={{ display: 'grid', gap: '16px' }}>
+          <div style={{ display: 'grid', gap: '12px' }}>
             {[
               { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} psychiatric nurse practitioner positions available in ${stateName}${stats.avgSalary > 0 ? `, with an average salary of $${stats.avgSalary}K/year` : ''}. New positions are added daily.` },
               { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority ? practiceAuthority.details : `Practice authority in ${stateName} varies. Check state-specific NP practice regulations for the most current requirements.` },
@@ -772,12 +766,22 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
               { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.length > 0 ? `Top cities for PMHNP jobs in ${stateName} include ${citiesWithJobs.slice(0, 4).map(c => `${c.name} (${c.count} jobs)`).join(', ')}.` : `PMHNP positions in ${stateName} are distributed across multiple cities and include remote telehealth options.` },
               { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth and remote PMHNP positions allow you to practice from ${stateName}. You'll need an active NP license in the state where your patient resides.` },
             ].map((faq, idx) => (
-              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
-                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
-              </div>
+              <details key={idx} className="faq-accordion" style={{ ...clayCard, overflow: 'hidden' }}>
+                <summary style={{ padding: '20px 28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', listStyle: 'none', fontSize: '16px', fontWeight: 700, color: '#1A2E35', lineHeight: 1.4 }}>
+                  <span>{faq.q}</span>
+                  <span className="faq-chevron" style={{ flexShrink: 0, width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', background: '#F0FDFA', color: '#0D9488', fontSize: '18px', fontWeight: 700 }}>+</span>
+                </summary>
+                <div style={{ padding: '0 28px 20px', fontSize: '14px', color: '#5A4A42', lineHeight: 1.7 }}>{faq.a}</div>
+              </details>
             ))}
           </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [
+            { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} positions available in ${stateName}.` },
+            { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority?.details || `Practice authority varies by state.` },
+            { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `$${stats.avgSalary}K/year` : `$130K-$200K+` },
+            { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.slice(0, 4).map(c => c.name).join(', ') || 'Multiple cities' },
+            { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth positions are available.` },
+          ].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
         </section>
       </div>
 
@@ -787,6 +791,18 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
         .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .pseo-pill { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .pseo-pill:hover { transform: translateY(-3px); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .pseo-pill:active { transform: translateY(-1px); }
+        .pseo-resource { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .pseo-resource:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .pseo-resource:active { transform: translateY(-1px); }
+        .faq-accordion { transition: box-shadow 0.3s ease; }
+        .faq-accordion:hover { box-shadow: 8px 8px 24px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .faq-accordion summary::-webkit-details-marker { display: none; }
+        .faq-accordion summary::marker { display: none; content: ''; }
+        .faq-accordion[open] .faq-chevron { transform: rotate(45deg); background: #0D9488; color: #fff; }
+        .faq-chevron { transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease; }
         .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
         @media (max-width: 768px) {
