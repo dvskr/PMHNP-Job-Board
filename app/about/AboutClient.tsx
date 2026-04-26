@@ -67,13 +67,12 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
             <Link href="/sign-up" className="ab-btn ab-btn-primary" style={{ marginTop: 36 }}>Create a free profile <ArrowRight size={16} /></Link>
           </div>
           <div>
-            <div className="ab-diorama-card mint">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span className="chip">For candidates</span><span className="chip" style={{ background: 'rgba(255,255,255,0.4)' }}>Live feed</span>
+            <div className="ab-diorama-card mint" style={{ padding: 0 }}>
+              <img src="/images/about/diorama_candidates.png" alt="Career growth for PMHNPs" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '40px 40px 0 0' }} />
+              <div style={{ padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <b style={{ fontFamily: "var(--font-lora), 'Lora', serif", fontSize: 18 }}>Chart your path, step by step.</b>
+                <span className="chip">PMHNP · 2026</span>
               </div>
-              <div className="ab-b1" /><div className="ab-b2" /><div className="ab-b3" />
-              <div className="placeholder-scene"><span style={{ background: 'rgba(255,255,255,0.7)', padding: '4px 10px', borderRadius: 8 }}>// 3D clay illustration —<br />candidate climbing podium scene</span></div>
-              <div className="caption"><b>Chart your path, step by step.</b><span className="chip">PMHNP · 2026</span></div>
             </div>
           </div>
         </div>
@@ -83,17 +82,12 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
       <section className="ab-pad ab-emp-section"><div className="ab-wrap">
         <div className="ab-two-col flip">
           <div>
-            <div className="ab-diorama-card peach">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span className="chip">For employers</span><span className="chip" style={{ background: 'rgba(255,255,255,0.4)' }}>Verified</span>
+            <div className="ab-diorama-card peach" style={{ padding: 0 }}>
+              <img src="/images/about/diorama_employers.png" alt="Employer hiring dashboard" style={{ width: '100%', flex: 1, objectFit: 'cover', borderRadius: '40px 40px 0 0' }} />
+              <div style={{ padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <b style={{ fontFamily: "var(--font-lora), 'Lora', serif", fontSize: 18 }}>A team room, not a newsstand.</b>
+                <span className="chip">Dashboard</span>
               </div>
-              <div className="ab-grid-2x2" style={{ margin: '20px 0' }}>
-                <div className="ab-mini a"><small>High-intent</small><div className="t">92% complete profiles</div><div className="ring" /></div>
-                <div className="ab-mini c"><small>Conversion</small><div className="t">7.4× apply rate</div><div className="ring" /></div>
-                <div className="ab-mini d"><small>Reach</small><div className="t">Psych-only audience</div><div className="ring" /></div>
-                <div className="ab-mini b"><small>Funnel</small><div className="t">Live apply-through analytics</div><div className="ring" /></div>
-              </div>
-              <div className="caption"><b>A team room, not a newsstand.</b><span className="chip">Dashboard</span></div>
             </div>
           </div>
           <div>

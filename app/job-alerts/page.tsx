@@ -158,17 +158,17 @@ function JobAlertsContent() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FDFBF7' }}>
+    <div style={{ minHeight: '100vh', background: '#FBEFE4' }}>
       {/* ═══ Hero Section ═══ */}
       <CategoryHero
         bgColor="#0D9488"
-        heroImage="/images/categories/hero_wc_general.png"
+        heroImage="/images/categories/hero_wc_alerts.png"
         heroAlt="Job Alerts"
         badgeText="Job Alerts"
         breadcrumbs={['Home', 'Job Alerts']}
         indexLabel="№ 03"
-        headlineLine1="Never Miss a"
-        headlineLine2="Dream Job"
+        headlineLine1="Never Miss"
+        headlineLine2="a Dream Job"
         headlineSub="Personalized alerts"
         stats={[
           { value: "200+", label: 'New Daily' },
@@ -507,7 +507,7 @@ function JobAlertsContent() {
 
 function LoadingFallback() {
   return (
-    <div style={{ minHeight: '100vh', background: '#FDFBF7', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#FBEFE4', display: 'flex', flexDirection: 'column' }}>
       {/* Shimmer hero */}
       <div style={{ padding: '32px 16px 24px', background: '#F9F7F1', borderBottom: '1px solid #EAE6DF' }}>
         <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>

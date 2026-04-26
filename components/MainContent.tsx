@@ -3,10 +3,10 @@
 import { usePathname } from 'next/navigation';
 
 /* Routes that handle their own full layout (no padding at all) */
-const BARE_ROUTES = ['/admin', '/messages', '/login', '/signup', '/forgot-password', '/reset-password', '/employer/login', '/employer/signup', '/employer/dashboard', '/employer/candidates', '/pricing', '/contact', '/terms', '/privacy', '/faq', '/about', '/for-employers', '/for-job-seekers', '/salary-guide', '/resources', '/blog', '/jobs'];
+const BARE_ROUTES = ['/admin', '/messages', '/login', '/signup', '/forgot-password', '/reset-password', '/employer/login', '/employer/signup', '/employer/dashboard', '/employer/candidates', '/pricing', '/contact', '/terms', '/privacy', '/faq', '/about', '/for-employers', '/for-job-seekers', '/salary-guide', '/resources', '/blog', '/jobs', '/job-alerts'];
 
 /* App-like routes that need top padding removed but still need bottom nav clearance */
-const APP_ROUTES = ['/settings', '/saved', '/job-alerts', '/dashboard'];
+const APP_ROUTES = ['/settings', '/saved', '/dashboard'];
 
 export default function MainContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
