@@ -40,6 +40,7 @@ const sectionCard: React.CSSProperties = {
 /* ──────────────────────────────────────────────────────── */
 interface ResumeUploadProps {
   currentResumeUrl: string | null
+  resumeParseStatus?: string | null
   /** stored file metadata (optional — enriches the "uploaded" state) */
   resumeMeta?: { name?: string; size?: number; uploadedAt?: string }
   onUploadComplete: (url: string, meta: { name: string; size: number }) => void
@@ -48,6 +49,7 @@ interface ResumeUploadProps {
 
 export default function ResumeUpload({
   currentResumeUrl,
+  resumeParseStatus,
   resumeMeta,
   onUploadComplete,
   onRemove,
@@ -352,14 +354,39 @@ export default function ResumeUpload({
           </p>
         </div>
 
-        {/* green badge */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '5px',
-          background: 'rgba(34,197,94,0.10)', color: '#22C55E',
-          padding: '5px 12px', borderRadius: '20px',
-          fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
-        }}>
-          <CheckCircle size={13} /> Uploaded
+        {/* badges column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', flexShrink: 0 }}>
+          {/* green badge */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            background: 'rgba(34,197,94,0.10)', color: '#22C55E',
+            padding: '5px 12px', borderRadius: '20px',
+            fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+          }}>
+            <CheckCircle size={13} /> Uploaded
+          </div>
+
+          {/* AI parsing badge */}
+          {resumeParseStatus === 'pending' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: 'rgba(14,165,233,0.10)', color: '#0EA5E9',
+              padding: '4px 10px', borderRadius: '20px',
+              fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+            }}>
+              <Loader2 size={12} className="animate-spin" /> Analyzing resume...
+            </div>
+          )}
+          {resumeParseStatus === 'completed' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: 'rgba(139,92,246,0.10)', color: '#8B5CF6',
+              padding: '4px 10px', borderRadius: '20px',
+              fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+            }}>
+              ✨ Profile filled
+            </div>
+          )}
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Bell, Search } from 'lucide-react'
 import UserMenu from './UserMenu'
 import { User } from '@supabase/supabase-js'
 import { calculateCompleteness, ProfileData } from '@/lib/profile-completeness'
@@ -18,6 +19,64 @@ interface UserProfile {
 interface HeaderAuthProps {
   onNavigate?: () => void;
   onRoleChange?: (role: string | null) => void;
+}
+
+/* ── Clay button styles ── */
+const clayNavPill: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 18px',
+  height: '38px',
+  borderRadius: '14px',
+  fontSize: '14px',
+  fontWeight: 500,
+  color: '#374151',
+  backgroundColor: '#EDF2EE',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+  textDecoration: 'none',
+  transition: 'all 0.2s ease',
+  cursor: 'pointer',
+}
+
+const clayPrimaryPill: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 20px',
+  height: '40px',
+  borderRadius: '14px',
+  fontSize: '15px',
+  fontWeight: 600,
+  backgroundColor: '#0D9488',
+  color: '#FFFFFF',
+  border: '1px solid rgba(255,255,255,0.3)',
+  boxShadow: '5px 5px 14px rgba(13,148,136,0.25), -3px -3px 8px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.06)',
+  textDecoration: 'none',
+  transition: 'all 0.2s ease',
+  cursor: 'pointer',
+}
+
+const handleHoverIn = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'translateY(-2px)';
+  const isTeal = e.currentTarget.style.backgroundColor === 'rgb(13, 148, 136)';
+  if (!isTeal) {
+    e.currentTarget.style.backgroundColor = '#E6FAF8';
+    e.currentTarget.style.color = '#0D9488';
+    e.currentTarget.style.boxShadow = '5px 5px 14px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
+  }
+}
+const handleHoverOut = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'translateY(0)';
+  const isTeal = e.currentTarget.dataset.variant === 'primary';
+  if (!isTeal) {
+    e.currentTarget.style.backgroundColor = '#EDF2EE';
+    e.currentTarget.style.color = '#374151';
+    e.currentTarget.style.boxShadow = clayNavPill.boxShadow as string;
+  } else {
+    e.currentTarget.style.boxShadow = clayPrimaryPill.boxShadow as string;
+  }
 }
 
 export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps) {
@@ -96,8 +155,11 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
 
   if (loading) {
     return (
-      <div className="flex items-center gap-4">
-        <div className="w-20 h-8 bg-gray-200 animate-pulse rounded" />
+      <div className="flex items-center gap-3">
+        <div className="w-16 h-8 animate-pulse rounded-xl" style={{
+          backgroundColor: '#EDF2EE',
+          boxShadow: '4px 4px 10px rgba(0,0,0,0.04), inset 2px 2px 4px rgba(255,255,255,0.7)',
+        }} />
       </div>
     )
   }
@@ -105,10 +167,9 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
   if (user && profile) {
     if (profile.role === 'admin') {
       return (
-        <div className="flex items-center gap-4">
-          <Link
-            href="/admin"
-            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
+        <div className="flex items-center gap-2">
+          <Link href="/admin" style={clayNavPill}
+            onMouseEnter={handleHoverIn} onMouseLeave={handleHoverOut}
           >
             Admin
           </Link>
@@ -118,37 +179,30 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     }
     if (profile.role === 'employer') {
       return (
-        <div className="flex items-center gap-4">
-          <Link
-            href="/employer/dashboard"
-            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/employer/candidates"
-            className="text-gray-700 hover:text-teal-600 font-medium transition-colors"
-          >
-            Candidates
+        <div className="flex items-center gap-3">
+          <Link href="/messages" aria-label="Notifications" style={{
+            position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '38px', height: '38px', borderRadius: '50%',
+            background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
+            boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.7)',
+            color: '#4A5E6A', textDecoration: 'none',
+          }}>
+            <Bell size={17} />
           </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
         </div>
       )
     }
     return (
-      <div className="flex items-center justify-center gap-4 w-full">
-        <Link
-          href="/dashboard"
-          className="nav-link"
-          style={{
-            padding: '8px 14px',
-            borderRadius: '10px',
-            fontSize: '13px',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
-        >
-          Dashboard
+      <div className="flex items-center gap-3">
+        <Link href="/messages" aria-label="Notifications" style={{
+          position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '38px', height: '38px', borderRadius: '50%',
+          background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
+          boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.7)',
+          color: '#4A5E6A', textDecoration: 'none',
+        }}>
+          <Bell size={17} />
         </Link>
         <UserMenu user={profile} profileCompleteness={profileCompleteness} isMobile={!!onNavigate} />
       </div>
@@ -156,28 +210,26 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
   }
 
   return (
-    <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto">
+    <div className="flex items-center gap-3">
       <Link
         href="/login"
         onClick={onNavigate}
-        className="hdr-signin font-semibold text-base lg:text-[13px] text-center lg:text-left py-4 lg:py-2 px-4 lg:px-3 rounded-xl touch-manipulation"
-        style={{ color: 'rgba(var(--text-primary-rgb, 255,255,255), 0.55)' }}
+        style={clayNavPill}
+        onMouseEnter={handleHoverIn}
+        onMouseLeave={handleHoverOut}
       >
-        Sign in
+        Log in
       </Link>
       <Link
         href="/signup"
         onClick={onNavigate}
-        className="hdr-signup px-6 lg:px-5 py-4 lg:py-2 rounded-xl font-semibold text-base lg:text-[13px] text-center touch-manipulation"
-        style={{
-          color: 'var(--text-primary)',
-          backgroundColor: 'rgba(var(--text-primary-rgb, 255,255,255), 0.08)',
-          border: '1px solid rgba(var(--text-primary-rgb, 255,255,255), 0.12)',
-        }}
+        style={clayPrimaryPill}
+        data-variant="primary"
+        onMouseEnter={handleHoverIn}
+        onMouseLeave={handleHoverOut}
       >
         Sign up
       </Link>
     </div>
   )
 }
-

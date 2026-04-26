@@ -28,6 +28,7 @@ export async function GET() {
 
     return NextResponse.json({
       id: user.id,
+      email: user.email || null,
       role: profile?.role || 'job_seeker',
       resumeUrl: profile?.resumeUrl || null,
       profileVisible: profile?.profileVisible ?? false,

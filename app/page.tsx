@@ -1,23 +1,15 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
 
 import { prisma } from '@/lib/prisma';
-import StatsSection from '@/components/StatsSection';
-import EmployerMarqueeSection from '@/components/EmployerMarqueeSection';
+import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
-import WhyUs from '@/components/WhyUs';
-import Testimonial from '@/components/Testimonial';
-import StayConnected from '@/components/StayConnected';
-import EmployerCTA from '@/components/EmployerCTA';
-import BrowseByStateSection from '@/components/BrowseByStateSection';
-import Comparison from '@/components/Comparison';
-import ScrollReveal from '@/components/ScrollReveal';
+import TopStatesSection from '@/components/TopStatesSection';
 import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
-import TrustedByEmployers from '@/components/TrustedByEmployers';
-import PostJobCTA from '@/components/PostJobCTA';
 import ExitIntentPopup from '@/components/ExitIntentPopup';
 import StickyEmailBar from '@/components/StickyEmailBar';
+import HomepageBlogSection from '@/components/HomepageBlogSection';
+import EmployerHowItWorks from '@/components/EmployerHowItWorks';
 
 
 
@@ -58,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
       images: [
         {
-          url: '/images/pages/pmhnp-job-board-homepage.webp',
+          url: 'https://pmhnphiring.com/images/pages/pmhnp-job-board-homepage.webp',
           width: 1280,
           height: 900,
           alt: 'PMHNP Hiring job board homepage showing 10,000 plus psychiatric nurse practitioner jobs from 3,000 plus companies across 50 states',
@@ -67,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      images: ['/images/pages/pmhnp-job-board-homepage.webp'],
+      images: ['https://pmhnphiring.com/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
       canonical: 'https://pmhnphiring.com',
@@ -82,9 +74,9 @@ export default async function Home() {
     : totalJobs.toLocaleString();
 
   return (
-    <div>
+    <>
+      {/* Structured data — outside content div to prevent hydration mismatch */}
       <VideoJsonLd pathname="/" />
-      {/* Site-wide Organization schema with social sameAs links */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -105,7 +97,6 @@ export default async function Home() {
           }),
         }}
       />
-      {/* Homepage FAQ Schema for featured snippets */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -213,65 +204,30 @@ export default async function Home() {
           }),
         }}
       />
-      {/* 1. Hero Section — no scroll reveal (above the fold) */}
-      <HomepageHero jobCountDisplay={jobCountDisplay} />
 
-      {/* B2: Featured Jobs moved right below hero (6 latest job cards) */}
-      <ScrollReveal>
+      {/* Main content */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
+        {/* 1. Hero — above the fold */}
+        <HomepageHero jobCountDisplay={jobCountDisplay} />
+
+        {/* 2. Employer Clay Dough Strip */}
+        <EmployerTrustSection />
+
+
+        {/* ── Remaining sections (being redesigned) ── */}
         <FeaturedJobsSection />
-      </ScrollReveal>
 
-      {/* 2. Stats Counter (animated numbers) */}
-      <ScrollReveal>
-        <StatsSection />
-      </ScrollReveal>
+        {/* 4. Top States */}
+        <TopStatesSection />
 
-      {/* B4: Trusted By Employers trust signal */}
-      <ScrollReveal>
-        <TrustedByEmployers />
-      </ScrollReveal>
+        {/* 5. Employer How It Works */}
+        <EmployerHowItWorks />
 
-      {/* 3. Employer Marquee (scrolling company names) */}
-      <ScrollReveal>
-        <EmployerMarqueeSection />
-      </ScrollReveal>
+        <HomepageBlogSection />
 
-
-
-
-      {/* B10: Post a Job CTA */}
-      <ScrollReveal>
-        <PostJobCTA />
-      </ScrollReveal>
-
-      {/* 7. Testimonial (Sarah M. quote) */}
-      <ScrollReveal>
-        <Testimonial />
-      </ScrollReveal>
-
-      {/* 8. Browse by Location (state cards with job counts) */}
-      <ScrollReveal>
-        <BrowseByStateSection />
-      </ScrollReveal>
-
-      {/* 9. Comparison Cards (Us vs Indeed vs LinkedIn vs ZipRecruiter) */}
-      <ScrollReveal>
-        <Comparison />
-      </ScrollReveal>
-
-
-
-
-      {/* 12. Employer CTA (new design) */}
-      <ScrollReveal>
-        <EmployerCTA />
-      </ScrollReveal>
-
-      {/* B7: Exit-intent popup */}
-      <ExitIntentPopup />
-
-      {/* B8: Sticky email bar */}
-      <StickyEmailBar />
-    </div>
+        <ExitIntentPopup />
+        <StickyEmailBar />
+      </div>
+    </>
   );
 }

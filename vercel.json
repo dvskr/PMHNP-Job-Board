@@ -101,6 +101,10 @@
       "schedule": "10 12,18 * * *"
     },
     {
+      "path": "/api/cron/aggregate-pseo",
+      "schedule": "15 12,18 * * *"
+    },
+    {
       "path": "/api/cron/freshness-decay",
       "schedule": "20 12 * * *"
     },
@@ -119,6 +123,10 @@
     {
       "path": "/api/cron/index-urls",
       "schedule": "15 13 * * *"
+    },
+    {
+      "path": "/api/cron/index-pseo",
+      "schedule": "45 13 * * *"
     },
     {
       "path": "/api/cron/deindex-expired",

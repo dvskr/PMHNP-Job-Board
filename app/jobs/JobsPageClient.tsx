@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutGrid, List, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
+import { LayoutGrid, List, SlidersHorizontal, ChevronDown, Briefcase } from 'lucide-react';
 import JobCard from '@/components/JobCard';
 import LinkedInFilters from '@/components/jobs/LinkedInFilters';
 import CreateAlertForm from '@/components/CreateAlertForm';
@@ -121,11 +122,17 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         params.set('postedWithin', filters.postedWithin);
       }
 
+      // Add category (enterprise filter — same as category pages)
+      if (filters.category) {
+        params.set('category', filters.category);
+      }
+
       const url = `/api/jobs?${params.toString()}`;
 
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to fetch jobs (${response.status}): ${errorText}`);
       }
       const data: { jobs: Job[]; total: number; totalPages: number; page: number } = await response.json();
       setJobs(data.jobs);
@@ -138,6 +145,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     } catch (err) {
+      console.error('[fetchJobs] Error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -209,8 +217,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
 
   return (
     <>
-      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '0 16px' }}>
-
+      <div style={{ maxWidth: '1360px', margin: '0 auto', padding: '24px 16px 0' }}>
 
         {/* Main Content with Sidebar Layout */}
         <div style={{ display: 'flex', gap: '28px' }}>
@@ -228,11 +235,12 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                 className="jp-mobile-filter-btn"
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  padding: '12px 16px', borderRadius: '12px',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
+                  padding: '12px 16px', borderRadius: '16px',
+                  backgroundColor: '#EDF2EE',
+                  border: '1px solid rgba(255,255,255,0.5)',
                   color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600,
                   cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '5px 5px 12px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.03)',
                 }}
               >
                 <SlidersHorizontal style={{ width: '18px', height: '18px' }} />
@@ -254,17 +262,27 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                   className="jp-alert-btn"
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    padding: '8px 16px', borderRadius: '10px',
+                    padding: '10px 20px', borderRadius: '16px',
                     fontSize: '13px', fontWeight: 600,
-                    color: '#2DD4BF',
-                    backgroundColor: 'rgba(45,212,191,0.08)',
-                    border: '1px solid rgba(45,212,191,0.2)',
+                    color: '#0F766E',
+                    backgroundColor: '#B2F5EA',
+                    border: '1px solid rgba(255,255,255,0.5)',
                     cursor: 'pointer', transition: 'all 0.2s',
+                    boxShadow: '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.03)',
                   }}
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                  </svg>
+                  {/* Bell icon pebble */}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 26, height: 26, borderRadius: 9,
+                    backgroundColor: '#CCFBF1',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.04), 2px 2px 4px rgba(0,0,0,0.06)',
+                    border: '1px solid rgba(255,255,255,0.6)',
+                  }}>
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#0D9488">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                  </span>
                   Create Alert for This Search
                 </button>
               </div>
@@ -301,12 +319,13 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                       className="jp-sort-select"
                       style={{
                         appearance: 'none', WebkitAppearance: 'none',
-                        padding: '7px 32px 7px 12px', borderRadius: '8px',
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
+                        padding: '8px 32px 8px 14px', borderRadius: '14px',
+                        backgroundColor: '#EDF2EE',
+                        border: '1px solid rgba(255,255,255,0.5)',
                         color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500,
                         cursor: 'pointer', outline: 'none',
-                        transition: 'border-color 0.2s',
+                        transition: 'all 0.2s',
+                        boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
                       }}
                     >
                       <option value="best">Best Match</option>
@@ -323,19 +342,21 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                   {/* View Mode Toggle — hidden on mobile, grid is default */}
                   <div className="hidden sm:flex" style={{
                     gap: '2px',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    borderRadius: '8px', padding: '3px',
+                    backgroundColor: '#EDF2EE',
+                    borderRadius: '14px', padding: '3px',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
                   }}>
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`jp-view-btn ${viewMode === 'grid' ? 'jp-view-active' : ''}`}
                       style={{
-                        padding: '6px', borderRadius: '6px',
-                        background: viewMode === 'grid' ? 'var(--bg-secondary)' : 'transparent',
-                        color: viewMode === 'grid' ? '#2DD4BF' : 'var(--text-tertiary)',
+                        padding: '6px', borderRadius: '8px',
+                        background: viewMode === 'grid' ? '#F7FBF8' : 'transparent',
+                        color: viewMode === 'grid' ? '#0D9488' : 'var(--text-tertiary)',
                         border: 'none', cursor: 'pointer', display: 'flex',
                         transition: 'all 0.2s',
-                        boxShadow: viewMode === 'grid' ? '0 1px 3px var(--shadow-color, rgba(0,0,0,0.08))' : 'none',
+                        boxShadow: viewMode === 'grid' ? '2px 2px 4px rgba(0,0,0,0.05), -1px -1px 2px rgba(255,255,255,0.6)' : 'none',
                       }}
                       aria-label="Grid view"
                       title="Grid view"
@@ -346,12 +367,12 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                       onClick={() => setViewMode('list')}
                       className={`jp-view-btn ${viewMode === 'list' ? 'jp-view-active' : ''}`}
                       style={{
-                        padding: '6px', borderRadius: '6px',
-                        background: viewMode === 'list' ? 'var(--bg-secondary)' : 'transparent',
-                        color: viewMode === 'list' ? '#2DD4BF' : 'var(--text-tertiary)',
+                        padding: '6px', borderRadius: '8px',
+                        background: viewMode === 'list' ? '#F7FBF8' : 'transparent',
+                        color: viewMode === 'list' ? '#0D9488' : 'var(--text-tertiary)',
                         border: 'none', cursor: 'pointer', display: 'flex',
                         transition: 'all 0.2s',
-                        boxShadow: viewMode === 'list' ? '0 1px 3px var(--shadow-color, rgba(0,0,0,0.08))' : 'none',
+                        boxShadow: viewMode === 'list' ? '2px 2px 4px rgba(0,0,0,0.05), -1px -1px 2px rgba(255,255,255,0.6)' : 'none',
                       }}
                       aria-label="List view"
                       title="List view"
@@ -636,6 +657,10 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         .jp-page-btn:hover:not(:disabled) {
           border-color: rgba(45,212,191,0.4) !important;
         }
+        @media (max-width: 600px) {
+          .jobs-hero-grid { grid-template-columns: 1fr !important; text-align: center; }
+          .jobs-hero-grid > div:last-child { display: none; }
+        }
       `}</style>
     </>
   );
@@ -731,6 +756,11 @@ function StickyFilterSidebar({ children }: { children: React.ReactNode }) {
           scrollbarWidth: 'none',
           visibility: ready ? 'visible' : 'hidden',
           transition: 'max-height 0.15s ease-out',
+          backgroundColor: '#F7FBF8',
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+          padding: '8px 14px',
         }}
       >
         {children}

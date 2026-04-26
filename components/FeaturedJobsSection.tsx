@@ -7,14 +7,14 @@ export const revalidate = 60;
 /**
  * FeaturedJobsSection (Server Component)
  *
- * Fetches 6 jobs for the homepage:
+ * Fetches 10 jobs for the homepage:
  * - Only jobs posted within the last 3 days (originalPostedAt or createdAt)
  * - Sorted by qualityScore descending (best quality first)
  * - Max 2 jobs per employer for variety
  * - Excludes expired jobs
  */
 export default async function FeaturedJobsSection() {
-    const TARGET = 6;
+    const TARGET = 8;
     const MAX_PER_EMPLOYER = 2;
 
     // 3-day window

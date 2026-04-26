@@ -23,7 +23,7 @@ interface CheckoutRequestBody {
   salaryCompetitive?: boolean;
   description: string;
   applyUrl: string;
-  pricingTier: PricingTier;
+  pricingTier?: PricingTier; // ignored — single tier, kept for backward compat
 }
 
 export async function POST(request: NextRequest) {
@@ -32,16 +32,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    // Block in free mode - users should use /api/jobs/post-free instead
-    if (!config.isPaidPostingEnabled) {
-      return NextResponse.json(
-        {
-          error: 'Paid posting is currently disabled. Job postings are free during our launch period.',
-          redirect: '/post-job'
-        },
-        { status: 403 }
-      );
-    }
+    // Paid checkout is always available — used when employer has used their free posts
 
     const rawBody: CheckoutRequestBody = await request.json();
 
@@ -71,7 +62,7 @@ export async function POST(request: NextRequest) {
       salaryCompetitive,
       description,
       applyUrl: applyLink,
-      pricingTier: pricing,
+      pricingTier: _pricing, // ignored in single-tier model
     } = body;
 
     // Validate and trim required string fields
@@ -82,7 +73,7 @@ export async function POST(request: NextRequest) {
     const trimmedDescription = description?.trim();
     const trimmedApplyLink = applyLink?.trim();
 
-    if (!trimmedTitle || !trimmedEmployer || !trimmedLocation || !mode || !jobType || !trimmedDescription || !trimmedApplyLink || !trimmedContactEmail || !pricing) {
+    if (!trimmedTitle || !trimmedEmployer || !trimmedLocation || !mode || !jobType || !trimmedDescription || !trimmedApplyLink || !trimmedContactEmail) {
       logger.warn('Validation failed. Missing required fields', {
         title: !!trimmedTitle,
         employer: !!trimmedEmployer,
@@ -92,7 +83,6 @@ export async function POST(request: NextRequest) {
         description: !!trimmedDescription,
         applyLink: !!trimmedApplyLink,
         contactEmail: !!trimmedContactEmail,
-        pricing: !!pricing,
       });
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -100,16 +90,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate pricing tier
-    if (pricing !== 'starter' && pricing !== 'growth' && pricing !== 'premium') {
-      return NextResponse.json(
-        { error: 'Invalid pricing tier' },
-        { status: 400 }
-      );
-    }
-
-    // Calculate price in cents from config
-    const price = config.getStripePriceInCents(pricing);
+    // Single-tier: all paid posts are 'growth' internally, $199
+    const pricing: PricingTier = 'growth';
+    const price = config.stripePriceInCents;
 
     // DUPLICATE CHECK
     // Check for existing active jobs for this employer
@@ -152,9 +135,9 @@ export async function POST(request: NextRequest) {
     // Determine salary period (default to year for annual salaries)
     const salaryPeriod = (salaryMin || salaryMax) && !salaryCompetitive ? 'year' : null;
 
-    // Calculate expiry date based on pricing tier from config
+    // Calculate expiry date — all posts get same duration
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + config.getDurationDays(pricing));
+    expiresAt.setDate(expiresAt.getDate() + config.durationDays);
 
     // Generate unique edit token and dashboard token
     const editToken = crypto.randomBytes(32).toString('hex');

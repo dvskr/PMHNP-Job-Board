@@ -119,88 +119,9 @@ export async function POST(request: NextRequest) {
           );
         }
       } else if (type === 'upgrade') {
-        // Handle upgrade to higher tier
-        try {
-          const upgradeTier = (tier || 'growth') as PricingTier;
-
-          // Get current job to determine new expiry
-          const currentJob = await prisma.job.findUnique({
-            where: { id: jobId },
-            select: { expiresAt: true },
-          });
-
-          // Find the employer's current tier to calculate extra days
-          const employerJobForTier = await prisma.employerJob.findFirst({
-            where: { jobId },
-            select: { pricingTier: true },
-          });
-          const fromTier = (employerJobForTier?.pricingTier || 'starter') as PricingTier;
-
-          const newExpiresAt = currentJob?.expiresAt ? new Date(currentJob.expiresAt) : new Date();
-          const extraDays = config.getDurationDays(upgradeTier) - config.getDurationDays(fromTier);
-          newExpiresAt.setDate(newExpiresAt.getDate() + extraDays);
-
-          // Update job
-          const job = await prisma.job.update({
-            where: { id: jobId },
-            data: {
-              isFeatured: config.isFeaturedTier(upgradeTier),
-              isVerifiedEmployer: true,
-              expiresAt: newExpiresAt,
-            },
-          });
-
-          // Update employer job tier
-          const employerJob = await prisma.employerJob.findFirst({
-            where: { jobId: jobId },
-          });
-
-          if (employerJob) {
-            await prisma.employerJob.update({
-              where: { id: employerJob.id },
-              data: { pricingTier: upgradeTier },
-            });
-
-            // Get or create email lead for unsubscribe token
-            let emailLead = await prisma.emailLead.findUnique({
-              where: { email: employerJob.contactEmail },
-            });
-
-            if (!emailLead) {
-              emailLead = await prisma.emailLead.create({
-                data: { email: employerJob.contactEmail },
-              });
-            }
-
-            // Send upgrade confirmation email
-            try {
-              await sendConfirmationEmail(
-                employerJob.contactEmail,
-                `✨ ${job.title} (Upgraded to ${config.getTierLabel(upgradeTier)})`,
-                job.id,
-                employerJob.editToken,
-                employerJob.dashboardToken
-              );
-            } catch (emailError) {
-              logger.error('Failed to send upgrade confirmation email', emailError, { jobId });
-            }
-          }
-
-          logger.info(`Job upgraded to ${upgradeTier} tier`, { jobId, fromTier, upgradeTier });
-
-          // Ping search engines for upgraded job (fire-and-forget)
-          if (job.slug) {
-            pingAllSearchEngines(`https://pmhnphiring.com/jobs/${job.slug}`).catch((err) =>
-              logger.error('[Stripe] Background indexing ping failed (upgrade)', err)
-            );
-          }
-        } catch (prismaError) {
-          logger.error('Error upgrading job in database', prismaError, { jobId });
-          return NextResponse.json(
-            { error: 'Failed to upgrade job' },
-            { status: 500 }
-          );
-        }
+        // Upgrades no longer exist in single-tier model
+        logger.warn('Received upgrade webhook in single-tier model', { jobId });
+        return NextResponse.json({ received: true, note: 'upgrades deprecated' });
       } else {
         // Original flow: new job posting
         try {

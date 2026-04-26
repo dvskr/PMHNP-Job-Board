@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const normalizedEmail = email.toLowerCase();
 
     const jobAlerts = await prisma.jobAlert.findMany({
-      where: { email: normalizedEmail },
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
       orderBy: { createdAt: 'desc' },
     });
 

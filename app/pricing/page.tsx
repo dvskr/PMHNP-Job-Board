@@ -1,713 +1,452 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { config } from '@/lib/config';
-import {
-    Check,
-    Sparkles,
-    Crown,
-    Zap,
-    ArrowRight,
-    Users,
-    TrendingUp,
-    Mail,
-    Share2,
-    Search,
-    MessageSquare,
-    HelpCircle,
-} from 'lucide-react';
+import { Check, ArrowRight, X, HelpCircle, RefreshCw } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'Pricing — PMHNP Job Board | Post Psychiatry NP Jobs',
+    title: 'Pricing — PMHNP Job Board | First 2 Posts Free, Then $199',
     description:
-        'Simple, transparent pricing for PMHNP job postings. Standard, Featured, and Pro plans. First post free — no credit card required.',
+        'Simple, transparent pricing for PMHNP job postings. First 2 posts are free with all features. After that, $199 per post. No subscriptions, no contracts.',
     openGraph: {
         title: 'Pricing — PMHNP Job Board',
-        description: 'Post PMHNP jobs starting free. Three plans to fit every hiring need.',
-        images: [{ url: '/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP job board pricing plans' }],
+        description: 'Post PMHNP jobs — first 2 free, then $199/post. Every post gets the full package.',
+        images: [{ url: '/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP job board pricing' }],
     },
     twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-employer-hiring-solutions.webp'] },
     alternates: { canonical: 'https://pmhnphiring.com/pricing' },
 };
 
-const plans = [
-    {
-        name: 'Starter',
-        price: 199,
-        period: 'per posting',
-        tagline: 'Everything you need to get started',
-        cta: 'Get Started',
-        ctaHref: '/employer/signup',
-        icon: Zap,
-        color: '#2DD4BF',
-        popular: false,
-        duration: '30 days',
-        features: [
-            '30-day job listing',
-            'Included in daily job alerts',
-            'Full job description page',
-            'Basic analytics (views)',
-            '5 candidate unlocks/posting',
-            '5 InMails/posting',
-        ],
-    },
-    {
-        name: 'Growth',
-        price: 299,
-        period: 'per posting',
-        tagline: 'Maximum visibility for your listing',
-        cta: 'Get Growth',
-        ctaHref: '/employer/signup',
-        icon: Sparkles,
-        color: '#E86C2C',
-        popular: true,
-        duration: '60 days',
-        features: [
-            '60-day listing (2× longer)',
-            '"Featured" badge on listing',
-            'Top placement in search results',
-            'Highlighted in email digests',
-            '25 candidate unlocks/posting',
-            '25 InMails/posting',
-            'Advanced analytics (views, clicks, sources)',
-        ],
-    },
-    {
-        name: 'Premium',
-        price: 399,
-        period: 'per posting',
-        tagline: 'Full-service recruitment power',
-        cta: 'Go Premium',
-        ctaHref: '/employer/signup',
-        icon: Crown,
-        color: '#A855F7',
-        popular: false,
-        duration: '90 days',
-        features: [
-            '90-day listing (3× longer)',
-            'Everything in Growth',
-            'Unlimited candidate unlocks',
-            'Unlimited InMails',
-            'Social media promotion',
-            'Dedicated account support',
-        ],
-    },
+/* ═══ Clay Tokens — matched to employer page ═══ */
+const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const clayIconWrap = (gradient: string): React.CSSProperties => ({
+    width: '28px', height: '28px', borderRadius: '8px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: gradient,
+    boxShadow: '2px 2px 5px rgba(13,148,136,0.12)',
+    flexShrink: 0,
+});
+
+/* ═══ Comparison Data — same as employer page ═══ */
+const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: true | false | 'partial'; linkedin: true | false | 'partial'; note?: string }[] = [
+    { feature: '100% Psychiatric NP Audience', us: true, indeed: false, linkedin: false },
+    { feature: 'No Unqualified Applicants', us: true, indeed: false, linkedin: false },
+    { feature: 'First 2 Posts Free (No Card)', us: true, indeed: false, linkedin: false },
+    { feature: 'Flat $199/Post — No Bidding', us: true, indeed: false, linkedin: false, note: 'Indeed is pay-per-click' },
+    { feature: '60-Day Listing Duration', us: true, indeed: false, linkedin: false, note: 'Others: 30 days' },
+    { feature: 'Direct Candidate Messaging', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
+    { feature: 'Candidate Profile Unlocks', us: true, indeed: false, linkedin: 'partial', note: 'LinkedIn: paid add-on' },
+    { feature: 'Built-In Screening Questions', us: true, indeed: true, linkedin: false },
+    { feature: 'Daily Niche Job Alerts', us: true, indeed: 'partial', linkedin: 'partial', note: 'Others: generic alerts' },
+    { feature: 'Instant Apply Notifications', us: true, indeed: true, linkedin: true },
 ];
 
 const faqs = [
-    {
-        q: 'Is the first post really free?',
-        a: 'Yes! Your first job posting is completely free with a Starter listing — no credit card required. We want you to experience the quality of our PMHNP candidate pool before committing.',
-    },
-    {
-        q: 'How long do job postings stay active?',
-        a: 'Starter posts are active for 30 days, Growth for 60 days, and Premium for 90 days. You can renew at any time from your employer dashboard.',
-    },
-    {
-        q: 'Can I upgrade my plan after posting?',
-        a: 'Absolutely! You can upgrade from Starter to Growth or Premium anytime. You\'ll only pay the difference between the plans.',
-    },
-    {
-        q: 'What is candidate database access?',
-        a: 'Starter employers can preview candidate profiles (specialties, experience, location). Growth and Premium employers get full access including contact details, resumes, LinkedIn profiles, and direct messaging — with higher unlock and InMail limits on Premium.',
-    },
-    {
-        q: 'Do you offer bulk discounts?',
-        a: 'Yes! Contact us for custom pricing if you need to post 5+ positions. We offer volume discounts and annual plans for larger organizations.',
-    },
-    {
-        q: 'Can I edit my job posting after publishing?',
-        a: 'Yes, all plans include unlimited edits. Update salary, requirements, or any details from your dashboard — changes go live immediately.',
-    },
+    { q: 'How many free posts do I get?', a: `Your first ${config.freePostsPerEmail} job posts per email address are completely free — no credit card required. Every feature is included.` },
+    { q: 'What happens after my free posts?', a: `Posts 3+ cost a flat $${config.postingPrice} each. Same features, same visibility. Just add payment at checkout.` },
+    { q: 'How long do job postings stay active?', a: `All postings — free or paid — are active for ${config.durationDays} days. You can renew at any time from your employer dashboard.` },
+    { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (20% off the regular price). Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
+    { q: 'Are free posts different from paid posts?', a: 'No. Every post gets the exact same features: Featured badge, top placement, 25 candidate unlocks, 25 InMails, and full analytics. No downgrades.' },
+    { q: 'Can I edit my job posting after publishing?', a: 'Yes! You can edit your posting anytime from your dashboard — update salary, requirements, or any details. Changes go live immediately.' },
+    { q: 'Do you offer bulk discounts?', a: 'Yes! Contact us at support@pmhnphiring.com for custom pricing if you need to post 5+ positions. We offer volume discounts for larger organizations.' },
 ];
 
 export default function PricingPage() {
     return (
-        <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
-            <BreadcrumbSchema
-                items={[
-                    { name: 'Home', url: 'https://pmhnphiring.com' },
-                    { name: 'Pricing', url: 'https://pmhnphiring.com/pricing' },
-                ]}
-            />
+        <>
+            <BreadcrumbSchema items={[
+                { name: 'Home', url: 'https://pmhnphiring.com' },
+                { name: 'Pricing', url: 'https://pmhnphiring.com/pricing' },
+            ]} />
 
-            {/* Hero */}
-            <section style={{ padding: '80px 16px 48px', textAlign: 'center' }}>
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <h1
-                        style={{
-                            fontSize: 'clamp(2rem, 5vw, 3.25rem)',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
-                            marginBottom: '16px',
-                            lineHeight: 1.15,
-                        }}
-                    >
-                        {config.isPaidPostingEnabled ? 'Simple, Transparent Pricing' : 'Post PMHNP Jobs for Free'}
-                    </h1>
-                    <p
-                        style={{
-                            fontSize: '18px',
-                            color: 'var(--text-secondary)',
-                            maxWidth: '600px',
-                            margin: '0 auto',
-                            lineHeight: 1.6,
-                        }}
-                    >
-                        {config.isPaidPostingEnabled
-                            ? 'Choose the plan that fits your hiring needs. No subscriptions, no contracts \u2014 just results.'
-                            : 'Reach thousands of psychiatric nurse practitioners actively searching. No credit card required. Go live in under 5 minutes.'}
-                    </p>
-                    {!config.isPaidPostingEnabled && (
-                        <div style={{ marginTop: '28px' }}>
-                            <Link href="/post-job" style={{
-                                padding: '14px 36px', borderRadius: '14px', fontWeight: 700, fontSize: '16px',
-                                background: 'linear-gradient(135deg, #2DD4BF, #0D9488)', color: '#fff',
-                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                boxShadow: '0 4px 20px rgba(45,212,191,0.3)',
-                            }}>
-                                Post a Job \u2014 Free <ArrowRight size={18} />
-                            </Link>
-                        </div>
-                    )}
-                </div>
-            </section>
-
-            {/* What You Get — shown during free launch */}
-            {!config.isPaidPostingEnabled && (
-                <section style={{ padding: '0 16px 80px', maxWidth: '900px', margin: '0 auto' }}>
-                    <h2 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>
-                        What You Get — Growth Package
-                    </h2>
-                    <p style={{ fontSize: '15px', color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '32px' }}>
-                        Every job posting includes our $299 Growth package — completely free during launch.
-                    </p>
-                    <div style={{
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px',
-                    }}>
-                        {[
-                            { icon: Sparkles, title: '60-Day Job Listing', desc: 'Your posting stays active for 60 days — 2× longer than standard. Maximum exposure.', color: '#E86C2C' },
-                            { icon: Crown, title: '"Featured" Badge', desc: 'Your listing displays a prominent Featured badge, standing out from all other postings.', color: '#A855F7' },
-                            { icon: TrendingUp, title: 'Top Search Placement', desc: 'Your job appears at the top of search results, ahead of standard listings.', color: '#2DD4BF' },
-                            { icon: Mail, title: 'Highlighted in Job Alerts', desc: 'Your listing is prioritized and highlighted in daily emails to thousands of PMHNPs.', color: '#E86C2C' },
-                            { icon: Users, title: '25 Candidate Unlocks', desc: 'Preview and unlock up to 25 candidate profiles per posting.', color: '#10B981' },
-                            { icon: MessageSquare, title: '25 InMails/Posting', desc: 'Message up to 25 candidates directly on the platform.', color: '#F59E0B' },
-                            { icon: Search, title: 'Advanced Analytics', desc: 'Track views, clicks, and sources. Know exactly how your posting performs.', color: '#3B82F6' },
-                        ].map(({ icon: Ic, title, desc, color }) => (
-                            <div key={title} style={{
-                                padding: '24px 20px', borderRadius: '14px',
-                                backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-                            }}>
-                                <Ic size={24} style={{ color, marginBottom: '12px' }} />
-                                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>{title}</h3>
-                                <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{desc}</p>
-                            </div>
-                        ))}
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 1: HERO + BENTO GRID (pricing card is the first bento card)
+                ═══════════════════════════════════════════════════════════════ */}
+            <div style={{
+                background: 'linear-gradient(180deg, #FFF5EE 0%, #FDE8D8 40%, #FFF5EE 100%)',
+                paddingBottom: '64px',
+            }}>
+                <section style={{ padding: '80px 16px 48px', textAlign: 'center' }}>
+                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '8px' }}>
+                            Simple Pricing
+                        </p>
+                        <h1 className="font-lora" style={{
+                            fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, lineHeight: 1.15,
+                            color: '#1A2E35', marginBottom: '16px',
+                        }}>
+                            First 2 Posts Free, Then ${config.postingPrice}
+                        </h1>
+                        <p style={{ fontSize: '17px', color: '#5A4A42', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
+                            Every post gets the full package — no downgrades, no hidden fees. Start hiring in under 5 minutes.
+                        </p>
                     </div>
                 </section>
-            )}
 
-            {config.isPaidPostingEnabled && (
-                <section style={{ padding: '0 16px 80px', maxWidth: '1100px', margin: '0 auto' }}>
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                            gap: '24px',
-                        }}
-                    >
-                        {plans.map((plan) => {
-                            const Icon = plan.icon;
-                            return (
-                                <div
-                                    key={plan.name}
-                                    style={{
-                                        position: 'relative',
-                                        backgroundColor: 'var(--bg-secondary)',
-                                        border: plan.popular
-                                            ? `2px solid ${plan.color}`
-                                            : '1px solid var(--border-color)',
-                                        borderRadius: '20px',
-                                        padding: '40px 32px 36px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        transition: 'transform 0.3s, box-shadow 0.3s',
-                                        boxShadow: plan.popular
-                                            ? `0 8px 40px rgba(232,108,44,0.15)`
-                                            : '0 2px 12px rgba(0,0,0,0.05)',
-                                    }}
-                                >
-                                    {plan.popular && (
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                top: '-14px',
-                                                left: '50%',
-                                                transform: 'translateX(-50%)',
-                                                background: `linear-gradient(135deg, ${plan.color}, #F59E0B)`,
-                                                color: '#fff',
-                                                fontSize: '12px',
-                                                fontWeight: 700,
-                                                padding: '6px 20px',
-                                                borderRadius: '999px',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.05em',
-                                            }}
-                                        >
-                                            Most Popular
-                                        </div>
-                                    )}
+                {/* ─── Bento Grid with Pricing as Hero Card ─── */}
+                <section style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 20px' }}>
+                    <div className="bento-grid" style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(12, 1fr)',
+                        gridTemplateRows: 'auto',
+                        gap: '14px',
+                    }}>
 
-                                    {/* Plan header */}
-                                    <div style={{ marginBottom: '24px' }}>
-                                        <div
-                                            style={{
-                                                width: '48px',
-                                                height: '48px',
-                                                borderRadius: '14px',
-                                                background: `linear-gradient(135deg, ${plan.color}22, ${plan.color}11)`,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                marginBottom: '16px',
-                                            }}
-                                        >
-                                            <Icon size={24} style={{ color: plan.color }} />
-                                        </div>
-                                        <h2
-                                            style={{
-                                                fontSize: '22px',
-                                                fontWeight: 700,
-                                                color: 'var(--text-primary)',
-                                                marginBottom: '4px',
-                                            }}
-                                        >
-                                            {plan.name}
-                                        </h2>
-                                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                                            {plan.tagline}
-                                        </p>
-                                    </div>
+                        {/* ═══ ROW 0: PRICING HERO (full-width 12 cols) ═══ */}
+                        <div className="bento-pricing-hero emp-bento-card" style={{
+                            ...clayCard, gridColumn: 'span 12', padding: '0', overflow: 'hidden',
+                            border: '2px solid rgba(13,148,136,0.15)',
+                            position: 'relative',
+                        }}>
+                            {/* "One Simple Plan" badge */}
+                            <div style={{
+                                position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)',
+                                background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                fontSize: '11px', fontWeight: 700, padding: '6px 24px', borderRadius: '0 0 12px 12px',
+                                textTransform: 'uppercase', letterSpacing: '0.06em',
+                                boxShadow: '0 4px 12px rgba(13,148,136,0.2)',
+                            }}>One Simple Plan</div>
 
-                                    {/* Price */}
-                                    <div style={{ marginBottom: '28px' }}>
+                            <div className="pricing-hero-inner" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '0' }}>
+                                {/* Left — Price block */}
+                                <div style={{
+                                    background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
+                                    padding: '44px 36px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                                    borderRight: '1px solid rgba(13,148,136,0.1)',
+                                }}>
+                                    <div style={{ marginBottom: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                                            <span
-                                                style={{
-                                                    fontSize: '48px',
-                                                    fontWeight: 800,
-                                                    color: 'var(--text-primary)',
-                                                    lineHeight: 1,
-                                                }}
-                                            >
-                                                ${plan.price}
-                                            </span>
-                                            <span
-                                                style={{
-                                                    fontSize: '14px',
-                                                    color: 'var(--text-muted)',
-                                                    marginLeft: '4px',
-                                                }}
-                                            >
-                                                {plan.period}
-                                            </span>
+                                            <span style={{ fontSize: '56px', fontWeight: 800, color: '#134E4A', lineHeight: 1 }}>${config.postingPrice}</span>
+                                            <span style={{ fontSize: '16px', color: '#0D9488', fontWeight: 500 }}>/post</span>
                                         </div>
-                                        <p
-                                            style={{
-                                                fontSize: '13px',
-                                                color: plan.color,
-                                                fontWeight: 600,
-                                                marginTop: '6px',
-                                            }}
-                                        >
-                                            {plan.duration} listing
+                                        <p style={{ fontSize: '14px', color: '#0D9488', fontWeight: 700, marginTop: '6px' }}>First 2 posts FREE — no card required</p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: 'rgba(255,255,255,0.7)', borderRadius: '10px', border: '1px solid rgba(13,148,136,0.1)', marginBottom: '20px' }}>
+                                        <RefreshCw size={14} style={{ color: '#0D9488', flexShrink: 0 }} />
+                                        <p style={{ fontSize: '12px', color: '#134E4A', margin: 0, lineHeight: 1.4 }}>
+                                            <strong>Renewals: ${config.renewalPrice}</strong> (20% off) — another {config.durationDays} days
                                         </p>
                                     </div>
 
-                                    {/* Features */}
-                                    <ul
-                                        style={{
-                                            listStyle: 'none',
-                                            padding: 0,
-                                            margin: '0 0 32px',
-                                            flex: 1,
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '14px',
-                                        }}
-                                    >
-                                        {plan.features.map((feat) => (
-                                            <li
-                                                key={feat}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'flex-start',
-                                                    gap: '10px',
-                                                    fontSize: '14px',
-                                                    color: 'var(--text-secondary)',
-                                                    lineHeight: 1.45,
-                                                }}
-                                            >
-                                                <Check
-                                                    size={16}
-                                                    style={{
-                                                        color: plan.color,
-                                                        flexShrink: 0,
-                                                        marginTop: '2px',
-                                                    }}
-                                                />
-                                                {feat}
+                                    <Link href="/post-job" className="emp-cta-primary" style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                        padding: '14px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
+                                        background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                        textDecoration: 'none',
+                                        boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                                    }}>
+                                        Start Posting — First 2 Free <ArrowRight size={16} />
+                                    </Link>
+                                </div>
+
+                                {/* Right — Feature checklist */}
+                                <div style={{ padding: '44px 36px 36px' }}>
+                                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Full Package — Every Post</h2>
+                                    <p style={{ fontSize: '13px', color: '#5A4A42', margin: '0 0 20px', lineHeight: 1.5 }}>No tiers. No downgrades. Free or paid, you get everything.</p>
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
+                                        {[
+                                            `${config.durationDays}-day listing`,
+                                            '★ Featured badge',
+                                            'Top search placement',
+                                            'Highlighted in job alerts',
+                                            '25 candidate unlocks',
+                                            '25 InMails',
+                                            'Full analytics dashboard',
+                                            'Up to 5 screening questions',
+                                        ].map(feat => (
+                                            <li key={feat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', color: '#1A2E35' }}>
+                                                <Check size={15} style={{ color: '#0D9488', flexShrink: 0 }} /> {feat}
                                             </li>
                                         ))}
                                     </ul>
-
-                                    {/* CTA Button */}
-                                    <Link
-                                        href={plan.ctaHref}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px',
-                                            padding: '14px 24px',
-                                            borderRadius: '14px',
-                                            fontWeight: 700,
-                                            fontSize: '15px',
-                                            textDecoration: 'none',
-                                            transition: 'all 0.3s',
-                                            ...(plan.popular
-                                                ? {
-                                                    background: `linear-gradient(135deg, ${plan.color}, #F59E0B)`,
-                                                    color: '#fff',
-                                                    boxShadow: `0 4px 16px ${plan.color}40`,
-                                                }
-                                                : {
-                                                    backgroundColor: 'var(--bg-tertiary)',
-                                                    color: 'var(--text-primary)',
-                                                    border: '1px solid var(--border-color)',
-                                                }),
-                                        }}
-                                    >
-                                        {plan.cta} <ArrowRight size={16} />
-                                    </Link>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        </div>
+
+                        {/* ═══ ROW 1: 60-Day Listing (8 cols) + Featured Badge (4 cols) ═══ */}
+                        <div className="bento-hero-1 emp-bento-card" style={{
+                            ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden',
+                            display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
+                        }}>
+                            <div style={{ padding: '32px 28px' }}>
+                                <Image src="/images/employers/clay-calendar.png" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
+                                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>60-Day Listing</h3>
+                                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                                    Double the industry standard. Your job stays visible for 2 full months — no daily budget, no bidding.
+                                </p>
+                            </div>
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
+                                <Image src="/images/employers/bento-60day.png" alt="60-day job listing calendar" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                            </div>
+                        </div>
+
+                        <div className="bento-hero-2 emp-bento-card" style={{
+                            ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden',
+                            display: 'flex', flexDirection: 'column',
+                        }}>
+                            <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Image src="/images/employers/bento-featured.png" alt="Featured badge on job listing" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                            </div>
+                            <div style={{ padding: '24px 22px', flex: 1 }}>
+                                <Image src="/images/employers/clay-star.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '12px' }} />
+                                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Featured Badge</h3>
+                                <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                                    Stand out with a prominent Featured tag on your listing and in search results.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* ═══ ROW 2: 4 compact cards ═══ */}
+                        <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+                            <Image src="/images/employers/clay-trending.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Search Placement</h3>
+                            <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Featured listings rank higher — more visibility, more clicks.</p>
+                        </div>
+
+                        <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+                            <Image src="/images/employers/clay-envelope.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Daily Job Alerts</h3>
+                            <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Highlighted in daily email digests to opted-in PMHNPs.</p>
+                        </div>
+
+                        <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+                            <Image src="/images/employers/clay-people.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 Candidate Unlocks</h3>
+                            <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>View full profiles — contact info, resume, LinkedIn.</p>
+                        </div>
+
+                        <div className="emp-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+                            <Image src="/images/employers/clay-briefcase.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>25 InMails</h3>
+                            <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Message candidates directly — no guessing emails.</p>
+                        </div>
+
+                        {/* ═══ ROW 3: Analytics (12 cols full-width) ═══ */}
+                        <div className="bento-hero-3 emp-bento-card" style={{
+                            ...clayCard, gridColumn: 'span 12', padding: '0', overflow: 'hidden',
+                            display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center',
+                        }}>
+                            <div style={{ padding: '32px 28px' }}>
+                                <Image src="/images/employers/clay-chart.png" alt="" width={56} height={56} style={{ width: '56px', height: '56px', objectFit: 'contain', marginBottom: '16px' }} />
+                                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Live Analytics</h3>
+                                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                                    Track views, clicks, and applications in real time. See exactly where your candidates come from.
+                                </p>
+                            </div>
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
+                                <Image src="/images/employers/bento-analytics.png" alt="Analytics dashboard with charts" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                            </div>
+                        </div>
+
                     </div>
                 </section>
-            )}
+            </div>
 
-            {config.isPaidPostingEnabled && (
-                <section
-                    style={{
-                        padding: '80px 16px',
-                        backgroundColor: 'var(--bg-secondary)',
-                    }}
-                >
-                    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                        <h2
-                            style={{
-                                fontSize: '28px',
-                                fontWeight: 800,
-                                color: 'var(--text-primary)',
-                                textAlign: 'center',
-                                marginBottom: '48px',
-                            }}
-                        >
-                            Compare Plans
-                        </h2>
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 3: COMPARISON + CTA (split screen, same as employer)
+                ═══════════════════════════════════════════════════════════════ */}
+            <section style={{ background: 'linear-gradient(180deg, #F1F5F9 0%, #E8EDF2 50%, #F1F5F9 100%)', padding: '80px 20px' }}>
+                <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+                        Why Switch
+                    </p>
+                    <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 36px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+                        How We Compare
+                    </h2>
+                    <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '440px', margin: '0 auto 44px', lineHeight: 1.6 }}>
+                        An honest look at what you get — no cherry-picking.
+                    </p>
 
-                        <div style={{ overflowX: 'auto' }}>
-                            <table
-                                style={{
-                                    width: '100%',
-                                    borderCollapse: 'collapse',
-                                    fontSize: '14px',
-                                }}
-                            >
+                    {/* Split: Table (left) + CTA Card (right) */}
+                    <div className="emp-compare-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '24px', alignItems: 'start' }}>
+
+                        {/* LEFT — Comparison Table */}
+                        <div className="emp-compare-table" style={{ ...clayCard, padding: '0', overflow: 'hidden' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', tableLayout: 'fixed' }}>
                                 <thead>
-                                    <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                                        <th
-                                            style={{
-                                                textAlign: 'left',
-                                                padding: '14px 16px',
-                                                color: 'var(--text-muted)',
-                                                fontWeight: 600,
-                                                fontSize: '13px',
-                                            }}
-                                        >
-                                            Feature
-                                        </th>
-                                        {plans.map((p) => (
-                                            <th
-                                                key={p.name}
-                                                style={{
-                                                    textAlign: 'center',
-                                                    padding: '14px 16px',
-                                                    color: p.color,
-                                                    fontWeight: 700,
-                                                    fontSize: '15px',
-                                                }}
-                                            >
-                                                {p.name}
-                                            </th>
-                                        ))}
+                                    <tr style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(13,148,136,0.02))' }}>
+                                        <th style={{ width: '40%', padding: '16px 24px', textAlign: 'left', fontWeight: 600, color: '#64748B', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature</th>
+                                        <th style={{ width: '20%', padding: '16px 16px', textAlign: 'center', fontWeight: 800, color: '#0D9488', borderBottom: '2px solid rgba(13,148,136,0.2)', fontSize: '12px' }}>PMHNP Hiring</th>
+                                        <th style={{ width: '20%', padding: '16px 16px', textAlign: 'center', fontWeight: 600, color: '#94A3B8', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '12px' }}>Indeed</th>
+                                        <th style={{ width: '20%', padding: '16px 16px', textAlign: 'center', fontWeight: 600, color: '#94A3B8', borderBottom: '2px solid rgba(0,0,0,0.06)', fontSize: '12px' }}>LinkedIn</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {[
-                                        { feature: 'Listing Duration', values: ['30 days', '60 days', '90 days'] },
-                                        { feature: 'Job Alert Inclusion', values: ['✓', '✓ Priority', '✓ Priority'] },
-                                        { feature: 'Featured Badge', values: ['—', '✓', '✓'] },
-                                        { feature: 'Top Search Placement', values: ['—', '✓', '✓'] },
-                                        { feature: 'Email Digest Highlight', values: ['—', '✓', '✓'] },
-                                        { feature: 'Candidate Unlocks', values: ['5/posting', '25/posting', 'Unlimited'] },
-                                        { feature: 'InMails', values: ['5/posting', '25/posting', 'Unlimited'] },
-                                        { feature: 'Social Media Promo', values: ['—', '—', '✓'] },
-                                        { feature: 'Analytics Dashboard', values: ['Basic', 'Advanced', 'Advanced + Reports'] },
-                                        { feature: 'Account Support', values: ['Email', 'Email', 'Dedicated'] },
-                                    ].map((row, i) => (
-                                        <tr
-                                            key={row.feature}
-                                            style={{
-                                                borderBottom: '1px solid var(--border-color)',
-                                                backgroundColor:
-                                                    i % 2 === 0
-                                                        ? 'transparent'
-                                                        : 'rgba(255,255,255,0.02)',
-                                            }}
-                                        >
-                                            <td
-                                                style={{
-                                                    padding: '14px 16px',
-                                                    color: 'var(--text-secondary)',
-                                                    fontWeight: 500,
-                                                }}
-                                            >
-                                                {row.feature}
-                                            </td>
-                                            {row.values.map((val, j) => (
-                                                <td
-                                                    key={j}
-                                                    style={{
-                                                        padding: '14px 16px',
-                                                        textAlign: 'center',
-                                                        color:
-                                                            val === '—'
-                                                                ? 'var(--text-muted)'
-                                                                : 'var(--text-primary)',
-                                                        fontWeight: val === '—' ? 400 : 600,
-                                                    }}
-                                                >
-                                                    {val}
+                                    {comparisonRows.map((row, i) => {
+                                        const renderCell = (val: true | false | 'partial', isUs: boolean) => {
+                                            if (val === true) return <Check size={16} style={{ color: isUs ? '#0D9488' : '#94A3B8', display: 'block', margin: '0 auto' }} />;
+                                            if (val === 'partial') return <span style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 600 }}>Partial</span>;
+                                            return <X size={16} style={{ color: '#D1D5DB', display: 'block', margin: '0 auto' }} />;
+                                        };
+                                        return (
+                                            <tr key={row.feature} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)' }}>
+                                                <td style={{ padding: '12px 24px', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                    <span style={{ color: '#1A2E35', fontWeight: 500 }}>{row.feature}</span>
+                                                    {row.note && <span style={{ display: 'block', fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{row.note}</span>}
                                                 </td>
-                                            ))}
-                                        </tr>
-                                    ))}
+                                                <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(13,148,136,0.03)' }}>
+                                                    {renderCell(row.us, true)}
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                    {renderCell(row.indeed, false)}
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                    {renderCell(row.linkedin, false)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </section>
-            )}
 
-            {/* Why Employers Choose Us */}
-            <section style={{ padding: '80px 16px' }}>
-                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                    <h2
-                        style={{
-                            fontSize: '28px',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
-                            textAlign: 'center',
-                            marginBottom: '48px',
-                        }}
-                    >
-                        Why Employers Choose Us
-                    </h2>
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                            gap: '24px',
-                        }}
-                    >
-                        {[
-                            { icon: Users, title: 'Thousands of Active PMHNPs', desc: 'The largest niche job board for psychiatric nurse practitioners.' },
-                            { icon: TrendingUp, title: '3× Higher Engagement', desc: 'Our job seekers are specifically looking for PMHNP roles.' },
-                            { icon: Mail, title: 'Daily Job Alerts', desc: 'Your listing sent directly to thousands of opted-in candidates.' },
-                            { icon: Search, title: 'SEO-Optimized Pages', desc: 'Every listing is discoverable on Google for maximum reach.' },
-                            { icon: Share2, title: 'Social Promotion', desc: 'Pro listings are shared across our social media channels.' },
-                            { icon: MessageSquare, title: 'Direct Messaging', desc: 'Pro employers can message candidates directly on the platform.' },
-                        ].map(({ icon: Ic, title, desc }) => (
-                            <div
-                                key={title}
-                                style={{
-                                    padding: '28px 24px',
-                                    borderRadius: '16px',
-                                    backgroundColor: 'var(--bg-secondary)',
-                                    border: '1px solid var(--border-color)',
-                                }}
-                            >
-                                <Ic
-                                    size={28}
-                                    style={{ color: '#2DD4BF', marginBottom: '12px' }}
+                        {/* RIGHT — Vertical CTA Card (image top, content bottom) */}
+                        <div style={{
+                            ...clayCard, padding: '0', overflow: 'hidden',
+                            display: 'flex', flexDirection: 'column',
+                        }}>
+                            <div style={{
+                                background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
+                                padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                                <Image
+                                    src="/images/employers/cta-illustration.png"
+                                    alt="Successful PMHNP hiring celebration"
+                                    width={280} height={220}
+                                    style={{ width: '100%', maxWidth: '260px', height: 'auto', borderRadius: '14px' }}
                                 />
-                                <h3
-                                    style={{
-                                        fontSize: '16px',
-                                        fontWeight: 700,
-                                        color: 'var(--text-primary)',
-                                        marginBottom: '6px',
-                                    }}
-                                >
-                                    {title}
-                                </h3>
-                                <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                                    {desc}
-                                </p>
                             </div>
-                        ))}
+                            <div style={{ padding: '28px 24px' }}>
+                                <h3 className="font-lora" style={{
+                                    fontSize: '20px', fontWeight: 700,
+                                    color: '#1A2E35', margin: '0 0 10px',
+                                }}>
+                                    Ready to Hire Your{' '}
+                                    <span style={{ color: '#0D9488' }}>Next PMHNP</span>?
+                                </h3>
+                                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: '0 0 20px' }}>
+                                    First 2 posts free — all features included. Then just ${config.postingPrice}/post.
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <Link href="/post-job" className="emp-cta-primary" style={{
+                                        padding: '12px 24px', borderRadius: '12px', fontWeight: 700, fontSize: '14px',
+                                        background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                        textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                        boxShadow: '4px 4px 12px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                                    }}>
+                                        Post a Job — First 2 Free <ArrowRight size={15} />
+                                    </Link>
+                                    <Link href="/contact" className="emp-cta-secondary" style={{
+                                        padding: '12px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '14px',
+                                        background: '#fff', color: '#1A2E35', textDecoration: 'none',
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                        border: '1px solid rgba(0,0,0,0.08)',
+                                        boxShadow: '2px 2px 6px rgba(0,0,0,0.04)',
+                                    }}>
+                                        Contact Sales
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </section>
 
-            {/* FAQ */}
-            <section
-                style={{
-                    padding: '80px 16px',
-                    backgroundColor: 'var(--bg-secondary)',
-                }}
-            >
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 4: FAQ
+                ═══════════════════════════════════════════════════════════════ */}
+            <section style={{ padding: '80px 16px', background: '#FFF' }}>
                 <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-                    <h2
-                        style={{
-                            fontSize: '28px',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
-                            textAlign: 'center',
-                            marginBottom: '48px',
-                        }}
-                    >
-                        Frequently Asked Questions
-                    </h2>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+                        Common Questions
+                    </p>
+                    <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '32px' }}>Frequently Asked Questions</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {faqs.map(({ q, a }) => (
-                            <details
-                                key={q}
-                                style={{
-                                    backgroundColor: 'var(--bg-primary)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '14px',
-                                    padding: '0',
-                                    overflow: 'hidden',
-                                }}
-                            >
-                                <summary
-                                    style={{
-                                        padding: '18px 20px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        fontSize: '15px',
-                                        fontWeight: 600,
-                                        color: 'var(--text-primary)',
-                                        listStyle: 'none',
-                                    }}
-                                >
-                                    <HelpCircle
-                                        size={18}
-                                        style={{ color: '#2DD4BF', flexShrink: 0 }}
-                                    />
+                            <details key={q} style={{ ...clayCard, padding: 0, overflow: 'hidden' }}>
+                                <summary style={{
+                                    padding: '18px 24px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                    fontSize: '15px', fontWeight: 600, color: '#1A2E35', listStyle: 'none',
+                                }}>
+                                    <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)') }}>
+                                        <HelpCircle size={14} color="#fff" />
+                                    </div>
                                     {q}
                                 </summary>
-                                <div
-                                    style={{
-                                        padding: '0 20px 18px 50px',
-                                        fontSize: '14px',
-                                        color: 'var(--text-secondary)',
-                                        lineHeight: 1.65,
-                                    }}
-                                >
-                                    {a}
-                                </div>
+                                <div style={{ padding: '0 24px 18px 64px', fontSize: '14px', color: '#5A4A42', lineHeight: 1.65 }}>{a}</div>
                             </details>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Bottom CTA */}
-            <section style={{ padding: '80px 16px', textAlign: 'center' }}>
-                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                    <h2
-                        style={{
-                            fontSize: '28px',
-                            fontWeight: 800,
-                            color: 'var(--text-primary)',
-                            marginBottom: '12px',
-                        }}
-                    >
-                        Ready to Hire Your Next PMHNP?
-                    </h2>
-                    <p
-                        style={{
-                            fontSize: '16px',
-                            color: 'var(--text-secondary)',
-                            marginBottom: '28px',
-                        }}
-                    >
-                        Post your first job for free and start receiving applications from qualified psychiatric nurse practitioners.
-                    </p>
-                    <div
-                        style={{
-                            display: 'flex',
-                            gap: '12px',
-                            justifyContent: 'center',
-                            flexWrap: 'wrap',
-                        }}
-                    >
-                        <Link
-                            href="/employer/signup"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '14px 32px',
-                                borderRadius: '14px',
-                                fontWeight: 700,
-                                fontSize: '15px',
-                                color: '#fff',
-                                background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
-                                textDecoration: 'none',
-                                boxShadow: '0 4px 16px rgba(45,212,191,0.25)',
-                            }}
-                        >
-                            Post a Job — Free <ArrowRight size={16} />
-                        </Link>
-                        <a
-                            href="mailto:support@pmhnphiring.com"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '14px 32px',
-                                borderRadius: '14px',
-                                fontWeight: 600,
-                                fontSize: '15px',
-                                color: 'var(--text-primary)',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                textDecoration: 'none',
-                            }}
-                        >
-                            Contact Sales
-                        </a>
-                    </div>
-                </div>
-            </section>
-        </div>
+            {/* ═══ Responsive + Hover ═══ */}
+            <style>{`
+                .emp-cta-primary {
+                    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+                }
+                .emp-cta-primary:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 10px 32px rgba(13,148,136,0.35), inset 1px 1px 2px rgba(255,255,255,0.2) !important;
+                    filter: brightness(1.05);
+                }
+                .emp-cta-secondary {
+                    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+                }
+                .emp-cta-secondary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
+                    border-color: rgba(13,148,136,0.3) !important;
+                }
+                .emp-bento-card {
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                }
+                .emp-bento-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important;
+                }
+                .emp-compare-table tr {
+                    transition: background 0.2s ease;
+                }
+                .emp-compare-table tbody tr:hover {
+                    background: rgba(13,148,136,0.04) !important;
+                }
+
+                @media (max-width: 768px) {
+                    .emp-compare-grid { grid-template-columns: 1fr !important; }
+                    .bento-grid { grid-template-columns: 1fr !important; }
+                    .bento-hero-1, .bento-hero-2, .bento-hero-3, .bento-pricing-hero {
+                        grid-column: span 1 !important;
+                    }
+                    .bento-hero-1, .bento-hero-3 {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .pricing-hero-inner {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .bento-grid > div { grid-column: span 1 !important; }
+                }
+                @media (min-width: 769px) and (max-width: 1024px) {
+                    .bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+                    .bento-hero-1, .bento-hero-3, .bento-pricing-hero { grid-column: span 6 !important; }
+                    .bento-hero-2 { grid-column: span 6 !important; }
+                    .pricing-hero-inner {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .bento-grid > div:not(.bento-hero-1):not(.bento-hero-2):not(.bento-hero-3):not(.bento-pricing-hero) {
+                        grid-column: span 3 !important;
+                    }
+                }
+            `}</style>
+        </>
     );
 }

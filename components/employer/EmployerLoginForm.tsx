@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react'
 
 export default function EmployerLoginForm() {
     const router = useRouter()
@@ -45,6 +45,27 @@ export default function EmployerLoginForm() {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Role Selection - Pill Toggle */}
+            <div className="flex rounded-lg p-1" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                <button
+                    type="button"
+                    onClick={() => router.push('/login')}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
+                    style={{ background: 'transparent', color: 'var(--text-tertiary)', boxShadow: 'none' }}
+                >
+                    <User className="w-4 h-4" />
+                    Job Seeker
+                </button>
+                <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--color-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+                >
+                    <Building2 className="w-4 h-4" />
+                    Employer
+                </button>
+            </div>
+
             {error && (
                 <div
                     className="rounded-lg p-3 flex items-start gap-3"

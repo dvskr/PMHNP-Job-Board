@@ -3,393 +3,261 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
-import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import Image from 'next/image';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { Mail, Clock, HelpCircle, CheckCircle, AlertCircle, ChevronDown, Send, Loader2, ArrowRight } from 'lucide-react';
 
-interface ContactFormData {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-}
+interface ContactFormData { name: string; email: string; subject: string; message: string; }
+
+/* ═══ Clay Tokens ═══ */
+const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const clayInput: React.CSSProperties = {
+    width: '100%', padding: '12px 16px', fontSize: '14px',
+    borderRadius: '14px', border: '1px solid rgba(0,0,0,0.08)',
+    background: '#F5F6F8', color: '#1A2E35',
+    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
+    outline: 'none', fontFamily: 'inherit', transition: 'all 0.2s ease',
+    boxSizing: 'border-box' as const,
+};
+
+const clayIconWrap = (gradient: string): React.CSSProperties => ({
+    width: '40px', height: '40px', borderRadius: '12px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: gradient,
+    boxShadow: '3px 3px 8px rgba(0,0,0,0.06), inset 1px 1px 2px rgba(255,255,255,0.2)',
+    flexShrink: 0,
+});
 
 export default function ContactPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const FAQ_ITEMS = [
-    {
-      q: 'Is PMHNP Hiring free for job seekers?',
-      a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.',
-    },
-    {
-      q: 'How often are jobs updated?',
-      a: 'Our pipeline runs twice daily, pulling from 3,000+ companies across major job boards and direct career pages.',
-    },
-    {
-      q: 'How do I post a job as an employer?',
-      a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.',
-    },
-    {
-      q: 'Can I get daily job alerts?',
-      a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.',
-    },
-    {
-      q: 'How do I delete my account?',
-      a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.',
-    },
-    {
-      q: 'Why did a job listing disappear?',
-      a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.',
-    },
-  ];
+    const FAQ_ITEMS = [
+        { q: 'Is PMHNP Hiring free for job seekers?', a: 'Yes! Browsing jobs, setting up alerts, and applying are completely free. We never charge job seekers.' },
+        { q: 'How often are jobs updated?', a: 'Our pipeline runs twice daily, pulling from 3,000+ companies across major job boards and direct career pages.' },
+        { q: 'How do I post a job as an employer?', a: 'Create a free employer account and post your job listing. Featured listings are available for enhanced visibility.' },
+        { q: 'Can I get daily job alerts?', a: 'Absolutely! Sign up for free and set your preferences (location, job type, salary range). We\'ll email you matching jobs daily.' },
+        { q: 'How do I delete my account?', a: 'Go to Settings > Account and click "Delete Account", or email us at support@pmhnphiring.com and we\'ll handle it within 24 hours.' },
+        { q: 'Why did a job listing disappear?', a: 'Jobs are automatically removed when they expire, get filled, or are reported by multiple users as invalid. Check the employer\'s site for the latest openings.' },
+    ];
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ContactFormData>();
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormData>();
 
-  const onSubmit = async (data: ContactFormData) => {
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
-    setErrorMessage('');
+    const onSubmit = async (data: ContactFormData) => {
+        setIsSubmitting(true); setSubmitStatus('idle'); setErrorMessage('');
+        try {
+            const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const result = await response.json();
+            if (response.ok && result.success) { setSubmitStatus('success'); reset(); }
+            else { setSubmitStatus('error'); setErrorMessage(result.error || 'Failed to send message. Please try again.'); }
+        } catch (error) {
+            console.error('Contact form error:', error);
+            setSubmitStatus('error'); setErrorMessage('Failed to send message. Please try again or email us directly.');
+        } finally { setIsSubmitting(false); }
+    };
 
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+    const Label = ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
+        <label htmlFor={htmlFor} style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1A2E35', marginBottom: '8px' }}>{children}</label>
+    );
 
-      const result = await response.json();
+    return (
+        <div style={{ background: '#F5F6F8', minHeight: '100vh' }}>
+            <BreadcrumbSchema items={[
+                { name: 'Home', url: 'https://pmhnphiring.com' },
+                { name: 'Contact', url: 'https://pmhnphiring.com/contact' },
+            ]} />
 
-      if (response.ok && result.success) {
-        setSubmitStatus('success');
-        reset(); // Clear form
-      } else {
-        setSubmitStatus('error');
-        setErrorMessage(result.error || 'Failed to send message. Please try again.');
-      }
-    } catch (error) {
-      console.error('Contact form error:', error);
-      setSubmitStatus('error');
-      setErrorMessage('Failed to send message. Please try again or email us directly.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://pmhnphiring.com' },
-        { name: 'Contact', url: 'https://pmhnphiring.com/contact' },
-      ]} />
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-16 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <Mail className="w-16 h-16 mx-auto mb-6 opacity-90" />
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Contact Us
-          </h1>
-          <p className="text-xl text-teal-100 max-w-2xl mx-auto">
-            We&apos;re here to help. Reach out with any questions.
-          </p>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: 'var(--text-primary)' }}>
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-2">
-            {FAQ_ITEMS.map((item, i) => (
-              <div
-                key={i}
-                className="rounded-xl overflow-hidden transition-all"
-                style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                }}
-              >
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left"
-                >
-                  <span className="text-sm font-semibold pr-4" style={{ color: 'var(--text-primary)' }}>
-                    {item.q}
-                  </span>
-                  <ChevronDown
-                    size={18}
-                    className="flex-shrink-0 transition-transform duration-200"
-                    style={{
-                      color: 'var(--text-tertiary)',
-                      transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)',
-                    }}
-                  />
-                </button>
-                {openFaq === i && (
-                  <div className="px-5 pb-4">
-                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                      {item.a}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content - Two Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Contact Form (2/3 width on desktop) */}
-          <div className="lg:col-span-2">
-            <Card padding="lg" variant="elevated">
-              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                Send Us a Message
-              </h2>
-
-              {/* Success Message */}
-              {submitStatus === 'success' && (
-                <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fade-in">
-                  <div className="flex items-start">
-                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 mr-3 flex-shrink-0" />
+            {/* Hero */}
+            <section style={{ padding: '80px 16px 64px', maxWidth: '1000px', margin: '0 auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '32px', alignItems: 'center' }} className="contact-hero-grid">
                     <div>
-                      <p className="text-sm font-semibold text-green-900">
-                        Message sent successfully!
-                      </p>
-                      <p className="text-sm text-green-800 mt-1">
-                        Thanks! We&apos;ll respond within 24-48 hours.
-                      </p>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: '#E6F4F1', color: '#0D9488', borderRadius: '20px', fontSize: '13px', fontWeight: 700, marginBottom: '24px' }}>
+                            <Mail size={14} /> Contact Us
+                        </div>
+                        <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 3.5rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '16px', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                            We&apos;d love to <span style={{ color: '#0D9488' }}>hear from you</span>
+                        </h1>
+                        <p style={{ fontSize: '20px', color: '#6B7F8A', lineHeight: 1.6, margin: 0, maxWidth: '500px' }}>
+                            Whether you represent a clinic seeking your next top-tier PMHNP, or you&apos;re a candidate looking for the perfect match, our team is standing by.
+                        </p>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Error Message */}
-              {submitStatus === 'error' && (
-                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg animate-fade-in">
-                  <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-red-900">
-                        Error sending message
-                      </p>
-                      <p className="text-sm text-red-800 mt-1">
-                        {errorMessage}
-                      </p>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <Image src="/images/pages/clay_hero_contact.png" alt="Contact PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
                     </div>
-                  </div>
                 </div>
-              )}
+            </section>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Name Field */}
-                <Input
-                  label="Name"
-                  type="text"
-                  placeholder="Your full name"
-                  {...register('name', {
-                    required: 'Name is required',
-                    minLength: {
-                      value: 2,
-                      message: 'Name must be at least 2 characters'
+            {/* FAQ Section */}
+            <section style={{ maxWidth: '700px', margin: '0 auto', padding: '0 16px 40px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', textAlign: 'center', marginBottom: '20px' }}>
+                    Quick Answers
+                </h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {FAQ_ITEMS.map((item, i) => (
+                        <div key={i} style={{ ...clayCard, overflow: 'hidden', padding: 0 }}>
+                            <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{
+                                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '16px 20px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
+                            }}>
+                                <span style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', paddingRight: '16px' }}>{item.q}</span>
+                                <ChevronDown size={16} style={{ color: '#B0BEC5', flexShrink: 0, transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+                            </button>
+                            {openFaq === i && (
+                                <div style={{ padding: '0 20px 16px', fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6 }}>{item.a}</div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Main Content — Two Column */}
+            <section style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px 80px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'start' }}>
+
+                    {/* Left: Form */}
+                    <div style={{ ...clayCard, padding: '32px' }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '24px' }}>Send Us a Message</h2>
+
+                        {submitStatus === 'success' && (
+                            <div style={{ ...clayCard, padding: '16px 20px', marginBottom: '20px', background: '#F0FDFA', border: '1px solid #99F6E4', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <CheckCircle size={18} color="#059669" />
+                                <div>
+                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#059669', margin: 0 }}>Message sent!</p>
+                                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>We&apos;ll respond within 24-48 hours.</p>
+                                </div>
+                            </div>
+                        )}
+                        {submitStatus === 'error' && (
+                            <div style={{ ...clayCard, padding: '16px 20px', marginBottom: '20px', background: '#FEF2F2', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <AlertCircle size={18} color="#DC2626" />
+                                <div>
+                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#DC2626', margin: 0 }}>Error</p>
+                                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{errorMessage}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                            <div>
+                                <Label htmlFor="name">Name</Label>
+                                <input id="name" type="text" placeholder="Your full name" {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Name must be at least 2 characters' } })} style={{ ...clayInput, ...(errors.name ? { borderColor: '#F87171' } : {}) }} />
+                                {errors.name && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.name.message}</p>}
+                            </div>
+                            <div>
+                                <Label htmlFor="email">Email</Label>
+                                <input id="email" type="email" placeholder="your.email@example.com" {...register('email', { required: 'Email is required', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Please enter a valid email' } })} style={{ ...clayInput, ...(errors.email ? { borderColor: '#F87171' } : {}) }} />
+                                {errors.email && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.email.message}</p>}
+                            </div>
+                            <div>
+                                <Label htmlFor="subject">Subject</Label>
+                                <select id="subject" {...register('subject', { required: 'Please select a subject' })} style={{ ...clayInput, ...(errors.subject ? { borderColor: '#F87171' } : {}) }}>
+                                    <option value="">Select a subject...</option>
+                                    <option value="General Inquiry">General Inquiry</option>
+                                    <option value="Job Seeker Support">Job Seeker Support</option>
+                                    <option value="Employer Support">Employer Support</option>
+                                    <option value="Report a Bug">Report a Bug</option>
+                                    <option value="Partnership Inquiry">Partnership Inquiry</option>
+                                    <option value="Technical Issue">Technical Issue</option>
+                                    <option value="Feedback">Feedback</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                {errors.subject && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.subject.message}</p>}
+                            </div>
+                            <div>
+                                <Label htmlFor="message">Message</Label>
+                                <textarea id="message" rows={5} placeholder="Tell us how we can help..." {...register('message', { required: 'Message is required', minLength: { value: 10, message: 'Message must be at least 10 characters' } })} style={{ ...clayInput, resize: 'vertical', minHeight: '120px', ...(errors.message ? { borderColor: '#F87171' } : {}) }} />
+                                {errors.message && <p style={{ fontSize: '12px', color: '#EF4444', margin: '6px 0 0' }}>{errors.message.message}</p>}
+                            </div>
+                            <button type="submit" disabled={isSubmitting} style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                padding: '14px 24px', borderRadius: '14px', fontWeight: 700, fontSize: '15px',
+                                background: isSubmitting ? 'rgba(13,148,136,0.3)' : 'linear-gradient(145deg, #0D9488, #10B981)',
+                                color: '#fff', border: 'none', cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                                boxShadow: '6px 6px 16px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                                transition: 'all 0.2s ease', width: '100%',
+                            }}>
+                                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                                {isSubmitting ? 'Sending...' : 'Send Message'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Right: Info */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ ...clayCard, padding: '24px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', marginBottom: '18px' }}>Contact Info</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                    <div style={{ ...clayIconWrap('linear-gradient(145deg, #0D9488, #10B981)'), width: '36px', height: '36px', borderRadius: '10px' }}>
+                                        <Mail size={16} color="#fff" />
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>Email</p>
+                                        <a href="mailto:support@pmhnphiring.com" style={{ fontSize: '13px', color: '#0D9488', textDecoration: 'none' }}>support@pmhnphiring.com</a>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                    <div style={{ ...clayIconWrap('linear-gradient(145deg, #3B82F6, #60A5FA)'), width: '36px', height: '36px', borderRadius: '10px' }}>
+                                        <Clock size={16} color="#fff" />
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>Response Time</p>
+                                        <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>We respond within 24-48 hours</p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                    <div style={{ ...clayIconWrap('linear-gradient(145deg, #8B5CF6, #A855F7)'), width: '36px', height: '36px', borderRadius: '10px' }}>
+                                        <HelpCircle size={16} color="#fff" />
+                                    </div>
+                                    <div>
+                                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>Quick Answers</p>
+                                        <Link href="/faq" style={{ fontSize: '13px', color: '#0D9488', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Visit FAQ <ArrowRight size={12} /></Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ ...clayCard, padding: '24px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', marginBottom: '14px' }}>Quick Links</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {[
+                                    { label: 'FAQ', href: '/faq' },
+                                    { label: 'About PMHNP Jobs', href: '/about' },
+                                    { label: 'Terms of Service', href: '/terms' },
+                                    { label: 'Privacy Policy', href: '/privacy' },
+                                ].map(link => (
+                                    <Link key={link.href} href={link.href} style={{
+                                        fontSize: '13px', color: '#0D9488', textDecoration: 'none',
+                                        padding: '8px 12px', borderRadius: '10px', background: '#F5F6F8',
+                                        boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    }}>
+                                        {link.label} <ArrowRight size={12} />
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <style>{`
+                @media (max-width: 768px) {
+                    section > div[style*="grid-template-columns: 2fr 1fr"] {
+                        grid-template-columns: 1fr !important;
                     }
-                  })}
-                  error={errors.name?.message}
-                />
-
-                {/* Email Field */}
-                <Input
-                  label="Email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Please enter a valid email address'
-                    }
-                  })}
-                  error={errors.email?.message}
-                />
-
-                {/* Subject Dropdown */}
-                <div>
-                  <label htmlFor="subject" className="block mb-1.5 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    Subject
-                  </label>
-                  <select
-                    id="subject"
-                    {...register('subject', { required: 'Please select a subject' })}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors duration-200 ${errors.subject ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
-                      }`}
-                    style={{ color: 'var(--text-primary)', background: 'var(--bg-primary)', borderColor: errors.subject ? undefined : 'var(--border-color)' }}
-                  >
-                    <option value="">Select a subject...</option>
-                    <option value="General Inquiry">General Inquiry</option>
-                    <option value="Job Seeker Support">Job Seeker Support</option>
-                    <option value="Employer Support">Employer Support</option>
-                    <option value="Report a Bug">Report a Bug</option>
-                    <option value="Partnership Inquiry">Partnership Inquiry</option>
-                    <option value="Technical Issue">Technical Issue</option>
-                    <option value="Feedback">Feedback</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {errors.subject && (
-                    <p className="mt-1.5 text-sm text-red-600">
-                      {errors.subject.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Message Textarea */}
-                <div>
-                  <label htmlFor="message" className="block mb-1.5 text-sm font-medium text-gray-700">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    rows={6}
-                    placeholder="Tell us how we can help..."
-                    {...register('message', {
-                      required: 'Message is required',
-                      minLength: {
-                        value: 10,
-                        message: 'Message must be at least 10 characters'
-                      }
-                    })}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors duration-200 resize-vertical ${errors.message ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''
-                      }`}
-                    style={{ color: 'var(--text-primary)', background: 'var(--bg-primary)', borderColor: errors.message ? undefined : 'var(--border-color)' }}
-                  />
-                  {errors.message && (
-                    <p className="mt-1.5 text-sm text-red-600">
-                      {errors.message.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  isLoading={isSubmitting}
-                  disabled={isSubmitting}
-                  className="w-full"
-                >
-                  {isSubmitting ? 'Sending...' : 'Send Message'}
-                </Button>
-              </form>
-            </Card>
-          </div>
-
-          {/* Right Column - Contact Info (1/3 width on desktop) */}
-          <div className="space-y-6">
-            {/* Contact Information Card */}
-            <Card padding="lg" variant="elevated">
-              <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                Contact Information
-              </h3>
-
-              <div className="space-y-4">
-                {/* Email */}
-                <div className="flex items-start">
-                  <Mail className="w-5 h-5 text-teal-600 mt-0.5 mr-3 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                      Email
-                    </p>
-                    <a
-                      href="mailto:support@pmhnphiring.com"
-                      className="text-sm text-teal-600 hover:text-teal-700 underline"
-                    >
-                      support@pmhnphiring.com
-                    </a>
-                  </div>
-                </div>
-
-                {/* Response Time */}
-                <div className="flex items-start">
-                  <Clock className="w-5 h-5 text-teal-600 mt-0.5 mr-3 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                      Response Time
-                    </p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      We typically respond within 24-48 hours
-                    </p>
-                  </div>
-                </div>
-
-                {/* FAQ Link */}
-                <div className="flex items-start">
-                  <HelpCircle className="w-5 h-5 text-teal-600 mt-0.5 mr-3 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                      Quick Answers
-                    </p>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Check our FAQ for instant answers
-                    </p>
-                    <Link
-                      href="/faq"
-                      className="text-sm text-teal-600 hover:text-teal-700 underline"
-                    >
-                      Visit FAQ →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Additional Help Card */}
-            <Card padding="lg" variant="bordered">
-              <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
-                Looking for Something Else?
-              </h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/faq" className="text-teal-700 hover:text-teal-800 underline">
-                    FAQ
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="text-teal-700 hover:text-teal-800 underline">
-                    About PMHNP Jobs
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="text-teal-700 hover:text-teal-800 underline">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-teal-700 hover:text-teal-800 underline">
-                    Privacy Policy
-                  </Link>
-                </li>
-              </ul>
-            </Card>
-          </div>
+                    .contact-hero-grid { grid-template-columns: 1fr !important; text-align: center; }
+                    .contact-hero-grid > div:last-child { order: -1; }
+                    .contact-hero-grid > div:first-child p { margin-left: auto; margin-right: auto; }
+                }
+            `}</style>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
-

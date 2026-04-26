@@ -40,9 +40,10 @@ function CheckboxFilter({ label, count, checked, onChange, disabled }: CheckboxF
         <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{label}</span>
       </div>
       <span style={{
-        fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
-        backgroundColor: count === 0 ? 'var(--bg-tertiary)' : 'var(--bg-tertiary)',
-        color: count === 0 ? 'var(--text-tertiary)' : 'var(--color-primary)',
+        fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px',
+        backgroundColor: count === 0 ? '#F3F4F6' : '#CCFBF1',
+        color: count === 0 ? '#9CA3AF' : '#0F766E',
+        boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.7), 1px 1px 2px rgba(0,0,0,0.03)',
       }}>
         {(count || 0).toLocaleString()}
       </span>
@@ -60,7 +61,7 @@ function FilterSection({ title, defaultExpanded = true, children }: FilterSectio
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <div style={{ borderBottom: '1px solid var(--border-color)', padding: '14px 0' }}>
+    <div style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', padding: '14px 0' }}>
       <button
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -103,7 +104,7 @@ export default function LinkedInFilters() {
     setLocationInput(parsed.location || '');
   }, [searchParams]);
 
-  // Fetch filter counts
+  // Fetch filter counts (includes category param for accurate counts)
   const fetchCounts = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -168,7 +169,7 @@ export default function LinkedInFilters() {
     router.push(`/jobs?${filtersToParams(newFilters as FilterState).toString()}`, { scroll: false });
   };
 
-  // Count active filters
+  // Count active filters (including category)
   const activeFilterCount =
     filters.workMode.length +
     filters.jobType.length +
@@ -177,12 +178,46 @@ export default function LinkedInFilters() {
     (filters.search ? 1 : 0) +
     (filters.location ? 1 : 0) +
     (filters.salaryMin ? 1 : 0) +
-    (filters.postedWithin ? 1 : 0);
+    (filters.postedWithin ? 1 : 0) +
+    (filters.category ? 1 : 0);
+
+  // Human-readable category names
+  const CATEGORY_LABELS: Record<string, string> = {
+    'child-adolescent': 'Child & Adolescent',
+    'community-health': 'Community Health',
+    'correctional': 'Correctional',
+    'new-grad': 'New Grad',
+    'outpatient': 'Outpatient',
+    'substance-abuse': 'Substance Abuse',
+    'travel': 'Travel',
+    'senior': 'Senior',
+    'telehealth': 'Telehealth',
+    'contract': 'Contract',
+    'crisis': 'Crisis',
+    'entry-level': 'Entry Level',
+    'full-time': 'Full-Time',
+    'geriatric': 'Geriatric',
+    'hospital': 'Hospital',
+    'lgbtq': 'LGBTQ+',
+    'locum-tenens': 'Locum Tenens',
+    'mid-career': 'Mid-Career',
+    'part-time': 'Part-Time',
+    'per-diem': 'Per Diem',
+    'private-practice': 'Private Practice',
+  };
 
   // Get active filter pills
   const getActiveFilters = () => {
     const pills: { key: string; label: string; onRemove: () => void }[] = [];
 
+    // Category pill (shown first, with distinct styling)
+    if (filters.category) {
+      pills.push({
+        key: 'category',
+        label: CATEGORY_LABELS[filters.category] || filters.category.replace(/-/g, ' '),
+        onRemove: () => setSingleFilter('category', null),
+      });
+    }
     if (filters.search) {
       pills.push({
         key: 'search',
@@ -251,9 +286,6 @@ export default function LinkedInFilters() {
     <>
       <div
         style={{
-          backgroundColor: 'var(--bg-secondary)',
-          borderRadius: '16px',
-          border: '1px solid var(--border-color)',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
         }}
@@ -261,9 +293,8 @@ export default function LinkedInFilters() {
         {/* Header */}
         <div style={{
           padding: '18px 20px 14px',
-          borderBottom: '1px solid var(--border-color)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
           flexShrink: 0,
-          backgroundColor: 'var(--bg-tertiary)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: activeFilterCount > 0 ? '12px' : '0' }}>
             <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
@@ -292,8 +323,9 @@ export default function LinkedInFilters() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     padding: '3px 10px', borderRadius: '20px',
-                    backgroundColor: 'var(--bg-tertiary)',
-                    color: 'var(--color-primary)', fontSize: '11px', fontWeight: 600,
+                    backgroundColor: '#CCFBF1',
+                    color: '#0F766E', fontSize: '11px', fontWeight: 600,
+                    boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.6), 1px 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
                   {pill.label}
@@ -317,9 +349,8 @@ export default function LinkedInFilters() {
         {/* Results Count */}
         <div style={{
           padding: '10px 20px',
-          borderBottom: '1px solid var(--border-color)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
           flexShrink: 0,
-          backgroundColor: 'var(--bg-secondary)',
         }}>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
             <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -348,11 +379,12 @@ export default function LinkedInFilters() {
                   style={{
                     width: '100%', paddingLeft: '36px', paddingRight: '14px',
                     paddingTop: '9px', paddingBottom: '9px',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '10px', fontSize: '13px',
+                    backgroundColor: '#F1F5F2',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    borderRadius: '14px', fontSize: '13px',
                     color: 'var(--text-primary)',
-                    outline: 'none', transition: 'border-color 0.2s',
+                    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), 1px 1px 2px rgba(255,255,255,0.5)',
                   }}
                 />
               </div>
@@ -374,11 +406,12 @@ export default function LinkedInFilters() {
                   style={{
                     width: '100%', paddingLeft: '36px', paddingRight: '14px',
                     paddingTop: '9px', paddingBottom: '9px',
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '10px', fontSize: '13px',
+                    backgroundColor: '#F1F5F2',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    borderRadius: '14px', fontSize: '13px',
                     color: 'var(--text-primary)',
-                    outline: 'none', transition: 'border-color 0.2s',
+                    outline: 'none', transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), 1px 1px 2px rgba(255,255,255,0.5)',
                   }}
                 />
               </div>

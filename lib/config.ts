@@ -1,116 +1,146 @@
+/**
+ * Pricing Config — Single-Tier Model
+ *
+ * All job posts get the SAME features (60-day, featured, 25 unlocks, 25 InMails).
+ * First 2 posts per employer email are free. Posts 3+ cost $199.
+ * Renewals cost $159 (20% off).
+ *
+ * Internally we store pricingTier='growth' in the DB for backward compatibility
+ * with existing records. The paymentStatus field ('free' vs 'paid') distinguishes
+ * free from paid posts.
+ */
+
+// Keep legacy type for DB compatibility — existing records use these values
 export type PricingTier = 'starter' | 'growth' | 'premium';
 
 export const config = {
-  // Feature flags
-  isPaidPostingEnabled: process.env.ENABLE_PAID_POSTING === 'true',
+  // ─── Single-Tier Pricing ───
+  freePostsPerEmail: 2,
+  postingPrice: 199,       // dollars
+  renewalPrice: 159,       // dollars (20% off)
+  stripePriceInCents: 19900,
+  stripeRenewalPriceInCents: 15900,
+  durationDays: 60,
 
-  // Pricing (in dollars)
-  pricing: {
-    starter: 199,
-    growth: 299,
-    premium: 399,
-    upgradeStarterToGrowth: 100,
-    upgradeGrowthToPremium: 100,
-    upgradeStarterToPremium: 200,
+  // All posts are featured (no differentiation)
+  isFeatured: true,
+
+  // All posts get the same limits
+  limits: {
+    candidateUnlocksPerPosting: 25,
+    inmailsPerPosting: 25,
   },
 
-  // Renewal pricing (20% discount)
-  renewalPricing: {
-    starter: 159,
-    growth: 239,
-    premium: 319,
-  },
+  // ─── Helper Functions ───
 
-  // Pricing (in cents for Stripe)
-  stripePricing: {
-    starter: 19900,
-    growth: 29900,
-    premium: 39900,
-    upgradeStarterToGrowth: 10000,
-    upgradeGrowthToPremium: 10000,
-    upgradeStarterToPremium: 20000,
-  },
-
-  // Renewal pricing (in cents for Stripe)
-  stripeRenewalPricing: {
-    starter: 15900,
-    growth: 23900,
-    premium: 31900,
-  },
-
-  // Job settings
-  jobSettings: {
-    starterDurationDays: 30,
-    growthDurationDays: 60,
-    premiumDurationDays: 90,
-  },
-
-  // Helper functions
-  getPostingPrice: (tier: PricingTier) => {
-    if (!config.isPaidPostingEnabled) return 0
-    return config.pricing[tier]
-  },
-
-  getRenewalPrice: (tier: PricingTier) => {
-    if (!config.isPaidPostingEnabled) return 0
-    return config.renewalPricing[tier]
-  },
-
-  getStripePriceInCents: (tier: PricingTier) => {
-    return config.stripePricing[tier]
-  },
-
-  getStripeRenewalPriceInCents: (tier: PricingTier) => {
-    return config.stripeRenewalPricing[tier]
-  },
-
-  getUpgradePrice: (from: PricingTier, to: PricingTier) => {
-    if (!config.isPaidPostingEnabled) return 0
-    return config.pricing[to] - config.pricing[from]
-  },
-
-  getDurationDays: (tier: PricingTier) => {
-    switch (tier) {
-      case 'premium': return config.jobSettings.premiumDurationDays
-      case 'growth': return config.jobSettings.growthDurationDays
-      default: return config.jobSettings.starterDurationDays
-    }
-  },
-
-  getTierLabel: (tier: PricingTier) => {
-    switch (tier) {
-      case 'premium': return 'Premium'
-      case 'growth': return 'Growth'
-      default: return 'Starter'
-    }
-  },
-
-  // Display helpers
   formatPrice: (amount: number) => {
     if (amount === 0) return 'FREE'
     return `$${amount}`
   },
 
-  getPricingLabel: (tier: PricingTier) => {
-    const price = config.getPostingPrice(tier)
-    if (price === 0) return 'Free'
-    return `$${price}`
+  /**
+   * Returns the tier label for display purposes.
+   * Used in emails, dashboard, etc. Accepts legacy tier values for backward compat.
+   */
+  getTierLabel: (tier: PricingTier | string) => {
+    // Legacy tiers map to "Pro" for display
+    switch (tier) {
+      case 'premium': return 'Pro'
+      case 'growth': return 'Pro'
+      case 'starter': return 'Pro'
+      default: return 'Pro'
+    }
   },
 
-  // Check if a tier is "featured" (Growth and Premium both get featured treatment)
-  isFeaturedTier: (tier: PricingTier) => {
-    return tier === 'growth' || tier === 'premium'
+  /**
+   * Duration in days. Accepts legacy tier values for backward compat.
+   * All tiers now return the same duration.
+   */
+  getDurationDays: (tier?: PricingTier | string) => {
+    return config.durationDays
   },
 
-  // Tier limits for feature gating (per job posting lifecycle)
+  /**
+   * All posts are featured. Accepts legacy tier values for backward compat.
+   */
+  isFeaturedTier: (_tier?: PricingTier | string) => {
+    return true
+  },
+
+  /**
+   * Returns limits for a posting. All tiers get the same limits now.
+   * Accepts legacy tier values for backward compat.
+   */
+  getTierLimits: (_tier?: PricingTier | string) => {
+    return config.limits
+  },
+
+  // ─── Legacy Compat (for existing code that reads these) ───
+  // TODO: Remove once all references are cleaned up
+
+  /** @deprecated Use config.postingPrice */
+  pricing: {
+    starter: 199,
+    growth: 199,
+    premium: 199,
+  },
+
+  /** @deprecated Use config.stripePriceInCents */
+  stripePricing: {
+    starter: 19900,
+    growth: 19900,
+    premium: 19900,
+  },
+
+  /** @deprecated Use config.renewalPrice */
+  renewalPricing: {
+    starter: 159,
+    growth: 159,
+    premium: 159,
+  },
+
+  /** @deprecated Use config.stripeRenewalPriceInCents */
+  stripeRenewalPricing: {
+    starter: 15900,
+    growth: 15900,
+    premium: 15900,
+  },
+
+  /** @deprecated Always returns config.postingPrice now */
+  getPostingPrice: (_tier?: PricingTier | string) => {
+    return config.postingPrice
+  },
+
+  /** @deprecated Always returns config.renewalPrice now */
+  getRenewalPrice: (_tier?: PricingTier | string) => {
+    return config.renewalPrice
+  },
+
+  /** @deprecated Always returns config.stripePriceInCents now */
+  getStripePriceInCents: (_tier?: PricingTier | string) => {
+    return config.stripePriceInCents
+  },
+
+  /** @deprecated Always returns config.stripeRenewalPriceInCents now */
+  getStripeRenewalPriceInCents: (_tier?: PricingTier | string) => {
+    return config.stripeRenewalPriceInCents
+  },
+
+  /** @deprecated No upgrades in single-tier model */
+  getUpgradePrice: (_from?: PricingTier | string, _to?: PricingTier | string) => {
+    return 0
+  },
+
+  /** @deprecated Use config.postingPrice */
+  getPricingLabel: (_tier?: PricingTier | string) => {
+    return `$${config.postingPrice}`
+  },
+
+  // Legacy tierLimits object for backward compat
   tierLimits: {
-    starter: { candidateUnlocksPerPosting: 5, inmailsPerPosting: 5 },
+    starter: { candidateUnlocksPerPosting: 25, inmailsPerPosting: 25 },
     growth: { candidateUnlocksPerPosting: 25, inmailsPerPosting: 25 },
-    premium: { candidateUnlocksPerPosting: Infinity, inmailsPerPosting: Infinity },
-  },
-
-  getTierLimits: (tier: PricingTier) => {
-    return config.tierLimits[tier] || config.tierLimits.starter
+    premium: { candidateUnlocksPerPosting: 25, inmailsPerPosting: 25 },
   },
 }
 

@@ -67,7 +67,7 @@ export default async function BlogIndexPage({
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen pb-20" style={{ backgroundColor: 'var(--bg-primary)' }}>
             <VideoJsonLd pathname="/blog" />
             {/* Breadcrumb Schema */}
             <script
@@ -96,17 +96,18 @@ export default async function BlogIndexPage({
 
             {/* Hero Section */}
             <section
-                className="bg-gradient-to-br from-[#0F172A] to-[#1e3a8a] text-white py-16 px-4"
+                className="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-16 px-4"
+                style={{ marginTop: -80, paddingTop: 120 }}
             >
                 <div className="max-w-6xl mx-auto text-center">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
                         PMHNP Career Insights
                     </h1>
-                    <p className="text-xl text-teal-200 max-w-2xl mx-auto">
+                    <p className="text-xl text-teal-100 max-w-2xl mx-auto">
                         Data-driven guides, salary negotiation tips, and career strategies
                         for psychiatric mental health nurse practitioners.
                     </p>
-                    <div className="mt-4 text-sm text-teal-300">
+                    <div className="mt-4 text-sm text-teal-200">
                         {totalCount} {totalCount === 1 ? 'article' : 'articles'} published
                     </div>
                 </div>
@@ -119,8 +120,9 @@ export default async function BlogIndexPage({
                         href="/blog"
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!categoryFilter
                             ? 'bg-teal-600 text-white shadow-md'
-                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                            : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
                             }`}
+                        style={!categoryFilter ? {} : { backgroundColor: 'var(--bg-secondary)' }}
                     >
                         All
                     </Link>
@@ -130,8 +132,9 @@ export default async function BlogIndexPage({
                             href={`/blog?category=${cat.id}`}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${categoryFilter === cat.id
                                 ? 'bg-teal-600 text-white shadow-md'
-                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                : 'text-gray-600 hover:bg-gray-100 border border-gray-200'
                                 }`}
+                            style={categoryFilter === cat.id ? {} : { backgroundColor: 'var(--bg-secondary)' }}
                         >
                             {cat.label}
                         </Link>
@@ -147,7 +150,7 @@ export default async function BlogIndexPage({
                                 href={`/blog/${post.slug}`}
                                 className="group block h-full"
                             >
-                                <article className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-200 h-full flex flex-col">
+                                <article className="rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border h-full flex flex-col" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
                                     {/* Header — image or gradient fallback */}
                                     <div className="h-44 relative overflow-hidden">
                                         {post.image_url ? (
@@ -174,10 +177,10 @@ export default async function BlogIndexPage({
                                     </div>
 
                                     <div className="p-6 flex-1 flex flex-col">
-                                        <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
+                                        <h2 className="text-xl font-bold mb-2 group-hover:text-teal-600 transition-colors line-clamp-2" style={{ color: 'var(--text-primary)' }}>
                                             {post.title}
                                         </h2>
-                                        <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-1">
+                                        <p className="text-sm line-clamp-3 mb-4 flex-1" style={{ color: 'var(--text-secondary)' }}>
                                             {post.meta_description || ''}
                                         </p>
                                         <div className="text-teal-600 font-semibold text-sm flex items-center mt-auto">
@@ -263,7 +266,7 @@ export default async function BlogIndexPage({
             </div>
 
             {/* Internal Links Footer */}
-            <section className="border-t border-gray-200 mt-16 bg-white py-12">
+            <section className="border-t mt-16 py-12" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
                 <div className="max-w-6xl mx-auto px-4">
                     <h3 className="text-lg font-bold text-gray-900 mb-6 text-center">
                         Browse More Resources

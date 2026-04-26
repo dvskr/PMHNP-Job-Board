@@ -66,40 +66,34 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
 
   const shareOptions = [
     {
-      name: 'X',
-      icon: <XIcon size={24} />,
-      href: `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
-      color: 'hover:bg-gray-100 dark:hover:bg-gray-700',
+      name: 'LinkedIn',
+      icon: <LinkedInIcon size={15} />,
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+      bg: '#E1EFFE', iconColor: '#0A66C2',
     },
     {
-      name: 'LinkedIn',
-      icon: <LinkedInIcon size={24} />,
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
-      color: 'hover:bg-teal-50 text-[#0A66C2]',
+      name: 'X',
+      icon: <XIcon size={15} />,
+      href: `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+      bg: '#EDF2EE', iconColor: '#1F2937',
     },
     {
       name: 'Facebook',
-      icon: <FacebookIcon size={24} />,
+      icon: <FacebookIcon size={15} />,
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      color: 'hover:bg-teal-50 text-[#1877F2]',
+      bg: '#E1EFFE', iconColor: '#1877F2',
     },
     {
       name: 'WhatsApp',
-      icon: <WhatsAppIcon size={24} />,
+      icon: <WhatsAppIcon size={15} />,
       href: `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`,
-      color: 'hover:bg-green-50 text-[#25D366]',
-    },
-    {
-      name: 'SMS',
-      icon: <SMSIcon size={24} />,
-      href: `sms:?body=${encodeURIComponent(title + ' ' + url)}`,
-      color: 'hover:bg-green-50 text-green-600',
+      bg: '#DCFCE7', iconColor: '#25D366',
     },
     {
       name: 'Email',
-      icon: <Mail size={24} />,
+      icon: <Mail size={15} />,
       href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent((description || 'Check out this job opportunity!') + '\n\n' + url)}`,
-      color: 'hover:bg-red-50 text-red-500',
+      bg: '#FEE2E2', iconColor: '#EA4335',
     },
   ];
 
@@ -147,82 +141,102 @@ export default function ShareModal({ url, title, description = '', onClose }: Sh
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-sm mx-4 sm:mx-auto rounded-2xl shadow-2xl"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
+        style={{
+          position: 'relative', width: '100%', maxWidth: '380px',
+          margin: '0 16px',
+          background: '#F7FBF8',
+          borderRadius: '20px',
+          border: '1px solid rgba(213, 232, 224, 0.5)',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.15), 6px 6px 14px rgba(0,60,50,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 0 1px 0 rgba(255,255,255,0.6)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
-          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Share</h3>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 20px', borderBottom: '1px solid #D5E8E0',
+        }}>
+          <h3 style={{
+            fontSize: '16px', fontWeight: 700,
+            fontFamily: 'var(--font-lora), Georgia, serif',
+            color: '#1A2E35', margin: 0,
+          }}>Share</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full transition-colors"
-            style={{ color: 'var(--text-tertiary)' }}
+            style={{
+              width: '32px', height: '32px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '10px', border: 'none', cursor: 'pointer',
+              background: '#EDF5F0', color: '#6B7F8A',
+              boxShadow: 'inset 1px 1px 3px rgba(0,60,50,0.06)',
+              transition: 'all 0.15s',
+            }}
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Share Icons - Two Rows */}
-        <div className="px-3 py-4">
-          {/* Row 1 */}
-          <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '12px' }}>
-            {shareOptions.slice(0, 4).map((option) => (
+        {/* Share Icons — single row */}
+        <div style={{ padding: '20px 24px 24px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: '#8A9BA6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>Share this job</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {shareOptions.map((option) => (
               <button
                 key={option.name}
                 onClick={() => openShareWindow(option.href)}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px' }}
-                className={`transition-colors ${option.color}`}
+                title={option.name}
+                className="clay-share-btn"
+                style={{
+                  width: '42px', height: '42px',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '14px',
+                  background: option.bg, color: option.iconColor,
+                  border: '1px solid rgba(255,255,255,0.6)',
+                  cursor: 'pointer',
+                  boxShadow: '5px 5px 12px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                  transition: 'all 0.25s ease',
+                }}
               >
-                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)' }}>
-                  {option.icon}
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{option.name}</span>
-              </button>
-            ))}
-          </div>
-          {/* Row 2 */}
-          <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-            {shareOptions.slice(4).map((option) => (
-              <button
-                key={option.name}
-                onClick={() => openShareWindow(option.href)}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px' }}
-                className={`transition-colors ${option.color}`}
-              >
-                <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)' }}>
-                  {option.icon}
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{option.name}</span>
+                {option.icon}
               </button>
             ))}
             {/* Copy Link */}
             <button
               onClick={handleCopyLink}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px', borderRadius: '12px', minWidth: '64px', color: copied ? undefined : 'var(--text-secondary)' }}
-              className={`transition-colors ${copied ? 'text-emerald-600' : ''}`}
+              title={copied ? 'Copied!' : 'Copy link'}
+              className="clay-share-btn"
+              style={{
+                width: '42px', height: '42px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: '14px',
+                background: copied ? '#B2F5EA' : '#EDF2EE',
+                color: copied ? '#059669' : '#6B7280',
+                border: '1px solid rgba(255,255,255,0.6)',
+                cursor: 'pointer',
+                boxShadow: copied
+                  ? '2px 2px 6px rgba(13,148,136,0.15), inset 3px 3px 5px rgba(0,0,0,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)'
+                  : '5px 5px 12px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                transition: 'all 0.25s ease',
+              }}
             >
-              <div style={{
-                width: '48px',
-                height: '48px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                backgroundColor: copied ? '#d1fae5' : 'var(--bg-tertiary)'
-              }}>
-                {copied ? <Check size={24} /> : <Link2 size={24} />}
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{copied ? 'Copied!' : 'Copy'}</span>
+              {copied ? <Check size={15} /> : <Link2 size={15} />}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Hover effect */}
+      <style>{`
+        .clay-share-btn:hover {
+          transform: translateY(-3px);
+          box-shadow: 7px 7px 16px rgba(0,0,0,0.10), -4px -4px 10px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03) !important;
+        }
+      `}</style>
     </div>
   );
 

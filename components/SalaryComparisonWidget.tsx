@@ -27,7 +27,7 @@ export default function SalaryComparisonWidget({
     return (
         <div
             className="rounded-2xl p-5 md:p-6 mb-4 lg:mb-6"
-            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+            style={{ backgroundColor: '#F7FBF8', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 14px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}
         >
             <h2
                 className="text-lg font-bold mb-4 flex items-center gap-2"
@@ -40,7 +40,7 @@ export default function SalaryComparisonWidget({
                 {/* State Average */}
                 <div
                     className="rounded-xl p-4 text-center"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
+                    style={{ backgroundColor: '#EDF2EE', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '14px', boxShadow: '3px 3px 6px rgba(0,0,0,0.04), -1px -1px 3px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)' }}
                 >
                     <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
                         {stateName} Avg
@@ -53,7 +53,7 @@ export default function SalaryComparisonWidget({
                 {/* National Average */}
                 <div
                     className="rounded-xl p-4 text-center"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
+                    style={{ backgroundColor: '#EDF2EE', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '14px', boxShadow: '3px 3px 6px rgba(0,0,0,0.04), -1px -1px 3px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)' }}
                 >
                     <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>
                         National Avg
@@ -83,7 +83,7 @@ export default function SalaryComparisonWidget({
             {jobMidpoint && jobMidpoint > 10 && (
                 <div
                     className="rounded-lg p-3 text-sm"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                    style={{ backgroundColor: '#EDF2EE', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '14px', boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.5), 2px 2px 4px rgba(0,0,0,0.03)', color: 'var(--text-secondary)' }}
                 >
                     This position&apos;s salary ({`$${Math.round(Number(jobMinSalary) / 1000)}k-$${Math.round(Number(jobMaxSalary) / 1000)}k`}) is{' '}
                     {jobMidpoint > stateAvgSalary ? (

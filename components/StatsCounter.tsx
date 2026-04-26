@@ -134,7 +134,7 @@ export default function StatsCounter({
                                 </div>
 
                                 <div
-                                    className="text-3xl md:text-4xl font-bold tabular-nums mb-1"
+                                    className="font-heading text-3xl md:text-4xl font-bold tabular-nums mb-1"
                                     style={{ color: 'var(--text-primary)' }}
                                 >
                                     {stat.value}

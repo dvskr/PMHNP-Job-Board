@@ -198,8 +198,10 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
               onClick={handleSignUp}
               className="w-full py-3 rounded-xl font-bold text-white transition-all text-sm"
               style={{
-                background: 'linear-gradient(135deg, #0d9488, #0f766e)',
-                boxShadow: '0 4px 14px rgba(13,148,136,0.35)',
+                background: '#0d9488',
+                borderRadius: '16px',
+                border: '1px solid rgba(255,255,255,0.3)',
+                boxShadow: '6px 6px 16px rgba(13,148,136,0.30), -3px -3px 10px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08)',
               }}
             >
               Create Free Account
@@ -208,9 +210,11 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
               onClick={handleSignIn}
               className="w-full py-2.5 rounded-xl font-semibold transition-all text-sm"
               style={{
-                backgroundColor: 'var(--bg-tertiary)',
+                backgroundColor: '#EDF2EE',
                 color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
+                border: '1px solid rgba(255,255,255,0.5)',
+                borderRadius: '16px',
+                boxShadow: '5px 5px 12px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.03)',
               }}
             >
               Sign In
@@ -231,11 +235,13 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
           <div className="flex items-center gap-3">
             <button
               onClick={handleApply}
-              className="apply-btn inline-flex items-center justify-center gap-2 text-white px-8 py-4 lg:py-3 rounded-xl font-bold transition-all text-lg w-full lg:w-auto touch-manipulation"
+              className="apply-btn inline-flex items-center justify-center gap-2 text-white px-8 py-4 lg:py-3 font-bold transition-all text-lg w-full lg:w-auto touch-manipulation"
               style={{
                 minHeight: '52px',
-                background: 'linear-gradient(135deg, #0d9488, #0f766e)',
-                boxShadow: '0 4px 14px rgba(13,148,136,0.35)',
+                borderRadius: '18px',
+                background: '#0d9488',
+                border: '1px solid rgba(255,255,255,0.3)',
+                boxShadow: '6px 6px 16px rgba(13,148,136,0.30), -3px -3px 10px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08)',
               }}
             >
               {applied ? 'Apply Again' : 'Apply Now'}
@@ -291,11 +297,12 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
 
       <style>{`
         .apply-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(13,148,136,0.45) !important;
+          transform: translateY(-3px);
+          box-shadow: 8px 8px 20px rgba(13,148,136,0.35), -4px -4px 12px rgba(255,255,255,0.25), inset 2px 2px 5px rgba(255,255,255,0.3), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
         }
         .apply-btn:active {
-          transform: translateY(0);
+          transform: translateY(1px);
+          box-shadow: 2px 2px 6px rgba(13,148,136,0.2), inset 3px 3px 6px rgba(0,0,0,0.12), inset -2px -2px 4px rgba(255,255,255,0.15) !important;
         }
       `}
       </style>

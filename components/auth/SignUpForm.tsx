@@ -171,7 +171,7 @@ export default function SignUpForm() {
         >
           <CheckCircle className="w-8 h-8 text-emerald-500" />
         </div>
-        <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Check your email</h3>
+        <h3 className="font-heading text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Check your email</h3>
         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           We&apos;ve sent a confirmation link to <strong>{email}</strong>
         </p>
@@ -240,7 +240,7 @@ export default function SignUpForm() {
         </button>
         <button
           type="button"
-          onClick={() => setRole('employer')}
+          onClick={() => router.push('/employer/signup')}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
           style={{
             background: role === 'employer' ? 'var(--bg-secondary)' : 'transparent',
@@ -264,7 +264,7 @@ export default function SignUpForm() {
             <div className="relative flex justify-center">
               <span
                 className="px-3 text-xs uppercase tracking-wider font-medium"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}
+                style={{ background: '#fff', color: 'var(--text-tertiary)' }}
               >
                 or
               </span>
@@ -414,70 +414,45 @@ export default function SignUpForm() {
       {/* Job Highlights Opt-in (Job Seekers only) */}
       {role === 'job_seeker' && (
         <div
-          className="rounded-lg p-4"
+          className="rounded-lg p-3"
           style={{ background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.15)' }}
         >
-          <label className="flex items-start gap-3 cursor-pointer">
+          <label className="flex items-center gap-2.5 cursor-pointer">
             <input
               type="checkbox"
               checked={wantJobHighlights}
               onChange={(e) => setWantJobHighlights(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded"
+              className="w-4 h-4 rounded"
               style={{ accentColor: 'var(--color-primary)' }}
             />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
-                <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Email me job highlights</span>
-              </div>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Get the latest PMHNP opportunities delivered to your inbox</p>
-            </div>
+            <Bell className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+            <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Email me job highlights</span>
+            {wantJobHighlights && (
+              <span className="ml-auto flex items-center gap-3">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" name="highlightsFrequency" value="daily" checked={highlightsFrequency === 'daily'} onChange={() => setHighlightsFrequency('daily')} className="w-3.5 h-3.5" style={{ accentColor: 'var(--color-primary)' }} />
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Daily</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" name="highlightsFrequency" value="weekly" checked={highlightsFrequency === 'weekly'} onChange={() => setHighlightsFrequency('weekly')} className="w-3.5 h-3.5" style={{ accentColor: 'var(--color-primary)' }} />
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Weekly</span>
+                </label>
+              </span>
+            )}
           </label>
 
-          {wantJobHighlights && (
-            <div className="mt-3 ml-7 flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="highlightsFrequency"
-                  value="daily"
-                  checked={highlightsFrequency === 'daily'}
-                  onChange={() => setHighlightsFrequency('daily')}
-                  className="w-4 h-4"
-                  style={{ accentColor: 'var(--color-primary)' }}
-                />
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Daily</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="highlightsFrequency"
-                  value="weekly"
-                  checked={highlightsFrequency === 'weekly'}
-                  onChange={() => setHighlightsFrequency('weekly')}
-                  className="w-4 h-4"
-                  style={{ accentColor: 'var(--color-primary)' }}
-                />
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Weekly</span>
-              </label>
-            </div>
-          )}
-          <p className="text-xs mt-2 ml-7" style={{ color: 'var(--text-tertiary)' }}>You can change this anytime</p>
-          {/* Newsletter Opt-in */}
-          <div style={{ borderTop: '1px solid rgba(13,148,136,0.15)', marginTop: '16px', paddingTop: '16px' }}>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={newsletterOptIn}
-                onChange={(e) => setNewsletterOptIn(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded"
-                style={{ accentColor: 'var(--color-primary)' }}
-              />
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Send me career tips, salary insights & market updates
-              </span>
-            </label>
-          </div>
+          <label className="flex items-center gap-2.5 cursor-pointer mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(13,148,136,0.12)' }}>
+            <input
+              type="checkbox"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              className="w-4 h-4 rounded"
+              style={{ accentColor: 'var(--color-primary)' }}
+            />
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Send me career tips, salary insights & market updates
+            </span>
+          </label>
         </div>
       )}
 
