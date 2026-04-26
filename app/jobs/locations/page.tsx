@@ -92,9 +92,21 @@ async function getLocationStats() {
     where: { isPublished: true },
   });
 
-  // Process states with explicit typing
+  // Valid US states + DC (whitelist to exclude non-US locations like British Columbia)
+  const US_STATES = new Set([
+    'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
+    'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+    'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
+    'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire',
+    'New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio',
+    'Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota',
+    'Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia',
+    'Wisconsin','Wyoming',
+  ]);
+
+  // Process states with explicit typing — filter to US only
   const processedStates = stateData
-    .filter((s: StateGroupResult) => s.state !== null)
+    .filter((s: StateGroupResult) => s.state !== null && US_STATES.has(s.state!))
     .map((s: StateGroupResult) => ({
       name: s.state!,
       code: s.stateCode || '',
@@ -318,11 +330,11 @@ export default async function LocationsPage() {
             </div>
           </div>
 
-          {/* States Section */}
+          {/* ═══ Browse by State — Diorama Cards ═══ */}
           <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <MapPin className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-              <h2 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+              <img src="/images/categories/clay_icon_location.png" alt="" width={28} height={28} style={{ objectFit: 'contain' }} />
+              <h2 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, fontFamily: 'var(--font-lora, Georgia, serif)', color: '#1A2E35', margin: 0 }}>
                 Browse by State
               </h2>
             </div>
@@ -333,40 +345,73 @@ export default async function LocationsPage() {
                 <p style={{ color: 'var(--text-secondary)' }}>No state data available</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <>
+              <style dangerouslySetInnerHTML={{ __html: `
+                .state-card {
+                  transition: transform 0.3s ease, box-shadow 0.3s ease;
+                }
+                .state-card:hover {
+                  transform: translateY(-6px) scale(1.03);
+                  box-shadow: inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 14px 32px rgba(0,0,0,0.16) !important;
+                }
+                .state-card:hover .state-footer {
+                  background: #F9F7F1;
+                }
+                .state-card:hover .state-name {
+                  color: #0D9488 !important;
+                }
+              `}} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                 {stats.states.map((state: ProcessedState) => (
                   <Link
                     key={state.code}
                     href={`/jobs/state/${state.slug}`}
-                    className="group"
+                    className="group block"
+                    style={{ textDecoration: 'none' }}
                   >
-                    <div className="rounded-xl p-5 hover:shadow-md transition-all duration-200 h-full" style={clayCard}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-bold group-hover:text-teal-500 transition-colors mb-1" style={{ color: 'var(--text-primary)' }}>
-                            {state.name}
-                          </h3>
-                          <p className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
-                            {state.code}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-                            {state.count}
-                          </div>
-                          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            {state.count === 1 ? 'job' : 'jobs'}
-                          </p>
-                        </div>
+                    {/* Diorama — aspect-square, matching home page */}
+                    <div
+                      className="state-card relative overflow-hidden aspect-square"
+                      style={{
+                        borderRadius: '24px',
+                        boxShadow: 'inset 4px 4px 10px rgba(255,255,255,0.3), inset -3px -3px 8px rgba(0,0,0,0.08), 0 6px 20px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      <img
+                        src={`/images/states/${state.slug}.png`}
+                        alt={`${state.name} PMHNP Jobs`}
+                        width={300}
+                        height={300}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                      {/* Job count badge */}
+                      <div style={{
+                        position: 'absolute', bottom: '10px', right: '10px',
+                        padding: '5px 12px', borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+                        fontSize: '13px', fontWeight: 800, color: '#0D9488', lineHeight: 1,
+                        display: 'flex', alignItems: 'baseline', gap: '3px',
+                      }}>
+                        {state.count} <span style={{ fontSize: '10px', fontWeight: 600, color: '#7A6A62' }}>jobs</span>
                       </div>
-                      <div className="text-sm font-medium flex items-center gap-1" style={{ color: 'var(--color-primary)' }}>
-                        View Jobs
-                        <span className="group-hover:translate-x-1 transition-transform">→</span>
-                      </div>
+                    </div>
+                    {/* Footer: Name + CTA */}
+                    <div className="state-footer" style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 6px 4px',
+                    }}>
+                      <span className="state-name" style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35', transition: 'color 0.2s' }}>
+                        {state.name}
+                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        View →
+                      </span>
                     </div>
                   </Link>
                 ))}
               </div>
+              </>
             )}
           </div>
 
