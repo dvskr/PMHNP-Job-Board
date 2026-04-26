@@ -17,9 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const [totalJobs, employers] = await Promise.all([
+  const [totalJobs, totalEmployers] = await Promise.all([
     prisma.job.count({ where: { isPublished: true } }),
-    prisma.job.groupBy({ by: ['company'], where: { isPublished: true, company: { not: null } } }),
+    prisma.job.findMany({ where: { isPublished: true }, select: { companyId: true }, distinct: ['companyId'] }).then(r => r.length),
   ]);
 
   return (
@@ -29,7 +29,7 @@ export default async function AboutPage() {
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'About', url: 'https://pmhnphiring.com/about' },
       ]} />
-      <AboutClient totalJobs={totalJobs} totalEmployers={employers.length} />
+      <AboutClient totalJobs={totalJobs} totalEmployers={totalEmployers} />
     </>
   );
 }
