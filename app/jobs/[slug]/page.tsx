@@ -470,66 +470,109 @@ export async function generateMetadata({ params }: JobPageProps) {
  * links preserves link equity while signaling permanent removal.
  */
 function renderGonePage() {
+  return renderRemovedPage({ badge: 'Position Removed', badgeGradient: 'linear-gradient(135deg, #6b7280, #4b5563)', heading: 'This Position Is No Longer Available', subtext: 'This job listing has been permanently removed.' });
+}
+
+function renderRemovedPage({ badge, badgeGradient, heading, subtext, title, employer }: { badge: string; badgeGradient: string; heading: string; subtext: string; title?: string; employer?: string }) {
+  const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+  };
+
+  const actionCards = [
+    { href: '/jobs', label: 'Browse All Jobs', sub: 'View all open positions', icon: '/images/categories/clay_icon_location.png' },
+    { href: '/jobs/remote', label: 'Remote Jobs', sub: 'Work from anywhere', icon: '/images/categories/clay_icon_remote.png' },
+    { href: '/jobs/telehealth', label: 'Telehealth Jobs', sub: 'Virtual psychiatric care', icon: '/images/categories/clay_icon_telehealth.png' },
+    { href: '/jobs/travel', label: 'Travel Jobs', sub: 'Explore new locations', icon: '/images/categories/clay_icon_travel.png' },
+    { href: '/jobs/outpatient', label: 'Outpatient Jobs', sub: 'Clinic-based roles', icon: '/images/categories/clay_icon_outpatient.png' },
+    { href: '/jobs/inpatient', label: 'Inpatient Jobs', sub: 'Hospital settings', icon: '/images/categories/clay_icon_inpatient.png' },
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-16" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <div className="max-w-2xl w-full text-center">
-        {/* Status Badge */}
-        <div className="mb-6">
+    <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh' }}>
+      {/* Inline hover styles */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .gone-card { transition: transform 0.25s ease, box-shadow 0.25s ease; cursor: pointer; }
+        .gone-card:hover { transform: translateY(-4px) !important; box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .gone-card:active { transform: translateY(-1px) !important; }
+        .gone-cta { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .gone-cta:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 20px rgba(13,148,136,0.3) !important; }
+      `}} />
+
+      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '60px 20px 80px' }}>
+
+        {/* Hero Clay Card */}
+        <div style={{ ...clayCard, padding: '40px 32px', textAlign: 'center', marginBottom: '24px' }}>
+          {/* Badge */}
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '8px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: 700,
-            background: 'linear-gradient(135deg, #6b7280, #4b5563)', color: '#fff',
+            padding: '6px 18px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.03em',
+            background: badgeGradient, color: '#fff',
           }}>
-            Position Removed
+            {badge}
           </span>
+
+          {/* Heading */}
+          <h1 className="font-lora" style={{ fontSize: '28px', fontWeight: 800, color: '#1A2E35', margin: '20px 0 12px', lineHeight: 1.3 }}>
+            {heading}
+          </h1>
+
+          {/* Job details if expired */}
+          {title && employer && (
+            <p style={{ fontSize: '16px', color: '#5A4A42', marginBottom: '8px' }}>
+              <strong>{title}</strong> at <strong>{employer}</strong>
+            </p>
+          )}
+
+          <p style={{ fontSize: '15px', color: '#7A6A62', marginBottom: '0', lineHeight: 1.6 }}>
+            {subtext}
+          </p>
+          <p style={{ fontSize: '14px', color: '#9A8A7E', marginTop: '8px' }}>
+            Don&apos;t worry — we have hundreds of similar PMHNP positions available right now.
+          </p>
         </div>
 
-        {/* Heading */}
-        <h1 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-          This Position Is No Longer Available
-        </h1>
-
-        {/* Details */}
-        <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
-          This job listing has been permanently removed.
-        </p>
-        <p className="text-base mb-8" style={{ color: 'var(--text-tertiary)' }}>
-          Don&apos;t worry — we have hundreds of similar PMHNP positions available right now.
-        </p>
-
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-lg mx-auto">
-          <a href="/jobs" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-            <div className="text-2xl mb-2">🔍</div>
-            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Browse All Jobs</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>View all open PMHNP positions</div>
-          </a>
-          <a href="/jobs/remote" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-            <div className="text-2xl mb-2">🏠</div>
-            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Work-from-home positions</div>
-          </a>
-          <a href="/jobs/telehealth" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-            <div className="text-2xl mb-2">💻</div>
-            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care</div>
-          </a>
-          <a href="/job-alerts" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-            <div className="text-2xl mb-2">🔔</div>
-            <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Job Alerts</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Get notified of new positions</div>
-          </a>
+        {/* Action Cards — 3×2 Grid */}
+        <div style={{ ...clayCard, padding: '24px', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px' }}>
+            Explore Open Positions
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            {actionCards.map((card) => (
+              <a key={card.href} href={card.href}
+                className="gone-card"
+                style={{
+                  ...clayCard, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  padding: '20px 12px', textAlign: 'center', textDecoration: 'none',
+                }}>
+                <img src={card.icon} alt="" width={40} height={40} style={{ marginBottom: '10px', objectFit: 'contain' }} />
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', marginBottom: '3px' }}>{card.label}</div>
+                <div style={{ fontSize: '11px', color: '#7A6A62' }}>{card.sub}</div>
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* Salary Guide CTA */}
-        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-          <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+        <div style={{ ...clayCard, padding: '28px 32px', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', color: '#7A6A62', marginBottom: '16px' }}>
             While you&apos;re here, check out the latest PMHNP salary data:
           </p>
-          <a href="/salary-guide" className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--color-primary)' }}>
+          <a href="/salary-guide"
+            className="gone-cta"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '12px 28px', borderRadius: '14px', fontSize: '15px', fontWeight: 700,
+              color: '#fff', textDecoration: 'none',
+              background: 'linear-gradient(135deg, #0D9488, #0F766E)',
+              boxShadow: '4px 4px 12px rgba(13,148,136,0.2), -2px -2px 6px rgba(255,255,255,0.3), inset 1px 1px 2px rgba(255,255,255,0.2)',
+            }}>
+            <img src="/images/categories/clay_icon_salary.png" alt="" width={22} height={22} style={{ objectFit: 'contain' }} />
             2026 PMHNP Salary Guide →
           </a>
         </div>
+
       </div>
     </div>
   );
@@ -561,69 +604,14 @@ export default async function JobPage({ params }: JobPageProps) {
     const expiredTitle = result.title || 'PMHNP Position';
     const expiredEmployer = result.employer || 'an employer';
 
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-16" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-2xl w-full text-center">
-          {/* Status Badge */}
-          <div className="mb-6">
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '8px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: 700,
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff',
-            }}>
-              Position Filled
-            </span>
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-            This Position Is No Longer Available
-          </h1>
-
-          {/* Details */}
-          <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
-            <strong>{expiredTitle}</strong> at <strong>{expiredEmployer}</strong>
-          </p>
-          <p className="text-base mb-8" style={{ color: 'var(--text-tertiary)' }}>
-            This job has been filled or the listing has expired. Don&apos;t worry — we have hundreds of similar PMHNP positions available.
-          </p>
-
-          {/* Action Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-lg mx-auto">
-            <a href="/jobs" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-              <div className="text-2xl mb-2">🔍</div>
-              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Browse All Jobs</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>View all open PMHNP positions</div>
-            </a>
-            <a href="/jobs/remote" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-              <div className="text-2xl mb-2">🏠</div>
-              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Work-from-home positions</div>
-            </a>
-            <a href="/jobs/telehealth" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-              <div className="text-2xl mb-2">💻</div>
-              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Virtual psychiatric care</div>
-            </a>
-            <a href="/job-alerts" className="block p-5 rounded-xl transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', textDecoration: 'none' }}>
-              <div className="text-2xl mb-2">🔔</div>
-              <div className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Job Alerts</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Get notified of new positions</div>
-            </a>
-          </div>
-
-          {/* Salary Guide CTA */}
-          <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-              While you&apos;re here, check out the latest PMHNP salary data:
-            </p>
-            <a href="/salary-guide" className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--color-primary)' }}>
-              2026 PMHNP Salary Guide →
-            </a>
-          </div>
-        </div>
-      </div>
-    );
+    return renderRemovedPage({
+      badge: 'Position Filled',
+      badgeGradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      heading: 'This Position Has Been Filled',
+      subtext: 'This job has been filled or the listing has expired.',
+      title: expiredTitle,
+      employer: expiredEmployer,
+    });
   }
 
   const job = result.job;

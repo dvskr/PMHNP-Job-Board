@@ -1,7 +1,9 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { MapPin, TrendingUp, Building2, Bell, Navigation, Shield, MapPinned } from 'lucide-react';
+import Image from 'next/image';
+import { MapPin, TrendingUp, Building2, Bell, Navigation, Shield, MapPinned, DollarSign, Users, ArrowRight } from 'lucide-react';
+import CategoryHero from '@/components/CategoryHero';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -116,6 +118,7 @@ const NEIGHBORING_STATES: Record<string, string[]> = {
 
 interface StatePageProps {
   params: Promise<{ state: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
 /**
@@ -160,8 +163,8 @@ function parseStateParam(stateParam: string): { name: string; code: string } | n
 /**
  * Fetch jobs for a specific state
  */
-async function getStateJobs(stateName: string, stateCode: string) {
-  const jobs = await prisma.job.findMany({
+async function getStateJobs(stateName: string, stateCode: string, skip = 0, take = 10) {
+  return prisma.job.findMany({
     where: {
       isPublished: true,
       OR: [
@@ -171,12 +174,13 @@ async function getStateJobs(stateName: string, stateCode: string) {
     },
     orderBy: [
       { isFeatured: 'desc' },
+      { qualityScore: 'desc' },
+      { originalPostedAt: 'desc' },
       { createdAt: 'desc' },
     ],
-    take: 50,
+    skip,
+    take,
   });
-
-  return jobs;
 }
 
 /**
@@ -386,8 +390,8 @@ export async function generateMetadata({ params }: StatePageProps): Promise<Meta
 /**
  * State-specific job listings page
  */
-export default async function StateJobsPage({ params }: StatePageProps) {
-  const { state: stateParam } = await params;
+export default async function StateJobsPage({ params, searchParams }: StatePageProps) {
+  const [{ state: stateParam }, sp] = await Promise.all([params, searchParams]);
   const stateInfo = parseStateParam(stateParam);
 
   if (!stateInfo) {
@@ -395,406 +399,410 @@ export default async function StateJobsPage({ params }: StatePageProps) {
   }
 
   const { name: stateName, code: stateCode } = stateInfo;
+  const page = Math.max(1, parseInt(sp.page || '1'));
+  const limit = 10;
+  const skip = (page - 1) * limit;
 
   // Fetch all data in parallel for content enrichment
   const [jobs, stats, citiesWithJobs, nearbyStates] = await Promise.all([
-    getStateJobs(stateName, stateCode),
+    getStateJobs(stateName, stateCode, skip, limit),
     getStateStats(stateName, stateCode),
     getCitiesWithJobs(stateName, stateCode),
-    getNearbyStatesWithJobs(stateName), // Always fetch for "Explore nearby states" section
+    getNearbyStatesWithJobs(stateName),
   ]);
+
+  const totalPages = Math.ceil(stats.totalJobs / limit);
 
   // Get practice authority information for this state
   const practiceAuthority = getStatePracticeAuthority(stateName);
   const authorityColors = practiceAuthority ? getAuthorityColor(practiceAuthority.authority) : null;
 
-  // Build breadcrumb items
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Jobs', href: '/jobs' },
-    { label: stateName, href: '' },
-  ];
-
   const stateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
+  const basePath = `/jobs/state/${stateSlug}`;
+
+  /* Design Tokens */
+  const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+  };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
-      {/* Breadcrumb Schema */}
+    <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://pmhnphiring.com" },
-        { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
-        { name: stateName, url: `https://pmhnphiring.com/jobs/state/${stateSlug}` }
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Jobs', url: 'https://pmhnphiring.com/jobs' },
+        { name: stateName, url: `https://pmhnphiring.com/jobs/state/${stateSlug}` },
       ]} />
-      {/* Breadcrumbs */}
-      <div className="container mx-auto px-4 pt-4">
-        <Breadcrumbs items={breadcrumbItems} />
+      {jobs.length > 0 && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org', '@type': 'ItemList',
+          name: `PMHNP Jobs in ${stateName}`, numberOfItems: stats.totalJobs,
+          itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
+            '@type': 'ListItem', position: idx + 1, name: job.title,
+            url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+          })),
+        }) }} />
+      )}
+
+      {/* ═══ HERO ═══ */}
+      <CategoryHero
+        bgColor="#0D9488"
+        heroImage="/images/categories/hero_wc_states.png"
+        heroAlt={`PMHNP Jobs in ${stateName}`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'By State', stateName]}
+        headlineLine1="PMHNP"
+        headlineLine2="Jobs"
+        headlineSub={`in ${stateName}.`}
+        stats={[
+          { value: `${stats.totalJobs}`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}`, label: 'employers' },
+        ]}
+        description={`Browse all psychiatric NP positions in ${stateName}. Remote telehealth, outpatient clinics, inpatient facilities, and private practice opportunities.`}
+        ctaLabel={`Browse ${stateName} Jobs`}
+        ctaHref="#listings"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
+
+      {/* ═══ JOB LISTINGS — 4-col grid ═══ */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-6">
+              <h2 id="listings" className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>
+                Positions in {stateName} ({stats.totalJobs})
+              </h2>
+              <Link href="/jobs" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: '#0D9488' }}>View All Jobs →</Link>
+            </div>
+            {jobs.length === 0 ? (
+              <div className="text-center py-12 rounded-xl" style={{ ...clayCard, padding: '48px 24px' }}>
+                <MapPin className="h-12 w-12 mx-auto mb-4" style={{ color: '#7A6A62' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>No positions in {stateName} right now</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', marginBottom: '16px' }}>New jobs are added daily. Check nearby states:</p>
+                {nearbyStates.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2 mb-6">
+                    {nearbyStates.slice(0, 4).map((s) => (
+                      <Link key={s.code} href={`/jobs/state/${s.slug}`} className="cat-bento-card"
+                        style={{ padding: '6px 14px', borderRadius: '12px', backgroundColor: '#F0FDFA', color: '#0D9488', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}>
+                        {s.name} ({s.count})
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                <Link href="/jobs/remote" className="cat-cta-primary" style={{ padding: '12px 28px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse Remote Jobs <ArrowRight size={16} /></Link>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                  {jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-4">
+                    {page > 1 ? (
+                      <Link href={`${basePath}?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
+                        ← Previous
+                      </Link>
+                    ) : (
+                      <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>← Previous</span>
+                    )}
+                    <span className="text-sm" style={{ color: '#5A4A42' }}>Page {page} of {totalPages}</span>
+                    {page < totalPages ? (
+                      <Link href={`${basePath}?page=${page + 1}`} className="px-4 py-2 text-sm font-medium rounded-lg" style={{ ...clayCard, color: '#1A2E35', padding: '8px 16px' }}>
+                        Next →
+                      </Link>
+                    ) : (
+                      <span className="px-4 py-2 text-sm rounded-lg cursor-not-allowed" style={{ color: '#7A6A62', backgroundColor: '#F5F0EB' }}>Next →</span>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+              <div style={{ padding: '24px' }}>
+                <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>{stateName} Alerts</h3>
+                <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New {stateName} listings delivered daily.</p>
+                <Link href={`/job-alerts?location=${encodeURIComponent(stateName)}`} className="cat-cta-primary" style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>Create Alert</Link>
+              </div>
+            </div>
+            {stats.topEmployers.length > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Building2 size={20} style={{ color: '#0D9488' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Top Employers</h3>
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
+                    <li key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: index < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: '#5A4A42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{employer.name}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px', whiteSpace: 'nowrap' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {stats.avgSalary > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <TrendingUp size={20} style={{ color: '#34D399' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <MapPin className="h-8 w-8" />
-              <span className="text-lg font-medium">{stateCode}</span>
-            </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              PMHNP Jobs in {stateName}
-            </h1>
-            <p className="text-lg md:text-xl text-teal-100 mb-6">
-              Discover {stats.totalJobs} psychiatric mental health nurse practitioner positions
-            </p>
+      {/* ═══ BENTO — State Overview ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '48px 0' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>{stateName} Overview</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>Working as a PMHNP in {stateName}</h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>Key information for psychiatric nurse practitioners practicing in {stateName}.</p>
 
-            {/* Stats Bar */}
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-teal-100">Open Positions</div>
+          <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1: Practice Authority (8col) + Salary (4col) */}
+            <div className="cat-bento-hero-1" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+              <div style={{ padding: '32px 28px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Practice Authority</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', margin: '0 0 12px', lineHeight: 1.6 }}>
+                  {practiceAuthority ? practiceAuthority.details : `${stateName} offers opportunities for PMHNPs across multiple practice settings.`}
+                </p>
+                {practiceAuthority && (
+                  <span style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, background: practiceAuthority.authority === 'full' ? '#D1FAE5' : practiceAuthority.authority === 'reduced' ? '#FEF3C7' : '#FEE2E2', color: practiceAuthority.authority === 'full' ? '#065F46' : practiceAuthority.authority === 'reduced' ? '#92400E' : '#991B1B' }}>
+                    {practiceAuthority.description}
+                  </span>
+                )}
               </div>
-              {stats.avgSalary > 0 && (
-                <div className="text-center">
-                  <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                  <div className="text-sm text-teal-100">Avg. Salary</div>
-                </div>
-              )}
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                <div className="text-sm text-teal-100">Top Employers</div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
+                <Image src="/images/categories/hero_wc_states.png" alt={`PMHNP in ${stateName}`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
+
+            <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Image src="/images/categories/clay_icon_salary.png" alt="" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+              </div>
+              <div style={{ padding: '24px 22px', flex: 1 }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Salary & Compensation</h3>
+                <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                  PMHNPs in {stateName} earn {stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K–$200K+'} annually.
+                </p>
+              </div>
+            </div>
+
+            {/* ROW 2: Icon cards */}
+            {citiesWithJobs.length > 0 ? citiesWithJobs.slice(0, 4).map((city) => (
+              <Link key={city.slug} href={`/jobs/city/${city.slug}`} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center', textDecoration: 'none' }}>
+                <Image src="/images/categories/clay_icon_location.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{city.name}</h3>
+                <p style={{ fontSize: '12px', color: '#0D9488', margin: 0, fontWeight: 700 }}>{city.count} {city.count === 1 ? 'position' : 'positions'}</p>
+              </Link>
+            )) : (
+              <>
+                {[
+                  { icon: '/images/categories/clay_icon_remote.png', title: 'Remote Options', desc: 'Telehealth positions available statewide' },
+                  { icon: '/images/categories/clay_icon_outpatient.png', title: 'Outpatient', desc: 'Clinic-based psychiatric care roles' },
+                  { icon: '/images/categories/clay_icon_inpatient.png', title: 'Inpatient', desc: 'Hospital and facility positions' },
+                  { icon: '/images/categories/clay_icon_private.png', title: 'Private Practice', desc: 'Independent practice opportunities' },
+                ].map((b, i) => (
+                  <div key={i} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+                    <Image src={b.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>{b.title}</h3>
+                    <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>{b.desc}</p>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* ROW 3: Growth (8col) + Alert CTA (4col) */}
+            <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+              <div style={{ padding: '32px 28px' }}>
+                <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Growth & Outlook</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                  PMHNP demand in {stateName} continues to grow with {stats.totalJobs} active positions.
+                </p>
+              </div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
+                <Image src="/images/categories/hero_wc_states.png" alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              </div>
+            </div>
+
+            <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+              <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>{stateName} Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>New listings in {stateName} — delivered daily.</p>
+              <Link href={`/job-alerts?location=${encodeURIComponent(stateName)}`} className="cat-cta-primary" style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>
+                Create Alert <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ Top Cities ═══ */}
+      {citiesWithJobs.length > 0 && (
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 20px 0' }}>
+          <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px', textAlign: 'center' }}>
+            Top Cities for PMHNP Jobs in {stateName}
+          </h2>
+          <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+            {citiesWithJobs.map((c) => (
+              <Link key={c.slug} href={`/jobs/city/${c.slug}`}
+                className="pseo-pill"
+                style={{ ...clayCard, display: 'block', padding: '14px 10px', textAlign: 'center', textDecoration: 'none' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{c.name}</div>
+                <div style={{ fontSize: '11px', marginTop: '3px', color: '#7A6A62' }}>{c.count} {c.count === 1 ? 'job' : 'jobs'}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ═══ Cross-Links — Consolidated ═══ */}
+      <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '40px 0' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ ...clayCard, padding: '28px 32px' }}>
+
+            {/* Nearby States — clay pills */}
+            {nearbyStates.length > 0 && (
+              <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                  PMHNP Jobs Nearby
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {nearbyStates.map((s) => (
+                    <Link key={s.code} href={`/jobs/state/${s.slug}`}
+                      className="pseo-pill"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '12px', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#1A2E35', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                      {s.name} <ArrowRight size={12} style={{ color: '#0D9488' }} />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Job Types — clay pills */}
+            <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                Job Types in {stateName}
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  { slug: 'remote', label: 'Remote' },
+                  { slug: 'telehealth', label: 'Telehealth' },
+                  { slug: 'outpatient', label: 'Outpatient' },
+                  { slug: 'inpatient', label: 'Inpatient' },
+                  { slug: 'travel', label: 'Travel' },
+                  { slug: 'substance-abuse', label: 'Substance Abuse' },
+                  { slug: 'child-adolescent', label: 'Child & Adolescent' },
+                  { slug: 'private-practice', label: 'Private Practice' },
+                  { slug: 'per-diem', label: 'Per Diem' },
+                  { slug: 'new-grad', label: 'New Grad' },
+                ].map((setting) => (
+                  <Link key={setting.slug} href={`/jobs/${setting.slug}/${stateSlug}`}
+                    className="pseo-pill"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '7px 16px', borderRadius: '12px', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#1A2E35', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                    {setting.label} <ArrowRight size={12} style={{ color: '#0D9488' }} />
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Resources — clay row */}
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#7A6A62', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                Explore More
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <Link href={`/salary-guide/${stateSlug}`}
+                  className="pseo-resource"
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  <DollarSign size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>{stateName} Salary Guide</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '2px' }}>Comp data by setting</div>
+                  </div>
+                </Link>
+                <Link href="/jobs/locations"
+                  className="pseo-resource"
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  <MapPin size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>All Locations</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '2px' }}>Browse all 50 states</div>
+                  </div>
+                </Link>
+                <Link href="/jobs"
+                  className="pseo-resource"
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: '14px', textDecoration: 'none', background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                  <Users size={18} style={{ color: '#0D9488', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A2E35' }}>All PMHNP Jobs</div>
+                    <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '2px' }}>Nationwide listings</div>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-7xl mx-auto">
-          {/* Intro */}
-          <div className="mb-8 md:mb-12">
-            <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                About PMHNP Jobs in {stateName}
-              </h2>
-              <p className="text-gray-600 leading-relaxed mb-4">
-                {stateName} is {practiceAuthority ? (
-                  practiceAuthority.authority === 'full' ? 'a Full Practice Authority state, meaning PMHNPs can practice independently without physician oversight — ' :
-                    practiceAuthority.authority === 'reduced' ? 'a Reduced Practice state requiring a collaborative agreement with a physician — ' :
-                      'a Restricted Practice state requiring physician supervision — '
-                ) : ''}currently offering <strong>{stats.totalJobs} psychiatric nurse practitioner (psych NP) positions</strong>
-                {stats.avgSalary > 0 ? <> with an average salary of <strong>${stats.avgSalary}K/year</strong></> : ''}.
-                {stats.topEmployers.length > 0 && <> Top employers hiring in {stateName} include {stats.topEmployers.slice(0, 3).map((e: ProcessedEmployer) => e.name).join(', ')}.</>}
-              </p>
-              <p className="text-gray-600 leading-relaxed">
-                Browse {stats.totalJobs} current PMHNP openings in {stateName} below, including
-                remote telehealth positions, outpatient clinics, inpatient facilities, and private practice opportunities.
-                New psych NP jobs are added daily.
-              </p>
-            </div>
+      {/* ═══ FAQ ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>PMHNP Jobs in {stateName}</h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {[
+              { q: `How many PMHNP jobs are in ${stateName}?`, a: `There are currently ${stats.totalJobs} psychiatric nurse practitioner positions available in ${stateName}${stats.avgSalary > 0 ? `, with an average salary of $${stats.avgSalary}K/year` : ''}. New positions are added daily.` },
+              { q: `What is the practice authority in ${stateName}?`, a: practiceAuthority ? practiceAuthority.details : `Practice authority in ${stateName} varies. Check state-specific NP practice regulations for the most current requirements.` },
+              { q: `What is the average PMHNP salary in ${stateName}?`, a: stats.avgSalary > 0 ? `The average PMHNP salary in ${stateName} is $${stats.avgSalary}K/year. Salaries vary based on experience, setting, and whether the role is W-2 or 1099.` : `PMHNP salaries in ${stateName} typically range from $130K to $200K+ depending on setting and experience level.` },
+              { q: `Which cities in ${stateName} have the most PMHNP jobs?`, a: citiesWithJobs.length > 0 ? `Top cities for PMHNP jobs in ${stateName} include ${citiesWithJobs.slice(0, 4).map(c => `${c.name} (${c.count} jobs)`).join(', ')}.` : `PMHNP positions in ${stateName} are distributed across multiple cities and include remote telehealth options.` },
+              { q: `Can I work remotely as a PMHNP in ${stateName}?`, a: `Yes, many telehealth and remote PMHNP positions allow you to practice from ${stateName}. You'll need an active NP license in the state where your patient resides.` },
+            ].map((faq, idx) => (
+              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+              </div>
+            ))}
           </div>
-
-          {/* Practice Authority Section */}
-          {practiceAuthority && (
-            <div className="mb-8 md:mb-12">
-              <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <Shield className="h-6 w-6 text-teal-600" />
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    PMHNP Practice Authority in {stateName}
-                  </h2>
-                </div>
-
-                {authorityColors && (
-                  <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium mb-4 ${authorityColors.bg} ${authorityColors.text} ${authorityColors.border} border`}>
-                    {practiceAuthority.description}
-                  </div>
-                )}
-
-                <p className="text-gray-700 dark:text-[var(--text-secondary)] leading-relaxed mb-4">
-                  {practiceAuthority.details}
-                </p>
-
-                <div className="bg-gray-50 dark:bg-[var(--bg-tertiary)] rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">What This Means for Your Practice:</h4>
-                  {practiceAuthority.authority === 'full' && (
-                    <ul className="text-sm text-gray-600 dark:text-[var(--text-secondary)] space-y-1">
-                      <li>• Practice independently without physician oversight</li>
-                      <li>• Prescribe medications including controlled substances</li>
-                      <li>• Greater autonomy in patient care decisions</li>
-                      <li>• Often higher earning potential and flexibility</li>
-                    </ul>
-                  )}
-                  {practiceAuthority.authority === 'reduced' && (
-                    <ul className="text-sm text-gray-600 dark:text-[var(--text-secondary)] space-y-1">
-                      <li>• Requires a collaborative agreement with a physician</li>
-                      <li>• Physician does not need to be on-site</li>
-                      <li>• Can still practice with significant autonomy</li>
-                      <li>• Agreement may be required for prescriptive authority</li>
-                    </ul>
-                  )}
-                  {practiceAuthority.authority === 'restricted' && (
-                    <ul className="text-sm text-gray-600 dark:text-[var(--text-secondary)] space-y-1">
-                      <li>• Requires physician supervision for practice</li>
-                      <li>• May need protocol or supervisory agreement</li>
-                      <li>• Supervision requirements vary by employer</li>
-                      <li>• Consider telehealth companies for more flexibility</li>
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Cities in State */}
-          {citiesWithJobs.length > 0 && (
-            <div className="mb-8 md:mb-12">
-              <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <MapPinned className="h-6 w-6 text-teal-600" />
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    PMHNP Jobs by City in {stateName}
-                  </h2>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {citiesWithJobs.map((city) => (
-                    <Link
-                      key={city.slug}
-                      href={`/jobs/city/${city.slug}`}
-                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-teal-50 dark:bg-[var(--bg-tertiary)] dark:hover:bg-[rgba(20,184,166,0.1)] rounded-lg border border-gray-200 dark:border-[var(--border-color)] hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)] truncate">{city.name}</span>
-                      <span className="text-xs text-teal-600 font-semibold ml-2">
-                        {city.count}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="grid lg:grid-cols-4 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-[var(--text-primary)]">
-                  All Jobs ({stats.totalJobs})
-                </h2>
-                <Link
-                  href="/jobs"
-                  className="text-teal-600 hover:text-teal-700 text-sm font-medium"
-                >
-                  View All States →
-                </Link>
-              </div>
-
-              {jobs.length === 0 ? (
-                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl border border-gray-200 dark:border-[var(--border-color)] p-8">
-                  <div className="text-center mb-8">
-                    <MapPin className="h-12 w-12 text-teal-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      No PMHNP Jobs in {stateName} Right Now
-                    </h3>
-                    <p className="text-gray-600 max-w-md mx-auto">
-                      We don&apos;t have any active positions in {stateName} at the moment,
-                      but new jobs are added daily. Here are some alternatives:
-                    </p>
-                  </div>
-
-                  {/* Nearby States with Jobs */}
-                  {nearbyStates.length > 0 && (
-                    <div className="mb-8">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <Navigation className="h-5 w-5 text-teal-600" />
-                        Nearby States with Openings
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {nearbyStates.map((state) => (
-                          <Link
-                            key={state.code}
-                            href={`/jobs/state/${state.slug}`}
-                            className="flex items-center justify-between p-4 bg-teal-50 hover:bg-teal-100 dark:bg-[rgba(20,184,166,0.08)] dark:hover:bg-[rgba(20,184,166,0.15)] rounded-lg border border-teal-200 dark:border-[rgba(20,184,166,0.25)] transition-colors"
-                          >
-                            <span className="font-medium text-gray-900 dark:text-[var(--text-primary)]">{state.name}</span>
-                            <span className="text-sm text-teal-600 font-semibold">
-                              {state.count} {state.count === 1 ? 'job' : 'jobs'}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Alternative Options */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Link
-                      href="/jobs/remote"
-                      className="flex flex-col p-4 bg-purple-50 hover:bg-purple-100 dark:bg-[rgba(147,51,234,0.08)] dark:hover:bg-[rgba(147,51,234,0.15)] rounded-lg border border-purple-200 dark:border-[rgba(147,51,234,0.25)] transition-colors"
-                    >
-                      <span className="font-semibold text-purple-900 dark:text-purple-300">🏠 Remote PMHNP Jobs</span>
-                      <span className="text-sm text-purple-700 dark:text-purple-400 mt-1">Work from anywhere with telehealth positions</span>
-                    </Link>
-                    <Link
-                      href={`/job-alerts?location=${encodeURIComponent(stateName)}`}
-                      className="flex flex-col p-4 bg-green-50 hover:bg-green-100 dark:bg-[rgba(16,185,129,0.08)] dark:hover:bg-[rgba(16,185,129,0.15)] rounded-lg border border-green-200 dark:border-[rgba(16,185,129,0.25)] transition-colors"
-                    >
-                      <span className="font-semibold text-green-900 dark:text-emerald-300">🔔 Set Up Job Alerts</span>
-                      <span className="text-sm text-green-700 dark:text-emerald-400 mt-1">Get notified when {stateName} jobs are posted</span>
-                    </Link>
-                  </div>
-
-                  <div className="mt-8 text-center">
-                    <Link
-                      href="/jobs"
-                      className="inline-block px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
-                    >
-                      Browse All Jobs Nationwide
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                  {jobs.map((job: Job) => (
-                    <JobCard key={job.id} job={job} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              {/* Job Alert CTA */}
-              <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white mb-6 shadow-lg">
-                <Bell className="h-8 w-8 mb-3" />
-                <h3 className="text-lg font-bold mb-2">
-                  Get {stateName} Job Alerts
-                </h3>
-                <p className="text-sm text-teal-100 mb-4">
-                  Be the first to know about new PMHNP positions in {stateName}.
-                </p>
-                <Link
-                  href={`/job-alerts?location=${encodeURIComponent(stateName)}`}
-                  className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors"
-                >
-                  Create Alert
-                </Link>
-              </div>
-
-              {/* Top Employers */}
-              {stats.topEmployers.length > 0 && (
-                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 mb-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Building2 className="h-5 w-5 text-teal-600" />
-                    <h3 className="font-bold text-gray-900">Top Employers</h3>
-                  </div>
-                  <ul className="space-y-3">
-                    {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
-                      <li key={index} className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700 truncate flex-1">
-                          {employer.name}
-                        </span>
-                        <span className="text-sm font-medium text-teal-600 ml-2">
-                          {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Salary Guide */}
-              {stats.avgSalary > 0 && (
-                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <h3 className="font-bold text-gray-900">Salary Insights</h3>
-                  </div>
-                  <div className="mb-4">
-                    <div className="text-3xl font-bold text-gray-900">
-                      ${stats.avgSalary}k
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Average annual salary
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Based on {stats.totalJobs} PMHNP positions in {stateName} with salary data.
-                  </p>
-                  <Link href="/salary-guide" className="text-sm text-teal-600 hover:text-teal-700 mt-2 inline-block">
-                    View full 2026 Salary Guide →
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Related Resources */}
-          <section className="mt-12 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-4">Explore More PMHNP Opportunities</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link href="/salary-guide" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">💰 2026 PMHNP Salary Guide</h3>
-                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">See how {stateName} compares to other states. Includes cost-of-living adjustments and negotiation tips.</p>
-              </Link>
-
-              <Link href="/jobs/remote" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">🏠 Remote PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Work from anywhere with telehealth and remote psychiatric NP positions.</p>
-              </Link>
-
-              <Link href="/jobs/travel" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">✈️ Travel PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Locum tenens and travel positions with premium pay and housing stipends.</p>
-              </Link>
-
-              <Link href="/jobs/new-grad" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">🎓 New Grad PMHNP Jobs</h3>
-                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Entry-level positions for newly certified psychiatric nurse practitioners.</p>
-              </Link>
-            </div>
-          </section>
-
-          {/* Nearby States - Also show for states WITH jobs */}
-          {nearbyStates.length > 0 && stats.totalJobs > 0 && (
-            <section className="mt-8 mb-8">
-              <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <Navigation className="h-6 w-6 text-teal-600" />
-                  <h2 className="text-xl font-bold text-gray-900">
-                    Explore Nearby States
-                  </h2>
-                </div>
-                <p className="text-gray-600 mb-4">
-                  Looking for more options? Check out PMHNP opportunities in states near {stateName}.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {nearbyStates.slice(0, 6).map((state) => (
-                    <Link
-                      key={state.code}
-                      href={`/jobs/state/${state.slug}`}
-                      className="flex items-center justify-between p-3 bg-teal-50 hover:bg-teal-100 dark:bg-[rgba(20,184,166,0.08)] dark:hover:bg-[rgba(20,184,166,0.15)] rounded-lg border border-teal-200 dark:border-[rgba(20,184,166,0.25)] transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">{state.name}</span>
-                      <span className="text-xs text-teal-600 font-semibold">
-                        {state.count}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* FAQ Section */}
-          <StateFAQ
-            stateName={stateName}
-            stateCode={stateCode}
-            totalJobs={stats.totalJobs}
-            avgSalary={stats.avgSalary}
-            practiceAuthority={practiceAuthority?.authority}
-          />
-        </div>
+        </section>
       </div>
+
+      {/* ═══ RESPONSIVE CSS ═══ */}
+      <style>{`
+        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
+        .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
+        @media (max-width: 768px) {
+          .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
+          .cat-bento-grid > div { grid-column: span 1 !important; }
+          .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
+          .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
+          .cat-bento-grid > div:not(.cat-bento-hero-1):not(.cat-bento-hero-2):not(.cat-bento-hero-3):not(.cat-bento-cta) { grid-column: span 3 !important; }
+        }
+      `}</style>
     </div>
   );
 }
-

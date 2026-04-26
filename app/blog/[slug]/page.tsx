@@ -446,13 +446,72 @@ export default async function BlogPostPage({ params }: Props) {
                 </section>
             )}
 
-            {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ JOBS CTA ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
-            <div className="ed-jobs-cta">
-                <p className="ed-jobs-cta-text">
-                    Looking for your next role? <Link href="/jobs" className="ed-jobs-cta-link">Browse PMHNP Jobs &rarr;</Link>
-                </p>
+            {/* ══ CONTEXTUAL pSEO LINKS (Phase 7.5) ══ */}
+            <div className="ed-jobs-cta" style={{ textAlign: 'center' }}>
+                {(() => {
+                    // State license guide → link to that state's job pages
+                    const licenseMatch = slug.match(/^pmhnp-license-(.+)$/);
+                    if (licenseMatch) {
+                        const stateSlug = licenseMatch[1];
+                        return (
+                            <>
+                                <p className="ed-jobs-cta-text" style={{ marginBottom: '12px' }}>
+                                    Ready to start your career? Browse PMHNP positions:
+                                </p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+                                    <Link href={`/jobs/state/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        All Jobs in {stateSlug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')} →
+                                    </Link>
+                                    <Link href={`/jobs/remote/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Remote →
+                                    </Link>
+                                    <Link href={`/jobs/telehealth/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Telehealth →
+                                    </Link>
+                                    <Link href={`/jobs/outpatient/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Outpatient →
+                                    </Link>
+                                    <Link href={`/salary-guide/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Salary Guide →
+                                    </Link>
+                                </div>
+                            </>
+                        );
+                    }
+
+                    // Career-related posts → relevant category links
+                    const categoryLinks = [
+                        { match: /remote|work.from.home/i, label: 'Remote Jobs', href: '/jobs/remote' },
+                        { match: /telehealth|virtual/i, label: 'Telehealth Jobs', href: '/jobs/telehealth' },
+                        { match: /new.grad|first.job|entry.level/i, label: 'New Grad Jobs', href: '/jobs/new-grad' },
+                        { match: /salary|compensation|pay/i, label: 'Salary Guide', href: '/salary-guide' },
+                        { match: /travel|locum/i, label: 'Travel Jobs', href: '/jobs/travel' },
+                        { match: /private.practice/i, label: 'Private Practice', href: '/jobs/private-practice' },
+                        { match: /inpatient|hospital/i, label: 'Inpatient Jobs', href: '/jobs/inpatient' },
+                        { match: /outpatient|clinic/i, label: 'Outpatient Jobs', href: '/jobs/outpatient' },
+                    ];
+                    const fullText = `${post.title} ${post.content.slice(0, 500)}`;
+                    const matched = categoryLinks.filter(l => l.match.test(fullText)).slice(0, 4);
+
+                    return (
+                        <>
+                            <p className="ed-jobs-cta-text" style={{ marginBottom: '12px' }}>
+                                Looking for your next role?
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+                                <Link href="/jobs" className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                                    Browse All PMHNP Jobs →
+                                </Link>
+                                {matched.map(l => (
+                                    <Link key={l.href} href={l.href} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        {l.label} →
+                                    </Link>
+                                ))}
+                            </div>
+                        </>
+                    );
+                })()}
             </div>
         </div>
     );
 }
-

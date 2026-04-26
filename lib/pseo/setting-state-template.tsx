@@ -7,6 +7,7 @@
  */
 import Link from 'next/link';
 import Image from 'next/image';
+import { getCitiesByState } from './city-data/cities';
 import { Metadata } from 'next';
 import {
   TrendingUp, Building2, Bell, MapPin, Lightbulb,
@@ -25,6 +26,7 @@ import {
   stateToSlug,
   NEIGHBORING_STATES,
   getAllStateSlugs,
+  STATE_CODES,
 } from './setting-state-config';
 import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
 
@@ -208,6 +210,14 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
 
   // Other settings for cross-linking
   const otherSettings = Object.values(SETTING_CONFIGS).filter((s) => s.slug !== config.slug);
+
+  // 7.3: Top cities in this state for internal linking
+  const stateCode = STATE_CODES[stateName!];
+  const topCities = stateCode
+    ? getCitiesByState(stateCode)
+        .sort((a, b) => b.population - a.population)
+        .slice(0, 10)
+    : [];
   const assets = CATEGORY_ASSET_REGISTRY[config.slug];
 
   /* Design Tokens â€” matched to category-city-template */
@@ -482,6 +492,25 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
                 </Link>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* 7.3: Top Cities in State */}
+      {topCities.length > 0 && (
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 20px 0' }}>
+          <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px', textAlign: 'center' }}>
+            Top Cities for {config.label} Jobs in {stateName}
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+            {topCities.map((c) => (
+              <Link key={c.slug} href={`/jobs/${config.slug}/city/${c.slug}`}
+                className="pseo-pill"
+                style={{ ...clayCard, display: 'block', padding: '14px 10px', textAlign: 'center', textDecoration: 'none' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{c.name}</div>
+                <div style={{ fontSize: '11px', marginTop: '3px', color: '#7A6A62' }}>{c.stateCode} · Pop {Math.round(c.population / 1000)}K</div>
+              </Link>
+            ))}
           </div>
         </section>
       )}
