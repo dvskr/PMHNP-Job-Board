@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 const CLAY_COLORS = [
@@ -14,14 +16,31 @@ interface ClayDoughStripProps {
 }
 
 export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
-    // Map employers to clay items with colors
-    const items = employers.map((emp, i) => ({
+    const router = useRouter();
+    const [isPaused, setIsPaused] = useState(false);
+    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+    // Deduplicate by normalized name
+    const seen = new Set<string>();
+    const unique = employers.filter((emp) => {
+        const key = emp.name.toLowerCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    const items = unique.map((emp, i) => ({
         name: emp.name,
         roles: emp.count,
         color: CLAY_COLORS[i % CLAY_COLORS.length],
     }));
 
+    // Double for seamless infinite loop
     const doubled = [...items, ...items];
+
+    const handleClick = (name: string) => {
+        router.push(`/jobs?q=${encodeURIComponent(name)}`);
+    };
 
     return (
         <section
@@ -29,36 +48,62 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
             style={{
                 background: 'linear-gradient(160deg, #FDFBF7 0%, #F5D5C4 40%, #F0B8A0 100%)',
             }}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => { setIsPaused(false); setHoveredIdx(null); }}
         >
+            {/* Single flowing row */}
+            <div className="relative w-full overflow-hidden" style={{ height: '72px' }}>
+                {/* Left fade */}
+                <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0, width: '120px', zIndex: 2,
+                    background: 'linear-gradient(to right, #F2C5A8, transparent)',
+                    pointerEvents: 'none',
+                }} />
+                {/* Right fade */}
+                <div style={{
+                    position: 'absolute', right: 0, top: 0, bottom: 0, width: '120px', zIndex: 2,
+                    background: 'linear-gradient(to left, #F2C5A8, transparent)',
+                    pointerEvents: 'none',
+                }} />
 
-            {/* Flowing dough strips */}
-            {[0, 1, 2].map((row) => (
-                <div key={row} className="relative w-full h-16 overflow-hidden my-2">
-                    <motion.div
-                        className="absolute flex items-center gap-6 whitespace-nowrap h-full"
-                        animate={{
-                            x: row % 2 === 0 ? ['0%', '-50%'] : ['-50%', '0%'],
-                        }}
-                        transition={{
-                            duration: 45 + row * 5,
-                            repeat: Infinity,
-                            ease: 'linear',
-                        }}
-                    >
-                        {doubled.map((emp, i) => (
+                <motion.div
+                    className="absolute flex items-center gap-5 whitespace-nowrap h-full"
+                    animate={{ x: ['0%', '-50%'] }}
+                    transition={{
+                        duration: 50,
+                        repeat: Infinity,
+                        ease: 'linear',
+                    }}
+                    style={isPaused ? { animationPlayState: 'paused' } : undefined}
+                >
+                    {doubled.map((emp, i) => {
+                        const isHovered = hoveredIdx === i;
+                        return (
                             <div
-                                key={`${row}-${i}`}
-                                className="px-7 py-3 flex items-center gap-3"
+                                key={i}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => handleClick(emp.name)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleClick(emp.name); }}
+                                onMouseEnter={() => setHoveredIdx(i)}
+                                onMouseLeave={() => setHoveredIdx(null)}
+                                className="px-7 py-3.5 flex items-center gap-3"
                                 style={{
-                                    background: `linear-gradient(145deg, ${emp.color}cc, ${emp.color}99)`,
+                                    background: `linear-gradient(145deg, ${emp.color}${isHovered ? 'ff' : 'cc'}, ${emp.color}${isHovered ? 'dd' : '99'})`,
                                     borderRadius: '20px',
-                                    boxShadow:
-                                        'inset 3px 3px 6px rgba(255,255,255,0.4), inset -2px -2px 4px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08)',
+                                    boxShadow: isHovered
+                                        ? `inset 3px 3px 6px rgba(255,255,255,0.5), inset -2px -2px 4px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.14)`
+                                        : 'inset 3px 3px 6px rgba(255,255,255,0.4), inset -2px -2px 4px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08)',
+                                    flexShrink: 0,
+                                    cursor: 'pointer',
+                                    transform: isHovered ? 'translateY(-4px) scale(1.05)' : 'translateY(0) scale(1)',
+                                    transition: 'transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease',
                                 }}
                             >
                                 <div
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-slate-600"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                                     style={{
+                                        color: 'rgba(51,65,85,0.65)',
                                         background: 'rgba(255,255,255,0.45)',
                                         boxShadow:
                                             'inset 1px 1px 3px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.04)',
@@ -66,17 +111,24 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                                 >
                                     {emp.name[0]}
                                 </div>
-                                <span className="text-sm text-slate-700/80 font-medium">
+                                <span className="text-sm font-medium" style={{ color: 'rgba(30,41,59,0.8)' }}>
                                     {emp.name}
                                 </span>
-                                <span className="text-xs text-slate-600/50">
-                                    {emp.roles}
+                                <span
+                                    className="text-xs"
+                                    style={{
+                                        color: isHovered ? 'rgba(13,148,136,0.9)' : 'rgba(51,65,85,0.45)',
+                                        fontWeight: isHovered ? 700 : 500,
+                                        transition: 'color 0.2s ease, font-weight 0.2s ease',
+                                    }}
+                                >
+                                    {emp.roles} {isHovered ? 'jobs →' : ''}
                                 </span>
                             </div>
-                        ))}
-                    </motion.div>
-                </div>
-            ))}
+                        );
+                    })}
+                </motion.div>
+            </div>
         </section>
     );
 }

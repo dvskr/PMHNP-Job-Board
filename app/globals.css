@@ -6,7 +6,16 @@
 
 /* Kill Tailwind v4 focus ring on hero search inputs */
 @utility hero-search-reset {
-  all: unset;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
   width: 100%;
   font-size: 1rem;
   color: #1f2937;
@@ -14,7 +23,16 @@
   caret-color: #1f2937;
   &:focus,
   &:focus-visible {
-    all: unset;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
     width: 100%;
     font-size: 1rem;
     color: #1f2937;
@@ -425,16 +443,28 @@ input[type="checkbox"].clay-check:checked::after {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg-primary, #fff), 0 0 0 4px var(--color-primary, #0D9488);
 }
-/* Hero search inputs: nuke ALL inherited/computed styles */
+/* Hero search inputs: strip inherited styles but keep text-align: left */
 .hero-search-input,
 .hero-search-input:focus,
 .hero-search-input:focus-visible {
-  all: unset !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
   width: 100% !important;
   font-size: 1rem !important;
   color: #1f2937 !important;
   cursor: text !important;
   caret-color: #1f2937 !important;
+  --tw-ring-shadow: none !important;
+  --tw-ring-color: transparent !important;
 }
 
 /* Better text rendering for all text elements */
@@ -846,6 +876,7 @@ textarea::placeholder {
   outline: none !important;
   -webkit-appearance: none !important;
   appearance: none !important;
+  text-align: left !important;
   --tw-ring-shadow: none !important;
   --tw-ring-color: transparent !important;
 }
@@ -1022,7 +1053,7 @@ textarea::placeholder {
 
 /* ══════ CONTAINER — Consistent max-widths ══════ */
 .container-lg {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -1032,7 +1063,7 @@ textarea::placeholder {
   }
 }
 .container-xl {
-  max-width: 1360px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 16px;
 }

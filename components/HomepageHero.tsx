@@ -169,8 +169,8 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 autoComplete="off"
-                                className="hero-search-input hero-search-reset"
-                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', color: '#1f2937' }}
+                                className="hero-search-input"
+                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', color: '#1f2937', textAlign: 'left' }}
                                 onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
                             />
                         </div>
@@ -182,8 +182,8 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 value={locationQuery}
                                 onChange={(e) => setLocationQuery(e.target.value)}
                                 autoComplete="off"
-                                className="hero-search-input hero-search-reset"
-                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', color: '#1f2937' }}
+                                className="hero-search-input"
+                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', color: '#1f2937', textAlign: 'left' }}
                                 onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
                             />
                         </div>

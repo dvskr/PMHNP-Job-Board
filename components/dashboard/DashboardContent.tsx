@@ -630,7 +630,7 @@ export default function DashboardContent() {
     ]
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 16px 80px' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 16px 80px' }}>
         <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 320px',

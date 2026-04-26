@@ -250,7 +250,7 @@ export default function CandidateSearchClient() {
                 background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
                 borderBottom: '1px solid #E5E7EB',
             }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
                         width: '48px', height: '48px', borderRadius: '16px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -272,7 +272,7 @@ export default function CandidateSearchClient() {
                 </div>
             </div>
 
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 16px 48px' }}>
+            <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 48px' }}>
 
                 {/* ═══ Posting Selector ═══ */}
                 {postings.length > 0 && (

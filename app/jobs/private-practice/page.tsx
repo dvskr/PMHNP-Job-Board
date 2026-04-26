@@ -1,4 +1,4 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
@@ -29,7 +29,7 @@ async function getStats() {
 const faqs = [
   { q: 'What types of private practice PMHNP roles exist?', a: 'Private practice roles include solo practice (you own and operate), group practice (join an established multi-provider office), independent contractor (1099 work for a practice), and hybrid roles combining in-person and telehealth. Each offers different levels of autonomy, risk, and earning potential.' },
   { q: 'How much do private practice PMHNPs earn?', a: 'Private practice PMHNPs earn $150K-$300K+ annually. Solo practice owners can earn even more but must cover overhead. Group practice employees typically earn $150K-$200K with benefits. Independent contractors earn $175K-$250K on 1099 arrangements.' },
-  { q: 'Do I need business experience for private practice?', a: 'For group practice employee roles, no — you focus on clinical work. For starting your own practice, understanding billing, credentialing, marketing, and operations is essential. Many PMHNPs start in group practices before launching solo practices.' },
+  { q: 'Do I need business experience for private practice?', a: 'For group practice employee roles, no � you focus on clinical work. For starting your own practice, understanding billing, credentialing, marketing, and operations is essential. Many PMHNPs start in group practices before launching solo practices.' },
   { q: 'What\'s needed to start a private practice?', a: 'You need: PMHNP-BC certification, state APRN licensure with full practice authority (or collaborating physician), DEA registration, NPI number, malpractice insurance, EHR system, office space or telehealth platform, and insurance panel credentialing.' },
   { q: 'Is group practice or solo practice better?', a: 'Group practice offers built-in referrals, shared overhead, administrative support, and lower financial risk. Solo practice offers maximum autonomy, higher earning ceiling, and full control of your schedule. Most PMHNPs recommend 2-3 years in group practice before going solo.' },
 ];
@@ -59,9 +59,9 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
         bgColor="#d4b0a3"
         heroImage="/images/categories/hero_wc_privatepractice.png"
         heroAlt="Private practice PMHNP entrepreneurial independence"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles � updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Private Practice']}
-        indexLabel="№ 21 / 28"
+        indexLabel="? 21 / 28"
         headlineLine1="Private Practice"
         headlineLine2="PMHNP"
         headlineSub="jobs, own your practice."
@@ -78,7 +78,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
       />
 
       {/* 2. JOB LISTINGS */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             <h2 className="font-lora mb-6" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>Private Practice Positions ({stats.totalJobs})</h2>
@@ -95,7 +95,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
 
       {/* 3. BENTO GRID */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Private Practice</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Build Your Own Practice</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
@@ -126,7 +126,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
 
       {/* 4. BEFORE YOU APPLY */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
@@ -139,7 +139,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
 
       {/* 5. EXPLORE */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
@@ -152,7 +152,7 @@ export default async function PrivatePracticePage({ searchParams }: PageProps) {
 
       {/* 6. FAQ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Private Practice PMHNP Questions</h2>
           <div style={{ display: 'grid', gap: '16px' }}>{faqs.map((faq, idx) => (<div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}><h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3><p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p></div>))}</div>

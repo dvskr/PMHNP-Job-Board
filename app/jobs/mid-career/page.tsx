@@ -1,4 +1,4 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
@@ -27,10 +27,10 @@ async function getStats() {
 }
 
 const faqs = [
-  { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation — typically $140K-$190K+ annually.' },
+  { q: 'What defines a mid-career PMHNP role?', a: 'Mid-career PMHNP positions target providers with 3-10+ years of experience. These roles offer leadership opportunities, higher autonomy, specialty focus, and premium compensation � typically $140K-$190K+ annually.' },
   { q: 'What leadership roles are available?', a: 'Mid-career PMHNPs can advance to clinical supervisor, program director, lead clinician, chief NP, or clinical director positions. Many roles involve mentoring new graduates and overseeing treatment protocols.' },
   { q: 'How do I transition into a specialty?', a: 'With 3+ years of general psychiatric experience, you can specialize in forensic psychiatry, addiction medicine, child/adolescent, geriatric, or consultation-liaison psychiatry. Additional certifications and targeted clinical rotations accelerate the transition.' },
-  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes — precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses of $2,000-$5,000 annually.' },
+  { q: 'Is precepting valuable for mid-career growth?', a: 'Yes � precepting students and supervising new grads strengthens your clinical leadership profile, often qualifies for adjunct faculty appointments, and many employers offer preceptor bonuses of $2,000-$5,000 annually.' },
   { q: 'What salary growth can mid-career PMHNPs expect?', a: 'Mid-career PMHNPs earn 20-40% more than entry-level positions. Leadership roles, specialty expertise, and multi-state licensure can push compensation to $180K-$220K+ in high-demand markets.' },
 ];
 
@@ -59,9 +59,9 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
         bgColor="#accfb9"
         heroImage="/images/categories/hero_wc_midcareer.png"
         heroAlt="Mid-career PMHNP advancement opportunities"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles � updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Mid-Career']}
-        indexLabel="№ 26 / 28"
+        indexLabel="? 26 / 28"
         headlineLine1="Mid-Career"
         headlineLine2="PMHNP"
         headlineSub="jobs, advance your career."
@@ -78,7 +78,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
       />
 
       {/* 2. JOB LISTINGS */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             <h2 className="font-lora mb-6" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>Mid-Career Positions ({stats.totalJobs})</h2>
@@ -95,7 +95,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
 
       {/* 3. BENTO GRID */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Mid-Career</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Advance Your Career</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
@@ -126,7 +126,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
 
       {/* 4. BEFORE YOU APPLY */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
@@ -139,7 +139,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
 
       {/* 5. EXPLORE */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
@@ -152,7 +152,7 @@ export default async function MidCareerPage({ searchParams }: PageProps) {
 
       {/* 6. FAQ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Mid-Career PMHNP Questions</h2>
           <div style={{ display: 'grid', gap: '16px' }}>{faqs.map((faq, idx) => (<div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}><h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3><p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p></div>))}</div>

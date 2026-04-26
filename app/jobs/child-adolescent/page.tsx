@@ -185,7 +185,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
 
       {/* ═══ JOB LISTINGS ═══ */}
       <div id="job-listings">
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-6">
@@ -256,7 +256,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
 
       {/* ═══ BENTO — Why Choose Child & Adolescent ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Child & Adolescent</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>Built for Pediatric Psychiatry</h2>
           <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>Specialized roles addressing the youth mental health crisis with family-centered, developmental care.</p>
@@ -348,7 +348,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
 
       {/* ═══ BEFORE YOU APPLY ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need to Know</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
@@ -378,7 +378,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
 
       {/* ═══ EXPLORE MORE ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
@@ -402,7 +402,7 @@ export default async function ChildAdolescentJobsPage({ searchParams }: PageProp
 
       {/* ═══ FAQ ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Child & Adolescent PMHNP Questions</h2>
           <div style={{ display: 'grid', gap: '16px' }}>

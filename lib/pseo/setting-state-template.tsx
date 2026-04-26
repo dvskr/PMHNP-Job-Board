@@ -19,6 +19,7 @@ import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryFAQ from '@/components/CategoryFAQ';
 import { Job } from '@/lib/types';
+import { PseoPageViewTracker } from '@/components/analytics/ViewTrackers';
 import {
   SettingConfig,
   SETTING_CONFIGS,
@@ -29,6 +30,7 @@ import {
   STATE_CODES,
 } from './setting-state-config';
 import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
+import { getStatePracticeAuthority, getAuthorityLabel } from '@/lib/state-practice-authority';
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -219,6 +221,13 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
         .slice(0, 10)
     : [];
   const assets = CATEGORY_ASSET_REGISTRY[config.slug];
+  const practiceAuthority = getStatePracticeAuthority(stateName!);
+
+  // Compute average COL for top cities in this state
+  const avgCOL = topCities.length > 0
+    ? Math.round(topCities.reduce((sum, c) => sum + c.costOfLivingIndex, 0) / topCities.length)
+    : 100;
+  const shortageCount = topCities.filter(c => c.mentalHealthShortage).length;
 
   /* Design Tokens â€” matched to category-city-template */
   const clayCard: React.CSSProperties = {
@@ -313,6 +322,14 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           }}
         />
       )}
+
+      {/* Analytics */}
+      <PseoPageViewTracker
+        pageType="setting_state"
+        category={config.slug}
+        state={stateName!}
+        jobCount={stats.totalJobs}
+      />
 
       {/* Hero */}
       <CategoryHero
@@ -563,6 +580,53 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
           </div>
         </section>
       )}
+
+      {/* State Market Insights — Practice Authority + COL + Shortage */}
+      <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '40px 0', marginTop: '8px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+          <p className="font-lora" style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '6px' }}>State Insights</p>
+          <h2 className="font-lora" style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '24px' }}>{stateName} at a Glance</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            {/* Practice Authority */}
+            {practiceAuthority && (
+              <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>Practice Authority</div>
+                <div style={{
+                  fontSize: '16px', fontWeight: 700,
+                  color: practiceAuthority.authority === 'full' ? '#22c55e' : practiceAuthority.authority === 'reduced' ? '#f59e0b' : '#ef4444',
+                }}>{getAuthorityLabel(practiceAuthority.authority)}</div>
+                <p style={{ fontSize: '11px', color: '#7A6A62', marginTop: '8px', lineHeight: 1.4 }}>{practiceAuthority.details}</p>
+              </div>
+            )}
+            {/* Cost of Living */}
+            <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>Avg Cost of Living</div>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: avgCOL > 110 ? '#ef4444' : avgCOL > 100 ? '#f59e0b' : '#22c55e' }}>{avgCOL}</div>
+              <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
+                {avgCOL > 110 ? 'Above national avg' : avgCOL > 100 ? 'Near national avg' : 'Below national avg'} (100 = US avg)
+              </div>
+            </div>
+            {/* Shortage Areas */}
+            <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>MH Shortage Areas</div>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: shortageCount > 0 ? '#ef4444' : '#22c55e' }}>{shortageCount}/{topCities.length}</div>
+              <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
+                top cities with HPSA designation
+              </div>
+            </div>
+            {/* Salary */}
+            {stats.avgSalary > 0 && (
+              <div className="pseo-pill" style={{ ...clayCard, padding: '20px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#7A6A62', marginBottom: '6px' }}>Avg {config.label} Salary</div>
+                <div style={{ fontSize: '28px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}K</div>
+                <div style={{ fontSize: '11px', color: '#7A6A62', marginTop: '4px' }}>
+                  across {stats.totalJobs} active positions
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* 7.3: Top Cities in State */}
       {topCities.length > 0 && (

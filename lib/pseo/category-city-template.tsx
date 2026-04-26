@@ -35,6 +35,7 @@ import {
   StatePracticeInfo,
   PracticeAuthority,
 } from '@/lib/state-practice-authority';
+import { PseoPageViewTracker } from '@/components/analytics/ViewTrackers';
 
 // ─── Category Configuration (extends SettingConfig for specialties) ────────────
 
@@ -1288,6 +1289,15 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
             },
           }),
         }}
+      />
+
+      {/* ═══ Analytics: pSEO page view tracking ═══ */}
+      <PseoPageViewTracker
+        pageType="category_city"
+        category={config.slug}
+        city={city!.name}
+        state={city!.stateCode}
+        jobCount={stats.totalJobs}
       />
 
       {/* ═══ D2: HERO — CategoryHero with category's watercolor ═══ */}

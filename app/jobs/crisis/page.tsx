@@ -1,4 +1,4 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
@@ -78,9 +78,9 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         bgColor="#dbafac"
         heroImage="/images/categories/hero_wc_crisis.png"
         heroAlt="Crisis PMHNP emergency psychiatric care"
-        badgeText={`${stats.totalJobs} live roles · updated today`}
+        badgeText={`${stats.totalJobs} live roles � updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Crisis']}
-        indexLabel="№ 23 / 28"
+        indexLabel="? 23 / 28"
         headlineLine1="Crisis"
         headlineLine2="PMHNP"
         headlineSub="jobs, crisis intervention."
@@ -96,8 +96,8 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         secondaryCtaHref="/job-alerts"
       />
 
-      {/* ═══ JOB LISTINGS ═══ */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+      {/* --- JOB LISTINGS --- */}
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-3">
             <h2 className="font-lora mb-6" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>Crisis Positions ({stats.totalJobs})</h2>
@@ -144,9 +144,9 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* ═══ BENTO ═══ */}
+      {/* --- BENTO --- */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Crisis</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '48px' }}>Built for Crisis Care</h2>
           <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
@@ -204,9 +204,9 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         </section>
       </div>
 
-      {/* ═══ BEFORE YOU APPLY ═══ */}
+      {/* --- BEFORE YOU APPLY --- */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
@@ -226,9 +226,9 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         </section>
       </div>
 
-      {/* ═══ EXPLORE MORE ═══ */}
+      {/* --- EXPLORE MORE --- */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
@@ -249,9 +249,9 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         </section>
       </div>
 
-      {/* ═══ FAQ ═══ */}
+      {/* --- FAQ --- */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Crisis PMHNP Questions</h2>
           <div style={{ display: 'grid', gap: '16px' }}>
@@ -266,7 +266,7 @@ export default async function CrisisPage({ searchParams }: PageProps) {
         </section>
       </div>
 
-      {/* ═══ RESPONSIVE CSS ═══ */}
+      {/* --- RESPONSIVE CSS --- */}
       <style>{`
         .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
         .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }

@@ -102,7 +102,7 @@ export default function CategoryHero({
               width={560}
               height={560}
               priority
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center bottom', display: 'block' }}
             />
           </div>
         </div>

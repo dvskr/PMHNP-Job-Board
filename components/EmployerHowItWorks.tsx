@@ -118,7 +118,7 @@ export default function EmployerHowItWorks() {
                 whileInView="visible"
                 viewport={{ once: true, margin: '-60px' }}
                 variants={stagger}
-                style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 48px', position: 'relative', zIndex: 1 }}
+                style={{ maxWidth: '1440px', margin: '0 auto', padding: '80px 48px', position: 'relative', zIndex: 1 }}
             >
                 {/* Header */}
                 <motion.p

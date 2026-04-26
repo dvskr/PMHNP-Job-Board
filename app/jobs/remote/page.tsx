@@ -222,7 +222,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
 
 
       {/* ═══ JOB LISTINGS ═══ */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
           <div className="grid lg:grid-cols-4 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-3">
@@ -343,7 +343,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
 
       {/* ═══ BENTO GRID — Why Choose Remote ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
             Why Go Remote
           </p>
@@ -441,7 +441,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
 
       {/* ═══ GETTING STARTED — Teal tinted bg ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FFFA 50%, #F0FDFA 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
             Before You Apply
           </p>
@@ -467,7 +467,7 @@ export default async function RemoteJobsPage({ searchParams }: PageProps) {
 
       {/* ═══ EXPLORE MORE — Warm bg ═══ */}
       <div style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FFF3E8 50%, #FFF8F0 100%)' }}>
-        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
             Keep Exploring
           </p>
