@@ -1074,6 +1074,19 @@ export async function buildCategoryCityMetadata(
     ? `https://pmhnphiring.com${basePath}`
     : `https://pmhnphiring.com/jobs/${config.slug}`;
 
+  // Build salary display for OG image (rawAvgSalary is already in thousands, e.g. 130 = $130K)
+  const salaryDisplay = stats.rawAvgSalary && stats.rawAvgSalary > 0
+    ? `$${stats.rawAvgSalary}K`
+    : '';
+
+  const ogParams = new URLSearchParams({
+    category: config.label,
+    city: `${city.name}, ${city.stateCode}`,
+    jobs: String(stats.totalJobs),
+    ...(salaryDisplay && { salary: salaryDisplay }),
+    ...(city.mentalHealthShortage && { shortage: 'true' }),
+  });
+
   return {
     title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode} (${stats.totalJobs} Open)`,
     description: `Find ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP jobs in ${city.name}, ${city.stateCode}. ${config.heroSubtitle}. Population: ${city.population.toLocaleString()}. COL index: ${city.costOfLivingIndex}. ${city.mentalHealthShortage ? 'Mental health professional shortage area.' : ''}`,
@@ -1086,6 +1099,17 @@ export async function buildCategoryCityMetadata(
       title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode}`,
       description: `Browse ${config.label.toLowerCase()} psychiatric NP positions in ${city.name}. ${config.heroSubtitle}.`,
       type: 'website',
+      images: [{
+        url: `/api/og/city?${ogParams.toString()}`,
+        width: 1200,
+        height: 630,
+        alt: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode}`,
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode}`,
+      images: [`/api/og/city?${ogParams.toString()}`],
     },
     alternates: {
       canonical: canonicalUrl,
@@ -1197,6 +1221,54 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                 url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
               })),
             }),
+          }}
+        />
+      )}
+      {/* D9b: JobPosting schema for listed jobs */}
+      {jobs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jobs.slice(0, 10).map((job: Job) => ({
+              '@context': 'https://schema.org',
+              '@type': 'JobPosting',
+              title: job.title,
+              description: (job.descriptionSummary || job.description || '').slice(0, 500) || `${config.label} PMHNP position in ${city!.name}, ${city!.stateCode}`,
+              datePosted: job.originalPostedAt ? new Date(job.originalPostedAt).toISOString().split('T')[0] : new Date(job.createdAt).toISOString().split('T')[0],
+              ...(job.expiresAt && { validThrough: new Date(job.expiresAt).toISOString().split('T')[0] }),
+              employmentType: job.jobType === 'Part-Time' ? 'PART_TIME'
+                : job.jobType === 'Contract' ? 'CONTRACTOR'
+                : job.jobType === 'Per Diem' ? 'PER_DIEM'
+                : 'FULL_TIME',
+              hiringOrganization: {
+                '@type': 'Organization',
+                name: job.employer || 'Confidential Employer',
+                ...(job.companyLogoUrl && { logo: job.companyLogoUrl }),
+              },
+              jobLocation: {
+                '@type': 'Place',
+                address: {
+                  '@type': 'PostalAddress',
+                  addressLocality: job.city || city!.name,
+                  addressRegion: job.stateCode || city!.stateCode,
+                  addressCountry: 'US',
+                },
+              },
+              ...(job.isRemote && { jobLocationType: 'TELECOMMUTE' }),
+              ...((job.normalizedMinSalary || job.normalizedMaxSalary) && {
+                baseSalary: {
+                  '@type': 'MonetaryAmount',
+                  currency: 'USD',
+                  value: {
+                    '@type': 'QuantitativeValue',
+                    ...(job.normalizedMinSalary && { minValue: job.normalizedMinSalary }),
+                    ...(job.normalizedMaxSalary && { maxValue: job.normalizedMaxSalary }),
+                    unitText: 'YEAR',
+                  },
+                },
+              }),
+              url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+            }))),
           }}
         />
       )}

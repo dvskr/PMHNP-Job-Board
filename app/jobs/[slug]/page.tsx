@@ -13,6 +13,7 @@ import AnimatedContainer from '@/components/ui/AnimatedContainer';
 import JobNotFound from '@/components/JobNotFound';
 import JobStructuredData from '@/components/JobStructuredData';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import RelatedJobs from '@/components/RelatedJobs';
 import AboutEmployer from '@/components/AboutEmployer';
 import SalaryInsights from '@/components/SalaryInsights';
@@ -686,6 +687,12 @@ export default async function JobPage({ params }: JobPageProps) {
       <JobStructuredData
         job={job}
       />
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://pmhnphiring.com' },
+        { name: 'Jobs', url: 'https://pmhnphiring.com/jobs' },
+        ...(job.state ? [{ name: job.state, url: `https://pmhnphiring.com/jobs/state/${job.state.toLowerCase().replace(/\s+/g, '-')}` }] : []),
+        { name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` },
+      ]} />
       <JobViewTracker job={{ id: job.id, title: job.title, employer: job.employer, jobType: job.jobType || undefined, stateCode: job.stateCode || undefined, sourceProvider: job.sourceProvider || undefined, normalizedMinSalary: job.normalizedMinSalary }} />
       <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh', paddingTop: '1px', paddingBottom: '40px' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
