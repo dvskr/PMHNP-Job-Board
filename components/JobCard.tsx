@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink } from 'lucide-react';
+import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
@@ -169,25 +169,35 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           }}
         >
           {/* Company Logo / Avatar */}
-          <div style={{ flexShrink: 0 }}>
+          <div style={{ flexShrink: 0, position: 'relative' }}>
             {job.companyLogoUrl ? (
               <img
                 src={job.companyLogoUrl}
                 alt={`${job.employer} logo`}
                 style={{
-                  width: '48px', height: '48px', borderRadius: '10px',
+                  width: '48px', height: '48px', borderRadius: '50%',
                   objectFit: 'contain', border: '1px solid var(--border-color)',
                   background: 'var(--bg-tertiary)',
                 }}
               />
             ) : (
               <div style={{
-                width: '48px', height: '48px', borderRadius: '10px',
+                width: '48px', height: '48px', borderRadius: '50%',
                 background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
                 color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '18px', fontWeight: 700,
               }}>
                 {(job.employer || '?')[0].toUpperCase()}
+              </div>
+            )}
+            {job.isVerifiedEmployer && (
+              <div style={{
+                position: 'absolute', bottom: '-2px', right: '-2px',
+                background: '#fff', borderRadius: '50%', width: '16px', height: '16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                <BadgeCheck size={16} fill="#1d9bf0" color="#ffffff" style={{ margin: 0, padding: 0 }} />
               </div>
             )}
           </div>
@@ -205,9 +215,19 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {job.title}
             </h3>
             {/* Company */}
-            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
-              {job.employer}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>
+                {job.employer}
+              </p>
+              {job.isFeatured && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
+                  background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
+                  boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
+                }}>⚡ Featured</span>
+              )}
+            </div>
 
             {/* Salary + Location + Type */}
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
@@ -225,25 +245,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             </div>
 
             {/* Status Badges */}
-            {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer || directApply) && (
+            {(isNew || applied) && (
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
                 {isNew && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>● New</span>
                 )}
-                {viewed && !applied && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#E0E7E2', color: '#374151', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}><Eye size={12} /> Viewed</span>
-                )}
                 {applied && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>✓ Applied</span>
-                )}
-                {job.isFeatured && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(245,158,11,0.15), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>⚡ Featured</span>
-                )}
-                {job.isVerifiedEmployer && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#B2F5EA', color: '#0F766E', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(13,148,136,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}><CheckCircle size={12} /> Verified</span>
-                )}
-                {directApply && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#BFDBFE', color: '#1E40AF', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(59,130,246,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>→ Direct Apply</span>
                 )}
               </div>
             )}
@@ -254,6 +262,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           {/* Right: Save + View Job */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {viewed && !applied && <Eye size={18} color="var(--text-tertiary)" title="Viewed" />}
               <button
                 onClick={handleSaveClick}
                 style={{
@@ -286,21 +295,25 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </span>
               {job.applyLink && (
                 <button
-                  className="jc-apply-btn"
+                  className={directApply ? "jc-direct-apply-btn" : "jc-apply-btn"}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
-                  style={{
+                  style={directApply ? {
                     padding: '8px 16px', borderRadius: '14px',
-                    fontSize: '13px', fontWeight: 600,
-                    color: '#fff',
-                    backgroundColor: '#0d9488',
-                    whiteSpace: 'nowrap',
+                    fontSize: '13px', fontWeight: 600, color: '#1E40AF',
+                    backgroundColor: '#BFDBFE', whiteSpace: 'nowrap',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    boxShadow: '4px 4px 10px rgba(59,130,246,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                  } : {
+                    padding: '8px 16px', borderRadius: '14px',
+                    fontSize: '13px', fontWeight: 600, color: '#fff',
+                    backgroundColor: '#0d9488', whiteSpace: 'nowrap',
                     border: '1px solid rgba(255,255,255,0.3)',
                     boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.06)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
                   }}
                 >
-                  Apply
+                  {directApply ? 'Direct Apply' : 'Apply'}
                 </button>
               )}
             </div>
@@ -358,26 +371,38 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         {/* Row 1: Avatar + Title + Actions */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
           {/* Company Avatar */}
-          {job.companyLogoUrl ? (
-            <img
-              src={job.companyLogoUrl}
-              alt={`${job.employer} logo`}
-              style={{
-                width: '44px', height: '44px', borderRadius: '10px',
-                objectFit: 'contain', border: '1px solid var(--border-color)',
-                flexShrink: 0, background: 'var(--bg-secondary)',
-              }}
-            />
-          ) : (
-            <div style={{
-              width: '44px', height: '44px', borderRadius: '10px',
-              background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '17px', fontWeight: 700, flexShrink: 0,
-            }}>
-              {(job.employer || '?')[0].toUpperCase()}
-            </div>
-          )}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {job.companyLogoUrl ? (
+              <img
+                src={job.companyLogoUrl}
+                alt={`${job.employer} logo`}
+                style={{
+                  width: '44px', height: '44px', borderRadius: '50%',
+                  objectFit: 'contain', border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                }}
+              />
+            ) : (
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '17px', fontWeight: 700,
+              }}>
+                {(job.employer || '?')[0].toUpperCase()}
+              </div>
+            )}
+            {job.isVerifiedEmployer && (
+              <div style={{
+                position: 'absolute', bottom: '-2px', right: '-2px',
+                background: '#fff', borderRadius: '50%', width: '16px', height: '16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                <BadgeCheck size={16} fill="#1d9bf0" color="#ffffff" style={{ margin: 0, padding: 0 }} />
+              </div>
+            )}
+          </div>
 
           {/* Title + Company */}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -391,51 +416,60 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>
-              {job.employer}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>
+                {job.employer}
+              </p>
+              {job.isFeatured && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
+                  background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
+                  boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
+                }}>⚡ Featured</span>
+              )}
+            </div>
           </div>
 
           {/* Save + Share */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
-            <button
-              onClick={handleSaveClick}
-              className="jc-save-btn"
-              style={{
-                padding: '6px', borderRadius: '50%',
-                color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              aria-label={saved ? 'Unsave job' : 'Save job'}
-              title={saved ? 'Unsave job' : 'Save job'}
-            >
-              <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              onClick={handleShareClick}
-              className="jc-share-btn"
-              style={{
-                padding: '6px', borderRadius: '50%',
-                color: 'var(--text-tertiary)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              aria-label="Share job"
-            >
-              <ShareIcon size={18} />
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {viewed && !applied && <Eye size={18} color="var(--text-tertiary)" title="Viewed" />}
+              <button
+                onClick={handleSaveClick}
+                className="jc-save-btn"
+                style={{
+                  padding: '6px', borderRadius: '50%',
+                  color: saved ? 'var(--color-primary)' : 'var(--text-tertiary)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                aria-label={saved ? 'Unsave job' : 'Save job'}
+                title={saved ? 'Unsave job' : 'Save job'}
+              >
+                <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+              </button>
+              <button
+                onClick={handleShareClick}
+                className="jc-share-btn"
+                style={{
+                  padding: '6px', borderRadius: '50%',
+                  color: 'var(--text-tertiary)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                aria-label="Share job"
+              >
+                <ShareIcon size={18} />
+              </button>
+            </div>
+            {salaryDisplay && (
+              <Badge variant="salary" size="sm">
+                {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+              </Badge>
+            )}
           </div>
         </div>
-
-        {/* Row 2: Salary — inline, not full width */}
-        {salaryDisplay && (
-          <div>
-            <Badge variant="salary" size="sm">
-              {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
-            </Badge>
-          </div>
-        )}
 
         {/* Row 3: Location + Type Badges */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
@@ -448,7 +482,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
         </div>
 
         {/* Row 4: Status Badges */}
-        {(isNew || (viewed && !applied) || applied || job.isFeatured || job.isVerifiedEmployer || directApply) && (
+        {(isNew || applied) && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {isNew && (
               <span style={{
@@ -458,14 +492,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
               }}>● New</span>
             )}
-            {viewed && !applied && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                background: '#E0E7E2', color: '#374151', border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-              }}><Eye size={12} /> Viewed</span>
-            )}
             {applied && (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -473,30 +499,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
                 background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)',
                 boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
               }}>✓ Applied</span>
-            )}
-            {job.isFeatured && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
-                background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(245,158,11,0.15), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-              }}>⚡ Featured</span>
-            )}
-            {job.isVerifiedEmployer && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                background: '#B2F5EA', color: '#0F766E', border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(13,148,136,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-              }}><CheckCircle size={12} /> Verified</span>
-            )}
-            {directApply && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                background: '#BFDBFE', color: '#1E40AF', border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(59,130,246,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-              }}>→ Direct Apply</span>
             )}
           </div>
         )}
@@ -530,20 +532,27 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             </span>
             {job.applyLink && (
               <button
-                className="jc-apply-btn"
+                className={directApply ? "jc-direct-apply-btn" : "jc-apply-btn"}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
-                style={{
+                style={directApply ? {
+                  fontSize: '13px', fontWeight: 700, color: '#1E40AF',
+                  backgroundColor: '#BFDBFE',
+                  padding: '7px 16px', borderRadius: '14px',
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  border: '1px solid rgba(255,255,255,0.5)',
+                  boxShadow: '4px 4px 10px rgba(59,130,246,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                } : {
                   fontSize: '13px', fontWeight: 700, color: '#fff',
                   backgroundColor: '#0d9488',
                   padding: '7px 16px', borderRadius: '14px',
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   border: '1px solid rgba(255,255,255,0.3)',
                   boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.2), inset -1px -1px 2px rgba(0,0,0,0.06)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
                 }}
               >
-                Apply
+                {directApply ? 'Direct Apply' : 'Apply'}
               </button>
             )}
           </div>
@@ -582,6 +591,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           background-color: #0F766E !important;
           transform: translateY(-2px);
           box-shadow: 6px 6px 16px rgba(13,148,136,0.30), -3px -3px 8px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
+        }
+        .jc-direct-apply-btn:hover {
+          background-color: #93C5FD !important;
+          transform: translateY(-2px);
+          box-shadow: 6px 6px 16px rgba(59,130,246,0.20), -3px -3px 8px rgba(255,255,255,0.6), inset 2px 2px 4px rgba(255,255,255,0.5), inset -1px -1px 2px rgba(0,0,0,0.05) !important;
+        }
+        .jc-direct-apply-btn:active {
+          transform: translateY(1px);
+          box-shadow: inset 3px 3px 6px rgba(0,0,0,0.1), inset -2px -2px 4px rgba(255,255,255,0.1) !important;
         }
         .jc-apply-btn:active {
           transform: translateY(1px);
