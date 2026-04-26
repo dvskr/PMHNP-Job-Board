@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryHero from '@/components/CategoryHero';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -148,79 +149,121 @@ export const metadata: Metadata = {
 export default async function LocationsPage() {
   const stats = await getLocationStats();
 
+  /* Design Tokens */
+  const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+  };
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
       {/* Breadcrumb Schema */}
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://pmhnphiring.com" },
         { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
         { name: "Locations", url: "https://pmhnphiring.com/jobs/locations" }
       ]} />
-      {/* Hero Section */}
-      <section className="bg-teal-600 text-white py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Globe className="h-10 w-10" />
-            </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              PMHNP Jobs by Location
-            </h1>
-            <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-              Last Updated: February 2026 | PMHNP jobs by location
-            </p>
-            <p className="text-lg md:text-xl text-teal-100 mb-6">
-              Explore {stats.totalJobs.toLocaleString()} psychiatric nurse practitioner positions across the United States
-            </p>
-
-            {/* Quick Stats */}
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.states.length}</div>
-                <div className="text-sm text-teal-100">States</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.topCities.length}+</div>
-                <div className="text-sm text-teal-100">Cities</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.remoteCount}</div>
-                <div className="text-sm text-teal-100">Remote Jobs</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ═══ HERO ═══ */}
+      <CategoryHero
+        bgColor="#0D9488"
+        heroImage="/images/categories/hero_wc_states.png"
+        heroAlt="PMHNP Jobs by Location"
+        badgeText="Nationwide"
+        breadcrumbs={['Home', 'Jobs', 'Locations']}
+        indexLabel="№ 02"
+        headlineLine1="PMHNP"
+        headlineLine2="Locations"
+        headlineSub="Search by State & City"
+        stats={[
+          { value: stats.totalJobs.toLocaleString(), label: 'Jobs' },
+          { value: '50', label: 'States' },
+          { value: `${stats.topCities.length}+`, label: 'Cities' },
+          { value: stats.remoteCount.toString(), label: 'Remote' },
+        ]}
+        description={`Explore ${stats.totalJobs.toLocaleString()} psychiatric nurse practitioner positions across the United States. Find opportunities in all 50 states, top metropolitan areas, and remote positions.`}
+        ctaLabel="Browse All Jobs"
+        ctaHref="/jobs"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-7xl mx-auto">
-          {/* Remote Jobs Card - Prominent */}
+          {/* ═══ Remote Jobs — Premium Clay Banner ═══ */}
           {stats.remoteCount > 0 && (
             <div className="mb-12">
-              <Link
-                href="/jobs/remote"
-                className="block group"
-              >
-                <div className="bg-teal-600 rounded-2xl p-8 md:p-10 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Wifi className="h-8 w-8" />
+              <Link href="/jobs/remote" className="block group">
+                <div
+                  className="rounded-2xl overflow-hidden transition-all duration-300 group-hover:-translate-y-1"
+                  style={{
+                    ...clayCard,
+                    padding: 0,
+                  }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '0' }}>
+                    {/* Left — Icon + Copy */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '28px 32px' }}>
+                      {/* Large Clay Icon */}
+                      <div style={{
+                        width: '80px', height: '80px', borderRadius: '20px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: '#F9F7F1',
+                        border: '1px solid rgba(255,255,255,0.6)',
+                        boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+                      }}>
+                        <img src="/images/categories/clay_icon_remote.png" alt="" width={52} height={52} style={{ objectFit: 'contain' }} />
                       </div>
+
                       <div>
-                        <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                        <h2 style={{
+                          fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800,
+                          fontFamily: 'var(--font-lora, Georgia, serif)',
+                          color: '#1A2E35', margin: '0 0 6px', lineHeight: 1.2,
+                        }}>
                           Remote PMHNP Jobs
                         </h2>
-                        <p className="text-teal-100">
-                          Work from anywhere with telehealth opportunities
+                        <p style={{ fontSize: '14px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                          Work from anywhere — telehealth &amp; fully remote positions across all 50 states
                         </p>
                       </div>
                     </div>
-                    <div className="text-center md:text-right">
-                      <div className="text-4xl font-bold mb-1">{stats.remoteCount}</div>
-                      <div className="text-sm text-teal-100">Positions Available</div>
-                      <div className="mt-4 px-6 py-2 bg-white text-teal-600 rounded-lg font-semibold group-hover:bg-teal-50 transition-colors inline-block">
-                        View Remote Jobs →
+
+                    {/* Right — Stat + CTA */}
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      padding: '28px 36px', gap: '14px',
+                      borderLeft: '1px solid rgba(0,0,0,0.04)',
+                      background: 'linear-gradient(180deg, rgba(249,247,241,0.4) 0%, rgba(255,255,255,0) 100%)',
+                    }}>
+                      {/* Stat Pill */}
+                      <div style={{
+                        padding: '8px 20px', borderRadius: '14px',
+                        background: '#F9F7F1',
+                        border: '1px solid #EAE6DF',
+                        boxShadow: 'inset 2px 2px 6px rgba(0,0,0,0.03), inset -1px -1px 3px rgba(255,255,255,0.5)',
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#0D9488', lineHeight: 1.1 }}>
+                          {stats.remoteCount}
+                        </div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#9A8A7E', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                          Open Positions
+                        </div>
+                      </div>
+
+                      {/* CTA Button */}
+                      <div
+                        className="group-hover:-translate-y-0.5 transition-all"
+                        style={{
+                          padding: '10px 24px', borderRadius: '14px',
+                          fontSize: '14px', fontWeight: 700, color: '#fff',
+                          background: 'linear-gradient(135deg, #0D9488, #0F766E)',
+                          boxShadow: '4px 4px 12px rgba(13,148,136,0.2), -2px -2px 6px rgba(255,255,255,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        View Remote Jobs
+                        <span style={{ transition: 'transform 0.2s' }} className="group-hover:translate-x-1">→</span>
                       </div>
                     </div>
                   </div>
@@ -229,85 +272,49 @@ export default async function LocationsPage() {
             </div>
           )}
 
-          {/* Browse by Job Type Section */}
+          {/* ═══ Browse by Job Type — Clay Icon Grid ═══ */}
           <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <TrendingUp className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-              <h2 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+              <img src="/images/categories/clay_icon_location.png" alt="" width={28} height={28} style={{ objectFit: 'contain' }} />
+              <h2 style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, fontFamily: 'var(--font-lora, Georgia, serif)', color: '#1A2E35', margin: 0 }}>
                 Browse by Job Type
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {/* Remote Card */}
-              <Link href="/jobs/remote" className="group">
-                <div className="rounded-xl p-5 hover:shadow-md transition-all h-full flex flex-col" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-teal-200 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                    <Wifi className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {[
+                { href: '/jobs/remote',     icon: 'clay_icon_remote.png',     label: 'Remote',     sub: 'Work from anywhere' },
+                { href: '/jobs/telehealth', icon: 'clay_icon_telehealth.png', label: 'Telehealth', sub: 'Virtual patient care' },
+                { href: '/jobs/travel',     icon: 'clay_icon_travel.png',     label: 'Travel',     sub: 'Locum tenens' },
+                { href: '/jobs/new-grad',   icon: 'clay_icon_newgrad.png',    label: 'New Grad',   sub: 'Entry-level friendly' },
+                { href: '/jobs/per-diem',   icon: 'clay_icon_perdiem.png',    label: 'Per Diem',   sub: 'Flexible scheduling' },
+              ].map((cat) => (
+                <Link key={cat.href} href={cat.href} className="group">
+                  <div
+                    className="h-full flex flex-col items-center text-center transition-all duration-200 group-hover:-translate-y-1"
+                    style={{ ...clayCard, padding: '24px 16px' }}
+                  >
+                    {/* Clay Icon Well */}
+                    <div style={{
+                      width: '56px', height: '56px', borderRadius: '16px', marginBottom: '14px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#F9F7F1',
+                      border: '1px solid rgba(255,255,255,0.6)',
+                      boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 5px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
+                    }}>
+                      <img src={`/images/categories/${cat.icon}`} alt="" width={34} height={34} style={{ objectFit: 'contain' }} />
+                    </div>
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>{cat.label}</h3>
+                    <p style={{ fontSize: '12px', color: '#9A8A7E', margin: '0 0 12px', lineHeight: 1.4 }}>{cat.sub}</p>
+                    <div style={{
+                      marginTop: 'auto', fontSize: '12px', fontWeight: 700, color: '#0D9488',
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                    }}>
+                      View Jobs <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
                   </div>
-                  <h3 className="font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Remote Jobs</h3>
-                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Work from anywhere</p>
-                  <div className="text-sm font-medium flex items-center gap-1 mt-auto" style={{ color: 'var(--color-primary)' }}>
-                    View Jobs →
-                  </div>
-                </div>
-              </Link>
-
-              {/* Telehealth Card */}
-              <Link href="/jobs/telehealth" className="group">
-                <div className="rounded-xl p-5 hover:shadow-md transition-all h-full flex flex-col" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                    <Video className="h-6 w-6 text-purple-500" />
-                  </div>
-                  <h3 className="font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</h3>
-                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Virtual patient care</p>
-                  <div className="text-sm text-purple-500 font-medium flex items-center gap-1 mt-auto">
-                    View Jobs →
-                  </div>
-                </div>
-              </Link>
-
-              {/* Travel Card */}
-              <Link href="/jobs/travel" className="group">
-                <div className="rounded-xl p-5 hover:shadow-md transition-all h-full flex flex-col" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-teal-200 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                    <Plane className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                  </div>
-                  <h3 className="font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Travel Jobs</h3>
-                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Locum tenens positions</p>
-                  <div className="text-sm font-medium flex items-center gap-1 mt-auto" style={{ color: 'var(--color-primary)' }}>
-                    View Jobs →
-                  </div>
-                </div>
-              </Link>
-
-              {/* New Grad Card */}
-              <Link href="/jobs/new-grad" className="group">
-                <div className="rounded-xl p-5 hover:shadow-md transition-all h-full flex flex-col" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-amber-200 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                    <GraduationCap className="h-6 w-6 text-amber-500" />
-                  </div>
-                  <h3 className="font-bold mb-1" style={{ color: 'var(--text-primary)' }}>New Grad Jobs</h3>
-                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Entry-level friendly</p>
-                  <div className="text-sm text-amber-500 font-medium flex items-center gap-1 mt-auto">
-                    View Jobs →
-                  </div>
-                </div>
-              </Link>
-
-              {/* Per Diem Card */}
-              <Link href="/jobs/per-diem" className="group">
-                <div className="rounded-xl p-5 hover:shadow-md transition-all h-full flex flex-col" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                    <Calendar className="h-6 w-6 text-green-500" />
-                  </div>
-                  <h3 className="font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Per Diem Jobs</h3>
-                  <p className="text-sm mb-3" style={{ color: 'var(--text-tertiary)' }}>Flexible scheduling</p>
-                  <div className="text-sm text-green-500 font-medium flex items-center gap-1 mt-auto">
-                    View Jobs →
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              ))}
             </div>
           </div>
 
@@ -321,7 +328,7 @@ export default async function LocationsPage() {
             </div>
 
             {stats.states.length === 0 ? (
-              <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <div className="text-center py-12 rounded-xl" style={clayCard}>
                 <MapPin className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
                 <p style={{ color: 'var(--text-secondary)' }}>No state data available</p>
               </div>
@@ -333,7 +340,7 @@ export default async function LocationsPage() {
                     href={`/jobs/state/${state.slug}`}
                     className="group"
                   >
-                    <div className="rounded-xl p-5 hover:shadow-md transition-all duration-200 h-full" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
+                    <div className="rounded-xl p-5 hover:shadow-md transition-all duration-200 h-full" style={clayCard}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="font-bold group-hover:text-teal-500 transition-colors mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -380,7 +387,7 @@ export default async function LocationsPage() {
                     href={`/jobs/city/${city.slug}`}
                     className="group"
                   >
-                    <div className="rounded-xl p-5 hover:shadow-md transition-all duration-200 h-full" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
+                    <div className="rounded-xl p-5 hover:shadow-md transition-all duration-200 h-full" style={clayCard}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="font-bold group-hover:text-green-500 transition-colors mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -423,7 +430,7 @@ export default async function LocationsPage() {
           )}
 
           {/* Info Section */}
-          <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <div className="mt-12 rounded-xl p-6 md:p-8" style={clayCard}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
               About PMHNP Job Locations
             </h2>

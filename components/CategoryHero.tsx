@@ -338,7 +338,7 @@ export default function CategoryHero({
           box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important;
           filter: brightness(1.08);
         }
-        .cat-cta-primary:last-child:hover {
+        .cat-cta-primary:nth-child(2):hover {
           transform: translateY(-3px);
           box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
           background: rgba(255,255,255,0.95) !important;

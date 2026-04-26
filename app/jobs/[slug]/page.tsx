@@ -687,6 +687,7 @@ export default async function JobPage({ params }: JobPageProps) {
         job={job}
       />
       <JobViewTracker job={{ id: job.id, title: job.title, employer: job.employer, jobType: job.jobType || undefined, stateCode: job.stateCode || undefined, sourceProvider: job.sourceProvider || undefined, normalizedMinSalary: job.normalizedMinSalary }} />
+      <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh', paddingTop: '1px', paddingBottom: '40px' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
         {/* Breadcrumbs */}
         <Breadcrumbs items={breadcrumbItems} />
@@ -695,7 +696,7 @@ export default async function JobPage({ params }: JobPageProps) {
           <div className="min-w-0">
             {/* Header Section */}
             <AnimatedContainer animation="fade-in-up" delay={0}>
-              <div className="rounded-2xl overflow-hidden mb-5 lg:mb-6" style={{ backgroundColor: '#F7FBF8', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '20px', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', position: 'relative', padding: '24px 24px 28px', }}>
+              <div className="rounded-2xl overflow-hidden mb-5 lg:mb-6" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)', borderRadius: '20px', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', position: 'relative', padding: '24px 24px 28px', }}>
                 {/* Report Button - Top Right */}
                 <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
                   <ReportJobButton jobId={job.id} jobTitle={job.title} />
@@ -785,7 +786,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
-              <div style={{ backgroundColor: '#F7FBF8', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>
+              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: 'var(--text-primary)', marginBottom: '16px' }}>About this role</h2>
 
                 {/* Note for external jobs */}
@@ -870,7 +871,7 @@ export default async function JobPage({ params }: JobPageProps) {
           {/* Sidebar - Desktop / Below content on mobile */}
           <AnimatedContainer animation="slide-in-right" delay={300}>
             <div className="mt-6 lg:mt-0">
-              <div className="hidden lg:block lg:sticky lg:top-24" style={{ backgroundColor: '#F7FBF8', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)', padding: '24px' }}>
+              <div className="hidden lg:block lg:sticky lg:top-24" style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)', padding: '24px' }}>
                 {/* Expiry Notice - Desktop */}
                 {!expiryStatus.isExpired && expiryStatus.text && (
                   <div className={`flex items-center gap-2 mb-4 pb-3 ${expiryStatus.isUrgent ? 'text-orange-500' : ''}`} style={{ borderBottom: '1px solid var(--border-color)', color: expiryStatus.isUrgent ? undefined : 'var(--text-tertiary)' }}>
@@ -981,9 +982,10 @@ export default async function JobPage({ params }: JobPageProps) {
 
 
       </div>
+      </div>
 
       {/* Sticky Apply Button - Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="px-4 py-2 pb-safe">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />

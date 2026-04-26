@@ -262,7 +262,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           {/* Right: Save + View Job */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {viewed && !applied && <Eye size={18} color="var(--text-tertiary)" title="Viewed" />}
+              {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
               <button
                 onClick={handleSaveClick}
                 style={{
@@ -434,7 +434,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           {/* Save + Share */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {viewed && !applied && <Eye size={18} color="var(--text-tertiary)" title="Viewed" />}
+              {viewed && !applied && <span title="Viewed" className="flex"><Eye size={18} color="var(--text-tertiary)" /></span>}
               <button
                 onClick={handleSaveClick}
                 className="jc-save-btn"

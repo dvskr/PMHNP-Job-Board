@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Bell, MapPin, Briefcase, Zap, CheckCircle, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import CategoryHero from '@/components/CategoryHero';
 
 // US States array for dropdown
 const US_STATES = [
@@ -24,20 +25,20 @@ const WORK_MODES = ['Remote', 'Hybrid', 'In-Person'];
 const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem'];
 
 /* ═══════════════════════════════════════════
-   CLAY DESIGN TOKENS
+   WARM DIORAMA DESIGN TOKENS
    ═══════════════════════════════════════════ */
 const cardBase: React.CSSProperties = {
-  background: '#F7FBF8',
+  background: '#FFFFFF',
   borderRadius: '20px',
   border: '1px solid rgba(255,255,255,0.5)',
-  boxShadow: '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
 };
 
 const cardRecessed: React.CSSProperties = {
-  background: '#EDF5F0',
+  background: '#F9F7F1',
   borderRadius: '14px',
-  border: '1px solid #D5E8E0',
-  boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.5)',
+  border: '1px solid #EAE6DF',
+  boxShadow: 'inset 2px 2px 6px rgba(0,0,0,0.04), inset -1px -1px 3px rgba(255,255,255,0.5)',
 };
 
 const clayInput: React.CSSProperties = {
@@ -45,10 +46,10 @@ const clayInput: React.CSSProperties = {
   padding: '10px 14px',
   fontSize: '14px',
   borderRadius: '12px',
-  border: '1px solid #D5E8E0',
-  background: '#EDF5F0',
+  border: '1px solid #EAE6DF',
+  background: '#F9F7F1',
   color: '#1A2E35',
-  boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)',
+  boxShadow: 'inset 2px 2px 6px rgba(0,0,0,0.04), inset -1px -1px 3px rgba(255,255,255,0.4)',
   outline: 'none',
   transition: 'all 0.2s',
 };
@@ -157,39 +158,26 @@ function JobAlertsContent() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F0F5F2' }}>
+    <div style={{ minHeight: '100vh', background: '#FDFBF7' }}>
       {/* ═══ Hero Section ═══ */}
-      <div style={{
-        padding: '32px 16px 24px',
-        background: 'linear-gradient(180deg, #E8F5EE 0%, #F0F5F2 100%)',
-        borderBottom: '1px solid #D5E8E0',
-      }}>
-        <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Bell icon in clay pebble */}
-          <div style={{
-            width: '52px', height: '52px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '16px', background: '#DCFCE7',
-            border: '1px solid rgba(255,255,255,0.5)',
-            boxShadow: '5px 5px 12px rgba(0,0,0,0.06), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.7)',
-            color: '#0D9488', flexShrink: 0,
-          }}>
-            <Bell size={24} />
-          </div>
-          <div>
-            <h1 style={{
-              fontSize: '26px', fontWeight: 800,
-              fontFamily: 'var(--font-lora), Georgia, serif',
-              color: '#1A2E35', margin: '0 0 4px',
-            }}>
-              Never Miss Your Dream PMHNP Job
-            </h1>
-            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
-              Get personalized job alerts delivered to your inbox.
-            </p>
-          </div>
-        </div>
-      </div>
+      <CategoryHero
+        bgColor="#0D9488"
+        heroImage="/images/categories/hero_wc_general.png"
+        heroAlt="Job Alerts"
+        badgeText="Job Alerts"
+        breadcrumbs={['Home', 'Job Alerts']}
+        indexLabel="№ 03"
+        headlineLine1="Never Miss a"
+        headlineLine2="Dream Job"
+        headlineSub="Personalized alerts"
+        stats={[
+          { value: "200+", label: 'New Daily' },
+          { value: "10K+", label: 'Active Jobs' }
+        ]}
+        description="Get personalized PMHNP job alerts delivered straight to your inbox. Be the first to apply to jobs that match your exact criteria."
+        ctaLabel="Manage Alerts"
+        ctaHref="/job-alerts/manage"
+      />
 
       {/* ═══ Main Content ═══ */}
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 16px 40px' }}>
@@ -519,14 +507,14 @@ function JobAlertsContent() {
 
 function LoadingFallback() {
   return (
-    <div style={{ minHeight: '100vh', background: '#F0F5F2', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#FDFBF7', display: 'flex', flexDirection: 'column' }}>
       {/* Shimmer hero */}
-      <div style={{ padding: '32px 16px 24px', background: '#E8F5EE', borderBottom: '1px solid #D5E8E0' }}>
+      <div style={{ padding: '32px 16px 24px', background: '#F9F7F1', borderBottom: '1px solid #EAE6DF' }}>
         <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div className="skel-shimmer" style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#DCFCE7', flexShrink: 0 }} />
+          <div className="skel-shimmer" style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#FFFFFF', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div className="skel-shimmer" style={{ height: '22px', width: '60%', borderRadius: '8px', background: '#E8F0EB', marginBottom: '8px' }} />
-            <div className="skel-shimmer" style={{ height: '14px', width: '40%', borderRadius: '6px', background: '#EDF5F0' }} />
+            <div className="skel-shimmer" style={{ height: '22px', width: '60%', borderRadius: '8px', background: '#EAE6DF', marginBottom: '8px' }} />
+            <div className="skel-shimmer" style={{ height: '14px', width: '40%', borderRadius: '6px', background: '#F9F7F1' }} />
           </div>
         </div>
       </div>

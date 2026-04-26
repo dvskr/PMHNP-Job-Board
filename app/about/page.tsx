@@ -4,6 +4,7 @@ import Card from '@/components/ui/Card';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import VideoJsonLd from '@/components/VideoJsonLd';
 import { CheckCircle, Users, DollarSign, Bell, Target, TrendingUp, Award, Mail, Briefcase, MapPin, RefreshCw, Database, FileText, Shield, BarChart3 } from 'lucide-react';
+import CategoryHero from '@/components/CategoryHero';
 
 export const metadata: Metadata = {
   title: 'About Us - The #1 Job Board for Psychiatric NPs',
@@ -27,65 +28,49 @@ export const metadata: Metadata = {
   },
 };
 
+const clayCard: React.CSSProperties = {
+  background: '#FFFFFF', borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
 export default function AboutPage() {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen" style={{ background: '#FDFBF7' }}>
       <VideoJsonLd pathname="/about" />
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'About', url: 'https://pmhnphiring.com/about' },
       ]} />
-      {/* Hero Section */}
-      <section className="py-20 px-4" style={{ background: 'var(--bg-secondary)' }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>About PMHNP Hiring</h1>
-          <p className="text-xl md:text-2xl max-w-3xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-            The #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners — trusted by thousands of PMHNPs nationwide
-          </p>
-        </div>
-      </section>
-
-      {/* By The Numbers Stats Row */}
-      <section className="border-y py-8 px-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }}>
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Briefcase className="w-5 h-5 text-emerald-600" />
-                <span className="text-2xl md:text-3xl font-bold text-emerald-600">Thousands</span>
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Active Jobs</div>
-            </div>
-            <div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Users className="w-5 h-5 text-teal-600" />
-                <span className="text-2xl md:text-3xl font-bold text-teal-600">2,500+</span>
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Companies</div>
-            </div>
-            <div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <MapPin className="w-5 h-5 text-purple-600" />
-                <span className="text-2xl md:text-3xl font-bold text-purple-600">50+</span>
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>States Covered</div>
-            </div>
-            <div>
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <RefreshCw className="w-5 h-5 text-amber-600" />
-                <span className="text-2xl md:text-3xl font-bold text-amber-600">Daily</span>
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Updated</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      
+      {/* ═══ HERO ═══ */}
+      <CategoryHero
+        bgColor="#0D9488"
+        heroImage="/images/categories/hero_wc_general.png"
+        heroAlt="About PMHNP Hiring"
+        badgeText="About Us"
+        breadcrumbs={['Home', 'About']}
+        indexLabel="№ 04"
+        headlineLine1="About PMHNP"
+        headlineLine2="Hiring"
+        headlineSub="The #1 Job Board for PMHNPs"
+        stats={[
+          { value: "Thousands", label: 'Active Jobs' },
+          { value: "2,500+", label: 'Companies' },
+          { value: "50+", label: 'States' },
+        ]}
+        description="The #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners — trusted by thousands of PMHNPs nationwide. We aggregate, verify, and enrich job data to provide you with the best career resource available."
+        ctaLabel="Browse Jobs"
+        ctaHref="/jobs"
+        secondaryCtaLabel="Contact Us"
+        secondaryCtaHref="mailto:support@pmhnphiring.com"
+      />
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Mission Section */}
         <section className="mb-12">
-          <Card padding="lg" variant="elevated">
+          <Card padding="lg" style={clayCard}>
             <div className="flex items-center gap-3 mb-6">
               <Target className="w-8 h-8 text-primary-600" />
               <h2 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Our Mission</h2>
@@ -112,7 +97,7 @@ export default function AboutPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* For Job Seekers */}
-            <Card padding="lg" variant="bordered">
+            <Card padding="lg" style={clayCard}>
               <div className="flex items-center gap-3 mb-6">
                 <Users className="w-7 h-7 text-primary-600" />
                 <h3 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>For Job Seekers</h3>
@@ -150,7 +135,7 @@ export default function AboutPage() {
             </Card>
 
             {/* For Employers */}
-            <Card padding="lg" variant="bordered">
+            <Card padding="lg" style={clayCard}>
               <div className="flex items-center gap-3 mb-6">
                 <Award className="w-7 h-7 text-primary-600" />
                 <h3 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>For Employers</h3>
@@ -191,7 +176,7 @@ export default function AboutPage() {
 
         {/* Our Data & Methodology Section */}
         <section className="mb-12">
-          <Card padding="lg" variant="elevated">
+          <Card padding="lg" style={clayCard}>
             <div className="flex items-center gap-3 mb-6">
               <Database className="w-8 h-8 text-primary-600" />
               <h2 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Our Data & Methodology</h2>
@@ -286,7 +271,7 @@ export default function AboutPage() {
 
         {/* Why We Built This Section */}
         <section className="mb-12">
-          <Card padding="lg" variant="default">
+          <Card padding="lg" style={clayCard}>
             <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Why We Built This</h2>
             <div className="space-y-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               <p>
@@ -317,7 +302,7 @@ export default function AboutPage() {
 
         {/* For Media & Citations Section */}
         <section className="mb-12">
-          <Card padding="lg" variant="bordered">
+          <Card padding="lg" style={clayCard}>
             <div className="flex items-center gap-3 mb-4">
               <FileText className="w-7 h-7" style={{ color: 'var(--text-tertiary)' }} />
               <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>For Media & Citations</h2>
@@ -342,7 +327,7 @@ export default function AboutPage() {
 
         {/* Contact Section */}
         <section>
-          <Card padding="lg" variant="bordered">
+          <Card padding="lg" style={clayCard}>
             <div className="text-center">
               <Mail className="w-12 h-12 text-teal-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Get In Touch</h2>
