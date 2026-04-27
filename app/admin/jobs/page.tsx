@@ -23,32 +23,31 @@ interface SourceOption { source: string; count: number }
 /* ─── Shared styles ─── */
 const s = {
   card: {
-    backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-    borderRadius: '14px', overflow: 'hidden' as const,
+    backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', overflow: 'hidden' as const,
   },
-  heading: { color: 'var(--text-primary)', fontWeight: 700 as const },
-  sub: { color: 'var(--text-secondary)', fontSize: '14px' },
-  muted: { color: 'var(--text-tertiary)', fontSize: '12px' },
+  heading: { color: '#1A2E35', fontWeight: 700 as const },
+  sub: { color: '#6B7F8A', fontSize: '14px' },
+  muted: { color: '#94A3B8', fontSize: '12px' },
   th: {
     padding: '12px 14px', textAlign: 'left' as const, fontSize: '11px',
     fontWeight: 600 as const, textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em', color: 'var(--text-tertiary)',
-    backgroundColor: 'var(--bg-tertiary)', whiteSpace: 'nowrap' as const,
+    letterSpacing: '0.05em', color: '#94A3B8',
+    backgroundColor: '#F8FAF9', whiteSpace: 'nowrap' as const,
   },
   td: {
-    padding: '12px 14px', fontSize: '13px', color: 'var(--text-secondary)',
-    borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' as const,
+    padding: '12px 14px', fontSize: '13px', color: '#6B7F8A',
+    borderBottom: '1px solid #E8ECF0', whiteSpace: 'nowrap' as const,
   },
   tdBold: {
-    padding: '12px 14px', fontSize: '13px', color: 'var(--text-primary)',
-    fontWeight: 600 as const, borderBottom: '1px solid var(--border-color)',
+    padding: '12px 14px', fontSize: '13px', color: '#1A2E35',
+    fontWeight: 600 as const, borderBottom: '1px solid #E8ECF0',
   },
 };
 
 const inputStyle: React.CSSProperties = {
   padding: '9px 14px', borderRadius: '10px', fontSize: '13px',
-  backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-  color: 'var(--text-primary)', outline: 'none',
+  backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)',
+  color: '#1A2E35', outline: 'none',
 };
 
 function badge(text: string, color: string, bg: string) {
@@ -251,7 +250,7 @@ export default function AdminJobsPage() {
       {/* Filters */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: '1 1 240px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
           <input
             type="text"
             placeholder="Search title or employer..."
@@ -292,7 +291,7 @@ export default function AdminJobsPage() {
           padding: '12px 18px', borderRadius: '10px',
           backgroundColor: 'rgba(45, 212, 191, 0.08)', border: '1px solid rgba(45, 212, 191, 0.2)',
         }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#2DD4BF' }}>{selected.size} selected</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>{selected.size} selected</span>
           {[
             { label: 'Publish', action: 'publish', color: '#22C55E' },
             { label: 'Unpublish', action: 'unpublish', color: '#F59E0B' },
@@ -305,7 +304,7 @@ export default function AdminJobsPage() {
               {b.label}
             </button>
           ))}
-          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
             <X size={16} />
           </button>
         </div>
@@ -315,7 +314,7 @@ export default function AdminJobsPage() {
       <div style={s.card}>
         {loading && jobs.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
-            <div style={{ width: 40, height: 40, border: '3px solid var(--border-color)', borderTop: '3px solid #2DD4BF', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 40, height: 40, border: '3px solid #E8ECF0', borderTop: '3px solid #0D9488', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
             <p style={{ ...s.sub, marginTop: '12px' }}>Loading jobs…</p>
           </div>
         ) : (
@@ -401,7 +400,7 @@ export default function AdminJobsPage() {
         {totalPages > 1 && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 20px', borderTop: '1px solid var(--border-color)',
+            padding: '14px 20px', borderTop: '1px solid #E8ECF0',
           }}>
             <span style={s.muted}>Page {page} of {totalPages} · {total.toLocaleString()} jobs</span>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -425,12 +424,12 @@ export default function AdminJobsPage() {
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             zIndex: 51, width: '90%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto',
-            backgroundColor: 'var(--bg-secondary)', borderRadius: '16px',
-            border: '1px solid var(--border-color)', padding: '28px',
+            backgroundColor: '#FAFBF9', borderRadius: '16px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)',
+            border: '1px solid rgba(255,255,255,0.5)', padding: '28px',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ ...s.heading, fontSize: '20px' }}>Edit Job</h2>
-              <button onClick={() => setEditingJob(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+              <button onClick={() => setEditingJob(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
                 <X size={20} />
               </button>
             </div>
@@ -459,11 +458,11 @@ export default function AdminJobsPage() {
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
               <button onClick={() => setEditingJob(null)}
-                style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px' }}>
+                style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)', color: '#1A2E35', fontWeight: 600, fontSize: '13px' }}>
                 Cancel
               </button>
               <button onClick={saveEdit} disabled={editLoading}
-                style={{ padding: '10px 24px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none', fontWeight: 700, fontSize: '13px', opacity: editLoading ? 0.5 : 1 }}>
+                style={{ padding: '10px 24px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#0D9488', color: '#0F172A', border: 'none', fontWeight: 700, fontSize: '13px', opacity: editLoading ? 0.5 : 1 }}>
                 {editLoading ? 'Saving…' : 'Save Changes'}
               </button>
             </div>

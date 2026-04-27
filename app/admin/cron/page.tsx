@@ -74,9 +74,9 @@ export default function CronHealthDashboard() {
 
     if (loading) {
         return (
-            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 16px', textAlign: 'center', paddingTop: '80px' }}>
-                <Activity className="animate-pulse" size={48} style={{ color: '#2DD4BF', margin: '0 auto' }} />
-                <p style={{ marginTop: '16px', color: 'var(--text-secondary)' }}>Loading cron configuration...</p>
+            <div style={{ maxWidth: '1000px', margin: '0 auto', paddingTop: '80px', paddingBottom: '32px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center' }}>
+                <Activity className="animate-pulse" size={48} style={{ color: '#0D9488', margin: '0 auto' }} />
+                <p style={{ marginTop: '16px', color: '#6B7F8A' }}>Loading cron configuration...</p>
             </div>
         );
     }
@@ -102,21 +102,22 @@ export default function CronHealthDashboard() {
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 16px' }}>
             <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Cron Health Dashboard</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Automated platform tasks configuration and manual triggers.</p>
+                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1A2E35', marginBottom: '4px' }}>Cron Health Dashboard</h1>
+                    <p style={{ color: '#6B7F8A' }}>Automated platform tasks configuration and manual triggers.</p>
                 </div>
             </div>
 
             {error && (
-                <div style={{ padding: '16px', backgroundColor: '#FEF2F2', color: '#991B1B', borderRadius: '8px', marginBottom: '24px' }}>
+                <div style={{ padding: '16px', backgroundColor: '#FEF2F2', color: '#991B1B', borderRadius: '16px', marginBottom: '24px',
+                    boxShadow: 'inset 2px 2px 5px rgba(255,255,255,0.5), inset -1px -1px 3px rgba(0,0,0,0.03)' }}>
                     Error loading crons: {error}
                 </div>
             )}
 
             {Object.entries(groups).filter(([_, items]) => items.length > 0).map(([groupName, items]) => (
                 <div key={groupName} style={{ marginBottom: '32px' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>
-                        {groupName} <span style={{ fontSize: '14px', color: 'var(--text-tertiary)', fontWeight: 400 }}>({items.length} tasks)</span>
+                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid #E8ECF0' }}>
+                        {groupName} <span style={{ fontSize: '14px', color: '#94A3B8', fontWeight: 400 }}>({items.length} tasks)</span>
                     </h2>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -128,22 +129,23 @@ export default function CronHealthDashboard() {
 
                             return (
                                 <div key={cron.path} style={{ 
-                                    backgroundColor: 'var(--bg-secondary)', 
-                                    border: '1px solid var(--border-color)', 
-                                    borderRadius: '10px', 
-                                    padding: '16px',
+                                    backgroundColor: '#FAFBF9', 
+                                    border: '1px solid rgba(255,255,255,0.7)', 
+                                    borderRadius: '18px', 
+                                    padding: '18px 20px',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'space-between'
+                                    justifyContent: 'space-between',
+                                    boxShadow: '6px 6px 16px rgba(0,0,0,0.05), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 3px rgba(0,0,0,0.02)',
                                 }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                                            <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                            <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#1A2E35' }}>
                                                 {name}
-                                                {chunk && <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', backgroundColor: 'var(--bg-tertiary)' }}>Chunk {chunk}</span>}
+                                                {chunk && <span style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', backgroundColor: '#F8FAF9' }}>Chunk {chunk}</span>}
                                             </h3>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: '#94A3B8' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 <Clock size={14} /> Schedule: {cron.schedule}
                                             </span>
@@ -167,10 +169,11 @@ export default function CronHealthDashboard() {
                                             disabled={state?.loading}
                                             style={{
                                                 display: 'flex', alignItems: 'center', gap: '6px',
-                                                padding: '8px 16px', borderRadius: '8px', cursor: state?.loading ? 'not-allowed' : 'pointer',
-                                                backgroundColor: state?.loading ? 'var(--bg-tertiary)' : '#F3F4F6',
-                                                color: '#111827', border: '1px solid #D1D5DB',
-                                                fontSize: '13px', fontWeight: 600, transition: 'all 0.2s'
+                                                padding: '8px 18px', borderRadius: '14px', cursor: state?.loading ? 'not-allowed' : 'pointer',
+                                                backgroundColor: state?.loading ? '#F0F3F2' : '#FAFBF9',
+                                                color: '#1A2E35', border: '1px solid rgba(255,255,255,0.6)',
+                                                fontSize: '13px', fontWeight: 600, transition: 'all 0.2s',
+                                                boxShadow: '4px 4px 10px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6)',
                                             }}>
                                             <Play size={14} style={{ opacity: state?.loading ? 0.5 : 1 }} />
                                             {state?.loading ? 'Running...' : 'Trigger Manually'}

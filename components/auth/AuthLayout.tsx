@@ -36,20 +36,34 @@ export default function AuthLayout({ children, illustration, testimonial }: Auth
           width: '100%',
           margin: '0 auto',
         }}>
-          {/* Logo — centered above form */}
+          {/* Logo — same as navbar */}
           <Link
             href="/"
             style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: '12px', textDecoration: 'none', marginBottom: '28px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              textDecoration: 'none', marginBottom: '4px', alignSelf: 'center',
             }}
           >
-            <Image src="/logo.png" alt="PMHNP Hiring" width={44} height={44} style={{ borderRadius: '12px' }} />
-            <span style={{
-              fontSize: '20px', fontWeight: 800,
-              fontFamily: 'var(--font-lora), Georgia, serif',
-              color: '#1A2E35', letterSpacing: '-0.4px',
-            }}>
+            <img
+              src="/logo.png"
+              alt="PMHNP Hiring"
+              width="100"
+              height="100"
+              style={{ width: 100, height: 100, objectFit: 'contain', flexShrink: 0 }}
+            />
+            <span
+              className="font-heading"
+              style={{
+                fontSize: '28px',
+                fontWeight: 700,
+                color: '#1F2937',
+                letterSpacing: '-0.02em',
+                whiteSpace: 'nowrap',
+                lineHeight: 1,
+                transform: 'translateY(4px)',
+                marginLeft: '-24px',
+              }}
+            >
               PMHNP Hiring
             </span>
           </Link>

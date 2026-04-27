@@ -128,12 +128,12 @@ export default function LoginContent() {
       <h1 style={{
         fontSize: '28px', fontWeight: 800, color: '#1A2E35',
         fontFamily: 'var(--font-lora), Georgia, serif',
-        lineHeight: 1.25, letterSpacing: '-0.5px', margin: '0 0 6px',
+        lineHeight: 1.25, letterSpacing: '-0.5px', margin: '0 0 4px',
         textAlign: 'center',
       }}>
         Sign in
       </h1>
-      <p style={{ fontSize: '14px', color: '#6B7F8A', marginBottom: '20px', textAlign: 'center' }}>
+      <p style={{ fontSize: '14px', color: '#6B7F8A', marginBottom: '14px', textAlign: 'center' }}>
         {role === 'employer'
           ? 'Manage your job listings and find top PMHNP talent'
           : 'Access your saved jobs, applications, and profile'}
@@ -145,7 +145,7 @@ export default function LoginContent() {
         background: '#F1F5F9',
         borderRadius: '14px',
         padding: '4px',
-        marginBottom: '20px',
+        marginBottom: '14px',
         border: '1px solid #E2E8F0',
       }}>
         <button type="button" onClick={() => switchRole('seeker')}

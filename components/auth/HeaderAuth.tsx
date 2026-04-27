@@ -168,11 +168,6 @@ export default function HeaderAuth({ onNavigate, onRoleChange }: HeaderAuthProps
     if (profile.role === 'admin') {
       return (
         <div className="flex items-center gap-2">
-          <Link href="/admin" style={clayNavPill}
-            onMouseEnter={handleHoverIn} onMouseLeave={handleHoverOut}
-          >
-            Admin
-          </Link>
           <UserMenu user={profile} isMobile={!!onNavigate} />
         </div>
       )

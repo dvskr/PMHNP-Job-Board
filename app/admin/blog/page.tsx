@@ -28,13 +28,13 @@ const CATEGORIES = [
 ];
 
 /* ─── Styles ─── */
-const card: React.CSSProperties = { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '14px', overflow: 'hidden' };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
-const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
-const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
-const th: React.CSSProperties = { padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', textAlign: 'left', whiteSpace: 'nowrap', backgroundColor: 'var(--bg-tertiary)' };
-const td: React.CSSProperties = { padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' };
-const inputStyle: React.CSSProperties = { padding: '10px 14px', borderRadius: '10px', fontSize: '13px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', outline: 'none', width: '100%' };
+const card: React.CSSProperties = { backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', overflow: 'hidden' };
+const heading: React.CSSProperties = { color: '#1A2E35', fontWeight: 700 };
+const sub: React.CSSProperties = { color: '#6B7F8A', fontSize: '14px' };
+const muted: React.CSSProperties = { color: '#94A3B8', fontSize: '12px' };
+const th: React.CSSProperties = { padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94A3B8', textAlign: 'left', whiteSpace: 'nowrap', backgroundColor: '#F8FAF9' };
+const td: React.CSSProperties = { padding: '14px 16px', fontSize: '13px', color: '#6B7F8A', borderBottom: '1px solid #E8ECF0', whiteSpace: 'nowrap' };
+const inputStyle: React.CSSProperties = { padding: '10px 14px', borderRadius: '10px', fontSize: '13px', backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)', color: '#1A2E35', outline: 'none', width: '100%' };
 
 export default function AdminBlogPage() {
     const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -167,7 +167,7 @@ export default function AdminBlogPage() {
                 </div>
                 <button onClick={openNew} style={{
                     padding: '10px 20px', borderRadius: '10px', cursor: 'pointer',
-                    backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none',
+                    backgroundColor: '#0D9488', color: '#0F172A', border: 'none',
                     fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: 6,
                 }}>
                     <Plus size={16} /> New Post
@@ -199,7 +199,7 @@ export default function AdminBlogPage() {
             <div style={card}>
                 {loading ? (
                     <div style={{ padding: 60, textAlign: 'center' }}>
-                        <div style={{ width: 40, height: 40, border: '3px solid var(--border-color)', borderTop: '3px solid #2DD4BF', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+                        <div style={{ width: 40, height: 40, border: '3px solid #E8ECF0', borderTop: '3px solid #0D9488', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
@@ -216,7 +216,7 @@ export default function AdminBlogPage() {
                             <tbody>
                                 {filteredPosts.map(post => (
                                     <tr key={post.id}>
-                                        <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <td style={{ ...td, fontWeight: 600, color: '#1A2E35', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {post.title}
                                         </td>
                                         <td style={td}>
@@ -244,7 +244,7 @@ export default function AdminBlogPage() {
                                                     <Pencil size={14} />
                                                 </button>
                                                 <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" title="Preview"
-                                                    style={{ padding: 4, color: '#2DD4BF' }}>
+                                                    style={{ padding: 4, color: '#0D9488' }}>
                                                     <Eye size={14} />
                                                 </a>
                                                 <button onClick={() => deletePost(post.id)} title="Delete"
@@ -271,11 +271,11 @@ export default function AdminBlogPage() {
                     <div style={{
                         position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                         zIndex: 51, width: '95%', maxWidth: 800, maxHeight: '90vh', overflowY: 'auto',
-                        backgroundColor: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 28,
+                        backgroundColor: '#FFFFFF', borderRadius: 16, border: '1px solid rgba(255,255,255,0.5)', padding: 28,
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                             <h2 style={{ ...heading, fontSize: 20 }}>{editingPost ? 'Edit Post' : 'New Blog Post'}</h2>
-                            <button onClick={() => setEditorOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}>
+                            <button onClick={() => setEditorOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -339,11 +339,11 @@ export default function AdminBlogPage() {
 
                         <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
                             <button onClick={() => setEditorOpen(false)}
-                                style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px' }}>
+                                style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)', color: '#1A2E35', fontWeight: 600, fontSize: '13px' }}>
                                 Cancel
                             </button>
                             <button onClick={savePost} disabled={saving}
-                                style={{ padding: '10px 24px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none', fontWeight: 700, fontSize: '13px', opacity: saving ? 0.5 : 1 }}>
+                                style={{ padding: '10px 24px', borderRadius: '10px', cursor: 'pointer', backgroundColor: '#0D9488', color: '#0F172A', border: 'none', fontWeight: 700, fontSize: '13px', opacity: saving ? 0.5 : 1 }}>
                                 {saving ? 'Saving…' : (editingPost ? 'Update Post' : 'Create Post')}
                             </button>
                         </div>

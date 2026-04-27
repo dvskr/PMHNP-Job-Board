@@ -65,7 +65,7 @@ export default function Header() {
     : userRole === 'employer'
       ? employerNavLinks
       : userRole === 'admin'
-        ? [{ href: '/admin', label: 'Admin', icon: LayoutDashboard }, { href: '/messages', label: 'Messages', icon: MessageSquare }, { href: '/settings', label: 'Settings', icon: Settings }]
+        ? [{ href: '/admin', label: 'Admin', icon: LayoutDashboard }, { href: '/jobs', label: 'Browse Jobs', icon: Briefcase }, { href: '/messages', label: 'Messages', icon: MessageSquare }, { href: '/settings', label: 'Settings', icon: Settings }]
         : publicNavLinks;
 
   const isActive = (href: string) => {

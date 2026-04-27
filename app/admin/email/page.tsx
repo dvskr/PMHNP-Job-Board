@@ -19,23 +19,23 @@ type Tab = 'compose' | 'history' | 'templates';
 type Audience = 'all' | 'job_seekers' | 'employers' | 'subscribers' | 'newsletter' | 'custom';
 
 /* ─── Styles ─── */
-const card: React.CSSProperties = { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '14px', overflow: 'hidden' };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
-const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
-const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
+const card: React.CSSProperties = { backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', overflow: 'hidden' };
+const heading: React.CSSProperties = { color: '#1A2E35', fontWeight: 700 };
+const sub: React.CSSProperties = { color: '#6B7F8A', fontSize: '14px' };
+const muted: React.CSSProperties = { color: '#94A3B8', fontSize: '12px' };
 const inputStyle: React.CSSProperties = {
     width: '100%', padding: '10px 14px', borderRadius: '10px', fontSize: '14px',
-    backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-    color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
+    backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)',
+    color: '#1A2E35', outline: 'none', boxSizing: 'border-box',
 };
 const btnPrimary: React.CSSProperties = {
     padding: '10px 22px', borderRadius: '10px', cursor: 'pointer',
-    backgroundColor: '#2DD4BF', color: '#0F172A', border: 'none',
+    backgroundColor: '#0D9488', color: '#0F172A', border: 'none',
     fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px',
 };
 const btnSecondary: React.CSSProperties = {
     padding: '10px 22px', borderRadius: '10px', cursor: 'pointer',
-    backgroundColor: 'transparent', color: '#2DD4BF', border: '1px solid var(--border-color)',
+    backgroundColor: 'transparent', color: '#0D9488', border: '1px solid rgba(255,255,255,0.5)',
     fontWeight: 600, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px',
 };
 const btnDanger: React.CSSProperties = {
@@ -251,7 +251,7 @@ export default function AdminEmailPage() {
         padding: '10px 20px', borderRadius: '10px', cursor: 'pointer',
         fontWeight: 600, fontSize: '13px', border: 'none',
         backgroundColor: active ? 'rgba(45, 212, 191, 0.12)' : 'transparent',
-        color: active ? '#2DD4BF' : 'var(--text-tertiary)',
+        color: active ? '#0D9488' : '#94A3B8',
         display: 'flex', alignItems: 'center', gap: '6px',
         transition: 'all 0.2s',
     });
@@ -261,7 +261,7 @@ export default function AdminEmailPage() {
             {/* Header */}
             <div style={{ marginBottom: '24px' }}>
                 <h1 style={{ ...heading, fontSize: '28px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Mail size={28} style={{ color: '#2DD4BF' }} /> Email Broadcasts
+                    <Mail size={28} style={{ color: '#0D9488' }} /> Email Broadcasts
                 </h1>
                 <p style={sub}>Send personalized emails to your users</p>
             </div>
@@ -279,7 +279,7 @@ export default function AdminEmailPage() {
             )}
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', padding: '4px', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', backgroundColor: '#FAFBF9', borderRadius: '16px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', padding: '4px', border: '1px solid rgba(255,255,255,0.5)' }}>
                 <button onClick={() => setTab('compose')} style={tabStyle(tab === 'compose')}><Send size={14} /> Compose</button>
                 <button onClick={() => setTab('history')} style={tabStyle(tab === 'history')}><History size={14} /> History</button>
                 <button onClick={() => setTab('templates')} style={tabStyle(tab === 'templates')}><FileText size={14} /> Templates</button>
@@ -304,7 +304,7 @@ export default function AdminEmailPage() {
 
                         {/* Body */}
                         <label style={{ ...muted, fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                            EMAIL BODY <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(Markdown supported)</span>
+                            EMAIL BODY <span style={{ fontWeight: 400, color: '#94A3B8' }}>(Markdown supported)</span>
                         </label>
                         <textarea
                             value={body}
@@ -323,7 +323,7 @@ export default function AdminEmailPage() {
                                     title={`Inserts the recipient's ${mt.label} (e.g. "${mt.example}")`}
                                     style={{
                                         padding: '4px 10px', borderRadius: '6px', cursor: 'pointer',
-                                        backgroundColor: 'rgba(45,212,191,0.08)', color: '#2DD4BF',
+                                        backgroundColor: 'rgba(45,212,191,0.08)', color: '#0D9488',
                                         border: '1px solid rgba(45,212,191,0.2)', fontSize: '12px', fontWeight: 600,
                                         fontFamily: 'monospace',
                                     }}
@@ -368,7 +368,7 @@ export default function AdminEmailPage() {
                                         <option key={k} value={k}>{v}</option>
                                     ))}
                                 </select>
-                                <ChevronDown size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+                                <ChevronDown size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
                             </div>
 
                             {audience === 'custom' && (
@@ -382,22 +382,22 @@ export default function AdminEmailPage() {
                             )}
 
                             {/* Audience count */}
-                            <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '8px', backgroundColor: 'var(--bg-tertiary)' }}>
+                            <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#F8FAF9' }}>
                                 {loadingAudience ? (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', ...muted }}>
                                         <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Loading...
                                     </div>
                                 ) : audienceInfo ? (
                                     <>
-                                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#2DD4BF' }}>
+                                        <div style={{ fontSize: '22px', fontWeight: 800, color: '#0D9488' }}>
                                             {audienceInfo.count.toLocaleString()}
                                         </div>
                                         <div style={muted}>recipients</div>
                                         {audienceInfo.sample.length > 0 && (
-                                            <div style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                                            <div style={{ marginTop: '8px', borderTop: '1px solid #E8ECF0', paddingTop: '8px' }}>
                                                 <div style={{ ...muted, fontWeight: 600, marginBottom: '4px' }}>Sample:</div>
                                                 {audienceInfo.sample.map((s, i) => (
-                                                    <div key={i} style={{ fontSize: '11px', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <div key={i} style={{ fontSize: '11px', color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {s.firstName ? `${s.firstName} · ` : ''}{s.email}
                                                     </div>
                                                 ))}
@@ -442,12 +442,12 @@ export default function AdminEmailPage() {
                     onClick={() => setPreviewHtml(null)}
                 >
                     <div
-                        style={{ maxWidth: '640px', width: '100%', maxHeight: '90vh', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#0F1923', border: '1px solid var(--border-color)' }}
+                        style={{ maxWidth: '640px', width: '100%', maxHeight: '90vh', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#0F1923', border: '1px solid rgba(255,255,255,0.5)' }}
                         onClick={e => e.stopPropagation()}
                     >
-                        <div style={{ padding: '16px 20px', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ padding: '16px 20px', backgroundColor: '#FFFFFF', borderBottom: '1px solid #E8ECF0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ ...heading, fontSize: '14px' }}>📧 Email Preview</span>
-                            <button onClick={() => setPreviewHtml(null)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '18px' }}>✕</button>
+                            <button onClick={() => setPreviewHtml(null)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '18px' }}>✕</button>
                         </div>
                         <iframe
                             srcDoc={previewHtml}
@@ -471,8 +471,8 @@ export default function AdminEmailPage() {
                             <h3 style={{ ...heading, fontSize: '18px' }}>Confirm Send</h3>
                         </div>
                         <p style={{ ...sub, lineHeight: '1.6', marginBottom: '8px' }}>
-                            You are about to send <strong style={{ color: 'var(--text-primary)' }}>&quot;{subject}&quot;</strong> to{' '}
-                            <strong style={{ color: '#2DD4BF' }}>{audienceInfo?.count.toLocaleString() || 0}</strong> recipients.
+                            You are about to send <strong style={{ color: '#1A2E35' }}>&quot;{subject}&quot;</strong> to{' '}
+                            <strong style={{ color: '#0D9488' }}>{audienceInfo?.count.toLocaleString() || 0}</strong> recipients.
                         </p>
                         <p style={{ ...muted, marginBottom: '24px' }}>This action cannot be undone.</p>
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -488,7 +488,7 @@ export default function AdminEmailPage() {
             {/* ═══ HISTORY TAB ═══ */}
             {tab === 'history' && (
                 <div style={{ ...card, padding: 0 }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #E8ECF0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h2 style={{ ...heading, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <History size={18} style={{ color: '#3B82F6' }} /> Send History
                         </h2>
@@ -502,8 +502,8 @@ export default function AdminEmailPage() {
                                         <th key={h} style={{
                                             padding: '12px 16px', textAlign: h === 'Subject' || h === 'Audience' || h === 'Status' || h === 'Date' ? 'left' : 'right',
                                             fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
-                                            letterSpacing: '0.05em', color: 'var(--text-tertiary)',
-                                            backgroundColor: 'var(--bg-tertiary)',
+                                            letterSpacing: '0.05em', color: '#94A3B8',
+                                            backgroundColor: '#F8FAF9',
                                         }}>{h}</th>
                                     ))}
                                 </tr>
@@ -511,25 +511,25 @@ export default function AdminEmailPage() {
                             <tbody>
                                 {broadcasts.map(b => (
                                     <tr key={b.id}>
-                                        <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: 600, color: '#1A2E35', borderBottom: '1px solid #E8ECF0', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {b.subject}
                                         </td>
-                                        <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
+                                        <td style={{ padding: '14px 16px', fontSize: '12px', color: '#6B7F8A', borderBottom: '1px solid #E8ECF0', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
                                             {b.audience.replace('_', ' ')}
                                         </td>
-                                        <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                                        <td style={{ padding: '14px 16px', fontSize: '13px', color: '#6B7F8A', borderBottom: '1px solid #E8ECF0', textAlign: 'right' }}>
                                             {b.audienceCount.toLocaleString()}
                                         </td>
-                                        <td style={{ padding: '14px 16px', fontSize: '13px', color: '#22C55E', fontWeight: 600, borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                                        <td style={{ padding: '14px 16px', fontSize: '13px', color: '#22C55E', fontWeight: 600, borderBottom: '1px solid #E8ECF0', textAlign: 'right' }}>
                                             {b.sentCount.toLocaleString()}
                                         </td>
-                                        <td style={{ padding: '14px 16px', fontSize: '13px', color: b.failedCount > 0 ? '#EF4444' : 'var(--text-tertiary)', fontWeight: 600, borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                                        <td style={{ padding: '14px 16px', fontSize: '13px', color: b.failedCount > 0 ? '#EF4444' : '#94A3B8', fontWeight: 600, borderBottom: '1px solid #E8ECF0', textAlign: 'right' }}>
                                             {b.failedCount}
                                         </td>
-                                        <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <td style={{ padding: '14px 16px', borderBottom: '1px solid #E8ECF0' }}>
                                             {statusBadge(b.status)}
                                         </td>
-                                        <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+                                        <td style={{ padding: '14px 16px', fontSize: '12px', color: '#94A3B8', borderBottom: '1px solid #E8ECF0', whiteSpace: 'nowrap' }}>
                                             {new Date(b.sentAt || b.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                         </td>
                                     </tr>
@@ -552,11 +552,11 @@ export default function AdminEmailPage() {
                 <div>
                     {loadingTemplates ? (
                         <div style={{ textAlign: 'center', padding: '60px' }}>
-                            <Loader2 size={24} style={{ color: '#2DD4BF', animation: 'spin 1s linear infinite' }} />
+                            <Loader2 size={24} style={{ color: '#0D9488', animation: 'spin 1s linear infinite' }} />
                         </div>
                     ) : templates.length === 0 ? (
                         <div style={{ ...card, padding: '40px', textAlign: 'center' }}>
-                            <FileText size={32} style={{ color: 'var(--text-tertiary)', margin: '0 auto 12px' }} />
+                            <FileText size={32} style={{ color: '#94A3B8', margin: '0 auto 12px' }} />
                             <p style={sub}>No templates saved yet.</p>
                             <p style={muted}>Compose an email and save it as a template for reuse.</p>
                         </div>
@@ -575,7 +575,7 @@ export default function AdminEmailPage() {
                                             <Trash2 size={12} />
                                         </button>
                                     </div>
-                                    <div style={{ ...inputStyle, backgroundColor: 'var(--bg-tertiary)', marginBottom: '10px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    <div style={{ ...inputStyle, backgroundColor: '#F8FAF9', marginBottom: '10px', fontSize: '13px', fontWeight: 600, color: '#1A2E35' }}>
                                         {t.subject}
                                     </div>
                                     <div style={{ ...muted, marginBottom: '14px', maxHeight: '60px', overflow: 'hidden', lineHeight: '1.5' }}>
