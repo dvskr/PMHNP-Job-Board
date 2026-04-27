@@ -4,7 +4,37 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import {
+  inputStyle, inputWithRightIcon, labelStyle, eyeBtnStyle,
+  errorBannerStyle,
+} from '@/components/auth/authTokens'
+
+/* ─── Employer-specific accent (indigo) ─── */
+const employerCta = (loading: boolean): React.CSSProperties => ({
+  width: '100%',
+  padding: '13px 24px',
+  borderRadius: '14px',
+  border: 'none',
+  background: 'linear-gradient(145deg, #B45309, #92400E)',
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: '15px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  cursor: loading ? 'not-allowed' : 'pointer',
+  opacity: loading ? 0.6 : 1,
+  boxShadow: '0 4px 14px rgba(180,83,9,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+  transition: 'all 0.15s',
+});
+
+const employerLink: React.CSSProperties = {
+  fontWeight: 600,
+  color: '#B45309',
+  textDecoration: 'none',
+};
 
 export default function EmployerLoginForm() {
     const router = useRouter()
@@ -21,11 +51,7 @@ export default function EmployerLoginForm() {
 
         try {
             const supabase = createClient()
-
-            const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            })
+            const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
             if (signInError) {
                 setError(signInError.message)
@@ -44,143 +70,77 @@ export default function EmployerLoginForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Role Selection - Pill Toggle */}
-            <div className="flex rounded-lg p-1" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                <button
-                    type="button"
-                    onClick={() => router.push('/login')}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
-                    style={{ background: 'transparent', color: 'var(--text-tertiary)', boxShadow: 'none' }}
-                >
-                    <User className="w-4 h-4" />
-                    Job Seeker
-                </button>
-                <button
-                    type="button"
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--color-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
-                >
-                    <Building2 className="w-4 h-4" />
-                    Employer
-                </button>
-            </div>
-
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {error && (
-                <div
-                    className="rounded-lg p-3 flex items-start gap-3"
-                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-                >
+                <div style={errorBannerStyle}>
                     <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-500">{error}</p>
+                    <p style={{ fontSize: '14px', color: '#DC2626', margin: 0 }}>{error}</p>
                 </div>
             )}
 
             {/* Email */}
             <div>
-                <label htmlFor="employer-email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Work Email
-                </label>
+                <label htmlFor="employer-email" style={labelStyle}>Work Email</label>
                 <input
-                    id="employer-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                    className="block w-full px-4 py-3 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
-                    style={{
-                        background: 'var(--bg-tertiary)',
-                        color: 'var(--text-primary)',
-                        WebkitTextFillColor: 'var(--text-primary)',
-                        borderColor: 'var(--border-color-dark)',
-                    }}
-                    placeholder="hiring@company.com"
+                    id="employer-email" type="email" value={email}
+                    onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
+                    style={inputStyle} placeholder="hiring@company.com"
                 />
             </div>
 
             {/* Password */}
             <div>
-                <label htmlFor="employer-password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    Password
-                </label>
-                <div className="relative">
+                <label htmlFor="employer-password" style={labelStyle}>Password</label>
+                <div style={{ position: 'relative' }}>
                     <input
-                        id="employer-password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        autoComplete="current-password"
-                        className="block w-full px-4 py-3 pr-11 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
-                        style={{
-                            background: 'var(--bg-tertiary)',
-                            color: 'var(--text-primary)',
-                            WebkitTextFillColor: 'var(--text-primary)',
-                            borderColor: 'var(--border-color-dark)',
-                        }}
-                        placeholder="Enter your password"
+                        id="employer-password" type={showPassword ? "text" : "password"} value={password}
+                        onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password"
+                        style={inputWithRightIcon} placeholder="Enter your password"
                     />
-                    <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
-                        style={{ color: 'var(--text-tertiary)' }}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={eyeBtnStyle}
+                        aria-label={showPassword ? "Hide password" : "Show password"}>
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
 
             {/* Remember / Forgot */}
-            <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        className="w-4 h-4 rounded"
-                        style={{ accentColor: 'var(--color-primary)' }}
-                    />
-                    <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Remember me</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input type="checkbox" style={{ accentColor: '#B45309', width: '16px', height: '16px' }} />
+                    <span style={{ fontSize: '13px', color: '#4B5E68' }}>Remember me</span>
                 </label>
-                <Link
-                    href="/forgot-password"
-                    className="text-sm font-medium hover:underline"
-                    style={{ color: 'var(--color-primary)' }}
-                >
+                <Link href="/forgot-password" style={{ ...employerLink, fontSize: '13px' }}>
                     Forgot password?
                 </Link>
             </div>
 
-            {/* Submit */}
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                style={{ background: 'var(--color-primary)' }}
-            >
+            {/* Submit — indigo */}
+            <button type="submit" disabled={loading} style={employerCta(loading)}>
                 {loading ? (
-                    <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Signing in...
-                    </>
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Signing in...</>
                 ) : (
-                    <>
-                        Log In to Dashboard
-                        <ArrowRight className="w-4 h-4" />
-                    </>
+                    <>Log In to Dashboard <ArrowRight className="w-4 h-4" /></>
                 )}
             </button>
 
-            {/* Links */}
-            <div className="text-center space-y-1">
-                <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                    Don&apos;t have an account?{' '}
-                    <Link href="/signup?role=employer" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
-                        Sign up as Employer
-                    </Link>
-                </p>
+            {/* Sign up link */}
+            <p style={{ textAlign: 'center', fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
+                Don&apos;t have an account?{' '}
+                <Link href="/employer/signup" style={employerLink}>Create Employer Account</Link>
+            </p>
 
+            {/* Cross-link to job seeker */}
+            <div style={{
+                padding: '12px 16px', borderRadius: '12px',
+                background: '#F0FDF4', border: '1px solid #BBF7D0', textAlign: 'center',
+            }}>
+                <span style={{ fontSize: '13px', color: '#6B7F8A' }}>
+                    Looking for a job?{' '}
+                    <Link href="/login" style={{ fontWeight: 700, color: '#0D9488', textDecoration: 'none' }}>
+                        Job Seeker Sign In →
+                    </Link>
+                </span>
             </div>
         </form>
     )

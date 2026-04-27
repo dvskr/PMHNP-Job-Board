@@ -1,68 +1,133 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { User, Building2, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Bell, ArrowRight } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Bell, ArrowRight, User, Building2, Mail } from 'lucide-react'
 import { trackSignUp } from '@/lib/analytics'
-
-type UserRole = 'job_seeker' | 'employer'
-
 import GoogleSignInButton from './GoogleSignInButton'
+import {
+  inputStyle, inputWithRightIcon, inputWithLeftIcon, labelStyle, helperStyle,
+  eyeBtnStyle, errorBannerStyle, optInCardStyle, linkStyle,
+} from './authTokens'
+
+type Role = 'seeker' | 'employer';
 
 const FREE_EMAIL_DOMAINS = [
   'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
   'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
   'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
-]
+];
+
+/* ─── CTA per role ─── */
+const ctaStyle = (role: Role, loading: boolean): React.CSSProperties => ({
+  width: '100%',
+  padding: '13px 24px',
+  borderRadius: '14px',
+  border: 'none',
+  background: role === 'employer'
+    ? 'linear-gradient(145deg, #B45309, #92400E)'
+    : 'linear-gradient(145deg, #0D9488, #0F766E)',
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: '15px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  cursor: loading ? 'not-allowed' : 'pointer',
+  opacity: loading ? 0.6 : 1,
+  boxShadow: role === 'employer'
+    ? '0 4px 14px rgba(180,83,9,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+    : '0 4px 14px rgba(13,148,136,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+  transition: 'all 0.2s',
+});
 
 export default function SignUpForm() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [role, setRole] = useState<UserRole>('job_seeker')
-  const [company, setCompany] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [wantJobHighlights, setWantJobHighlights] = useState(true)
-  const [highlightsFrequency, setHighlightsFrequency] = useState<'daily' | 'weekly'>('daily')
-  const [newsletterOptIn, setNewsletterOptIn] = useState(true)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [role, setRole] = useState<Role>('seeker');
+
+  // Common fields
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  // Seeker-specific
+  const [wantJobHighlights, setWantJobHighlights] = useState(true);
+  const [highlightsFrequency, setHighlightsFrequency] = useState<'daily' | 'weekly'>('daily');
+  const [newsletterOptIn, setNewsletterOptIn] = useState(true);
+
+  // Employer-specific
+  const [company, setCompany] = useState('');
+
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'employer') setRole('employer');
+  }, [searchParams]);
+
+  const handleResendConfirmation = async () => {
+    if (resendCooldown > 0) return;
+    setResendStatus('sending');
+    try {
+      const res = await fetch('/api/auth/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) { setResendStatus('error'); }
+      else {
+        setResendStatus('sent');
+        setResendCooldown(60);
+        const timer = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) { clearInterval(timer); return 0; }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch { setResendStatus('error'); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
-      return
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
     }
-
     if (password.length < 8) {
-      setError('Password must be at least 8 characters')
-      setLoading(false)
-      return
+      setError('Password must be at least 8 characters');
+      setLoading(false);
+      return;
     }
 
+    // Employer: block free email
     if (role === 'employer') {
-      const emailDomain = email.toLowerCase().split('@')[1]
+      const emailDomain = email.toLowerCase().split('@')[1];
       if (emailDomain && FREE_EMAIL_DOMAINS.includes(emailDomain)) {
-        setError('Please use your company email to sign up as an employer. Free email providers are not accepted.')
-        setLoading(false)
-        return
+        setError('Please use your company email. Free email providers (Gmail, Yahoo, etc.) are not accepted for employer accounts.');
+        setLoading(false);
+        return;
       }
     }
 
     try {
-      const supabase = createClient()
+      const supabase = createClient();
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -72,16 +137,13 @@ export default function SignUpForm() {
           data: {
             first_name: firstName,
             last_name: lastName,
-            role: role,
+            role: role === 'employer' ? 'employer' : 'job_seeker',
             company: role === 'employer' ? company : null,
           },
         },
-      })
+      });
 
-      if (signUpError) {
-        setError(signUpError.message)
-        return
-      }
+      if (signUpError) { setError(signUpError.message); return; }
 
       if (data.user) {
         await fetch('/api/auth/profile', {
@@ -90,162 +152,140 @@ export default function SignUpForm() {
           body: JSON.stringify({
             supabaseId: data.user.id,
             email: data.user.email,
-            firstName,
-            lastName,
-            role,
+            firstName, lastName,
+            role: role === 'employer' ? 'employer' : 'job_seeker',
             company: role === 'employer' ? company : null,
-            wantJobHighlights: role === 'job_seeker' ? wantJobHighlights : false,
-            highlightsFrequency: role === 'job_seeker' ? highlightsFrequency : undefined,
+            wantJobHighlights: role === 'seeker' ? wantJobHighlights : false,
+            highlightsFrequency: role === 'seeker' ? highlightsFrequency : undefined,
             newsletterOptIn,
           }),
-        })
+        });
 
-        // Send welcome email (fire-and-forget, dedup prevents double sends)
         fetch('/api/auth/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: data.user.email }),
-        }).catch(() => {})
+        }).catch(() => {});
 
-        setSuccess(true)
-
-        // GA4 conversion event — sign_up
-        trackSignUp('email', role)
+        setSuccess(true);
+        trackSignUp('email', role === 'employer' ? 'employer' : 'job_seeker');
 
         if (data.session) {
-          router.refresh()
-          router.push('/dashboard')
+          router.refresh();
+          router.push(role === 'employer' ? '/employer/dashboard' : '/dashboard');
         }
       }
     } catch {
-      setError('An unexpected error occurred')
+      setError('An unexpected error occurred');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  // Shared input classes
-  const inputCls = "block w-full px-4 py-3 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
-  const inputSty: React.CSSProperties = {
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    WebkitTextFillColor: 'var(--text-primary)',
-    borderColor: 'var(--border-color-dark)',
-  }
+  const switchRole = (newRole: Role) => {
+    setRole(newRole);
+    setError(null);
+  };
 
-  const [resendCooldown, setResendCooldown] = useState(0)
-  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const accent = role === 'employer' ? '#B45309' : '#0D9488';
 
-  const handleResendConfirmation = async () => {
-    if (resendCooldown > 0) return
-    setResendStatus('sending')
-    try {
-      const res = await fetch('/api/auth/send-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      if (!res.ok) {
-        setResendStatus('error')
-      } else {
-        setResendStatus('sent')
-        setResendCooldown(60)
-        const timer = setInterval(() => {
-          setResendCooldown((prev) => {
-            if (prev <= 1) { clearInterval(timer); return 0 }
-            return prev - 1
-          })
-        }, 1000)
-      }
-    } catch {
-      setResendStatus('error')
-    }
-  }
-
+  // ─── SUCCESS STATE ───
   if (success) {
     return (
-      <div className="text-center space-y-4 py-4">
-        <div
-          className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-          style={{ background: 'rgba(16,185,129,0.1)' }}
-        >
-          <CheckCircle className="w-8 h-8 text-emerald-500" />
+      <>
+        <div style={{
+          background: '#FFFFFF', borderRadius: '20px', border: '1px solid #E2E8F0',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.04)', padding: '32px',
+          textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center',
+        }}>
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '16px',
+            background: role === 'employer' ? '#FEF3C7' : '#D1FAE5',
+            color: role === 'employer' ? '#B45309' : '#059669',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <CheckCircle className="w-7 h-7" />
+          </div>
+          <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: 0, fontFamily: 'var(--font-lora), Georgia, serif' }}>
+            Check your email
+          </h3>
+          <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
+            We&apos;ve sent a confirmation link to <strong>{email}</strong>
+          </p>
+          <p style={{ fontSize: '12px', color: '#94A3B0', margin: 0 }}>
+            Check spam/junk if you don&apos;t see it within a few minutes.
+          </p>
+          <div style={{ marginTop: '4px' }}>
+            {resendStatus === 'sent' && <p style={{ fontSize: '12px', color: '#059669' }}>✓ Confirmation email resent!</p>}
+            {resendStatus === 'error' && <p style={{ fontSize: '12px', color: '#DC2626' }}>Failed to resend.</p>}
+            <button type="button" onClick={handleResendConfirmation}
+              disabled={resendCooldown > 0 || resendStatus === 'sending'}
+              style={{ fontSize: '13px', fontWeight: 600, color: accent, background: 'none', border: 'none', cursor: 'pointer' }}>
+              {resendStatus === 'sending' ? 'Sending...' :
+               resendCooldown > 0 ? `Resend in ${resendCooldown}s` :
+               "Didn't receive it? Resend"}
+            </button>
+          </div>
+          <Link href="/login" style={{ ...linkStyle, fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '8px', color: accent }}>
+            Go to login <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-        <h3 className="font-heading text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Check your email</h3>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          We&apos;ve sent a confirmation link to <strong>{email}</strong>
-        </p>
-        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Check your spam/junk folder if you don&apos;t see it within a few minutes.
-        </p>
-
-        {/* Resend confirmation button */}
-        <div className="pt-2">
-          {resendStatus === 'sent' ? (
-            <p className="text-sm text-emerald-500">✓ Confirmation email resent!</p>
-          ) : resendStatus === 'error' ? (
-            <p className="text-sm text-red-500">Failed to resend. Please try again.</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleResendConfirmation}
-            disabled={resendCooldown > 0 || resendStatus === 'sending'}
-            className="text-sm font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            {resendStatus === 'sending' ? 'Sending...' :
-             resendCooldown > 0 ? `Resend in ${resendCooldown}s` :
-             'Didn\'t receive it? Resend confirmation email'}
-          </button>
-        </div>
-
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-1.5 mt-4 font-medium text-sm hover:underline"
-          style={{ color: 'var(--color-primary)' }}
-        >
-          Return to login
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-    )
+      </>
+    );
   }
 
+  // ─── MAIN FORM ───
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <div
-          className="rounded-lg p-3 flex items-start gap-3"
-          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-500">{error}</p>
-        </div>
-      )}
+    <>
+      {/* Heading */}
+      <h1 style={{
+        fontSize: '28px', fontWeight: 800, color: '#1A2E35',
+        fontFamily: 'var(--font-lora), Georgia, serif',
+        lineHeight: 1.25, letterSpacing: '-0.5px', margin: '0 0 6px',
+        textAlign: 'center',
+      }}>
+        Create your account
+      </h1>
+      <p style={{ fontSize: '14px', color: '#6B7F8A', marginBottom: '20px', textAlign: 'center' }}>
+        {role === 'employer'
+          ? 'Start posting jobs and hiring qualified PMHNPs'
+          : 'Join thousands of PMHNPs finding their perfect role'}
+      </p>
 
-      {/* Role Selection - Pill Toggle */}
-      <div className="flex rounded-lg p-1" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-        <button
-          type="button"
-          onClick={() => setRole('job_seeker')}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
+      {/* ═══ ROLE TOGGLE ═══ */}
+      <div style={{
+        display: 'flex',
+        background: '#F1F5F9',
+        borderRadius: '14px',
+        padding: '4px',
+        marginBottom: '20px',
+        border: '1px solid #E2E8F0',
+      }}>
+        <button type="button" onClick={() => switchRole('seeker')}
           style={{
-            background: role === 'job_seeker' ? 'var(--bg-secondary)' : 'transparent',
-            color: role === 'job_seeker' ? 'var(--color-primary)' : 'var(--text-tertiary)',
-            boxShadow: role === 'job_seeker' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '8px', padding: '11px 16px', fontSize: '14px',
+            fontWeight: role === 'seeker' ? 700 : 500,
+            borderRadius: '11px', border: 'none', cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: role === 'seeker' ? '#FFFFFF' : 'transparent',
+            color: role === 'seeker' ? '#0D9488' : '#94A3B0',
+            boxShadow: role === 'seeker' ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' : 'none',
           }}
         >
           <User className="w-4 h-4" />
           Job Seeker
         </button>
-        <button
-          type="button"
-          onClick={() => router.push('/employer/signup')}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
+        <button type="button" onClick={() => switchRole('employer')}
           style={{
-            background: role === 'employer' ? 'var(--bg-secondary)' : 'transparent',
-            color: role === 'employer' ? 'var(--color-primary)' : 'var(--text-tertiary)',
-            boxShadow: role === 'employer' ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '8px', padding: '11px 16px', fontSize: '14px',
+            fontWeight: role === 'employer' ? 700 : 500,
+            borderRadius: '11px', border: 'none', cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: role === 'employer' ? '#FFFFFF' : 'transparent',
+            color: role === 'employer' ? '#B45309' : '#94A3B0',
+            boxShadow: role === 'employer' ? '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)' : 'none',
           }}
         >
           <Building2 className="w-4 h-4" />
@@ -253,257 +293,181 @@ export default function SignUpForm() {
         </button>
       </div>
 
-      {/* Google Sign-In for Job Seekers */}
-      {role !== 'employer' && (
-        <>
-          <GoogleSignInButton mode="signup" />
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" style={{ borderColor: 'var(--border-color)' }} />
+      {/* ═══ FORM CARD ═══ */}
+      <div style={{
+        background: '#FFFFFF',
+        borderRadius: '20px',
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
+        padding: '24px',
+      }}>
+        {/* Google — seeker only */}
+        {role === 'seeker' && (
+          <>
+            <GoogleSignInButton mode="signup" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }}>
+              <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
+              <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
             </div>
-            <div className="relative flex justify-center">
-              <span
-                className="px-3 text-xs uppercase tracking-wider font-medium"
-                style={{ background: '#fff', color: 'var(--text-tertiary)' }}
-              >
-                or
-              </span>
+          </>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {error && (
+            <div style={errorBannerStyle}>
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{error}</p>
+            </div>
+          )}
+
+          {/* Name */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="signup-firstName" style={labelStyle}>First name</label>
+              <input id="signup-firstName" type="text" value={firstName}
+                onChange={(e) => setFirstName(e.target.value)} required autoComplete="given-name"
+                style={inputStyle} placeholder="Jane" />
+            </div>
+            <div>
+              <label htmlFor="signup-lastName" style={labelStyle}>Last name</label>
+              <input id="signup-lastName" type="text" value={lastName}
+                onChange={(e) => setLastName(e.target.value)} required autoComplete="family-name"
+                style={inputStyle} placeholder="Doe" />
             </div>
           </div>
-        </>
-      )}
 
-      {/* Name Fields */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="signup-firstName" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            First name
-          </label>
-          <input
-            id="signup-firstName"
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-            autoComplete="given-name"
-            className={inputCls}
-            style={inputSty}
-            placeholder="Jane"
-          />
-        </div>
-        <div>
-          <label htmlFor="signup-lastName" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            Last name
-          </label>
-          <input
-            id="signup-lastName"
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-            autoComplete="family-name"
-            className={inputCls}
-            style={inputSty}
-            placeholder="Doe"
-          />
-        </div>
-      </div>
+          {/* Company — employer only */}
+          {role === 'employer' && (
+            <div>
+              <label htmlFor="signup-company" style={labelStyle}>Company name</label>
+              <div style={{ position: 'relative' }}>
+                <Building2 className="w-4 h-4" style={{
+                  position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                  color: '#94A3B0', pointerEvents: 'none',
+                }} />
+                <input id="signup-company" type="text" value={company}
+                  onChange={(e) => setCompany(e.target.value)} required
+                  style={inputWithLeftIcon} placeholder="Your company" />
+              </div>
+            </div>
+          )}
 
-      {/* Company Field (employers only) */}
-      {role === 'employer' && (
-        <div>
-          <label htmlFor="signup-company" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            Company name
-          </label>
-          <input
-            id="signup-company"
-            type="text"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            required
-            autoComplete="organization"
-            className={inputCls}
-            style={inputSty}
-            placeholder="Your company"
-          />
-        </div>
-      )}
-
-      {/* Email */}
-      <div>
-        <label htmlFor="signup-email" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-          Email address
-        </label>
-        <input
-          id="signup-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          className={inputCls}
-          style={inputSty}
-          placeholder="you@example.com"
-        />
-        {role === 'employer' && (
-          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-            Please use your professional or company email address.
-          </p>
-        )}
-      </div>
-
-      {/* Password */}
-      <div>
-        <label htmlFor="signup-password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-          Password
-        </label>
-        <div className="relative">
-          <input
-            id="signup-password"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="new-password"
-            className={`${inputCls} pr-11`}
-            style={inputSty}
-            placeholder="Minimum 8 characters"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
-            style={{ color: 'var(--text-tertiary)' }}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Confirm Password */}
-      <div>
-        <label htmlFor="signup-confirmPassword" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-          Confirm password
-        </label>
-        <div className="relative">
-          <input
-            id="signup-confirmPassword"
-            type={showConfirmPassword ? "text" : "password"}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            className={`${inputCls} pr-11`}
-            style={inputSty}
-            placeholder="Re-enter your password"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
-            style={{ color: 'var(--text-tertiary)' }}
-            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-          >
-            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Job Highlights Opt-in (Job Seekers only) */}
-      {role === 'job_seeker' && (
-        <div
-          className="rounded-lg p-3"
-          style={{ background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.15)' }}
-        >
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={wantJobHighlights}
-              onChange={(e) => setWantJobHighlights(e.target.checked)}
-              className="w-4 h-4 rounded"
-              style={{ accentColor: 'var(--color-primary)' }}
-            />
-            <Bell className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
-            <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Email me job highlights</span>
-            {wantJobHighlights && (
-              <span className="ml-auto flex items-center gap-3">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="radio" name="highlightsFrequency" value="daily" checked={highlightsFrequency === 'daily'} onChange={() => setHighlightsFrequency('daily')} className="w-3.5 h-3.5" style={{ accentColor: 'var(--color-primary)' }} />
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Daily</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="radio" name="highlightsFrequency" value="weekly" checked={highlightsFrequency === 'weekly'} onChange={() => setHighlightsFrequency('weekly')} className="w-3.5 h-3.5" style={{ accentColor: 'var(--color-primary)' }} />
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Weekly</span>
-                </label>
-              </span>
+          {/* Email */}
+          <div>
+            <label htmlFor="signup-email" style={labelStyle}>
+              {role === 'employer' ? 'Work Email' : 'Email address'}
+            </label>
+            {role === 'employer' ? (
+              <div style={{ position: 'relative' }}>
+                <Mail className="w-4 h-4" style={{
+                  position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                  color: '#94A3B0', pointerEvents: 'none',
+                }} />
+                <input id="signup-email" type="email" value={email}
+                  onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
+                  style={inputWithLeftIcon} placeholder="hiring@company.com" />
+              </div>
+            ) : (
+              <input id="signup-email" type="email" value={email}
+                onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
+                style={inputStyle} placeholder="you@example.com" />
             )}
-          </label>
+            {role === 'employer' && (
+              <p style={helperStyle}>Please use your professional or company email.</p>
+            )}
+          </div>
 
-          <label className="flex items-center gap-2.5 cursor-pointer mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(13,148,136,0.12)' }}>
-            <input
-              type="checkbox"
-              checked={newsletterOptIn}
-              onChange={(e) => setNewsletterOptIn(e.target.checked)}
-              className="w-4 h-4 rounded"
-              style={{ accentColor: 'var(--color-primary)' }}
-            />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Send me career tips, salary insights & market updates
-            </span>
-          </label>
-        </div>
-      )}
+          {/* Password */}
+          <div>
+            <label htmlFor="signup-password" style={labelStyle}>Password</label>
+            <div style={{ position: 'relative' }}>
+              <input id="signup-password" type={showPassword ? 'text' : 'password'} value={password}
+                onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password"
+                style={inputWithRightIcon} placeholder="Minimum 8 characters" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={eyeBtnStyle}
+                aria-label={showPassword ? 'Hide' : 'Show'}>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
 
-      {/* Newsletter Opt-in (Employers) */}
-      {role === 'employer' && (
-        <div
-          className="rounded-lg p-4"
-          style={{ background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.15)' }}
-        >
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={newsletterOptIn}
-              onChange={(e) => setNewsletterOptIn(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded"
-              style={{ accentColor: 'var(--color-primary)' }}
-            />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Send me hiring tips, market insights &amp; platform updates
-            </span>
-          </label>
-        </div>
-      )}
+          {/* Confirm Password */}
+          <div>
+            <label htmlFor="signup-confirmPassword" style={labelStyle}>Confirm password</label>
+            <div style={{ position: 'relative' }}>
+              <input id="signup-confirmPassword" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"
+                style={inputWithRightIcon} placeholder="Re-enter your password" />
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={eyeBtnStyle}
+                aria-label={showConfirmPassword ? 'Hide' : 'Show'}>
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-        style={{ background: 'var(--color-primary)' }}
-      >
-        {loading ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Creating account...
-          </>
-        ) : (
-          <>
-            Create account
-            <ArrowRight className="w-4 h-4" />
-          </>
-        )}
-      </button>
+          {/* Opt-in — different per role */}
+          {role === 'seeker' ? (
+            <div style={optInCardStyle}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={wantJobHighlights} onChange={(e) => setWantJobHighlights(e.target.checked)}
+                  style={{ accentColor: '#0D9488', width: '15px', height: '15px', flexShrink: 0 }} />
+                <Bell className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#0D9488' }} />
+                <span style={{ fontWeight: 600, fontSize: '13px', color: '#1A2E35' }}>Email me job highlights</span>
+                {wantJobHighlights && (
+                  <span style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input type="radio" name="freq" value="daily" checked={highlightsFrequency === 'daily'}
+                        onChange={() => setHighlightsFrequency('daily')} style={{ accentColor: '#0D9488' }} />
+                      <span style={{ fontSize: '12px', color: '#4B5E68' }}>Daily</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input type="radio" name="freq" value="weekly" checked={highlightsFrequency === 'weekly'}
+                        onChange={() => setHighlightsFrequency('weekly')} style={{ accentColor: '#0D9488' }} />
+                      <span style={{ fontSize: '12px', color: '#4B5E68' }}>Weekly</span>
+                    </label>
+                  </span>
+                )}
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #D1E7DD' }}>
+                <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                  style={{ accentColor: '#0D9488', width: '15px', height: '15px', flexShrink: 0 }} />
+                <span style={{ fontSize: '13px', color: '#4B5E68' }}>
+                  Send me career tips, salary insights &amp; market updates
+                </span>
+              </label>
+            </div>
+          ) : (
+            <div style={{ ...optInCardStyle, background: '#FFFBEB', borderColor: '#FCD34D' }}>
+              <label style={{ display: 'flex', alignItems: 'start', gap: '10px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                  style={{ accentColor: '#B45309', width: '15px', height: '15px', marginTop: '2px', flexShrink: 0 }} />
+                <span style={{ fontSize: '13px', color: '#4B5E68' }}>
+                  Send me hiring tips, salary benchmarks &amp; PMHNP market insights
+                </span>
+              </label>
+            </div>
+          )}
 
-      {/* Sign in link */}
-      <p className="text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-        Already have an account?{' '}
-        <Link href="/login" className="font-medium hover:underline" style={{ color: 'var(--color-primary)' }}>
-          Sign in
-        </Link>
-      </p>
-    </form>
-  )
+          {/* Submit */}
+          <button type="submit" disabled={loading} style={ctaStyle(role, loading)}>
+            {loading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Creating account...</>
+            ) : (
+              <>{role === 'employer' ? 'Create Employer Account' : 'Create account'} <ArrowRight className="w-4 h-4" /></>
+            )}
+          </button>
+        </form>
+
+        {/* Login link */}
+        <p style={{ textAlign: 'center', fontSize: '13px', color: '#6B7F8A', marginTop: '14px', marginBottom: 0 }}>
+          Already have an account?{' '}
+          <Link href={role === 'employer' ? '/login?role=employer' : '/login'}
+            style={{ fontWeight: 700, color: accent, textDecoration: 'none' }}>
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </>
+  );
 }

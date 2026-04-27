@@ -5,8 +5,8 @@ import AuthLayout from '@/components/auth/AuthLayout'
 import { Suspense } from 'react'
 
 export const metadata = {
-  title: 'Sign In',
-  description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications. Access your personalized dashboard.',
+  title: 'Sign In | PMHNP Hiring',
+  description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications.',
 }
 
 export default async function LoginPage({
@@ -17,14 +17,20 @@ export default async function LoginPage({
   const currentUser = await getCurrentUser()
   const params = await searchParams
   const redirectTo = params.redirectTo || '/dashboard'
-  // Only allow relative redirects to prevent open redirect attacks
   const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
   if (currentUser) {
     redirect(safeRedirect)
   }
 
   return (
-    <AuthLayout variant="login">
+    <AuthLayout
+      illustration="/illustrations/auth-login.png"
+      testimonial={{
+        quote: '"I found my dream remote PMHNP position in less than a week. The job matching was incredibly accurate."',
+        name: 'Sarah M., PMHNP-BC',
+        title: 'Austin, TX',
+      }}
+    >
       <Suspense
         fallback={
           <div className="space-y-4">

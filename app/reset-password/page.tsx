@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import AuthLayout from '@/components/auth/AuthLayout'
+import { inputWithRightIcon, labelStyle, eyeBtnStyle, errorBannerStyle, ctaButtonStyle } from '@/components/auth/authTokens'
 
 function ResetPasswordContent() {
   const router = useRouter()
@@ -22,10 +23,8 @@ function ResetPasswordContent() {
   useEffect(() => {
     const errorCode = searchParams.get('error_code')
     const errorDescription = searchParams.get('error_description')
-
     if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
       setLinkExpired(true)
-      setError('This password reset link has expired. Please request a new one.')
     } else if (errorCode) {
       setError('Invalid or expired reset link. Please request a new one.')
     }
@@ -35,36 +34,15 @@ function ResetPasswordContent() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
-      return
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters')
-      setLoading(false)
-      return
-    }
+    if (password !== confirmPassword) { setError('Passwords do not match'); setLoading(false); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); setLoading(false); return; }
 
     try {
       const supabase = createClient()
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-      })
-
-      if (updateError) {
-        setError(updateError.message)
-        return
-      }
-
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) { setError(updateError.message); return; }
       setSuccess(true)
-
-      setTimeout(() => {
-        router.push('/login')
-      }, 3000)
+      setTimeout(() => { router.push('/login') }, 3000)
     } catch {
       setError('An unexpected error occurred')
     } finally {
@@ -72,171 +50,97 @@ function ResetPasswordContent() {
     }
   }
 
-  const inputCls = "block w-full px-4 py-3 pr-11 rounded-lg text-sm border outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
-  const inputSty = {
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-    borderColor: 'var(--border-color-dark)',
-  }
+  const renderCard = (children: React.ReactNode) => (
+    <div style={{
+      background: '#FFFFFF', borderRadius: '20px', border: '1px solid #E2E8F0',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.04)', padding: '24px',
+    }}>
+      {children}
+    </div>
+  );
 
   return (
-    <AuthLayout variant="reset">
-      {linkExpired ? (
-        <div className="text-center space-y-4 py-4">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-            style={{ background: 'rgba(239,68,68,0.1)' }}
-          >
-            <AlertCircle className="w-8 h-8 text-red-500" />
-          </div>
-          <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Link Expired</h3>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            This password reset link has expired or has already been used.
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            For security reasons, reset links are only valid for 1 hour.
-          </p>
-          <Link
-            href="/forgot-password"
-            className="inline-block mt-4 px-6 py-2.5 rounded-lg font-medium text-white hover:opacity-90 transition-all"
-            style={{ background: 'var(--color-primary)' }}
-          >
-            Request New Reset Link
-          </Link>
-          <Link
-            href="/login"
-            className="block text-sm font-medium hover:underline"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
-            Return to login
-          </Link>
-        </div>
-      ) : success ? (
-        <div className="text-center space-y-4 py-4">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-            style={{ background: 'rgba(16,185,129,0.1)' }}
-          >
-            <CheckCircle className="w-8 h-8 text-emerald-500" />
-          </div>
-          <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Password updated!</h3>
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Redirecting you to login...
-          </p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div
-              className="rounded-lg p-3 flex items-start gap-3"
-              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-            >
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-500">{error}</p>
+    <AuthLayout illustration="/illustrations/auth-forgot.png">
+      <h1 style={{
+        fontSize: '28px', fontWeight: 800, color: '#1A2E35',
+        fontFamily: 'var(--font-lora), Georgia, serif',
+        margin: '0 0 6px', letterSpacing: '-0.5px', textAlign: 'center',
+      }}>
+        {linkExpired ? 'Link Expired' : success ? 'Password Updated' : 'Set new password'}
+      </h1>
+      <p style={{ fontSize: '14px', color: '#6B7F8A', marginBottom: '20px', textAlign: 'center' }}>
+        {linkExpired ? 'This link is no longer valid' : success ? 'Redirecting to login...' : 'Choose a strong password'}
+      </p>
+
+      {renderCard(
+        linkExpired ? (
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', padding: '8px 0' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle className="w-7 h-7" />
             </div>
-          )}
-
-          <div className="text-center mb-2">
-            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-lora), Georgia, serif' }}>
-              Set new password
-            </h2>
+            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>Reset links expire after 1 hour for security.</p>
+            <Link href="/forgot-password" style={{ ...ctaButtonStyle(false), width: 'auto', display: 'inline-flex', marginTop: '4px', textDecoration: 'none' }}>
+              Request New Link
+            </Link>
+            <Link href="/login" style={{ fontSize: '13px', color: '#6B7F8A', textDecoration: 'none' }}>Return to login</Link>
           </div>
-
-          <div>
-            <label htmlFor="reset-password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              New password
-            </label>
-            <div className="relative">
-              <input
-                id="reset-password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className={inputCls}
-                style={inputSty}
-                placeholder="Minimum 8 characters"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
-                style={{ color: 'var(--text-tertiary)' }}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+        ) : success ? (
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', padding: '8px 0' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#D1FAE5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle className="w-7 h-7" />
             </div>
+            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0 }}>Your password has been updated. Redirecting...</p>
           </div>
-
-          <div>
-            <label htmlFor="reset-confirmPassword" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              Confirm new password
-            </label>
-            <div className="relative">
-              <input
-                id="reset-confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-                className={inputCls}
-                style={inputSty}
-                placeholder="Re-enter your password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5"
-                style={{ color: 'var(--text-tertiary)' }}
-                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-            style={{ background: 'var(--color-primary)' }}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              <>
-                Update password
-                <ArrowRight className="w-4 h-4" />
-              </>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {error && (
+              <div style={errorBannerStyle}>
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p style={{ fontSize: '13px', color: '#DC2626', margin: 0 }}>{error}</p>
+              </div>
             )}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="reset-password" style={labelStyle}>New password</label>
+              <div style={{ position: 'relative' }}>
+                <input id="reset-password" type={showPassword ? 'text' : 'password'} value={password}
+                  onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password"
+                  style={inputWithRightIcon} placeholder="Minimum 8 characters" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={eyeBtnStyle}>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="reset-confirm" style={labelStyle}>Confirm new password</label>
+              <div style={{ position: 'relative' }}>
+                <input id="reset-confirm" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password"
+                  style={inputWithRightIcon} placeholder="Re-enter your password" />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={eyeBtnStyle}>
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <button type="submit" disabled={loading} style={ctaButtonStyle(loading)}>
+              {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Updating...</> : <>Update password <ArrowRight className="w-4 h-4" /></>}
+            </button>
+          </form>
+        )
       )}
-    </AuthLayout>
-  )
-}
-
-function LoadingFallback() {
-  return (
-    <AuthLayout variant="reset">
-      <div className="text-center py-8">
-        <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3" style={{ color: 'var(--color-primary)' }} />
-        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Loading...</p>
-      </div>
     </AuthLayout>
   )
 }
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense fallback={
+      <AuthLayout>
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          <Loader2 className="w-10 h-10 animate-spin" style={{ color: '#0D9488', margin: '0 auto 12px' }} />
+          <p style={{ fontSize: '14px', color: '#94A3B0' }}>Loading...</p>
+        </div>
+      </AuthLayout>
+    }>
       <ResetPasswordContent />
     </Suspense>
   )

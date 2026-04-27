@@ -4,13 +4,44 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Lock, Building2, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, User } from 'lucide-react'
+import { Building2, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, ArrowRight, Mail } from 'lucide-react'
+import {
+  inputStyle, inputWithRightIcon, inputWithLeftIcon, inputWithBothIcons,
+  labelStyle, helperStyle, leftIconStyle, eyeBtnStyle,
+  errorBannerStyle, optInCardStyle, linkStyle,
+} from '@/components/auth/authTokens'
 
 const FREE_EMAIL_DOMAINS = [
     'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
     'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
     'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
 ]
+
+/* ─── Employer-specific accent (indigo) ─── */
+const employerCta = (loading: boolean): React.CSSProperties => ({
+  width: '100%',
+  padding: '13px 24px',
+  borderRadius: '14px',
+  border: 'none',
+  background: 'linear-gradient(145deg, #B45309, #92400E)',
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: '15px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  cursor: loading ? 'not-allowed' : 'pointer',
+  opacity: loading ? 0.6 : 1,
+  boxShadow: '0 4px 14px rgba(180,83,9,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+  transition: 'all 0.15s',
+});
+
+const employerLink: React.CSSProperties = {
+  fontWeight: 600,
+  color: '#B45309',
+  textDecoration: 'none',
+};
 
 export default function EmployerSignUpForm() {
     const router = useRouter()
@@ -44,7 +75,6 @@ export default function EmployerSignUpForm() {
             return
         }
 
-        // Strict Employer Email Validation
         const emailDomain = email.toLowerCase().split('@')[1]
         if (emailDomain && FREE_EMAIL_DOMAINS.includes(emailDomain)) {
             setError('Please use your company email to sign up. Free email providers (Gmail, Yahoo, etc.) are not accepted for employer accounts.')
@@ -75,7 +105,6 @@ export default function EmployerSignUpForm() {
             }
 
             if (data.user) {
-                // Create profile in our database
                 await fetch('/api/auth/profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -91,7 +120,6 @@ export default function EmployerSignUpForm() {
                     }),
                 })
 
-                // Send welcome email (fire-and-forget, dedup prevents double sends)
                 fetch('/api/auth/welcome', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -100,7 +128,6 @@ export default function EmployerSignUpForm() {
 
                 setSuccess(true)
 
-                // If email confirmation is disabled/auto-confirmed, redirect to dashboard
                 if (data.session) {
                     router.refresh()
                     router.push('/employer/dashboard')
@@ -115,226 +142,141 @@ export default function EmployerSignUpForm() {
 
     if (success) {
         return (
-            <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+            <div style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                <div style={{
+                    width: '56px', height: '56px', borderRadius: '16px',
+                    background: '#FEF3C7', color: '#B45309',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <CheckCircle className="w-7 h-7" />
                 </div>
-                <h3 className="font-heading text-xl font-semibold text-gray-900">Account Created!</h3>
-                <p className="text-gray-600">
+                <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: 0, fontFamily: 'var(--font-lora), Georgia, serif' }}>
+                    Account Created!
+                </h3>
+                <p style={{ fontSize: '14px', color: '#6B7F8A', margin: 0, lineHeight: 1.5 }}>
                     We&apos;ve sent a confirmation link to <strong>{email}</strong>.
-                    <br />
-                    Please check your email to activate your employer account.
+                    <br />Please check your email to activate your employer account.
                 </p>
-                <Link
-                    href="/employer/login"
-                    className="inline-block mt-4 text-teal-600 hover:text-teal-700 font-medium"
-                >
-                    Go to Employer Login
+                <Link href="/employer/login" style={{ ...employerLink, fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
+                    Go to Employer Login <ArrowRight className="w-4 h-4" />
                 </Link>
             </div>
         )
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Role Selection - Pill Toggle */}
-            <div className="flex rounded-lg p-1" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                <button
-                    type="button"
-                    onClick={() => router.push('/signup')}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
-                    style={{ background: 'transparent', color: 'var(--text-tertiary)', boxShadow: 'none' }}
-                >
-                    <User className="w-4 h-4" />
-                    Job Seeker
-                </button>
-                <button
-                    type="button"
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-all"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--color-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
-                >
-                    <Building2 className="w-4 h-4" />
-                    Employer
-                </button>
-            </div>
-
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-600">{error}</p>
+                <div style={errorBannerStyle}>
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <p style={{ fontSize: '14px', color: '#DC2626', margin: 0 }}>{error}</p>
                 </div>
             )}
 
             {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                        First name
-                    </label>
-                    <input
-                        id="firstName"
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
+                    <label htmlFor="emp-firstName" style={labelStyle}>First name</label>
+                    <input id="emp-firstName" type="text" value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)} required
+                        style={inputStyle} placeholder="Jane" />
                 </div>
                 <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                        Last name
-                    </label>
-                    <input
-                        id="lastName"
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    />
+                    <label htmlFor="emp-lastName" style={labelStyle}>Last name</label>
+                    <input id="emp-lastName" type="text" value={lastName}
+                        onChange={(e) => setLastName(e.target.value)} required
+                        style={inputStyle} placeholder="Doe" />
                 </div>
             </div>
 
-            {/* Company Field */}
+            {/* Company */}
             <div>
-                <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">
-                    Company name
-                </label>
-                <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        id="company"
-                        type="text"
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                        placeholder="Your company"
-                    />
+                <label htmlFor="emp-company" style={labelStyle}>Company name</label>
+                <div style={{ position: 'relative' }}>
+                    <Building2 className="w-4 h-4" style={leftIconStyle} />
+                    <input id="emp-company" type="text" value={company}
+                        onChange={(e) => setCompany(e.target.value)} required
+                        style={inputWithLeftIcon} placeholder="Your company" />
                 </div>
             </div>
 
             {/* Email */}
             <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Work Email
-                </label>
-                <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                        placeholder="hiring@company.com"
-                    />
+                <label htmlFor="emp-email" style={labelStyle}>Work Email</label>
+                <div style={{ position: 'relative' }}>
+                    <Mail className="w-4 h-4" style={leftIconStyle} />
+                    <input id="emp-email" type="email" value={email}
+                        onChange={(e) => setEmail(e.target.value)} required
+                        style={inputWithLeftIcon} placeholder="hiring@company.com" />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Please use your professional or company email address.</p>
+                <p style={helperStyle}>Please use your professional or company email address.</p>
             </div>
 
             {/* Password */}
             <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                </label>
-                <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        minLength={8}
-                        className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                        placeholder="••••••••"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                        {showPassword ? (
-                            <EyeOff className="w-5 h-5" />
-                        ) : (
-                            <Eye className="w-5 h-5" />
-                        )}
+                <label htmlFor="emp-password" style={labelStyle}>Password</label>
+                <div style={{ position: 'relative' }}>
+                    <input id="emp-password" type={showPassword ? "text" : "password"} value={password}
+                        onChange={(e) => setPassword(e.target.value)} required minLength={8}
+                        style={inputWithRightIcon} placeholder="Minimum 8 characters" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={eyeBtnStyle}
+                        aria-label={showPassword ? "Hide password" : "Show password"}>
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
             </div>
 
             {/* Confirm Password */}
             <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm password
-                </label>
-                <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                        className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                        placeholder="••••••••"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    >
-                        {showConfirmPassword ? (
-                            <EyeOff className="w-5 h-5" />
-                        ) : (
-                            <Eye className="w-5 h-5" />
-                        )}
+                <label htmlFor="emp-confirmPassword" style={labelStyle}>Confirm password</label>
+                <div style={{ position: 'relative' }}>
+                    <input id="emp-confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)} required
+                        style={inputWithRightIcon} placeholder="Re-enter your password" />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={eyeBtnStyle}
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}>
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                 </div>
             </div>
 
             {/* Newsletter Opt-in */}
-            <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                    type="checkbox"
-                    checked={newsletterOptIn}
-                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded"
-                    style={{ accentColor: '#0D9488' }}
-                />
-                <span className="text-sm text-gray-600">
-                    Send me hiring tips, salary benchmarks & PMHNP market insights
-                </span>
-            </label>
+            <div style={{ ...optInCardStyle, background: '#FFFBEB', borderColor: '#FCD34D' }}>
+                <label style={{ display: 'flex', alignItems: 'start', gap: '10px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                        style={{ accentColor: '#B45309', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', color: '#4B5E68' }}>
+                        Send me hiring tips, salary benchmarks &amp; PMHNP market insights
+                    </span>
+                </label>
+            </div>
 
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-teal-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
+            {/* Submit — indigo */}
+            <button type="submit" disabled={loading} style={employerCta(loading)}>
                 {loading ? (
-                    <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Creating account...
-                    </>
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Creating account...</>
                 ) : (
-                    'Create Employer Account'
+                    <>Create Employer Account <ArrowRight className="w-4 h-4" /></>
                 )}
             </button>
 
-            <div className="text-center space-y-2">
-                <p className="text-sm text-gray-600">
-                    Already have an account?{' '}
-                    <Link href="/employer/login" className="text-teal-600 hover:text-teal-700 font-medium">
-                        Log In
-                    </Link>
-                </p>
+            {/* Sign in link */}
+            <p style={{ textAlign: 'center', fontSize: '14px', color: '#6B7F8A', margin: 0 }}>
+                Already have an account?{' '}
+                <Link href="/employer/login" style={employerLink}>Log In</Link>
+            </p>
 
+            {/* Cross-link to job seeker */}
+            <div style={{
+                padding: '12px 16px', borderRadius: '12px',
+                background: '#F0FDF4', border: '1px solid #BBF7D0', textAlign: 'center',
+            }}>
+                <span style={{ fontSize: '13px', color: '#6B7F8A' }}>
+                    Looking for a job?{' '}
+                    <Link href="/signup" style={{ fontWeight: 700, color: '#0D9488', textDecoration: 'none' }}>
+                        Create Job Seeker Account →
+                    </Link>
+                </span>
             </div>
         </form>
     )

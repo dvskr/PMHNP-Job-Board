@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { googleBtnStyle } from './authTokens'
 
 interface GoogleSignInButtonProps {
   mode: 'login' | 'signup'
@@ -38,11 +39,10 @@ export default function GoogleSignInButton({
       type="button"
       onClick={handleGoogleSignIn}
       disabled={loading}
-      className="w-full rounded-xl px-4 py-3 flex items-center justify-center gap-3 font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border hover:shadow-md active:scale-[0.98]"
       style={{
-        background: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        borderColor: 'var(--border-color)',
+        ...googleBtnStyle,
+        opacity: loading ? 0.6 : 1,
+        cursor: loading ? 'not-allowed' : 'pointer',
       }}
     >
       {loading ? (
