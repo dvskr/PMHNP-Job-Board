@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+
 import { BookOpen } from 'lucide-react';
 
 interface BlogPost {
@@ -43,21 +43,7 @@ export default function RelatedBlogPosts({
             boxShadow: clayShadow,
             overflow: 'hidden',
         }}>
-            {/* Vector illustration — edge-to-edge, sage mood */}
-            <div style={{
-                position: 'relative',
-                width: '100%',
-                height: '140px',
-                backgroundColor: '#E8F5E9',
-                overflow: 'hidden',
-            }}>
-                <Image
-                    src="/illustrations/vector-resources-v3.png"
-                    alt="Career Resources"
-                    fill
-                    style={{ objectFit: 'cover' }}
-                />
-            </div>
+
 
             {/* Content */}
             <div style={{ padding: '18px 20px 20px' }}>

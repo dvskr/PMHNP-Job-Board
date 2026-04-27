@@ -630,7 +630,7 @@ export default function DashboardContent() {
     ]
 
     return (
-        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 16px 80px' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 16px 80px' }}>
         <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 320px',
@@ -642,29 +642,22 @@ export default function DashboardContent() {
         <div>
 
             {/* ═══ Styled Greeting ═══ */}
-            <div style={{ marginBottom: '28px' }}>
-                <p style={{
-                    fontSize: '15px', color: '#0D9488', margin: '0 0 6px',
-                    fontWeight: 600, letterSpacing: '0.02em',
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                }}>
-                    <span style={{ fontSize: '20px' }}>👋</span>
-                    {new Date().getHours() < 12 ? 'Good morning,' : new Date().getHours() < 17 ? 'Good afternoon,' : 'Good evening,'}
-                </p>
+            <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
                 <h1 style={{
-                    fontSize: '36px', fontWeight: 800,
+                    fontSize: '24px', fontWeight: 800,
                     fontFamily: 'var(--font-lora), Georgia, serif',
                     color: '#1A2E35',
-                    margin: '0 0 8px',
+                    margin: 0,
                     letterSpacing: '-0.01em',
+                    display: 'flex', alignItems: 'center', gap: '8px',
                 }}>
-                    {profile.firstName || 'there'}
+                    <span style={{ fontSize: '22px' }}>👋</span>
+                    {new Date().getHours() < 12 ? 'Good morning,' : new Date().getHours() < 17 ? 'Good afternoon,' : 'Good evening,'} {profile.firstName || 'there'}
                 </h1>
                 <p style={{
-                    fontSize: '15px', color: '#8A9BA6', margin: 0,
-                    lineHeight: 1.5,
+                    fontSize: '14px', color: '#8A9BA6', margin: 0,
                 }}>
-                    Here&apos;s what&apos;s happening with your job search.
+                    — Here&apos;s what&apos;s happening with your job search.
                 </p>
             </div>
 
@@ -1188,23 +1181,7 @@ export default function DashboardContent() {
             <aside style={{ position: 'sticky', top: '100px', display: 'flex', flexDirection: 'column', gap: '16px' }} className="dashboard-right-panel">
 
 
-                {/* ── Star Rating ── */}
-                <div style={{
-                    ...cardBase,
-                    padding: '0',
-                    overflow: 'hidden',
-                }}>
-                    <img
-                        src="/illustrations/vector-feedback-v4.png"
-                        alt="Share your feedback"
-                        style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
-                    <div style={{ padding: '16px 18px' }}>
-                        <FeedbackRatingCard />
-                    </div>
-                </div>
-
-                {/* ── Share Your Story ── */}
+                {/* ── Rate + Share Your Story (combined) ── */}
                 <div style={{
                     ...cardBase,
                     padding: '0',
@@ -1216,6 +1193,8 @@ export default function DashboardContent() {
                         style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
                     <div style={{ padding: '16px 18px' }}>
+                        <FeedbackRatingCard />
+                        <div style={{ borderTop: '1px solid #E0EDE6', margin: '14px 0' }} />
                         <TestimonialCard firstName={profile.firstName} />
                     </div>
                 </div>
@@ -1226,11 +1205,6 @@ export default function DashboardContent() {
                     padding: '0',
                     overflow: 'hidden',
                 }}>
-                    <img
-                        src="/illustrations/vector-support-v3.png"
-                        alt="Get support"
-                        style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
                     <div style={{ padding: '16px 18px', textAlign: 'center' }}>
                         <h3 style={{
                             fontSize: '15px', fontWeight: 700,
@@ -1271,11 +1245,6 @@ export default function DashboardContent() {
                     padding: '0',
                     overflow: 'hidden',
                 }}>
-                    <img
-                        src="/illustrations/vector-career-pulse-v3.png"
-                        alt="Job market trends"
-                        style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
                     <div style={{ padding: '16px 18px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>Job Market Pulse</h3>
                         <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 8px', lineHeight: 1.5 }}>
@@ -1293,11 +1262,6 @@ export default function DashboardContent() {
                     padding: '0',
                     overflow: 'hidden',
                 }}>
-                    <img
-                        src="/illustrations/vector-resources-v3.png"
-                        alt="Career resources"
-                        style={{ width: '100%', height: '200px', objectFit: 'cover', objectPosition: 'top', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
                     <div style={{ padding: '16px 18px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>Career Resources</h3>
                         <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 8px', lineHeight: 1.5 }}>

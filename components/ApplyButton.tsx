@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ExternalLink, LogIn } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
-import ApplyConfirmationModal from '@/components/ApplyConfirmationModal';
+
 import InPlatformApplyForm from '@/components/InPlatformApplyForm';
 import { trackJobApply, buildJobItem } from '@/lib/analytics';
 import Link from 'next/link';
@@ -25,7 +25,7 @@ function formatAppliedDate(date: Date): string {
 
 export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPlatformApply, setShowPlatformApply] = useState(false);
   const [serverApplied, setServerApplied] = useState<{ applied: boolean; appliedAt?: string; status?: string } | null>(null);
@@ -70,29 +70,20 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       // Open apply link in new tab
       window.open(applyLink, '_blank', 'noopener,noreferrer');
 
-      // Show confirmation modal only if not already applied
+      // Mark as applied directly
       if (!isApplied(jobId)) {
-        setShowConfirmModal(true);
+        markApplied(jobId);
+
+        // Also persist to database (fire-and-forget)
+        try {
+          fetch('/api/applications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId, sourceUrl: applyLink }),
+          }).catch(() => { });
+        } catch { }
       }
     }
-  };
-
-  const handleConfirmApplied = () => {
-    markApplied(jobId);
-    setShowConfirmModal(false);
-
-    // Also persist to database (fire-and-forget)
-    try {
-      fetch('/api/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, sourceUrl: applyLink }),
-      }).catch(() => { });
-    } catch { }
-  };
-
-  const handleNotApplied = () => {
-    setShowConfirmModal(false);
   };
 
   const handlePlatformApplySuccess = () => {
@@ -146,15 +137,17 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
         </div>
       )}
 
-      {/* In-Platform Apply Form */}
-      {showPlatformApply ? (
+      {/* In-Platform Apply Modal — renders as overlay, doesn't replace button */}
+      {showPlatformApply && (
         <InPlatformApplyForm
           jobId={jobId}
           jobTitle={jobTitle}
           onClose={() => setShowPlatformApply(false)}
           onSuccess={handlePlatformApplySuccess}
         />
-      ) : showAuthModal ? (
+      )}
+
+      {showAuthModal ? (
         /* Inline Auth Gate — replaces button area when triggered */
         <div className="w-full">
           {/* Title */}
@@ -286,14 +279,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
         </>
       )}
 
-      <ApplyConfirmationModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirmApplied={handleConfirmApplied}
-        onNotApplied={handleNotApplied}
-        jobTitle={jobTitle}
-        userEmail={null}
-      />
+
 
       <style>{`
         .apply-btn:hover {

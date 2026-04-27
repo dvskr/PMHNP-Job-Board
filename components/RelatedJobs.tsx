@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MapPin, Building2, ArrowRight } from 'lucide-react';
+import { MapPin, ArrowRight } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 
@@ -15,6 +15,7 @@ interface RelatedJob {
   displaySalary?: string | null;
   normalizedMinSalary?: number | null;
   normalizedMaxSalary?: number | null;
+  companyLogoUrl?: string | null;
 }
 
 interface RelatedJobsProps {
@@ -23,12 +24,13 @@ interface RelatedJobsProps {
   currentJobId?: string;
 }
 
+const clayShadow = '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)';
+
 export default function RelatedJobs({
   jobs,
   title = 'Similar Jobs You May Like',
   currentJobId
 }: RelatedJobsProps) {
-  // Filter out current job if provided
   const filteredJobs = currentJobId
     ? jobs.filter(job => job.id !== currentJobId)
     : jobs;
@@ -52,52 +54,91 @@ export default function RelatedJobs({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredJobs.slice(0, 4).map((job) => {
           const jobSlug = slugify(job.title, job.id);
+          const shortLocation = (() => {
+            if (!job.location) return 'Remote';
+            const first = job.location.split(';')[0].split(',').slice(0, 2).join(',').trim();
+            return first.length > 30 ? first.slice(0, 28) + '…' : first;
+          })();
 
           return (
             <Link
               key={job.id}
               href={`/jobs/${jobSlug}`}
-              className="rj-card"
-              style={{
-                display: 'block', padding: '16px', borderRadius: '12px',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                textDecoration: 'none',
-                transition: 'all 0.2s',
-              }}
+              className="rj-card block"
+              style={{ textDecoration: 'none' }}
             >
-              <h3 style={{
-                fontWeight: 600, fontSize: '15px',
-                color: 'var(--text-primary)', margin: '0 0 4px',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {job.title}
-              </h3>
+              <div
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '14px',
+                  padding: '16px 20px',
+                  backgroundColor: '#F7FBF8',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(255,255,255,0.5)',
+                  boxShadow: clayShadow,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              >
+                {/* Company Avatar */}
+                <div style={{ flexShrink: 0 }}>
+                  {job.companyLogoUrl ? (
+                    <img
+                      src={job.companyLogoUrl}
+                      alt={`${job.employer} logo`}
+                      style={{
+                        width: '44px', height: '44px', borderRadius: '50%',
+                        objectFit: 'contain', border: '1px solid var(--border-color)',
+                        background: 'var(--bg-tertiary)',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '50%',
+                      background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
+                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '17px', fontWeight: 700,
+                    }}>
+                      {(job.employer || '?')[0].toUpperCase()}
+                    </div>
+                  )}
+                </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                <Building2 style={{ width: '14px', height: '14px', flexShrink: 0, color: 'var(--text-tertiary)' }} />
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {job.employer}
-                </span>
-              </div>
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{
+                    fontSize: '16px', fontWeight: 700,
+                    fontFamily: 'var(--font-lora), Georgia, serif',
+                    color: 'var(--text-primary)',
+                    margin: '0 0 3px', lineHeight: 1.3,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {job.title}
+                  </h3>
+                  <p style={{
+                    fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)',
+                    margin: '0 0 8px',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {job.employer}
+                  </p>
 
-              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  <MapPin style={{ width: '13px', height: '13px', color: 'var(--color-primary)' }} />
-                  {job.location}
-                </span>
-
-                {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
-                {job.mode && <Badge variant="primary" size="sm">{job.mode}</Badge>}
-
-                {job.displaySalary && (
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--salary-color, #1d4ed8)' }}>
-                    {job.displaySalary}
-                  </span>
-                )}
+                  {/* Badges Row */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                    <Badge variant="outline" size="sm">
+                      <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
+                      {shortLocation}
+                    </Badge>
+                    {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
+                    {job.mode && <Badge variant="outline" size="sm">{job.mode}</Badge>}
+                    {job.displaySalary && (
+                      <Badge variant="salary" size="sm">
+                        {job.displaySalary}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               </div>
             </Link>
           );
@@ -105,10 +146,10 @@ export default function RelatedJobs({
       </div>
 
       <style>{`
-        .rj-card:hover {
+        .rj-card:hover > div {
           border-color: var(--color-primary) !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px var(--shadow-color, rgba(0,0,0,0.08));
+          transform: translateY(-3px);
+          box-shadow: 10px 10px 24px rgba(0,0,0,0.1), -5px -5px 14px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02) !important;
         }
       `}</style>
     </section>

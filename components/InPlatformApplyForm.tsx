@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Upload, CheckCircle, Loader2, AlertCircle, X, ShieldCheck, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 
@@ -229,57 +230,47 @@ export default function InPlatformApplyForm({
 
     // ─── Success state ───
     if (submitted) {
-        return (
-            <div className="rounded-2xl p-6 text-center animate-fade-in"
-                style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-color)',
-                }}
-            >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-                    style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}
-                >
-                    <CheckCircle size={28} style={{ color: '#22C55E' }} />
-                </div>
-                <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    Application Submitted!
-                </h3>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    Your application for <strong>{jobTitle}</strong> has been sent to the employer.
-                    They&apos;ll be notified by email.
-                </p>
-
-                {/* Similar Jobs */}
-                {similarJobs.length > 0 && (
-                    <div className="mt-6 text-left">
-                        <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                            <Briefcase size={14} /> Similar positions you might like
-                        </p>
-                        <div className="space-y-2">
-                            {similarJobs.map(job => (
-                                <Link
-                                    key={job.id}
-                                    href={`/jobs/${job.slug || job.id}`}
-                                    className="block p-3 rounded-lg transition-colors hover:opacity-80"
-                                    style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}
-                                >
-                                    <p className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>{job.title}</p>
-                                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{job.employer} · {job.location}</p>
-                                </Link>
-                            ))}
-                        </div>
+        return createPortal(
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="relative w-full max-w-lg rounded-2xl p-6 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <button onClick={onClose} className="absolute right-4 top-4 p-1.5 rounded-lg transition-colors hover:bg-black/5" aria-label="Close">
+                        <X size={18} style={{ color: 'var(--text-muted)' }} />
+                    </button>
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}>
+                        <CheckCircle size={28} style={{ color: '#22C55E' }} />
                     </div>
-                )}
-            </div>
+                    <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Application Submitted!</h3>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Your application for <strong>{jobTitle}</strong> has been sent to the employer. They&apos;ll be notified by email.</p>
+                    {similarJobs.length > 0 && (
+                        <div className="mt-6 text-left">
+                            <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}><Briefcase size={14} /> Similar positions you might like</p>
+                            <div className="space-y-2">
+                                {similarJobs.map(job => (
+                                    <Link key={job.id} href={`/jobs/${job.slug || job.id}`} className="block p-3 rounded-lg transition-colors hover:opacity-80" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
+                                        <p className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>{job.title}</p>
+                                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{job.employer} · {job.location}</p>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    <button onClick={onClose} className="mt-6 w-full py-3 rounded-xl font-bold text-white text-sm" style={{ background: 'linear-gradient(135deg, #0d9488, #0f766e)' }}>Done</button>
+                </div>
+            </div>,
+            document.body
         );
     }
 
-    return (
+    const modalContent = (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <div
-            className="rounded-2xl overflow-hidden"
+            className="relative w-full max-w-lg rounded-2xl overflow-hidden animate-scale-in"
             style={{
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
+                boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+                maxHeight: '90vh',
+                overflowY: 'auto',
             }}
         >
             {/* Header */}
@@ -634,5 +625,8 @@ export default function InPlatformApplyForm({
                 </p>
             </form>
         </div>
+        </div>
     );
+
+    return createPortal(modalContent, document.body);
 }

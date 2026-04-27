@@ -824,11 +824,6 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                 {/* ── Hiring Tips ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
-                    <img
-                        src="/illustrations/employer-hiring.png"
-                        alt="Hiring tips"
-                        style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
                     <div style={{ padding: '16px 18px' }}>
                         <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
                             Hiring Tips
@@ -850,11 +845,6 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                 {/* ── Talent Pool ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
-                    <img
-                        src="/illustrations/employer-talent.png"
-                        alt="Browse talent"
-                        style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
                     <div style={{ padding: '16px 18px' }}>
                         <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
                             Talent Pool
@@ -875,19 +865,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     </div>
                 </div>
 
-                {/* ── Star Rating ── */}
-                <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
-                    <img
-                        src="/illustrations/employer-feedback.png"
-                        alt="Rate your experience"
-                        style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
-                    <div style={{ padding: '16px 18px' }}>
-                        <EmployerFeedbackCard />
-                    </div>
-                </div>
-
-                {/* ── Share Your Story ── */}
+                {/* ── Rate + Share Your Story (combined) ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
                     <img
                         src="/illustrations/employer-story.png"
@@ -895,17 +873,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                         style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
                     />
                     <div style={{ padding: '16px 18px' }}>
+                        <EmployerFeedbackCard />
+                        <div style={{ borderTop: '1px solid #E0EDE6', margin: '14px 0' }} />
                         <EmployerTestimonialCard employerName={employerName} />
                     </div>
                 </div>
 
                 {/* ── Support & Help ── */}
                 <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
-                    <img
-                        src="/illustrations/employer-support.png"
-                        alt="Get support"
-                        style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
-                    />
                     <div style={{ padding: '16px 18px', textAlign: 'center' }}>
                         <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
                             Need Help?

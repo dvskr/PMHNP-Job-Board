@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 
 /* ──────────────────────────────────────────────
@@ -117,21 +116,7 @@ export function CareerPulseCard() {
       padding: '0',
       overflow: 'hidden',
     }}>
-      {/* Illustration — edge-to-edge, lavender mood */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: '160px',
-        backgroundColor: '#F0E6FA',
-        overflow: 'hidden',
-      }}>
-        <Image
-          src="/illustrations/vector-career-pulse-v3.png"
-          alt="PMHNP Career Growth"
-          fill
-          style={{ objectFit: 'cover' }}
-        />
-      </div>
+
 
       {/* Content */}
       <div style={{ padding: '18px 20px 20px' }}>
@@ -202,21 +187,7 @@ export function ApplicationTipsCard({
       padding: '0',
       overflow: 'hidden',
     }}>
-      {/* Illustration — edge-to-edge, warm peach mood */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: '160px',
-        backgroundColor: '#FFF5EE',
-        overflow: 'hidden',
-      }}>
-        <Image
-          src="/illustrations/vector-pro-tips.png"
-          alt="Application Tips"
-          fill
-          style={{ objectFit: 'cover' }}
-        />
-      </div>
+
 
       {/* Content */}
       <div style={{ padding: '18px 20px 20px' }}>

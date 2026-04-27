@@ -17,7 +17,7 @@ export default function MainContent({ children }: { children: React.ReactNode })
     if (isBarePath) {
         className = 'min-h-screen'; // fully custom layout
     } else if (isAppPath) {
-        className = 'pt-16 pb-24 md:pb-0'; // header spacer + extra bottom nav clearance
+        className = 'pt-4 pb-24 md:pb-0'; // small gap below header spacer + bottom nav clearance
     }
 
     return (

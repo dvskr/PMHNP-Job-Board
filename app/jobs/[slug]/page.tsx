@@ -877,7 +877,7 @@ export default async function JobPage({ params }: JobPageProps) {
 
           {/* Sidebar - Desktop / Below content on mobile */}
           <AnimatedContainer animation="slide-in-right" delay={300}>
-            <div className="mt-6 lg:mt-0">
+            <div className="mt-6 lg:mt-0" style={{ position: 'relative', zIndex: 1 }}>
               <div className="hidden lg:block lg:sticky lg:top-24" style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)', padding: '24px' }}>
                 {/* Expiry Notice - Desktop */}
                 {!expiryStatus.isExpired && expiryStatus.text && (

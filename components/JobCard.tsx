@@ -215,13 +215,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {job.title}
             </h3>
             {/* Company */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px', minWidth: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {job.employer}
               </p>
               {job.isFeatured && (
                 <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
                   padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
                   background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
                   boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
@@ -416,13 +416,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             }}>
               {job.title}
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                 {job.employer}
               </p>
               {job.isFeatured && (
                 <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
                   padding: '3px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
                   background: '#FDE68A', color: '#78350F', border: '1px solid rgba(255,255,255,0.5)',
                   boxShadow: '2px 2px 6px rgba(245,158,11,0.15), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(0,0,0,0.03)',
@@ -464,14 +464,16 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               </button>
             </div>
             {salaryDisplay && (
-              <Badge variant="salary" size="sm">
-                {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
-              </Badge>
+              <div style={{ marginRight: '-10px' }}>
+                <Badge variant="salary" size="sm">
+                  {salaryDisplay.startsWith('$') ? salaryDisplay : `$${salaryDisplay}`}
+                </Badge>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Row 3: Location + Type Badges */}
+        {/* Row 3: Location + Type + Status Badges */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
           <Badge variant="outline" size="sm">
             <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
@@ -479,29 +481,23 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </Badge>
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
           {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
+          {isNew && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+              background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)',
+              boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+            }}>● New</span>
+          )}
+          {applied && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+              background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)',
+              boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+            }}>✓ Applied</span>
+          )}
         </div>
-
-        {/* Row 4: Status Badges */}
-        {(isNew || applied) && (
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {isNew && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-              }}>● New</span>
-            )}
-            {applied && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-              }}>✓ Applied</span>
-            )}
-          </div>
-        )}
 
 
 
