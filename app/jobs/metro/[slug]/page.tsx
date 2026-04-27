@@ -238,7 +238,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
                 {metro.city} Positions ({stats.totalJobs})
               </h2>
               <Link
-                href={`/jobs/city/${metro.citySlug}`}
+                href={`/jobs?location=${encodeURIComponent(metro.city)}`}
                 className="text-sm font-medium hover:opacity-80 transition-opacity"
                 style={{ color: '#0D9488' }}
               >
@@ -273,7 +273,7 @@ export default async function MetroLandingPage({ params }: PageProps) {
 
                 {/* Browse All CTA */}
                 <div style={{ textAlign: 'center', marginTop: '32px' }}>
-                  <Link href={`/jobs/city/${metro.citySlug}`} className="metro-cta" style={{
+                  <Link href={`/jobs?location=${encodeURIComponent(metro.city)}`} className="metro-cta" style={{
                     padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px',
                     background: '#0D9488', color: '#fff', textDecoration: 'none',
                     display: 'inline-flex', alignItems: 'center', gap: '8px',

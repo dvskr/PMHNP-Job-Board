@@ -455,7 +455,7 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     andConditions.push({ createdAt: { gte: cutoff } });
   }
 
-  // Location (broad contains match)
+  // Location
   if (filters.location) {
     andConditions.push({
       OR: [
