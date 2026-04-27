@@ -7,6 +7,8 @@ export interface FilterState {
   salaryMin: number | null;
   postedWithin: string | null;  // '24h', '3d', '7d', '30d', 'all'
   location: string | null;
+  cityExact: string | null;   // exact city match (e.g. 'New York')
+  stateCode: string | null;   // 2-letter state code (e.g. 'NY')
   employer: string | null;  // filter by employer name
   category: string | null;  // category slug for pre-defined filters (e.g. 'child-adolescent')
 }
@@ -57,6 +59,8 @@ export const DEFAULT_FILTERS: FilterState = {
   salaryMin: null,
   postedWithin: null,
   location: null,
+  cityExact: null,
+  stateCode: null,
   employer: null,
   category: null,
 };

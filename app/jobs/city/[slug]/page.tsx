@@ -7,6 +7,8 @@ import JobCard from '@/components/JobCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Job } from '@/lib/types';
+import { getMetroCity } from '@/lib/metro-data';
+import CategoryHero from '@/components/CategoryHero';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -259,6 +261,11 @@ interface CityPageProps {
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
     try {
         const { slug } = await params;
+
+        // Metro pages have their own metadata — skip if metro exists
+        const metroMatch = getMetroCity(slug);
+        if (metroMatch) return { title: `PMHNP Jobs in ${metroMatch.city}` };
+
         let parsed = parseCitySlug(slug);
 
         if (!parsed) {
@@ -313,6 +320,11 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
 
 export default async function CityJobsPage({ params }: CityPageProps) {
     const { slug } = await params;
+
+    // ─── Metro redirect: curated metro pages take priority over generic city pages
+    const metroMatch = getMetroCity(slug);
+    if (metroMatch) redirect(`/jobs/metro/${slug}`);
+
     let parsed = parseCitySlug(slug);
 
     if (!parsed) {
@@ -354,7 +366,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         : null;
 
     return (
-        <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+        <div className="min-h-screen" style={{ background: '#FDFBF7' }}>
             {/* Breadcrumb Schema */}
             <BreadcrumbSchema items={[
                 { name: "Home", url: "https://pmhnphiring.com" },
@@ -363,303 +375,123 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 { name: cityName, url: `https://pmhnphiring.com/jobs/city/${slug}` }
             ]} />
 
-            {/* Visual Breadcrumbs */}
-            <div className="container mx-auto px-4 pt-4">
-                <Breadcrumbs items={breadcrumbItems} />
-            </div>
+            {/* ═══ HERO ═══ */}
+            <CategoryHero
+                bgColor="#7eb8c9"
+                heroImage="/images/categories/hero_wc_states.png"
+                heroAlt={`PMHNP jobs in ${cityName}, ${stateCode}`}
+                badgeText={`${stats.totalJobs} live roles · updated today`}
+                breadcrumbs={['Careers', stateName, cityName]}
+                headlineLine1={cityName}
+                headlineLine2="PMHNP"
+                headlineSub={`jobs in ${stateCode}, find your fit.`}
+                stats={[
+                    { value: `${stats.totalJobs}`, label: 'positions' },
+                    { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+                    { value: `${stats.topEmployers.length}+`, label: 'employers' },
+                ]}
+                description={`Browse ${stats.totalJobs} PMHNP positions in ${cityName}, ${stateName}. ${salaryRange ? `Salary range: ${salaryRange}/yr.` : ''} Remote, telehealth, inpatient, and outpatient roles updated daily.`}
+                ctaLabel={`View All ${cityName} Jobs`}
+                ctaHref={`/jobs?location=${encodeURIComponent(cityName)}`}
+                secondaryCtaLabel="Set Alert"
+                secondaryCtaHref={`/job-alerts?location=${encodeURIComponent(cityName + ', ' + stateCode)}`}
+            />
 
-            {/* Hero Section */}
-            <section className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-12 md:py-16">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <div className="flex items-center justify-center gap-2 mb-4">
-                            <MapPin className="h-8 w-8" />
-                            <span className="text-lg font-medium">{cityName}, {stateCode}</span>
-                        </div>
-                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            PMHNP Jobs in {cityName}, {stateName}
-                        </h1>
-                        <p className="text-lg md:text-xl text-teal-100 mb-6">
-                            {stats.totalJobs} psychiatric mental health nurse practitioner {stats.totalJobs === 1 ? 'position' : 'positions'} in {cityName}
-                        </p>
-
-                        {/* Stats Bar */}
-                        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                                <div className="text-sm text-teal-100">Open Positions</div>
-                            </div>
-                            {stats.avgSalary > 0 && (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                                    <div className="text-sm text-teal-100">Avg. Salary</div>
-                                </div>
-                            )}
-                            {stats.topEmployers.length > 0 && (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                                    <div className="text-sm text-teal-100">Top Employers</div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <div className="container mx-auto px-4 py-8 md:py-12">
-                <div className="max-w-7xl mx-auto">
-                    {/* City Intro */}
-                    <div className="mb-8 md:mb-12">
-                        <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                                About PMHNP Jobs in {cityName}, {stateName}
+            {/* ═══ JOB LISTINGS ═══ */}
+            <div id="jobs" style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
+                <div className="grid lg:grid-cols-4 gap-8">
+                    {/* Main Content */}
+                    <div className="lg:col-span-3">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>
+                                {cityName} Positions ({stats.totalJobs})
                             </h2>
-                            <p className="text-gray-600 leading-relaxed mb-4">
-                                Find PMHNP jobs in {cityName}, {stateName}. Browse {stats.totalJobs} psychiatric
-                                mental health nurse practitioner {stats.totalJobs === 1 ? 'position' : 'positions'} including remote,
-                                telehealth, inpatient, and outpatient roles.
-                                {salaryRange && ` ${cityName} PMHNPs earn between ${salaryRange} per year.`}
-                            </p>
-                            <p className="text-gray-600 leading-relaxed">
-                                Whether you&apos;re seeking full-time, part-time, or travel positions, {cityName} offers
-                                diverse opportunities across various healthcare settings. New positions are added daily.
-                            </p>
+                            <Link href={`/jobs/state/${stateSlug}`} style={{ fontSize: '14px', fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
+                                All {stateName} Jobs →
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                            {jobs.map((job: Job) => (
+                                <JobCard key={job.id} job={job} />
+                            ))}
                         </div>
                     </div>
 
-                    {/* Related Cities */}
-                    {relatedCities.length > 0 && (
-                        <div className="mb-8 md:mb-12">
-                            <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <MapPinned className="h-6 w-6 text-teal-600" />
-                                    <h2 className="text-2xl font-bold text-gray-900">
-                                        More Cities in {stateName}
-                                    </h2>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                    {relatedCities.map((city) => (
-                                        <Link
-                                            key={city.slug}
-                                            href={`/jobs/city/${city.slug}`}
-                                            className="flex items-center justify-between p-3 bg-gray-50 hover:bg-teal-50 dark:bg-[var(--bg-tertiary)] dark:hover:bg-[rgba(20,184,166,0.1)] rounded-lg border border-gray-200 dark:border-[var(--border-color)] hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] transition-colors"
-                                        >
-                                            <span className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)] truncate">{city.name}</span>
-                                            <span className="text-xs text-teal-600 font-semibold ml-2">
-                                                {city.count}
-                                            </span>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="grid lg:grid-cols-4 gap-8">
-                        {/* Main Content */}
-                        <div className="lg:col-span-3">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-semibold text-gray-900 dark:text-[var(--text-primary)]">
-                                    All Jobs ({stats.totalJobs})
-                                </h2>
-                                <Link
-                                    href={`/jobs/state/${stateSlug}`}
-                                    className="text-teal-600 hover:text-teal-700 text-sm font-medium"
-                                >
-                                    All {stateName} Jobs →
-                                </Link>
-                            </div>
-
-                            {jobs.length === 0 ? (
-                                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl border border-gray-200 dark:border-[var(--border-color)] p-8">
-                                    <div className="text-center mb-8">
-                                        <MapPin className="h-12 w-12 text-teal-500 mx-auto mb-4" />
-                                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                            No PMHNP Jobs in {cityName} Right Now
-                                        </h3>
-                                        <p className="text-gray-600 max-w-md mx-auto">
-                                            We don&apos;t have any active positions in {cityName} at the moment,
-                                            but new jobs are added daily. Here are some alternatives:
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <Link
-                                            href={`/jobs/state/${stateSlug}`}
-                                            className="flex flex-col p-4 bg-teal-50 hover:bg-teal-100 dark:bg-[rgba(20,184,166,0.08)] dark:hover:bg-[rgba(20,184,166,0.15)] rounded-lg border border-teal-200 dark:border-[rgba(20,184,166,0.25)] transition-colors"
-                                        >
-                                            <span className="font-semibold text-teal-900 dark:text-teal-300">📍 All {stateName} Jobs</span>
-                                            <span className="text-sm text-teal-700 dark:text-teal-400 mt-1">Browse all positions statewide</span>
-                                        </Link>
-                                        <Link
-                                            href="/jobs/remote"
-                                            className="flex flex-col p-4 bg-purple-50 hover:bg-purple-100 dark:bg-[rgba(147,51,234,0.08)] dark:hover:bg-[rgba(147,51,234,0.15)] rounded-lg border border-purple-200 dark:border-[rgba(147,51,234,0.25)] transition-colors"
-                                        >
-                                            <span className="font-semibold text-purple-900 dark:text-purple-300">🏠 Remote PMHNP Jobs</span>
-                                            <span className="text-sm text-purple-700 dark:text-purple-400 mt-1">Work from anywhere with telehealth positions</span>
-                                        </Link>
-                                        <Link
-                                            href={`/job-alerts?location=${encodeURIComponent(cityName + ', ' + stateCode)}`}
-                                            className="flex flex-col p-4 bg-green-50 hover:bg-green-100 dark:bg-[rgba(16,185,129,0.08)] dark:hover:bg-[rgba(16,185,129,0.15)] rounded-lg border border-green-200 dark:border-[rgba(16,185,129,0.25)] transition-colors"
-                                        >
-                                            <span className="font-semibold text-green-900 dark:text-emerald-300">🔔 Set Up Job Alerts</span>
-                                            <span className="text-sm text-green-700 dark:text-emerald-400 mt-1">Get notified when {cityName} jobs are posted</span>
-                                        </Link>
-                                        <Link
-                                            href="/jobs"
-                                            className="flex flex-col p-4 bg-blue-50 hover:bg-blue-100 dark:bg-[rgba(59,130,246,0.08)] dark:hover:bg-[rgba(59,130,246,0.15)] rounded-lg border border-blue-200 dark:border-[rgba(59,130,246,0.25)] transition-colors"
-                                        >
-                                            <span className="font-semibold text-blue-900 dark:text-blue-300">🔍 View All PMHNP Jobs</span>
-                                            <span className="text-sm text-blue-700 dark:text-blue-400 mt-1">Browse all jobs nationwide</span>
-                                        </Link>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                                    {jobs.map((job: Job) => (
-                                        <JobCard key={job.id} job={job} />
-                                    ))}
-                                </div>
-                            )}
+                    {/* Sidebar */}
+                    <div className="lg:col-span-1" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {/* Job Alert CTA */}
+                        <div style={{ background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', borderRadius: '18px', padding: '24px', border: '2px solid rgba(13,148,136,0.15)', boxShadow: '6px 6px 20px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8)' }}>
+                            <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                            <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>Get {cityName} Alerts</h3>
+                            <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New listings delivered to your inbox daily.</p>
+                            <Link href={`/job-alerts?location=${encodeURIComponent(cityName + ', ' + stateCode)}`} style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none' }}>Create Alert</Link>
                         </div>
 
-                        {/* Sidebar */}
-                        <div className="lg:col-span-1">
-                            {/* Job Alert CTA */}
-                            <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white mb-6 shadow-lg">
-                                <Bell className="h-8 w-8 mb-3" />
-                                <h3 className="text-lg font-bold mb-2">
-                                    Get {cityName} Job Alerts
-                                </h3>
-                                <p className="text-sm text-teal-100 mb-4">
-                                    Be the first to know about new PMHNP positions in {cityName}, {stateCode}.
-                                </p>
-                                <Link
-                                    href={`/job-alerts?location=${encodeURIComponent(cityName + ', ' + stateCode)}`}
-                                    className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors"
-                                >
-                                    Create Alert
-                                </Link>
-                            </div>
-
-                            {/* Top Employers */}
-                            {stats.topEmployers.length > 0 && (
-                                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 mb-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Building2 className="h-5 w-5 text-teal-600" />
-                                        <h3 className="font-bold text-gray-900">Top Employers in {cityName}</h3>
-                                    </div>
-                                    <ul className="space-y-3">
-                                        {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
-                                            <li key={index} className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-700 truncate flex-1">
-                                                    {employer.name}
-                                                </span>
-                                                <span className="text-sm font-medium text-teal-600 ml-2">
-                                                    {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                        {/* Top Employers */}
+                        {stats.topEmployers.length > 0 && (
+                            <div style={{ background: '#FFF', borderRadius: '18px', padding: '24px', boxShadow: '6px 6px 20px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                    <Building2 size={20} style={{ color: '#0D9488' }} />
+                                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Top Employers</h3>
                                 </div>
-                            )}
-
-                            {/* Salary Insights */}
-                            {stats.avgSalary > 0 && (
-                                <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 mb-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <TrendingUp className="h-5 w-5 text-green-600" />
-                                        <h3 className="font-bold text-gray-900">Salary Insights</h3>
-                                    </div>
-                                    <div className="mb-4">
-                                        <div className="text-3xl font-bold text-gray-900">
-                                            ${stats.avgSalary}k
-                                        </div>
-                                        <div className="text-sm text-gray-600">
-                                            Average annual salary
-                                        </div>
-                                    </div>
-                                    {salaryRange && (
-                                        <div className="mb-4">
-                                            <div className="text-lg font-semibold text-gray-800">
-                                                {salaryRange}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                Salary range
-                                            </div>
-                                        </div>
-                                    )}
-                                    <p className="text-xs text-gray-500">
-                                        Based on PMHNP positions in {cityName}, {stateCode} with salary data.
-                                    </p>
-                                    <Link href={`/salary-guide/${stateSlug}`} className="text-sm text-teal-600 hover:text-teal-700 mt-2 inline-block">
-                                        View {stateName} Salary Data →
-                                    </Link>
-                                </div>
-                            )}
-
-                            {/* Back to State */}
-                            <div className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6">
-                                <h3 className="font-bold text-gray-900 mb-3">Quick Links</h3>
-                                <ul className="space-y-2 text-sm">
-                                    <li>
-                                        <Link href={`/jobs/state/${stateSlug}`} className="text-teal-600 hover:text-teal-700">
-                                            All PMHNP Jobs in {stateName} →
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/jobs" className="text-teal-600 hover:text-teal-700">
-                                            View All PMHNP Jobs →
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/jobs/remote" className="text-teal-600 hover:text-teal-700">
-                                            Remote PMHNP Jobs →
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href={`/salary-guide/${stateSlug}`} className="text-teal-600 hover:text-teal-700">
-                                            {stateName} Salary Guide →
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link href="/salary-guide" className="text-teal-600 hover:text-teal-700">
-                                            National Salary Guide →
-                                        </Link>
-                                    </li>
+                                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                    {stats.topEmployers.map((employer: ProcessedEmployer, i: number) => (
+                                        <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                                            <span style={{ fontSize: '13px', color: '#5A4A42', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{employer.name}</span>
+                                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span>
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
+                        )}
+
+                        {/* Salary */}
+                        {stats.avgSalary > 0 && (
+                            <div style={{ background: '#FFF', borderRadius: '18px', padding: '24px', boxShadow: '6px 6px 20px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                                <TrendingUp size={20} style={{ color: '#34D399', marginBottom: '12px' }} />
+                                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35' }}>${stats.avgSalary}k</div>
+                                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+                                {salaryRange && <div style={{ fontSize: '15px', fontWeight: 700, color: '#5A4A42', marginTop: '12px' }}>{salaryRange} range</div>}
+                            </div>
+                        )}
+
+                        {/* Related Cities */}
+                        {relatedCities.length > 0 && (
+                            <div style={{ background: '#FFF', borderRadius: '18px', padding: '24px', boxShadow: '6px 6px 20px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: '0 0 16px' }}>More in {stateName}</h3>
+                                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                    {relatedCities.map(city => (
+                                        <li key={city.slug} style={{ padding: '6px 0' }}>
+                                            <Link href={`/jobs/city/${city.slug}`} style={{ fontSize: '13px', color: '#0D9488', textDecoration: 'none', fontWeight: 500, display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>{city.name}</span>
+                                                <span style={{ color: '#7A6A62', fontWeight: 700 }}>{city.count}</span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Quick Links */}
+                        <div style={{ background: '#FFF', borderRadius: '18px', padding: '24px', boxShadow: '6px 6px 20px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)' }}>
+                            <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: '0 0 16px' }}>Explore More</h3>
+                            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                                {[
+                                    { href: `/jobs/state/${stateSlug}`, label: `📍 All ${stateName} Jobs` },
+                                    { href: `/salary-guide/${stateSlug}`, label: `💰 ${stateName} Salary Guide` },
+                                    { href: '/jobs/remote', label: '🏠 Remote PMHNP Jobs' },
+                                    { href: '/salary-guide', label: '📊 2026 Salary Guide' },
+                                ].map(link => (
+                                    <li key={link.href} style={{ padding: '6px 0' }}>
+                                        <Link href={link.href} style={{ fontSize: '13px', color: '#0D9488', textDecoration: 'none', fontWeight: 500 }}>{link.label}</Link>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
-
-                    {/* Related Resources */}
-                    <section className="mt-12 mb-8">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-4">Explore More PMHNP Opportunities</h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Link href={`/jobs/state/${stateSlug}`} className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">📍 All {stateName} Jobs</h3>
-                                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Browse all PMHNP positions across {stateName}.</p>
-                            </Link>
-
-                            <Link href={`/salary-guide/${stateSlug}`} className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">💰 {stateName} PMHNP Salary Data</h3>
-                                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">See salary averages, top employers, and market data for {stateName}.</p>
-                            </Link>
-
-                            <Link href="/jobs/remote" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">🏠 Remote PMHNP Jobs</h3>
-                                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Work from anywhere with telehealth and remote positions.</p>
-                            </Link>
-
-                            <Link href="/jobs/new-grad" className="block p-4 bg-white dark:bg-[var(--bg-secondary)] border border-gray-200 dark:border-[var(--border-color)] rounded-lg hover:border-teal-300 dark:hover:border-[rgba(20,184,166,0.3)] hover:shadow-sm transition-all">
-                                <h3 className="font-semibold text-teal-600 dark:text-[#2DD4BF]">🎓 New Grad PMHNP Jobs</h3>
-                                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Entry-level positions for newly certified psychiatric NPs.</p>
-                            </Link>
-                        </div>
-                    </section>
                 </div>
             </div>
         </div>
     );
 }
+

@@ -455,12 +455,27 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     andConditions.push({ createdAt: { gte: cutoff } });
   }
 
-  // Location
+  // Location (broad contains match)
   if (filters.location) {
     andConditions.push({
       OR: [
         { state: { equals: filters.location, mode: 'insensitive' } },
         { city: { contains: filters.location, mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  // Precise city + state match (from metro/city page CTAs)
+  if (filters.cityExact) {
+    andConditions.push({
+      city: { equals: filters.cityExact, mode: 'insensitive' },
+    });
+  }
+  if (filters.stateCode) {
+    andConditions.push({
+      OR: [
+        { stateCode: { equals: filters.stateCode, mode: 'insensitive' } },
+        { state: { equals: filters.stateCode, mode: 'insensitive' } },
       ],
     });
   }
@@ -526,6 +541,8 @@ export function parseFiltersFromParams(searchParams: URLSearchParams): FilterSta
     salaryMin: searchParams.get('salaryMin') ? Number(searchParams.get('salaryMin')) : null,
     postedWithin: searchParams.get('postedWithin') || null,
     location: searchParams.get('location') || null,
+    cityExact: searchParams.get('cityExact') || null,
+    stateCode: searchParams.get('stateCode') || null,
     employer: searchParams.get('employer') || null,
     category: searchParams.get('category') || null,
   };
@@ -543,6 +560,8 @@ export function filtersToParams(filters: FilterState): URLSearchParams {
   if (filters.salaryMin) params.set('salaryMin', String(filters.salaryMin));
   if (filters.postedWithin) params.set('postedWithin', filters.postedWithin);
   if (filters.location) params.set('location', filters.location);
+  if (filters.cityExact) params.set('cityExact', filters.cityExact);
+  if (filters.stateCode) params.set('stateCode', filters.stateCode);
   if (filters.employer) params.set('employer', filters.employer);
   if (filters.category) params.set('category', filters.category);
 

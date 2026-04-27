@@ -9,9 +9,11 @@ interface FAQItem {
 }
 
 interface CategoryFAQProps {
-    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health' | 'community-health';
+    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health' | 'community-health' | 'metro';
     totalJobs: number;
     avgSalary?: number;
+    /** Pass custom FAQs (e.g. from metro data) instead of using built-in ones */
+    customFaqs?: { question: string; answer: string }[];
 }
 
 const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
@@ -228,10 +230,10 @@ const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
     ],
 };
 
-export default function CategoryFAQ({ category, totalJobs, avgSalary }: CategoryFAQProps) {
+export default function CategoryFAQ({ category, totalJobs, avgSalary, customFaqs }: CategoryFAQProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-    const faqs = CATEGORY_FAQS[category]?.({ category, totalJobs, avgSalary }) ?? [];
+    const faqs = customFaqs ?? (CATEGORY_FAQS[category]?.({ category, totalJobs, avgSalary }) ?? []);
     if (faqs.length === 0) return null;
 
     const categoryLabels: Record<string, string> = {
@@ -247,6 +249,7 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary }: Category
         addiction: 'Addiction',
         'behavioral-health': 'Behavioral Health',
         'community-health': 'Community Health',
+        metro: 'Metro',
     };
 
     // FAQ Schema for structured data (FAQPage)

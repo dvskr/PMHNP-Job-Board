@@ -88,6 +88,14 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
         params.set('location', filters.location);
       }
 
+      // Add precise city + state (from metro/city page CTAs)
+      if (filters.cityExact) {
+        params.set('cityExact', filters.cityExact);
+      }
+      if (filters.stateCode) {
+        params.set('stateCode', filters.stateCode);
+      }
+
       // Add work modes (multi-select)
       filters.workMode.forEach((mode: string) => {
         params.append('workMode', mode);
@@ -196,6 +204,7 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
     (currentFilters.salaryMin ? 1 : 0) +
     (currentFilters.postedWithin ? 1 : 0) +
     (currentFilters.location ? 1 : 0) +
+    (currentFilters.cityExact ? 1 : 0) +
     (currentFilters.search ? 1 : 0);
 
   // Handle alert creation success
