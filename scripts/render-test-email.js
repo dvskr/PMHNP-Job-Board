@@ -140,3 +140,27 @@ const html = emailShellV2(`
 
 require('fs').writeFileSync('test-candidate-welcome.html', html);
 console.log(`Written to test-candidate-welcome.html (${html.length} bytes)`);
+
+// ── Render "Employer Welcome" email ──
+function sectionHeadV2(text) { return `<tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">${text}</p></td></tr>`; }
+
+const empHtml = emailShellV2(`
+    ${headerBlockV2('Your Employer Account Is Ready', '')}
+    ${spacerV2(12)}
+    ${bodyTextV2('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners \u2014 all from one dashboard.')}
+    ${spacerV2(36)}
+    ${sectionHeadV2('Three steps to your first hire')}
+    ${spacerV2(20)}
+    ${stepBlock('icon-emp-megaphone.png', 'Publish your listing', 'Our guided form takes under five minutes. Add role details, compensation, and requirements.')}
+    ${spacerV2(16)}
+    ${stepBlock('icon-emp-analytics.png', 'Track engagement', 'Monitor views, apply clicks, and applicant quality in real time.')}
+    ${spacerV2(16)}
+    ${stepBlock('icon-emp-handshake.png', 'Connect with candidates', 'Message qualified PMHNPs directly through the platform.')}
+    ${spacerV2(32)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">${primaryButtonV2('Post Your First Job', `${BASE_URL}/post-job`)}</td></tr>
+    ${spacerV2(48)}
+    ${closeContentV2()}`, unsubFooter(), 'Your employer account is ready \u2014 start hiring PMHNPs today.');
+
+require('fs').writeFileSync('test-employer-welcome.html', empHtml);
+console.log(`Written to test-employer-welcome.html (${empHtml.length} bytes)`);
+

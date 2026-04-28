@@ -107,13 +107,13 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
       h1, .heading-text { color: ${V2.textHeading} !important; }
       p, .body-text { color: ${V2.textBody} !important; }
       .brand-text { color: ${V2.textPrimary} !important; }
-      .tagline-text { color: ${V2.textLabel} !important; }
+      .tagline-text { color: ${V2.teal} !important; }
       .footer-text, .footer-text a { color: #A0AEC0 !important; }
       .btn-primary { background-color: ${V2.tealButton} !important; color: #FFFFFF !important; }
     }
     /* Outlook dark mode — explicit overrides */
     [data-ogsc] .brand-text { color: ${V2.textPrimary} !important; }
-    [data-ogsc] .tagline-text { color: ${V2.textLabel} !important; }
+    [data-ogsc] .tagline-text { color: ${V2.teal} !important; }
     [data-ogsc] h1 { color: ${V2.textHeading} !important; }
     [data-ogsc] .body-text, [data-ogsc] p { color: ${V2.textBody} !important; }
     [data-ogsc] .footer-text, [data-ogsc] .footer-text a { color: #A0AEC0 !important; }
