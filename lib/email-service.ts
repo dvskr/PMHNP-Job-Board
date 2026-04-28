@@ -246,7 +246,6 @@ export async function sendSignupWelcomeEmail(
         'Your employer account is ready \u2014 start hiring PMHNPs today.'
       );
     } else {
-      const IMG = `${BASE_URL}/images/email`;
       html = emailShellV2(`
             ${headerBlockV2('Welcome to PMHNP Hiring', '')}
             <tr><td style="padding:0 40px;"><img src="${IMG}/welcome-email-hero.png" alt="" width="520" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;" /></td></tr>

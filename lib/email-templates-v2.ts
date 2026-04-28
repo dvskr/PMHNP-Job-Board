@@ -111,31 +111,29 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
       .footer-text, .footer-text a { color: #A0AEC0 !important; }
       .btn-primary { background-color: ${V2.tealButton} !important; color: #FFFFFF !important; }
     }
-    /* Outlook dark mode */
-    [data-ogsc] h1, [data-ogsc] p, [data-ogsc] span, [data-ogsc] td { color: inherit !important; }
-    [data-ogsb] { background-color: inherit !important; }
+    /* Outlook dark mode — explicit overrides */
+    [data-ogsc] .brand-text { color: ${V2.textPrimary} !important; }
+    [data-ogsc] .tagline-text { color: ${V2.textLabel} !important; }
+    [data-ogsc] h1 { color: ${V2.textHeading} !important; }
+    [data-ogsc] .body-text, [data-ogsc] p { color: ${V2.textBody} !important; }
+    [data-ogsc] .footer-text, [data-ogsc] .footer-text a { color: #A0AEC0 !important; }
+    [data-ogsb] .header-bg { background-color: ${V2.bgPeach} !important; }
+    [data-ogsb] .content-bg { background-color: ${V2.bgCard} !important; }
+    [data-ogsb] .footer-bg { background-color: #292524 !important; }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:${V2.bgPeach};" bgcolor="${V2.bgPeach}">
-  <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${V2.bgPeach};">${preheader} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};border-collapse:collapse;border-spacing:0;">
+<body style="margin:0;padding:0;background-color:${V2.bgBody};" bgcolor="${V2.bgBody}">
+  <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${V2.bgBody};">${preheader} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${V2.bgBody}" style="background-color:${V2.bgBody};border-collapse:collapse;border-spacing:0;">
     <tr>
-      <td align="center" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};">
-        <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center" bgcolor="${V2.bgPeach}"><tr><td><![endif]-->
-        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="${V2.bgPeach}" align="center" style="max-width:600px;width:100%;border-collapse:collapse;border-spacing:0;">
-          ${content}
-        </table>
-        <!--[if mso]></td></tr></table><![endif]-->
-      </td>
-    </tr>
-    <tr>
-      <td align="center" bgcolor="#292524" style="background-color:#292524;">
-        <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td style="padding:24px 24px 48px;text-align:center;"><![endif]-->
+      <td align="center" style="padding:0;">
+        <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td><![endif]-->
         <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:600px;width:100%;border-collapse:collapse;border-spacing:0;">
+          ${content}
           <tr>
-            <td style="padding:24px 24px 48px;text-align:center;">
+            <td class="footer-bg" bgcolor="#292524" style="background-color:#292524;padding:24px 24px 48px;text-align:center;">
               ${footerContent}
-              <p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:#A0AEC0;">
+              <p class="footer-text" style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:#A0AEC0;">
                 &copy; ${new Date().getFullYear()} PMHNP Hiring &nbsp;&middot;&nbsp;
                 <a href="${BASE_URL}" style="color:#A0AEC0;text-decoration:underline;">pmhnphiring.com</a> &nbsp;&middot;&nbsp;
                 <a href="mailto:support@pmhnphiring.com" style="color:#A0AEC0;text-decoration:underline;">support@pmhnphiring.com</a>
@@ -160,8 +158,18 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
 //         [MENTAL HEALTH CAREERS — centered]
 
 export function headerBlockV2(title: string, subtitle: string = ''): string {
-  const logoUrl = process.env.EMAIL_ASSETS_URL ? `${IMG}/logo.png` : `${BASE_URL}/logo.png`;
-  return `<tr><td class="header-bg" align="center" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};padding:0;text-align:center;"><img src="${logoUrl}" alt="PMHNP Hiring" width="100" height="100" style="display:block;width:100px;height:100px;margin:0 auto;" /><p class="brand-text" style="margin:-8px 0 0;font-family:${SERIF};font-size:28px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:center;">PMHNP Hiring</p><p class="tagline-text" style="margin:2px 0 0;font-family:${SANS};font-size:10px;font-weight:500;color:${V2.textLabel};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;">Mental Health Careers</p></td></tr><tr><td class="content-bg" bgcolor="${V2.bgCard}" style="background-color:${V2.bgCard};"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;border-spacing:0;">
+  const logoUrl = process.env.EMAIL_ASSETS_URL ? `${IMG}/logo-email.png` : `${BASE_URL}/logo.png`;
+  return `<tr><td class="header-bg" align="center" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};padding:24px 0 16px;text-align:center;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
+      <tr>
+        <td valign="middle" style="padding-right:12px;"><img src="${logoUrl}" alt="PMHNP Hiring" width="56" height="64" style="display:block;width:56px;height:64px;" /></td>
+        <td valign="middle">
+          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:left;"><span style="color:${V2.textPrimary} !important;-webkit-text-fill-color:${V2.textPrimary};mso-style-textfill-fill-color:${V2.textPrimary};">PMHNP Hiring</span></p>
+          <p class="tagline-text" style="margin:3px 0 0;font-family:${SANS};font-size:9px;font-weight:500;color:${V2.teal};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;"><span style="color:${V2.teal} !important;-webkit-text-fill-color:${V2.teal};mso-style-textfill-fill-color:${V2.teal};">Mental Health Careers</span></p>
+        </td>
+      </tr>
+    </table>
+  </td></tr><tr><td class="content-bg" bgcolor="${V2.bgCard}" style="background-color:${V2.bgCard};"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;border-spacing:0;">
 
                 <!-- Heading -->
                 <tr>
