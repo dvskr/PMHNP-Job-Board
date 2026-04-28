@@ -7,7 +7,7 @@ const V2 = {
   bgBody:'#F3F2EF', bgCard:'#FFF8EE', bgPeach:'#F0C4A4',
   textHeading:'#2D3748', textPrimary:'#1F2937', textBody:'#4A5568',
   textLabel:'#5A4A3A', textMuted:'#718096',
-  tealButton:'#4DB6AC',
+  tealButton:'#4DB6AC', teal:'#0d9488',
 };
 
 // ── headerBlockV2 (production-identical — stacked: logo top, text below) ──
