@@ -164,8 +164,8 @@ export function headerBlockV2(title: string, subtitle: string = ''): string {
       <tr>
         <td valign="middle" style="padding-right:12px;"><img src="${logoUrl}" alt="PMHNP Hiring" width="56" height="64" style="display:block;width:56px;height:64px;" /></td>
         <td valign="middle">
-          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:left;"><span style="color:${V2.textPrimary} !important;-webkit-text-fill-color:${V2.textPrimary};mso-style-textfill-fill-color:${V2.textPrimary};">PMHNP Hiring</span></p>
-          <p class="tagline-text" style="margin:3px 0 0;font-family:${SANS};font-size:9px;font-weight:500;color:${V2.teal};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;"><span style="color:${V2.teal} !important;-webkit-text-fill-color:${V2.teal};mso-style-textfill-fill-color:${V2.teal};">Mental Health Careers</span></p>
+          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:left;">PMHNP Hiring</p>
+          <p class="tagline-text" style="margin:3px 0 0;font-family:${SANS};font-size:9px;font-weight:500;color:${V2.teal};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;">Mental Health Careers</p>
         </td>
       </tr>
     </table>

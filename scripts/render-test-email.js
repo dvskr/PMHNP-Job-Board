@@ -17,8 +17,8 @@ function headerBlockV2(title, subtitle) {
       <tr>
         <td valign="middle" style="padding-right:12px;"><img src="${IMG}/logo-email.png" alt="PMHNP Hiring" width="56" height="64" style="display:block;width:56px;height:64px;" /></td>
         <td valign="middle">
-          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:left;"><span style="color:${V2.textPrimary} !important;-webkit-text-fill-color:${V2.textPrimary};mso-style-textfill-fill-color:${V2.textPrimary};">PMHNP Hiring</span></p>
-          <p class="tagline-text" style="margin:3px 0 0;font-family:${SANS};font-size:9px;font-weight:500;color:${V2.teal};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;"><span style="color:${V2.teal} !important;-webkit-text-fill-color:${V2.teal};mso-style-textfill-fill-color:${V2.teal};">Mental Health Careers</span></p>
+          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:left;">PMHNP Hiring</p>
+          <p class="tagline-text" style="margin:3px 0 0;font-family:${SANS};font-size:9px;font-weight:500;color:${V2.teal};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;">Mental Health Careers</p>
         </td>
       </tr>
     </table>
@@ -67,13 +67,13 @@ function emailShellV2(content, footerContent, preheader) {
       h1, .heading-text { color: ${V2.textHeading} !important; }
       p, .body-text { color: ${V2.textBody} !important; }
       .brand-text { color: ${V2.textPrimary} !important; }
-      .tagline-text { color: ${V2.textLabel} !important; }
+      .tagline-text { color: ${V2.teal} !important; }
       .footer-text, .footer-text a { color: #A0AEC0 !important; }
       .btn-primary { background-color: ${V2.tealButton} !important; color: #FFFFFF !important; }
     }
     /* Outlook dark mode — explicit overrides */
     [data-ogsc] .brand-text { color: #1F2937 !important; }
-    [data-ogsc] .tagline-text { color: #5A4A3A !important; }
+    [data-ogsc] .tagline-text { color: #0d9488 !important; }
     [data-ogsc] h1 { color: #2D3748 !important; }
     [data-ogsc] .body-text, [data-ogsc] p { color: #4A5568 !important; }
     [data-ogsc] .footer-text, [data-ogsc] .footer-text a { color: #A0AEC0 !important; }
