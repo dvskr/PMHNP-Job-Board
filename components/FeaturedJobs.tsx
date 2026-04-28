@@ -112,6 +112,14 @@ const css = `
         .fjs-col-left { width: 100%; padding: 0 24px 48px; }
         .fjs-col-right { padding: 0 24px 48px; border-left: none; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 48px; }
     }
+    @media (max-width: 768px) {
+        .fjs-col-left { padding: 0 20px 36px; }
+        .fjs-col-right { padding: 0 20px 36px; padding-top: 36px; }
+    }
+    @media (max-width: 520px) {
+        .fjs-col-left { padding: 0 16px 28px; }
+        .fjs-col-right { padding: 0 16px 28px; padding-top: 28px; }
+    }
 
     /* ── Vertical spine ── */
     .fjs-spine {
@@ -180,6 +188,25 @@ const css = `
         transform: scale(1.1) !important;
         box-shadow: 0 4px 20px rgba(200,90,120,0.4) !important;
     }
+    @media (max-width: 768px) {
+        .fjs-job { gap: 16px; padding: 20px 0; }
+        .fjs-num { font-size: 28px !important; min-width: 36px !important; }
+        .fjs-jtitle { font-size: 18px !important; }
+        .fjs-circle-cta { width: 36px !important; height: 36px !important; }
+    }
+    @media (max-width: 520px) {
+        .fjs-num { display: none !important; }
+        .fjs-job { gap: 12px; padding: 16px 0; }
+        .fjs-jtitle { font-size: 16px !important; }
+    }
+    @media (max-width: 768px) {
+        .fjs-header { padding: 48px 20px 36px !important; }
+        .fjs-header h2 { font-size: 28px !important; }
+    }
+    @media (max-width: 520px) {
+        .fjs-header { padding: 40px 16px 28px !important; }
+        .fjs-header h2 { font-size: 24px !important; }
+    }
 `;
 
 export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
@@ -204,6 +231,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                 viewport={{ once: true, margin: '-60px' }}
                 variants={stagger}
                 style={{ maxWidth: '1360px', margin: '0 auto', padding: '80px 56px 56px', position: 'relative', zIndex: 1 }}
+                className="fjs-header"
             >
                 <motion.p
                     variants={fadeUp}
@@ -252,6 +280,9 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                         width={180}
                                         height={180}
                                         style={{ objectFit: 'cover', borderRadius: '20px' }}
+                                        loading="lazy"
+                                        placeholder="blur"
+                                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzNhMTIyOCIvPjwvc3ZnPg=="
                                     />
                                 </div>
 

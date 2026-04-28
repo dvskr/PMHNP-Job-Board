@@ -69,10 +69,10 @@ const FEATURED_POSTS = [
 
 export default function HomepageBlogSection() {
     return (
-        <section style={{ background: '#fff', paddingTop: '88px', paddingBottom: '72px' }}>
+        <section className="wf-section" style={{ background: '#fff', paddingTop: '88px', paddingBottom: '72px' }}>
 
             {/* ═══ Header ═══ */}
-            <div style={{
+            <div className="wf-header" style={{
                 padding: '0 48px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: '40px',
@@ -229,15 +229,19 @@ export default function HomepageBlogSection() {
                     .wf-col3 { margin-right: 32px; }
                 }
                 @media (max-width: 768px) {
-                    .wf-row { flex-wrap: wrap; padding: 28px 24px; }
+                    .wf-section { padding-top: 48px !important; padding-bottom: 40px !important; }
+                    .wf-header { padding: 0 20px !important; }
+                    .wf-row { flex-wrap: wrap; padding: 24px 20px; }
                     .wf-col1 { width: 100%; margin: 0 0 10px 0; }
                     .wf-col2 { width: 100%; max-width: none; margin: 0 0 8px 0; }
                     .wf-col3 { display: none; }
                     .wf-arrow-tab { display: none; }
-                    .wf-link:hover .wf-row { padding-top: 36px; padding-bottom: 36px; }
+                    .wf-link:hover .wf-row { padding-top: 32px; padding-bottom: 32px; }
                 }
                 @media (max-width: 479px) {
-                    .wf-title { font-size: 20px; line-height: 26px; }
+                    .wf-title { font-size: 18px; line-height: 24px; }
+                    .wf-row { padding: 20px 16px; }
+                    .wf-header { padding: 0 16px !important; }
                     .wf-arrow-tab { display: none; }
                 }
             `}</style>

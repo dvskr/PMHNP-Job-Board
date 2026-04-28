@@ -106,6 +106,14 @@ const css = `
         0%, 100% { transform: scale(1); opacity: 0.5; }
         50% { transform: scale(1.5); opacity: 0; }
     }
+    @media (max-width: 768px) {
+        .ehw-inner { padding: 48px 20px !important; }
+        .ehw-inner h2 { font-size: 28px !important; margin-bottom: 40px !important; }
+    }
+    @media (max-width: 520px) {
+        .ehw-inner { padding: 40px 16px !important; }
+        .ehw-inner h2 { font-size: 24px !important; margin-bottom: 32px !important; }
+    }
 `;
 
 export default function EmployerHowItWorks() {
@@ -119,6 +127,7 @@ export default function EmployerHowItWorks() {
                 viewport={{ once: true, margin: '-60px' }}
                 variants={stagger}
                 style={{ maxWidth: '1440px', margin: '0 auto', padding: '80px 48px', position: 'relative', zIndex: 1 }}
+                className="ehw-inner"
             >
                 {/* Header */}
                 <motion.p
@@ -155,6 +164,9 @@ export default function EmployerHowItWorks() {
                                         width={180}
                                         height={180}
                                         style={{ objectFit: 'cover', borderRadius: '20px' }}
+                                        loading="lazy"
+                                        placeholder="blur"
+                                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzNhMTIyOCIvPjwvc3ZnPg=="
                                     />
                                 </div>
 

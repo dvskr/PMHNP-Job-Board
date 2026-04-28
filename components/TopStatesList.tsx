@@ -94,6 +94,9 @@ export default function TopStatesList({ states }: TopStatesProps) {
                                         fill
                                         className="object-cover"
                                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+                                        loading="lazy"
+                                        placeholder="blur"
+                                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2U4ZTJkYiIvPjwvc3ZnPg=="
                                     />
                                 </div>
                                 <p className="text-sm font-semibold text-gray-800 group-hover:text-teal-700 transition-colors text-center">

@@ -60,7 +60,8 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 alt="Diverse community of PMHNP professionals"
                 fill
                 priority
-                unoptimized
+                sizes="100vw"
+                quality={75}
                 style={{
                     objectFit: 'cover',
                     objectPosition: 'center bottom',
@@ -151,6 +152,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     style={{ width: '100%', maxWidth: '580px', marginBottom: '20px' }}
                 >
                     <div
+                        className="hero-search-bar"
                         style={{
                             display: 'flex',
                             alignItems: 'stretch',
@@ -162,7 +164,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.02)',
                         }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1, minWidth: 0 }}>
                             <Search size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
                             <input
                                 placeholder="Job title or keyword"
@@ -170,12 +172,12 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 autoComplete="off"
                                 className="hero-search-input"
-                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', color: '#1f2937', textAlign: 'left' }}
+                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', color: '#1f2937', textAlign: 'left' }}
                                 onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
                             />
                         </div>
-                        <div style={{ width: '1px', background: '#e5e7eb', flexShrink: 0, margin: '10px 0' }} />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1 }}>
+                        <div className="hero-search-divider" style={{ width: '1px', background: '#e5e7eb', flexShrink: 0, margin: '10px 0' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', flex: 1, minWidth: 0 }}>
                             <MapPin size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
                             <input
                                 placeholder="City or 'Remote'"
@@ -183,7 +185,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                                 onChange={(e) => setLocationQuery(e.target.value)}
                                 autoComplete="off"
                                 className="hero-search-input"
-                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '1rem', color: '#1f2937', textAlign: 'left' }}
+                                style={{ boxShadow: 'none', outline: 'none', border: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', color: '#1f2937', textAlign: 'left' }}
                                 onFocus={(e) => { e.target.style.boxShadow = 'none'; e.target.style.outline = 'none'; }}
                             />
                         </div>
@@ -208,6 +210,23 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             Search
                         </button>
                     </div>
+                    <style jsx global>{`
+                        @media (max-width: 540px) {
+                            .hero-search-bar {
+                                flex-direction: column !important;
+                                border-radius: 16px !important;
+                            }
+                            .hero-search-divider {
+                                width: 100% !important;
+                                height: 1px !important;
+                                margin: 0 18px !important;
+                            }
+                            .hero-search-btn {
+                                padding: 14px 28px !important;
+                                border-radius: 0 0 16px 16px !important;
+                            }
+                        }
+                    `}</style>
                 </motion.form>
 
                 {/* ── Quick filters ── */}
@@ -291,7 +310,8 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 {/* ── Clay CTA buttons ── */}
                 <motion.div
                     variants={fadeUp}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '20px' }}
+                    className="hero-cta-row"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}
                 >
                     <Link
                         href="/jobs"

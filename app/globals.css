@@ -794,6 +794,12 @@ footer {
   padding-bottom: 20px;
 }
 
+@media (max-width: 767px) {
+  footer {
+    padding-bottom: 80px;
+  }
+}
+
 /* ══════ PROSE TYPOGRAPHY — Medical Journal Style ══════ */
 .prose h1, .prose h2, .prose h3, .prose h4 {
   font-family: var(--font-heading);
@@ -1385,4 +1391,125 @@ textarea::placeholder {
 .pseo-cta-primary:hover {
   transform: translateY(-2px) !important;
   box-shadow: 4px 4px 12px rgba(13, 148, 136, 0.3), -2px -2px 6px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ══════ MOBILE RESPONSIVE OVERRIDES ══════ */
+
+/* Hero search bar — stack vertically on mobile */
+@media (max-width: 540px) {
+  .hero-search-bar {
+    flex-direction: column !important;
+    border-radius: 16px !important;
+  }
+  .hero-search-divider {
+    width: auto !important;
+    height: 1px !important;
+    margin: 0 18px !important;
+  }
+  .hero-search-btn {
+    padding: 14px 28px !important;
+  }
+}
+
+/* Footer link grid — 2 cols on tablet, 1 on mobile */
+@media (min-width: 769px) {
+  .footer-link-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 48px 40px !important;
+    padding-top: 64px !important;
+    padding-bottom: 64px !important;
+  }
+}
+@media (max-width: 768px) {
+  .footer-link-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .footer-bottom-bar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .footer-bar-left {
+    flex-wrap: wrap !important;
+  }
+  .footer-bar-right {
+    flex-wrap: wrap !important;
+  }
+  .footer-pipe {
+    display: none !important;
+  }
+  .footer-tagline {
+    white-space: normal !important;
+  }
+}
+@media (max-width: 480px) {
+  .footer-link-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+}
+
+/* Blog section — reduce padding on mobile */
+@media (max-width: 768px) {
+  .wf-section {
+    padding-top: 48px !important;
+    padding-bottom: 40px !important;
+  }
+  .wf-header {
+    padding: 0 20px !important;
+  }
+}
+@media (max-width: 479px) {
+  .wf-header {
+    padding: 0 16px !important;
+  }
+}
+
+/* Featured Jobs section — reduce padding on mobile */
+@media (max-width: 768px) {
+  .fjs-header {
+    padding: 48px 20px 36px !important;
+  }
+  .fjs-header h2 {
+    font-size: 28px !important;
+  }
+}
+@media (max-width: 520px) {
+  .fjs-header {
+    padding: 40px 16px 28px !important;
+  }
+  .fjs-header h2 {
+    font-size: 24px !important;
+  }
+}
+
+/* Employer how-it-works — reduce padding on mobile */
+@media (max-width: 768px) {
+  .ehw-inner {
+    padding: 48px 20px !important;
+  }
+  .ehw-inner h2 {
+    font-size: 28px !important;
+    margin-bottom: 40px !important;
+  }
+}
+@media (max-width: 520px) {
+  .ehw-inner {
+    padding: 40px 16px !important;
+  }
+  .ehw-inner h2 {
+    font-size: 24px !important;
+    margin-bottom: 32px !important;
+  }
+}
+
+/* Sticky email bar — sit above bottom nav on mobile, hide on tiny screens */
+@media (max-width: 767px) {
+  .sticky-email-bar {
+    bottom: 60px !important;
+  }
+}
+@media (max-width: 480px) {
+  .sticky-email-bar {
+    display: none !important;
+  }
 }

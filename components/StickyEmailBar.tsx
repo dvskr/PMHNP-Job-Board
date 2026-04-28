@@ -60,8 +60,9 @@ export default function StickyEmailBar() {
 
     return (
         <div
-            className="fixed bottom-0 left-0 right-0 z-[999]"
+            className="fixed left-0 right-0 z-[60] sticky-email-bar"
             style={{
+                bottom: 0,
                 background: 'rgba(237,245,244,0.97)',
                 backdropFilter: 'blur(12px)',
                 borderTop: '1px solid rgba(13,148,136,0.15)',
@@ -73,6 +74,16 @@ export default function StickyEmailBar() {
                 @keyframes slideUp {
                     from { transform: translateY(100%); }
                     to { transform: translateY(0); }
+                }
+                @media (max-width: 767px) {
+                    .sticky-email-bar {
+                        bottom: 60px !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .sticky-email-bar {
+                        display: none !important;
+                    }
                 }
             `}</style>
 
