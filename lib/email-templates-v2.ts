@@ -17,6 +17,7 @@
 //   - CTA button: #4DB6AC, 14px/40px padding, 8px radius, 16px font
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
+const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
 
 // ── Font stacks ──────────────────────────────────────────────────────────────
 export const SERIF = "'Lora', Georgia, 'Times New Roman', serif";
@@ -96,37 +97,53 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
       .stack td { display: block !important; width: 100% !important; padding-right: 0 !important; padding-bottom: 10px !important; }
       .stat-cell { display: block !important; width: 100% !important; margin-bottom: 8px !important; }
     }
+    /* Force light mode — prevent dark mode inversion */
+    :root { color-scheme: light only; }
+    @media (prefers-color-scheme: dark) {
+      body, .body-bg { background-color: ${V2.bgPeach} !important; }
+      .header-bg { background-color: ${V2.bgPeach} !important; }
+      .content-bg { background-color: ${V2.bgCard} !important; }
+      .footer-bg { background-color: #292524 !important; }
+      h1, .heading-text { color: ${V2.textHeading} !important; }
+      p, .body-text { color: ${V2.textBody} !important; }
+      .brand-text { color: ${V2.textPrimary} !important; }
+      .tagline-text { color: ${V2.textLabel} !important; }
+      .footer-text, .footer-text a { color: #A0AEC0 !important; }
+      .btn-primary { background-color: ${V2.tealButton} !important; color: #FFFFFF !important; }
+    }
+    /* Outlook dark mode */
+    [data-ogsc] h1, [data-ogsc] p, [data-ogsc] span, [data-ogsc] td { color: inherit !important; }
+    [data-ogsb] { background-color: inherit !important; }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:${V2.bgBody};font-family:${SERIF};-webkit-font-smoothing:antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:${V2.bgBody};">
+<body style="margin:0;padding:0;background-color:${V2.bgPeach};" bgcolor="${V2.bgPeach}">
+  <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${V2.bgPeach};">${preheader} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};border-collapse:collapse;border-spacing:0;">
     <tr>
-      <td align="center" style="padding:24px 0 48px;">
-
-        <!-- Preheader -->
-        <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:${V2.bgBody};">
-          ${preheader} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
-        </div>
-
-        <!-- Main Card -->
-        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:${V2.bgCard};border-radius:8px;overflow:hidden;">
+      <td align="center" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};">
+        <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center" bgcolor="${V2.bgPeach}"><tr><td><![endif]-->
+        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="${V2.bgPeach}" align="center" style="max-width:600px;width:100%;border-collapse:collapse;border-spacing:0;">
           ${content}
         </table>
-
-        <!-- Footer -->
-        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;">
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#292524" style="background-color:#292524;">
+        <!--[if mso]><table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center"><tr><td style="padding:24px 24px 48px;text-align:center;"><![endif]-->
+        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:600px;width:100%;border-collapse:collapse;border-spacing:0;">
           <tr>
-            <td style="padding:24px 24px 8px;text-align:center;">
+            <td style="padding:24px 24px 48px;text-align:center;">
               ${footerContent}
-              <p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:${V2.textMuted};">
+              <p style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:#A0AEC0;">
                 &copy; ${new Date().getFullYear()} PMHNP Hiring &nbsp;&middot;&nbsp;
-                <a href="${BASE_URL}" style="color:${V2.textMuted};text-decoration:underline;">pmhnphiring.com</a> &nbsp;&middot;&nbsp;
-                <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">support@pmhnphiring.com</a>
+                <a href="${BASE_URL}" style="color:#A0AEC0;text-decoration:underline;">pmhnphiring.com</a> &nbsp;&middot;&nbsp;
+                <a href="mailto:support@pmhnphiring.com" style="color:#A0AEC0;text-decoration:underline;">support@pmhnphiring.com</a>
               </p>
             </td>
           </tr>
         </table>
-
+        <!--[if mso]></td></tr></table><![endif]-->
       </td>
     </tr>
   </table>
@@ -135,39 +152,20 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HEADER V2 — Peach banner bar with logo + brand text side-by-side
+// HEADER V2 — Peach banner bar with logo on top, text centered below
 // ═══════════════════════════════════════════════════════════════════════════════
 //
-// Layout: [100×100 logo] [PMHNP Hiring / Mental Health Careers]
-// The logo and text sit side-by-side with the text bottom-aligned.
+// Layout: [100×100 logo centered]
+//         [PMHNP Hiring — centered]
+//         [MENTAL HEALTH CAREERS — centered]
 
 export function headerBlockV2(title: string, subtitle: string = ''): string {
-  return `
-          <!-- Peach Header Bar -->
-          <tr>
-            <td align="center" style="background-color:${V2.bgPeach};padding:14px 0 12px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
-                <tr>
-                  <td valign="middle">
-                    <img src="${BASE_URL}/logo.png" alt="" width="100" height="100" style="display:block;width:100px;height:100px;object-fit:contain;" />
-                  </td>
-                  <td valign="bottom" style="padding-bottom:24px;">
-                    <span style="font-family:${SERIF};font-size:28px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;display:block;line-height:1;margin-left:-24px;">PMHNP Hiring</span>
-                    <span style="font-family:${SANS};font-size:10px;font-weight:500;color:${V2.textLabel};letter-spacing:0.08em;text-transform:uppercase;display:block;line-height:1;margin-left:-24px;margin-top:4px;">Mental Health Careers</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Content Area -->
-          <tr>
-            <td style="background-color:${V2.bgCard};">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+  const logoUrl = process.env.EMAIL_ASSETS_URL ? `${IMG}/logo.png` : `${BASE_URL}/logo.png`;
+  return `<tr><td class="header-bg" align="center" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};padding:0;text-align:center;"><img src="${logoUrl}" alt="PMHNP Hiring" width="100" height="100" style="display:block;width:100px;height:100px;margin:0 auto;" /><p class="brand-text" style="margin:-8px 0 0;font-family:${SERIF};font-size:28px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:center;">PMHNP Hiring</p><p class="tagline-text" style="margin:2px 0 0;font-family:${SANS};font-size:10px;font-weight:500;color:${V2.textLabel};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;">Mental Health Careers</p></td></tr><tr><td class="content-bg" bgcolor="${V2.bgCard}" style="background-color:${V2.bgCard};"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;border-spacing:0;">
 
                 <!-- Heading -->
                 <tr>
-                  <td class="content-pad" style="padding:48px 40px 0;text-align:center;">
+                  <td class="content-pad" style="padding:24px 40px 0;text-align:center;">
                     <h1 style="margin:0;font-family:${SERIF};font-size:36px;font-weight:normal;color:${V2.textHeading};line-height:1.2;letter-spacing:-0.5px;">
                       ${title}
                     </h1>
@@ -176,7 +174,7 @@ export function headerBlockV2(title: string, subtitle: string = ''): string {
                 </tr>
 
                 <!-- Spacer -->
-                <tr><td style="padding:0;height:40px;line-height:40px;font-size:1px;">&nbsp;</td></tr>`;
+                <tr><td style="padding:0;height:20px;line-height:20px;font-size:1px;">&nbsp;</td></tr>`;
 }
 
 // Amber variant for warnings (expiry, etc.)
@@ -382,15 +380,14 @@ export function dividerV2(): string {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function unsubscribeFooterV2(unsubscribeToken: string): string {
-  return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
-                <a href="${BASE_URL}/job-alerts/manage" style="color:${V2.textMuted};text-decoration:underline;">Manage preferences</a>
-                &nbsp;&middot;&nbsp;
-                <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color:${V2.textMuted};text-decoration:underline;">Unsubscribe</a>
+  return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:#A0AEC0;">
+                <a href="${BASE_URL}/job-alerts/manage" style="color:#A0AEC0;text-decoration:underline;">Manage preferences</a>
               </p>`;
 }
 
+
 export function contactFooterV2(): string {
-  return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
-        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">support@pmhnphiring.com</a>
+  return `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:#A0AEC0;">
+        Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color:#A0AEC0;text-decoration:underline;">support@pmhnphiring.com</a>
       </p>`;
 }

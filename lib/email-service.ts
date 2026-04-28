@@ -17,19 +17,13 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Use env var for email links (falls back to production)
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
-const IMG = `${BASE_URL}/images/email`;
+const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
 
-/** Icon-beside-text layout — matches the v2-templates.ts simple() pattern */
-function simpleBlock(iconFile: string, bodyHtml: string): string {
+/** Body text block — keeps the iconFile param for API compat but renders text only.
+ *  The heading → text → CTA pattern is cleaner without a sandwiched image. */
+function simpleBlock(_iconFile: string, bodyHtml: string): string {
   return `<tr><td class="content-pad" style="padding:0 40px;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-    <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;">
-      <img src="${IMG}/${iconFile}" alt="" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;" />
-    </td>
-    <td valign="top">
-      <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${bodyHtml}</p>
-    </td>
-  </tr></table>
+  <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${bodyHtml}</p>
 </td></tr>`;
 }
 
@@ -156,202 +150,9 @@ interface EmailResult {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DESIGN SYSTEM — Email-safe typography & colors matching pmhnphiring.com
+// V1 DESIGN SYSTEM REMOVED — All emails now use V2 "Warm Diorama"
+// See: lib/email-templates-v2.ts for the active design system
 // ═══════════════════════════════════════════════════════════════════════════════
-//
-// Font: Arial/Helvetica (guaranteed safe in all email clients)
-// Dark palette: #060E18 → #0F1923 → #162231 → #1E293B
-// Primary brand: teal #2DD4BF → #14B8A6 → #0D9488 → #0F766E
-// Text: #F1F5F9 → #E2E8F0 → #CBD5E1 → #94A3B8 → #64748B → #475569
-
-export const F = "Arial, Helvetica, sans-serif";
-
-export const C = {
-  bgBody: '#060E18',
-  bgCard: '#0F1923',
-  bgCardAlt: '#162231',
-  bgElevated: '#1E293B',
-  textPrimary: '#F1F5F9',
-  textSecondary: '#E2E8F0',
-  textTertiary: '#CBD5E1',
-  textMuted: '#94A3B8',
-  textFaded: '#64748B',
-  textDimmed: '#475569',
-  teal: '#2DD4BF',
-  tealDark: '#14B8A6',
-  tealDarker: '#0D9488',
-  tealDeep: '#0F766E',
-  emerald: '#34D399',
-  emeraldDark: '#059669',
-  green: '#10B981',
-  amber: '#F59E0B',
-  amberDark: '#D97706',
-  amberDeep: '#92400E',
-  red: '#EF4444',
-  blue: '#3B82F6',
-  borderLight: '#1E293B',
-  borderMed: '#334155',
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SHELL & SHARED COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function emailShell(content: string, footerContent: string = '', preheaderText: string = ''): string {
-  const preheader = preheaderText || 'PMHNP Hiring — The #1 job board for Psychiatric Mental Health Nurse Practitioners';
-  return `<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="color-scheme" content="dark">
-  <meta name="supported-color-schemes" content="dark">
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; word-spacing: normal; }
-    table { border-collapse: collapse; border-spacing: 0; }
-    td { padding: 0; }
-    img { border: 0; display: block; max-width: 100%; }
-    
-    @media only screen and (max-width: 620px) {
-      .container { width: 100% !important; padding: 0 12px !important; }
-      .content-pad { padding-left: 20px !important; padding-right: 20px !important; }
-      .header-pad { padding: 28px 20px !important; }
-      .btn-full { display: block !important; width: 100% !important; text-align: center !important; }
-      .stack { display: block !important; width: 100% !important; }
-      .stack td { display: block !important; width: 100% !important; padding-right: 0 !important; padding-bottom: 10px !important; }
-      .hide-mobile { display: none !important; }
-      .stat-cell { display: block !important; width: 100% !important; border-radius: 12px !important; margin-bottom: 8px !important; border: 1px solid ${C.borderLight} !important; }
-      .feature-cell { display: block !important; width: 100% !important; padding-bottom: 16px !important; }
-    }
-    
-    :root { color-scheme: dark; }
-    [data-ogsc] .dark-bg { background-color: ${C.bgBody} !important; }
-    a:hover { opacity: 0.9; }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: ${C.bgBody}; font-family: ${F}; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgBody};" class="dark-bg">
-    <tr>
-      <td align="center" style="padding: 40px 16px 32px;">
-        <!-- Preheader -->
-        <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: ${C.bgBody};">
-          ${preheader} &nbsp; &zwnj; &nbsp; &zwnj; &nbsp; &zwnj; &nbsp; &zwnj;
-        </div>
-
-        <!-- Main Container -->
-        <table role="presentation" class="container" width="580" cellspacing="0" cellpadding="0" style="max-width: 580px; width: 100%; background-color: ${C.bgCard}; border-radius: 16px; overflow: hidden; border: 1px solid ${C.borderLight};">
-          ${content}
-        </table>
-
-        <!-- Footer -->
-        <table role="presentation" class="container" width="580" cellspacing="0" cellpadding="0" style="max-width: 580px; width: 100%;">
-          <tr>
-            <td style="padding: 28px 20px 8px; text-align: center;">
-              <!-- Social links -->
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 16px;">
-                <tr>
-                  <td style="padding: 0 8px;"><a href="https://x.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">𝕏</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.facebook.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">Facebook</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.linkedin.com/company/pmhnpjobs" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">LinkedIn</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.instagram.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">Instagram</a></td>
-                </tr>
-              </table>
-              <p style="margin: 0 0 6px; font-family: ${F}; font-size: 12px; color: ${C.textFaded};">
-                10,000+ Jobs · 3,000+ Companies · 50 States
-              </p>
-              ${footerContent}
-              <p style="margin: 12px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-                &copy; ${new Date().getFullYear()} PMHNP Hiring · <a href="${BASE_URL}" style="color: ${C.textDimmed}; text-decoration: none;">pmhnphiring.com</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
-// ─── Header: logo + title in one block ──────────────────────────────────────
-
-export function headerBlock(title: string, subtitle: string = ''): string {
-  return `
-          <tr>
-            <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
-              <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
-                ${title}
-              </h1>
-              ${subtitle ? `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 14px; color: ${C.teal};">${subtitle}</p>` : ''}
-            </td>
-          </tr>`;
-}
-
-function amberHeader(title: string, subtitle: string = ''): string {
-  return `
-          <tr>
-            <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
-              <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
-                ${title}
-              </h1>
-              ${subtitle ? `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 14px; color: ${C.amber};">${subtitle}</p>` : ''}
-            </td>
-          </tr>`;
-}
-
-// ─── Buttons ──────────────────────────────────────────────────────────────────
-
-export function primaryButton(text: string, url: string): string {
-  return `<a href="${url}" class="btn-full" style="display: inline-block; background: linear-gradient(135deg, ${C.tealDarker} 0%, ${C.emeraldDark} 100%); color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 10px; font-family: ${F}; font-weight: bold; font-size: 14px; text-align: center;">${text}</a>`;
-}
-
-export function secondaryButton(text: string, url: string): string {
-  return `<a href="${url}" class="btn-full" style="display: inline-block; background: transparent; color: ${C.teal}; text-decoration: none; padding: 11px 24px; border-radius: 10px; font-family: ${F}; font-weight: bold; font-size: 14px; border: 2px solid ${C.borderMed}; text-align: center;">${text}</a>`;
-}
-
-// ─── Cards & Helpers ──────────────────────────────────────────────────────────
-
-export function infoCard(content: string, accentColor: string = C.tealDarker): string {
-  return `
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
-                <tr>
-                  <td style="padding: 20px 24px; background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight};">
-                    ${content}
-                  </td>
-                </tr>
-              </table>`;
-}
-
-function divider(): string {
-  return `
-          <tr>
-            <td style="padding: 0 40px;">
-              <div style="border-top: 1px solid ${C.borderLight}; margin: 0;"></div>
-            </td>
-          </tr>`;
-}
-
-function unsubscribeFooter(unsubscribeToken: string): string {
-  return `
-              <p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-                <a href="${BASE_URL}/job-alerts/manage" style="color: ${C.textFaded}; text-decoration: none;">Manage preferences</a>
-                &nbsp;·&nbsp;
-                <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
-              </p>`;
-}
 
 // Get or create an unsubscribe token for any email address
 async function getOrCreateUnsubToken(email: string): Promise<string> {
@@ -369,46 +170,7 @@ async function getOrCreateUnsubToken(email: string): Promise<string> {
   return created.unsubscribeToken;
 }
 
-function badge(text: string, bgColor: string = C.bgElevated, textColor: string = C.textMuted, borderColor: string = C.borderLight): string {
-  return `<span style="display: inline-block; background-color: ${bgColor}; color: ${textColor}; padding: 3px 10px; border-radius: 6px; font-family: ${F}; font-size: 11px; font-weight: bold; border: 1px solid ${borderColor}; line-height: 1.4;">${text}</span>`;
-}
 
-function salaryBadge(text: string): string {
-  return badge(text, '#064E3B', C.emerald, '#065F46');
-}
-
-function sectionLabel(text: string, color: string = C.textMuted): string {
-  return `<p style="margin: 0 0 6px; font-family: ${F}; font-size: 11px; font-weight: bold; color: ${color}; text-transform: uppercase; letter-spacing: 1px;">${text}</p>`;
-}
-
-// ─── Feature icon grid (replaces bullet lists) ───────────────────────────────
-
-function featureRow(icon: string, title: string, desc: string): string {
-  return `<tr>
-    <td style="padding: 10px 0;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-        <tr>
-          <td width="40" valign="top" style="padding-right: 12px;">
-            <div style="width: 36px; height: 36px; background-color: ${C.bgCardAlt}; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: bold; color: ${C.teal}; border: 1px solid ${C.borderLight};">${icon}</div>
-          </td>
-          <td valign="top">
-            <p style="margin: 0; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">${title}</p>
-            <p style="margin: 2px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; line-height: 1.5;">${desc}</p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>`;
-}
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function statCard(value: string, label: string): string {
-  return `<td class="stat-cell" width="50%" style="padding: 20px; background-color: ${C.bgCardAlt}; text-align: center; border: 1px solid ${C.borderLight}; border-radius: 12px;">
-    <div style="font-family: ${F}; font-size: 28px; font-weight: bold; color: ${C.teal};">${value}</div>
-    <div style="font-family: ${F}; font-size: 11px; font-weight: bold; color: ${C.textMuted}; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">${label}</div>
-  </td>`;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. WELCOME EMAIL (Job Alert Subscription)
@@ -459,27 +221,6 @@ export async function sendSignupWelcomeEmail(
 ): Promise<EmailResult> {
   try {
     const isEmployer = role === 'employer';
-    const greeting = firstName ? `Welcome, ${firstName}!` : 'Welcome!';
-
-    const employerContent = `
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Your employer account is ready. Start posting jobs and connect with qualified PMHNPs nationwide.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('+', 'Post in Minutes', 'Create and publish job listings with our guided form')}
-                ${featureRow('&gt;', 'Reach PMHNPs', 'Your listing is seen by 10,000+ qualified candidates')}
-                ${featureRow('&#9776;', 'Track Everything', 'View counts, apply clicks, and applicant analytics')}
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Post a Job →', `${SITE_URL}/post-job`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Dashboard', `${SITE_URL}/employer/dashboard`)}
-                  </td>
-                </tr>
-              </table>`;
 
     let html: string;
     if (isEmployer) {
@@ -1152,26 +893,6 @@ export async function sendNewCandidateAlertEmail(
   candidates: CandidateDigest[]
 ): Promise<EmailResult> {
   try {
-    const candidateRows = candidates.slice(0, 10).map(c => `
-      <tr>
-        <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight};">
-            <div style="font-family: ${F};">
-            <div style="font-size: 15px; font-weight: 600; color: ${C.textPrimary}; margin-bottom: 4px;">
-              ${escapeHtml(c.name)}
-            </div>
-            ${c.headline ? `<div style="font-size: 13px; color: ${C.textMuted}; margin-bottom: 6px;">${escapeHtml(c.headline)}</div>` : ''}
-            <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-              ${c.specialties.slice(0, 3).map(s => `<td style="padding-right: 4px;">${badge(escapeHtml(s), 'rgba(139,92,246,0.15)', '#A78BFA', 'rgba(139,92,246,0.3)')}</td>`).join('')}
-              ${c.states.slice(0, 3).map(s => `<td style="padding-right: 4px;">${badge(escapeHtml(s))}</td>`).join('')}
-              ${c.experience !== null ? `<td>${badge(`${c.experience}+ yrs`, 'rgba(45,212,191,0.15)', '#2DD4BF', 'rgba(45,212,191,0.3)')}</td>` : ''}
-            </tr></table>
-          </div>
-        </td>
-        <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight}; vertical-align: middle;">
-          ${primaryButton('View →', c.profileUrl)}
-        </td>
-      </tr>
-    `).join('');
 
     const html = emailShellV2(`
       ${headerBlockV2('New Candidate Match', '')}

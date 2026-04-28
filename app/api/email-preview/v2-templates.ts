@@ -6,7 +6,7 @@ import {
 } from '@/lib/email-templates-v2';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
-const IMG = `${BASE_URL}/images/email`;
+const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,14 +43,7 @@ function simple(iconFile: string, heading: string, body: string, cta: string, ct
     ${headerBlockV2(heading, '')}
     ${spacerV2(12)}
     <tr><td class="content-pad" style="padding:0 40px;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-        <td width="100" height="100" valign="middle" style="padding-right:20px;width:100px;min-width:100px;height:100px;overflow:hidden;">
-          <img src="${IMG}/${iconFile}" alt="" width="100" height="100" style="width:100px;min-width:100px;height:100px;min-height:100px;max-height:100px;border-radius:12px;display:block;" />
-        </td>
-        <td valign="top">
-          <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
-        </td>
-      </tr></table>
+      <p style="margin:0;font-family:${SERIF};font-size:17px;color:${V2.textBody};line-height:1.7;">${body}</p>
     </td></tr>
     ${spacerV2(32)}
     ${centeredCta(cta, ctaUrl)}
