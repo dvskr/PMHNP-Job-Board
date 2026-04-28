@@ -125,6 +125,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
       }
 
+      // Only employers can post jobs
+      if (profile.role !== 'employer') {
+        return NextResponse.json(
+          { error: 'Only employer accounts can post jobs. Please sign up as an employer.' },
+          { status: 403 }
+        );
+      }
+
       userId = user.id;
 
     } catch (error) {

@@ -176,7 +176,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
       {/* ═══ HERO ═══ */}
       <CategoryHero
         bgColor="#99a7d4"
-        heroImage="/images/categories/hero_wc_newgrad.png"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_newgrad.webp"
         heroAlt="New grad PMHNP career launch"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'New Grad']}
@@ -257,7 +257,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                   <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Mentorship Programs</h3>
                   <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>Structured clinical supervision with experienced psychiatric providers. Graduate from supervised practice to independent caseload management.</p>
                 </div>
-                <Image src="/images/categories/bento_newgrad_mentorship.png" alt="PMHNP mentorship" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_newgrad_mentorship.webp" alt="PMHNP mentorship" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
               </div>
             </div>
             <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FEF3C7, #FDE68A)', textAlign: 'center' }}>
@@ -268,22 +268,22 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
 
             {/* ROW 2: Icon Cards */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_newgrad_diploma.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_newgrad_diploma.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>New Grad Welcome</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Employers actively seeking newly certified PMHNPs.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_newgrad_bulb.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_newgrad_bulb.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Mentorship</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Structured mentorship with experienced providers.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_newgrad_stairs.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_newgrad_stairs.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Career Growth</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Clear advancement paths from entry to senior roles.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_newgrad_cert.png" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_newgrad_cert.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Get Certified</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Support for specialty certifications and CE credits.</p>
             </div>
@@ -296,7 +296,7 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
                   <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Starting Salary</h3>
                   <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>New grad PMHNPs typically earn ${stats.avgSalary}k+ with rapid salary growth after year one. Many roles include signing bonuses and loan repayment.</p>
                 </div>
-                <Image src="/images/categories/bento_newgrad_salary.png" alt="New grad PMHNP salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_newgrad_salary.webp" alt="New grad PMHNP salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
               </div>
             </div>
             <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', textAlign: 'center' }}>
@@ -346,12 +346,12 @@ export default async function NewGradJobsPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
-              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: '/images/categories/clay_icon_inpatient.png' },
-              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: '/images/categories/clay_icon_salary.png' },
-              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: '/images/categories/clay_icon_location.png' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_telehealth.webp' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_inpatient.webp' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_outpatient.webp' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
                 <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />

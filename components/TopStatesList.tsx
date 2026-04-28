@@ -89,7 +89,7 @@ export default function TopStatesList({ states }: TopStatesProps) {
                                     }}
                                 >
                                     <Image
-                                        src={`/images/states/${state.slug}.png`}
+                                        src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${state.slug}.webp`}
                                         alt={`${state.name} PMHNP jobs`}
                                         fill
                                         className="object-cover"

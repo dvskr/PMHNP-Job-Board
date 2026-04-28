@@ -71,7 +71,7 @@ export default async function FullTimePage({ searchParams }: PageProps) {
       {/* ═══ 1. HERO ═══ */}
       <CategoryHero
         bgColor="#88a7c4"
-        heroImage="/images/categories/hero_wc_fulltime.png"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_fulltime.webp"
         heroAlt="Full-time PMHNP in clinic office"
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Full-Time']}
@@ -126,19 +126,19 @@ export default async function FullTimePage({ searchParams }: PageProps) {
                 <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Full Benefits Package</h3>
                 <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Health, dental, vision, 401k matching, 3-6 weeks PTO, CME stipends, malpractice coverage, and student loan repayment at qualifying employers.</p>
               </div>
-              <Image src="/images/categories/bento_ft_benefits.png" alt="Benefits package" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_ft_benefits.webp" alt="Benefits package" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>
             <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <Image src="/images/categories/bento_ft_stability.png" alt="Job stability" width={200} height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_ft_stability.webp" alt="Job stability" width={200} height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
               <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Long-Term Security</h3>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Permanent positions with predictable income and career advancement.</p>
             </div>
             {/* ROW 2: Icon Cards */}
             {[
-              { icon: '/images/categories/icon_ft_benefits.png', t: 'Full Benefits', d: 'Health insurance, 401k, PTO, CME stipends, and loan repayment.' },
-              { icon: '/images/categories/icon_ft_security.png', t: 'Job Security', d: 'Permanent positions with stable income and career advancement.' },
-              { icon: '/images/categories/icon_ft_balance.png', t: 'Work-Life Balance', d: 'Many full-time roles offer predictable M-F schedules.' },
-              { icon: '/images/categories/icon_ft_team.png', t: 'Team Integration', d: 'Become a core member of multidisciplinary care teams.' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ft_benefits.webp', t: 'Full Benefits', d: 'Health insurance, 401k, PTO, CME stipends, and loan repayment.' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ft_security.webp', t: 'Job Security', d: 'Permanent positions with stable income and career advancement.' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ft_balance.webp', t: 'Work-Life Balance', d: 'Many full-time roles offer predictable M-F schedules.' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_ft_team.webp', t: 'Team Integration', d: 'Become a core member of multidisciplinary care teams.' },
             ].map((c, i) => (
               <div key={i} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
                 <Image src={c.icon} alt={c.t} width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -154,7 +154,7 @@ export default async function FullTimePage({ searchParams }: PageProps) {
                 <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average full-time PMHNP salary:</p>
                 <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
               </div>
-              <Image src="/images/categories/bento_ft_salary.png" alt="Full-time salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_ft_salary.webp" alt="Full-time salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
             </div>
             <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
               <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
@@ -189,7 +189,7 @@ export default async function FullTimePage({ searchParams }: PageProps) {
           <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-            {[{ href: '/jobs/part-time', label: 'Part-Time', sub: 'Flexible hours', icon: '/images/categories/clay_icon_parttime.png' }, { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' }, { href: '/jobs/contract', label: 'Contract', sub: 'Fixed-term roles', icon: '/images/categories/clay_icon_contract.png' }, { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: '/images/categories/clay_icon_outpatient.png' }, { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', icon: '/images/categories/clay_icon_salary.png' }, { href: '/jobs/locations', label: 'By Location', sub: '50 states', icon: '/images/categories/clay_icon_location.png' }].map(c => (
+            {[{ href: '/jobs/part-time', label: 'Part-Time', sub: 'Flexible hours', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_parttime.webp' }, { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp' }, { href: '/jobs/contract', label: 'Contract', sub: 'Fixed-term roles', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_contract.webp' }, { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_outpatient.webp' }, { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp' }, { href: '/jobs/locations', label: 'By Location', sub: '50 states', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp' }].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', textAlign: 'center' }}>
                 <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>

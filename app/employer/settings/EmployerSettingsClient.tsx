@@ -254,10 +254,10 @@ export default function EmployerSettingsClient() {
     if (!profile) return null;
 
     const sections = [
-        { key: 'company' as const, label: 'Company Profile', icon: '/images/employers/clay-icon-office.png', desc: 'Brand & info' },
-        { key: 'billing' as const, label: 'Billing & Plans', icon: '/images/employers/clay-icon-credit-card.png', desc: 'Payment history' },
-        { key: 'alerts' as const, label: 'Candidate Alerts', icon: '/images/employers/clay-icon-bell.png', desc: 'Match notifications' },
-        { key: 'account' as const, label: 'Account Security', icon: '/images/employers/clay-icon-shield.png', desc: 'Password reset' },
+        { key: 'company' as const, label: 'Company Profile', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-office.webp', desc: 'Brand & info' },
+        { key: 'billing' as const, label: 'Billing & Plans', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-credit-card.webp', desc: 'Payment history' },
+        { key: 'alerts' as const, label: 'Candidate Alerts', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-bell.webp', desc: 'Match notifications' },
+        { key: 'account' as const, label: 'Account Security', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-shield.webp', desc: 'Password reset' },
     ];
 
     const Label = ({ children }: { children: React.ReactNode }) => (

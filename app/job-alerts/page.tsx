@@ -162,7 +162,7 @@ function JobAlertsContent() {
       {/* ═══ Hero Section ═══ */}
       <CategoryHero
         bgColor="#0D9488"
-        heroImage="/images/categories/hero_wc_alerts.png"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_alerts.webp"
         heroAlt="Job Alerts"
         badgeText="Job Alerts"
         breadcrumbs={['Home', 'Job Alerts']}

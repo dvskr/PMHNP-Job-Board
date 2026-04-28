@@ -15,9 +15,9 @@ export const metadata: Metadata = {
     description:
         'PMHNP career guides, salary insights, and job market trends from the #1 psychiatric NP job board.',
     openGraph: {
-        images: [{ url: '/images/pages/pmhnp-career-insights-blog.webp', width: 1280, height: 900, alt: 'PMHNP career blog with expert guides on salary negotiation, state spotlights, and job market insights' }],
+        images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-insights-blog.webp', width: 1280, height: 900, alt: 'PMHNP career blog with expert guides on salary negotiation, state spotlights, and job market insights' }],
     },
-    twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-career-insights-blog.webp'] },
+    twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-insights-blog.webp'] },
     alternates: {
         canonical: 'https://pmhnphiring.com/blog',
     },

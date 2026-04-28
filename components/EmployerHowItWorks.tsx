@@ -14,10 +14,10 @@ const stagger = {
 };
 
 const STEPS = [
-    { img: '/images/step-employer-post.png', title: 'Post Your Listing', desc: 'Fill out job details, preview, and publish — live in under 5 minutes. First 2 posts free.' },
-    { img: '/images/step-employer-reach.png', title: 'Reach Every PMHNP', desc: 'Your listing is emailed to thousands via daily job alerts and indexed on Google with its own SEO page.' },
-    { img: '/images/step-employer-browse.png', title: 'Browse & Message', desc: 'Search our talent pool of qualified PMHNPs. Save top candidates and reach out directly with InMail.' },
-    { img: '/images/step-employer-track.png', title: 'Track & Hire', desc: 'Real-time analytics on views, clicks, and applications. Get notified instantly when candidates apply.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-post.webp', title: 'Post Your Listing', desc: 'Fill out job details, preview, and publish — live in under 5 minutes. First 2 posts free.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-reach.webp', title: 'Reach Every PMHNP', desc: 'Your listing is emailed to thousands via daily job alerts and indexed on Google with its own SEO page.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-browse.webp', title: 'Browse & Message', desc: 'Search our talent pool of qualified PMHNPs. Save top candidates and reach out directly with InMail.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-employer-track.webp', title: 'Track & Hire', desc: 'Real-time analytics on views, clicks, and applications. Get notified instantly when candidates apply.' },
 ];
 
 const css = `

@@ -26,12 +26,12 @@ interface Props {
 
 /* ─── Requirements per state (common baseline + state-specific) ─── */
 const COMMON_REQUIREMENTS = [
-  { step: 1, text: 'MSN or DNP from accredited program', img: '/images/employers/clay-star.png' },
-  { step: 2, text: 'ANCC PMHNP-BC certification', img: '/images/employers/clay-envelope.png' },
-  { step: 3, text: 'State APRN license application', img: '/images/employers/clay-briefcase.png' },
-  { step: 4, text: 'NPI number registration', img: '/images/employers/clay-people.png' },
-  { step: 5, text: 'DEA registration for prescribing', img: '/images/employers/clay-dollar.png' },
-  { step: 6, text: 'State-specific CE requirements', img: '/images/employers/clay-calendar.png' },
+  { step: 1, text: 'MSN or DNP from accredited program', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp' },
+  { step: 2, text: 'ANCC PMHNP-BC certification', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-envelope.webp' },
+  { step: 3, text: 'State APRN license application', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-briefcase.webp' },
+  { step: 4, text: 'NPI number registration', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-people.webp' },
+  { step: 5, text: 'DEA registration for prescribing', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp' },
+  { step: 6, text: 'State-specific CE requirements', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp' },
 ];
 
 const TIMELINE_MAP: Record<string, string> = {
@@ -46,21 +46,21 @@ const AUTHORITY_CONFIG = {
     color: '#10B981',
     bg: '#D1FAE5',
     border: '#6EE7B7',
-    img: '/images/employers/clay-chart.png',
+    img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp',
   },
   reduced: {
     label: 'Reduced Practice',
     color: '#F59E0B',
     bg: '#FEF3C7',
     border: '#FCD34D',
-    img: '/images/employers/clay-calendar.png',
+    img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp',
   },
   restricted: {
     label: 'Restricted Practice',
     color: '#EF4444',
     bg: '#FEE2E2',
     border: '#FCA5A5',
-    img: '/images/employers/clay-trending.png',
+    img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-trending.webp',
   },
 };
 
@@ -108,8 +108,8 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
 
     // Extra requirement for non-FPA states
     const extraReqs = auth.authority === 'full' ? [] :
-      auth.authority === 'reduced' ? [{ step: 7, text: 'Secure collaborative physician agreement', img: '/images/clay-icon-connect.png' }] :
-      [{ step: 7, text: 'Secure supervising physician agreement', img: '/images/clay-icon-connect.png' }];
+      auth.authority === 'reduced' ? [{ step: 7, text: 'Secure collaborative physician agreement', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-connect.webp' }] :
+      [{ step: 7, text: 'Secure supervising physician agreement', img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-connect.webp' }];
 
     return { auth, salary, guide, config, timeline, extraReqs };
   }, [selectedState, practiceAuthority, stateSalaries, stateGuides]);
@@ -131,10 +131,10 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
         {/* State diorama in header when selected */}
         {selectedState && (
           <div style={{ position: 'absolute', right: '-20px', top: '-20px', bottom: '-20px', width: '200px', opacity: 0.18 }}>
-            <Image src={`/images/states/${stateSlug}.png`} alt="" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Image src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${stateSlug}.webp`} alt="" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         )}
-        <Image src="/images/employers/clay-chart.png" alt="Licensure Checker" width={52} height={52} style={{
+        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp" alt="Licensure Checker" width={52} height={52} style={{
           width: '52px', height: '52px', borderRadius: '16px',
           boxShadow: '4px 4px 12px rgba(0,0,0,0.15)', position: 'relative', zIndex: 1,
         }} />
@@ -179,7 +179,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
       {/* ─── Results ─── */}
       {!result ? (
         <div style={{ padding: '48px 32px', textAlign: 'center' }}>
-          <Image src="/images/clay-icon-match.png" alt="Select a state" width={72} height={72} style={{ width: '72px', height: '72px', margin: '0 auto 16px', opacity: 0.4 }} />
+          <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-match.webp" alt="Select a state" width={72} height={72} style={{ width: '72px', height: '72px', margin: '0 auto 16px', opacity: 0.4 }} />
           <p style={{ fontSize: '16px', fontWeight: 600, color: '#94A3B8', margin: '0 0 4px' }}>Select a state above</p>
           <p style={{ fontSize: '13px', color: '#CBD5E1', margin: 0 }}>to see licensure requirements, practice authority, salary, and timeline</p>
         </div>
@@ -197,7 +197,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               padding: '16px',
             }}>
               <Image
-                src={`/images/states/${stateSlug}.png`}
+                src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${stateSlug}.webp`}
                 alt={`${selectedState} 3D illustration`}
                 width={200} height={200}
                 style={{ width: '160px', height: '160px', objectFit: 'contain' }}
@@ -248,7 +248,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               border: '1.5px solid rgba(13,148,136,0.12)',
               display: 'flex', alignItems: 'center', gap: '16px',
             }}>
-              <Image src="/images/employers/clay-calendar.png" alt="Timeline" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-calendar.webp" alt="Timeline" width={44} height={44} style={{ width: '44px', height: '44px', borderRadius: '14px' }} />
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 2px' }}>
                   Estimated Timeline
@@ -269,7 +269,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
                 background: '#FAFAFA', border: '1px solid rgba(0,0,0,0.06)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                  <Image src="/images/employers/clay-dollar.png" alt="Salary" width={36} height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary" width={36} height={36} style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
                   <div>
                     <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                       Average Salary in {selectedState}
@@ -304,7 +304,7 @@ export default function LicensureChecker({ stateGuides, stateSalaries, practiceA
               background: 'rgba(0,0,0,0.015)', border: '1px solid rgba(0,0,0,0.04)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <Image src="/images/employers/clay-star.png" alt="Info" width={24} height={24} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp" alt="Info" width={24} height={24} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Key Costs</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

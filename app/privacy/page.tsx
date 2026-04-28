@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'Privacy Policy for PMHNP Hiring. Learn how we collect, use, and protect your information.',
   openGraph: {
-    images: [{ url: '/images/pages/pmhnp-hiring-privacy-policy.webp', width: 1280, height: 900, alt: 'PMHNP Hiring privacy policy page detailing data collection, security measures, and user privacy rights' }],
+    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp', width: 1280, height: 900, alt: 'PMHNP Hiring privacy policy page detailing data collection, security measures, and user privacy rights' }],
   },
-  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-hiring-privacy-policy.webp'] },
+  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp'] },
   alternates: { canonical: 'https://pmhnphiring.com/privacy' },
 };
 
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
               <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: January 1, 2026</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Image src="/images/pages/clay_hero_privacy.png" alt="Privacy Policy" width={140} height={140} style={{ objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.12))' }} priority />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_privacy.webp" alt="Privacy Policy" width={140} height={140} style={{ objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.12))' }} priority />
             </div>
           </div>
         </header>

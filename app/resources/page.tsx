@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'PMHNP Resources & Career Guides — 85+ Free Articles',
     description: 'Free career resources for psychiatric nurse practitioners. Salary data, licensure guides, and expert articles.',
-    images: [{ url: '/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides' }],
+    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides' }],
   },
-  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-career-resources-guides.webp'] },
+  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp'] },
   alternates: { canonical: 'https://pmhnphiring.com/resources' },
 };
 
@@ -39,14 +39,14 @@ const clayCard: React.CSSProperties = {
 
 /* ─── Category config ─── */
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  career_opportunities: { label: 'Career', color: '#6366F1', bg: '#EEF2FF', icon: '/images/employers/clay-trending.png' },
-  salary_negotiation: { label: 'Salary', color: '#0D9488', bg: '#F0FDFA', icon: '/images/employers/clay-dollar.png' },
-  job_seeker_attraction: { label: 'Job Search', color: '#3B82F6', bg: '#EFF6FF', icon: '/images/blog/icon-job-search.png' },
-  career_myths: { label: 'Education', color: '#A855F7', bg: '#FAF5FF', icon: '/images/blog/icon-education.png' },
-  community_lifestyle: { label: 'Lifestyle', color: '#F59E0B', bg: '#FFFBEB', icon: '/images/employers/clay-people.png' },
-  employer_facing: { label: 'Employers', color: '#EF4444', bg: '#FEF2F2', icon: '/images/blog/icon-employers.png' },
-  product_lead_gen: { label: 'Product', color: '#0D9488', bg: '#F0FDFA', icon: '/images/blog/icon-product.png' },
-  industry_awareness: { label: 'Industry', color: '#8B5CF6', bg: '#F5F3FF', icon: '/images/blog/icon-industry.png' },
+  career_opportunities: { label: 'Career', color: '#6366F1', bg: '#EEF2FF', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-trending.webp' },
+  salary_negotiation: { label: 'Salary', color: '#0D9488', bg: '#F0FDFA', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp' },
+  job_seeker_attraction: { label: 'Job Search', color: '#3B82F6', bg: '#EFF6FF', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/blog/icon-job-search.webp' },
+  career_myths: { label: 'Education', color: '#A855F7', bg: '#FAF5FF', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/blog/icon-education.webp' },
+  community_lifestyle: { label: 'Lifestyle', color: '#F59E0B', bg: '#FFFBEB', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-people.webp' },
+  employer_facing: { label: 'Employers', color: '#EF4444', bg: '#FEF2F2', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/blog/icon-employers.webp' },
+  product_lead_gen: { label: 'Product', color: '#0D9488', bg: '#F0FDFA', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/blog/icon-product.webp' },
+  industry_awareness: { label: 'Industry', color: '#8B5CF6', bg: '#F5F3FF', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/blog/icon-industry.webp' },
 };
 
 /* ─── Featured guides data ─── */
@@ -55,7 +55,7 @@ const featuredGuides = [
     href: '/salary-guide',
     title: 'Salary Calculator & Guide',
     desc: 'Interactive salary tool with state, experience, and setting selectors. Complete 2026 data.',
-    img: '/images/employers/clay-dollar.png',
+    img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp',
     badge: 'Interactive Tool',
     badgeColor: '#0D9488',
   },
@@ -63,7 +63,7 @@ const featuredGuides = [
     href: '/resources/fpa-guide',
     title: 'Full Practice Authority Guide',
     desc: 'All 50 states classified. See which states allow independent practice and how FPA impacts pay.',
-    img: '/images/employers/clay-chart.png',
+    img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-chart.webp',
     badge: '50 States',
     badgeColor: '#6366F1',
   },
@@ -71,7 +71,7 @@ const featuredGuides = [
     href: '/resources/private-practice-guide',
     title: 'Private Practice Startup',
     desc: 'LLC formation, credentialing, EHR, malpractice insurance, and income projections.',
-    img: '/images/employers/clay-trending.png',
+    img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-trending.webp',
     badge: 'Step-by-Step',
     badgeColor: '#F59E0B',
   },
@@ -231,7 +231,7 @@ export default async function ResourcesPage() {
                 </p>
               </div>
               <div style={{ padding: '24px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Image src="/images/employers/clay-dollar.png" alt="1099 vs W2" width={56} height={56} style={{ width: '56px', height: '56px', borderRadius: '16px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="1099 vs W2" width={56} height={56} style={{ width: '56px', height: '56px', borderRadius: '16px' }} />
               </div>
             </Link>
           </div>
@@ -300,7 +300,7 @@ export default async function ResourcesPage() {
                     }}
                   >
                     <Image
-                      src={`/images/states/${slug}.png`}
+                      src={`https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/states/${slug}.webp`}
                       alt={`${s.name} PMHNP licensure guide`}
                       fill
                       className="object-cover"
@@ -330,7 +330,7 @@ export default async function ResourcesPage() {
           </h2>
 
           {Object.entries(grouped).map(([category, posts]) => {
-            const cfg = CATEGORY_CONFIG[category] || { label: category, color: '#64748B', bg: '#F1F5F9', icon: '/images/employers/clay-star.png' };
+            const cfg = CATEGORY_CONFIG[category] || { label: category, color: '#64748B', bg: '#F1F5F9', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-star.webp' };
             return (
               <div key={category} style={{ marginBottom: '48px' }}>
                 {/* Category header */}
@@ -398,7 +398,7 @@ export default async function ResourcesPage() {
               background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)',
               border: '2px solid rgba(13,148,136,0.12)',
             }}>
-              <Image src="/images/employers/clay-dollar.png" alt="Salary Calculator" width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-dollar.webp" alt="Salary Calculator" width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#134E4A', margin: '0 0 6px' }}>Salary Calculator</h3>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.5, margin: '0 0 14px' }}>
                 Get a personalized salary estimate based on your state, experience, setting, and specialty.
@@ -410,7 +410,7 @@ export default async function ResourcesPage() {
 
             {/* PDF Download */}
             <div className="emp-bento-card" style={{ ...clayCard, padding: '28px 24px' }}>
-              <Image src="/images/employers/clay-envelope.png" alt="PDF Guide" width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-envelope.webp" alt="PDF Guide" width={48} height={48} style={{ width: '48px', height: '48px', borderRadius: '14px', marginBottom: '12px' }} />
               <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Free Salary Guide PDF</h3>
               <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.5, margin: '0 0 14px' }}>
                 Download the complete {currentYear} salary guide with state-by-state data and negotiation tips.
@@ -431,7 +431,7 @@ export default async function ResourcesPage() {
             border: '2px solid rgba(13,148,136,0.10)',
           }}>
             <div style={{ background: 'linear-gradient(145deg, #0D9488, #10B981)', padding: '40px 32px', color: '#fff' }}>
-              <Image src="/images/clay-icon-match.png" alt="Jobs" width={56} height={56} style={{ width: '56px', height: '56px', margin: '0 auto 16px', borderRadius: '16px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/clay-icon-match.webp" alt="Jobs" width={56} height={56} style={{ width: '56px', height: '56px', margin: '0 auto 16px', borderRadius: '16px' }} />
               <h2 className="font-lora" style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 8px' }}>Ready to Find Your Next PMHNP Role?</h2>
               <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.8)', margin: '0 0 24px' }}>
                 Browse thousands of psychiatric nurse practitioner positions updated daily.

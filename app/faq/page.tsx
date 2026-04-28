@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   title: 'FAQ | PMHNP Jobs',
   description: 'Frequently asked questions about PMHNP Hiring. Learn how to search jobs, post positions, set up alerts, and make the most of the #1 PMHNP job board.',
   openGraph: {
-    images: [{ url: '/images/pages/pmhnp-hiring-frequently-asked-questions.webp', width: 1280, height: 900, alt: 'PMHNP Hiring FAQ page with answers about job posting, salary transparency, job alerts, and employer features' }],
+    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp', width: 1280, height: 900, alt: 'PMHNP Hiring FAQ page with answers about job posting, salary transparency, job alerts, and employer features' }],
   },
-  twitter: { card: 'summary_large_image', images: ['/images/pages/pmhnp-hiring-frequently-asked-questions.webp'] },
+  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp'] },
   alternates: {
     canonical: 'https://pmhnphiring.com/faq',
   },
@@ -220,7 +220,7 @@ export default function FAQPage() {
                   </p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <Image src="/images/pages/clay_hero_faq.png" alt="FAQ PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+                  <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_faq.webp" alt="FAQ PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
               </div>
           </div>
       </section>

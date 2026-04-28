@@ -85,7 +85,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
             {/* HERO */}
       <CategoryHero
         bgColor="#6a85a0"
-        heroImage="/images/categories/hero_wc_senior.png"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_senior.webp"
         heroAlt="Senior PMHNP clinical leadership roles"
         badgeText={`${stats.totalJobs} live roles � updated today`}
         breadcrumbs={['Careers', 'Nurse Practitioner', 'Senior']}
@@ -165,31 +165,31 @@ export default async function SeniorPage({ searchParams }: PageProps) {
                 <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Lead Clinical Programs</h3>
                 <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.65, margin: 0 }}>Direct psychiatric programs, mentor NP teams, and drive quality improvement initiatives as a clinical leader.</p>
               </div>
-              <Image src="/images/categories/bento_senior_leadership.png" alt="PMHNP leadership diorama" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_senior_leadership.webp" alt="PMHNP leadership diorama" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
             </div>
             <div className="cat-bento-card cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <Image src="/images/categories/bento_senior_strategy.png" alt="Strategic planning diorama" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '12px', marginBottom: '14px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_senior_strategy.webp" alt="Strategic planning diorama" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '12px', marginBottom: '14px' }} />
               <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Strategic Impact</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Shape mental health policy and organizational strategy at the executive level.</p>
             </div>
             {/* ROW 2: 4 icon cards */}
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_senior_crown.png" alt="Executive roles" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_senior_crown.webp" alt="Executive roles" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Executive Roles</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Chief PMHNP, clinical director, and VP positions.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_senior_chart.png" alt="Top compensation" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_senior_chart.webp" alt="Top compensation" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Top Compensation</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Senior roles offer $180K-$250K+ with bonuses.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_senior_blueprint.png" alt="Program design" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_senior_blueprint.webp" alt="Program design" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Program Design</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Build and lead psychiatric programs from scratch.</p>
             </div>
             <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
-              <Image src="/images/categories/icon_senior_globe.png" alt="Industry influence" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_senior_globe.webp" alt="Industry influence" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Industry Influence</h3>
               <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Shape mental health policy and best practices.</p>
             </div>
@@ -203,7 +203,7 @@ export default async function SeniorPage({ searchParams }: PageProps) {
                 <div style={{ fontSize: '36px', fontWeight: 800, color: '#1A2E35', marginBottom: '6px' }}>${`${stats.avgSalary}k`}</div>
                 <p style={{ fontSize: '13px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Average senior PMHNP salary with executive bonuses, equity packages, and comprehensive benefits.</p>
               </div>
-              <Image src="/images/categories/bento_senior_compensation.png" alt="Senior compensation diorama" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_senior_compensation.webp" alt="Senior compensation diorama" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
             </div>
             <div className="cat-bento-card cat-bento-cta" style={{ gridColumn: 'span 4', padding: '28px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(145deg, #065F46, #0D9488)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.15)' }}>
               <Bell size={28} style={{ color: '#fff', marginBottom: '12px' }} />
@@ -244,12 +244,12 @@ export default async function SeniorPage({ searchParams }: PageProps) {
           <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Categories</h2>
           <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
             {[
-              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: '/images/categories/clay_icon_remote.png' },
-              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: '/images/categories/clay_icon_telehealth.png' },
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_telehealth.webp' },
               { href: '/jobs/private-practice', label: 'Private Practice', sub: 'Own your practice' },
               { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic based' },
-              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', icon: '/images/categories/clay_icon_salary.png' },
-              { href: '/jobs/locations', label: 'By Location', sub: '50 states', icon: '/images/categories/clay_icon_location.png' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 data', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp' },
+              { href: '/jobs/locations', label: 'By Location', sub: '50 states', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp' },
             ].map(c => (
               <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', textAlign: 'center' }}>
                 <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>

@@ -54,10 +54,10 @@ const stagger = {
 };
 
 const STEPS = [
-    { img: '/images/step-profile.png', title: 'Build a Profile', desc: 'Create your PMHNP profile with credentials, experience, and preferences in minutes.' },
-    { img: '/images/step-match.png', title: 'Get Matched', desc: 'Our AI matches you with roles based on your skills, location, and salary goals.' },
-    { img: '/images/step-connect.png', title: 'Connect Directly', desc: 'Reach hiring managers — no recruiters, no middlemen.' },
-    { img: '/images/step-practice.png', title: 'Start Practicing', desc: 'Accept your offer and begin your new clinical role.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-profile.webp', title: 'Build a Profile', desc: 'Create your PMHNP profile with credentials, experience, and preferences in minutes.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-match.webp', title: 'Get Matched', desc: 'Our AI matches you with roles based on your skills, location, and salary goals.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-connect.webp', title: 'Connect Directly', desc: 'Reach hiring managers — no recruiters, no middlemen.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-practice.webp', title: 'Start Practicing', desc: 'Accept your offer and begin your new clinical role.' },
 ];
 
 const css = `

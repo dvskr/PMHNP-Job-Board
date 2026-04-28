@@ -334,7 +334,7 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
       {/* Hero */}
       <CategoryHero
         bgColor={assets?.bgColor || '#0D9488'}
-        heroImage={assets?.heroImage || '/images/categories/hero_wc_remote.png'}
+        heroImage={assets?.heroImage || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_remote.webp'}
         heroAlt={`${config.label} PMHNP jobs in ${stateName}`}
         badgeText={`${stats.totalJobs} live roles Â· updated today`}
         breadcrumbs={['Careers', config.label, stateName!]}

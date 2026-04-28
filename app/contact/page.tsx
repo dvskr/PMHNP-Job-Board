@@ -89,7 +89,7 @@ export default function ContactPage() {
                         </p>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <Image src="/images/pages/clay_hero_contact.png" alt="Contact PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
+                        <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/clay_hero_contact.webp" alt="Contact PMHNP Jobs" width={280} height={280} style={{ objectFit: 'contain', filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' }} priority />
                     </div>
                 </div>
             </section>

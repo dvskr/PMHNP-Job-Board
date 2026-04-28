@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   title: 'About Us - The #1 Job Board for Psychiatric NPs',
   description: 'Learn about PMHNP Hiring - the #1 dedicated job board for Psychiatric Mental Health Nurse Practitioners. Thousands of jobs from thousands of companies across all 50 states.',
   openGraph: {
-    images: [{ url: '/images/pages/about-pmhnp-hiring-platform.webp', width: 1280, height: 900, alt: 'About PMHNP Hiring' }],
+    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/about-pmhnp-hiring-platform.webp', width: 1280, height: 900, alt: 'About PMHNP Hiring' }],
   },
-  twitter: { card: 'summary_large_image', images: ['/images/pages/about-pmhnp-hiring-platform.webp'] },
+  twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/about-pmhnp-hiring-platform.webp'] },
   alternates: { canonical: 'https://pmhnphiring.com/about' },
 };
 

@@ -467,7 +467,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
       {/* ═══ HERO ═══ */}
       <CategoryHero
         bgColor="#0D9488"
-        heroImage="/images/categories/hero_wc_states.png"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_states.webp"
         heroAlt={`PMHNP Jobs in ${stateName}`}
         badgeText={`${stats.totalJobs} live roles · updated today`}
         breadcrumbs={['Careers', 'By State', stateName]}
@@ -603,13 +603,13 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 )}
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
-                <Image src="/images/categories/bento_state_practice.png" alt={`PMHNP practice in ${stateName}`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_state_practice.webp" alt={`PMHNP practice in ${stateName}`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
             <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Image src="/images/categories/bento_state_salary.png" alt="Salary data" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_state_salary.webp" alt="Salary data" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
               </div>
               <div style={{ padding: '24px 22px', flex: 1 }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Salary & Compensation</h3>
@@ -621,10 +621,10 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
 
             {/* ROW 2: Job type icon cards */}
             {[
-              { icon: '/images/categories/clay_icon_telehealth.png', title: 'Telehealth', desc: 'Virtual psychiatric care from anywhere in the state' },
-              { icon: '/images/categories/clay_icon_outpatient.png', title: 'Outpatient', desc: 'Clinic-based roles with standard weekday hours' },
-              { icon: '/images/categories/clay_icon_inpatient.png', title: 'Inpatient', desc: 'Hospital and residential facility positions' },
-              { icon: '/images/categories/clay_icon_privatepractice.png', title: 'Private Practice', desc: 'Independent practice and group opportunities' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_telehealth.webp', title: 'Telehealth', desc: 'Virtual psychiatric care from anywhere in the state' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_outpatient.webp', title: 'Outpatient', desc: 'Clinic-based roles with standard weekday hours' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_inpatient.webp', title: 'Inpatient', desc: 'Hospital and residential facility positions' },
+              { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_privatepractice.webp', title: 'Private Practice', desc: 'Independent practice and group opportunities' },
             ].map((b, i) => (
               <div key={i} className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
                 <Image src={b.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
@@ -643,7 +643,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
                 </p>
               </div>
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
-                <Image src="/images/categories/bento_state_growth.png" alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_state_growth.webp" alt="Career growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
               </div>
             </div>
 
