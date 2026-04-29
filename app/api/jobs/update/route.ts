@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
+import { summarizeForMeta } from '@/lib/description-cleaner';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface UpdateJobData {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
         mode: jobData.mode,
         jobType: jobData.jobType,
         description: jobData.description,
-        descriptionSummary: jobData.description.slice(0, 300),
+        descriptionSummary: summarizeForMeta(jobData.description),
         applyLink: jobData.applyLink,
         minSalary: jobData.minSalary ? Math.round(jobData.minSalary) : null,
         maxSalary: jobData.maxSalary ? Math.round(jobData.maxSalary) : null,
