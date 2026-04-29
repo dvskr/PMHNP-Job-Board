@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkJobHealth, HealthRecorder, castFlipVote, type HealthDecision } from '@/lib/health';
 import { logger } from '@/lib/logger';
+import { inngest } from '@/lib/inngest/client';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
 
@@ -171,6 +172,30 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
             const src = job.sourceProvider ?? 'unknown';
             deadBySource[src] = (deadBySource[src] ?? 0) + 1;
             deadByReason[decision.reason] = (deadByReason[decision.reason] ?? 0) + 1;
+
+            // Fire the FP-recovery scheduling event. No-op locally if
+            // INNGEST_EVENT_KEY is not set; safe in all environments.
+            try {
+                await inngest.send({
+                    name: 'job.health.flipped',
+                    data: {
+                        jobId: job.id,
+                        sourceProvider: job.sourceProvider,
+                        externalId: job.externalId,
+                        applyLink: job.applyLink,
+                        flippedAt: new Date().toISOString(),
+                        triggeringReason: decision.reason,
+                    },
+                });
+            } catch (sendErr: unknown) {
+                // Inngest send failures are non-fatal — the unpublish still
+                // proceeds; we just lose the FP-recovery scheduling for
+                // this job.
+                log.warn('Failed to enqueue FP-recovery event (non-fatal)', {
+                    jobId: job.id,
+                    err: sendErr instanceof Error ? sendErr.message : String(sendErr),
+                });
+            }
         }
 
         if (pendingDead.length >= UNPUBLISH_FLUSH_THRESHOLD) {
