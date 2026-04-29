@@ -99,4 +99,79 @@ describe('checkJobHealth', () => {
         expect(d.reason).toBe('http_404');
         expect(probeImpl).toHaveBeenCalledWith('https://example.com/x', expect.objectContaining({ fetchBody: true }));
     });
+
+    it('uses greenhouse direct API when sourceProvider=greenhouse and ref resolves', async () => {
+        const greenhouseProbeImpl = vi.fn().mockResolvedValue({
+            status: 'dead' as const,
+            reason: 'api_404' as const,
+            apiUrl: 'https://boards-api.greenhouse.io/v1/boards/acme/jobs/123',
+            httpStatus: 404,
+            elapsedMs: 50,
+            errorMessage: null,
+        });
+        const probeImpl = vi.fn();
+
+        const d = await checkJobHealth(
+            'https://job-boards.greenhouse.io/acme/jobs/123',
+            'greenhouse',
+            { greenhouseProbeImpl, probeImpl, externalId: 'greenhouse-acme-123' },
+        );
+
+        expect(d.alive).toBe(false);
+        expect(d.reason).toBe('greenhouse_api_404');
+        expect(d.evidence.sourceProbe?.kind).toBe('greenhouse_api');
+        expect(greenhouseProbeImpl).toHaveBeenCalledOnce();
+        expect(probeImpl).not.toHaveBeenCalled(); // direct API short-circuited the HTTP probe
+    });
+
+    it('returns alive_greenhouse_api on greenhouse 200', async () => {
+        const greenhouseProbeImpl = vi.fn().mockResolvedValue({
+            status: 'alive' as const,
+            reason: 'api_200' as const,
+            apiUrl: 'https://boards-api.greenhouse.io/v1/boards/acme/jobs/123',
+            httpStatus: 200,
+            elapsedMs: 50,
+            errorMessage: null,
+        });
+        const d = await checkJobHealth(
+            'https://job-boards.greenhouse.io/acme/jobs/123',
+            'greenhouse',
+            { greenhouseProbeImpl, externalId: 'greenhouse-acme-123' },
+        );
+        expect(d.alive).toBe(true);
+        expect(d.reason).toBe('alive_greenhouse_api');
+    });
+
+    it('falls back to generic probe when greenhouse API returns unknown', async () => {
+        const greenhouseProbeImpl = vi.fn().mockResolvedValue({
+            status: 'unknown' as const,
+            reason: 'api_unreachable' as const,
+            apiUrl: 'https://boards-api.greenhouse.io/v1/boards/acme/jobs/123',
+            httpStatus: 503,
+            elapsedMs: 50,
+            errorMessage: null,
+        });
+        const probeImpl = vi.fn().mockResolvedValue(probe({ finalStatus: 200, bodyHtml: '<p>ok</p>' }));
+        const d = await checkJobHealth(
+            'https://job-boards.greenhouse.io/acme/jobs/123',
+            'greenhouse',
+            { greenhouseProbeImpl, probeImpl, externalId: 'greenhouse-acme-123' },
+        );
+        expect(d.reason).toBe('alive_2xx');
+        expect(probeImpl).toHaveBeenCalledOnce();
+    });
+
+    it('falls back to generic probe when greenhouse ref cannot be resolved', async () => {
+        const greenhouseProbeImpl = vi.fn();
+        const probeImpl = vi.fn().mockResolvedValue(probe({ finalStatus: 200 }));
+        // No externalId, and the URL is the gh_jid embedded form (slug unrecoverable).
+        const d = await checkJobHealth(
+            'https://riviamind.com/contact-us/careers/?gh_jid=5120318007',
+            'greenhouse',
+            { greenhouseProbeImpl, probeImpl },
+        );
+        expect(d.reason).toBe('alive_2xx');
+        expect(greenhouseProbeImpl).not.toHaveBeenCalled();
+        expect(probeImpl).toHaveBeenCalledOnce();
+    });
 });

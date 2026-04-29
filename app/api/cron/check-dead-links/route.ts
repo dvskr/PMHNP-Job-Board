@@ -17,6 +17,7 @@ interface JobToCheck {
     applyLink: string | null;
     title: string;
     sourceProvider: string | null;
+    externalId: string | null;
 }
 
 interface RunSummary {
@@ -79,6 +80,7 @@ async function loadJobsToCheck(): Promise<JobToCheck[]> {
             applyLink: true,
             title: true,
             sourceProvider: true,
+            externalId: true,
         },
         orderBy: {
             lastLinkCheckedAt: { sort: 'asc', nulls: 'first' },
@@ -181,10 +183,13 @@ async function checkOne(job: JobToCheck, log = logger): Promise<HealthDecision> 
                 errorKind: null,
                 errorMessage: 'no apply link',
                 checkerVersion: 'n/a',
+                sourceProbe: null,
             },
         };
     }
-    const decision = await checkJobHealth(job.applyLink, job.sourceProvider);
+    const decision = await checkJobHealth(job.applyLink, job.sourceProvider, {
+        externalId: job.externalId,
+    });
     if (!decision.alive) {
         log.info('Job marked dead', {
             jobId: job.id,

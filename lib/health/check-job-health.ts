@@ -1,20 +1,24 @@
 /**
  * High-level job-health decision.
  *
- * Combines an HTTP probe with soft-404 detection to produce a single
- * decision per job. The legacy `isLinkAlive` collapsed everything into a
- * boolean; this returns a `reason` so we can surface why a job was killed,
- * audit FP rates per reason, and stay conservative on inconclusive signals.
+ * Combines source-specific direct-API probes (when available) with the
+ * generic HTTP probe + soft-404 detector to produce a single decision per
+ * job. The legacy `isLinkAlive` collapsed everything into a boolean; this
+ * returns a `reason` so we can surface why a job was killed, audit FP rates
+ * per reason, and stay conservative on inconclusive signals.
  */
 
 import { probeUrl, type ProbeResult } from './probe';
 import { detectSoft404, type SoftMatch, SOFT_404_CHECKER_VERSION } from './soft-404-detector';
+import { probeGreenhouseApi, resolveGreenhouseRef, type GreenhouseProbeResult } from './probes/greenhouse-api';
 
 export type HealthReason =
     | 'alive_2xx'
+    | 'alive_greenhouse_api'
     | 'http_404'
     | 'http_410'
     | 'soft_404'
+    | 'greenhouse_api_404'
     | 'inconclusive_403'
     | 'inconclusive_429'
     | 'inconclusive_5xx'
@@ -31,6 +35,13 @@ export interface HealthEvidence {
     errorKind: ProbeResult['errorKind'];
     errorMessage: string | null;
     checkerVersion: string;
+    /** Set when a source-specific probe (e.g. greenhouse JSON API) was used. */
+    sourceProbe: {
+        kind: 'greenhouse_api';
+        apiUrl: string | null;
+        httpStatus: number | null;
+        reason: GreenhouseProbeResult['reason'];
+    } | null;
 }
 
 export interface HealthDecision {
@@ -45,9 +56,6 @@ export interface HealthDecision {
  * Sources for which we always fetch the response body so soft-404 detection
  * can run. The probe diagnostic on 2026-04-29 showed Greenhouse, Adzuna,
  * JSearch and Fantastic-jobs-db return 200 OK on closed listings.
- *
- * Default policy: include any external source. Only excluded when we know
- * body fetch is wasted (e.g. blanket-403 sources where we never see 2xx).
  */
 const SOURCES_NEVER_NEED_BODY = new Set<string>([
     // None for now — leaving the structure in case we later prove a source
@@ -57,9 +65,18 @@ const SOURCES_NEVER_NEED_BODY = new Set<string>([
 export interface CheckJobHealthOptions {
     /** Override probe options (mostly used in tests). */
     probeImpl?: typeof probeUrl;
+    /** Override the greenhouse-API probe (tests). */
+    greenhouseProbeImpl?: (
+        ref: { boardSlug: string; jobId: string },
+    ) => Promise<GreenhouseProbeResult>;
     /** Override timeout / redirect caps. */
     timeoutMs?: number;
     maxRedirects?: number;
+    /**
+     * Authoritative source-supplied identifier for the job. Used by the
+     * greenhouse-API probe to decode the (boardSlug, jobId) pair.
+     */
+    externalId?: string | null;
 }
 
 export async function checkJobHealth(
@@ -67,18 +84,58 @@ export async function checkJobHealth(
     sourceProvider: string | null,
     options: CheckJobHealthOptions = {},
 ): Promise<HealthDecision> {
-    const { probeImpl = probeUrl, timeoutMs, maxRedirects } = options;
+    const {
+        probeImpl = probeUrl,
+        greenhouseProbeImpl = probeGreenhouseApi,
+        timeoutMs,
+        maxRedirects,
+        externalId,
+    } = options;
 
     const sourceKey = sourceProvider?.toLowerCase() ?? null;
+
+    // 1. Source-specific direct-API probe (preferred when available).
+    if (sourceKey === 'greenhouse') {
+        const ref = resolveGreenhouseRef(applyUrl, externalId);
+        if (ref) {
+            const apiResult = await greenhouseProbeImpl(ref);
+            if (apiResult.status === 'dead') return decisionFromGreenhouseApi(apiResult, /*alive*/ false);
+            if (apiResult.status === 'alive') return decisionFromGreenhouseApi(apiResult, /*alive*/ true);
+            // 'unknown' falls through to the generic probe below.
+        }
+    }
+
+    // 2. Generic HTTP probe + soft-404 detection.
     const fetchBody = sourceKey === null || !SOURCES_NEVER_NEED_BODY.has(sourceKey);
-
     const probe = await probeImpl(applyUrl, { fetchBody, timeoutMs, maxRedirects });
-
     return decide(probe, sourceProvider);
 }
 
+function decisionFromGreenhouseApi(result: GreenhouseProbeResult, alive: boolean): HealthDecision {
+    return {
+        alive,
+        reason: alive ? 'alive_greenhouse_api' : 'greenhouse_api_404',
+        evidence: {
+            finalStatus: result.httpStatus,
+            finalUrl: result.apiUrl ?? '',
+            redirectHops: 0,
+            softMatch: null,
+            elapsedMs: result.elapsedMs,
+            errorKind: null,
+            errorMessage: result.errorMessage,
+            checkerVersion: SOFT_404_CHECKER_VERSION,
+            sourceProbe: {
+                kind: 'greenhouse_api',
+                apiUrl: result.apiUrl,
+                httpStatus: result.httpStatus,
+                reason: result.reason,
+            },
+        },
+    };
+}
+
 /**
- * Pure decision function. Exported for tests.
+ * Pure decision function over a generic ProbeResult. Exported for tests.
  *
  * Decision policy (conservative — never kill on a single ambiguous signal):
  *   - 404 / 410 → dead
@@ -102,9 +159,9 @@ export function decide(probe: ProbeResult, sourceProvider: string | null): Healt
         errorKind: probe.errorKind,
         errorMessage: probe.errorMessage,
         checkerVersion: SOFT_404_CHECKER_VERSION,
+        sourceProbe: null,
     };
 
-    // 1. Probe-level errors
     if (probe.errorKind === 'too_many_redirects') {
         return { alive: true, reason: 'inconclusive_3xx_loop', evidence: evidenceBase };
     }
@@ -117,16 +174,13 @@ export function decide(probe: ProbeResult, sourceProvider: string | null): Healt
         return { alive: true, reason: 'inconclusive_other', evidence: evidenceBase };
     }
 
-    // 2. Hard-dead statuses
     if (status === 404) return { alive: false, reason: 'http_404', evidence: evidenceBase };
     if (status === 410) return { alive: false, reason: 'http_410', evidence: evidenceBase };
 
-    // 3. Inconclusive statuses
     if (status === 403) return { alive: true, reason: 'inconclusive_403', evidence: evidenceBase };
     if (status === 429) return { alive: true, reason: 'inconclusive_429', evidence: evidenceBase };
     if (status >= 500) return { alive: true, reason: 'inconclusive_5xx', evidence: evidenceBase };
 
-    // 4. 2xx — check for soft-404
     if (status >= 200 && status < 300) {
         const softMatch = detectSoft404(sourceProvider, probe.finalUrl, probe.bodyHtml);
         if (softMatch) {
@@ -139,6 +193,5 @@ export function decide(probe: ProbeResult, sourceProvider: string | null): Healt
         return { alive: true, reason: 'alive_2xx', evidence: evidenceBase };
     }
 
-    // 5. 3xx with no Location, 4xx other than 404/410, etc — stay conservative.
     return { alive: true, reason: 'inconclusive_other', evidence: evidenceBase };
 }
