@@ -46,3 +46,21 @@ export {
     type VoteResult,
     type CastVoteOptions,
 } from './vote';
+export {
+    recordChunkAndMaybeAggregate,
+    buildRunKey,
+    CHUNKED_SOURCE_TOTAL_CHUNKS,
+    type ChunkAggregateOutcome,
+    type ChunkAggregateResult,
+    type RecordChunkInput,
+} from './chunked-presence';
+export {
+    detectAnomalies,
+    emitAnomaly,
+    ANOMALY_DETECTOR_VERSION,
+    type AnomalyEvent,
+    type AnomalyCategory,
+    type AnomalySeverity,
+    type AnomalyDetectionInput,
+    type AnomalyDetectionResult,
+} from './anomaly-alerts';

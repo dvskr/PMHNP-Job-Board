@@ -24,6 +24,7 @@ import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 import { HealthRecorder } from './health/recorder';
+import { recordChunkAndMaybeAggregate } from './health/chunked-presence';
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
@@ -466,33 +467,63 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       console.error(`Failed to record stats for ${source}:`, statsError);
     }
 
-    // Source-presence tracking (Sprint 2 — shadow mode).
-    // Skips:
-    //   - chunked sources (per-chunk visibility is incomplete)
-    //   - runs that hit the time budget (partial fetches must not strike jobs)
-    //   - sources with no historical baseline (loadHistoricalAvgFetched returns 0)
-    if (!stoppedEarly && !CHUNKED_SOURCES.has(source) && fetched > 0) {
+    // Source-presence tracking. Two paths:
+    //   - Non-chunked sources: run the presence check directly here.
+    //   - Chunked sources (greenhouse, workday): hand the chunk to the
+    //     cross-chunk aggregator which buffers in Redis, and runs the
+    //     presence check only after the LAST chunk for the cycle lands.
+    // Both paths skip when:
+    //   - the run hit the time budget (partial fetches must not strike jobs)
+    //   - the source has no historical baseline (returns 0)
+    if (!stoppedEarly && fetched > 0) {
       try {
         const fetchedExternalIds = collectExternalIds(rawJobs);
         if (fetchedExternalIds.length > 0) {
-          const baseline = await loadHistoricalAvgFetched(prisma, source);
           const recorder = new HealthRecorder(prisma);
-          const presence = await recordSourcePresence(prisma, {
-            source,
-            fetchedExternalIds,
-            fetchedCount: fetched,
-            historicalAvgFetched: baseline,
-            recorder,
-          });
-          await recorder.flush();
-          console.log(`[${source.toUpperCase()}] Source-presence:`, {
-            outcome: presence.outcome,
-            seenAgain: presence.seenAgain,
-            missing: presence.missingThisRun,
-            updates: presence.updatesIssued,
-            skipped: presence.skippedReason,
-            audit: recorder.stats(),
-          });
+
+          if (CHUNKED_SOURCES.has(source) && options?.chunk !== undefined) {
+            const chunkResult = await recordChunkAndMaybeAggregate({
+              prisma,
+              source,
+              chunkIndex: options.chunk,
+              fetchedExternalIds,
+              fetchedCount: fetched,
+              recorder,
+            });
+            await recorder.flush();
+            console.log(`[${source.toUpperCase()}] Chunked-presence chunk ${options.chunk}:`, {
+              outcome: chunkResult.outcome,
+              chunksSeen: chunkResult.chunksSeen,
+              totalChunks: chunkResult.totalChunks,
+              presence: chunkResult.presenceResult
+                ? {
+                    outcome: chunkResult.presenceResult.outcome,
+                    seenAgain: chunkResult.presenceResult.seenAgain,
+                    missing: chunkResult.presenceResult.missingThisRun,
+                    updates: chunkResult.presenceResult.updatesIssued,
+                  }
+                : null,
+              audit: recorder.stats(),
+            });
+          } else if (!CHUNKED_SOURCES.has(source)) {
+            const baseline = await loadHistoricalAvgFetched(prisma, source);
+            const presence = await recordSourcePresence(prisma, {
+              source,
+              fetchedExternalIds,
+              fetchedCount: fetched,
+              historicalAvgFetched: baseline,
+              recorder,
+            });
+            await recorder.flush();
+            console.log(`[${source.toUpperCase()}] Source-presence:`, {
+              outcome: presence.outcome,
+              seenAgain: presence.seenAgain,
+              missing: presence.missingThisRun,
+              updates: presence.updatesIssued,
+              skipped: presence.skippedReason,
+              audit: recorder.stats(),
+            });
+          }
         }
       } catch (presenceErr) {
         console.error(`[${source.toUpperCase()}] Source-presence check failed (non-fatal):`, presenceErr);
