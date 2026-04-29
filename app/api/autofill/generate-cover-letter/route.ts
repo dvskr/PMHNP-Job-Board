@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyExtensionToken } from '@/lib/verify-extension-token';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(req, 'autofill-cover', RATE_LIMITS.autofill);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const user = await verifyExtensionToken(req);
         if (!user) {

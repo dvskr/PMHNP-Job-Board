@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyExtensionToken } from '@/lib/verify-extension-token';
 import { getPathFromUrl, getResumeUrl } from '@/lib/supabase-storage';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * POST /api/autofill/extract-resume-sections
@@ -10,6 +11,10 @@ import { getPathFromUrl, getResumeUrl } from '@/lib/supabase-storage';
  * Used as a fallback when profile data is missing but resume exists.
  */
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(req, 'autofill-resume', RATE_LIMITS.autofill);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const user = await verifyExtensionToken(req);
         if (!user) {

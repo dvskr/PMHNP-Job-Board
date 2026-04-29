@@ -297,6 +297,30 @@ export const GLOBAL_EXCLUSIONS: Prisma.JobWhereInput[] = [
       { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
       { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'ARNP', mode: 'insensitive' } } },
+    ],
+  },
+  // Exclude pure Physician roles
+  {
+    AND: [
+      { title: { contains: 'Physician', mode: 'insensitive' } },
+      { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'Practitioner', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'APP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'Collaborat', mode: 'insensitive' } } },
+    ],
+  },
+  // Exclude pure MD/DO roles
+  {
+    AND: [
+      { title: { contains: 'MD/DO', mode: 'insensitive' } },
+      { NOT: { title: { contains: 'NP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'Nurse', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'PMHNP', mode: 'insensitive' } } },
+      { NOT: { title: { contains: 'APRN', mode: 'insensitive' } } },
     ],
   },
 ];
@@ -352,17 +376,20 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
     andConditions.push({ NOT: exclusion });
   });
 
-  // Search
+  // Search — split into terms and require ALL terms to match (AND)
   if (filters.search && filters.search.trim()) {
-    andConditions.push({
-      OR: [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { employer: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { city: { contains: filters.search, mode: 'insensitive' } },
-        { state: { contains: filters.search, mode: 'insensitive' } },
-      ],
-    });
+    const terms = filters.search.trim().split(/\s+/).filter(Boolean);
+    for (const term of terms) {
+      andConditions.push({
+        OR: [
+          { title: { contains: term, mode: 'insensitive' } },
+          { employer: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+          { city: { contains: term, mode: 'insensitive' } },
+          { state: { contains: term, mode: 'insensitive' } },
+        ],
+      });
+    }
   }
 
   // Category filter (enterprise pattern: reuses same filter as category pages)

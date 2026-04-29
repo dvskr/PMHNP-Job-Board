@@ -432,7 +432,7 @@ export default function AnalyticsPage() {
                                 backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)',
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                    <span style={{ color: '#F59E0B', fontWeight: 700 }}>{'⭐'.repeat(fb.rating)}</span>
+                                    <span style={{ color: '#F59E0B', fontWeight: 700 }}>{fb.rating != null ? '⭐'.repeat(fb.rating) : <span style={{ color: '#94A3B8', fontWeight: 400 }}>No rating</span>}</span>
                                     <span style={muted}>{new Date(fb.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 </div>
                                 {fb.message && <p style={{ ...sub, margin: 0 }}>{fb.message}</p>}

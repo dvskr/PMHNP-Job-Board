@@ -133,7 +133,7 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
             <p>Every deployment on this platform — from latency optimizations to salary extraction accuracy — is engineered to respect the time of the professionals advancing mental healthcare.</p>
             <div className="ab-sig">
               <div className="ab-sig-mark">S.K.</div>
-              <div><div className="name">Sathish Kumar</div><div className="role">Creator & Principal Engineer</div></div>
+              <div><div className="name">Kumar</div><div className="role">Creator & Principal Engineer</div></div>
             </div>
           </div>
         </div>

@@ -32,7 +32,7 @@ export default function OpenEndedResponsesSection({ showMsg }: Props) {
                 const data = await res.json()
                 const map: ResponseMap = {}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data.forEach((r: any) => { map[r.questionKey] = { response: r.response || '', isAIGenerated: r.isAIGenerated || false } })
+                data.forEach((r: { questionKey: string; response?: string; isAIGenerated?: boolean }) => { map[r.questionKey] = { response: r.response || '', isAIGenerated: r.isAIGenerated || false } })
                 setResponses(map)
             }
         } catch { /* silent */ } finally { setLoading(false) }

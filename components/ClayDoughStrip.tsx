@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 const CLAY_COLORS = [
@@ -16,7 +16,6 @@ interface ClayDoughStripProps {
 }
 
 export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
-    const router = useRouter();
     const [isPaused, setIsPaused] = useState(false);
     const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -38,9 +37,6 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
     // Double for seamless infinite loop
     const doubled = [...items, ...items];
 
-    const handleClick = (name: string) => {
-        router.push(`/jobs?q=${encodeURIComponent(name)}`);
-    };
 
     return (
         <section
@@ -68,23 +64,19 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
 
                 <motion.div
                     className="absolute flex items-center gap-5 whitespace-nowrap h-full"
-                    animate={{ x: ['0%', '-50%'] }}
-                    transition={{
+                    animate={isPaused ? { x: 0 } : { x: ['0%', '-50%'] }}
+                    transition={isPaused ? { duration: 0 } : {
                         duration: 50,
                         repeat: Infinity,
                         ease: 'linear',
                     }}
-                    style={isPaused ? { animationPlayState: 'paused' } : undefined}
                 >
                     {doubled.map((emp, i) => {
                         const isHovered = hoveredIdx === i;
                         return (
-                            <div
+                            <Link
                                 key={i}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => handleClick(emp.name)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleClick(emp.name); }}
+                                href={`/jobs?q=${encodeURIComponent(emp.name)}`}
                                 onMouseEnter={() => setHoveredIdx(i)}
                                 onMouseLeave={() => setHoveredIdx(null)}
                                 className="px-7 py-3.5 flex items-center gap-3"
@@ -98,6 +90,7 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                                     cursor: 'pointer',
                                     transform: isHovered ? 'translateY(-4px) scale(1.05)' : 'translateY(0) scale(1)',
                                     transition: 'transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease',
+                                    textDecoration: 'none',
                                 }}
                             >
                                 <div
@@ -124,7 +117,7 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                                 >
                                     {emp.roles} {isHovered ? 'jobs →' : ''}
                                 </span>
-                            </div>
+                            </Link>
                         );
                     })}
                 </motion.div>

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // POST: Subscribe to push notifications
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'push-sub', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const { subscription } = await request.json()
         if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {

@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
             marginBottom: 24,
           }}>
             {logoSrc ? (
-              <img src={logoSrc} width={180} height={60} style={{ objectFit: 'contain' }} />
+              <img src={logoSrc} alt="PMHNP Hiring" width={180} height={60} style={{ objectFit: 'contain' }} />
             ) : (
               <div style={{ display: 'flex', fontSize: 26, fontWeight: 800, color: '#0D9488' }}>
                 PMHNP Hiring

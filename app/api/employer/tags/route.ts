@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/tags — List employer's custom tags
@@ -33,6 +34,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(req, 'emp-tags', RATE_LIMITS.employer);
+    if (rateLimitResult) return rateLimitResult;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

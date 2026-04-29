@@ -5,11 +5,12 @@ import {
   getSourceTrends,
   updateDailyStats,
 } from '@/lib/source-analytics';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/analytics/sources
  * Returns source performance data
- * 
+ *
  * Query params:
  * - source: specific source to query (optional)
  * - days: number of days to look back (default: 30)
@@ -81,6 +82,10 @@ export async function GET(request: NextRequest) {
  * - action: 'update-daily'
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'analytics-src', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     // Verify CRON_SECRET
     const authHeader = request.headers.get('authorization');
@@ -127,4 +132,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

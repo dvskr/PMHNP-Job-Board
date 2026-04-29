@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 type JsonInputValue =
   | string
@@ -69,6 +70,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Update subscription status and preferences
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'email-prefs', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await request.json();
     const { token, isSubscribed, preferences } = body;

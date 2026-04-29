@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
-        title: `${post.title} (2026)`,
+        title: post.title.match(/\(\d{4}\)\s*$/) ? post.title : `${post.title} (${new Date().getFullYear()})`,
         description: post.meta_description || post.title,
         keywords: post.target_keyword ? [post.target_keyword] : undefined,
         openGraph: {
@@ -115,8 +115,19 @@ export default async function BlogPostPage({ params }: Props) {
     };
 
     // Word count and read time for editorial TOC
-    const wordCount = post.content.split(/\s+/).length;
-    const readTime = `${Math.ceil(wordCount / 250)} min`;
+    // Strip markdown syntax to get accurate word count
+    const plainText = post.content
+        .replace(/^#{1,6}\s+/gm, '')           // headings
+        .replace(/\*\*(.+?)\*\*/g, '$1')       // bold
+        .replace(/\*(.+?)\*/g, '$1')           // italic
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, '')  // images
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links → keep text
+        .replace(/https?:\/\/\S+/g, '')        // bare URLs
+        .replace(/[`~>|]/g, '')                // code ticks, blockquotes
+        .replace(/\s+/g, ' ')
+        .trim();
+    const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+    const readTime = `${Math.max(1, Math.ceil(wordCount / 238))} min`;
 
     // JSON-LD BlogPosting schema
     const jsonLd = {
@@ -320,7 +331,7 @@ export default async function BlogPostPage({ params }: Props) {
                 ],
             }) }} />
 
-            {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ HERO ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+            {/* -- HERO -- */}
             <header className="ed-hero">
                 <nav className="ed-breadcrumb">
                     <Link href="/">Home</Link>
@@ -376,14 +387,14 @@ export default async function BlogPostPage({ params }: Props) {
             </header>
 
 
-            {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ THREE-COLUMN LAYOUT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+            {/* -- THREE-COLUMN LAYOUT -- */}
             <div className="ed-layout">
-                {/* Left rail ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Sticky TOC */}
+                {/* Left rail - Sticky TOC */}
                 <aside className="ed-col-left">
                     <EditorialTOC headings={headings} readTime={readTime} wordCount={wordCount} />
                 </aside>
 
-                {/* Center ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Article prose */}
+                {/* Center - Article prose */}
                 <main className="ed-col-center">
                     <article>
                         <div
@@ -410,13 +421,13 @@ export default async function BlogPostPage({ params }: Props) {
                     </div>
                 </main>
 
-                {/* Right rail ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Toolbar + Newsletter */}
+                {/* Right rail - Toolbar + Newsletter */}
                 <aside className="ed-col-right">
                     <EditorialToolbar slug={slug} title={post.title} url={currentUrl} />
                 </aside>
             </div>
 
-            {/* ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ READ NEXT ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ */}
+            {/* -- READ NEXT -- */}
             {relatedPosts.length > 0 && (
                 <section className="ed-read-next">
                     <div className="ed-read-next-header">

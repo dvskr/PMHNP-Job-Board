@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Briefcase, MessageSquare, Settings, DollarSign, Building2, BookOpen, Search, HelpCircle, Info, Mail, PenSquare, GraduationCap, UserCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -57,6 +57,16 @@ export default function Header() {
     { href: '/employer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/messages', label: 'Messages', icon: MessageSquare },
     { href: '/settings', label: 'Settings', icon: Settings },
+  ];
+
+  // Mobile-only extra links for public users (pages not in top nav)
+  const mobileExtraLinks = [
+    { href: '/for-job-seekers', label: 'For Job Seekers', icon: UserCheck },
+    { href: '/new-grad', label: 'New Grad Guide', icon: GraduationCap },
+    { href: '/blog', label: 'Blog', icon: PenSquare },
+    { href: '/faq', label: 'FAQ', icon: HelpCircle },
+    { href: '/about', label: 'About', icon: Info },
+    { href: '/contact', label: 'Contact', icon: Mail },
   ];
 
   // Pick the right nav set
@@ -252,6 +262,37 @@ export default function Header() {
                   );
                 })}
               </nav>
+              {/* Extra links for public mobile users */}
+              {!userRole && (
+                <div className="mt-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#94A3B8' }}>More</p>
+                  <nav className="flex flex-col">
+                    {mobileExtraLinks.map((link) => {
+                      const ExtraIcon = link.icon;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="py-3 text-base font-medium transition-colors"
+                          style={{
+                            color: isActive(link.href) ? '#0D9488' : '#6B7280',
+                            fontWeight: isActive(link.href) ? 600 : 400,
+                            borderBottom: '1px solid rgba(0,0,0,0.04)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <ExtraIcon size={18} />
+                          {link.label}
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                </div>
+              )}
               <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
               </div>

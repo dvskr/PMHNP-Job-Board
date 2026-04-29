@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   {logoSrc ? (
-                    <img src={logoSrc} width={200} height={70} style={{ objectFit: 'contain' }} />
+                    <img src={logoSrc} alt="PMHNP Hiring" width={200} height={70} style={{ objectFit: 'contain' }} />
                   ) : (
                     <div style={{ display: 'flex', fontSize: 28, fontWeight: 800, color: '#2DD4BF' }}>PMHNP Hiring</div>
                   )}
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   {logoSrc ? (
-                    <img src={logoSrc} width={200} height={70} style={{ objectFit: 'contain' }} />
+                    <img src={logoSrc} alt="PMHNP Hiring" width={200} height={70} style={{ objectFit: 'contain' }} />
                   ) : (
                     <div style={{ display: 'flex', fontSize: 28, fontWeight: 800, color: '#2DD4BF' }}>PMHNP Hiring</div>
                   )}
@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   {logoSrc ? (
-                    <img src={logoSrc} width={200} height={80} style={{ objectFit: 'contain' }} />
+                    <img src={logoSrc} alt="PMHNP Hiring" width={200} height={80} style={{ objectFit: 'contain' }} />
                   ) : (
                     <div style={{ display: 'flex', fontSize: 28, fontWeight: 800, color: '#2DD4BF' }}>PMHNP Hiring</div>
                   )}

@@ -1,11 +1,16 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'track-apply', RATE_LIMITS.telemetry);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const { id } = await params;
 

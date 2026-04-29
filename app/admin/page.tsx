@@ -7,7 +7,7 @@ import {
   Eye, MousePointerClick, FileCheck, Zap, UserPlus, Mail, Bell, Activity,
 } from 'lucide-react';
 
-/* â”€â”€â”€ Types â”€â”€â”€ */
+/* ─── Types ─── */
 interface Summary {
   totalViews: number; totalClicks: number; totalApplications: number;
   views24h: number; views7d: number; clicks24h: number; clicks7d: number;
@@ -75,7 +75,7 @@ const clayItemRow: React.CSSProperties = {
     '3px 3px 8px rgba(0,0,0,0.03)',
 };
 
-/* â”€â”€â”€ Mini sparkline component (pure CSS bars) â”€â”€â”€ */
+/* ─── Mini sparkline component (pure CSS bars) ─── */
 function Sparkline({ data, color }: { data: SparklinePoint[]; color: string }) {
   if (!data.length) return <span style={muted}>No data</span>;
   const max = Math.max(...data.map(d => d.count), 1);
@@ -100,7 +100,7 @@ function Sparkline({ data, color }: { data: SparklinePoint[]; color: string }) {
   );
 }
 
-/* â”€â”€â”€ Funnel step â”€â”€â”€ */
+/* ─── Funnel step ─── */
 function FunnelStep({
   icon, label, value, rate, color, isLast,
 }: {
@@ -134,7 +134,7 @@ function FunnelStep({
           position: 'absolute', top: '24px', right: '-16px',
           color: '#94A3B8', fontSize: '18px',
         }}>
-          â†’
+          <ArrowRight size={16} />
         </div>
       )}
     </div>
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
   const { summary: s, sparklines, topJobs, recentActivity, autofill } = analytics;
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 20px' }} suppressHydrationWarning>
       {/* Header */}
       <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -222,7 +222,7 @@ export default function AdminDashboard() {
         }}>Refresh</button>
       </div>
 
-      {/* â”€â”€â”€ Engagement Funnel â”€â”€â”€ */}
+      {/* ─── Engagement Funnel ─── */}
       <div style={{ ...card, marginBottom: '24px' }}>
         <h2 style={{ ...heading, fontSize: '18px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Activity size={20} style={{ color: '#0D9488' }} />
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* â”€â”€â”€ Hero Stat Cards â”€â”€â”€ */}
+      {/* ─── Hero Stat Cards ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3" style={{ marginBottom: '24px' }}>
         {[
           { icon: <Briefcase size={16} />, label: 'Active Jobs', value: s.activeJobs, color: '#0D9488' },
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* â”€â”€â”€ 7-Day Sparklines Overview â”€â”€â”€ */}
+      {/* ─── 7-Day Sparklines Overview ─── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: '24px' }}>
         {[
           { label: 'Views (7 days)', data: sparklines.views, color: '#3B82F6', total: s.views7d },
@@ -304,21 +304,21 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      {/* â”€â”€â”€ Top Performing Jobs â”€â”€â”€ */}
+      {/* ─── Top Performing Jobs ─── */}
       <div style={{ ...card, marginBottom: '24px', padding: 0 }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #E8ECF0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ ...heading, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <TrendingUp size={20} style={{ color: '#22C55E' }} /> Top Performing Jobs
           </h2>
           <Link href="/admin/analytics" style={{ fontSize: '13px', color: '#0D9488', textDecoration: 'none', fontWeight: 600 }}>
-            View All â†’
+            View All <ArrowRight size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
           </Link>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Job Title', 'Employer', 'Views', 'Clicks', 'Apps', 'Viewâ†’Click', 'Source'].map(h => (
+                {['Job Title', 'Employer', 'Views', 'Clicks', 'Apps', 'View→Click', 'Source'].map(h => (
                   <th key={h} style={{
                     padding: '12px 16px', textAlign: h === 'Job Title' || h === 'Employer' || h === 'Source' ? 'left' : 'right',
                     fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
@@ -369,7 +369,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* â”€â”€â”€ Recent Activity â”€â”€â”€ */}
+      {/* ─── Recent Activity ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ marginBottom: '24px' }}>
         {/* Recent Applications */}
         <div style={card}>
@@ -451,7 +451,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* â”€â”€â”€ Quick Actions â”€â”€â”€ */}
+      {/* ─── Quick Actions ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: <Briefcase size={18} style={{ color: '#0D9488' }} />, title: 'Jobs', desc: 'Manage job postings & CRUD', href: '/admin/jobs', color: '#0D9488' },

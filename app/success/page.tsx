@@ -15,9 +15,14 @@ function SuccessContent() {
   const isFreeMode = freeParam === 'true';
 
   useEffect(() => {
+    // Guard: redirect if accessed directly without a valid session
+    if (!sessionId && !isFreeMode) {
+      window.location.href = '/post-job';
+      return;
+    }
     // Clear jobFormData from localStorage
     localStorage.removeItem('jobFormData');
-  }, []);
+  }, [sessionId, isFreeMode]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">

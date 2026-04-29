@@ -4,6 +4,7 @@ import {
   spacerV2, closeContentV2, infoCardV2, V2, SANS, SERIF,
 } from '@/lib/email-templates-v2'
 import { Resend } from 'resend'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>'
@@ -13,6 +14,10 @@ const BASE_URL = 'https://pmhnphiring.com'
  * POST /api/email-job — Send job details to user's email
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'email-job', RATE_LIMITS.contact);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const { email, jobTitle, jobUrl } = await request.json()
 

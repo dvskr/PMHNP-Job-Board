@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * POST /api/applications — Log a job application
  * Body: { jobId: string, sourceUrl?: string }
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'applications', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()

@@ -41,7 +41,7 @@ export default function ScreeningAnswersSection({ showMsg }: Props) {
                 const data = await res.json()
                 const map: AnswerMap = {}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                data.forEach((a: any) => { map[a.questionKey] = { answerBool: a.answerBool, answerText: a.answerText || '' } })
+                data.forEach((a: { questionKey: string; answerBool: boolean | null; answerText?: string }) => { map[a.questionKey] = { answerBool: a.answerBool, answerText: a.answerText || '' } })
                 setAnswers(map)
             }
         } catch { /* silent */ } finally { setLoading(false) }

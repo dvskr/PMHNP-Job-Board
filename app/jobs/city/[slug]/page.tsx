@@ -206,12 +206,27 @@ async function getCityStats(cityName: string, stateName: string, stateCode: stri
         count: e._count.employer,
     }));
 
+    // True unique employer count (not limited by take:5)
+    const uniqueEmployerRows = await prisma.job.findMany({
+        where: {
+            isPublished: true,
+            city: { equals: cityName, mode: 'insensitive' },
+            OR: [
+                { state: stateName },
+                { stateCode: stateCode },
+            ],
+        },
+        distinct: ['employer'],
+        select: { employer: true },
+    });
+
     return {
         totalJobs,
         avgSalary,
         minSalary,
         maxSalary,
         topEmployers: processedEmployers,
+        uniqueEmployerCount: uniqueEmployerRows.length,
     };
 }
 
@@ -390,7 +405,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                 stats={[
                     { value: `${stats.totalJobs}`, label: 'positions' },
                     { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
-                    { value: `${stats.topEmployers.length}+`, label: 'employers' },
+                    { value: `${stats.uniqueEmployerCount}+`, label: 'employers' },
                 ]}
                 description={`Browse ${stats.totalJobs} PMHNP positions in ${cityName}, ${stateName}. ${salaryRange ? `Salary range: ${salaryRange}/yr.` : ''} Remote, telehealth, inpatient, and outpatient roles updated daily.`}
                 ctaLabel={`View All ${cityName} Jobs`}
@@ -529,7 +544,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                         Why PMHNPs Choose {cityName}
                     </h2>
                     <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>
-                        {stats.totalJobs} open positions · {stats.topEmployers.length}+ employers · {salaryRange ? `${salaryRange}/yr` : 'Competitive pay'}
+                        {stats.totalJobs} open positions · {stats.uniqueEmployerCount}+ employers · {salaryRange ? `${salaryRange}/yr` : 'Competitive pay'}
                     </p>
 
                     <div className="city-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
@@ -538,7 +553,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                             <div style={{ padding: '32px 28px' }}>
                                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Growing PMHNP Market</h3>
                                 <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
-                                    {cityName}, {stateName} has {stats.totalJobs} active PMHNP positions across {stats.topEmployers.length}+ employers, with roles in outpatient, inpatient, and telehealth settings.
+                                    {cityName}, {stateName} has {stats.totalJobs} active PMHNP positions across {stats.uniqueEmployerCount}+ employers, with roles in outpatient, inpatient, and telehealth settings.
                                 </p>
                             </div>
                             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
@@ -561,7 +576,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                         {/* ROW 2: 4 compact cards */}
                         {[
                             { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp', text: `Average salary ${stats.avgSalary > 0 ? `$${stats.avgSalary}k/yr` : '$130K+'} for PMHNPs in ${cityName}.` },
-                            { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_hospital.webp', text: `${stats.topEmployers.length}+ healthcare employers actively hiring in ${cityName}.` },
+                            { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_hospital.webp', text: `${stats.uniqueEmployerCount}+ healthcare employers actively hiring in ${cityName}.` },
                             { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_community.webp', text: `Inpatient, outpatient, community health, and private practice settings available.` },
                             { icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_telehealth.webp', text: `Telehealth and remote opportunities expanding in ${stateName}.` },
                         ].map((card, i) => (

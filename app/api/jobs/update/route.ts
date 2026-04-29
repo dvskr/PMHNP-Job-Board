@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 interface UpdateJobData {
   title: string;
@@ -23,6 +24,10 @@ interface UpdateRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'jobs-update', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body: UpdateRequestBody = await request.json();
     const { token, jobData: rawJobData } = body;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseAllLocations } from '@/lib/location-parser';
 import { logger } from '@/lib/logger';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * Verify CRON_SECRET for authentication
@@ -28,6 +29,10 @@ function verifyCronSecret(request: NextRequest): boolean {
  * Manually trigger location parsing for all jobs
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'parse-locs', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     // Verify authentication
     if (!verifyCronSecret(request)) {

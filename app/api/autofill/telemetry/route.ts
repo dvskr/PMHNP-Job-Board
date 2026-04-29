@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyExtensionToken } from '@/lib/verify-extension-token';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * POST /api/autofill/telemetry
@@ -10,6 +11,10 @@ import { verifyExtensionToken } from '@/lib/verify-extension-token';
  * This data enables pattern analysis and auto-promotion of AI patterns to deterministic rules.
  */
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(req, 'autofill-telemetry', RATE_LIMITS.telemetry);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const user = await verifyExtensionToken(req);
         if (!user) {

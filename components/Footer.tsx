@@ -33,10 +33,10 @@ const linkColumns = [
   {
     title: 'Locations',
     links: [
-      { label: 'New York', href: '/jobs/metro/new-york-ny' },
-      { label: 'California', href: '/jobs/metro/los-angeles-ca' },
-      { label: 'Florida', href: '/jobs/metro/jacksonville-fl' },
-      { label: 'Texas', href: '/jobs/metro/dallas-tx' },
+      { label: 'New York', href: '/jobs/state/new-york' },
+      { label: 'California', href: '/jobs/state/california' },
+      { label: 'Florida', href: '/jobs/state/florida' },
+      { label: 'Texas', href: '/jobs/state/texas' },
       { label: 'Massachusetts', href: '/jobs/state/massachusetts' },
       { label: 'All States', href: '/jobs/locations' },
     ],
@@ -45,7 +45,7 @@ const linkColumns = [
     title: 'Resources',
     links: [
       { label: 'Blog', href: '/blog' },
-      { label: 'New Grad Guide', href: '/new-grad' },
+      { label: 'New Grad Hub', href: '/new-grad' },
       { label: 'For Employers', href: '/for-employers' },
       { label: 'FAQ', href: '/faq' },
       { label: 'About', href: '/about' },

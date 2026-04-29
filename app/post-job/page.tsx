@@ -34,7 +34,7 @@ const jobPostingSchema = z.object({
   salaryMin: z.number().positive('Minimum salary must be a positive number').optional().nullable(),
   salaryMax: z.number().positive('Maximum salary must be a positive number').optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
-  description: z.string().min(200, 'Job description must be at least 200 characters'),
+  description: z.string().min(200, 'Job description must be at least 200 characters').max(5000, 'Job description cannot exceed 5,000 characters'),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
   pricingTier: z.enum(['starter', 'growth', 'premium']),
@@ -238,7 +238,7 @@ function PostJobContent() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaveMessage, setDraftSaveMessage] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -777,7 +777,12 @@ function PostJobContent() {
                   />
                 </div>
                 <ErrorMsg message={errors.description?.message} />
-                <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5' }}>Minimum 200 characters. Use the toolbar to format.</p>
+                <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>Minimum 200 characters. Use the toolbar to format.</p>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 5000 ? '#EF4444' : '#94A3B8' }}>
+                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 5,000
+                  </span>
+                </div>
                 <InfoBox emoji="💡" color="blue">
                   <strong>Writing tip:</strong> Include sections for <em>About the Role</em>, <em>Responsibilities</em>, <em>Requirements</em>, and <em>Why Join Us</em> to attract top PMHNP talent.
                 </InfoBox>

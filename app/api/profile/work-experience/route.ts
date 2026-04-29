@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { sanitizeText } from '@/lib/sanitize'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // GET — fetch all work experience for current user
 export async function GET() {
@@ -30,6 +31,10 @@ export async function GET() {
 
 // POST — create a new work experience entry
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'profile-work', RATE_LIMITS.profile);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const supabase = await createClient()
         const { data: { user }, error } = await supabase.auth.getUser()

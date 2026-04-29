@@ -246,10 +246,24 @@ async function getStateStats(stateName: string, stateCode: string) {
     count: e._count.employer,
   }));
 
+  // Unique employer count (for hero stat — not limited to top 5)
+  const uniqueEmployerCount = await prisma.job.findMany({
+    where: {
+      isPublished: true,
+      OR: [
+        { state: stateName },
+        { stateCode: stateCode },
+      ],
+    },
+    distinct: ['employer'],
+    select: { employer: true },
+  });
+
   return {
     totalJobs,
     avgSalary,
     topEmployers: processedEmployers,
+    uniqueEmployerCount: uniqueEmployerCount.length,
   };
 }
 
@@ -477,7 +491,7 @@ export default async function StateJobsPage({ params, searchParams }: StatePageP
         stats={[
           { value: `${stats.totalJobs}`, label: 'positions' },
           { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
-          { value: `${stats.topEmployers.length}`, label: 'employers' },
+          { value: `${stats.uniqueEmployerCount}`, label: 'employers' },
         ]}
         description={`Browse all psychiatric NP positions in ${stateName}. Remote telehealth, outpatient clinics, inpatient facilities, and private practice opportunities.`}
         ctaLabel={`Browse ${stateName} Jobs`}

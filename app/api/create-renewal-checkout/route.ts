@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
 import { sendRenewalConfirmationEmail } from '@/lib/email-service';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -13,6 +14,10 @@ interface RenewalCheckoutBody {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'renewal-checkout', RATE_LIMITS.postJob);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body: RenewalCheckoutBody = await request.json();
     const { jobId, editToken } = body;

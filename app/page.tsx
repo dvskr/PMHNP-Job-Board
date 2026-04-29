@@ -34,10 +34,29 @@ async function getTotalJobCount(): Promise<number> {
 }
 
 /**
+ * Get unique employer count for dynamic metadata
+ */
+async function getUniqueEmployerCount(): Promise<number> {
+  try {
+    const result = await prisma.job.findMany({
+      where: { isPublished: true },
+      distinct: ['employer'],
+      select: { employer: true },
+    });
+    return result.length;
+  } catch {
+    return 500; // Fallback
+  }
+}
+
+/**
  * Generate dynamic metadata with job count
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const totalJobs = await getTotalJobCount();
+  const [totalJobs, uniqueEmployerCount] = await Promise.all([
+    getTotalJobCount(),
+    getUniqueEmployerCount(),
+  ]);
   const jobCountDisplay = totalJobs > 1000
     ? `${(Math.floor(totalJobs / 100) * 100).toLocaleString()}+`
     : totalJobs.toLocaleString();
@@ -50,16 +69,16 @@ export async function generateMetadata(): Promise<Metadata> {
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
       images: [
         {
-          url: 'https://pmhnphiring.comhttps://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp',
+          url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp',
           width: 1280,
           height: 900,
-          alt: 'PMHNP Hiring job board homepage showing 10,000 plus psychiatric nurse practitioner jobs from 3,000 plus companies across 50 states',
+          alt: `PMHNP Hiring job board homepage showing ${jobCountDisplay} psychiatric nurse practitioner jobs from ${uniqueEmployerCount}+ companies across 50 states`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      images: ['https://pmhnphiring.comhttps://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
+      images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
       canonical: 'https://pmhnphiring.com',

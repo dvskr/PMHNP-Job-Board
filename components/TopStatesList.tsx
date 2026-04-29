@@ -65,7 +65,7 @@ export default function TopStatesList({ states }: TopStatesProps) {
                     {dioramaStates.map((state) => (
                         <motion.div key={state.slug} variants={fadeUp}>
                             <Link
-                                href={`/jobs/${state.slug}`}
+                                href={`/jobs/state/${state.slug}`}
                                 className="group block no-underline"
                                 style={{ textDecoration: 'none' }}
                             >

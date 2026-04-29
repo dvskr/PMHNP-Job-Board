@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // Simple in-memory rate limit (per IP, 3 submissions per hour)
 const feedbackCounts = new Map<string, { count: number; resetAt: number }>();
@@ -18,6 +19,10 @@ function isRateLimited(ip: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'feedback', RATE_LIMITS.feedback);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         // Auth check
         const supabase = await createClient();
