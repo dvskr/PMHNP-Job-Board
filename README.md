@@ -248,7 +248,7 @@
 3. **Setup database:**
    ```bash
    npx prisma generate
-   npx prisma db push
+   npx prisma migrate dev    # apply existing migrations to a fresh local DB
    ```
 
 4. **Run development server:**
@@ -946,7 +946,7 @@ Located in `pmhnp-autofill-extension/` (90 files):
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start development server (port 3000) |
-| `npm run build` | `prisma generate && prisma db push && next build` |
+| `npm run build` | `prisma generate && next build` (does NOT run migrations — see Production Migrations) |
 | `npm start` | Start production server |
 | `npm run lint` / `lint:fix` | Run/fix ESLint |
 | `npm run type-check` | TypeScript compiler check (no emit) |
@@ -959,9 +959,10 @@ Located in `pmhnp-autofill-extension/` (90 files):
 | Command | Description |
 |---------|-------------|
 | `npx prisma generate` | Generate Prisma Client |
-| `npx prisma db push` | Push schema to database |
+| `npx prisma migrate dev` | Create + apply a new migration locally |
+| `npx prisma migrate deploy` | Apply pending migrations against the configured DB (used in CI for prod) |
+| `npx prisma migrate status` | List applied vs. pending migrations |
 | `npx prisma studio` | Open Prisma Studio (DB GUI) |
-| `npx prisma migrate dev` | Create new migration |
 
 ### Testing
 
@@ -1065,16 +1066,31 @@ Tests in `tests/` using Vitest:
 
 ### Vercel (Production)
 
-1. Push to `main` branch → auto-deploys to Vercel
+1. Push to `main` branch → auto-deploys application code to Vercel
 2. **Environment Variables**: Set all required vars in Vercel Dashboard → Settings → Environment Variables
 3. **Cron Jobs**: Auto-configured from `vercel.json` (55 entries)
 4. **Stripe Webhook**: Set endpoint to `https://pmhnphiring.com/api/webhooks/stripe`
 5. **Deployment Protection**: Set to "Standard Protection" (protects preview deploys, not production custom domain)
 
+### Production Migrations (GitHub Actions)
+
+Database schema changes are applied by `.github/workflows/migrate-prod.yml`, **not** by Vercel's build. The workflow runs `prisma migrate deploy` against prod whenever a change to `prisma/schema.prisma` or `prisma/migrations/**` lands on `main`. Manual reruns are available from the Actions tab via `workflow_dispatch`.
+
+Required GitHub repo secret:
+
+- `PROD_DIRECT_DATABASE_URL` — `postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres`
+  Use the **direct** connection on port 5432, not the pgbouncer pooler on 6543. Prisma migrations run DDL inside transactions and the transaction-mode pooler will reject them. The workflow refuses to run if the secret looks like a pooler URL.
+
+Why not bake migrations into the Vercel build? Two reasons:
+
+1. Every preview deployment would race to apply migrations against prod.
+2. A failed migration would also fail the deploy, leaving the DB partially migrated and the deploy rolled back — messy.
+
 ### Post-Deployment Checklist
 
-- [ ] All environment variables configured
-- [ ] Database schema pushed (`prisma db push` runs in build)
+- [ ] All environment variables configured in Vercel
+- [ ] `PROD_DIRECT_DATABASE_URL` configured as a GitHub Actions repo secret
+- [ ] First migration run succeeded (Actions tab → Migrate prod database → green check)
 - [ ] Stripe webhook endpoint added
 - [ ] `CRON_SECRET` matches between Vercel env and cron auth
 - [ ] Discord webhook URL set for ingestion notifications
