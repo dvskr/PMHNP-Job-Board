@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 import ProfileNudgeBanner from '@/components/profile/ProfileNudgeWrapper';
 const BottomNav = dynamic(() => import('@/components/BottomNav'));
-const FloatingSocial = dynamic(() => import('@/components/FloatingSocial'));
+
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutShell from '@/components/LayoutShell';
 import MainContent from '@/components/MainContent';

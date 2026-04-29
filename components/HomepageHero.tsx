@@ -4,8 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, MapPin, Globe, Monitor, Clock, Clock3, GraduationCap, ArrowRight } from 'lucide-react';
-import { XLogo, FacebookLogo, InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
+import { Search, MapPin, Globe, Monitor, Clock, Clock3, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface HomepageHeroProps {
@@ -232,7 +231,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 {/* ── Quick filters ── */}
                 <motion.div
                     variants={fadeUp}
-                    style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}
+                    style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '28px' }}
                 >
                     {quickFilters.map((filter) => {
                         const Icon = filter.icon;
@@ -272,46 +271,13 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                             </Link>
                         );
                     })}
-                    <Link
-                        href="/jobs"
-                        className="hero-filter-badge"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '8px 20px',
-                            borderRadius: '24px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            background: '#B2F5EA',
-                            color: '#0F766E',
-                            textDecoration: 'none',
-                            border: '1px solid rgba(255,255,255,0.5)',
-                            boxShadow: '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-                            transition: 'all 0.2s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#5EEAD4';
-                            e.currentTarget.style.color = '#064E3B';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '7px 7px 16px rgba(13,148,136,0.18), -4px -4px 10px rgba(255,255,255,0.9), inset 2px 2px 5px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#B2F5EA';
-                            e.currentTarget.style.color = '#0F766E';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '5px 5px 12px rgba(13,148,136,0.12), -3px -3px 8px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
-                        }}
-                    >
-                        Browse all <ArrowRight size={14} />
-                    </Link>
                 </motion.div>
 
                 {/* ── Clay CTA buttons ── */}
                 <motion.div
                     variants={fadeUp}
                     className="hero-cta-row"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}
                 >
                     <Link
                         href="/jobs"
@@ -369,51 +335,7 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                     </Link>
                 </motion.div>
 
-                {/* ── Social pebbles ── */}
-                <motion.div
-                    variants={fadeUp}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                >
-                    {[
-                        { icon: XLogo, href: 'https://x.com/pmhnphiring', label: 'X', color: '#6ee7b7', shape: '54% 46% 62% 38% / 49% 55% 45% 51%' },
-                        { icon: FacebookLogo, href: 'https://www.facebook.com/pmhnphiring', label: 'Facebook', color: '#5eead4', shape: '61% 39% 45% 55% / 40% 62% 38% 60%' },
-                        { icon: InstagramLogo, href: 'https://www.instagram.com/pmhnphiring', label: 'Instagram', color: '#67e8f9', shape: '42% 58% 55% 45% / 58% 42% 60% 40%' },
-                        { icon: LinkedinLogo, href: 'https://www.linkedin.com/company/pmhnpjobs', label: 'LinkedIn', color: '#a5b4fc', shape: '67% 33% 48% 52% / 45% 58% 42% 55%' },
-                        { icon: YoutubeLogo, href: 'https://www.youtube.com/@pmhnphiring', label: 'YouTube', color: '#c4b5fd', shape: '50% 50% 60% 40% / 55% 45% 52% 48%' },
-                    ].map((s) => {
-                        const Icon = s.icon;
-                        return (
-                            <a
-                                key={s.label}
-                                href={s.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label={s.label}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: 38,
-                                    height: 34,
-                                    background: `linear-gradient(145deg, ${s.color}cc, ${s.color}88)`,
-                                    borderRadius: s.shape,
-                                    boxShadow: 'inset 3px 3px 6px rgba(255,255,255,0.45), inset -2px -2px 4px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.08)',
-                                    transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.12)';
-                                    e.currentTarget.style.boxShadow = 'inset 3px 3px 6px rgba(255,255,255,0.45), inset -2px -2px 4px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.14)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                    e.currentTarget.style.boxShadow = 'inset 3px 3px 6px rgba(255,255,255,0.45), inset -2px -2px 4px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.08)';
-                                }}
-                            >
-                                <Icon size={16} weight="fill" style={{ color: 'rgba(51,65,85,0.7)' }} />
-                            </a>
-                        );
-                    })}
-                </motion.div>
+
             </motion.div>
         </section>
     );

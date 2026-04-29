@@ -8,9 +8,8 @@ import { usePathname } from 'next/navigation';
 import HeaderAuth from '@/components/auth/HeaderAuth';
 
 /*
- * Header — Linear-inspired, Lora branding.
- * Logo left ← gap → nav | divider | auth right.
- * Height: 72px. Container: full-width with generous padding.
+ * Header — Floating claymorphic navbar.
+ * Warm diorama palette, pill-shaped, centered nav items.
  */
 
 export default function Header() {
@@ -90,136 +89,150 @@ export default function Header() {
   return (
     <>
       {/* Spacer */}
-      <div style={{ height: 80 }} />
+      <div style={{ height: 84 }} />
 
-      <header
-        className={[
-          'fixed top-0 left-0 right-0 z-[100]',
-          'flex items-center',
-          'transition-all duration-300',
-          scrolled
-            ? 'border-b shadow-sm'
-            : 'border-b border-transparent',
-        ].join(' ')}
+      {/* Floating navbar wrapper */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[100]"
         style={{
-          height: 80,
-          backgroundColor: '#F7FBF8',
-          borderColor: scrolled ? 'rgba(255,255,255,0.5)' : 'transparent',
-          boxShadow: scrolled ? '0 6px 20px rgba(0,0,0,0.08), 0 -2px 8px rgba(255,255,255,0.9) inset, inset 0 -1px 0 rgba(255,255,255,0.6)' : 'none',
+          padding: '12px 16px 0',
+          pointerEvents: 'none',
         }}
-        suppressHydrationWarning
       >
-        <div className="w-full max-w-[1440px] mx-auto px-8 xl:px-12 h-full flex items-center justify-between">
-
+        <header
+          className="transition-all duration-300"
+          style={{
+            maxWidth: '1360px',
+            margin: '0 auto',
+            height: 64,
+            borderRadius: '18px',
+            backgroundColor: '#F5F0EB',
+            border: '1px solid rgba(255,255,255,0.65)',
+            boxShadow: scrolled
+              ? '0 8px 32px rgba(90,74,66,0.12), 0 2px 8px rgba(90,74,66,0.06), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.02)'
+              : '0 4px 20px rgba(90,74,66,0.08), 0 1px 4px rgba(90,74,66,0.04), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.02)',
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: '12px',
+            paddingRight: '12px',
+            pointerEvents: 'auto',
+            transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+          }}
+          suppressHydrationWarning
+        >
           {/* ═══ LEFT: Logo ═══ */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Mobile hamburger */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden transition-all"
               style={{
-                padding: '8px',
-                marginLeft: '-8px',
-                borderRadius: '12px',
-                color: '#374151',
-                backgroundColor: '#EDF2EE',
+                padding: '7px',
+                borderRadius: '10px',
+                color: '#5A4A42',
+                backgroundColor: '#EDE7E0',
                 border: '1px solid rgba(255,255,255,0.5)',
-                boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
+                boxShadow: '3px 3px 8px rgba(90,74,66,0.08), -2px -2px 5px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
                 cursor: 'pointer',
               }}
               aria-label="Toggle menu"
             >
-              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
               <img
                 src="/logo.png"
                 alt="PMHNP Hiring"
-                width="100"
-                height="100"
-                style={{ width: 100, height: 100, objectFit: 'contain', flexShrink: 0 }}
+                width="56"
+                height="56"
+                style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }}
               />
               <span
-                className="font-heading"
+                className="font-heading hidden sm:inline"
                 style={{
-                  fontSize: '28px',
+                  fontSize: '20px',
                   fontWeight: 700,
-                  color: '#1F2937',
-                  letterSpacing: '-0.02em',
+                  color: '#3D2E24',
+                  letterSpacing: '-0.01em',
                   whiteSpace: 'nowrap',
                   lineHeight: 1,
-                  transform: 'translateY(4px)',
-                  marginLeft: '-24px',
+                  marginLeft: '-6px',
                 }}
               >
-                PMHNP Hiring
+                PMHNP{' '}
+                <span style={{ fontStyle: 'italic', color: '#0D9488', fontWeight: 600 }}>Hiring</span>
               </span>
             </Link>
           </div>
 
-          {/* ═══ RIGHT: Nav + Divider + Auth ═══ */}
-          <div className="hidden lg:flex items-center gap-1">
-            <nav className="flex items-center gap-2">
-              {navLinks.map((link) => {
-                const NavIcon = link.icon;
-                return (
+          {/* ═══ CENTER: Nav ═══ */}
+          <nav className="hidden lg:flex items-center justify-center flex-1 gap-1 mx-4">
+            {navLinks.map((link) => {
+              const NavIcon = link.icon;
+              const active = isActive(link.href);
+              return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="nav-link-clay"
+                  className="nav-pill-floating"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '14px',
-                    fontSize: '14px',
-                    fontWeight: isActive(link.href) ? 600 : 500,
-                    color: isActive(link.href) ? '#0D9488' : '#374151',
-                    backgroundColor: isActive(link.href) ? '#D5F5F1' : 'transparent',
-                    border: isActive(link.href) ? '1px solid rgba(255,255,255,0.5)' : '1px solid transparent',
-                    boxShadow: isActive(link.href)
-                      ? '4px 4px 10px rgba(13,148,136,0.10), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)'
+                    padding: '7px 16px',
+                    borderRadius: '12px',
+                    fontSize: '13.5px',
+                    fontWeight: active ? 600 : 500,
+                    color: active ? '#0D9488' : '#5A4A42',
+                    backgroundColor: active ? 'rgba(13,148,136,0.10)' : 'transparent',
+                    border: active
+                      ? '1px solid rgba(13,148,136,0.15)'
+                      : '1px solid transparent',
+                    boxShadow: active
+                      ? 'inset 1px 1px 3px rgba(13,148,136,0.06), 2px 2px 6px rgba(13,148,136,0.06)'
                       : 'none',
                     textDecoration: 'none',
                     transition: 'all 0.2s ease',
                     whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={e => {
-                    if (!isActive(link.href)) {
-                      e.currentTarget.style.backgroundColor = '#E6FAF8';
-                      e.currentTarget.style.color = '#0D9488';
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = '#EDE7E0';
+                      e.currentTarget.style.color = '#5A4A42';
                       e.currentTarget.style.border = '1px solid rgba(255,255,255,0.5)';
-                      e.currentTarget.style.boxShadow = '4px 4px 10px rgba(13,148,136,0.10), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)';
+                      e.currentTarget.style.boxShadow = '3px 3px 8px rgba(90,74,66,0.10), -2px -2px 5px rgba(255,255,255,0.7), inset 1px 1px 3px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)';
                       e.currentTarget.style.transform = 'translateY(-1px)';
                     }
                   }}
                   onMouseLeave={e => {
-                    if (!isActive(link.href)) {
+                    if (!active) {
                       e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.color = '#5A4A42';
                       e.currentTarget.style.border = '1px solid transparent';
                       e.currentTarget.style.boxShadow = 'none';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }
                   }}
                 >
-                  <NavIcon size={16} />
+                  <NavIcon size={15} style={{ opacity: 0.85 }} />
                   {link.label}
                 </Link>
-                );
-              })}
-            </nav>
+              );
+            })}
+          </nav>
 
-            {/* Divider */}
-            <div className="w-px h-5 mx-3" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }} />
-
-            {/* Auth */}
+          {/* ═══ RIGHT: Auth ═══ */}
+          <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
             <HeaderAuth onRoleChange={(role) => setUserRole(role)} />
           </div>
-        </div>
-      </header>
+
+          {/* Mobile right side - just auth (hamburger is on left) */}
+          <div className="lg:hidden flex items-center gap-2 ml-auto">
+            <HeaderAuth onRoleChange={(role) => setUserRole(role)} />
+          </div>
+        </header>
+      </div>
 
       {/* ═══ Mobile Menu ═══ */}
       <AnimatePresence>
@@ -234,58 +247,70 @@ export default function Header() {
           >
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: 'rgba(247, 251, 248, 0.98)' }}
+              style={{ backgroundColor: 'rgba(245, 240, 235, 0.98)' }}
               onClick={() => setIsMenuOpen(false)}
             />
-            <div className="relative px-8 pt-6 pb-8">
+            <div className="relative px-6 pt-4 pb-8">
               <nav className="flex flex-col">
                 {navLinks.map((link) => {
                   const MobileIcon = link.icon;
+                  const active = isActive(link.href);
                   return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="py-4 text-lg font-medium transition-colors"
-                    style={{
-                      color: isActive(link.href) ? '#0D9488' : '#374151',
-                      fontWeight: isActive(link.href) ? 600 : 500,
-                      borderBottom: '1px solid rgba(0,0,0,0.06)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                    }}
-                  >
-                    <MobileIcon size={20} />
-                    {link.label}
-                  </Link>
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      style={{
+                        padding: '14px 16px',
+                        fontSize: '16px',
+                        fontWeight: active ? 600 : 500,
+                        color: active ? '#0D9488' : '#5A4A42',
+                        backgroundColor: active ? 'rgba(13,148,136,0.08)' : 'transparent',
+                        borderRadius: '14px',
+                        marginBottom: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        textDecoration: 'none',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <MobileIcon size={20} style={{ opacity: 0.75 }} />
+                      {link.label}
+                    </Link>
                   );
                 })}
               </nav>
+
               {/* Extra links for public mobile users */}
               {!userRole && (
-                <div className="mt-2 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#94A3B8' }}>More</p>
+                <div className="mt-3 pt-4" style={{ borderTop: '1px solid rgba(90,74,66,0.08)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3 px-4" style={{ color: '#A89890' }}>More</p>
                   <nav className="flex flex-col">
                     {mobileExtraLinks.map((link) => {
                       const ExtraIcon = link.icon;
+                      const active = isActive(link.href);
                       return (
                         <Link
                           key={link.href}
                           href={link.href}
                           onClick={() => setIsMenuOpen(false)}
-                          className="py-3 text-base font-medium transition-colors"
                           style={{
-                            color: isActive(link.href) ? '#0D9488' : '#6B7280',
-                            fontWeight: isActive(link.href) ? 600 : 400,
-                            borderBottom: '1px solid rgba(0,0,0,0.04)',
+                            padding: '12px 16px',
+                            fontSize: '15px',
+                            fontWeight: active ? 600 : 400,
+                            color: active ? '#0D9488' : '#7A6A62',
+                            backgroundColor: active ? 'rgba(13,148,136,0.06)' : 'transparent',
+                            borderRadius: '12px',
+                            marginBottom: '1px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '10px',
                             textDecoration: 'none',
+                            transition: 'all 0.15s',
                           }}
                         >
-                          <ExtraIcon size={18} />
+                          <ExtraIcon size={18} style={{ opacity: 0.65 }} />
                           {link.label}
                         </Link>
                       );
@@ -293,13 +318,20 @@ export default function Header() {
                   </nav>
                 </div>
               )}
-              <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <div className="mt-6 pt-5 px-4" style={{ borderTop: '1px solid rgba(90,74,66,0.08)' }}>
                 <HeaderAuth onNavigate={() => setIsMenuOpen(false)} onRoleChange={(role) => setUserRole(role)} />
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating nav hover styles */}
+      <style>{`
+        .nav-pill-floating:active {
+          transform: translateY(0) scale(0.98) !important;
+        }
+      `}</style>
     </>
   );
 }
