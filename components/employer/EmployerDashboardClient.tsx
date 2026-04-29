@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
-import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, BellOff, Pause, Play, Rocket } from 'lucide-react';
+import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
@@ -11,6 +11,9 @@ import SavedCandidatesTab from '@/components/employer/SavedCandidatesTab';
 import MessagesTab from '@/components/employer/MessagesTab';
 import UsageWidget from '@/components/employer/UsageWidget';
 
+/* ═══════════════════════════════════════════
+   TYPES
+   ═══════════════════════════════════════════ */
 interface Job {
     id: string;
     title: string;
@@ -34,6 +37,64 @@ interface EmployerDashboardClientProps {
     /** If provided, the user accessed via token link (not logged in). Shows signup banner & invoice links use this token. */
     dashboardToken?: string;
 }
+
+/* ═══════════════════════════════════════════
+   CLAY DESIGN TOKENS
+   ═══════════════════════════════════════════ */
+const cardBase: React.CSSProperties = {
+    background: '#F7FBF8',
+    borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+};
+
+const cardRecessed: React.CSSProperties = {
+    background: '#EDF5F0',
+    borderRadius: '14px',
+    border: '1px solid #D5E8E0',
+    boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.5)',
+};
+
+const clayPill: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '5px',
+    padding: '4px 12px', borderRadius: '20px',
+    fontSize: '11px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '2px 2px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7)',
+};
+
+const clayBtn: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    padding: '8px 16px', borderRadius: '12px',
+    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
+    transition: 'all 0.2s',
+    textDecoration: 'none',
+};
+
+const clayToggle = (isActive: boolean): React.CSSProperties => ({
+    position: 'relative',
+    width: '44px', height: '24px',
+    borderRadius: '12px',
+    background: isActive ? '#0D9488' : '#EDF5F0',
+    border: `1px solid ${isActive ? 'rgba(255,255,255,0.3)' : '#D5E8E0'}`,
+    boxShadow: isActive
+        ? '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)'
+        : 'inset 2px 2px 5px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)',
+    cursor: 'pointer', transition: 'all 0.2s',
+    flexShrink: 0,
+});
+
+const clayToggleKnob = (isActive: boolean): React.CSSProperties => ({
+    position: 'absolute', top: '2px',
+    left: isActive ? '22px' : '2px',
+    width: '18px', height: '18px', borderRadius: '50%',
+    background: '#fff',
+    transition: 'all 0.2s',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+});
+
 
 export default function EmployerDashboardClient({ employerEmail, employerName, jobs, dashboardToken }: EmployerDashboardClientProps) {
     const isTokenAccess = !!dashboardToken;
@@ -101,17 +162,15 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
     const getStatusBadge = (job: Job) => {
         if (!job.isPublished) {
-            return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Paused</span>;
+            return <span style={{ ...clayPill, background: '#FEF3C7', color: '#D97706' }}>⏸ Paused</span>;
         }
-
         if (job.expiresAt) {
             const expiry = getExpiryStatus(new Date(job.expiresAt));
             if (expiry.isExpired) {
-                return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Expired</span>;
+                return <span style={{ ...clayPill, background: '#FEE2E2', color: '#DC2626' }}>✕ Expired</span>;
             }
         }
-
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Live</span>;
+        return <span style={{ ...clayPill, background: '#D1FAE5', color: '#059669' }}>● Live</span>;
     };
 
     const isExpired = (job: Job): boolean => {
@@ -224,351 +283,382 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         return '#';
     };
 
-    return (
-        <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
-            <div className="max-w-6xl mx-auto">
-                {/* Sign Up Banner — token-access only */}
-                {showSignupBanner && isTokenAccess && (
-                    <div className="bg-teal-50 border-l-4 border-teal-400 p-4 mb-8 relative rounded-r-md">
-                        <button
-                            onClick={() => setShowSignupBanner(false)}
-                            className="absolute top-2 right-2 text-teal-400 hover:text-teal-600"
-                        >
-                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                        <div className="flex items-center justify-between flex-wrap gap-4 pr-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-teal-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-teal-700">
-                                        Create an account for easier access to your dashboard in the future.
-                                    </p>
-                                </div>
-                            </div>
-                            <Link
-                                href="/signup?role=employer"
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                            >
-                                Sign Up
-                            </Link>
-                        </div>
-                    </div>
-                )}
+    // Summary stats
+    const totalViews = localJobs.reduce((s, j) => s + j.viewCount, 0);
+    const totalClicks = localJobs.reduce((s, j) => s + j.applyClickCount, 0);
+    const totalApplicants = localJobs.reduce((s, j) => s + (j.applicantCount || 0), 0);
+    const liveCount = localJobs.filter(j => j.isPublished && !isExpired(j)).length;
 
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Employer Dashboard</h1>
-                        <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
-                            {employerName}{isTokenAccess ? ` · ${employerEmail}` : ''}
-                        </p>
+    const tabItems = [
+        { key: 'jobs' as const, label: `My Jobs (${jobs.length})`, icon: <Briefcase size={14} /> },
+        { key: 'applicants' as const, label: 'Applicants', icon: <User size={14} /> },
+        { key: 'analytics' as const, label: 'Analytics', icon: <BarChart3 size={14} /> },
+        { key: 'messages' as const, label: 'Messages', icon: <MessageSquare size={14} /> },
+        { key: 'saved' as const, label: 'Saved', icon: <Star size={14} /> },
+    ];
+
+    return (
+        <div style={{ background: '#F5F6F8' }}>
+            {/* ═══ Hero Header ═══ */}
+            <div style={{
+                padding: '16px 16px 20px',
+                background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
+                borderBottom: '1px solid #E5E7EB',
+            }}>
+                <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                    {/* Signup Banner — token-access only */}
+                    {showSignupBanner && isTokenAccess && (
+                        <div style={{
+                            ...cardBase, padding: '14px 20px', marginBottom: '20px',
+                            background: '#CCFBF1', border: '1px solid #99F6E4',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
+                            flexWrap: 'wrap',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Shield size={18} style={{ color: '#0D9488' }} />
+                                <p style={{ fontSize: '13px', color: '#134E4A', margin: 0 }}>
+                                    Create an account for easier access to your dashboard in the future.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <Link href="/signup?role=employer" style={{
+                                    ...clayBtn, background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                    color: '#fff', border: 'none',
+                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                }}>Sign Up</Link>
+                                <button onClick={() => setShowSignupBanner(false)} style={{
+                                    ...clayBtn, background: 'rgba(255,255,255,0.5)',
+                                    color: '#6B7F8A', fontSize: '12px', padding: '6px 10px',
+                                }}>✕</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                            <div style={{
+                                width: '48px', height: '48px', borderRadius: '16px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#CCFBF1', color: '#0D9488', flexShrink: 0,
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                boxShadow: '4px 4px 10px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 3px rgba(255,255,255,0.6)',
+                            }}>
+                                <Briefcase size={22} />
+                            </div>
+                            <div>
+                                <h1 style={{
+                                    fontSize: '24px', fontWeight: 800,
+                                    fontFamily: 'var(--font-lora), Georgia, serif',
+                                    color: '#1A2E35', margin: '0 0 2px',
+                                }}>Employer Dashboard</h1>
+                                <p style={{ fontSize: '13px', color: '#6B7F8A', margin: 0 }}>
+                                    {employerName}{isTokenAccess ? ` · ${employerEmail}` : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <Link href="/post-job" style={{
+                            ...clayBtn, background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                            color: '#fff', border: 'none', padding: '10px 20px',
+                            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), -2px -2px 8px rgba(255,255,255,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                        }}>
+                            <Plus size={16} /> Post a New Job
+                        </Link>
                     </div>
-                    <Link
-                        href="/post-job"
-                        className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
-                    >
-                        Post a New Job
-                    </Link>
+                </div>
+            </div>
+
+            <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px 16px 60px' }}>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }} className="emp-dashboard-grid">
+            <div>
+
+                {/* ═══ Summary Stats ═══ */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                    {[
+                        { label: 'Live Jobs', value: liveCount, icon: <Rocket size={16} />, color: '#059669', bg: '#D1FAE5' },
+                        { label: 'Total Views', value: totalViews, icon: <Eye size={16} />, color: '#0D9488', bg: '#CCFBF1' },
+                        { label: 'Apply Clicks', value: totalClicks, icon: <MousePointerClick size={16} />, color: '#7C3AED', bg: '#EDE9FE' },
+                        { label: 'Applicants', value: totalApplicants, icon: <User size={16} />, color: '#E879A8', bg: '#FCE7F3' },
+                    ].map(s => (
+                        <div key={s.label} style={{ ...cardBase, padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '36px', height: '36px', borderRadius: '12px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: s.bg, color: s.color, flexShrink: 0,
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                            }}>
+                                {s.icon}
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0, lineHeight: 1 }}>{s.value}</p>
+                                <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0, fontWeight: 500 }}>{s.label}</p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
-                {/* Talent Pool CTA — session access only */}
+                {/* ═══ Quick Access Row ═══ */}
                 {!isTokenAccess && (
-                    <Link
-                        href="/employer/candidates"
-                        className="block rounded-lg shadow-sm p-6 mb-6 transition-all hover:shadow-md group"
-                        style={{
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid rgba(45,212,191,0.2)',
-                            background: 'linear-gradient(135deg, rgba(45,212,191,0.05), rgba(20,184,166,0.02))',
-                            textDecoration: 'none',
-                        }}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div
-                                    style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '12px',
-                                        background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '18px',
-                                    }}
-                                >
-                                    👥
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-                                        Browse PMHNP Talent Pool
-                                    </h3>
-                                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                        Search qualified candidates open to new opportunities
-                                    </p>
-                                </div>
-                            </div>
-                            <span
-                                className="text-sm font-semibold group-hover:translate-x-1 transition-transform"
-                                style={{ color: '#2DD4BF' }}
-                            >
-                                Browse →
-                            </span>
-                        </div>
-                    </Link>
-                )}
-
-                {/* Messages — linked to unified inbox */}
-                {!isTokenAccess && (
-                    <Link
-                        href="/messages"
-                        className="block rounded-lg shadow-sm p-6 mb-6 transition-all hover:shadow-md group"
-                        style={{
-                            backgroundColor: 'var(--bg-secondary)',
-                            border: '1px solid rgba(45,212,191,0.2)',
-                            background: 'linear-gradient(135deg, rgba(45,212,191,0.05), rgba(20,184,166,0.02))',
-                            textDecoration: 'none',
-                        }}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                        {/* Talent Pool */}
+                        <Link href="/employer/candidates" className="emp-cta-card" style={{
+                            ...cardBase, padding: '16px 20px', textDecoration: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{
-                                    width: '40px', height: '40px', borderRadius: '12px',
-                                    background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
+                                    width: '38px', height: '38px', borderRadius: '12px',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '18px',
+                                    background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff',
+                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
                                 }}>
-                                    <Mail size={20} color="#fff" />
+                                    <Users size={18} />
                                 </div>
                                 <div>
-                                    <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Messages</div>
-                                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>View and reply to candidate conversations</div>
+                                    <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Browse Talent Pool</p>
+                                    <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>Search qualified PMHNP candidates</p>
                                 </div>
                             </div>
-                            <span className="text-sm font-medium group-hover:translate-x-1 transition-transform" style={{ color: '#2DD4BF' }}>Open Inbox →</span>
-                        </div>
-                    </Link>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>Browse →</span>
+                        </Link>
+
+                        {/* Messages */}
+                        <Link href="/messages" className="emp-cta-card" style={{
+                            ...cardBase, padding: '16px 20px', textDecoration: 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    width: '38px', height: '38px', borderRadius: '12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'linear-gradient(145deg, #818CF8, #6366F1)', color: '#fff',
+                                    boxShadow: '3px 3px 8px rgba(99,102,241,0.15)',
+                                }}>
+                                    <Mail size={18} />
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Messages</p>
+                                    <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>View & reply to candidate conversations</p>
+                                </div>
+                            </div>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#6366F1' }}>Open →</span>
+                        </Link>
+                    </div>
                 )}
 
-                {/* Usage Widget — session access only */}
+                {/* ═══ Usage Widget ═══ */}
                 {!isTokenAccess && <UsageWidget />}
 
-                {/* Tab Navigation — session access only */}
+                {/* ═══ Tab Navigation ═══ */}
                 {!isTokenAccess && (
-                    <div className="flex gap-1 mb-6 p-1 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                        {(['jobs', 'applicants', 'analytics', 'messages', 'saved'] as const).map(tab => (
+                    <div style={{
+                        ...cardRecessed, display: 'flex', gap: '4px', padding: '4px',
+                        marginBottom: '20px', overflowX: 'auto',
+                    }}>
+                        {tabItems.map(tab => (
                             <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab ? 'shadow-sm' : 'hover:opacity-80'}`}
+                                key={tab.key}
+                                onClick={() => setActiveTab(tab.key)}
                                 style={{
-                                    backgroundColor: activeTab === tab ? 'var(--bg-secondary)' : 'transparent',
-                                    color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                                    flex: 1, padding: '10px 14px', borderRadius: '12px',
+                                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                                    whiteSpace: 'nowrap', transition: 'all 0.2s',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                    background: activeTab === tab.key ? '#F7FBF8' : 'transparent',
+                                    color: activeTab === tab.key ? '#1A2E35' : '#8A9BA6',
+                                    border: activeTab === tab.key ? '1px solid rgba(255,255,255,0.5)' : '1px solid transparent',
+                                    boxShadow: activeTab === tab.key
+                                        ? '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)'
+                                        : 'none',
                                 }}
                             >
-                                {tab === 'jobs' ? `My Jobs (${jobs.length})` : tab === 'saved' ? '★ Saved' : tab === 'messages' ? '✉ Messages' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                {tab.icon} {tab.label}
                             </button>
                         ))}
                     </div>
                 )}
 
-                {/* Applicants Tab Content */}
-                {activeTab === 'applicants' && !isTokenAccess && (
-                    <ApplicantsTab />
-                )}
+                {/* ═══ Tab Content ═══ */}
+                {activeTab === 'applicants' && !isTokenAccess && <ApplicantsTab />}
+                {activeTab === 'analytics' && !isTokenAccess && <AnalyticsTab />}
+                {activeTab === 'messages' && !isTokenAccess && <MessagesTab />}
+                {activeTab === 'saved' && !isTokenAccess && <SavedCandidatesTab />}
 
-                {/* Analytics Tab Content */}
-                {activeTab === 'analytics' && !isTokenAccess && (
-                    <AnalyticsTab />
-                )}
-
-                {/* Messages Tab Content */}
-                {activeTab === 'messages' && !isTokenAccess && (
-                    <MessagesTab />
-                )}
-
-
-                {/* Saved Candidates Tab Content */}
-                {activeTab === 'saved' && !isTokenAccess && (
-                    <SavedCandidatesTab />
-                )}
-
-                {/* Jobs Tab Content */}
+                {/* ═══ Jobs Tab ═══ */}
                 {(activeTab === 'jobs' || isTokenAccess) && (
                     <>
                         {/* Empty State */}
                         {localJobs.length === 0 && (
-                            <div className="rounded-lg shadow-sm p-12 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <svg className="h-8 w-8" style={{ color: 'var(--color-primary)' }} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-                                    </svg>
+                            <div style={{ ...cardBase, padding: '48px 24px', textAlign: 'center' }}>
+                                <div style={{
+                                    width: '64px', height: '64px', borderRadius: '20px', margin: '0 auto 16px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: '#CCFBF1', color: '#0D9488',
+                                    border: '1px solid rgba(255,255,255,0.5)',
+                                    boxShadow: '5px 5px 12px rgba(0,0,0,0.06), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.7)',
+                                }}>
+                                    <Briefcase size={28} />
                                 </div>
-                                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Welcome! Let&apos;s get started</h3>
-                                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Follow these steps to start hiring qualified PMHNPs</p>
+                                <h3 style={{
+                                    fontSize: '20px', fontWeight: 700,
+                                    fontFamily: 'var(--font-lora), Georgia, serif',
+                                    color: '#1A2E35', marginBottom: '6px',
+                                }}>Welcome! Let&apos;s get started</h3>
+                                <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '24px' }}>
+                                    Follow these steps to start hiring qualified PMHNPs
+                                </p>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-left w-full max-w-lg">
-                                    <Link href="/employer/settings" className="flex items-start gap-3 p-4 rounded-lg border transition-colors hover:border-teal-500" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
-                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">1</span>
-                                        <div>
-                                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Company Profile</p>
-                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Add logo &amp; company details</p>
-                                        </div>
-                                    </Link>
-                                    <Link href="/post-job" className="flex items-start gap-3 p-4 rounded-lg border transition-colors hover:border-teal-500" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
-                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">2</span>
-                                        <div>
-                                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Post a Job</p>
-                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Create your first listing</p>
-                                        </div>
-                                    </Link>
-                                    <div className="flex items-start gap-3 p-4 rounded-lg border opacity-60" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
-                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-bold">3</span>
-                                        <div>
-                                            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>Track Results</p>
-                                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Views, clicks &amp; applicants</p>
-                                        </div>
-                                    </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', maxWidth: '560px', marginInline: 'auto', marginBottom: '24px' }}>
+                                    {[
+                                        { step: 1, title: 'Company Profile', desc: 'Add logo & company details', href: '/employer/settings', active: true },
+                                        { step: 2, title: 'Post a Job', desc: 'Create your first listing', href: '/post-job', active: true },
+                                        { step: 3, title: 'Track Results', desc: 'Views, clicks & applicants', href: '#', active: false },
+                                    ].map(s => {
+                                        const content = (
+                                            <div style={{
+                                                ...cardRecessed, padding: '14px', textAlign: 'left',
+                                                display: 'flex', alignItems: 'flex-start', gap: '10px',
+                                                opacity: s.active ? 1 : 0.5,
+                                                cursor: s.active ? 'pointer' : 'default',
+                                                transition: 'all 0.2s',
+                                            }}>
+                                                <span style={{
+                                                    width: '26px', height: '26px', borderRadius: '50%',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    background: s.active ? '#0D9488' : '#B0C4BC',
+                                                    color: '#fff', fontSize: '12px', fontWeight: 700, flexShrink: 0,
+                                                }}>{s.step}</span>
+                                                <div>
+                                                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: '0 0 2px' }}>{s.title}</p>
+                                                    <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>{s.desc}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                        return s.active
+                                            ? <Link key={s.step} href={s.href} style={{ textDecoration: 'none' }}>{content}</Link>
+                                            : <div key={s.step}>{content}</div>;
+                                    })}
                                 </div>
 
-                                <Link
-                                    href="/post-job"
-                                    className="inline-flex items-center gap-2 bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
-                                >
-                                    <Rocket size={18} />
-                                    Post Your First Job
+                                <Link href="/post-job" style={{
+                                    ...clayBtn, background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                    color: '#fff', border: 'none', padding: '12px 24px', fontSize: '14px',
+                                    boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                }}>
+                                    <Rocket size={16} /> Post Your First Job
                                 </Link>
                             </div>
                         )}
 
                         {/* Jobs List */}
                         {localJobs.length > 0 && (
-                            <div className="space-y-4">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {localJobs.map((job: Job) => (
-                                    <div key={job.id} className="rounded-lg shadow-sm p-6 transition-shadow hover:shadow-md" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                                            {/* Job Info */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <Link
-                                                        href={getJobHref(job)}
-                                                        className={`text-lg font-semibold flex items-center gap-2 group ${job.isPublished ? 'hover:text-teal-600' : ''}`}
-                                                        style={{ color: 'var(--text-primary)' }}
-                                                    >
+                                    <div key={job.id} className="emp-job-card" style={{
+                                        ...cardBase, padding: '18px 20px',
+                                        transition: 'all 0.2s',
+                                    }}>
+                                        {/* Header: Title + Status */}
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <Link href={getJobHref(job)} style={{
+                                                        fontSize: '16px', fontWeight: 700,
+                                                        fontFamily: 'var(--font-lora), Georgia, serif',
+                                                        color: '#1A2E35', textDecoration: 'none',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                    }} className="emp-job-title">
                                                         {job.title}
-                                                        {job.isPublished && (
-                                                            <ExternalLink size={16} className="text-gray-400 group-hover:text-teal-600" />
-                                                        )}
+                                                        {job.isPublished && <ExternalLink size={14} style={{ color: '#B0C4BC' }} />}
                                                     </Link>
                                                     {getStatusBadge(job)}
                                                     {job.isFeatured && (
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-                                                            Featured
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Stats */}
-                                                <div className="flex flex-wrap items-center gap-4 text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
-                                                    <span className="flex items-center gap-1" title="Views">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                        {job.viewCount} views
-                                                    </span>
-                                                    <span className="flex items-center gap-1" title="Apply Clicks">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
-                                                        </svg>
-                                                        {job.applyClickCount} clicks
-                                                    </span>
-                                                    {(job.applicantCount !== undefined && job.applicantCount > 0) && (
-                                                        <span className="flex items-center gap-1" title="Platform Applicants">
-                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                                            </svg>
-                                                            {job.applicantCount} applicant{job.applicantCount !== 1 ? 's' : ''}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Dates + Invoice */}
-                                                <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                                    <span>Posted {formatDate(job.createdAt)}</span>
-                                                    {mounted && job.expiresAt && (
-                                                        <span className={isExpiringSoon(job) ? 'text-orange-600 font-medium' : ''}>
-                                                            {isExpired(job) ? 'Expired' : 'Expires'} {formatDate(job.expiresAt)}
-                                                            {isExpiringSoon(job) && ' ⚠️'}
-                                                        </span>
-                                                    )}
-                                                    {config.isPaidPostingEnabled && job.paymentStatus === 'paid' && (
-                                                        <a
-                                                            href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-teal-600 hover:text-teal-800 hover:underline"
-                                                        >
-                                                            Download Invoice
-                                                        </a>
+                                                        <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>★ Featured</span>
                                                     )}
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            {/* Actions */}
-                                            <div className="flex items-center gap-2 mt-4 lg:mt-0">
-                                                <Link
-                                                    href={`/jobs/edit/${job.editToken}`}
-                                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors"
-                                                    style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+                                        {/* Stats Row */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                                            <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#6B7F8A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                <Eye size={11} /> {job.viewCount} views
+                                            </span>
+                                            <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#6B7F8A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                <MousePointerClick size={11} /> {job.applyClickCount} clicks
+                                            </span>
+                                            {(job.applicantCount !== undefined && job.applicantCount > 0) && (
+                                                <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#059669', background: '#D1FAE5', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                    <User size={11} /> {job.applicantCount} applicant{job.applicantCount !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Date Row */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '11px', color: '#8A9BA6', marginBottom: '14px' }}>
+                                            <span>Posted {formatDate(job.createdAt)}</span>
+                                            {mounted && job.expiresAt && (
+                                                <span style={{ color: isExpiringSoon(job) ? '#D97706' : '#8A9BA6', fontWeight: isExpiringSoon(job) ? 600 : 400 }}>
+                                                    {isExpired(job) ? 'Expired' : 'Expires'} {formatDate(job.expiresAt)}
+                                                    {isExpiringSoon(job) && ' ⚠️'}
+                                                </span>
+                                            )}
+                                            {job.paymentStatus === 'paid' && (
+                                                <a
+                                                    href={`/api/employer/invoice?jobId=${job.id}${dashboardToken ? `&token=${dashboardToken}` : ''}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: '#0D9488', textDecoration: 'underline', fontWeight: 600 }}
                                                 >
-                                                    <Edit size={16} />
-                                                    Edit
-                                                </Link>
-                                                {mounted && !isExpired(job) && (
-                                                    <button
-                                                        onClick={() => handleTogglePublish(job)}
-                                                        disabled={togglingJobId === job.id}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                                                        style={{
-                                                            color: job.isPublished ? '#F59E0B' : '#10B981',
-                                                            border: `1px solid ${job.isPublished ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}`,
-                                                            backgroundColor: job.isPublished ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)',
-                                                        }}
-                                                    >
-                                                        {togglingJobId === job.id
-                                                            ? <Loader2 size={16} className="animate-spin" />
-                                                            : job.isPublished ? <Pause size={16} /> : <Play size={16} />}
-                                                        {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
-                                                    </button>
-                                                )}
-                                                {mounted && config.isPaidPostingEnabled && !job.isFeatured && job.isPublished && !isExpired(job) && (
-                                                    <button
-                                                        onClick={() => handleUpgradeClick(job)}
-                                                        disabled={upgradingJobId === job.id}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-600 to-purple-600 text-white rounded-lg font-medium hover:from-teal-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        <Shield size={16} />
-                                                        {upgradingJobId === job.id ? 'Processing...' : 'Upgrade - $100'}
-                                                    </button>
-                                                )}
-                                                {mounted && config.isPaidPostingEnabled && shouldShowRenew(job) && (
-                                                    <button
-                                                        onClick={() => handleRenewClick(job)}
-                                                        disabled={renewingJobId === job.id}
-                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        <RefreshCw size={16} className={renewingJobId === job.id ? 'animate-spin' : ''} />
-                                                        {renewingJobId === job.id ? 'Processing...' : 'Renew'}
-                                                    </button>
-                                                )}
-                                            </div>
+                                                    Download Invoice
+                                                </a>
+                                            )}
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                                            <Link href={`/jobs/edit/${job.editToken}`} className="emp-action-btn" style={{
+                                                ...clayBtn, background: '#F7FBF8', color: '#2A4A5A',
+                                            }}>
+                                                <Edit size={14} /> Edit
+                                            </Link>
+                                            {mounted && !isExpired(job) && (
+                                                <button
+                                                    onClick={() => handleTogglePublish(job)}
+                                                    disabled={togglingJobId === job.id}
+                                                    className="emp-action-btn"
+                                                    style={{
+                                                        ...clayBtn,
+                                                        background: job.isPublished ? '#FEF3C7' : '#D1FAE5',
+                                                        color: job.isPublished ? '#D97706' : '#059669',
+                                                        opacity: togglingJobId === job.id ? 0.6 : 1,
+                                                    }}
+                                                >
+                                                    {togglingJobId === job.id
+                                                        ? <Loader2 size={14} className="animate-spin" />
+                                                        : job.isPublished ? <Pause size={14} /> : <Play size={14} />}
+                                                    {togglingJobId === job.id ? '...' : job.isPublished ? 'Pause' : 'Unpause'}
+                                                </button>
+                                            )}
+                                            {/* Upgrade button removed — single-tier model */}
+                                            {mounted && shouldShowRenew(job) && (
+                                                <button
+                                                    onClick={() => handleRenewClick(job)}
+                                                    disabled={renewingJobId === job.id}
+                                                    className="emp-action-btn"
+                                                    style={{
+                                                        ...clayBtn,
+                                                        background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                                        color: '#fff', border: 'none',
+                                                        boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                                        opacity: renewingJobId === job.id ? 0.6 : 1,
+                                                    }}
+                                                >
+                                                    <RefreshCw size={14} className={renewingJobId === job.id ? 'animate-spin' : ''} />
+                                                    {renewingJobId === job.id ? 'Processing...' : 'Renew'}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -577,85 +667,62 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                         {/* Newsletter Opt-in — session access only */}
                         {!isTokenAccess && newsletterChecked && (
-                            <div
-                                className="mt-8 rounded-lg p-6 flex items-center justify-between gap-4 flex-wrap"
-                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div
-                                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                        style={{ background: 'rgba(20,184,166,0.1)' }}
-                                    >
-                                        <Mail size={20} style={{ color: '#14B8A6' }} />
+                            <div style={{ ...cardBase, padding: '16px 20px', marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{
+                                        width: '36px', height: '36px', borderRadius: '12px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: '#CCFBF1', color: '#0D9488',
+                                        border: '1px solid rgba(255,255,255,0.5)',
+                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7)',
+                                    }}>
+                                        <Mail size={16} />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-                                            Employer Newsletter
-                                        </h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Get hiring tips, salary benchmarks & PMHNP market insights
-                                        </p>
+                                        <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Employer Newsletter</p>
+                                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>Hiring tips, salary benchmarks & PMHNP market insights</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={handleNewsletterToggle}
                                     disabled={newsletterLoading}
-                                    style={{
-                                        position: 'relative',
-                                        width: '44px', height: '24px',
-                                        borderRadius: '12px',
-                                        background: newsletterOptIn ? '#14B8A6' : 'var(--bg-tertiary)',
-                                        border: '1px solid',
-                                        borderColor: newsletterOptIn ? '#14B8A6' : 'var(--border-color)',
-                                        cursor: 'pointer', transition: 'all 0.2s',
-                                        flexShrink: 0,
-                                    }}
+                                    style={clayToggle(newsletterOptIn)}
                                 >
-                                    <div style={{
-                                        position: 'absolute', top: '2px', left: newsletterOptIn ? '22px' : '2px',
-                                        width: '18px', height: '18px', borderRadius: '50%',
-                                        background: '#fff',
-                                        transition: 'all 0.2s',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                    }} />
+                                    <div style={clayToggleKnob(newsletterOptIn)} />
                                 </button>
                             </div>
                         )}
 
                         {/* Notification Preferences — session access only */}
                         {!isTokenAccess && notifPrefs.length > 0 && (
-                            <div
-                                className="mt-4 rounded-lg p-6"
-                                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                            >
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div
-                                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                        style={{ background: 'rgba(20,184,166,0.1)' }}
-                                    >
-                                        <Bell size={20} style={{ color: '#14B8A6' }} />
+                            <div style={{ ...cardBase, padding: '18px 20px', marginTop: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                                    <div style={{
+                                        width: '36px', height: '36px', borderRadius: '12px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: '#CCFBF1', color: '#0D9488',
+                                        border: '1px solid rgba(255,255,255,0.5)',
+                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7)',
+                                    }}>
+                                        <Bell size={16} />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-                                            Application Notifications
-                                        </h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Get notified when candidates apply to your jobs
-                                        </p>
+                                        <p style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>Application Notifications</p>
+                                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: 0 }}>Get notified when candidates apply</p>
                                     </div>
                                 </div>
-                                <div className="space-y-3">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {notifPrefs.map(pref => (
                                         <div
                                             key={pref.employerJobId}
-                                            className="flex items-center justify-between gap-4 p-3 rounded-lg"
-                                            style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                                            style={{
+                                                ...cardRecessed, padding: '10px 14px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+                                            }}
                                         >
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                                                    {pref.jobTitle}
-                                                </p>
-                                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pref.jobTitle}</p>
+                                                <p style={{ fontSize: '10px', color: '#8A9BA6', margin: 0 }}>
                                                     {pref.notifyOnApplication ? 'Email on each application' : 'Notifications off'}
                                                 </p>
                                             </div>
@@ -688,25 +755,9 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                                     }
                                                 }}
                                                 disabled={notifLoading === pref.employerJobId}
-                                                style={{
-                                                    position: 'relative',
-                                                    width: '44px', height: '24px',
-                                                    borderRadius: '12px',
-                                                    background: pref.notifyOnApplication ? '#14B8A6' : 'var(--bg-tertiary)',
-                                                    border: '1px solid',
-                                                    borderColor: pref.notifyOnApplication ? '#14B8A6' : 'var(--border-color)',
-                                                    cursor: 'pointer', transition: 'all 0.2s',
-                                                    flexShrink: 0,
-                                                }}
+                                                style={clayToggle(pref.notifyOnApplication)}
                                             >
-                                                <div style={{
-                                                    position: 'absolute', top: '2px',
-                                                    left: pref.notifyOnApplication ? '22px' : '2px',
-                                                    width: '18px', height: '18px', borderRadius: '50%',
-                                                    background: '#fff',
-                                                    transition: 'all 0.2s',
-                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                                }} />
+                                                <div style={clayToggleKnob(pref.notifyOnApplication)} />
                                             </button>
                                         </div>
                                     ))}
@@ -714,111 +765,52 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                             </div>
                         )}
 
-                        {/* Footer */}
-                        <div className="mt-12 pt-6 flex justify-between items-center text-sm" style={{ borderTop: '1px solid var(--border-color)', color: 'var(--text-tertiary)' }}>
-                            <div>
-                                &copy; {new Date().getFullYear()} PMHNP Hiring.
-                            </div>
-                            <div>
-                                <Link href="/contact" className="hover:text-gray-900 mr-4">Contact Support</Link>
-                                {!isTokenAccess && (
-                                    <form action="/auth/signout" method="post" className="inline-block">
-                                        <button type="submit" className="text-red-600 hover:text-red-800 font-medium">
-                                            Sign Out
-                                        </button>
-                                    </form>
-                                )}
-                            </div>
-                        </div>
+
                     </>
                 )}
 
-                {/* Renewal Modal */}
-                {config.isPaidPostingEnabled && showRenewModal && selectedJob && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in-up" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                            <div className="mb-4">
-                                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Renew Job Posting</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedJob.title}</p>
-                            </div>
+                {/* ═══ Renewal Modal ═══ */}
+                {showRenewModal && selectedJob && (
+                    <div style={{
+                        position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                    }}>
+                        <div style={{
+                            ...cardBase, maxWidth: '440px', width: '100%', padding: '24px',
+                            boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '18px', fontWeight: 700,
+                                fontFamily: 'var(--font-lora), Georgia, serif',
+                                color: '#1A2E35', marginBottom: '4px',
+                            }}>Renew Job Posting</h3>
+                            <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '20px' }}>{selectedJob.title}</p>
 
-                            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                                {config.isPaidPostingEnabled
-                                    ? 'Choose how you\'d like to renew your listing:'
-                                    : 'Choose your renewal option (free during launch period):'}
-                            </p>
-
-                            <div className="space-y-3 mb-6">
-                                {/* Starter Option */}
-                                <button
-                                    onClick={() => handleRenewCheckout('starter')}
-                                    className="w-full text-left border-2 border-gray-300 rounded-lg p-4 hover:border-teal-500 hover:bg-teal-50 transition-all group"
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-gray-900 group-hover:text-teal-700">Starter Renewal</span>
-                                        <span className="text-2xl font-bold text-gray-900 group-hover:text-teal-700">
-                                            {config.isPaidPostingEnabled ? '$199' : 'FREE'}
-                                        </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                                {/* Single-tier renewal */}
+                                <button onClick={() => handleRenewCheckout('growth')} className="emp-tier-btn" style={{
+                                    ...cardBase, padding: '14px 16px', cursor: 'pointer',
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                                    textAlign: 'left', transition: 'all 0.2s',
+                                    background: '#CCFBF1', border: '2px solid #0D9488',
+                                }}>
+                                    <div>
+                                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#134E4A', margin: '0 0 4px' }}>Renew Listing</p>
+                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ 60 more days · Featured · 25 unlocks · 25 InMails</p>
                                     </div>
-                                    <ul className="text-sm text-gray-600 space-y-1">
-                                        <li>✓ 30 days of visibility</li>
-                                        <li>✓ 5 candidate unlocks/posting</li>
-                                    </ul>
-                                </button>
-
-                                {/* Growth Option */}
-                                <button
-                                    onClick={() => handleRenewCheckout('growth')}
-                                    className="w-full text-left border-2 border-teal-500 bg-teal-50 rounded-lg p-4 hover:bg-teal-100 transition-all group relative"
-                                >
-                                    <div className="absolute top-2 right-2">
-                                        <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">
-                                            MOST POPULAR
-                                        </span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span style={{ fontSize: '20px', fontWeight: 800, color: '#134E4A' }}>${config.renewalPrice}</span>
+                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 20%</p>
                                     </div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-teal-900">Growth Renewal</span>
-                                        <span className="text-2xl font-bold text-teal-900">
-                                            {config.isPaidPostingEnabled ? '$299' : 'FREE'}
-                                        </span>
-                                    </div>
-                                    <ul className="text-sm text-teal-800 space-y-1">
-                                        <li>✓ 60 days of visibility</li>
-                                        <li>✓ <strong>Featured placement</strong></li>
-                                        <li>✓ 25 candidate unlocks/posting</li>
-                                        <li>✓ 25 InMails/posting</li>
-                                    </ul>
-                                </button>
-
-                                {/* Premium Option */}
-                                <button
-                                    onClick={() => handleRenewCheckout('premium')}
-                                    className="w-full text-left border-2 border-purple-300 rounded-lg p-4 hover:border-purple-500 hover:bg-purple-50 transition-all group"
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="font-semibold text-gray-900 group-hover:text-purple-700">Premium Renewal</span>
-                                        <span className="text-2xl font-bold text-gray-900 group-hover:text-purple-700">
-                                            {config.isPaidPostingEnabled ? '$399' : 'FREE'}
-                                        </span>
-                                    </div>
-                                    <ul className="text-sm text-gray-600 space-y-1">
-                                        <li>✓ 90 days of visibility</li>
-                                        <li>✓ Everything in Growth</li>
-                                        <li>✓ <strong>Unlimited</strong> candidate unlocks</li>
-                                        <li>✓ <strong>Unlimited</strong> InMails</li>
-                                        <li>✓ Social media promotion</li>
-                                    </ul>
                                 </button>
                             </div>
 
-                            {/* Cancel Button */}
                             <button
-                                onClick={() => {
-                                    setShowRenewModal(false);
-                                    setSelectedJob(null);
+                                onClick={() => { setShowRenewModal(false); setSelectedJob(null); }}
+                                style={{
+                                    ...clayBtn, width: '100%', justifyContent: 'center',
+                                    background: '#EDF5F0', color: '#6B7F8A',
                                 }}
-                                className="w-full px-4 py-2 rounded-lg font-medium transition-colors"
-                                style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                             >
                                 Cancel
                             </button>
@@ -826,6 +818,355 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     </div>
                 )}
             </div>
+
+            {/* ═══ RIGHT SIDEBAR — All Cards ═══ */}
+            <aside style={{ position: 'sticky', top: '100px', display: 'flex', flexDirection: 'column', gap: '16px' }} className="emp-right-panel">
+
+                {/* ── Hiring Tips ── */}
+                <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
+                    <div style={{ padding: '16px 18px' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
+                            Hiring Tips
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 10px', lineHeight: 1.5 }}>
+                            Featured job postings get 3x more qualified applicants. Your first 2 posts are free.
+                        </p>
+                        <Link href="/post-job" className="emp-cta-card" style={{
+                            fontSize: '12px', fontWeight: 600, color: '#fff',
+                            background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                            padding: '7px 14px', borderRadius: '10px',
+                            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            boxShadow: '3px 3px 8px rgba(13,148,136,0.15), inset 0 1px 0 rgba(255,255,255,0.15)',
+                        }}>
+                            <Plus size={13} /> Post a Job
+                        </Link>
+                    </div>
+                </div>
+
+                {/* ── Talent Pool ── */}
+                <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
+                    <div style={{ padding: '16px 18px' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
+                            Talent Pool
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 10px', lineHeight: 1.5 }}>
+                            Browse qualified PMHNP candidates. Save, tag, and manage your pipeline.
+                        </p>
+                        <Link href="/employer/candidates" className="emp-cta-card" style={{
+                            fontSize: '12px', fontWeight: 600, color: '#0D9488',
+                            background: '#CCFBF1',
+                            padding: '7px 14px', borderRadius: '10px',
+                            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            border: '1px solid #99F6E4',
+                            boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                        }}>
+                            <Users size={13} /> Browse Candidates
+                        </Link>
+                    </div>
+                </div>
+
+                {/* ── Rate + Share Your Story (combined) ── */}
+                <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
+                    <img
+                        src="/illustrations/employer-story.png"
+                        alt="Share your story"
+                        style={{ width: '100%', height: '180px', objectFit: 'cover', objectPosition: 'center', display: 'block', borderRadius: '20px 20px 0 0' }}
+                    />
+                    <div style={{ padding: '16px 18px' }}>
+                        <EmployerFeedbackCard />
+                        <div style={{ borderTop: '1px solid #E0EDE6', margin: '14px 0' }} />
+                        <EmployerTestimonialCard employerName={employerName} />
+                    </div>
+                </div>
+
+                {/* ── Support & Help ── */}
+                <div style={{ ...cardBase, padding: '0', overflow: 'hidden' }}>
+                    <div style={{ padding: '16px 18px', textAlign: 'center' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 6px' }}>
+                            Need Help?
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 12px', lineHeight: 1.4 }}>
+                            We typically respond within 24 hours.
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <Link href="/contact" className="emp-cta-card" style={{
+                                fontSize: '12px', fontWeight: 600, color: '#fff',
+                                background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                                padding: '7px 14px', borderRadius: '10px',
+                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                boxShadow: '3px 3px 8px rgba(13,148,136,0.15), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            }}>
+                                <MessageSquare size={12} /> Contact
+                            </Link>
+                            <Link href="/faq" className="emp-cta-card" style={{
+                                fontSize: '12px', fontWeight: 600, color: '#0D9488',
+                                background: '#F0FDFA',
+                                padding: '7px 14px', borderRadius: '10px',
+                                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                border: '1px solid rgba(13,148,136,0.15)',
+                            }}>
+                                <HelpCircle size={12} /> FAQs
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+            </div>
+            </div>
+
+            {/* ═══ Hover Styles ═══ */}
+            <style>{`
+                .emp-job-card:hover {
+                    box-shadow: 10px 10px 24px rgba(0,0,0,0.09), -5px -5px 14px rgba(255,255,255,0.95), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02) !important;
+                    transform: translateY(-1px);
+                }
+                .emp-cta-card:hover {
+                    box-shadow: 10px 10px 24px rgba(0,0,0,0.09), -5px -5px 14px rgba(255,255,255,0.95), inset 2px 2px 4px rgba(255,255,255,0.6) !important;
+                    transform: translateY(-1px);
+                }
+                .emp-action-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 4px 4px 10px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.8) !important;
+                }
+                .emp-job-title:hover {
+                    color: #0D9488 !important;
+                }
+                .emp-tier-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 6px 6px 14px rgba(0,0,0,0.1), -3px -3px 8px rgba(255,255,255,0.9) !important;
+                }
+                @media (max-width: 900px) {
+                    .emp-dashboard-grid {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .emp-right-panel {
+                        display: none !important;
+                    }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+/* ═══ Employer Feedback Rating Card ═══ */
+function EmployerFeedbackCard() {
+    const [hovered, setHovered] = useState(0);
+    const [selected, setSelected] = useState(0);
+    const [message, setMessage] = useState('');
+    const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async () => {
+        if (selected === 0) return;
+        setLoading(true);
+        try {
+            await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating: selected, message, page: 'employer-dashboard' }),
+            });
+            setSubmitted(true);
+        } catch { /* silent */ }
+        setLoading(false);
+    };
+
+    if (submitted) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎉</div>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#0D9488', margin: '0 0 4px' }}>Thank You!</h3>
+                <p style={{ fontSize: '13px', color: '#6B7F8A', margin: 0 }}>Your feedback helps us improve the platform for all employers.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
+                Rate Your Experience
+            </h3>
+            <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 14px', lineHeight: 1.4 }}>
+                How would you rate PMHNP Hiring so far?
+            </p>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                        key={n}
+                        onMouseEnter={() => setHovered(n)}
+                        onMouseLeave={() => setHovered(0)}
+                        onClick={() => setSelected(n)}
+                        style={{
+                            background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+                            transform: (hovered >= n || selected >= n) ? 'scale(1.15)' : 'scale(1)',
+                            transition: 'transform 0.15s ease',
+                        }}
+                        aria-label={`Rate ${n} star${n > 1 ? 's' : ''}`}
+                    >
+                        <Star
+                            size={24}
+                            fill={(hovered >= n || selected >= n) ? '#F59E0B' : 'none'}
+                            color={(hovered >= n || selected >= n) ? '#F59E0B' : '#CBD5E1'}
+                            strokeWidth={1.5}
+                        />
+                    </button>
+                ))}
+            </div>
+            {selected > 0 && (
+                <>
+                    <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Tell us more (optional)..."
+                        rows={2}
+                        style={{
+                            width: '100%', padding: '10px 12px', fontSize: '13px',
+                            borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)',
+                            background: '#F5F6F8', color: '#1A2E35', resize: 'none',
+                            boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.04)',
+                            outline: 'none', fontFamily: 'inherit', marginBottom: '10px',
+                        }}
+                    />
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        style={{
+                            alignSelf: 'flex-start',
+                            fontSize: '12px', fontWeight: 600, color: '#fff',
+                            background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                            padding: '8px 18px', borderRadius: '12px', border: 'none',
+                            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+                            boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                        }}
+                    >
+                        {loading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                        Submit Feedback
+                    </button>
+                </>
+            )}
+        </div>
+    );
+}
+
+/* ═══ Employer Testimonial Collection Card ═══ */
+function EmployerTestimonialCard({ employerName }: { employerName: string }) {
+    const [review, setReview] = useState('');
+    const [consent, setConsent] = useState(false);
+    const [displayAs, setDisplayAs] = useState<'full' | 'initial' | 'anonymous'>('initial');
+    const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!review.trim()) return;
+        setLoading(true);
+        try {
+            await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rating: 5,
+                    message: `[EMPLOYER-TESTIMONIAL] ${review} | consent=${consent} | display=${displayAs}`,
+                    page: 'employer-dashboard-testimonial',
+                }),
+            });
+            setSubmitted(true);
+        } catch { /* silent */ }
+        setLoading(false);
+    };
+
+    if (submitted) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>💜</div>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#818CF8', margin: '0 0 4px' }}>Story Shared!</h3>
+                <p style={{ fontSize: '13px', color: '#6B7F8A', margin: 0 }}>We may feature your experience to help other employers.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
+                Share Your Story
+            </h3>
+            <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 12px', lineHeight: 1.4 }}>
+                {employerName}, your hiring experience matters! Help others discover PMHNP Hiring.
+            </p>
+            <textarea
+                value={review}
+                onChange={(e) => setReview(e.target.value)}
+                placeholder="How has PMHNP Hiring helped your recruitment?"
+                rows={3}
+                maxLength={500}
+                style={{
+                    width: '100%', padding: '10px 12px', fontSize: '13px',
+                    borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)',
+                    background: '#F5F6F8', color: '#1A2E35', resize: 'none',
+                    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.04)',
+                    outline: 'none', fontFamily: 'inherit', marginBottom: '8px',
+                }}
+            />
+            <span style={{ fontSize: '11px', color: '#A0AEB5', marginBottom: '10px', textAlign: 'right' }}>
+                {review.length}/500
+            </span>
+            <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: '8px',
+                fontSize: '12px', color: '#4A5E6A', cursor: 'pointer',
+                marginBottom: '6px', lineHeight: 1.4,
+            }}>
+                <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    style={{ marginTop: '2px', accentColor: '#0D9488' }}
+                />
+                I consent to my review being featured publicly
+            </label>
+            {consent && (
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', color: '#6B7F8A', lineHeight: '24px' }}>Display as:</span>
+                    {([
+                        { key: 'full' as const, label: 'Full Name' },
+                        { key: 'initial' as const, label: 'First + Last Initial' },
+                        { key: 'anonymous' as const, label: 'Anonymous' },
+                    ]).map((opt) => (
+                        <button
+                            key={opt.key}
+                            onClick={() => setDisplayAs(opt.key)}
+                            style={{
+                                fontSize: '11px', fontWeight: displayAs === opt.key ? 600 : 400,
+                                padding: '3px 10px', borderRadius: '8px', border: 'none',
+                                cursor: 'pointer',
+                                background: displayAs === opt.key ? '#CCFBF1' : '#F5F6F8',
+                                color: displayAs === opt.key ? '#0D9488' : '#6B7F8A',
+                                boxShadow: displayAs === opt.key
+                                    ? '2px 2px 5px rgba(13,148,136,0.1), inset 1px 1px 2px rgba(255,255,255,0.5)'
+                                    : 'none',
+                            }}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+            <button
+                onClick={handleSubmit}
+                disabled={loading || !review.trim()}
+                style={{
+                    alignSelf: 'flex-start',
+                    fontSize: '12px', fontWeight: 600, color: '#fff',
+                    background: review.trim() ? 'linear-gradient(145deg, #818CF8, #6366F1)' : '#CBD5E1',
+                    padding: '8px 18px', borderRadius: '12px', border: 'none',
+                    cursor: review.trim() ? 'pointer' : 'not-allowed',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    boxShadow: review.trim()
+                        ? '3px 3px 8px rgba(99,102,241,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)'
+                        : 'none',
+                }}
+            >
+                {loading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                Share Story
+            </button>
         </div>
     );
 }

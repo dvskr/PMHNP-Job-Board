@@ -6,7 +6,7 @@
  */
 
 export interface PageImageSEO {
-    /** Path to WebP image relative to public, e.g. /images/pages/pmhnp-job-board-homepage.webp */
+    /** Path to WebP image relative to public, e.g. https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp */
     image: string;
     /** Descriptive alt text with keywords */
     alt: string;
@@ -16,7 +16,7 @@ export interface PageImageSEO {
     title: string;
 }
 
-const BASE = '/images/pages';
+const BASE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages';
 
 export const PAGE_IMAGE_SEO: Record<string, PageImageSEO> = {
     '/': {

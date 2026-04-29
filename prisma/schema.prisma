@@ -57,6 +57,11 @@ model Job {
   originalPostedAt    DateTime?    @map("original_posted_at")
   lastLinkCheckedAt   DateTime?    @map("last_link_checked_at")
   lastEnrichedAt      DateTime?    @map("last_enriched_at")
+  // Source-presence tracking — incremented when a job's external_id is missing
+  // from a successful source ingest. Resets to 0 on each re-appearance.
+  // Currently shadow-mode: written but not used to auto-unpublish until tuned.
+  healthConsecutiveMissing Int       @default(0) @map("health_consecutive_missing")
+  healthLastSeenAt    DateTime?    @map("health_last_seen_at")
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
   jobReports          JobReport[]
@@ -65,6 +70,7 @@ model Job {
   employerMessages    EmployerMessage[]
   conversations       Conversation[]
   company             Company?     @relation(fields: [companyId], references: [id])
+  healthChecks        JobHealthCheck[]
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -77,7 +83,63 @@ model Job {
   @@index([slug])
   @@index([externalId, sourceProvider])
   @@index([qualityScore(sort: Desc)])
+  @@index([sourceProvider, healthConsecutiveMissing])
   @@map("jobs")
+}
+
+/// Append-only audit log of every job-health decision.
+/// Records the evidence behind each `is_published` flip so we can:
+///   - Compute false-positive rates per checker / pattern / source.
+///   - Answer support tickets ("why was my job removed?").
+///   - Build multi-signal voting (Sprint 4) on top of the history.
+///   - Run anomaly detection (Sprint 5) when dead-rate moves >Nσ.
+///
+/// Never delete rows. Retention is enforced by a partitioned monthly
+/// vacuum job (Sprint 5) — until then the table grows ~100k rows/week.
+model JobHealthCheck {
+  id              String    @id @default(uuid())
+  jobId           String    @map("job_id")
+  checkedAt       DateTime  @default(now()) @map("checked_at")
+
+  /// What kind of check produced this row.
+  /// 'http_probe' | 'greenhouse_api' | 'source_presence'
+  checkType       String    @map("check_type")
+
+  /// Specific outcome — mirrors HealthReason / PresenceCheckOutcome literals.
+  outcome         String
+
+  /// Convenience boolean — true means "alive or inconclusive".
+  alive           Boolean
+
+  // ── HTTP-probe / greenhouse-api evidence (nullable when N/A) ──
+  httpStatus      Int?      @map("http_status")
+  redirectHops    Int?      @map("redirect_hops")
+  finalUrl        String?   @map("final_url")
+  apiUrl          String?   @map("api_url")
+  softPatternId   String?   @map("soft_pattern_id")
+  softMatchText   String?   @map("soft_match_text")
+  errorKind       String?   @map("error_kind")
+  errorMessage    String?   @map("error_message")
+  elapsedMs       Int?      @map("elapsed_ms")
+
+  // ── Source-presence evidence (nullable when N/A) ──
+  presenceSource           String? @map("presence_source")
+  presenceFetched          Int?    @map("presence_fetched")
+  presenceHistoricalAvg    Float?  @map("presence_historical_avg")
+  presenceSeenAgain        Int?    @map("presence_seen_again")
+  presenceMissing          Int?    @map("presence_missing")
+  presenceSkippedReason    String? @map("presence_skipped_reason")
+
+  /// Stable identifier for the rule set that produced this row. Bump
+  /// when patterns / decision logic changes so old rows stay comparable.
+  checkerVersion  String    @map("checker_version")
+
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, checkedAt(sort: Desc)])
+  @@index([outcome, checkedAt(sort: Desc)])
+  @@index([checkedAt(sort: Desc)])
+  @@map("job_health_checks")
 }
 
 model EmailLead {
@@ -758,6 +820,7 @@ model SavedCandidate {
   candidateId   String       @map("candidate_id")
   employerJobId String?      @map("employer_job_id")
   note          String?
+  tags          String[]     @default([])
   savedAt       DateTime     @default(now()) @map("saved_at")
   employer      UserProfile  @relation("SavedByEmployer", fields: [employerId], references: [id], onDelete: Cascade)
   candidate     UserProfile  @relation("SavedAsCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
@@ -767,6 +830,18 @@ model SavedCandidate {
   @@index([employerId])
   @@index([employerJobId])
   @@map("saved_candidates")
+}
+
+model CandidateTag {
+  id         String      @id @default(cuid())
+  employerId String      @map("employer_id")
+  name       String
+  color      String      @default("#0D9488")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@unique([employerId, name])
+  @@index([employerId])
+  @@map("candidate_tags")
 }
 
 model EmployerCandidateAlert {

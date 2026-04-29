@@ -63,7 +63,7 @@ export async function generateMetadata({ searchParams }: JobsPageProps): Promise
   const hasFilters = Object.keys(params).length > 0;
 
   return {
-    title: `${title} | PMHNP Hiring`,
+    title,
     description,
     openGraph: {
       title: `${title} - Find Your Next Position`,

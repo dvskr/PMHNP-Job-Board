@@ -22,6 +22,22 @@ import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
+import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
+import { HealthRecorder } from './health/recorder';
+import { recordChunkAndMaybeAggregate } from './health/chunked-presence';
+import { checkJobHealth, type HealthReason } from './health/check-job-health';
+
+/**
+ * Reasons we reject a job at ingest time. Only the highest-confidence
+ * "definitively dead" signals — soft_404 and inconclusive_* never block
+ * the insert because we'd rather admit a borderline job and let the
+ * dead-link cron's multi-signal voting catch it on the next run.
+ */
+const INGEST_DEAD_REASONS: ReadonlySet<HealthReason> = new Set([
+  'http_404',
+  'http_410',
+  'greenhouse_api_404',
+]);
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
@@ -52,6 +68,12 @@ export interface IngestionResult {
 
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
 const MAX_INGESTION_MS = 240_000; // 240s (leave 60s buffer for post-processing)
+
+// Sources whose fetch is split across multiple cron chunks. Source-presence
+// tracking is unsafe per-chunk (would falsely mark jobs from other chunks as
+// missing). Sprint 3 will run an aggregated presence check after all chunks
+// land. Until then we skip these sources from per-run presence updates.
+const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday']);
 
 // ── Quality Gate (DISABLED — volume too low, re-enable when more ATS sources are added) ──
 // Jobs scoring below this threshold at ingestion will NOT be published.
@@ -102,6 +124,23 @@ function extractRawTitle(rawJob: Record<string, unknown>): string {
   return String(
     rawJob.title || rawJob.job_title || rawJob.jobOpeningName || rawJob.positionName || ''
   );
+}
+
+/**
+ * Extract external IDs from raw fetch results, matching the priority order
+ * the normalizer uses (`externalId` → `id` → `external_id`). Returns a
+ * de-duplicated array of non-empty string IDs for source-presence tracking.
+ */
+function collectExternalIds(rawJobs: Array<Record<string, unknown>>): string[] {
+  const seen = new Set<string>();
+  for (const raw of rawJobs) {
+    const candidate = raw.externalId ?? raw.id ?? raw.external_id;
+    if (candidate === null || candidate === undefined) continue;
+    const id = String(candidate).trim();
+    if (id.length === 0) continue;
+    seen.add(id);
+  }
+  return Array.from(seen);
 }
 
 /**
@@ -329,6 +368,57 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
           continue;
         }
 
+        // ── Ingest-level dead probe ──
+        // Cheapest fix for "dead jobs in the catalog": never insert one
+        // that's already dead at the source. We probe only on the
+        // post-dedup new-insert path — duplicates/renewals are already
+        // trusted by prior probes via the dead-link cron.
+        //
+        // Only the high-confidence dead reasons block the insert. soft_404
+        // and inconclusive_* fall through; the dead-link cron's
+        // multi-signal voting will catch a real dead on the next pass
+        // and a transient probe failure shouldn't reject a valid job.
+        //
+        // Skipped when applyLink is missing (employer-posted apply-on-
+        // platform jobs) since there's nothing external to probe.
+        const applyLinkStr =
+          typeof normalizedJob.applyLink === 'string' ? normalizedJob.applyLink : null;
+        if (applyLinkStr && applyLinkStr.length > 0) {
+          try {
+            const probeDecision = await checkJobHealth(applyLinkStr, source, {
+              externalId:
+                typeof normalizedJob.externalId === 'string'
+                  ? normalizedJob.externalId
+                  : null,
+            });
+            if (INGEST_DEAD_REASONS.has(probeDecision.reason)) {
+              rejectedJobs.push({
+                title: normalizedJob.title as string,
+                employer: (normalizedJob.employer as string) || null,
+                location: (normalizedJob.location as string) || null,
+                applyLink: applyLinkStr,
+                externalId: (normalizedJob.externalId as string) || null,
+                sourceProvider: source,
+                rejectionReason: 'dead_at_ingest',
+                rawData: {
+                  probeReason: probeDecision.reason,
+                  finalStatus: probeDecision.evidence.finalStatus,
+                  finalUrl: probeDecision.evidence.finalUrl,
+                  redirectHops: probeDecision.evidence.redirectHops,
+                } as object,
+              });
+              continue;
+            }
+          } catch (probeErr) {
+            // Probe-system failure → accept the job. We never want a
+            // bug or transient fault to reject otherwise-valid postings.
+            console.warn(
+              `[${source.toUpperCase()}] Ingest probe failed for "${normalizedJob.title}" — accepting job:`,
+              probeErr,
+            );
+          }
+        }
+
         // Set initial expiresAt based on original posting date + 60 days
         // If source didn't provide a posted date, use now + 60 days
         const INITIAL_EXPIRY_MS = 60 * 24 * 60 * 60 * 1000; // 60-day initial posting window
@@ -439,6 +529,69 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       await recordIngestionStats(source, fetched, added, duplicates);
     } catch (statsError) {
       console.error(`Failed to record stats for ${source}:`, statsError);
+    }
+
+    // Source-presence tracking. Two paths:
+    //   - Non-chunked sources: run the presence check directly here.
+    //   - Chunked sources (greenhouse, workday): hand the chunk to the
+    //     cross-chunk aggregator which buffers in Redis, and runs the
+    //     presence check only after the LAST chunk for the cycle lands.
+    // Both paths skip when:
+    //   - the run hit the time budget (partial fetches must not strike jobs)
+    //   - the source has no historical baseline (returns 0)
+    if (!stoppedEarly && fetched > 0) {
+      try {
+        const fetchedExternalIds = collectExternalIds(rawJobs);
+        if (fetchedExternalIds.length > 0) {
+          const recorder = new HealthRecorder(prisma);
+
+          if (CHUNKED_SOURCES.has(source) && options?.chunk !== undefined) {
+            const chunkResult = await recordChunkAndMaybeAggregate({
+              prisma,
+              source,
+              chunkIndex: options.chunk,
+              fetchedExternalIds,
+              fetchedCount: fetched,
+              recorder,
+            });
+            await recorder.flush();
+            console.log(`[${source.toUpperCase()}] Chunked-presence chunk ${options.chunk}:`, {
+              outcome: chunkResult.outcome,
+              chunksSeen: chunkResult.chunksSeen,
+              totalChunks: chunkResult.totalChunks,
+              presence: chunkResult.presenceResult
+                ? {
+                    outcome: chunkResult.presenceResult.outcome,
+                    seenAgain: chunkResult.presenceResult.seenAgain,
+                    missing: chunkResult.presenceResult.missingThisRun,
+                    updates: chunkResult.presenceResult.updatesIssued,
+                  }
+                : null,
+              audit: recorder.stats(),
+            });
+          } else if (!CHUNKED_SOURCES.has(source)) {
+            const baseline = await loadHistoricalAvgFetched(prisma, source);
+            const presence = await recordSourcePresence(prisma, {
+              source,
+              fetchedExternalIds,
+              fetchedCount: fetched,
+              historicalAvgFetched: baseline,
+              recorder,
+            });
+            await recorder.flush();
+            console.log(`[${source.toUpperCase()}] Source-presence:`, {
+              outcome: presence.outcome,
+              seenAgain: presence.seenAgain,
+              missing: presence.missingThisRun,
+              updates: presence.updatesIssued,
+              skipped: presence.skippedReason,
+              audit: recorder.stats(),
+            });
+          }
+        }
+      } catch (presenceErr) {
+        console.error(`[${source.toUpperCase()}] Source-presence check failed (non-fatal):`, presenceErr);
+      }
     }
 
     // Batch-insert rejected jobs for accuracy analysis

@@ -593,60 +593,24 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Choose how you&apos;d like to renew your listing:</p>
 
             <div className="space-y-3 mb-6">
-              {/* Starter Option */}
-              <button
-                onClick={() => handleRenewCheckout('starter')}
-                className="w-full text-left border-2 rounded-lg p-4 transition-all group"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">Starter Renewal</span>
-                  <span className="text-2xl font-bold">$199</span>
-                </div>
-                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>✓ 30 days of visibility</li>
-                  <li>✓ 5 candidate unlocks/posting</li>
-                  <li>✓ 5 InMails/posting</li>
-                </ul>
-              </button>
-
-              {/* Growth Option */}
+              {/* Single-tier renewal */}
               <button
                 onClick={() => handleRenewCheckout('growth')}
-                className="w-full text-left border-2 border-teal-500 rounded-lg p-4 transition-all group relative"
+                className="w-full text-left border-2 border-teal-500 rounded-lg p-4 transition-all group"
                 style={{ background: 'rgba(13,148,136,0.08)' }}
               >
-                <div className="absolute top-2 right-2">
-                  <span className="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">MOST POPULAR</span>
-                </div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Growth Renewal</span>
-                  <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$299</span>
+                  <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Renew Listing</span>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$159</span>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Save 20%</p>
+                  </div>
                 </div>
                 <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>✓ 60 days of visibility</li>
-                  <li>✓ <strong>Featured placement</strong> (top of list)</li>
-                  <li>✓ 25 candidate unlocks/posting</li>
-                  <li>✓ 25 InMails/posting</li>
-                </ul>
-              </button>
-
-              {/* Premium Option */}
-              <button
-                onClick={() => handleRenewCheckout('premium')}
-                className="w-full text-left border-2 rounded-lg p-4 transition-all group"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">Premium Renewal</span>
-                  <span className="text-2xl font-bold">$399</span>
-                </div>
-                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>✓ 90 days of visibility</li>
-                  <li>✓ Everything in Growth</li>
-                  <li>✓ <strong>Unlimited</strong> candidate unlocks</li>
-                  <li>✓ <strong>Unlimited</strong> InMails</li>
-                  <li>✓ Social media promotion</li>
+                  <li>✓ 60 more days of visibility</li>
+                  <li>✓ Featured placement (top of list)</li>
+                  <li>✓ 25 candidate unlocks</li>
+                  <li>✓ 25 InMails</li>
                 </ul>
               </button>
             </div>

@@ -1,0 +1,85 @@
+name: Migrate prod database
+
+# Runs `prisma migrate deploy` against the production Supabase database
+# whenever a change to prisma/schema.prisma or prisma/migrations/ lands on
+# `main`. Also exposes a manual trigger via the GitHub Actions UI for
+# retries or one-off catch-ups.
+#
+# Required GitHub Actions secrets:
+#   PROD_DIRECT_DATABASE_URL  postgresql://postgres:<password>@db.<project>.supabase.co:5432/postgres
+#                              (DIRECT connection on port 5432, NOT the
+#                              pgbouncer pooler — Prisma migrations run
+#                              DDL inside transactions and cannot use the
+#                              transaction-mode pooler.)
+#
+# This workflow does NOT run application builds, tests, or deployments —
+# Vercel handles those on its own pipeline. It is solely responsible for
+# applying schema changes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prisma/schema.prisma'
+      - 'prisma/migrations/**'
+      - '.github/workflows/migrate-prod.yml'
+  workflow_dispatch: {}
+
+# Serialize all migration runs. A second push during a long-running
+# migration would otherwise race the first.
+concurrency:
+  group: migrate-prod
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: prisma migrate deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Limit blast radius: the only secret we need is the migration URL.
+    permissions:
+      contents: read
+
+    env:
+      # prisma.config.ts reads `DIRECT_URL` for the migration datasource.
+      DIRECT_URL: ${{ secrets.PROD_DIRECT_DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify required secret is present
+        run: |
+          if [ -z "$DIRECT_URL" ]; then
+            echo "::error::PROD_DIRECT_DATABASE_URL secret is not set in repo settings"
+            exit 1
+          fi
+          # Refuse to run against the pooler (port 6543) — DDL inside a
+          # transaction is incompatible with transaction-mode pgbouncer.
+          if echo "$DIRECT_URL" | grep -qE ':6543/'; then
+            echo "::error::PROD_DIRECT_DATABASE_URL points at the pooler (port 6543). Use the DIRECT connection on port 5432."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Show pending migrations
+        run: npx prisma migrate status
+
+      - name: Apply pending migrations
+        run: npx prisma migrate deploy
+
+      - name: Verify schema is up to date
+        run: |
+          OUTPUT=$(npx prisma migrate status 2>&1) || true
+          echo "$OUTPUT"
+          if ! echo "$OUTPUT" | grep -qE "Database schema is up to date"; then
+            echo "::error::Migration apparently succeeded but 'prisma migrate status' does not report up-to-date. Investigate."
+            exit 1
+          fi

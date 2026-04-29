@@ -3,32 +3,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
 import { sendRenewalConfirmationEmail } from '@/lib/email-service';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 interface RenewalCheckoutBody {
   jobId: string;
   editToken: string;
-  tier: PricingTier;
+  tier?: PricingTier; // ignored — single tier model
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'renewal-checkout', RATE_LIMITS.postJob);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body: RenewalCheckoutBody = await request.json();
-    const { jobId, editToken, tier } = body;
+    const { jobId, editToken } = body;
 
     // Validate required fields
-    if (!jobId || !editToken || !tier) {
+    if (!jobId || !editToken) {
       return NextResponse.json(
         { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Validate tier
-    if (tier !== 'starter' && tier !== 'growth' && tier !== 'premium') {
-      return NextResponse.json(
-        { error: 'Invalid pricing tier' },
         { status: 400 }
       );
     }
@@ -58,51 +55,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if free mode is enabled
-    if (config.isPaidPostingEnabled) {
-      // PAID MODE: Existing Stripe checkout flow
+    // Single-tier: all renewals cost $159 (20% off $199)
+    const price = config.stripeRenewalPriceInCents;
+    const tier: PricingTier = 'growth'; // Internal tier for DB consistency
 
-      // Determine renewal price in cents from config (20% discount)
-      const price = config.getStripeRenewalPriceInCents(tier);
-
-      // Create Stripe Checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `Job Renewal - ${employerJob.job.title}`,
-                description: `${config.getTierLabel(tier)} renewal (Save 20%) - ${employerJob.job.employer}`,
-              },
-              unit_amount: price,
+    // Create Stripe Checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `Job Renewal - ${employerJob.job.title}`,
+              description: `Renew for ${config.durationDays} days (Save 20%) - ${employerJob.job.employer}`,
             },
-            quantity: 1,
+            unit_amount: price,
           },
-        ],
-        mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/renewal-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard`,
-        customer_email: employerJob.contactEmail,
-        metadata: {
-          jobId,
-          type: 'renewal',
-          tier,
+          quantity: 1,
         },
-      });
+      ],
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/renewal-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard`,
+      customer_email: employerJob.contactEmail,
+      metadata: {
+        jobId,
+        type: 'renewal',
+        tier,
+      },
+    });
 
-      return NextResponse.json({
-        sessionId: session.id,
-        url: session.url,
-      });
-    } else {
-      // FREE MODE: Renewals not available during free launch
-      return NextResponse.json(
-        { error: 'Renewals are available when paid plans are enabled. During the free launch, you can post a new job for free instead.' },
-        { status: 403 }
-      );
-    }
+    return NextResponse.json({
+      sessionId: session.id,
+      url: session.url,
+    });
   } catch (error) {
     console.error('Error creating renewal checkout session:', error);
     return NextResponse.json(

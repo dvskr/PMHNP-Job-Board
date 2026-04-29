@@ -14,24 +14,28 @@
  * - State licensure quick reference
  */
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
 import {
   TrendingUp, Building2, Bell, MapPin, Lightbulb,
-  DollarSign, Users, AlertTriangle, Activity, Heart, Shield,
+  DollarSign, Users, AlertTriangle, Activity, Heart, Shield, ArrowRight,
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import JobCard from '@/components/JobCard';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
+import CategoryHero from '@/components/CategoryHero';
 import { Job } from '@/lib/types';
 import { CityData } from './city-data/types';
 import { getCityBySlug } from './city-data/cities';
 import { SETTING_CONFIGS, SettingConfig, stateToSlug } from './setting-state-config';
+import { CATEGORY_ASSET_REGISTRY } from './category-asset-registry';
 import {
   getStatePracticeAuthority,
   getAuthorityColor,
   StatePracticeInfo,
   PracticeAuthority,
 } from '@/lib/state-practice-authority';
+import { PseoPageViewTracker } from '@/components/analytics/ViewTrackers';
 
 // ─── Category Configuration (extends SettingConfig for specialties) ────────────
 
@@ -762,6 +766,139 @@ export const ALL_CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   ...EMPLOYER_TYPE_CONFIGS,
   // Population Specialties (4)
   ...POPULATION_SPECIALTY_CONFIGS,
+  // ─── Additional Categories (4) ─────────────────────────────────────────────
+  '1099': {
+    slug: '1099',
+    label: '1099',
+    fullLabel: '1099 / Independent Contractor PMHNP',
+    heroSubtitle: 'Independent contractor & 1099 psychiatric NP positions',
+    salaryRange: '$75-150/hr',
+    keywords: ['1099 pmhnp', 'independent contractor pmhnp', '1099 psychiatric nurse practitioner', 'contract psych NP'],
+    faqCategory: 'outpatient',
+    buildWhere: (stateName: string, cityName?: string) => ({
+      isPublished: true,
+      state: { equals: stateName, mode: 'insensitive' },
+      ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
+      OR: [
+        { title: { contains: '1099', mode: 'insensitive' } },
+        { title: { contains: 'independent contractor', mode: 'insensitive' } },
+        { title: { contains: 'independent practice', mode: 'insensitive' } },
+        { description: { contains: '1099', mode: 'insensitive' } },
+      ],
+    }),
+    benefits: [
+      { title: 'Higher Gross Pay', description: '1099 PMHNPs earn $75-$150+/hr — 20-40% higher than W2 rates with significant tax deduction opportunities.', iconName: 'DollarSign' },
+      { title: 'Schedule Control', description: 'Set your own hours, work with multiple clients, and control your patient volume and caseload.', iconName: 'Clock' },
+      { title: 'Tax Advantages', description: 'Deduct business expenses, contribute $66K/year to SEP-IRA, and write off home office and mileage.', iconName: 'DollarSign' },
+    ],
+    tips: [
+      'Form an LLC or PLLC before signing your first contract',
+      'Get individual malpractice insurance ($1.5-3K/year)',
+      'Set up quarterly estimated tax payments with the IRS',
+      'Open a SEP-IRA or Solo 401k for retirement savings',
+      'Keep detailed records of all business expenses for deductions',
+    ],
+  },
+  'behavioral-health': {
+    slug: 'behavioral-health',
+    label: 'Behavioral Health',
+    fullLabel: 'Behavioral Health PMHNP',
+    heroSubtitle: 'Behavioral health facility & integrated care positions',
+    salaryRange: '$120K-180K',
+    keywords: ['behavioral health pmhnp', 'behavioral health NP', 'integrated behavioral health', 'mental health facility NP'],
+    faqCategory: 'outpatient',
+    buildWhere: (stateName: string, cityName?: string) => ({
+      isPublished: true,
+      state: { equals: stateName, mode: 'insensitive' },
+      ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
+      OR: [
+        { title: { contains: 'behavioral health', mode: 'insensitive' } },
+        { title: { contains: 'behavioral', mode: 'insensitive' } },
+        { title: { contains: 'mental health', mode: 'insensitive' } },
+        { description: { contains: 'behavioral health', mode: 'insensitive' } },
+        { description: { contains: 'behavioral health facility', mode: 'insensitive' } },
+      ],
+    }),
+    benefits: [
+      { title: 'Integrated Care', description: 'Work in multidisciplinary teams combining psychiatric care with therapy, social work, and primary care.', iconName: 'Users' },
+      { title: 'Diverse Settings', description: 'Practice in outpatient clinics, residential treatment, partial hospitalization, or intensive outpatient programs.', iconName: 'Building2' },
+      { title: 'Growing Sector', description: 'Behavioral health investment has surged — new facilities and telehealth platforms are expanding rapidly.', iconName: 'TrendingUp' },
+    ],
+    tips: [
+      'Integrated behavioral health models are the fastest-growing employer type',
+      'Experience with co-occurring disorders (mental health + substance use) is highly valued',
+      'PHPs and IOPs offer structured environments with predictable schedules',
+      'Many behavioral health companies offer equity or profit-sharing',
+      'Get comfortable with brief intervention models for primary care integration',
+    ],
+  },
+  correctional: {
+    slug: 'correctional',
+    label: 'Correctional',
+    fullLabel: 'Correctional PMHNP',
+    heroSubtitle: 'Prison, jail & forensic psychiatric NP positions',
+    salaryRange: '$130K-190K',
+    keywords: ['correctional pmhnp', 'prison pmhnp', 'forensic psychiatric NP', 'jail mental health NP'],
+    faqCategory: 'inpatient',
+    buildWhere: (stateName: string, cityName?: string) => ({
+      isPublished: true,
+      state: { equals: stateName, mode: 'insensitive' },
+      ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
+      OR: [
+        { title: { contains: 'correctional', mode: 'insensitive' } },
+        { title: { contains: 'corrections', mode: 'insensitive' } },
+        { title: { contains: 'prison', mode: 'insensitive' } },
+        { title: { contains: 'forensic', mode: 'insensitive' } },
+        { title: { contains: 'jail', mode: 'insensitive' } },
+        { title: { contains: 'detention', mode: 'insensitive' } },
+        { title: { contains: 'incarcerat', mode: 'insensitive' } },
+      ],
+    }),
+    benefits: [
+      { title: 'Premium Pay', description: 'Correctional PMHNPs earn $130K-$190K+ due to the challenging environment and high demand for mental health providers.', iconName: 'DollarSign' },
+      { title: 'Loan Repayment', description: 'Many correctional facilities qualify for NHSC and state loan repayment programs — up to $50K for 2 years of service.', iconName: 'DollarSign' },
+      { title: 'Unique Clinical Skills', description: 'Develop expertise in forensic psychiatry, crisis intervention, and managing complex comorbidities in underserved populations.', iconName: 'Shield' },
+    ],
+    tips: [
+      'CPI (Crisis Prevention Institute) certification is usually required',
+      'Expect a structured environment with security protocols',
+      'Correctional experience is highly valued for forensic psychiatry careers',
+      'Many positions are with staffing companies (Centurion, Wellpath, NaphCare)',
+      'Federal BOP (Bureau of Prisons) positions include federal benefits',
+    ],
+  },
+  'locum-tenens': {
+    slug: 'locum-tenens',
+    label: 'Locum Tenens',
+    fullLabel: 'Locum Tenens PMHNP',
+    heroSubtitle: 'Temporary assignment & locum tenens psychiatric NP positions',
+    salaryRange: '$80-160/hr',
+    keywords: ['locum tenens pmhnp', 'locum psych NP', 'temporary assignment pmhnp', 'locum psychiatric nurse practitioner'],
+    faqCategory: 'travel',
+    buildWhere: (stateName: string, cityName?: string) => ({
+      isPublished: true,
+      state: { equals: stateName, mode: 'insensitive' },
+      ...(cityName && { city: { equals: cityName, mode: 'insensitive' } }),
+      OR: [
+        { title: { contains: 'locum', mode: 'insensitive' } },
+        { title: { contains: 'locums', mode: 'insensitive' } },
+        { title: { contains: 'temporary assignment', mode: 'insensitive' } },
+        { description: { contains: 'locum tenens', mode: 'insensitive' } },
+      ],
+    }),
+    benefits: [
+      { title: 'Highest Hourly Rates', description: 'Locum tenens PMHNPs earn $80-$160/hr — the highest hourly rates in psychiatric nursing with full travel expenses covered.', iconName: 'DollarSign' },
+      { title: 'No Long-Term Commitment', description: 'Assignments from 2 weeks to 6+ months. Take breaks between assignments and maintain complete career flexibility.', iconName: 'Calendar' },
+      { title: 'Nationwide Opportunities', description: 'Work across multiple states, experience different healthcare systems, and build a diverse clinical portfolio.', iconName: 'MapPin' },
+    ],
+    tips: [
+      'Maintain active licenses in multiple states via compact agreements',
+      'Work with 2-3 locum agencies for the best selection of assignments',
+      'Negotiate per diem rates, housing, and travel expenses separately',
+      'Keep credentialing documents updated and organized digitally',
+      'Build relationships for repeat assignments at preferred facilities',
+    ],
+  },
 };
 
 /** All valid category slugs for routing */
@@ -806,7 +943,7 @@ async function getCityStats(config: CategoryConfig, city: CityData) {
       }
     });
 
-    if (stats) {
+    if (stats && stats.totalJobs > 0) {
       return {
         totalJobs: stats.totalJobs,
         rawAvgSalary: stats.rawAvgSalary,
@@ -814,6 +951,21 @@ async function getCityStats(config: CategoryConfig, city: CityData) {
       };
     }
     
+    // Fallback: live count when pseoStats cache is empty/stale
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = config.buildWhere(city.state, city.name) as any;
+    const liveCount = await prisma.job.count({ where });
+    if (liveCount > 0) {
+      // Compute rough avg salary from live data
+      const salaryAgg = await prisma.job.aggregate({
+        where,
+        _avg: { normalizedMaxSalary: true, normalizedMinSalary: true },
+      });
+      const rawAvg = Math.round(((salaryAgg._avg.normalizedMinSalary ?? 0) + (salaryAgg._avg.normalizedMaxSalary ?? 0)) / 2 / 1000);
+      const colAdj = Math.round(rawAvg * (100 / (city.costOfLivingIndex || 100)));
+      return { totalJobs: liveCount, rawAvgSalary: rawAvg, colAdjustedSalary: colAdj };
+    }
+
     return EMPTY_STATS;
   } catch (error) {
     console.error(`[category-city] Failed to fetch stats for ${config.slug}/${city.slug}:`, error);
@@ -862,14 +1014,31 @@ function getMarketDemandScore(city: CityData, totalJobs: number): { score: numbe
 // The quality score is still used for noindex gating on pages WITH jobs
 // (e.g., a small city with 1 job but no healthcare systems → noindex).
 
+// Minimum jobs threshold for indexing — pages below this are noindex, follow.
+// Enterprise standard: thin doorway pages (1-2 jobs) hurt domain quality signals.
+const MIN_JOBS_FOR_INDEX = 3;
+
 function getPageQualityScore(city: CityData, totalJobs: number): number {
-  if (totalJobs === 0) return 0; // Always 404 for empty pages
-  let score = 50; // Has jobs = base score 50
-  if (city.healthcareSystems.length > 0) score += 15;
-  if (city.metroArea) score += 10;
-  if (city.population >= 25000) score += 15;
-  if (city.population >= 10000) score += 5;
-  if (city.mentalHealthShortage) score += 10;
+  if (totalJobs === 0) return 0; // Redirected before reaching here, but belt-and-suspenders
+
+  // Pages with fewer than MIN_JOBS are thin content → noindex but still render
+  if (totalJobs < MIN_JOBS_FOR_INDEX) return 10; // Below the 25-point index threshold
+
+  // Tiered scoring based on content density
+  let score = 0;
+
+  // Job count tiers
+  if (totalJobs >= 10) score += 60;       // Strong content page
+  else if (totalJobs >= 5) score += 50;   // Good content page
+  else score += 30;                        // Meets minimum (3-4 jobs)
+
+  // City quality signals
+  if (city.healthcareSystems.length > 0) score += 15;  // Has named employers
+  if (city.metroArea) score += 10;                       // Metro area = higher demand
+  if (city.population >= 25000) score += 15;             // Major city
+  else if (city.population >= 10000) score += 5;         // Mid-size city
+  if (city.mentalHealthShortage) score += 10;            // HPSA designation
+
   return score; // Pages with score >= 25 get indexed
 }
 
@@ -886,9 +1055,38 @@ export async function buildCategoryCityMetadata(
 
   // getCityStats is already try-catch protected — returns EMPTY_STATS on failure
   const stats = await getCityStats(config, city);
+
+  // SEO: 308 permanent redirect for 0-job pages (metadata phase)
+  // The page component also redirects, but this catches the metadata call first
+  if (stats.totalJobs === 0) {
+    const { permanentRedirect } = await import('next/navigation');
+    permanentRedirect(`/jobs/${config.slug}`);
+  }
+
   const basePath = `/jobs/${config.slug}/city/${citySlug}`;
 
-  const shouldIndex = getPageQualityScore(city, stats.totalJobs) >= 25 && page === 1;
+  const qualityScore = getPageQualityScore(city, stats.totalJobs);
+  const shouldIndex = qualityScore >= 25 && page === 1;
+
+  // Canonical consolidation: thin pages (1-2 jobs, score < 25) point canonical
+  // to the parent category page so Google consolidates ranking signals upward.
+  // High-quality pages (3+ jobs, good city signals) keep self-referential canonical.
+  const canonicalUrl = shouldIndex
+    ? `https://pmhnphiring.com${basePath}`
+    : `https://pmhnphiring.com/jobs/${config.slug}`;
+
+  // Build salary display for OG image (rawAvgSalary is already in thousands, e.g. 130 = $130K)
+  const salaryDisplay = stats.rawAvgSalary && stats.rawAvgSalary > 0
+    ? `$${stats.rawAvgSalary}K`
+    : '';
+
+  const ogParams = new URLSearchParams({
+    category: config.label,
+    city: `${city.name}, ${city.stateCode}`,
+    jobs: String(stats.totalJobs),
+    ...(salaryDisplay && { salary: salaryDisplay }),
+    ...(city.mentalHealthShortage && { shortage: 'true' }),
+  });
 
   return {
     title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode} (${stats.totalJobs} Open)`,
@@ -902,9 +1100,20 @@ export async function buildCategoryCityMetadata(
       title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode}`,
       description: `Browse ${config.label.toLowerCase()} psychiatric NP positions in ${city.name}. ${config.heroSubtitle}.`,
       type: 'website',
+      images: [{
+        url: `/api/og/city?${ogParams.toString()}`,
+        width: 1200,
+        height: 630,
+        alt: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode}`,
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${config.label} PMHNP Jobs in ${city.name}, ${city.stateCode}`,
+      images: [`/api/og/city?${ogParams.toString()}`],
     },
     alternates: {
-      canonical: `https://pmhnphiring.com${basePath}`,
+      canonical: canonicalUrl,
     },
     ...(!shouldIndex && {
       robots: { index: false, follow: true },
@@ -935,12 +1144,14 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
   // 1. Instantly fetch pre-calculated stats (single indexed row lookup ~2ms)
   const stats = await getCityStats(config, city!);
 
-  // GSC Fix: Hard 404 for ANY page with 0 matching jobs.
-  // This eliminates all empty pSEO pages that Google was flagging as soft 404s
-  // AND stops the server from proceeding to fetch empty jobs.
+  // ═══ SEO GUARD: 308 permanent redirect for 0-job pages ═══
+  // Instead of a hard 404 (which wastes crawl budget and loses link equity),
+  // 308 redirect to the parent category page so Google consolidates the signal.
+  // 308 is the modern equivalent of 301 — tells search engines the move is permanent.
   if (stats.totalJobs === 0) {
-    const { notFound: notFoundFn } = await import('next/navigation');
-    notFoundFn();
+    const { permanentRedirect } = await import('next/navigation');
+    // Redirect to: /jobs/{category} — the parent enterprise category page
+    permanentRedirect(`/jobs/${config.slug}`);
   }
 
   // 2. Only fetch actual job rows if we know jobs exist
@@ -951,6 +1162,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     const { notFound: notFoundFn } = await import('next/navigation');
     notFoundFn();
   }
+
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
   const demand = getMarketDemandScore(city!, stats.totalJobs);
@@ -964,8 +1176,11 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     // State not found, skip
   }
 
-  // Other categories for cross-linking
-  const otherCategories = Object.values(ALL_CATEGORY_CONFIGS).filter((c) => c.slug !== config.slug).slice(0, 4);
+  // Other categories for cross-linking — use ALL categories from asset registry
+  const otherCategories = Object.values(ALL_CATEGORY_CONFIGS).filter((c) => c.slug !== config.slug);
+
+  // Get visual assets from the registry for this category
+  const assets = CATEGORY_ASSET_REGISTRY[config.slug];
 
   // Nearby cities
   const nearbyCities = city!.nearbyCities
@@ -973,8 +1188,16 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     .filter((c): c is CityData => c !== undefined)
     .slice(0, 6);
 
+  /* ═══ Design Tokens — matched to category pages ═══ */
+  const clayCard: React.CSSProperties = {
+    background: '#FFFFFF', borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+  };
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div style={{ backgroundColor: '#FDFBF7' }}>
+      {/* ═══ SCHEMAS ═══ */}
       <BreadcrumbSchema items={[
         { name: 'Home', url: 'https://pmhnphiring.com' },
         { name: 'Jobs', url: 'https://pmhnphiring.com/jobs' },
@@ -982,163 +1205,139 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
         { name: city!.state, url: `https://pmhnphiring.com/jobs/${config.slug}/${stateToSlug(city!.state)}` },
         { name: city!.name, url: `https://pmhnphiring.com${basePath}` },
       ]} />
+      {/* D9: ItemList schema */}
+      {jobs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'ItemList',
+              name: `${config.label} PMHNP Jobs in ${city!.name}, ${city!.stateCode}`,
+              numberOfItems: stats.totalJobs,
+              itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({
+                '@type': 'ListItem',
+                position: idx + 1,
+                name: job.title,
+                url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+              })),
+            }),
+          }}
+        />
+      )}
+      {/* D9b: JobPosting schema for listed jobs */}
+      {jobs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jobs.slice(0, 10).map((job: Job) => ({
+              '@context': 'https://schema.org',
+              '@type': 'JobPosting',
+              title: job.title,
+              description: (job.descriptionSummary || job.description || '').slice(0, 500) || `${config.label} PMHNP position in ${city!.name}, ${city!.stateCode}`,
+              datePosted: job.originalPostedAt ? new Date(job.originalPostedAt).toISOString().split('T')[0] : new Date(job.createdAt).toISOString().split('T')[0],
+              ...(job.expiresAt && { validThrough: new Date(job.expiresAt).toISOString().split('T')[0] }),
+              employmentType: job.jobType === 'Part-Time' ? 'PART_TIME'
+                : job.jobType === 'Contract' ? 'CONTRACTOR'
+                : job.jobType === 'Per Diem' ? 'PER_DIEM'
+                : 'FULL_TIME',
+              hiringOrganization: {
+                '@type': 'Organization',
+                name: job.employer || 'Confidential Employer',
+                ...(job.companyLogoUrl && { logo: job.companyLogoUrl }),
+              },
+              jobLocation: {
+                '@type': 'Place',
+                address: {
+                  '@type': 'PostalAddress',
+                  addressLocality: job.city || city!.name,
+                  addressRegion: job.stateCode || city!.stateCode,
+                  addressCountry: 'US',
+                },
+              },
+              ...(job.isRemote && { jobLocationType: 'TELECOMMUTE' }),
+              ...((job.normalizedMinSalary || job.normalizedMaxSalary) && {
+                baseSalary: {
+                  '@type': 'MonetaryAmount',
+                  currency: 'USD',
+                  value: {
+                    '@type': 'QuantitativeValue',
+                    ...(job.normalizedMinSalary && { minValue: job.normalizedMinSalary }),
+                    ...(job.normalizedMaxSalary && { maxValue: job.normalizedMaxSalary }),
+                    unitText: 'YEAR',
+                  },
+                },
+              }),
+              url: `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
+            }))),
+          }}
+        />
+      )}
+      {/* D10: Place schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Place',
+            name: `${city!.name}, ${city!.stateCode}`,
+            address: {
+              '@type': 'PostalAddress',
+              addressLocality: city!.name,
+              addressRegion: city!.stateCode,
+              addressCountry: 'US',
+            },
+          }),
+        }}
+      />
 
-      {/* Hero */}
-      <section className="bg-teal-600 text-white py-10 md:py-14">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">
-              {config.label} PMHNP Jobs in {city!.name}, {city!.stateCode}
-            </h1>
-            <p className="text-sm text-teal-200 mb-4">
-              Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} |{' '}
-              {city!.metroArea ? `${city!.metroArea} Metro` : `${city!.state}`}
-            </p>
-            <p className="text-lg text-teal-100 mb-6">
-              {stats.totalJobs > 0
-                ? `Discover ${stats.totalJobs} ${config.label.toLowerCase()} psychiatric NP positions in ${city!.name}`
-                : `${config.label} PMHNP opportunities in ${city!.name} — new positions posted regularly`}
-            </p>
+      {/* ═══ Analytics: pSEO page view tracking ═══ */}
+      <PseoPageViewTracker
+        pageType="category_city"
+        category={config.slug}
+        city={city!.name}
+        state={city!.stateCode}
+        jobCount={stats.totalJobs}
+      />
 
-            {/* Stats Bar */}
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                <div className="text-sm text-teal-100">Open Positions</div>
-              </div>
-              {stats.rawAvgSalary > 0 && (
-                <div className="text-center">
-                  <div className="text-3xl font-bold">${stats.rawAvgSalary}k</div>
-                  <div className="text-sm text-teal-100">Avg. Salary</div>
-                </div>
-              )}
-              <div className="text-center">
-                <div className="text-3xl font-bold">{city!.population >= 1000000 ? `${(city!.population / 1000000).toFixed(1)}M` : `${Math.round(city!.population / 1000)}K`}</div>
-                <div className="text-sm text-teal-100">Population</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold" style={{ color: demand.color }}>{demand.label}</div>
-                <div className="text-sm text-teal-100">Market Demand</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ═══ D2: HERO — CategoryHero with category's watercolor ═══ */}
+      <CategoryHero
+        bgColor={assets?.bgColor || '#0D9488'}
+        heroImage={assets?.heroImage || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_remote.webp'}
+        heroAlt={`${config.label} PMHNP working in ${city!.name}, ${city!.stateCode}`}
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', config.label, city!.name]}
+        headlineLine1={config.label}
+        headlineLine2="PMHNP"
+        headlineSub={`jobs in ${city!.name}, ${city!.stateCode}.`}
+        stats={[
+          { value: `${stats.totalJobs}`, label: 'positions' },
+          { value: stats.rawAvgSalary > 0 ? `$${stats.rawAvgSalary}k` : config.salaryRange.split('–')[0] || '$130K+', label: 'avg salary' },
+          { value: demand.label, label: 'demand' },
+        ]}
+        description={`${config.label} psychiatric NP positions in ${city!.name}. ${config.heroSubtitle}.`}
+        ctaLabel={`Browse ${config.label} Jobs`}
+        ctaHref={`/jobs/${config.slug}`}
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-7xl mx-auto">
 
-          {/* Community Profile + Market Insights */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Community Profile */}
-            <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                📍 {city!.name} Community Profile
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Population</div>
-                  <div className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{city!.population.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Cost of Living</div>
-                  <div className="text-lg font-semibold" style={{ color: city!.costOfLivingIndex > 110 ? '#ef4444' : city!.costOfLivingIndex > 100 ? '#f59e0b' : '#10b981' }}>
-                    {city!.costOfLivingIndex} <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>(US avg: 100)</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Median Income</div>
-                  <div className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>${(city!.medianIncome / 1000).toFixed(0)}k</div>
-                </div>
-                <div>
-                  <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Provider Shortage</div>
-                  <div className="text-lg font-semibold" style={{ color: city!.mentalHealthShortage ? '#ef4444' : '#10b981' }}>
-                    {city!.mentalHealthShortage ? '⚠ Yes' : '✓ Adequate'}
-                  </div>
-                </div>
-              </div>
-              {city!.metroArea && (
-                <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Metro Area</div>
-                  <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>{city!.metroArea}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Market Insights */}
-            <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                📊 {config.label} Market Insights
-              </h2>
-              {/* Demand Score Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span style={{ color: 'var(--text-secondary)' }}>Market Demand</span>
-                  <span className="font-semibold" style={{ color: demand.color }}>{demand.label} ({demand.score}/100)</span>
-                </div>
-                <div className="h-3 rounded-full" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <div className="h-3 rounded-full transition-all" style={{ width: `${demand.score}%`, backgroundColor: demand.color }} />
-                </div>
-              </div>
-
-              {stats.rawAvgSalary > 0 && stats.colAdjustedSalary > 0 && (
-                <div className="mb-4">
-                  <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>COL-Adjusted Salary</div>
-                  <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                    ${stats.colAdjustedSalary}k
-                    <span className="text-sm font-normal ml-2" style={{ color: 'var(--text-tertiary)' }}>
-                      (nominal: ${stats.rawAvgSalary}k)
-                    </span>
-                  </div>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                    Adjusted for {city!.name}&apos;s cost of living index ({city!.costOfLivingIndex})
-                  </p>
-                </div>
-              )}
-
-              {practiceAuthority && (
-                <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Shield className="h-4 w-4" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{city!.state} Practice Authority</span>
-                  </div>
-                  <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${(() => { const c = getAuthorityColor(practiceAuthority.authority); return `${c.bg} ${c.text} ${c.border}`; })()}`}>
-                    {practiceAuthority.description}
-                  </span>
-                  <Link href={`/blog/pmhnp-license-${stateToSlug(city!.state)}`} className="block mt-2 text-xs" style={{ color: 'var(--color-primary)' }}>
-                    View {city!.state} Licensure Guide →
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Healthcare Systems */}
-          {city!.healthcareSystems.length > 0 && (
-            <div className="rounded-xl p-6 mb-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
-                🏥 Major Healthcare Systems in {city!.name}
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {city!.healthcareSystems.map((system, i) => (
-                  <span key={i} className="px-3 py-1.5 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                    {system}
-                  </span>
-                ))}
-              </div>
-              <p className="text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
-                These healthcare systems frequently hire {config.label.toLowerCase()} PMHNPs in the {city!.name} area.
-              </p>
-            </div>
-          )}
-
           {/* Job Listings */}
           <div className="grid lg:grid-cols-4 gap-8">
             <div className="lg:col-span-3">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>
                   {config.label} Positions in {city!.name} ({stats.totalJobs})
                 </h2>
+                <Link
+                  href={`/jobs/${config.slug}`}
+                  style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}
+                >
+                  View All Jobs →
+                </Link>
               </div>
 
               {jobs.length === 0 ? (
@@ -1203,27 +1402,37 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
-                <Bell className="h-8 w-8 mb-3" />
-                <h3 className="text-lg font-bold mb-2">Get Job Alerts</h3>
-                <p className="text-sm text-teal-100 mb-4">
-                  New {config.label.toLowerCase()} PMHNP positions in {city!.name} — delivered to your inbox.
-                </p>
-                <Link href="/job-alerts" className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors">
-                  Create Alert
-                </Link>
+              {/* Job Alert CTA */}
+              <div className="pseo-bento-card" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+                <div style={{ padding: '24px' }}>
+                  <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                  <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>
+                    {config.label} Alerts
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>
+                    New {config.label.toLowerCase()} PMHNP positions in {city!.name} — delivered daily.
+                  </p>
+                  <Link href="/job-alerts" className="pseo-cta-primary" style={{
+                    display: 'block', width: '100%', textAlign: 'center',
+                    padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                    background: '#0D9488', color: '#fff', textDecoration: 'none',
+                    boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
+                  }}>
+                    Create Alert
+                  </Link>
+                </div>
               </div>
 
               {/* Tips */}
-              <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>{config.label} Tips</h3>
+              <div className="pseo-bento-card" style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Lightbulb size={20} style={{ color: '#0D9488' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>{config.label} Tips</h3>
                 </div>
-                <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                   {config.tips.map((tip, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
+                    <li key={i} style={{ display: 'flex', gap: '8px', padding: '6px 0', borderBottom: i < config.tips.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', fontSize: '13px', color: '#5A4A42', lineHeight: 1.5 }}>
+                      <span style={{ color: '#0D9488', fontWeight: 700 }}>•</span>
                       <span>{tip}</span>
                     </li>
                   ))}
@@ -1231,13 +1440,13 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
               </div>
 
               {/* Benefits */}
-              <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Why {config.label}?</h3>
-                <div className="space-y-4">
+              <div className="pseo-bento-card" style={{ ...clayCard, padding: '24px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', marginBottom: '16px' }}>Why {config.label}?</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {config.benefits.map((b, i) => (
                     <div key={i}>
-                      <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{b.title}</div>
-                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{b.description}</p>
+                      <div style={{ fontWeight: 700, fontSize: '13px', color: '#1A2E35' }}>{b.title}</div>
+                      <p style={{ fontSize: '12px', marginTop: '4px', color: '#5A4A42', lineHeight: 1.5 }}>{b.description}</p>
                     </div>
                   ))}
                 </div>
@@ -1245,72 +1454,276 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
             </div>
           </div>
 
-          {/* Nearby Cities */}
-          {nearbyCities.length > 0 && (
-            <div className="mt-12 rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                {config.label} PMHNP Jobs in Nearby Cities
+          {/* ═══ BENTO GRID — "Why Choose [Category]" ═══ */}
+          {assets && (
+            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '48px 20px 40px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+                {assets.bentoSectionLabel}
+              </p>
+              <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>
+                {config.label} Careers in {city!.name}
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {nearbyCities.map((nc) => (
-                  <Link key={nc.slug} href={`/jobs/${config.slug}/city/${nc.slug}`}
-                    className="block p-3 rounded-lg text-center hover:shadow-md transition-all"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                    <div className="font-semibold text-sm">{nc.name}</div>
-                    <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{nc.stateCode} · Pop {Math.round(nc.population / 1000)}K</div>
-                  </Link>
+              <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>
+                {config.heroSubtitle}
+              </p>
+
+              <div className="pseo-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+                {/* ROW 1: Hero card (8col) + Side card (4col) */}
+                <div className="pseo-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+                  <div style={{ padding: '32px 28px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>
+                      {`${config.label} in ${city!.name}`}
+                    </h3>
+                    <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                      {config.heroSubtitle}. {config.tips[0] || ''}
+                    </p>
+                  </div>
+                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
+                    <Image src={assets.bentoImages[0]} alt={`${config.label} PMHNP`} width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                  </div>
+                </div>
+
+                <div className="pseo-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Image src={assets.bentoImages[1]} alt={`${config.label} growth`} width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+                  </div>
+                  <div style={{ padding: '24px 22px', flex: 1 }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>
+                      Practice Authority
+                    </h3>
+                    <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                      {practiceAuthority ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for NPs.` : config.tips[1] || `Advance your ${config.label.toLowerCase()} career in ${city!.name}.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* ROW 2: Icon cards — dynamic count based on benefits */}
+                {config.benefits.map((benefit, i) => (
+                  <div key={`icon-${i}`} className="pseo-bento-card" style={{ ...clayCard, gridColumn: `span ${Math.floor(12 / config.benefits.length)}`, padding: '24px 18px', textAlign: 'center' }}>
+                    {assets.bentoIcons[i] && <Image src={assets.bentoIcons[i]} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />}
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>
+                      {benefit.title}
+                    </h3>
+                    <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>
+                      {benefit.description}
+                    </p>
+                  </div>
                 ))}
+
+                {/* ROW 3: Salary card (8col) + Alert CTA (4col) */}
+                {assets.bentoImages[2] && (
+                  <div className="pseo-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+                    <div style={{ padding: '32px 28px' }}>
+                      <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
+                      <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Salary & Compensation</h3>
+                      <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                        {config.label} PMHNPs in {city!.name} earn {stats.rawAvgSalary > 0 ? `$${stats.rawAvgSalary}k` : config.salaryRange} annually.
+                      </p>
+                    </div>
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
+                      <Image src={assets.bentoImages[2]} alt="Salary growth" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="pseo-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+                  <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>{config.label} Alerts</h3>
+                  <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
+                    New {config.label.toLowerCase()} listings in {city!.name} — delivered daily.
+                  </p>
+                  <Link href="/job-alerts" className="pseo-cta-primary" style={{
+                    padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                    background: '#0D9488', color: '#fff', textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content',
+                    boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
+                  }}>
+                    Create Alert <ArrowRight size={14} />
+                  </Link>
+                </div>
               </div>
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Other Categories in this city */}
-          <div className="mt-8 rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              Other PMHNP Job Types in {city!.name}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {otherCategories.map((cat) => (
-                <Link key={cat.slug} href={`/jobs/${cat.slug}/city/${citySlug}`}
-                  className="block p-3 rounded-lg text-center hover:shadow-md transition-all"
-                  style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                  <div className="font-semibold text-sm">{cat.label}</div>
-                  <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>in {city!.name}</div>
-                </Link>
-              ))}
-              <Link href={`/jobs/city/${citySlug}`}
-                className="block p-3 rounded-lg text-center hover:shadow-md transition-all"
-                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                <div className="font-semibold text-sm">All Jobs</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>in {city!.name}</div>
-              </Link>
+      {/* ═══ COMMUNITY · MARKET · HEALTHCARE — Full-width warm section ═══ */}
+      <section style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FDFBF7 100%)', padding: '40px 0', marginTop: '8px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 20px' }}>
+          <p className="font-lora" style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '6px' }}>Local Insights</p>
+          <h2 className="font-lora" style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '24px' }}>{city!.name} at a Glance</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {/* Community Profile */}
+            <div className="pseo-bento-card" style={{ ...clayCard, padding: '24px' }}>
+              <h2 className="font-lora" style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <MapPin size={18} style={{ color: '#0D9488' }} /> {city!.name}
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62' }}>Population</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35' }}>{city!.population.toLocaleString()}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62' }}>Cost of Living</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: city!.costOfLivingIndex > 110 ? '#ef4444' : city!.costOfLivingIndex > 100 ? '#f59e0b' : '#34D399' }}>
+                    {city!.costOfLivingIndex}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62' }}>Median Income</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35' }}>${(city!.medianIncome / 1000).toFixed(0)}k</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7A6A62' }}>Shortage</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: city!.mentalHealthShortage ? '#ef4444' : '#34D399' }}>
+                    {city!.mentalHealthShortage ? '⚠ Yes' : '✓ No'}
+                  </div>
+                </div>
+              </div>
+              {city!.metroArea && (
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)', fontSize: '12px', color: '#7A6A62' }}>
+                  Metro: <strong style={{ color: '#1A2E35' }}>{city!.metroArea}</strong>
+                </div>
+              )}
             </div>
+
+            {/* Market Insights */}
+            <div className="pseo-bento-card" style={{ ...clayCard, padding: '24px' }}>
+              <h2 className="font-lora" style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <TrendingUp size={18} style={{ color: '#0D9488' }} /> Market
+              </h2>
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                  <span style={{ color: '#5A4A42' }}>Demand</span>
+                  <span style={{ fontWeight: 700, color: demand.color }}>{demand.label} ({demand.score}/100)</span>
+                </div>
+                <div style={{ height: '8px', borderRadius: '8px', background: 'rgba(0,0,0,0.05)' }}>
+                  <div style={{ height: '8px', borderRadius: '8px', width: `${demand.score}%`, backgroundColor: demand.color, transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+              {stats.rawAvgSalary > 0 && (
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#7A6A62' }}>COL-Adjusted Salary</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#1A2E35' }}>
+                    ${stats.colAdjustedSalary}k
+                    <span style={{ fontSize: '11px', fontWeight: 400, marginLeft: '6px', color: '#7A6A62' }}>(${stats.rawAvgSalary}k nom.)</span>
+                  </div>
+                </div>
+              )}
+              {practiceAuthority && (
+                <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <Shield size={14} style={{ color: '#0D9488' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35' }}>{practiceAuthority.authority}</span>
+                  </div>
+                  <Link href={`/blog/pmhnp-license-${stateToSlug(city!.state)}`} style={{ fontSize: '11px', color: '#0D9488', textDecoration: 'none' }}>
+                    {city!.state} Licensure Guide →
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Healthcare Systems */}
+            <div className="pseo-bento-card" style={{ ...clayCard, padding: '24px' }}>
+              <h2 className="font-lora" style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <Building2 size={18} style={{ color: '#0D9488' }} /> Healthcare
+              </h2>
+              {city!.healthcareSystems.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {city!.healthcareSystems.map((system, i) => (
+                    <span key={i} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '8px', background: 'rgba(13,148,136,0.08)', color: '#1A2E35', fontWeight: 500 }}>
+                      {system}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0 }}>No major healthcare systems listed for this area.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* D6: Nearby Cities */}
+      {nearbyCities.length > 0 && (
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 20px' }}>
+          <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '16px', textAlign: 'center' }}>
+            {config.label} PMHNP Jobs in Nearby Cities
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
+            {nearbyCities.map((nc) => (
+              <Link key={nc.slug} href={`/jobs/${config.slug}/city/${nc.slug}`}
+                className="pseo-bento-card" style={{ ...clayCard, display: 'block', padding: '14px', textAlign: 'center', textDecoration: 'none' }}>
+                <div style={{ fontWeight: 700, fontSize: '14px', color: '#1A2E35' }}>{nc.name}</div>
+                <div style={{ fontSize: '11px', marginTop: '4px', color: '#7A6A62' }}>{nc.stateCode} · Pop {Math.round(nc.population / 1000)}K</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* D6 + D8: Explore More — Warm bg with clay icon cards */}
+      <div style={{ background: 'linear-gradient(180deg, #FFF8F0 0%, #FFF3E8 50%, #FFF8F0 100%)' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Keep Exploring
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
+            Other PMHNP Job Types in {city!.name}
+          </h2>
+          <div className="pseo-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {assets?.exploreCards && assets.exploreCards.length > 0 ? (
+              assets.exploreCards.map(c => (
+                <Link key={c.href} href={c.href.includes('/city/') ? c.href : `${c.href}/city/${citySlug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                  <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                  <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
+                </Link>
+              ))
+            ) : (
+              otherCategories.slice(0, 6).map((cat) => (
+                <Link key={cat.slug} href={`/jobs/${cat.slug}/city/${citySlug}`}
+                  className="pseo-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{cat.label}</span>
+                  <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>in {city!.name}</span>
+                </Link>
+              ))
+            )}
           </div>
 
           {/* Resource Links */}
-          <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--border-color)' }}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link href={`/salary-guide/${stateToSlug(city!.state)}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 {city!.state} Salary Guide</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Salary data by setting and experience.</p>
-              </Link>
-              <Link href={`/jobs/${config.slug}/${stateToSlug(city!.state)}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 {config.label} Jobs in {city!.state}</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse all {config.label.toLowerCase()} positions statewide.</p>
-              </Link>
-              <Link href={`/jobs/${config.slug}`} className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏥 All {config.label} Jobs</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Nationwide {config.label.toLowerCase()} positions.</p>
-              </Link>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '32px' }}>
+            <Link href={`/salary-guide/${stateToSlug(city!.state)}`} className="pseo-bento-card" style={{ ...clayCard, padding: '20px', textDecoration: 'none' }}>
+              <h3 className="font-lora" style={{ fontSize: '15px', fontWeight: 700, color: '#0D9488', marginBottom: '4px' }}>
+                <DollarSign size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> {city!.state} Salary Guide
+              </h3>
+              <p style={{ fontSize: '12px', color: '#5A4A42', margin: 0 }}>Salary data by setting and experience.</p>
+            </Link>
+            <Link href={`/jobs/${config.slug}/${stateToSlug(city!.state)}`} className="pseo-bento-card" style={{ ...clayCard, padding: '20px', textDecoration: 'none' }}>
+              <h3 className="font-lora" style={{ fontSize: '15px', fontWeight: 700, color: '#0D9488', marginBottom: '4px' }}>
+                <MapPin size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> {config.label} Jobs in {city!.state}
+              </h3>
+              <p style={{ fontSize: '12px', color: '#5A4A42', margin: 0 }}>Browse all {config.label.toLowerCase()} positions statewide.</p>
+            </Link>
+            <Link href={`/jobs/${config.slug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '20px', textDecoration: 'none' }}>
+              <h3 className="font-lora" style={{ fontSize: '15px', fontWeight: 700, color: '#0D9488', marginBottom: '4px' }}>
+                <Building2 size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> All {config.label} Jobs
+              </h3>
+              <p style={{ fontSize: '12px', color: '#5A4A42', margin: 0 }}>Nationwide {config.label.toLowerCase()} positions.</p>
+            </Link>
           </div>
+        </section>
+      </div>
 
+      {/* GEO + FAQ — in its own container wrapper */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto">
           {/* ── GEO: AI-Quotable Answer Paragraph ─────────────────────────────── */}
-          <section className="mt-10 rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} id="answer-summary" data-speakable="true">
-            <h2 className="text-xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+          <section className="pseo-bento-card" style={{ ...clayCard, padding: '24px', marginTop: '0' }} id="answer-summary" data-speakable="true">
+            <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '12px' }}>
               {config.label} PMHNP Jobs in {city!.name}: Quick Facts
             </h2>
-            <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#5A4A42' }}>
               As of {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}, there {stats.totalJobs === 1 ? 'is' : 'are'}{' '}
               <strong>{stats.totalJobs} {config.label.toLowerCase()} PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'}</strong> available
               in {city!.name}, {city!.stateCode}.
@@ -1320,7 +1733,7 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
               {practiceAuthority && <>{' '}{city!.state} is a <strong>{practiceAuthority.authority}</strong> practice authority state for nurse practitioners.</>}
               {config.salaryRange && <> The typical salary range for {config.label.toLowerCase()} roles is <strong>{config.salaryRange}</strong>.</>}
             </p>
-            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: '11px', marginTop: '8px', color: '#A09080' }}>
               Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA HPSA data. Updated {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
             </p>
           </section>
@@ -1387,29 +1800,105 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
                     }),
                   }}
                 />
-                {/* Visible FAQ Section */}
-                <section className="mt-10 rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <h2 className="text-xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                    Frequently Asked Questions: {config.label} PMHNP Jobs in {city!.name}
-                  </h2>
-                  <div className="space-y-6">
-                    {faqs.map((faq, i) => (
-                      <div key={i} className="pb-5" style={{ borderBottom: i < faqs.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
-                        <h3 className="font-semibold text-base mb-2" style={{ color: 'var(--text-primary)' }}>
-                          {faq.q}
-                        </h3>
-                        <p className="faq-answer text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                          {faq.a}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                {/* Visible FAQ Section — Accordion Style */}
               </>
             );
           })()}
         </div>
       </div>
+
+      {/* FAQ Accordion — Warm bg section matching CategoryFAQ */}
+      <div style={{ background: '#FDFBF7' }}>
+        <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+            Common Questions
+          </p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
+            {config.label} PMHNP Jobs in {city!.name} — FAQ
+          </h2>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {(() => {
+              const faqs = [
+                {
+                  q: `How many ${config.label.toLowerCase()} PMHNP jobs are available in ${city!.name}, ${city!.stateCode}?`,
+                  a: `As of ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}, there ${stats.totalJobs === 1 ? 'is' : 'are'} ${stats.totalJobs} ${config.label.toLowerCase()} PMHNP ${stats.totalJobs === 1 ? 'position' : 'positions'} available in ${city!.name}, ${city!.stateCode}. New positions are posted regularly as demand for psychiatric nurse practitioners continues to grow.`,
+                },
+                {
+                  q: `What is the average PMHNP salary in ${city!.name}?`,
+                  a: stats.rawAvgSalary > 0
+                    ? `The average ${config.label.toLowerCase()} PMHNP salary in ${city!.name} is approximately $${stats.rawAvgSalary}K per year. Adjusted for the local cost of living (index: ${city!.costOfLivingIndex}), this equates to about $${stats.colAdjustedSalary}K in purchasing power.`
+                    : `${config.label} PMHNP positions in ${city!.name} typically pay ${config.salaryRange}. Actual compensation depends on experience, employer type, and whether the role includes benefits.`,
+                },
+                {
+                  q: `Does ${city!.state} allow PMHNPs full practice authority?`,
+                  a: practiceAuthority ? `${city!.state} has ${practiceAuthority.authority.toLowerCase()} practice authority for nurse practitioners. ${String(practiceAuthority.authority).includes('Full') ? 'PMHNPs can practice independently without physician oversight.' : String(practiceAuthority.authority).includes('Reduced') ? 'PMHNPs require a collaborative agreement with a physician.' : 'PMHNPs must practice under physician supervision for prescribing and some clinical decisions.'}` : `Contact the ${city!.state} Board of Nursing for current practice authority information.`,
+                },
+                {
+                  q: `Is ${city!.name} a good place for PMHNP careers?`,
+                  a: `${city!.name} ${city!.mentalHealthShortage ? 'is designated as a Mental Health Professional Shortage Area (HPSA), meaning there is high demand and often sign-on bonuses and loan repayment programs.' : 'has growing demand for mental health providers.'} With a population of ${city!.population.toLocaleString('en-US')}${city!.metroArea ? ` in the ${city!.metroArea} metro` : ''}, ${city!.name} offers ${city!.healthcareSystems.length > 0 ? `access to major health systems including ${city!.healthcareSystems.slice(0, 3).join(', ')}` : 'a variety of practice settings'}.`,
+                },
+                {
+                  q: `What qualifications do I need for ${config.label.toLowerCase()} PMHNP jobs?`,
+                  a: `To work as a PMHNP in ${city!.name}, you need: a Master's or Doctoral degree in psychiatric-mental health nursing, ANCC PMHNP-BC certification, an active RN and APRN license in ${city!.state}, and DEA registration for prescribing controlled substances.`,
+                },
+              ];
+              return faqs.map((faq, i) => (
+                <details key={i} className="pseo-faq-item" style={{
+                  background: '#FFFFFF',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255,255,255,0.5)',
+                  boxShadow: '4px 4px 12px rgba(0,0,0,0.04), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                  overflow: 'hidden',
+                }} {...(i === 0 ? { open: true } : {})}>
+                  <summary style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '20px 24px', cursor: 'pointer', listStyle: 'none',
+                    fontSize: '15px', fontWeight: 600, color: '#1A2E35', lineHeight: 1.4,
+                  }}>
+                    {faq.q}
+                  </summary>
+                  <div style={{ padding: '0 24px 20px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                    <p className="faq-answer" style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '16px 0 0' }}>{faq.a}</p>
+                  </div>
+                </details>
+              ));
+            })()}
+          </div>
+        </section>
+      </div>
+
+      {/* D11: Responsive + Hover CSS */}
+      <style>{`
+        .pseo-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .pseo-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
+        .pseo-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .pseo-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .pseo-faq-item summary { list-style: none; }
+        .pseo-faq-item summary::-webkit-details-marker { display: none; }
+        .pseo-faq-item summary::after {
+          content: '';
+          width: 28px; height: 28px; border-radius: 8px;
+          background: #F0FDFA;
+          display: inline-flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230D9488' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat; background-position: center;
+          transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .pseo-faq-item[open] summary::after {
+          background-color: #0D9488;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='18 15 12 9 6 15'%3E%3C/polyline%3E%3C/svg%3E");
+          transform: none;
+        }
+        .pseo-faq-item { transition: box-shadow 0.3s ease; }
+        .pseo-faq-item[open] { box-shadow: 6px 6px 20px rgba(0,0,0,0.08), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        @media (max-width: 768px) {
+          .pseo-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .pseo-bento-grid { grid-template-columns: 1fr !important; }
+          .pseo-bento-grid > div { grid-column: span 1 !important; grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

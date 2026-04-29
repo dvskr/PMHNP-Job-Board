@@ -25,7 +25,7 @@ const STATUS_OPTIONS = ['prospect', 'contacted', 'responded', 'converted', 'decl
 
 const STATUS_BADGE_STYLES: Record<string, React.CSSProperties> = {
   prospect: { backgroundColor: 'rgba(148, 163, 184, 0.15)', color: '#94A3B8' },
-  contacted: { backgroundColor: 'rgba(45, 212, 191, 0.15)', color: '#2DD4BF' },
+  contacted: { backgroundColor: 'rgba(45, 212, 191, 0.15)', color: '#0D9488' },
   responded: { backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#A855F7' },
   converted: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#22C55E' },
   declined: { backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' },
@@ -33,35 +33,33 @@ const STATUS_BADGE_STYLES: Record<string, React.CSSProperties> = {
 
 /* ─── Shared styles ─── */
 const card: React.CSSProperties = {
-  backgroundColor: 'var(--bg-secondary)',
-  border: '1px solid var(--border-color)',
-  borderRadius: '14px',
+  backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)',
   overflow: 'hidden',
 };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
-const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
-const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
+const heading: React.CSSProperties = { color: '#1A2E35', fontWeight: 700 };
+const sub: React.CSSProperties = { color: '#6B7F8A', fontSize: '14px' };
+const muted: React.CSSProperties = { color: '#94A3B8', fontSize: '12px' };
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 14px',
   borderRadius: '10px',
-  backgroundColor: 'var(--bg-tertiary)',
-  border: '1px solid var(--border-color)',
-  color: 'var(--text-primary)',
+  backgroundColor: '#F8FAF9',
+  border: '1px solid rgba(255,255,255,0.5)',
+  color: '#1A2E35',
   fontSize: '14px',
   outline: 'none',
 };
 const btnPrimary: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: '8px',
   padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-  backgroundColor: '#2DD4BF', color: '#0F172A', fontWeight: 700, fontSize: '13px',
+  backgroundColor: '#0D9488', color: '#0F172A', fontWeight: 700, fontSize: '13px',
   transition: 'opacity 0.2s',
 };
 const btnOutline: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: '8px',
   padding: '10px 20px', borderRadius: '10px', cursor: 'pointer',
-  backgroundColor: 'transparent', border: '1px solid var(--border-color)',
-  color: 'var(--text-primary)', fontWeight: 600, fontSize: '13px',
+  backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.5)',
+  color: '#1A2E35', fontWeight: 600, fontSize: '13px',
   transition: 'opacity 0.2s',
 };
 
@@ -183,8 +181,8 @@ export default function OutreachPage() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '80px', paddingRight: '16px', paddingBottom: '32px', paddingLeft: '16px', textAlign: 'center' }}>
         <div
           style={{
-            width: 48, height: 48, border: '3px solid var(--border-color)',
-            borderTop: '3px solid #2DD4BF', borderRadius: '50%',
+            width: 48, height: 48, border: '3px solid #E8ECF0',
+            borderTop: '3px solid #0D9488', borderRadius: '50%',
             margin: '0 auto', animation: 'spin 0.8s linear infinite',
           }}
         />
@@ -204,9 +202,9 @@ export default function OutreachPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4" style={{ marginBottom: '28px' }}>
         {[
-          { label: 'Total Leads', value: stats.total, color: 'var(--text-primary)' },
+          { label: 'Total Leads', value: stats.total, color: '#1A2E35' },
           { label: 'Prospects', value: stats.prospects, color: '#94A3B8' },
-          { label: 'Contacted', value: stats.contacted, color: '#2DD4BF' },
+          { label: 'Contacted', value: stats.contacted, color: '#0D9488' },
           { label: 'Responded', value: stats.responded, color: '#A855F7' },
           { label: 'Converted', value: stats.converted, color: '#22C55E' },
         ].map((s) => (
@@ -299,7 +297,7 @@ export default function OutreachPage() {
               <div
                 key={template}
                 style={{
-                  border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px',
+                  border: '1px solid rgba(255,255,255,0.5)', borderRadius: '10px', padding: '16px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -310,7 +308,7 @@ export default function OutreachPage() {
                     onClick={() => handleCopyTemplate(template)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
-                      fontSize: '13px', color: '#2DD4BF', background: 'none',
+                      fontSize: '13px', color: '#0D9488', background: 'none',
                       border: 'none', cursor: 'pointer',
                     }}
                   >
@@ -339,14 +337,14 @@ export default function OutreachPage() {
                 key={company}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 16px',
+                  border: '1px solid rgba(255,255,255,0.5)', borderRadius: '10px', padding: '12px 16px',
                 }}
               >
-                <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{company}</span>
+                <span style={{ fontWeight: 600, fontSize: '13px', color: '#1A2E35' }}>{company}</span>
                 <button
                   onClick={() => handleAddLead(company)}
                   style={{
-                    fontSize: '13px', color: '#2DD4BF', background: 'none',
+                    fontSize: '13px', color: '#0D9488', background: 'none',
                     border: 'none', cursor: 'pointer', fontWeight: 600,
                   }}
                 >
@@ -361,7 +359,7 @@ export default function OutreachPage() {
       {/* Lead Pipeline - Tabs */}
       <div style={card}>
         {/* Tab Headers */}
-        <div style={{ borderBottom: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <div style={{ borderBottom: '1px solid #E8ECF0', overflowX: 'auto' }}>
           <div style={{ display: 'flex', minWidth: 'max-content' }}>
             {STATUS_OPTIONS.map((status: string) => {
               const count = leads.filter((l: EmployerLead) => l.status === status).length;
@@ -373,8 +371,8 @@ export default function OutreachPage() {
                   style={{
                     padding: '14px 24px', fontSize: '13px', fontWeight: active ? 700 : 500,
                     borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-                    borderBottom: active ? '2px solid #2DD4BF' : '2px solid transparent',
-                    color: active ? '#2DD4BF' : 'var(--text-tertiary)',
+                    borderBottom: active ? '2px solid #0D9488' : '2px solid transparent',
+                    color: active ? '#0D9488' : '#94A3B8',
                     background: 'none', cursor: 'pointer',
                     textTransform: 'capitalize', transition: 'color 0.2s',
                   }}
@@ -398,7 +396,7 @@ export default function OutreachPage() {
                 <div
                   key={lead.id}
                   style={{
-                    border: '1px solid var(--border-color)', borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.5)', borderRadius: '12px',
                     padding: '18px', transition: 'border-color 0.2s',
                   }}
                 >
@@ -437,8 +435,8 @@ export default function OutreachPage() {
                       onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
                       style={{
                         padding: '6px 12px', borderRadius: '8px', fontSize: '13px',
-                        backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)', outline: 'none',
+                        backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)',
+                        color: '#1A2E35', outline: 'none',
                       }}
                     >
                       {STATUS_OPTIONS.map((status: string) => (
@@ -448,7 +446,7 @@ export default function OutreachPage() {
                     <button
                       onClick={() => handleCopyTemplate('initial', lead)}
                       style={{
-                        fontSize: '13px', color: '#2DD4BF', background: 'none',
+                        fontSize: '13px', color: '#0D9488', background: 'none',
                         border: 'none', cursor: 'pointer', fontWeight: 600,
                         padding: '6px 12px',
                       }}

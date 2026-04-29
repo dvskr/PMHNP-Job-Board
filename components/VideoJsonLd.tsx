@@ -35,7 +35,7 @@ export default function VideoJsonLd({ pathname }: VideoJsonLdProps) {
             name: 'PMHNP Hiring',
             logo: {
                 '@type': 'ImageObject',
-                url: `${BASE_URL}/images/pmhnp-hiring-logo.webp`,
+                url: `${BASE_URL}https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pmhnp-hiring-logo.webp`,
             },
         },
     };

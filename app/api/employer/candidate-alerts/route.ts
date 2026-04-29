@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * GET /api/employer/candidate-alerts
@@ -45,6 +46,10 @@ export async function GET() {
  * Body: { specialties?: string[], states?: string[], minExperience?: number, workMode?: string, isActive?: boolean }
  */
 export async function POST(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(req, 'emp-alerts', RATE_LIMITS.employer);
+    if (rateLimitResult) return rateLimitResult;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

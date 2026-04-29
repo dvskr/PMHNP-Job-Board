@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
 import { logger } from '@/lib/logger'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 /**
  * POST /api/auth/welcome
@@ -14,6 +15,10 @@ import { logger } from '@/lib/logger'
  * 2. Profile check: only sends to emails with existing UserProfile
  */
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'auth-welcome', RATE_LIMITS.auth);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await request.json().catch(() => ({}))
     const email = body.email?.toLowerCase?.()?.trim?.()

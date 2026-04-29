@@ -4,19 +4,50 @@ import { config } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import {
+  emailShellV2, headerBlockV2,
+  primaryButtonV2, spacerV2, closeContentV2,
+  unsubscribeFooterV2, bodyTextV2,
+  sectionLabelV2, infoCardV2,
+  V2, SANS as SANS_V2, SERIF as SERIF_V2,
+} from '@/lib/email-templates-v2';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Use env var for email links (falls back to production)
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
 const SITE_URL = BASE_URL; // alias for backward compatibility
+const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
+
+/** Body text block — keeps the iconFile param for API compat but renders text only.
+ *  The heading → text → CTA pattern is cleaner without a sandwiched image. */
+function simpleBlock(_iconFile: string, bodyHtml: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;">
+  <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${bodyHtml}</p>
+</td></tr>`;
+}
+
+/** Step row — icon + title + description (matches v2 step pattern) */
+function stepBlock(iconFile: string, title: string, desc: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/${iconFile}" alt="${title}" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${title}</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">${desc}</p></td></tr></table></td></tr>`;
+}
+
+/** Section heading — matches v2 sectionHead */
+function sectionHeadV2(text: string): string {
+  return `<tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">${text}</p></td></tr>`;
+}
+
+/** Stat card — matches v2 stat */
+function statBlockV2(value: string, label: string): string {
+  return `<td width="33%" style="padding:16px 12px;background:#ffffff;text-align:center;border-radius:12px;border:1px solid #E8ECE9;box-shadow:0 2px 6px rgba(0,0,0,0.04);"><div style="font-family:${SANS_V2};font-size:30px;font-weight:800;color:${V2.teal};letter-spacing:-0.5px;">${value}</div><div style="font-family:${SANS_V2};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;">${label}</div></td>`;
+}
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 // ── Sender addresses — separate transactional from marketing ──
 const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>';
 const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
-const EMAIL_REPLY_TO = 'hello@pmhnphiring.com';
+const EMAIL_REPLY_TO = 'support@pmhnphiring.com';
 
 // Marketing email types — these use the marketing sender address
 const MARKETING_EMAIL_TYPES = new Set([
@@ -119,202 +150,9 @@ interface EmailResult {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DESIGN SYSTEM — Email-safe typography & colors matching pmhnphiring.com
+// V1 DESIGN SYSTEM REMOVED — All emails now use V2 "Warm Diorama"
+// See: lib/email-templates-v2.ts for the active design system
 // ═══════════════════════════════════════════════════════════════════════════════
-//
-// Font: Arial/Helvetica (guaranteed safe in all email clients)
-// Dark palette: #060E18 → #0F1923 → #162231 → #1E293B
-// Primary brand: teal #2DD4BF → #14B8A6 → #0D9488 → #0F766E
-// Text: #F1F5F9 → #E2E8F0 → #CBD5E1 → #94A3B8 → #64748B → #475569
-
-export const F = "Arial, Helvetica, sans-serif";
-
-export const C = {
-  bgBody: '#060E18',
-  bgCard: '#0F1923',
-  bgCardAlt: '#162231',
-  bgElevated: '#1E293B',
-  textPrimary: '#F1F5F9',
-  textSecondary: '#E2E8F0',
-  textTertiary: '#CBD5E1',
-  textMuted: '#94A3B8',
-  textFaded: '#64748B',
-  textDimmed: '#475569',
-  teal: '#2DD4BF',
-  tealDark: '#14B8A6',
-  tealDarker: '#0D9488',
-  tealDeep: '#0F766E',
-  emerald: '#34D399',
-  emeraldDark: '#059669',
-  green: '#10B981',
-  amber: '#F59E0B',
-  amberDark: '#D97706',
-  amberDeep: '#92400E',
-  red: '#EF4444',
-  blue: '#3B82F6',
-  borderLight: '#1E293B',
-  borderMed: '#334155',
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SHELL & SHARED COMPONENTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function emailShell(content: string, footerContent: string = '', preheaderText: string = ''): string {
-  const preheader = preheaderText || 'PMHNP Hiring — The #1 job board for Psychiatric Mental Health Nurse Practitioners';
-  return `<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="color-scheme" content="dark">
-  <meta name="supported-color-schemes" content="dark">
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; word-spacing: normal; }
-    table { border-collapse: collapse; border-spacing: 0; }
-    td { padding: 0; }
-    img { border: 0; display: block; max-width: 100%; }
-    
-    @media only screen and (max-width: 620px) {
-      .container { width: 100% !important; padding: 0 12px !important; }
-      .content-pad { padding-left: 20px !important; padding-right: 20px !important; }
-      .header-pad { padding: 28px 20px !important; }
-      .btn-full { display: block !important; width: 100% !important; text-align: center !important; }
-      .stack { display: block !important; width: 100% !important; }
-      .stack td { display: block !important; width: 100% !important; padding-right: 0 !important; padding-bottom: 10px !important; }
-      .hide-mobile { display: none !important; }
-      .stat-cell { display: block !important; width: 100% !important; border-radius: 12px !important; margin-bottom: 8px !important; border: 1px solid ${C.borderLight} !important; }
-      .feature-cell { display: block !important; width: 100% !important; padding-bottom: 16px !important; }
-    }
-    
-    :root { color-scheme: dark; }
-    [data-ogsc] .dark-bg { background-color: ${C.bgBody} !important; }
-    a:hover { opacity: 0.9; }
-  </style>
-</head>
-<body style="margin: 0; padding: 0; background-color: ${C.bgBody}; font-family: ${F}; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgBody};" class="dark-bg">
-    <tr>
-      <td align="center" style="padding: 40px 16px 32px;">
-        <!-- Preheader -->
-        <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: ${C.bgBody};">
-          ${preheader} &nbsp; &zwnj; &nbsp; &zwnj; &nbsp; &zwnj; &nbsp; &zwnj;
-        </div>
-
-        <!-- Main Container -->
-        <table role="presentation" class="container" width="580" cellspacing="0" cellpadding="0" style="max-width: 580px; width: 100%; background-color: ${C.bgCard}; border-radius: 16px; overflow: hidden; border: 1px solid ${C.borderLight};">
-          ${content}
-        </table>
-
-        <!-- Footer -->
-        <table role="presentation" class="container" width="580" cellspacing="0" cellpadding="0" style="max-width: 580px; width: 100%;">
-          <tr>
-            <td style="padding: 28px 20px 8px; text-align: center;">
-              <!-- Social links -->
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 16px;">
-                <tr>
-                  <td style="padding: 0 8px;"><a href="https://x.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">𝕏</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.facebook.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">Facebook</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.linkedin.com/company/pmhnpjobs" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">LinkedIn</a></td>
-                  <td style="padding: 0 8px;"><a href="https://www.instagram.com/pmhnphiring" style="color: ${C.textDimmed}; font-family: ${F}; font-size: 12px; text-decoration: none;">Instagram</a></td>
-                </tr>
-              </table>
-              <p style="margin: 0 0 6px; font-family: ${F}; font-size: 12px; color: ${C.textFaded};">
-                10,000+ Jobs · 3,000+ Companies · 50 States
-              </p>
-              ${footerContent}
-              <p style="margin: 12px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-                &copy; ${new Date().getFullYear()} PMHNP Hiring · <a href="${BASE_URL}" style="color: ${C.textDimmed}; text-decoration: none;">pmhnphiring.com</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
-// ─── Header: logo + title in one block ──────────────────────────────────────
-
-export function headerBlock(title: string, subtitle: string = ''): string {
-  return `
-          <tr>
-            <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
-              <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
-                ${title}
-              </h1>
-              ${subtitle ? `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 14px; color: ${C.teal};">${subtitle}</p>` : ''}
-            </td>
-          </tr>`;
-}
-
-function amberHeader(title: string, subtitle: string = ''): string {
-  return `
-          <tr>
-            <td style="padding: 28px 40px 24px; text-align: center; border-bottom: 1px solid ${C.borderLight};">
-              <img src="${BASE_URL}/logo.png" width="80" height="80" alt="PMHNP Hiring" style="display: block; width: 80px; height: 80px; margin: 0 auto 14px;" />
-              <h1 style="margin: 0; font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.textPrimary}; line-height: 1.3;">
-                ${title}
-              </h1>
-              ${subtitle ? `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 14px; color: ${C.amber};">${subtitle}</p>` : ''}
-            </td>
-          </tr>`;
-}
-
-// ─── Buttons ──────────────────────────────────────────────────────────────────
-
-export function primaryButton(text: string, url: string): string {
-  return `<a href="${url}" class="btn-full" style="display: inline-block; background: linear-gradient(135deg, ${C.tealDarker} 0%, ${C.emeraldDark} 100%); color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 10px; font-family: ${F}; font-weight: bold; font-size: 14px; text-align: center;">${text}</a>`;
-}
-
-export function secondaryButton(text: string, url: string): string {
-  return `<a href="${url}" class="btn-full" style="display: inline-block; background: transparent; color: ${C.teal}; text-decoration: none; padding: 11px 24px; border-radius: 10px; font-family: ${F}; font-weight: bold; font-size: 14px; border: 2px solid ${C.borderMed}; text-align: center;">${text}</a>`;
-}
-
-// ─── Cards & Helpers ──────────────────────────────────────────────────────────
-
-export function infoCard(content: string, accentColor: string = C.tealDarker): string {
-  return `
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
-                <tr>
-                  <td style="padding: 20px 24px; background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight};">
-                    ${content}
-                  </td>
-                </tr>
-              </table>`;
-}
-
-function divider(): string {
-  return `
-          <tr>
-            <td style="padding: 0 40px;">
-              <div style="border-top: 1px solid ${C.borderLight}; margin: 0;"></div>
-            </td>
-          </tr>`;
-}
-
-function unsubscribeFooter(unsubscribeToken: string): string {
-  return `
-              <p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-                <a href="${BASE_URL}/email-preferences?token=${unsubscribeToken}" style="color: ${C.textFaded}; text-decoration: none;">Manage preferences</a>
-                &nbsp;·&nbsp;
-                <a href="${BASE_URL}/unsubscribe?token=${unsubscribeToken}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
-              </p>`;
-}
 
 // Get or create an unsubscribe token for any email address
 async function getOrCreateUnsubToken(email: string): Promise<string> {
@@ -332,46 +170,7 @@ async function getOrCreateUnsubToken(email: string): Promise<string> {
   return created.unsubscribeToken;
 }
 
-function badge(text: string, bgColor: string = C.bgElevated, textColor: string = C.textMuted, borderColor: string = C.borderLight): string {
-  return `<span style="display: inline-block; background-color: ${bgColor}; color: ${textColor}; padding: 3px 10px; border-radius: 6px; font-family: ${F}; font-size: 11px; font-weight: bold; border: 1px solid ${borderColor}; line-height: 1.4;">${text}</span>`;
-}
 
-function salaryBadge(text: string): string {
-  return badge(text, '#064E3B', C.emerald, '#065F46');
-}
-
-function sectionLabel(text: string, color: string = C.textMuted): string {
-  return `<p style="margin: 0 0 6px; font-family: ${F}; font-size: 11px; font-weight: bold; color: ${color}; text-transform: uppercase; letter-spacing: 1px;">${text}</p>`;
-}
-
-// ─── Feature icon grid (replaces bullet lists) ───────────────────────────────
-
-function featureRow(icon: string, title: string, desc: string): string {
-  return `<tr>
-    <td style="padding: 10px 0;">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-        <tr>
-          <td width="40" valign="top" style="padding-right: 12px;">
-            <div style="width: 36px; height: 36px; background-color: ${C.bgCardAlt}; border-radius: 50%; text-align: center; line-height: 36px; font-size: 16px; font-weight: bold; color: ${C.teal}; border: 1px solid ${C.borderLight};">${icon}</div>
-          </td>
-          <td valign="top">
-            <p style="margin: 0; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">${title}</p>
-            <p style="margin: 2px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; line-height: 1.5;">${desc}</p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>`;
-}
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function statCard(value: string, label: string): string {
-  return `<td class="stat-cell" width="50%" style="padding: 20px; background-color: ${C.bgCardAlt}; text-align: center; border: 1px solid ${C.borderLight}; border-radius: 12px;">
-    <div style="font-family: ${F}; font-size: 28px; font-weight: bold; color: ${C.teal};">${value}</div>
-    <div style="font-family: ${F}; font-size: 11px; font-weight: bold; color: ${C.textMuted}; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">${label}</div>
-  </td>`;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. WELCOME EMAIL (Job Alert Subscription)
@@ -379,32 +178,18 @@ function statCard(value: string, label: string): string {
 
 export async function sendWelcomeEmail(email: string, unsubscribeToken: string): Promise<EmailResult> {
   try {
-    const html = emailShell(`
-          ${headerBlock('Welcome to PMHNP Hiring!', 'Your job alerts are now active')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                You're all set! We'll send you personalized job matches so you never miss a great opportunity.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('🔍', 'Smart Matching', 'Jobs curated to your location, specialty, and salary preferences')}
-                ${featureRow('💰', 'Salary Intel', 'Real compensation data from 10,000+ listings nationwide')}
-                ${featureRow('⚡', 'First to Know', 'Alerts delivered daily — before positions get filled')}
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Browse Jobs →', `${BASE_URL}/jobs`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Manage Alerts', `${BASE_URL}/job-alerts`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      unsubscribeFooter(unsubscribeToken),
-      'Your PMHNP job alerts are active — personalized matches coming your way!'
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Alerts Are Live', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-alert-subscription.png', 'Your job alerts are now active. We scan thousands of PMHNP positions daily and deliver matches straight to your inbox \u2014 so you never miss the right opportunity.')}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Browse Open Positions', `${BASE_URL}/jobs`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubscribeToken),
+      'Your PMHNP job alerts are active.'
     );
 
     await sendAndLog({
@@ -436,72 +221,54 @@ export async function sendSignupWelcomeEmail(
 ): Promise<EmailResult> {
   try {
     const isEmployer = role === 'employer';
-    const greeting = firstName ? `Welcome, ${firstName}!` : 'Welcome!';
 
-    const employerContent = `
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Your employer account is ready. Start posting jobs and connect with qualified PMHNPs nationwide.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('+', 'Post in Minutes', 'Create and publish job listings with our guided form')}
-                ${featureRow('&gt;', 'Reach PMHNPs', 'Your listing is seen by 10,000+ qualified candidates')}
-                ${featureRow('&#9776;', 'Track Everything', 'View counts, apply clicks, and applicant analytics')}
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Post a Job →', `${SITE_URL}/post-job`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Dashboard', `${SITE_URL}/employer/dashboard`)}
-                  </td>
-                </tr>
-              </table>`;
-
-    const seekerContent = `
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Welcome to the #1 job board built exclusively for Psychiatric Mental Health Nurse Practitioners.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow('&#10003;', 'Browse 10,000+ Jobs', 'Remote, travel, full-time, per diem &mdash; all PMHNP specialties')}
-                ${featureRow('&#9993;', 'Smart Alerts', 'Get notified instantly when matching jobs are posted')}
-                ${featureRow('&#9889;', 'One-Click Apply', 'Save jobs, track applications, and apply fast')}
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Browse Jobs →', `${SITE_URL}/jobs`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Set Up Alerts', `${SITE_URL}/job-alerts`)}
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Salary Guide Section -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 32px; border-top: 1px solid ${C.borderLight};">
-                <tr>
-                  <td style="padding-top: 28px;">
-                    <p style="margin: 0 0 6px; font-family: ${F}; font-size: 13px; font-weight: bold; color: ${C.teal}; text-transform: uppercase; letter-spacing: 1px;">&#9733; FREE BONUS</p>
-                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">2026 PMHNP Salary Guide</p>
-                    <p style="margin: 0 0 16px; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.6;">Salary ranges by state · Remote vs in-person pay · Negotiation tips</p>
-                    ${primaryButton('Download Salary Guide (PDF)', SALARY_GUIDE_URL)}
-                  </td>
-                </tr>
-              </table>`;
-
-    const html = emailShell(`
-          ${headerBlock(greeting, isEmployer ? 'Your employer account is ready' : 'Your PMHNP career starts here')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              ${isEmployer ? employerContent : seekerContent}
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      isEmployer ? 'Your employer account is ready — start posting jobs today!' : `Welcome ${firstName || ''} — browse 10,000+ PMHNP jobs now!`
-    );
+    let html: string;
+    if (isEmployer) {
+      html = emailShellV2(`
+      ${headerBlockV2('Your Employer Account Is Ready', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners \u2014 all from one dashboard.')}
+      ${spacerV2(36)}
+      ${sectionHeadV2('Three steps to your first hire')}
+      ${spacerV2(20)}
+      ${stepBlock('icon-emp-megaphone.png', 'Publish your listing', 'Our guided form takes under five minutes. Add role details, compensation, and requirements.')}
+      ${spacerV2(16)}
+      ${stepBlock('icon-emp-analytics.png', 'Track engagement', 'Monitor views, apply clicks, and applicant quality in real time.')}
+      ${spacerV2(16)}
+      ${stepBlock('icon-emp-handshake.png', 'Connect with candidates', 'Message qualified PMHNPs directly through the platform.')}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Post Your First Job', `${SITE_URL}/post-job`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+        unsubscribeFooterV2('sample'),
+        'Your employer account is ready \u2014 start hiring PMHNPs today.'
+      );
+    } else {
+      html = emailShellV2(`
+            ${headerBlockV2('Welcome to PMHNP Hiring', '')}
+            <tr><td style="padding:0 40px;"><img src="${IMG}/welcome-email-hero.png" alt="" width="520" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;" /></td></tr>
+            ${spacerV2(28)}
+            <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.</p></td></tr>
+            ${spacerV2(36)}
+            <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">Here is how to get started</p></td></tr>
+            ${spacerV2(20)}
+            <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/step-build-profile.png" alt="Build profile" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">Build your profile</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">Take 60 seconds to add your credentials, specialties, and location preferences.</p></td></tr></table></td></tr>
+            ${spacerV2(16)}
+            <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/step-ai-alerts.png" alt="AI alerts" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">Turn on AI alerts</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">Get notified the exact minute a perfectly matched role lands on the board.</p></td></tr></table></td></tr>
+            ${spacerV2(16)}
+            <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/step-connect.png" alt="Connect" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">Connect directly</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">Connect to hiring managers directly, no recruiters involved.</p></td></tr></table></td></tr>
+            ${spacerV2(32)}
+            <tr><td class="content-pad" style="padding:0 40px;text-align:center;">${primaryButtonV2('Explore Your Dashboard', `${BASE_URL}/dashboard`)}</td></tr>
+            ${spacerV2(16)}
+            <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Want the data first? <a href="${BASE_URL}/salary-guide" style="color:${V2.teal};text-decoration:underline;">Download the 2026 Salary Guide</a>.</p></td></tr>
+            ${spacerV2(48)}
+            ${closeContentV2()}`,
+          unsubscribeFooterV2('sample'),
+          `Welcome ${firstName || ''} \u2014 find your perfect PMHNP role.`
+      );
+    }
 
     await sendAndLog({
       from: EMAIL_FROM,
@@ -539,60 +306,20 @@ export async function sendConfirmationEmail(
     const jobSlug = slugify(jobTitle, jobId);
     const dashboardUrl = `${BASE_URL}/employer/dashboard`;
 
-    const html = emailShell(`
-          ${headerBlock('Your Job Post is Live!', 'Now visible to thousands of PMHNPs')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <!-- Job title card with green accent -->
-              ${infoCard(`
-                    ${sectionLabel('Published')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">${jobTitle}</p>
-              `, C.green)}
-
-              <!-- Status timeline -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                <tr>
-                  <td width="33%" style="text-align: center; padding: 12px 4px;">
-                    <div style="width: 32px; height: 32px; background: ${C.tealDarker}; border-radius: 50%; margin: 0 auto 8px; line-height: 32px; font-size: 14px; color: #fff;">✓</div>
-                    <div style="font-family: ${F}; font-size: 11px; font-weight: bold; color: ${C.teal};">Posted</div>
-                  </td>
-                  <td width="33%" style="text-align: center; padding: 12px 4px;">
-                    <div style="width: 32px; height: 32px; background: ${C.tealDarker}; border-radius: 50%; margin: 0 auto 8px; line-height: 32px; font-size: 14px; color: #fff;">✓</div>
-                    <div style="font-family: ${F}; font-size: 11px; font-weight: bold; color: ${C.teal};">Live</div>
-                  </td>
-                  <td width="33%" style="text-align: center; padding: 12px 4px;">
-                    <div style="width: 32px; height: 32px; background: ${C.bgElevated}; border-radius: 50%; margin: 0 auto 8px; line-height: 32px; font-size: 14px; color: ${C.textMuted}; border: 2px dashed ${C.borderMed};">⏳</div>
-                    <div style="font-family: ${F}; font-size: 11px; color: ${C.textMuted};">Receiving Views</div>
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
-                Your listing is active for <strong style="color: ${C.textPrimary};">${config.isPaidPostingEnabled ? '30' : '60'} days</strong>. We'll notify you when it's time to renew.
-              </p>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('View Job →', `${BASE_URL}/jobs/${jobSlug}`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Edit Job', `${BASE_URL}/jobs/edit/${editToken}`)}
-                  </td>
-                </tr>
-              </table>
-
-              ${infoCard(`
-                    <p style="margin: 0 0 8px; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">📊 Your Employer Dashboard</p>
-                    <p style="margin: 0 0 16px; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; line-height: 1.5;">Track views, clicks, and manage all your job postings in one place.</p>
-                    ${primaryButton('Open Dashboard', dashboardUrl)}
-              `, C.blue)}
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      `Your job "${jobTitle}" is now live on PMHNP Hiring!`
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Listing Is Live', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-job-post.png', `Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for ${config.durationDays} days.`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}
+      </td></tr>
+      ${spacerV2(16)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.</p></td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      'Your job posting is now live.'
     );
 
     await sendAndLog({
@@ -624,73 +351,86 @@ export async function sendJobAlertEmail(
 ): Promise<void> {
   const jobCount = jobs.length;
   const displayJobs = jobs.slice(0, 10);
+  const COLORS = ['#4DB6AC', '#E8937A', '#7C8CF5', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4', '#10B981', '#F97316', '#6366F1'];
 
-  const jobListHtml = displayJobs.map((job, index) => {
-    const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`;
-    const isLast = index === displayJobs.length - 1;
-    const salaryText = job.minSalary ? `$${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? ` – $${(job.maxSalary / 1000).toFixed(0)}k` : '+'}` : '';
+  const v2Badge = (text: string, bg: string, fg: string, border: string) =>
+    `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};border:1px solid ${border};">${escapeHtml(text)}</span>`;
+
+  const jobCardsHtml = displayJobs.map((job, index) => {
+    const jobUrl = `${BASE_URL}/jobs/${job.slug || slugify(job.title, job.id)}`;
+    const salaryText = job.minSalary ? `$${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? `\u2013$${(job.maxSalary / 1000).toFixed(0)}k` : '+'}` : '';
+    const color = COLORS[index % COLORS.length];
+    const initial = escapeHtml(job.employer.charAt(0).toUpperCase());
+    const badges: string[] = [];
+    if (job.mode) badges.push(v2Badge(job.mode, job.mode === 'Remote' ? '#ECFDF5' : '#F3F6F4', job.mode === 'Remote' ? '#065F46' : '#374151', job.mode === 'Remote' ? '#A7F3D0' : '#E0E5E1'));
+    if (job.jobType) badges.push(v2Badge(job.jobType, '#F3F6F4', '#374151', '#E0E5E1'));
 
     return `
-      <tr>
-        <td style="padding: 16px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
-          <a href="${jobUrl}" style="color: ${C.teal}; text-decoration: none; font-family: ${F}; font-size: 15px; font-weight: bold; line-height: 1.4;">
-            ${job.title}
-          </a>
-          <p style="margin: 4px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
-            ${job.employer} · ${job.location}${job.mode ? ` · ${job.mode}` : ''}
-          </p>
-          ${salaryText ? `<p style="margin: 8px 0 0;">${salaryBadge(salaryText)}</p>` : ''}
-        </td>
-      </tr>`;
+        <tr><td style="padding:0 40px ${index < displayJobs.length - 1 ? '16px' : '0'};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <tr><td style="height:4px;background:${color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+            <tr><td style="padding:24px 24px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+                <td width="48" valign="top" style="padding-right:16px;">
+                  <div style="width:48px;height:48px;border-radius:12px;background:${color};color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">${initial}</div>
+                </td>
+                <td valign="top" style="width:100%;">
+                  <a href="${jobUrl}" style="font-family:${SERIF_V2};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">${escapeHtml(job.title)}</a>
+                  <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:13px;font-weight:500;color:${V2.textMuted};">${escapeHtml(job.employer)} &middot; ${escapeHtml(job.location)}</p>
+                </td>
+                ${salaryText ? `<td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
+                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS_V2};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;">${salaryText}</span>
+                </td>` : ''}
+              </tr></table>
+              ${badges.length > 0 ? `<div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
+              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                ${badges.map((b, i) => `<td${i < badges.length - 1 ? ' style="padding-right:6px;"' : ''}>${b}</td>`).join('')}
+              </tr></table>` : ''}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
+                <td align="right" valign="middle">
+                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+                    <td style="padding-right:8px;">
+                      <a href="${jobUrl}" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
+                    </td>
+                    <td>
+                      <a href="${jobUrl}" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
+                    </td>
+                  </tr></table>
+                </td>
+              </tr></table>
+            </td></tr>
+          </table>
+        </td></tr>`;
   }).join('');
 
-  const html = emailShell(`
-          ${headerBlock(`${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`)}
-          <tr>
-            <td class="content-pad" style="padding: 24px 40px 8px;">
-              <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.6;">
-                New positions matching your criteria:
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td class="content-pad" style="padding: 12px 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden;">
-                ${jobListHtml}
-              </table>
-            </td>
-          </tr>
-          ${jobCount > 10 ? `
-          <tr>
-            <td class="content-pad" style="padding: 8px 40px 0;">
-              <p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted}; text-align: center;">
-                + ${jobCount - 10} more matching jobs
-              </p>
-            </td>
-          </tr>` : ''}
-          <tr>
-            <td class="content-pad" style="padding: 24px 40px;">
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                <tr>
-                  <td>
-                    ${primaryButton('View All Matching Jobs →', `${BASE_URL}/jobs`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-    `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-      <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color: ${C.textFaded}; text-decoration: none;">Manage alert</a>
-      &nbsp;·&nbsp;
-      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color: ${C.textFaded}; text-decoration: none;">Delete alert</a>
+  const html = emailShellV2(`
+      ${headerBlockV2(`${jobCount} New Job${jobCount > 1 ? 's' : ''} Match Your Alert`, '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`We found <strong>${jobCount} new position${jobCount > 1 ? 's' : ''}</strong> matching your preferences. Apply early for the best response rates.`)}
+      ${spacerV2(20)}
+      ${jobCardsHtml}
+      ${jobCount > 10 ? `${spacerV2(12)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        <p style="margin:0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">+ ${jobCount - 10} more matching jobs</p>
+      </td></tr>` : ''}
+      ${spacerV2(28)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View All Matching Jobs \u2192', `${BASE_URL}/jobs`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+    `<p style="margin:0 0 4px;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">
+      <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Manage alert</a>
+      &nbsp;&middot;&nbsp;
+      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Delete alert</a>
     </p>`,
-    `${jobCount} new PMHNP jobs matching your alert — view them before they're filled!`
+    `${jobCount} new PMHNP jobs matching your alert \u2014 view them before they're filled!`
   );
 
   await sendAndLog({
     from: EMAIL_FROM,
     to: email,
-    subject: `🔔 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
+    subject: `\uD83D\uDD14 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
     html,
   }, 'job_alert', { jobCount }, `${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}`);
 }
@@ -714,31 +454,18 @@ export async function sendRenewalConfirmationEmail(
       day: 'numeric'
     });
 
-    const html = emailShell(`
-          ${headerBlock('Job Renewed Successfully!', 'Your listing is back at the top')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              ${infoCard(`
-                    ${sectionLabel('Renewed')}
-                    <p style="margin: 0 0 10px; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">${jobTitle}</p>
-                    <p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.emerald};">
-                      <strong>Active until:</strong> ${expiryStr}
-                    </p>
-              `, C.green)}
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
-                Your listing has been boosted back to the top of search results and will continue receiving views and applicants.
-              </p>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td>
-                    ${primaryButton('View Dashboard →', `${BASE_URL}/employer/dashboard`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      unsubscribeFooter(unsubscribeToken),
-      `Your job "${jobTitle}" has been renewed and is live again!`
+    const html = emailShellV2(`
+      ${headerBlockV2('Listing Renewed Successfully', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-renewal.png', `Your posting for <strong>${escapeHtml(jobTitle)}</strong> has been renewed and will remain active until ${expiryStr}.`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View Your Dashboard', `${BASE_URL}/employer/dashboard`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubscribeToken),
+      'Your job listing has been renewed.'
     );
 
     await sendAndLog({
@@ -784,50 +511,29 @@ export async function sendExpiryWarningEmail(
       day: 'numeric'
     });
 
-    const html = emailShell(`
-          ${amberHeader(
-      `Job Expiring in ${daysUntilExpiry} Day${daysUntilExpiry !== 1 ? 's' : ''}`,
-      'Renew now to keep receiving applicants'
-    )}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              ${infoCard(`
-                    ${sectionLabel('Expires ' + expiryDateStr, '#FBBF24')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 18px; font-weight: bold; color: ${C.textPrimary};">${jobTitle}</p>
-              `, C.amber)}
-
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${config.isPaidPostingEnabled
-        ? 'Renew now to keep it active and continue receiving applicants.'
-        : 'Renew now to keep it active — <strong style="color: ' + C.emerald + ';">FREE during our launch period!</strong>'}
-              </p>
-
-              <!-- Performance Stats -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                <tr>
-                  ${statCard(viewCount.toLocaleString(), 'Views')}
-                  <td width="8"></td>
-                  ${statCard(applyClickCount.toLocaleString(), 'Apply Clicks')}
-                </tr>
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Renew Now →', `${BASE_URL}/employer/dashboard`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Edit Job', `${BASE_URL}/jobs/edit/${editToken}`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `${unsubscribeToken ? unsubscribeFooter(unsubscribeToken) : ''}
-      <p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      `Your job "${jobTitle}" expires in ${daysUntilExpiry} days — renew now to keep receiving applicants!`
+    const html = emailShellV2(`
+      ${headerBlockV2(`Your Listing Expires in ${daysUntilExpiry} Days`, '')}
+      ${spacerV2(12)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+          <td width="22%" valign="top" style="padding-right:16px;">
+            <img src="${IMG}/hero-expiry-warning.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
+          </td>
+          <td width="78%" valign="top">
+            <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">Your posting for <strong>${escapeHtml(jobTitle)}</strong> will expire on ${expiryDateStr}. Renew now to maintain visibility and continue receiving applications.</p>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(viewCount.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(applyClickCount.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2('—', 'Saved')}</tr></table></td></tr>
+      ${spacerV2(28)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Renew Your Listing', `${BASE_URL}/employer/dashboard`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubscribeToken || 'sample'),
+      `Your listing expires in ${daysUntilExpiry} days — renew now.`
     );
 
     await sendAndLog({
@@ -859,38 +565,18 @@ export async function sendDraftSavedEmail(
   try {
     const resumeUrl = `${BASE_URL}/post-job?resume=${resumeToken}`;
 
-    const html = emailShell(`
-          ${headerBlock('Your Draft is Saved', 'Continue where you left off')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Your job posting draft has been saved. Pick up right where you left off — your progress won't be lost.
-              </p>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 0 24px;">
-                <tr>
-                  <td>
-                    ${primaryButton('Continue Posting →', resumeUrl)}
-                  </td>
-                </tr>
-              </table>
-
-              ${infoCard(`
-                    <p style="margin: 0 0 6px; font-family: ${F}; font-size: 12px; color: ${C.textMuted};">Or copy this link:</p>
-                    <p style="margin: 0; font-family: ${F}; font-size: 12px; word-break: break-all;">
-                      <a href="${resumeUrl}" style="color: ${C.teal}; text-decoration: none;">${resumeUrl}</a>
-                    </p>
-              `, C.textFaded)}
-
-              <p style="margin: 0; font-family: ${F}; font-size: 12px; color: ${C.textMuted}; font-style: italic;">
-                This link expires in 30 days.
-              </p>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      'Your job posting draft has been saved — continue anytime!'
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Draft Is Saved', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-draft-saved.png', 'We saved your progress. Your draft is ready whenever you are \u2014 pick up right where you left off. This link expires in 30 days.')}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Continue Your Posting', resumeUrl)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      'Your job posting draft has been saved.'
     );
 
     await sendAndLog({
@@ -916,41 +602,37 @@ export async function sendDraftSavedEmail(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function buildContactConfirmationHtml(name: string, subject: string): string {
-  return emailShell(`
-          ${headerBlock('Message Received!', "We'll get back to you soon")}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Hi ${name}, thanks for reaching out! We've received your message and will respond within <strong style="color: ${C.textPrimary};">24–48 hours</strong>.
-              </p>
-
-              ${infoCard(`
-                    ${sectionLabel('Your message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">"${subject}"</p>
-              `, C.tealDarker)}
-
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
-                In the meantime, you might find these helpful:
-              </p>
-
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Browse Jobs', `${BASE_URL}/jobs`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('FAQ', `${BASE_URL}/faq`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-    `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-      <a href="mailto:support@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">support@pmhnphiring.com</a>
-      &nbsp;·&nbsp;
-      <a href="${BASE_URL}" style="color: ${C.textFaded}; text-decoration: none;">pmhnphiring.com</a>
-    </p>`,
-    `Thanks for contacting PMHNP Hiring — we'll respond within 24–48 hours!`
+  return emailShellV2(`
+    ${headerBlockV2('We Received Your Message', '')}
+    ${spacerV2(12)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+      <div style="display:inline-block;padding:10px 24px;border-radius:30px;background:#ECFDF5;border:1px solid #A7F3D0;">
+        <span style="font-family:${SANS_V2};font-size:14px;font-weight:600;color:#065F46;">&#10003; Message received</span>
+      </div>
+    </td></tr>
+    ${spacerV2(24)}
+    ${bodyTextV2(`Thank you for reaching out, ${escapeHtml(name)}. Our team will review your inquiry and respond within <strong>one business day</strong>.`)}
+    ${spacerV2(20)}
+    <tr><td style="padding:0 40px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+        <tr><td style="padding:16px 20px;border-bottom:1px solid #F0F3F1;">
+          <p style="margin:0 0 2px;font-family:${SANS_V2};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Your Subject</p>
+          <p style="margin:0;font-family:${SERIF_V2};font-size:16px;font-weight:600;color:${V2.textHeading};">${escapeHtml(subject)}</p>
+        </td></tr>
+        <tr><td style="padding:16px 20px;">
+          <p style="margin:0 0 2px;font-family:${SANS_V2};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Expected Response</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">Within 24 hours &middot; Mon&ndash;Fri 9AM&ndash;5PM CT</p>
+        </td></tr>
+      </table>
+    </td></tr>
+    ${spacerV2(28)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+      ${primaryButtonV2('Browse Jobs While You Wait', `${BASE_URL}/jobs`)}
+    </td></tr>
+    ${spacerV2(48)}
+    ${closeContentV2()}`,
+    unsubscribeFooterV2('sample'),
+    'We received your message.'
   );
 }
 
@@ -963,47 +645,48 @@ export function buildContactNotificationHtml(name: string, email: string, subjec
   const safeEmail = escapeHtml(email);
   const safeSubject = escapeHtml(subject);
   const safeMessage = escapeHtml(message);
-  return emailShell(`
-          ${headerBlock('New Contact Form Submission', 'pmhnphiring.com')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-radius: 12px 12px 0 0; border-bottom: 1px solid ${C.borderLight};">
-                    ${sectionLabel('From')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textPrimary};">${safeName}</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-bottom: 1px solid ${C.borderLight};">
-                    ${sectionLabel('Email')}
-                    <p style="margin: 0;"><a href="mailto:${safeEmail}" style="font-family: ${F}; font-size: 15px; color: ${C.teal}; text-decoration: none;">${safeEmail}</a></p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-bottom: 1px solid ${C.borderLight};">
-                    ${sectionLabel('Subject')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; color: ${C.textPrimary};">${safeSubject}</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 16px; background-color: ${C.bgCardAlt}; border-radius: 0 0 12px 12px;">
-                    ${sectionLabel('Message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${safeMessage}</p>
-                  </td>
-                </tr>
-              </table>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td>
-                    ${primaryButton('Reply to ' + safeName, `mailto:${safeEmail}`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-    '',
-    `New contact form submission from ${safeName} — "${safeSubject}"`
+  const field = (label: string, value: string, isLast = false) =>
+    `<tr><td style="padding:14px 20px;${isLast ? '' : 'border-bottom:1px solid #F0F3F1;'}">
+      <p style="margin:0 0 3px;font-family:${SANS_V2};font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">${label}</p>
+      <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.5;">${value}</p>
+    </td></tr>`;
+  return emailShellV2(`
+    ${headerBlockV2('New Contact Submission', '')}
+    ${spacerV2(12)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+      <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+        <td style="padding-right:10px;">
+          <span style="display:inline-block;padding:6px 14px;border-radius:20px;background:#FEF3C7;border:1px solid #FDE68A;font-family:${SANS_V2};font-size:11px;font-weight:700;color:#92400E;">● New Lead</span>
+        </td>
+        <td>
+          <span style="font-family:${SANS_V2};font-size:12px;color:#9CA3AF;">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </td>
+      </tr></table>
+    </td></tr>
+    ${spacerV2(20)}
+    <tr><td style="padding:0 40px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+        ${field('From', `<strong style="color:${V2.textHeading};">${safeName}</strong>`)}
+        ${field('Email', `<a href="mailto:${safeEmail}" style="color:${V2.teal};text-decoration:none;">${safeEmail}</a>`)}
+        ${field('Subject', `<strong style="color:${V2.textHeading};">${safeSubject}</strong>`)}
+        ${field('Message', safeMessage, true)}
+      </table>
+    </td></tr>
+    ${spacerV2(24)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+      <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+        <td style="padding-right:10px;">
+          ${primaryButtonV2('Reply to Sender', `mailto:${safeEmail}`)}
+        </td>
+        <td>
+          <a href="${BASE_URL}/admin" style="display:inline-block;padding:10px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View in Admin</a>
+        </td>
+      </tr></table>
+    </td></tr>
+    ${spacerV2(48)}
+    ${closeContentV2()}`,
+    unsubscribeFooterV2('sample'),
+    `New contact form submission from ${safeName}.`
   );
 }
 
@@ -1012,72 +695,23 @@ export function buildContactNotificationHtml(name: string, email: string, subjec
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function buildSalaryGuideHtml(pdfUrl: string, unsubscribeToken: string): string {
-  const currentYear = new Date().getFullYear();
-  return emailShell(`
-          ${headerBlock(`${currentYear} PMHNP Salary Guide`, 'Know Your Worth. Negotiate With Confidence.')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Your comprehensive salary guide is ready! Click below to download.
-              </p>
-
-              <!-- Download CTA -->
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 28px;">
-                <tr>
-                  <td>
-                    ${primaryButton('Download PDF Guide →', pdfUrl)}
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Stats Bar -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                <tr>
-                  <td width="33%" style="padding: 16px 4px; text-align: center; background-color: ${C.bgCardAlt}; border-radius: 12px 0 0 12px; border: 1px solid ${C.borderLight}; border-right: none;">
-                    <div style="font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.teal};">$155k+</div>
-                    <div style="font-family: ${F}; font-size: 10px; color: ${C.textMuted}; margin-top: 2px;">National Avg</div>
-                  </td>
-                  <td width="34%" style="padding: 16px 4px; text-align: center; background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-left: none; border-right: none;">
-                    <div style="font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.teal};">$210k+</div>
-                    <div style="font-family: ${F}; font-size: 10px; color: ${C.textMuted}; margin-top: 2px;">Top 10%</div>
-                  </td>
-                  <td width="33%" style="padding: 16px 4px; text-align: center; background-color: ${C.bgCardAlt}; border-radius: 0 12px 12px 0; border: 1px solid ${C.borderLight}; border-left: none;">
-                    <div style="font-family: ${F}; font-size: 22px; font-weight: bold; color: ${C.teal};">+45%</div>
-                    <div style="font-family: ${F}; font-size: 10px; color: ${C.textMuted}; margin-top: 2px;">Job Growth</div>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- What's Inside -->
-              ${infoCard(`
-                    ${sectionLabel("What's inside")}
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr><td style="padding: 3px 0; font-family: ${F}; font-size: 13px; color: ${C.textSecondary}; line-height: 1.6;"><span style="color: ${C.teal}; margin-right: 6px;">✦</span> Salary by state with COL adjustments</td></tr>
-                      <tr><td style="padding: 3px 0; font-family: ${F}; font-size: 13px; color: ${C.textSecondary}; line-height: 1.6;"><span style="color: ${C.teal}; margin-right: 6px;">✦</span> Telehealth vs in-person pay comparison</td></tr>
-                      <tr><td style="padding: 3px 0; font-family: ${F}; font-size: 13px; color: ${C.textSecondary}; line-height: 1.6;"><span style="color: ${C.teal}; margin-right: 6px;">✦</span> Specialty premiums (+15-25%)</td></tr>
-                      <tr><td style="padding: 3px 0; font-family: ${F}; font-size: 13px; color: ${C.textSecondary}; line-height: 1.6;"><span style="color: ${C.teal}; margin-right: 6px;">✦</span> Negotiation scripts that work</td></tr>
-                    </table>
-              `, C.tealDarker)}
-
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 14px; color: ${C.textMuted};">
-                Ready to find your next high-paying position?
-              </p>
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr class="stack">
-                  <td style="padding-right: 12px;">
-                    ${primaryButton('Browse Jobs', `${BASE_URL}/jobs`)}
-                  </td>
-                  <td>
-                    ${secondaryButton('Set Up Alerts', `${BASE_URL}/job-alerts`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-    unsubscribeFooter(unsubscribeToken),
-    `Your ${currentYear} PMHNP Salary Guide is ready — download now!`
+  return emailShellV2(`
+    ${headerBlockV2('Your 2026 Salary Guide', '')}
+    ${spacerV2(12)}
+    ${simpleBlock('hero-salary-guide.png', 'Your comprehensive PMHNP compensation report is ready. It includes salary ranges across all 50 states, remote versus in-person pay differentials, and negotiation strategies.')}
+    ${spacerV2(32)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+      ${primaryButtonV2('Download Salary Guide (PDF)', pdfUrl)}
+    </td></tr>
+    ${spacerV2(16)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Looking for opportunities? <a href="${BASE_URL}/jobs" style="color:${V2.teal};text-decoration:underline;">Browse open positions</a>.</p></td></tr>
+    ${spacerV2(48)}
+    ${closeContentV2()}`,
+    unsubscribeFooterV2(unsubscribeToken),
+    'Your 2026 PMHNP Salary Guide is ready.'
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 11. EMPLOYER MESSAGE NOTIFICATION
@@ -1097,39 +731,49 @@ export async function sendEmployerMessageNotification(
     const fromLine = senderCompany ? `${escapeHtml(senderName)} from ${escapeHtml(senderCompany)}` : escapeHtml(senderName);
     const preview = messageBody.length > 200 ? escapeHtml(messageBody.substring(0, 200)) + '…' : escapeHtml(messageBody);
 
-    const html = emailShell(`
-          ${headerBlock('New Message from an Employer', fromLine)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} you have a new message about a potential opportunity.
-              </p>
+    const initial = escapeHtml(senderName.charAt(0).toUpperCase());
 
-              ${jobTitle ? infoCard(`
-                    ${sectionLabel('Regarding')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${jobTitle}</p>
-              `, C.tealDarker) : ''}
-
-              ${infoCard(`
-                    ${sectionLabel('Subject')}
-                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${subject}</p>
-                    ${sectionLabel('Message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${preview}</p>
-              `, C.tealDarker)}
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 24px 0 0;">
-                <tr>
-                  <td>
-                    ${primaryButton('View Full Message →', `${BASE_URL}/messages`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      `${fromLine} sent you a message${jobTitle ? ` about "${jobTitle}"` : ''} — view it now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Message Received', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`${greeting} a candidate has reached out about a potential opportunity. Respond within 24 hours for the best results.`)}
+      ${spacerV2(20)}
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="44" valign="top" style="padding-right:14px;">
+                <div style="width:44px;height:44px;border-radius:50%;background:#7C8CF5;color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">${initial}</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${fromLine}</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;${jobTitle ? 'border-bottom:1px solid #F0F3F1;' : ''}">
+            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.6;"><em>&ldquo;${preview}&rdquo;</em></p>
+          </td></tr>
+          ${jobTitle ? `<tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Regarding</p>
+            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)}</p>
+          </td></tr>` : ''}
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            ${primaryButtonV2('Reply Now', `${BASE_URL}/messages`)}
+          </td>
+          <td>
+            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:12px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Profile</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `${fromLine} sent you a message${jobTitle ? ` about "${escapeHtml(jobTitle)}"` : ''} \u2014 view it now!`
     );
 
     await sendAndLog({
@@ -1166,39 +810,49 @@ export async function sendCandidateInquiryNotification(
     const greeting = recipientFirstName ? `Hi ${escapeHtml(recipientFirstName)},` : 'Hi there,';
     const preview = messageBody.length > 200 ? escapeHtml(messageBody.substring(0, 200)) + '…' : escapeHtml(messageBody);
 
-    const html = emailShell(`
-          ${headerBlock('New Inquiry from a Candidate', escapeHtml(candidateName))}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} a candidate has reached out about your job posting.
-              </p>
+    const initial = escapeHtml(candidateName.charAt(0).toUpperCase());
 
-              ${jobTitle ? infoCard(`
-                    ${sectionLabel('Regarding Your Posting')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${escapeHtml(jobTitle)}</p>
-              `, C.tealDarker) : ''}
-
-              ${infoCard(`
-                    ${sectionLabel('Subject')}
-                    <p style="margin: 0 0 12px; font-family: ${F}; font-size: 15px; font-weight: bold; color: ${C.textPrimary};">${escapeHtml(subject)}</p>
-                    ${sectionLabel('Message')}
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textSecondary}; line-height: 1.7; white-space: pre-wrap;">${preview}</p>
-              `, C.tealDarker)}
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 24px 0 0;">
-                <tr>
-                  <td>
-                    ${primaryButton('View & Reply →', `${BASE_URL}/messages`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      `${escapeHtml(candidateName)} has a question about your "${jobTitle || 'job'}" posting — reply now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Inquiry from a Candidate', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`${greeting} a candidate has reached out about your job posting. Review their message and respond at your convenience.`)}
+      ${spacerV2(20)}
+      <tr><td style="padding:0 40px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="padding:20px 24px;border-bottom:1px solid #F0F3F1;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="44" valign="top" style="padding-right:14px;">
+                <div style="width:44px;height:44px;border-radius:12px;background:#E8937A;color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:44px;">${initial}</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <p style="margin:0;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${escapeHtml(candidateName)}</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:16px 24px;${jobTitle ? 'border-bottom:1px solid #F0F3F1;' : ''}">
+            <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textBody};line-height:1.6;"><em>&ldquo;${preview}&rdquo;</em></p>
+          </td></tr>
+          ${jobTitle ? `<tr><td style="padding:14px 24px;background:#FAFBFA;">
+            <p style="margin:0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Regarding</p>
+            <p style="margin:3px 0 0;font-family:${SERIF_V2};font-size:14px;font-weight:600;color:${V2.textHeading};">${escapeHtml(jobTitle)}</p>
+          </td></tr>` : ''}
+        </table>
+      </td></tr>
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0"><tr>
+          <td style="padding-right:10px;">
+            ${primaryButtonV2('View & Reply', `${BASE_URL}/employer/messages`)}
+          </td>
+          <td>
+            <a href="${BASE_URL}/employer/dashboard" style="display:inline-block;padding:12px 24px;border-radius:10px;font-family:${SANS_V2};font-size:14px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Listing</a>
+          </td>
+        </tr></table>
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `${escapeHtml(candidateName)} has a question about your "${escapeHtml(jobTitle || 'job')}" posting \u2014 reply now!`
     );
 
     await sendAndLog({
@@ -1238,41 +892,19 @@ export async function sendNewCandidateAlertEmail(
   candidates: CandidateDigest[]
 ): Promise<EmailResult> {
   try {
-    const candidateRows = candidates.slice(0, 10).map(c => `
-      <tr>
-        <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight};">
-            <div style="font-family: ${F};">
-            <div style="font-size: 15px; font-weight: 600; color: ${C.textPrimary}; margin-bottom: 4px;">
-              ${escapeHtml(c.name)}
-            </div>
-            ${c.headline ? `<div style="font-size: 13px; color: ${C.textMuted}; margin-bottom: 6px;">${escapeHtml(c.headline)}</div>` : ''}
-            <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-              ${c.specialties.slice(0, 3).map(s => `<td style="padding-right: 4px;">${badge(escapeHtml(s), 'rgba(139,92,246,0.15)', '#A78BFA', 'rgba(139,92,246,0.3)')}</td>`).join('')}
-              ${c.states.slice(0, 3).map(s => `<td style="padding-right: 4px;">${badge(escapeHtml(s))}</td>`).join('')}
-              ${c.experience !== null ? `<td>${badge(`${c.experience}+ yrs`, 'rgba(45,212,191,0.15)', '#2DD4BF', 'rgba(45,212,191,0.3)')}</td>` : ''}
-            </tr></table>
-          </div>
-        </td>
-        <td style="padding: 14px 16px; border-bottom: 1px solid ${C.borderLight}; vertical-align: middle;">
-          ${primaryButton('View →', c.profileUrl)}
-        </td>
-      </tr>
-    `).join('');
 
-    const html = emailShell(
-      `${amberHeader('🔔 New Matching Candidates', `${candidates.length} new candidate${candidates.length !== 1 ? 's' : ''} match your criteria`)}
-       ${infoCard(`
-         <table width="100%" style="border-collapse: collapse;">
-           ${candidateRows}
-         </table>
-       `)}
-       <div style="text-align: center; margin: 24px 0;">
-         ${primaryButton('View All Candidates', `${SITE_URL}/employer/candidates`)}
-       </div>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-         To stop these alerts, update your preferences in <a href="${SITE_URL}/employer/settings" style="color: ${C.textFaded}; text-decoration: none;">Employer Settings</a>.
-       </p>`,
-      `${candidates.length} new PMHNP candidates match your criteria — view them now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Candidate Match', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-new-candidate.png', `A new candidate matching your hiring criteria has joined the platform. They specialize in psychiatric mental health nursing and are open to new positions.`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View Candidate Profile', `${SITE_URL}/employer/candidates`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `A new candidate matching your criteria just joined.`
     );
 
     await sendAndLog({
@@ -1298,27 +930,17 @@ export async function sendNewCandidateAlertEmail(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function buildBroadcastHtml(body: string, preheaderText: string = '', unsubscribeToken?: string): string {
-  return emailShell(`
-          ${headerBlock('PMHNP Hiring', 'A message from the team')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <div style="font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.8;">
-                ${body}
-              </div>
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 28px 0 0;">
-                <tr>
-                  <td>
-                    ${primaryButton('Visit PMHNP Hiring →', `${BASE_URL}`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-    `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${unsubscribeToken ? `${BASE_URL}/unsubscribe?token=${unsubscribeToken}` : `${BASE_URL}/unsubscribe`}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
-        &nbsp;·&nbsp;
-        <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">Contact us</a>
-      </p>`,
+  return emailShellV2(`
+    ${headerBlockV2('PMHNP Hiring', '')}
+    ${spacerV2(12)}
+    ${bodyTextV2(body)}
+    ${spacerV2(32)}
+    <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+      ${primaryButtonV2('Visit PMHNP Hiring', `${BASE_URL}`)}
+    </td></tr>
+    ${spacerV2(48)}
+    ${closeContentV2()}`,
+    unsubscribeFooterV2(unsubscribeToken || 'sample'),
     preheaderText || 'A message from PMHNP Hiring'
   );
 }
@@ -1372,40 +994,20 @@ export async function sendNewApplicationEmail(params: NewApplicationEmailParams)
 
   try {
     const greeting = employerName ? `Hi ${employerName.split(' ')[0]},` : 'Hi there,';
+    const initial = candidateName.charAt(0).toUpperCase();
 
-    const html = emailShell(`
-          ${headerBlock('New Application Received!', jobTitle)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} a candidate has applied for your job posting on PMHNP Hiring.
-              </p>
-
-              ${infoCard(`
-                    ${sectionLabel('Candidate')}
-                    <p style="margin: 0 0 4px; font-family: ${F}; font-size: 17px; font-weight: bold; color: ${C.textPrimary};">${candidateName}</p>
-                    ${candidateHeadline ? `<p style="margin: 0 0 4px; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateHeadline}</p>` : ''}
-                    ${candidateExperience ? `<p style="margin: 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">${candidateExperience}+ years experience</p>` : ''}
-              `, C.tealDarker)}
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                ${featureRow(hasResume ? '✅' : '❌', 'Resume', hasResume ? 'Resume attached' : 'No resume submitted')}
-                ${featureRow(hasCoverLetter ? '✅' : '—', 'Cover Letter', hasCoverLetter ? 'Cover letter included' : 'No cover letter')}
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td>
-                    ${primaryButton('View Applicant →', `${BASE_URL}/employer/dashboard`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        Questions? Reply to this email or contact <a href="mailto:hello@pmhnphiring.com" style="color: ${C.textFaded}; text-decoration: none;">hello@pmhnphiring.com</a>
-      </p>`,
-      `${candidateName} applied for "${jobTitle}" — view their application now!`
+    const html = emailShellV2(`
+      ${headerBlockV2('New Application Received', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-new-application.png', `A new application has been submitted for <strong>${escapeHtml(jobTitle)}</strong>.${candidateHeadline ? ` The candidate ${escapeHtml(candidateHeadline)}.` : ''}${candidateExperience ? ` ${candidateExperience}+ years of experience.` : ''}`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Review Application', `${BASE_URL}/employer/dashboard`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `New application received for your job posting.`
     );
 
     await sendAndLog({
@@ -1453,40 +1055,18 @@ export async function sendApplicationConfirmationEmail(params: ApplicationConfir
   try {
     const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
 
-    const html = emailShell(`
-          ${headerBlock('Application Received!', jobTitle)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} your application for <strong style="color: ${C.textPrimary};">${jobTitle}</strong> at
-                <strong style="color: ${C.textPrimary};">${employerName}</strong> has been submitted successfully.
-              </p>
-
-              ${infoCard(`
-                    ${sectionLabel('What was submitted')}
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      ${featureRow(hasResume ? '✅' : '—', 'Resume', hasResume ? 'Your resume was shared' : 'No resume attached')}
-                      ${featureRow(hasCoverLetter ? '✅' : '—', 'Cover Letter', hasCoverLetter ? 'Cover letter included' : 'No cover letter')}
-                    </table>
-              `, C.tealDarker)}
-
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.7;">
-                The employer has been notified and will review your application. You'll receive updates when the status of your application changes.
-              </p>
-
-              <table role="presentation" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td>
-                    ${primaryButton('View My Applications →', `${BASE_URL}/my-applications`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        You can withdraw your application at any time from your applications page.
-      </p>`,
-      `Your application for "${jobTitle}" at ${employerName} has been received!`
+    const html = emailShellV2(`
+      ${headerBlockV2('Application Submitted', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-app-confirm.png', `Your application for <strong>${escapeHtml(jobTitle)}</strong> at ${escapeHtml(employerName)} has been submitted successfully. The employer will review your profile and respond if there is a match.`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Track Your Applications', `${BASE_URL}/my-applications`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `Your application has been submitted successfully.`
     );
 
     await sendAndLog({
@@ -1536,39 +1116,27 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
   try {
     const greeting = candidateName ? `Hi ${candidateName.split(' ')[0]},` : 'Hi there,';
 
-    const html = emailShell(`
-          ${headerBlock(`${statusInfo.emoji} Application Update`, jobTitle)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                ${greeting} there's an update on your application for
-                <strong style="color: ${C.textPrimary};">${jobTitle}</strong> at
-                <strong style="color: ${C.textPrimary};">${employerName}</strong>.
-              </p>
+    const statusColors: Record<string, { bg: string; fg: string; border: string }> = {
+      screening: { bg: '#EFF6FF', fg: '#1E40AF', border: '#BFDBFE' },
+      interview: { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0' },
+      offered: { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0' },
+      hired: { bg: '#ECFDF5', fg: '#065F46', border: '#A7F3D0' },
+      rejected: { bg: '#FEF2F2', fg: '#991B1B', border: '#FECACA' },
+    };
+    const sc = statusColors[newStatus] || statusColors.screening;
 
-              ${infoCard(`
-                    ${sectionLabel('New Status')}
-                    <p style="margin: 0 0 8px; font-family: ${F}; font-size: 20px; font-weight: bold; color: ${C.textPrimary};">
-                      ${statusInfo.emoji} ${statusInfo.label}
-                    </p>
-                    <p style="margin: 0; font-family: ${F}; font-size: 14px; color: ${C.textMuted}; line-height: 1.6;">
-                      ${statusInfo.message}
-                    </p>
-              `, C.tealDarker)}
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top: 24px;">
-                <tr>
-                  <td>
-                    ${primaryButton('View My Applications →', `${BASE_URL}/my-applications`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        If you have questions, please reach out to the employer directly.
-      </p>`,
-      `Your application status for "${jobTitle}" has been updated to ${statusInfo.label}.`
+    const html = emailShellV2(`
+      ${headerBlockV2('Application Status Update', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-status-update.png', `There is an update on your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(employerName)}</strong>. Your application has moved to the <strong>${statusInfo.label.toLowerCase()}</strong> stage. ${statusInfo.message}`)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View Application Details', `${BASE_URL}/my-applications`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2('sample'),
+      `Update on your application \u2014 moved to ${statusInfo.label.toLowerCase()} stage.`
     );
 
     await sendAndLog({
@@ -1604,42 +1172,35 @@ export async function sendProfileIncompleteEmail(
     const topMissing = missingFields.slice(0, 4);
     const unsubToken = await getOrCreateUnsubToken(email);
 
-    const missingListHtml = topMissing.map(f =>
-      `<tr>
-        <td style="padding: 8px 16px; border-bottom: 1px solid ${C.borderLight};">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-            <tr>
-              <td width="24" style="font-size: 14px;">⬜</td>
-              <td style="font-family: ${F}; font-size: 14px; color: ${C.textSecondary};">${f}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>`
+    const missingListHtml = topMissing.map((f, i) =>
+      `<tr><td style="padding:12px 20px;${i < topMissing.length - 1 ? 'border-bottom:1px solid #F0F3F1;' : ''}">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+          <td width="24" style="font-family:${SANS_V2};font-size:14px;color:#D1D5DB;">&#9744;</td>
+          <td style="font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">${escapeHtml(f)}</td>
+        </tr></table>
+      </td></tr>`
     ).join('');
 
-    const html = emailShell(`
-          ${headerBlock(`Your Profile is ${completedPercentage}% Complete`, 'A few steps to stand out')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Hey ${name}! Employers are searching for candidates like you — but profiles with <strong style="color: ${C.teal};">80%+ completion get 3× more views</strong>. Here's what's missing:
-              </p>
-
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
-                ${missingListHtml}
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                <tr>
-                  <td>
-                    ${primaryButton('Complete Your Profile →', `${BASE_URL}/settings/profile`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `${unsubscribeFooter(unsubToken)}`,
-      `Your profile is ${completedPercentage}% complete — finish it to get 3× more employer views!`
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Profile Is Almost There', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`Your profile is ${completedPercentage} percent complete. Candidates with finished profiles receive 3 times more visibility from employers. Take a moment to fill in the remaining details.`)}
+      ${spacerV2(36)}
+      ${sectionHeadV2('What to add next')}
+      ${spacerV2(20)}
+      ${stepBlock('icon-profile-credential.png', 'Add your credentials', 'List your certifications, licenses, and education to stand out.')}
+      ${spacerV2(16)}
+      ${stepBlock('icon-profile-location.png', 'Set location preferences', 'Tell us where you want to work so we can match you accurately.')}
+      ${spacerV2(16)}
+      ${stepBlock('icon-profile-specialty.png', 'Choose your specialties', 'Select your areas of focus to receive the most relevant opportunities.')}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('Complete Your Profile', `${BASE_URL}/settings/profile`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubToken),
+      `Your profile is ${completedPercentage}% complete \u2014 finish it to boost visibility.`
     );
 
     await sendAndLog({
@@ -1687,48 +1248,33 @@ export async function sendPerformanceReportEmail(
     const jobRowsHtml = jobs.slice(0, 5).map((job, i) => {
       const isLast = i === Math.min(jobs.length, 5) - 1;
       const ctr = job.views > 0 ? ((job.applyClicks / job.views) * 100).toFixed(1) : '0';
-      return `<tr>
-        <td style="padding: 14px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
-          <p style="margin: 0 0 4px; font-family: ${F}; font-size: 14px; font-weight: bold; color: ${C.textPrimary};">${job.title}</p>
-          <p style="margin: 0; font-family: ${F}; font-size: 12px; color: ${C.textMuted};">
-            👁 ${job.views.toLocaleString()} views · 🖱 ${job.applyClicks.toLocaleString()} clicks · 📄 ${job.applications} apps · ${ctr}% CTR
-          </p>
-        </td>
-      </tr>`;
+      return `<tr><td style="padding:14px 20px;${!isLast ? 'border-bottom:1px solid #F0F3F1;' : ''}">
+        <p style="margin:0 0 4px;font-family:${SANS_V2};font-size:14px;font-weight:700;color:${V2.textHeading};">${escapeHtml(job.title)}</p>
+        <p style="margin:0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">${job.views.toLocaleString()} views &middot; ${job.applyClicks.toLocaleString()} clicks &middot; ${job.applications} apps &middot; ${ctr}% CTR</p>
+      </td></tr>`;
     }).join('');
 
-    const html = emailShell(`
-          ${headerBlock(`${periodLabel} Performance Report`, employerName)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
-                <tr>
-                  ${statCard(totalViews.toLocaleString(), 'Views')}
-                  <td width="8"></td>
-                  ${statCard(totalClicks.toLocaleString(), 'Apply Clicks')}
-                </tr>
-                <tr><td height="8" colspan="3"></td></tr>
-                <tr>
-                  ${statCard(totalApps.toLocaleString(), 'Applications')}
-                  <td width="8"></td>
-                  ${statCard(totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) + '%' : '0%', 'CTR')}
-                </tr>
-              </table>
+    const statPill = (val: string, label: string) =>
+      `<td style="width:25%;padding:4px;">
+        <div style="background:#ffffff;border:1px solid #E8ECE9;border-radius:12px;padding:16px 12px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+          <p style="margin:0;font-family:${SANS_V2};font-size:24px;font-weight:800;color:${V2.textHeading};letter-spacing:-0.5px;">${val}</p>
+          <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">${label}</p>
+        </div>
+      </td>`;
 
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
-                ${jobRowsHtml}
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                <tr>
-                  <td>
-                    ${primaryButton('View Full Dashboard →', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `${unsubscribeFooter(unsubToken)}`,
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Monthly Hiring Report', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-performance.png', `Here is how your listings performed this ${periodLabel.toLowerCase()}. Use these insights to optimize your postings and attract stronger candidates.`)}
+      ${spacerV2(24)}
+      <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(totalViews.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(totalClicks.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2(totalApps.toLocaleString(), 'Messages')}</tr></table></td></tr>
+      ${spacerV2(28)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View Full Report', `${BASE_URL}/employer/dashboard/${jobs[0]?.dashboardToken || ''}`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubToken),
       `Your ${periodLabel.toLowerCase()} report: ${totalViews} views, ${totalClicks} clicks, ${totalApps} applications`
     );
 
@@ -1763,45 +1309,48 @@ export async function sendSavedJobReminderEmail(
     const name = firstName || 'there';
     const unsubToken = await getOrCreateUnsubToken(email);
 
-    const jobListHtml = jobs.slice(0, 5).map((job, i) => {
-      const isLast = i === jobs.length - 1;
-      return `<tr>
-        <td style="padding: 14px 20px;${!isLast ? ` border-bottom: 1px solid ${C.borderLight};` : ''}">
-          <a href="${BASE_URL}/jobs/${job.slug}" style="color: ${C.teal}; text-decoration: none; font-family: ${F}; font-size: 15px; font-weight: bold; line-height: 1.4;">
-            ${job.title}
-          </a>
-          <p style="margin: 4px 0 0; font-family: ${F}; font-size: 13px; color: ${C.textMuted};">
-            ${job.employer} · ${job.location}
-          </p>
-        </td>
-      </tr>`;
+    const COLORS = ['#4DB6AC', '#E8937A', '#7C8CF5', '#F59E0B', '#EC4899'];
+    const jobCardsHtml = jobs.slice(0, 5).map((job, i) => {
+      const color = COLORS[i % COLORS.length];
+      const initial = job.employer.charAt(0).toUpperCase();
+      return `<tr><td style="padding:0 40px ${i < jobs.length - 1 ? '12px' : '0'};">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <tr><td style="height:4px;background:${color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr><td style="padding:20px 24px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td width="40" valign="top" style="padding-right:14px;">
+                <div style="width:40px;height:40px;border-radius:10px;background:${color};color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:40px;">${escapeHtml(initial)}</div>
+              </td>
+              <td valign="middle" style="width:100%;">
+                <a href="${BASE_URL}/jobs/${job.slug}" style="font-family:${SERIF_V2};font-size:16px;font-weight:700;color:${V2.textHeading};text-decoration:none;display:block;">${escapeHtml(job.title)}</a>
+                <p style="margin:3px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">${escapeHtml(job.employer)} &middot; ${escapeHtml(job.location)}</p>
+              </td>
+              <td valign="middle" align="right" style="padding-left:12px;">
+                <a href="${BASE_URL}/jobs/${job.slug}" style="display:inline-block;padding:7px 16px;border-radius:8px;font-family:${SANS_V2};font-size:12px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;">Apply</a>
+              </td>
+            </tr></table>
+          </td></tr>
+        </table>
+      </td></tr>`;
     }).join('');
 
-    const html = emailShell(`
-          ${headerBlock('Jobs You Saved Are Still Open!', `${jobs.length} saved position${jobs.length !== 1 ? 's' : ''} waiting for you`)}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 20px; font-family: ${F}; font-size: 15px; color: ${C.textSecondary}; line-height: 1.7;">
-                Hey ${name}, you saved these jobs but haven't applied yet. Don't let them slip away!
-              </p>
+    const firstJob = jobs[0];
+    const bodyMsg = jobs.length === 1
+      ? `You saved <strong>${escapeHtml(firstJob.title)}</strong> at ${escapeHtml(firstJob.employer)} recently. This position is still accepting applications \u2014 do not miss your window.`
+      : `You saved <strong>${jobs.length} jobs</strong> recently. These positions are still accepting applications \u2014 do not miss your window.`;
 
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${C.bgCardAlt}; border: 1px solid ${C.borderLight}; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
-                ${jobListHtml}
-              </table>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                <tr>
-                  <td>
-                    ${primaryButton('View Saved Jobs →', `${BASE_URL}/saved`)}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`,
-      `<p style="margin: 8px 0 0; font-family: ${F}; font-size: 11px; color: ${C.textDimmed};">
-        <a href="${BASE_URL}/unsubscribe?token=${unsubToken}" style="color: ${C.textFaded}; text-decoration: none;">Unsubscribe</a>
-      </p>`,
-      `${jobs.length} jobs you saved are still open — apply before they're filled!`
+    const html = emailShellV2(`
+      ${headerBlockV2('Your Saved Job Is Still Open', '')}
+      ${spacerV2(12)}
+      ${simpleBlock('hero-saved-job.png', bodyMsg)}
+      ${spacerV2(32)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('View and Apply', `${BASE_URL}/saved`)}
+      </td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubToken),
+      `The job you saved is still open.`
     );
 
     await sendAndLog({

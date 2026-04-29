@@ -125,6 +125,10 @@
       "schedule": "15 13 * * *"
     },
     {
+      "path": "/api/cron/index-pseo",
+      "schedule": "45 13 * * *"
+    },
+    {
       "path": "/api/cron/deindex-expired",
       "schedule": "45 12,18 * * *"
     },
@@ -163,6 +167,14 @@
     {
       "path": "/api/cron/expiry-warnings",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/source-presence-unpublish",
+      "schedule": "55 12 * * *"
+    },
+    {
+      "path": "/api/cron/health-anomaly-check",
+      "schedule": "0 13 * * *"
     }
   ],
   "headers": [

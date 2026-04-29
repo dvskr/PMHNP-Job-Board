@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Local audit-script artifacts — contain prod data snapshots, not for commit
+.tmp_*
+
 # vercel
 .vercel
 
@@ -81,9 +84,6 @@ tmp-all-domains.txt
 /sql/
 supabase_dashboard_queries.sql
 
-# Docs
-/docs/
-
 # YouTube automation assets (large files, generated content)
 /yt-videos/
 /yt-thumbnails/
@@ -98,3 +98,6 @@ notebooklm-*.md
 /videos/
 /videos_backup/
 /thumbnails/
+
+# Recovery artifacts (not production code)
+/_recovery/

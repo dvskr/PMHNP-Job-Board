@@ -1,7 +1,7 @@
 // TODO: Replace with real testimonials
 'use client';
 
-import { Star } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 
 const testimonials = [
     {
@@ -26,55 +26,85 @@ const testimonials = [
 
 export default function Testimonial() {
     return (
-        <section style={{ padding: '48px 0' }}>
-            <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px' }}>
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                    gap: '16px',
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px' }}>
+            {/* Section heading */}
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h2 className="font-heading" style={{
+                    fontSize: '28px', fontWeight: 700,
+                    color: 'var(--text-primary)', margin: '0 0 8px',
                 }}>
-                    {testimonials.map((t) => (
-                        <div
-                            key={t.name}
+                    What PMHNPs Are Saying
+                </h2>
+                <p style={{ fontSize: '15px', color: 'var(--text-muted)', margin: 0 }}>
+                    Real feedback from psychiatric nurse practitioners
+                </p>
+            </div>
+
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: '20px',
+            }}>
+                {testimonials.map((t) => (
+                    <div
+                        key={t.name}
+                        className="card-precision"
+                        style={{
+                            borderLeft: `3px solid ${t.color}`,
+                            position: 'relative',
+                            overflow: 'hidden',
+                        }}
+                    >
+                        {/* Decorative quote mark */}
+                        <Quote
+                            size={48}
                             style={{
-                                borderLeft: `3px solid ${t.color}`,
-                                paddingLeft: '16px',
+                                position: 'absolute',
+                                top: '12px',
+                                right: '16px',
+                                color: t.color,
+                                opacity: 0.08,
                             }}
-                        >
-                            <p style={{
-                                fontSize: '13.5px', fontStyle: 'italic', lineHeight: 1.65,
-                                color: 'var(--text-secondary)', margin: '0 0 10px',
+                        />
+
+                        <p className="font-heading" style={{
+                            fontSize: '14px', fontStyle: 'italic', lineHeight: 1.7,
+                            color: 'var(--text-secondary)', margin: '0 0 16px',
+                            position: 'relative',
+                        }}>
+                            &ldquo;{t.quote}&rdquo;
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {/* Avatar initial */}
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: `linear-gradient(135deg, ${t.color}, ${t.color}88)`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
                             }}>
-                                &ldquo;{t.quote}&rdquo;
-                            </p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {/* B5: Avatar initial */}
-                                <div style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '50%',
-                                    background: `linear-gradient(135deg, ${t.color}, ${t.color}88)`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
+                                <span style={{
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    color: '#fff',
                                 }}>
-                                    <span style={{
-                                        fontSize: '12px',
-                                        fontWeight: 700,
-                                        color: '#fff',
-                                    }}>
-                                        {t.name.charAt(0)}
-                                    </span>
-                                </div>
+                                    {t.name.charAt(0)}
+                                </span>
+                            </div>
+                            <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <div style={{ display: 'flex', gap: '1px' }}>
                                         {[...Array(5)].map((_, i) => (
                                             <Star key={i} size={11} fill="#eab308" style={{ color: '#eab308' }} />
                                         ))}
                                     </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                                     <span style={{
-                                        fontSize: '12px', fontWeight: 700,
+                                        fontSize: '13px', fontWeight: 700,
                                         color: 'var(--text-primary)',
                                     }}>
                                         {t.name}
@@ -85,9 +115,9 @@ export default function Testimonial() {
                                 </div>
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
             </div>
-        </section>
+        </div>
     );
 }

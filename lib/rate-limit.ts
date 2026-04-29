@@ -38,6 +38,14 @@ export const RATE_LIMITS = {
     upload: { limit: 10, windowSeconds: 60 },
     /** Direct applications: 10 req/min */
     applyDirect: { limit: 10, windowSeconds: 60 },
+    /** Autofill AI endpoints: 30 req/min */
+    autofill: { limit: 30, windowSeconds: 60 },
+    /** Feedback/report: 5 req/min */
+    feedback: { limit: 5, windowSeconds: 60 },
+    /** Profile CRUD: 20 req/min */
+    profile: { limit: 20, windowSeconds: 60 },
+    /** Track/telemetry: 60 req/min */
+    telemetry: { limit: 60, windowSeconds: 60 },
     /** Admin endpoints: 20 req/min */
     admin: { limit: 20, windowSeconds: 60 },
     /** Employer endpoints: 30 req/min */

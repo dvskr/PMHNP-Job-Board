@@ -1,16 +1,24 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Video, Monitor, Globe, Clock, TrendingUp, Building2, Lightbulb, Bell, Wifi, Plane, GraduationCap, Calendar } from 'lucide-react';
+import Image from 'next/image';
+import { TrendingUp, Building2, Bell, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
-import CategoryFAQ from '@/components/CategoryFAQ';
 import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // Force dynamic rendering - don't try to statically generate during build
-// force-dynamic removed: it overrides revalidate and defeats ISR caching
-export const revalidate = 3600; // Revalidate every hour
+/* Design Tokens */
+const clayCard: React.CSSProperties = {
+  background: '#FFFFFF', borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+export const revalidate = 3600;
 
 // Type definition for Prisma groupBy result
 interface EmployerGroupResult {
@@ -27,111 +35,30 @@ interface ProcessedEmployer {
 /**
  * Fetch telehealth jobs with pagination
  */
-async function getTelehealthJobs(skip: number = 0, take: number = 10) {
-    const jobs = await prisma.job.findMany({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-        },
-        orderBy: [
-            { isFeatured: 'desc' },
-            { qualityScore: 'desc' },
-            { originalPostedAt: 'desc' },
-            { createdAt: 'desc' },
-        ],
-        skip,
-        take,
-    });
+const TH_FILTER = buildCategoryWhereClause('telehealth');
 
-    return jobs;
+async function getTelehealthJobs(skip: number = 0, take: number = 10) {
+    return prisma.job.findMany({
+        where: TH_FILTER,
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
+        skip, take,
+    });
 }
 
-/**
- * Fetch telehealth job statistics
- */
 async function getTelehealthStats() {
-    // Total telehealth jobs
-    const totalJobs = await prisma.job.count({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-        },
-    });
-
-    // Average salary for telehealth positions
+    const totalJobs = await prisma.job.count({ where: TH_FILTER });
     const salaryData = await prisma.job.aggregate({
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-            normalizedMinSalary: { not: null },
-            normalizedMaxSalary: { not: null },
-        },
-        _avg: {
-            normalizedMinSalary: true,
-            normalizedMaxSalary: true,
-        },
+        where: { ...TH_FILTER, normalizedMinSalary: { not: null }, normalizedMaxSalary: { not: null } },
+        _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
     });
-
-    const avgMinSalary = salaryData._avg.normalizedMinSalary || 0;
-    const avgMaxSalary = salaryData._avg.normalizedMaxSalary || 0;
-    const avgSalary = Math.round((avgMinSalary + avgMaxSalary) / 2 / 1000);
-
-    // Top telehealth employers
+    const avgSalary = Math.round(((salaryData._avg.normalizedMinSalary || 0) + (salaryData._avg.normalizedMaxSalary || 0)) / 2 / 1000);
     const topEmployers = await prisma.job.groupBy({
-        by: ['employer'],
-        where: {
-            isPublished: true,
-            OR: [
-                { title: { contains: 'telehealth', mode: 'insensitive' } },
-                { title: { contains: 'telemedicine', mode: 'insensitive' } },
-                { title: { contains: 'telepsychiatry', mode: 'insensitive' } },
-                { description: { contains: 'telehealth', mode: 'insensitive' } },
-                { description: { contains: 'telemedicine', mode: 'insensitive' } },
-                { description: { contains: 'telepsychiatry', mode: 'insensitive' } },
-            ],
-        },
-        _count: {
-            employer: true,
-        },
-        orderBy: {
-            _count: {
-                employer: 'desc',
-            },
-        },
-        take: 8,
+        by: ['employer'], where: TH_FILTER,
+        _count: { employer: true }, orderBy: { _count: { employer: 'desc' } }, take: 8,
     });
-
-    // Process with explicit typing
-    const processedEmployers = topEmployers.map((e: EmployerGroupResult) => ({
-        name: e.employer,
-        count: e._count.employer,
-    }));
-
     return {
-        totalJobs,
-        avgSalary,
-        topEmployers: processedEmployers,
+        totalJobs, avgSalary,
+        topEmployers: topEmployers.map((e: EmployerGroupResult) => ({ name: e.employer, count: e._count.employer })),
     };
 }
 
@@ -191,7 +118,7 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
     const totalPages = Math.ceil(stats.totalJobs / limit);
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
             {/* Breadcrumb Schema */}
             <BreadcrumbSchema items={[
                 { name: "Home", url: "https://pmhnphiring.com" },
@@ -219,438 +146,257 @@ export default async function TelehealthJobsPage({ searchParams }: PageProps) {
                 />
             )}
             <JobListViewTracker jobs={jobs.map((j: Job) => ({ id: j.id, title: j.title, employer: j.employer }))} listName="Telehealth PMHNP Jobs" />
-            {/* Hero Section */}
-            <section className="bg-teal-600 text-white py-12 md:py-16">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <div className="flex items-center justify-center gap-2 mb-4">
-                            <Video className="h-8 w-8" />
-                            <Monitor className="h-8 w-8" />
-                        </div>
-                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            Telehealth PMHNP Jobs
-                        </h1>
-                        <p className="text-sm text-teal-200 text-center mt-2 mb-4">
-                            Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Telehealth PMHNP positions
-                        </p>
-                        <p className="text-lg md:text-xl text-teal-100 mb-6">
-                            Discover {stats.totalJobs} telehealth and telepsychiatry psychiatric nurse practitioner positions
-                        </p>
+            {/* ═══ HERO ═══ */}
+      <CategoryHero
+        bgColor="#f1d49c"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_wc_th_people.webp"
+        heroAlt="Telehealth PMHNP virtual session"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Telehealth']}
+        indexLabel="№ 03 / 28"
+        headlineLine1="Telehealth"
+        headlineLine2="PMHNP"
+        headlineSub="jobs, virtual care."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$130K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'companies' },
+        ]}
+        description="Virtual psychiatric care positions with flexible hours, no commute, and multi-state practice opportunities."
+        ctaLabel="Browse All Telehealth Jobs"
+        ctaHref="/jobs?category=telehealth"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
-                        {/* Stats Bar */}
-                        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                                <div className="text-sm text-teal-100">Telehealth Positions</div>
-                            </div>
-                            {stats.avgSalary > 0 && (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                                    <div className="text-sm text-teal-100">Avg. Salary</div>
-                                </div>
-                            )}
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                                <div className="text-sm text-teal-100">Telehealth Employers</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <div className="container mx-auto px-4 py-8 md:py-12">
-                <div className="max-w-7xl mx-auto">
-                    {/* Benefits Section */}
-                    <div className="mb-8 md:mb-12">
-                        <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                                Why Telehealth PMHNP Practice?
-                            </h2>
-                            <div className="grid md:grid-cols-3 gap-6">
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <Video className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Virtual Patient Care</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Provide quality psychiatric care through video visits. Many patients prefer the convenience and privacy of telehealth appointments.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <Monitor className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Work From Home</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Eliminate commute time and create your ideal home office setup. Focus on patient care without the overhead of a physical clinic.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <Globe className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Multi-State Practice</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Many telehealth employers help with multi-state licensure, expanding your patient reach and practice opportunities.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid lg:grid-cols-4 gap-8">
-                        {/* Main Content */}
-                        <div className="lg:col-span-3">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                    All Telehealth Positions ({stats.totalJobs})
-                                </h2>
-                                <Link
-                                    href="/jobs"
-                                    className="text-sm font-medium hover:opacity-80 transition-opacity"
-                                    style={{ color: 'var(--color-primary)' }}
-                                >
-                                    View All Jobs →
-                                </Link>
-                            </div>
-
-                            {jobs.length === 0 ? (
-                                <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <Video className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
-                                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        No telehealth jobs available
-                                    </h3>
-                                    <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                                        We don&apos;t have any active telehealth PMHNP positions right now. Check back soon!
-                                    </p>
-                                    <Link
-                                        href="/jobs"
-                                        className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-                                        style={{ backgroundColor: 'var(--color-primary)' }}
-                                    >
-                                        Browse All Jobs
-                                    </Link>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                                        {jobs.map((job: Job) => (
-                                            <JobCard key={job.id} job={job} />
-                                        ))}
-                                    </div>
-
-                                    {/* Pagination */}
-                                    {totalPages > 1 && (
-                                        <div className="mt-8 flex items-center justify-center gap-4">
-                                            {page > 1 ? (
-                                                <Link
-                                                    href={`/jobs/telehealth?page=${page - 1}`}
-                                                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-                                                    style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                                                >
-                                                    ← Previous
-                                                </Link>
-                                            ) : (
-                                                <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                                                    ← Previous
-                                                </span>
-                                            )}
-
-                                            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                                Page {page} of {totalPages}
-                                            </span>
-
-                                            {page < totalPages ? (
-                                                <Link
-                                                    href={`/jobs/telehealth?page=${page + 1}`}
-                                                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-                                                    style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-                                                >
-                                                    Next →
-                                                </Link>
-                                            ) : (
-                                                <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                                                    Next →
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-
-                        {/* Sidebar */}
-                        <div className="lg:col-span-1">
-                            {/* Job Alert CTA */}
-                            <div className="bg-teal-600 rounded-xl p-6 text-white mb-6 shadow-lg">
-                                <Bell className="h-8 w-8 mb-3" />
-                                <h3 className="text-lg font-bold mb-2">
-                                    Get Telehealth Job Alerts
-                                </h3>
-                                <p className="text-sm text-teal-100 mb-4">
-                                    Be the first to know about new telehealth and telepsychiatry PMHNP positions.
-                                </p>
-                                <Link
-                                    href="/job-alerts"
-                                    className="block w-full text-center px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors"
-                                >
-                                    Create Alert
-                                </Link>
-                            </div>
-
-                            {/* Top Telehealth Employers */}
-                            {stats.topEmployers.length > 0 && (
-                                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Telehealth Employers</h3>
-                                    </div>
-                                    <ul className="space-y-3">
-                                        {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
-                                            <li key={index} className="flex items-center justify-between">
-                                                <span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>
-                                                    {employer.name}
-                                                </span>
-                                                <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>
-                                                    {employer.count} {employer.count === 1 ? 'job' : 'jobs'}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-
-                            {/* Salary Insights */}
-                            {stats.avgSalary > 0 && (
-                                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <TrendingUp className="h-5 w-5 text-green-500" />
-                                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Salary Insights</h3>
-                                    </div>
-                                    <div className="mb-4">
-                                        <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                                            ${stats.avgSalary}k
-                                        </div>
-                                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Average annual salary
-                                        </div>
-                                    </div>
-                                    <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                        Telehealth positions often offer competitive pay with reduced overhead. Salaries vary by employer and state requirements.
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Telehealth Tips */}
-                            <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Lightbulb className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                                    <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Telehealth Tips</h3>
-                                </div>
-                                <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    <li className="flex gap-2">
-                                        <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Invest in quality camera, microphone, and lighting</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Ensure reliable high-speed internet</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Create a professional, private workspace</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Learn telehealth-specific assessment techniques</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span style={{ color: 'var(--color-primary)' }} className="font-bold">•</span>
-                                        <span>Consider multi-state licensure for more opportunities</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Additional Resources Section */}
-                    <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                            Telehealth vs In-Person Practice
-                        </h2>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Telehealth Advantages
-                                </h3>
-                                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    No commute, flexible scheduling, lower overhead costs, and the ability to see patients across multiple states. Many patients prefer the convenience of virtual visits.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Technology Requirements
-                                </h3>
-                                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    You&apos;ll need a HIPAA-compliant video platform, reliable internet, professional camera setup, and a private, well-lit workspace for video consultations.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Licensure Considerations
-                                </h3>
-                                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    You must be licensed in the state where your patient is located. Many telehealth employers assist with multi-state licensure and credentialing.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                    Clinical Considerations
-                                </h3>
-                                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                                    While most psychiatric assessments adapt well to telehealth, some situations may require in-person evaluation. Emergency protocols differ in virtual settings.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Telehealth Industry Stats */}
-                    <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                            Telehealth Psych NP Industry Growth
-                        </h2>
-                        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                            Telepsychiatry is one of the fastest-growing segments in mental healthcare. Since the pandemic, telehealth has become a permanent fixture — not a stopgap.
-                        </p>
-                        <div className="grid md:grid-cols-3 gap-4 mb-4">
-                            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>40%</div>
-                                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>of psychiatric visits are now conducted via telehealth</div>
-                            </div>
-                            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>160M+</div>
-                                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Americans live in mental health provider shortage areas</div>
-                            </div>
-                            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                <div className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$130K-200K</div>
-                                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Typical telehealth PMHNP salary range</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Position Types */}
-                    <div className="mt-8 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                            Types of Telehealth PMHNP Positions
-                        </h2>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Platform-Based (W2)</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Companies like Cerebral, Talkiatry, and Done provide patients, EHR, and billing. You focus on clinical care. Salary-based with benefits, typically $130K-$170K.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Health System Telehealth (W2)</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Hospital systems and CMHCs expanding virtual care. Often a mix of in-person and telehealth patients. Benefits included, $140K-$180K.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Private Practice Telehealth (1099)</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Run your own virtual practice using SimplePractice or Headway. Higher earning potential ($180K-$250K+) but you handle marketing and credentialing.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Contract / Per Diem Telehealth</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Pick up shifts through staffing platforms for flexible income. Great for supplementing a primary position. Rates of $75-$125/hr.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Explore Other Job Types</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Link href="/jobs/remote" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Wifi className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Work from home</div>
-                            </Link>
-                            <Link href="/jobs/travel" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Plane className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Travel Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Locum tenens</div>
-                            </Link>
-                            <Link href="/jobs/new-grad" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <GraduationCap className="h-5 w-5 text-indigo-500 group-hover:text-white transition-colors" />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>New Grad Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Entry level</div>
-                            </Link>
-                            <Link href="/jobs/per-diem" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Calendar className="h-5 w-5 text-green-500 group-hover:text-white transition-colors" />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Per Diem Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Flexible shifts</div>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+      {/* ═══ JOB LISTINGS ═══ */}
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>Telehealth Positions ({stats.totalJobs})</h2>
+              <Link href="/jobs" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>View All Jobs →</Link>
             </div>
-            <section className="mt-12 mb-8 container mx-auto px-4">
-                <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Resources</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Link href="/salary-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 2026 Salary Guide</h3>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Average PMHNP salary is $155,000+. See pay by state, experience, and setting.</p>
-                    </Link>
-
-                    <Link href="/jobs/locations" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 Jobs by Location</h3>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse PMHNP positions by state and city.</p>
-                    </Link>
-
-                    <Link href="/jobs/remote" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🏠 Remote Jobs</h3>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Telehealth and work-from-home PMHNP positions.</p>
-                    </Link>
-
-                    <Link href="/jobs/travel" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>✈️ Travel Jobs</h3>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Locum tenens positions with premium pay.</p>
-                    </Link>
-
-                    <Link href="/jobs/new-grad" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>🎓 New Grad Jobs</h3>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Entry-level PMHNP opportunities.</p>
-                    </Link>
+            {jobs.length === 0 ? (
+              <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No telehealth positions at this time</h3>
+                <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>New telehealth openings are added daily.</p>
+                <Link href="/jobs" className="inline-block px-6 py-3 text-white rounded-lg font-medium" style={{ backgroundColor: 'var(--color-primary)' }}>Browse All Jobs</Link>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                  {jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}
                 </div>
-            </section>
-
-            {/* FAQ Section with structured data */}
-            <CategoryFAQ category="telehealth" totalJobs={stats.totalJobs} />
+              </>
+            )}
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <Link href="/jobs?category=telehealth" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>Browse All Telehealth Jobs <ArrowRight size={16} /></Link>
+            </div>
+          </div>
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+              <div style={{ padding: '24px' }}>
+                <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>Telehealth Alerts</h3>
+                <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New telehealth listings delivered daily.</p>
+                <Link href="/job-alerts" className="cat-cta-primary" style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>Create Alert</Link>
+              </div>
+            </div>
+            {stats.topEmployers.length > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Building2 size={20} style={{ color: '#0D9488' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Top Employers</h3>
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
+                    <li key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: index < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: '#5A4A42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{employer.name}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px', whiteSpace: 'nowrap' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {stats.avgSalary > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <TrendingUp size={20} style={{ color: '#34D399' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+              </div>
+            )}
+          </div>
         </div>
-    );
+      </div>
+
+
+            {/* ═══ BENTO — Why Choose Telehealth ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Telehealth</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>Built for Virtual Care</h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>Telehealth roles offer location independence, lower overhead, and access to patients across state lines.</p>
+
+          <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1 */}
+            <div className="cat-bento-hero-1" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Virtual Patient Sessions</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>Conduct HIPAA-compliant video visits from home, manage medication remotely, and build lasting therapeutic relationships.</p>
+              </div>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_th_videocall.webp" alt="Telehealth video consultation" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-hero-2" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_th_multistate.webp" alt="Multi-state telehealth reach" width={200} height={140} style={{ width: '100%', maxWidth: '180px', height: 'auto', borderRadius: '12px', marginBottom: '16px' }} />
+              <h3 className="font-lora" style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>Multi-State Licensure</h3>
+              <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Practice across state lines with PSYPACT or compact licensure.</p>
+            </div>
+            {/* ROW 2: Icons */}
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_laptop.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Work From Home</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Deliver care from anywhere with a reliable internet connection and private space.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_home.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Multi-State Reach</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>See patients across multiple states with PSYPACT or multi-state licensure.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_reach.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Tech-Forward</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Use modern telehealth platforms, e-prescribing, and digital assessment tools.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_telehealth_flex.webp" alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Flexible Hours</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Schedule sessions around your life — early mornings, evenings, or weekends.</p>
+            </div>
+            {/* ROW 3 */}
+            <div className="cat-bento-hero-3" style={{ ...clayCard, gridColumn: 'span 8', padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <TrendingUp size={28} style={{ color: '#34D399', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Salary & Benefits</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '0 0 6px' }}>Average telehealth PMHNP salary:</p>
+                <p style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>${stats.avgSalary}k</p>
+              </div>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_th_salary.webp" alt="Telehealth PMHNP salary" width={280} height={200} style={{ width: '100%', height: 'auto', borderRadius: '14px' }} />
+            </div>
+            <div className="cat-bento-cta" style={{ ...clayCard, gridColumn: 'span 4', padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)' }}>
+              <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+              <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 10px' }}>Get Telehealth Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', lineHeight: 1.6, margin: '0 0 20px' }}>New virtual positions delivered daily.</p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{ padding: '12px 28px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 10px rgba(13,148,136,0.2)' }}>Create Alert</Link>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ BEFORE YOU APPLY ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need to Know</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+              <div key="01" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>01</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Tech Setup</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Ensure HIPAA-compliant workspace, dual monitors, professional background, and backup internet.</p>
+              </div>
+              <div key="02" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>State Licenses</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Obtain licenses in states where your patients reside or join PSYPACT for telepsych.</p>
+              </div>
+              <div key="03" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>03</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>E-Prescribing</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Set up EPCS (Electronic Prescribing for Controlled Substances) for seamless medication management.</p>
+              </div>
+              <div key="04" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>04</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Telehealth Training</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Complete telehealth-specific training on virtual rapport building and crisis management.</p>
+              </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ EXPLORE MORE ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
+          <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {[
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_outpatient.webp' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_inpatient.webp' },
+              { href: '/jobs/substance-abuse', label: 'Substance Abuse', sub: 'Addiction care', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_substance.webp' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp' },
+            ].map(c => (
+              <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ FAQ ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Telehealth PMHNP Questions</h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {[
+              { q: 'Do I need special licensure for telehealth?', a: 'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.' },
+              { q: 'What technology do I need for telehealth?', a: 'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.' },
+              { q: 'What is the salary range for telehealth PMHNPs?', a: 'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.' },
+              { q: 'Can I prescribe controlled substances via telehealth?', a: 'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.' },
+              { q: 'How many patients do telehealth PMHNPs see per day?', a: 'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes. Some platforms allow flexible scheduling.' },
+            ].map((faq, idx) => (
+              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+              </div>
+            ))}
+          </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:'Do I need special licensure for telehealth?',a:'You need an active NP license in the state where your patient is located. PSYPACT and the Nurse Licensure Compact can streamline multi-state practice.'},{q:'What technology do I need for telehealth?',a:'A HIPAA-compliant video platform, reliable high-speed internet, dual monitors, a private workspace, and EPCS-enabled e-prescribing software.'},{q:'What is the salary range for telehealth PMHNPs?',a:'Telehealth PMHNP salaries range from $130K to $200K+, depending on patient volume, state, and whether the role is W-2 or 1099 contract.'},{q:'Can I prescribe controlled substances via telehealth?',a:'Yes, with proper DEA registration and EPCS setup. The DEA now permits initial prescriptions via telehealth in many circumstances.'},{q:'How many patients do telehealth PMHNPs see per day?',a:'Typically 12-20 patients per day, with 30-minute follow-ups and 60-minute intakes.'}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+        </section>
+      </div>
+
+      {/* ═══ RESPONSIVE CSS ═══ */}
+      <style>{`
+        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
+        .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
+        @media (max-width: 768px) {
+          .cat-hero-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
+          .cat-bento-grid > div { grid-column: span 1 !important; }
+          .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
+          .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
+          .cat-bento-grid > div:not(.cat-bento-hero-1):not(.cat-bento-hero-2):not(.cat-bento-hero-3):not(.cat-bento-cta) { grid-column: span 3 !important; }
+        }
+      `}</style>
+    </div>
+  );
 }

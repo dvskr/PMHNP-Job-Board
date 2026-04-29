@@ -60,12 +60,13 @@ export default function StickyEmailBar() {
 
     return (
         <div
-            className="fixed bottom-0 left-0 right-0 z-[999]"
+            className="fixed left-0 right-0 z-[60] sticky-email-bar"
             style={{
-                background: 'linear-gradient(135deg, rgba(15,23,42,0.97), rgba(30,41,59,0.97))',
+                bottom: 0,
+                background: 'rgba(237,245,244,0.97)',
                 backdropFilter: 'blur(12px)',
-                borderTop: '1px solid rgba(45,212,191,0.15)',
-                boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+                borderTop: '1px solid rgba(13,148,136,0.15)',
+                boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
                 animation: 'slideUp 0.4s ease-out',
             }}
         >
@@ -73,6 +74,16 @@ export default function StickyEmailBar() {
                 @keyframes slideUp {
                     from { transform: translateY(100%); }
                     to { transform: translateY(0); }
+                }
+                @media (max-width: 767px) {
+                    .sticky-email-bar {
+                        bottom: 60px !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .sticky-email-bar {
+                        display: none !important;
+                    }
                 }
             `}</style>
 
@@ -85,7 +96,7 @@ export default function StickyEmailBar() {
                     <>
                         <div className="flex items-center gap-2">
                             <Mail size={16} style={{ color: '#2DD4BF' }} />
-                            <span className="text-sm font-semibold text-white whitespace-nowrap">
+                            <span className="text-sm font-semibold whitespace-nowrap" style={{ color: '#2D3748' }}>
                                 Get daily PMHNP jobs in your inbox
                             </span>
                         </div>
@@ -97,9 +108,9 @@ export default function StickyEmailBar() {
                                 placeholder="your@email.com"
                                 className="px-3 py-2 rounded-lg text-sm outline-none"
                                 style={{
-                                    backgroundColor: 'rgba(255,255,255,0.1)',
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    color: '#fff',
+                                    backgroundColor: '#FFFFFF',
+                                    border: '1px solid #CBD5E0',
+                                    color: '#2D3748',
                                     width: '200px',
                                 }}
                             />
@@ -121,7 +132,7 @@ export default function StickyEmailBar() {
                 <button
                     onClick={handleDismiss}
                     className="p-1.5 rounded-md transition-colors cursor-pointer"
-                    style={{ color: 'rgba(255,255,255,0.5)' }}
+                    style={{ color: '#718096' }}
                     aria-label="Dismiss"
                 >
                     <X size={16} />

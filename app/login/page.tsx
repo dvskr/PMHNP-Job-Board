@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth/protect'
 import LoginContent from '@/components/auth/LoginContent'
+import AuthLayout from '@/components/auth/AuthLayout'
 import { Suspense } from 'react'
 
 export const metadata = {
   title: 'Sign In | PMHNP Hiring',
-  description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications. Access your personalized dashboard.',
+  description: 'Sign in to your PMHNP Hiring account to manage saved jobs, job alerts, and applications.',
 }
 
 export default async function LoginPage({
@@ -17,58 +17,31 @@ export default async function LoginPage({
   const currentUser = await getCurrentUser()
   const params = await searchParams
   const redirectTo = params.redirectTo || '/dashboard'
-  // Only allow relative redirects to prevent open redirect attacks
   const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
   if (currentUser) {
     redirect(safeRedirect)
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{ background: 'var(--bg-primary)' }}
+    <AuthLayout
+      illustration="/illustrations/auth-login.png"
+      testimonial={{
+        quote: '"I found my dream remote PMHNP position in less than a week. The job matching was incredibly accurate."',
+        name: 'Sarah M., PMHNP-BC',
+        title: 'Austin, TX',
+      }}
     >
-      <div className="w-full max-w-md relative">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Welcome back
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            Sign in to access your dashboard
-          </p>
-        </div>
-
-        {/* Card */}
-        <div
-          className="rounded-2xl p-6 sm:p-8"
-          style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color-dark)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
-          }}
-        >
-          <Suspense
-            fallback={
-              <div className="space-y-4">
-                <div className="h-12 rounded-lg animate-pulse" style={{ background: 'var(--bg-tertiary)' }} />
-                <div className="h-12 rounded-lg animate-pulse" style={{ background: 'var(--bg-tertiary)' }} />
-                <div className="h-12 rounded-lg animate-pulse" style={{ background: 'var(--bg-tertiary)' }} />
-              </div>
-            }
-          >
-            <LoginContent />
-          </Suspense>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-tertiary)' }}>
-          By signing in, you agree to our{' '}
-          <Link href="/terms" className="underline hover:no-underline" style={{ color: 'var(--text-secondary)' }}>Terms</Link>
-          {' '}and{' '}
-          <Link href="/privacy" className="underline hover:no-underline" style={{ color: 'var(--text-secondary)' }}>Privacy Policy</Link>
-        </p>
-      </div>
-    </div>
+      <Suspense
+        fallback={
+          <div className="space-y-4">
+            <div className="h-12 rounded-lg animate-pulse" style={{ background: 'rgba(0,0,0,0.04)' }} />
+            <div className="h-12 rounded-lg animate-pulse" style={{ background: 'rgba(0,0,0,0.04)' }} />
+            <div className="h-12 rounded-lg animate-pulse" style={{ background: 'rgba(0,0,0,0.04)' }} />
+          </div>
+        }
+      >
+        <LoginContent />
+      </Suspense>
+    </AuthLayout>
   )
 }

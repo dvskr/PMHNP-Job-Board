@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign } from 'lucide-react';
+import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign, ChevronLeft, ChevronRight, Loader2, Check } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { config } from '@/lib/config';
@@ -30,6 +30,30 @@ interface JobFormData {
   screeningQuestions?: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[];
 }
 
+/* ═══ Clay Tokens ═══ */
+const cardBase: React.CSSProperties = {
+  background: '#FFFFFF',
+  borderRadius: '20px',
+  border: '1px solid rgba(0,0,0,0.06)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
+const clayBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '8px',
+  padding: '14px 28px', borderRadius: '14px',
+  fontSize: '14px', fontWeight: 600,
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
+  cursor: 'pointer', transition: 'all 0.2s ease',
+};
+
+const clayPill: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '4px',
+  padding: '5px 12px', borderRadius: '10px',
+  fontSize: '12px', fontWeight: 500,
+  boxShadow: 'inset 1px 1px 3px rgba(0,0,0,0.04), inset -1px -1px 2px rgba(255,255,255,0.4)',
+};
+
 export default function PreviewPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<JobFormData | null>(null);
@@ -38,22 +62,13 @@ export default function PreviewPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Read form data from localStorage
     const stored = localStorage.getItem('jobFormData');
-    if (!stored) {
-      // No data, redirect to post-job
-      router.push('/post-job');
-      return;
-    }
-
+    if (!stored) { router.push('/post-job'); return; }
     try {
       const data = JSON.parse(stored) as JobFormData;
-      // Also load screening questions from separate localStorage key
       try {
         const storedQuestions = localStorage.getItem('jobScreeningQuestions');
-        if (storedQuestions) {
-          data.screeningQuestions = JSON.parse(storedQuestions);
-        }
+        if (storedQuestions) data.screeningQuestions = JSON.parse(storedQuestions);
       } catch { /* ignore */ }
       setFormData(data);
     } catch (error) {
@@ -61,63 +76,52 @@ export default function PreviewPage() {
       router.push('/post-job');
       return;
     }
-
     setLoading(false);
   }, [router]);
 
-  const handleBack = () => {
-    router.push('/post-job');
-  };
+  const handleBack = () => { router.push('/post-job'); };
 
   const handleContinue = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      if (config.isPaidPostingEnabled) {
-        // PAID MODE: Navigate to checkout (existing behavior)
+      // Always try free posting first — API checks if employer has free posts remaining
+      if (!formData) return;
+      const response = await fetch('/api/jobs/post-free', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          employer: formData.companyName,
+          location: formData.location,
+          mode: formData.mode,
+          jobType: formData.jobType,
+          description: formData.description,
+          applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
+          applyOnPlatform: formData.applyOnPlatform || false,
+          contactEmail: formData.contactEmail,
+          minSalary: formData.salaryMin,
+          maxSalary: formData.salaryMax,
+          salaryPeriod: formData.salaryPeriod || 'annual',
+          companyWebsite: formData.companyWebsite,
+          pricing: 'growth',
+          benefits: formData.benefits,
+          setting: formData.setting,
+          population: formData.population,
+          companyLogoUrl: formData.companyLogoUrl,
+          screeningQuestions: formData.screeningQuestions || [],
+        }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        localStorage.removeItem('jobFormData');
+        localStorage.removeItem('jobScreeningQuestions');
+        router.push('/success?free=true');
+      } else if (result.requiresPayment) {
+        // Free posts exhausted — redirect to checkout
         router.push('/post-job/checkout');
       } else {
-        // FREE MODE: Submit directly to post-free API
-        if (!formData) return;
-
-        const response = await fetch('/api/jobs/post-free', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: formData.title,
-            employer: formData.companyName,
-            location: formData.location,
-            mode: formData.mode,
-            jobType: formData.jobType,
-            description: formData.description,
-            applyLink: formData.applyOnPlatform ? null : formData.applyUrl,
-            applyOnPlatform: formData.applyOnPlatform || false,
-            contactEmail: formData.contactEmail,
-            minSalary: formData.salaryMin,
-            maxSalary: formData.salaryMax,
-            salaryPeriod: formData.salaryPeriod || 'annual',
-            companyWebsite: formData.companyWebsite,
-            pricing: formData.pricingTier,
-            benefits: formData.benefits,
-            setting: formData.setting,
-            population: formData.population,
-            companyLogoUrl: formData.companyLogoUrl,
-            screeningQuestions: formData.screeningQuestions || [],
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // Clear localStorage
-          localStorage.removeItem('jobFormData');
-          localStorage.removeItem('jobScreeningQuestions');
-          // Redirect to success
-          router.push('/success?free=true');
-        } else {
-          setError(result.error || 'Failed to post job');
-        }
+        setError(result.error || 'Failed to post job');
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -128,213 +132,169 @@ export default function PreviewPage() {
 
   if (loading || !formData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+        <div style={{
+          width: '36px', height: '36px', borderRadius: '50%',
+          border: '3px solid #E5E7EB', borderTopColor: '#0D9488',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
-  // In free-launch mode, the backend always uses 'growth' tier regardless of form value
-  const effectiveTier = config.isPaidPostingEnabled ? formData.pricingTier : 'growth';
-  const isFeatured = config.isFeaturedTier(effectiveTier as 'starter' | 'growth' | 'premium');
-  const price = config.isPaidPostingEnabled
-    ? config.getPostingPrice(formData.pricingTier)
-    : 0;
-  const priceLabel = config.formatPrice(price);
+  const isFeatured = true; // All posts are featured in single-tier model
 
   return (
-    <div className="min-h-screen bg-white py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div style={{ background: '#F5F6F8', minHeight: '100vh', padding: '24px 16px 80px' }}>
+      <div style={{ maxWidth: '780px', margin: '0 auto' }}>
+
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Preview Your Job Post</h1>
-          <p className="text-gray-600">Review how your job will appear to candidates</p>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
+            Preview Your Job Post
+          </h1>
+          <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review how your job will appear to candidates</p>
         </div>
 
-        {/* Section 1: Listing Preview */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">How it appears in job listings</h2>
-            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
+        {/* Section 1: Card Preview */}
+        <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>How it appears in listings</h2>
+            <span style={{ ...clayPill, background: '#F5F6F8', color: '#B0BEC5', fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px' }}>PREVIEW</span>
           </div>
 
-          {/* Job Card Preview */}
-          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 overflow-hidden">
-            <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-3">
-              {/* Title and Badges Row */}
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-lg font-semibold text-gray-900 flex-1">
-                  {formData.title}
-                </h3>
-                <div className="flex gap-1 flex-wrap">
-                  {isFeatured && (
-                    <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                      Featured
-                    </span>
-                  )}
-                </div>
+          <div style={{
+            padding: '20px', borderRadius: '16px',
+            background: '#FAFBFC', border: '2px dashed rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          }}>
+            <div style={{ ...cardBase, padding: '20px' }}>
+              {/* Title Row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0, flex: 1 }}>{formData.title}</h3>
+                {isFeatured && (
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px',
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                    boxShadow: '2px 2px 6px rgba(13,148,136,0.2)',
+                    whiteSpace: 'nowrap',
+                  }}>Featured</span>
+                )}
               </div>
 
-              {/* Company Name & Logo */}
-              <div className="flex items-center gap-3">
+              {/* Company */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                 {formData.companyLogoUrl && (
-                  <img
-                    src={formData.companyLogoUrl}
-                    alt={`${formData.companyName} logo`}
-                    className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                  <img src={formData.companyLogoUrl} alt={`${formData.companyName} logo`}
+                    style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(0,0,0,0.06)' }}
                   />
                 )}
-                <p className="text-gray-600">{formData.companyName}</p>
+                <span style={{ fontSize: '14px', color: '#6B7F8A' }}>{formData.companyName}</span>
               </div>
 
               {/* Location */}
-              <div className="flex items-center gap-1 text-gray-500 text-sm">
-                <MapPin size={16} />
-                <span>{formData.location}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: '#8A9BA6', marginBottom: '10px' }}>
+                <MapPin size={14} /> {formData.location}
               </div>
 
-              {/* Job Type and Mode Badges */}
-              <div className="flex gap-2 flex-wrap">
-                {formData.jobType && (
-                  <span className="inline-flex px-2 py-1 rounded bg-teal-100 text-teal-700 text-xs">
-                    {formData.jobType}
-                  </span>
-                )}
-                {formData.mode && (
-                  <span className="inline-flex px-2 py-1 rounded bg-teal-100 text-teal-700 text-xs">
-                    {formData.mode}
-                  </span>
-                )}
+              {/* Badges */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                {formData.jobType && <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>{formData.jobType}</span>}
+                {formData.mode && <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>{formData.mode}</span>}
+                {formData.setting && <span style={{ ...clayPill, background: '#EDE9FE', color: '#7C3AED' }}>{formData.setting}</span>}
+                {formData.population && <span style={{ ...clayPill, background: '#DBEAFE', color: '#2563EB' }}>{formData.population}</span>}
               </div>
 
-              {/* Salary */}
-              {salary && (
-                <p className="text-green-600 font-semibold">{salary}</p>
-              )}
-
-              {/* Clinical Details */}
-              {(formData.setting || formData.population) && (
-                <div className="flex gap-2 flex-wrap">
-                  {formData.setting && (
-                    <span className="inline-flex px-2 py-1 rounded bg-purple-100 text-purple-700 text-xs">
-                      {formData.setting}
-                    </span>
-                  )}
-                  {formData.population && (
-                    <span className="inline-flex px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
-                      {formData.population}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Posted Date */}
-              <p className="text-gray-400 text-sm">Just posted</p>
+              {salary && <p style={{ fontSize: '15px', fontWeight: 700, color: '#059669', margin: '0 0 6px' }}>{salary}</p>}
+              <p style={{ fontSize: '12px', color: '#B0BEC5' }}>Just posted</p>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Detail Page Preview */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Job detail page</h2>
-            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded">PREVIEW</span>
+        {/* Section 2: Detail Page */}
+        <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Job detail page</h2>
+            <span style={{ ...clayPill, background: '#F5F6F8', color: '#B0BEC5', fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px' }}>PREVIEW</span>
           </div>
 
-          <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-4 overflow-hidden">
-            <div className="bg-white rounded-lg p-6 overflow-hidden">
-              {/* Title and Company */}
-              <h1 className="text-2xl md:text-3xl font-bold mb-2">{formData.title}</h1>
-              <div className="flex items-center gap-3 mb-4">
+          <div style={{
+            padding: '20px', borderRadius: '16px',
+            background: '#FAFBFC', border: '2px dashed rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '8px' }}>
+              <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>{formData.title}</h1>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                 {formData.companyLogoUrl && (
-                  <img
-                    src={formData.companyLogoUrl}
-                    alt={`${formData.companyName} logo`}
-                    className="w-10 h-10 rounded-lg object-contain border border-gray-200"
+                  <img src={formData.companyLogoUrl} alt={`${formData.companyName} logo`}
+                    style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)' }}
                   />
                 )}
-                <p className="text-xl text-gray-600">{formData.companyName}</p>
+                <span style={{ fontSize: '16px', color: '#6B7F8A' }}>{formData.companyName}</span>
               </div>
 
-              {/* Metadata Row */}
-              <div className="flex flex-wrap gap-4 text-gray-600 mb-4">
-                <div className="flex items-center gap-2">
-                  <MapPin size={20} />
-                  <span>{formData.location}</span>
-                </div>
-                {formData.jobType && (
-                  <div className="flex items-center gap-2">
-                    <Briefcase size={20} />
-                    <span>{formData.jobType}</span>
-                  </div>
-                )}
-                {formData.mode && (
-                  <div className="flex items-center gap-2">
-                    <Monitor size={20} />
-                    <span>{formData.mode}</span>
-                  </div>
-                )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '13px', color: '#6B7F8A', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><MapPin size={16} /> {formData.location}</span>
+                {formData.jobType && <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Briefcase size={16} /> {formData.jobType}</span>}
+                {formData.mode && <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Monitor size={16} /> {formData.mode}</span>}
               </div>
 
-              {/* Salary */}
               {salary && (
-                <div className="mb-4">
-                  <p className="text-xl text-green-600 font-bold flex items-center gap-2">
-                    <DollarSign size={20} />
-                    {salary}
-                  </p>
-                </div>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: '#059669', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <DollarSign size={18} /> {salary}
+                </p>
               )}
 
-              {/* Description */}
-              <div className="mt-6">
-                <div
-                  className="text-gray-700 leading-relaxed text-sm prose prose-sm max-w-none break-words overflow-hidden"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
-                />
-              </div>
+              <div
+                style={{ fontSize: '14px', color: '#4A5568', lineHeight: 1.7, wordBreak: 'break-word', overflowWrap: 'anywhere', overflow: 'hidden' }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
+              />
 
-              {/* Benefits */}
               {formData.benefits && formData.benefits.length > 0 && (
-                <div className="mt-6">
-                  <h2 className="text-xl font-bold mb-3">Benefits & Perks</h2>
-                  <div className="flex flex-wrap gap-2">
+                <div style={{ marginTop: '24px' }}>
+                  <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Benefits & Perks</h2>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {formData.benefits.map((b) => (
-                      <span key={b} className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-medium">
-                        ✓ {b}
-                      </span>
+                      <span key={b} style={{ ...clayPill, background: '#D1FAE5', color: '#059669', fontSize: '12px' }}>✓ {b}</span>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Apply Button / Platform Info */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                 {formData.applyOnPlatform ? (
                   <div>
-                    <div className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold">
-                      Apply Now
-                    </div>
-                    <div className="mt-3 flex items-start gap-2 rounded-lg bg-teal-50 border border-teal-200 px-4 py-3">
-                      <span className="text-teal-500 text-base leading-none mt-0.5">✅</span>
-                      <p className="text-sm text-teal-800">
-                        Candidates will apply directly on this platform. Applications will be delivered to your employer dashboard and via email.
+                    <div style={{
+                      ...clayBtn,
+                      background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                      boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                    }}>Apply Now</div>
+                    <div style={{
+                      marginTop: '10px', padding: '10px 14px', borderRadius: '12px',
+                      background: '#F0FDFA', border: '1px solid #99F6E4',
+                      display: 'flex', alignItems: 'flex-start', gap: '8px',
+                    }}>
+                      <span style={{ color: '#0D9488', fontSize: '14px' }}>✅</span>
+                      <p style={{ fontSize: '12px', color: '#115E59', margin: 0, lineHeight: 1.5 }}>
+                        Candidates apply directly on this platform. Applications appear in your dashboard.
                       </p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <a
-                      href={formData.applyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
-                    >
-                      Apply Now
-                      <ExternalLink size={20} />
+                    <a href={formData.applyUrl} target="_blank" rel="noopener noreferrer" style={{
+                      ...clayBtn,
+                      background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                      boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                      textDecoration: 'none',
+                    }}>
+                      Apply Now <ExternalLink size={16} />
                     </a>
-                    <p className="mt-2 text-xs text-gray-500">Opens in a new tab — verify your apply link works correctly.</p>
+                    <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5' }}>Opens in a new tab — verify your link works.</p>
                   </>
                 )}
               </div>
@@ -342,88 +302,62 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        {/* Section 3: Pricing Summary — only shown when paid posting is enabled */}
-        {config.isPaidPostingEnabled ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Pricing Summary</h2>
-
-            <div className="flex items-center justify-between mb-4 pb-4 border-b">
-              <div>
-                <p className="font-semibold text-gray-900">
-                  {effectiveTier === 'premium' ? 'Premium Job Post' : effectiveTier === 'growth' ? 'Growth Job Post' : 'Starter Job Post'}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {effectiveTier === 'premium'
-                    ? '✓ Everything in Growth ✓ Unlimited unlocks ✓ 90 days active'
-                    : effectiveTier === 'growth'
-                      ? '✓ Priority placement ✓ Featured badge ✓ 60 days active'
-                      : '✓ 30 days active ✓ Email to subscribers'
-                  }
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{priceLabel}</p>
+        {/* Section 3: Features Summary */}
+        <div style={{ ...cardBase, padding: '20px', marginBottom: '24px', background: '#F0FDFA', border: '1px solid #99F6E4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'linear-gradient(145deg, #0D9488, #10B981)',
+              boxShadow: '3px 3px 8px rgba(13,148,136,0.2)',
+            }}>
+              <Check size={18} color="#fff" />
             </div>
-
-            <div className="text-sm text-gray-600">
-              <p>• Your job will go live immediately after payment</p>
-              <p>• Edit or update your listing anytime via email link</p>
-              <p>• Reach thousands of qualified PMHNPs actively looking</p>
+            <div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package Included</p>
+              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>60-day listing · Featured badge · Top placement · Analytics · 25 unlocks · 25 InMails</p>
             </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">Growth Package — Free during launch</p>
-                <p className="text-sm text-gray-500">Your job goes live immediately with all Growth features included.</p>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800 font-medium">{error}</p>
+          <div style={{ ...cardBase, padding: '14px 18px', marginBottom: '16px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626', margin: 0 }}>{error}</p>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 sticky bottom-4 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
-          <button
-            onClick={handleBack}
-            disabled={isLoading}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            Back to Edit
+        <div style={{
+          ...cardBase, padding: '16px 20px',
+          display: 'flex', flexDirection: 'row', gap: '12px',
+          position: 'sticky', bottom: '16px',
+        }}>
+          <button onClick={handleBack} disabled={isLoading} className="preview-btn" style={{
+            ...clayBtn, flex: 1, justifyContent: 'center',
+            background: '#F5F6F8', color: '#6B7F8A',
+          }}>
+            <ChevronLeft size={16} /> Back to Edit
           </button>
-          <button
-            onClick={handleContinue}
-            disabled={isLoading}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading
-              ? 'Processing...'
-              : config.isPaidPostingEnabled
-                ? 'Looks Good - Continue to Payment'
-                : 'Looks Good - Post Job (Free)'}
-            {!isLoading && (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
+          <button onClick={handleContinue} disabled={isLoading} className="preview-btn-primary" style={{
+            ...clayBtn, flex: 1, justifyContent: 'center',
+            background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.15)',
+            opacity: isLoading ? 0.6 : 1,
+          }}>
+            {isLoading ? (
+              <><Loader2 size={16} className="animate-spin" /> Processing...</>
+            ) : (
+              <>Looks Good — Post Job <ChevronRight size={16} /></>
             )}
           </button>
         </div>
       </div>
+
+      <style>{`
+        .preview-btn:hover { transform: translateY(-1px); }
+        .preview-btn-primary:hover { transform: translateY(-1px); box-shadow: 6px 6px 16px rgba(13,148,136,0.3), inset 1px 1px 2px rgba(255,255,255,0.15) !important; }
+      `}</style>
     </div>
   );
 }
-

@@ -20,13 +20,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    // Check if free posting is allowed
-    if (config.isPaidPostingEnabled) {
-      return NextResponse.json(
-        { error: 'Free posting is not enabled. Use /api/create-checkout instead.' },
-        { status: 403 }
-      );
-    }
+    // Free posting gate: check if this employer still has free posts remaining
 
     // Parse and sanitize request body
     const body = await request.json();
@@ -136,6 +130,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
       }
 
+      // Only employers can post jobs
+      if (profile.role !== 'employer') {
+        return NextResponse.json(
+          { error: 'Only employer accounts can post jobs. Please sign up as an employer.' },
+          { status: 403 }
+        );
+      }
+
       userId = user.id;
 
     } catch (error) {
@@ -185,11 +187,40 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
 
-    // Free-launch posts get Growth tier features (60 days, featured badge)
-    // Ignore any pricing tier from the request body to prevent feature spoofing
+    // Free post gate: count existing FREE posts by company DOMAIN
+    // Prevents abuse via john+1@acme.com, sarah@acme.com, etc.
+    const existingPostCount = await prisma.employerJob.count({
+      where: {
+        contactEmail: {
+          endsWith: `@${emailDomain}`,
+          mode: 'insensitive',
+        },
+        paymentStatus: 'free',
+      },
+    });
+
+    if (existingPostCount >= config.freePostsPerEmail) {
+      logger.info('Free post limit reached for domain', {
+        domain: emailDomain,
+        email: sanitized.contactEmail,
+        existingCount: existingPostCount,
+        limit: config.freePostsPerEmail,
+      });
+      return NextResponse.json(
+        {
+          error: `Your organization (${emailDomain}) has used all ${config.freePostsPerEmail} free posts. Additional posts cost $${config.postingPrice}.`,
+          requiresPayment: true,
+          freePostsUsed: existingPostCount,
+          freePostsLimit: config.freePostsPerEmail,
+        },
+        { status: 403 }
+      );
+    }
+
+    // All posts get the same features (60 days, featured, 25 unlocks, 25 InMails)
     const tierForDuration: PricingTier = 'growth';
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + config.getDurationDays(tierForDuration));
+    expiresAt.setDate(expiresAt.getDate() + config.durationDays);
 
     // Parse salary values
     const parsedMinSalary = (() => {

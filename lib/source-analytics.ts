@@ -153,8 +153,8 @@ export async function getSourcePerformance(
     // Calculate duplicate rate
     const duplicateRate = totalFetched > 0 ? totalDuplicates / totalFetched : 0;
 
-    // Cost per job (can be configured per source)
-    const costPerJob = null; // TODO: Add cost tracking
+    // Cost tracking is not implemented — all sources are currently free-tier aggregated feeds
+    const costPerJob = null;
 
     return {
       source,

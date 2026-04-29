@@ -17,7 +17,13 @@ const PRACTICE_SETTINGS = [
 ]
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface WExp { id: string;[key: string]: any }
+interface WExp {
+    id: string; jobTitle: string; employerName: string; employerCity?: string; employerState?: string;
+    startDate: string | null; endDate: string | null; isCurrent: boolean;
+    supervisorName?: string; supervisorPhone?: string; supervisorEmail?: string;
+    mayContact: boolean | null; reasonForLeaving?: string; description?: string;
+    practiceSetting?: string;
+}
 
 interface WForm {
     jobTitle: string; employerName: string; employerCity: string; employerState: string

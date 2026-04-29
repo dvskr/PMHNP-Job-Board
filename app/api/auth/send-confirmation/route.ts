@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
-import { emailShell, headerBlock, primaryButton, escapeHtml } from '@/lib/email-service'
+import {
+  emailShellV2, headerBlockV2, primaryButtonV2,
+  spacerV2, closeContentV2, noteCardV2, contactFooterV2,
+  V2, SANS, SERIF,
+} from '@/lib/email-templates-v2'
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 
@@ -59,32 +63,30 @@ export async function POST(request: NextRequest) {
     const confirmationUrl = data.properties.action_link
     logger.info('Generated confirmation link', { email: normalizedEmail, url: confirmationUrl })
 
-    // Build email using the shared design system
-    const html = emailShell(`
-          ${headerBlock('Confirm Your Email', 'One click to activate your account')}
-          <tr>
-            <td class="content-pad" style="padding: 32px 40px;">
-              <p style="margin: 0 0 24px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #E2E8F0; line-height: 1.7;">
-                Thanks for signing up for PMHNP Hiring! Please confirm your email address by clicking the button below.
-              </p>
-
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 24px;">
-                <tr>
-                  <td>
-                    ${primaryButton('✓ Confirm My Email', confirmationUrl)}
-                  </td>
-                </tr>
-              </table>
-
-              <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94A3B8; line-height: 1.6;">
-                If the button doesn't work, try opening this email on a different device or browser.
-              </p>
-            </td>
-          </tr>`,
-      `<p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #64748B;">
-        If you didn't create this account, you can safely ignore this email.
+    // Build email using the V2 Warm Diorama design system
+    const html = emailShellV2(`
+      ${headerBlockV2('Confirm Your Email', 'One click to activate your account')}
+      ${spacerV2(8)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <p style="margin:0 0 24px;font-family:${SERIF};font-size:19px;color:${V2.textBody};line-height:1.6;">
+          Thanks for signing up for PMHNP Hiring! Please confirm your email address by clicking the button below.
+        </p>
+      </td></tr>
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
+        ${primaryButtonV2('\u2713 Confirm My Email', confirmationUrl)}
+      </td></tr>
+      ${spacerV2(24)}
+      ${noteCardV2(`
+        <p style="margin:0;font-family:${SANS};font-size:13px;color:${V2.textMuted};line-height:1.6;">
+          If the button doesn\u2019t work, try opening this email on a different device or browser.
+        </p>
+      `)}
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      `<p style="margin:0;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
+        If you didn\u2019t create this account, you can safely ignore this email.
       </p>`,
-      'Confirm your PMHNP Hiring account — one click to activate!'
+      'Confirm your PMHNP Hiring account \u2014 one click to activate!'
     )
 
     // Send via Resend and log to EmailSend

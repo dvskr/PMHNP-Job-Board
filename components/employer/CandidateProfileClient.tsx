@@ -50,6 +50,36 @@ function getExperienceLabel(years: number | null): string | null {
     return EXPERIENCE_LABELS[0];
 }
 
+/* ═══ CLAY TOKENS ═══ */
+const cardBase: React.CSSProperties = {
+    background: '#FFFFFF',
+    borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '8px 8px 20px rgba(0,0,0,0.06), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+};
+
+const recessedPill: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '10px',
+    border: '1px solid #E8F0EB',
+    boxShadow: 'inset 1px 1px 3px rgba(0,60,50,0.04), inset -1px -1px 2px rgba(255,255,255,0.3)',
+};
+
+const clayBtn: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '7px',
+    padding: '10px 20px', borderRadius: '12px',
+    fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
+    transition: 'all 0.2s', textDecoration: 'none',
+};
+
+const sectionLabel: React.CSSProperties = {
+    fontSize: '10px', fontWeight: 700, color: '#B0C4BC',
+    textTransform: 'uppercase', letterSpacing: '0.08em',
+    marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px',
+};
+
 export default function CandidateProfileClient({ candidateId }: { candidateId: string }) {
     const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -74,7 +104,6 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                 setLoading(false);
             }
         })();
-        // Also fetch employer's postings to get jobId for InMail tracking
         (async () => {
             try {
                 const res = await fetch('/api/employer/usage');
@@ -94,472 +123,348 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
 
     if (loading) {
         return (
-            <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '80px', textAlign: 'center' }}>
-                <Loader2 size={36} className="animate-spin" style={{ color: '#2DD4BF', margin: '0 auto 16px' }} />
-                <p style={{ color: 'var(--text-secondary)' }}>Loading candidate profile…</p>
+            <div style={{ background: '#F5F6F8', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <Loader2 size={32} className="animate-spin" style={{ color: '#0D9488', marginBottom: '12px' }} />
+                    <p style={{ color: '#8A9BA6', fontSize: '14px' }}>Loading candidate profile…</p>
+                </div>
             </div>
         );
     }
 
     if (error || !candidate) {
         return (
-            <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '80px', textAlign: 'center' }}>
-                <Shield size={40} style={{ color: 'var(--text-tertiary)', margin: '0 auto 12px' }} />
-                <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                    {error || 'Profile not available'}
-                </h2>
-                <Link
-                    href="/employer/candidates"
-                    style={{ color: '#2DD4BF', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}
-                >
-                    ← Back to Talent Pool
-                </Link>
+            <div style={{ background: '#F5F6F8', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '420px' }}>
+                    <Shield size={36} style={{ color: '#B0C4BC', marginBottom: '12px' }} />
+                    <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '8px' }}>
+                        {error || 'Profile not available'}
+                    </h2>
+                    <Link href="/employer/candidates" style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>
+                        ← Back to Talent Pool
+                    </Link>
+                </div>
             </div>
         );
     }
 
     const expLabel = getExperienceLabel(candidate.yearsExperience);
-
-    const sectionStyle: React.CSSProperties = {
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        paddingTop: '24px',
-        paddingRight: '24px',
-        paddingBottom: '24px',
-        paddingLeft: '24px',
-        marginBottom: '16px',
-    };
-
-    const labelStyle: React.CSSProperties = {
-        fontSize: '12px',
-        fontWeight: 600,
-        color: 'var(--text-tertiary)',
-        textTransform: 'uppercase',
-        marginBottom: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-    };
+    const safeCerts = candidate.certifications || [];
+    const safeSpecs = candidate.specialties || [];
+    const safeStates = candidate.licenseStates || [];
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '24px', paddingRight: '16px', paddingBottom: '48px', paddingLeft: '16px' }}>
-            {/* Back Link */}
-            <Link
-                href="/employer/candidates"
-                style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'var(--text-secondary)',
-                    textDecoration: 'none',
-                    marginBottom: '24px',
-                }}
-            >
-                <ArrowLeft size={16} /> Back to Talent Pool
-            </Link>
+        <div style={{ background: '#F5F6F8' }}>
+            {/* Header band */}
+            <div style={{
+                padding: '20px 16px',
+                background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
+                borderBottom: '1px solid #E5E7EB',
+            }}>
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                    <Link href="/employer/candidates" className="cp-back-link" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        fontSize: '13px', fontWeight: 600, color: '#8A9BA6', textDecoration: 'none',
+                    }}>
+                        <ArrowLeft size={15} /> Back to Talent Pool
+                    </Link>
+                </div>
+            </div>
 
-            {/* Profile Header */}
-            <div style={{ ...sectionStyle, display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                {/* Avatar */}
-                <div
-                    style={{
-                        width: '72px',
-                        height: '72px',
-                        borderRadius: '18px',
+            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px 16px 48px' }}>
+
+                {/* ═══ Profile Header ═══ */}
+                <div style={{ ...cardBase, padding: '24px', marginBottom: '14px', display: 'flex', gap: '18px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div style={{
+                        width: '72px', height: '72px', borderRadius: '20px',
                         background: candidate.avatarUrl
                             ? `url(${candidate.avatarUrl}) center/cover`
-                            : 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontWeight: 800,
-                        fontSize: '24px',
-                        flexShrink: 0,
-                    }}
-                >
-                    {!candidate.avatarUrl && candidate.initials}
-                </div>
-
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                    <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                        {candidate.displayName}
-                    </h1>
-                    {candidate.headline && (
-                        <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
-                            {candidate.headline}
-                        </p>
-                    )}
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {expLabel && (
-                            <span style={{
-                                fontSize: '12px', fontWeight: 600, padding: '4px 10px',
-                                borderRadius: '8px', backgroundColor: 'rgba(45,212,191,0.12)', color: '#2DD4BF',
-                            }}>
-                                {expLabel}
-                            </span>
-                        )}
-                        {candidate.hasResume && (
-                            <span style={{
-                                fontSize: '12px', fontWeight: 600, padding: '4px 10px',
-                                borderRadius: '8px', backgroundColor: 'rgba(59,130,246,0.12)', color: '#60A5FA',
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                            }}>
-                                <FileText size={12} /> Resume Available
-                            </span>
-                        )}
-                        {candidate.preferredWorkMode && (
-                            <span style={{
-                                fontSize: '12px', fontWeight: 600, padding: '4px 10px',
-                                borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)',
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                            }}>
-                                <Briefcase size={12} /> {candidate.preferredWorkMode}
-                            </span>
-                        )}
+                            : 'linear-gradient(145deg, #10B981, #0D9488)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontWeight: 800, fontSize: '24px', flexShrink: 0,
+                        boxShadow: '4px 4px 12px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.3)',
+                    }}>
+                        {!candidate.avatarUrl && candidate.initials}
                     </div>
-                    {/* Contact Candidate Button */}
-                    {candidate.hasFullAccess && (
-                        <button
-                            onClick={() => setShowCompose(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all mt-3"
-                            style={{ background: 'linear-gradient(135deg, #14B8A6, #0D9488)', boxShadow: '0 2px 8px rgba(20,184,166,0.3)' }}
-                        >
-                            <Mail size={16} /> Contact Candidate
-                        </button>
-                    )}
-                </div>
-            </div>
 
-            {/* Bio */}
-            {candidate.bio && (
-                <div style={sectionStyle}>
-                    <h3 style={labelStyle}>About</h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
-                        {candidate.bio}
-                    </p>
-                </div>
-            )}
-
-            {/* Credentials */}
-            <div style={sectionStyle}>
-                <h3 style={labelStyle}><Award size={14} /> Credentials</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Certifications */}
-                    {candidate.certifications.length > 0 && (
-                        <div>
-                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Certifications</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {candidate.certifications.map(c => (
-                                    <span key={c} style={{
-                                        fontSize: '12px', fontWeight: 600, padding: '5px 12px',
-                                        borderRadius: '8px', backgroundColor: 'rgba(45,212,191,0.1)',
-                                        color: '#2DD4BF', border: '1px solid rgba(45,212,191,0.2)',
-                                    }}>
-                                        {c}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Specialties */}
-                    {candidate.specialties.length > 0 && (
-                        <div>
-                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Specialties</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {candidate.specialties.map(s => (
-                                    <span key={s} style={{
-                                        fontSize: '12px', padding: '5px 12px',
-                                        borderRadius: '8px', backgroundColor: 'rgba(139,92,246,0.1)',
-                                        color: '#A78BFA', border: '1px solid rgba(139,92,246,0.2)',
-                                    }}>
-                                        {s}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Licensed States */}
-                    {candidate.licenseStates.length > 0 && (
-                        <div>
-                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <MapPin size={13} /> Licensed States
-                            </p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                                {candidate.licenseStates.map(st => (
-                                    <span key={st} style={{
-                                        fontSize: '12px', padding: '4px 8px',
-                                        borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.06)',
-                                        color: 'var(--text-secondary)',
-                                    }}>
-                                        {st}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Preferences */}
-            <div style={sectionStyle}>
-                <h3 style={labelStyle}><Calendar size={14} /> Preferences & Availability</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-                    {candidate.preferredJobType && (
-                        <div>
-                            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Job Type</p>
-                            <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, margin: 0 }}>{candidate.preferredJobType}</p>
-                        </div>
-                    )}
-                    {candidate.preferredWorkMode && (
-                        <div>
-                            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Work Mode</p>
-                            <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, margin: 0 }}>{candidate.preferredWorkMode}</p>
-                        </div>
-                    )}
-                    {candidate.salaryRange && (
-                        <div>
-                            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <DollarSign size={12} /> Desired Salary Range
-                            </p>
-                            <p style={{ fontSize: '14px', color: '#2DD4BF', fontWeight: 700, margin: 0 }}>{candidate.salaryRange}</p>
-                        </div>
-                    )}
-                    {candidate.availableDate && (
-                        <div>
-                            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Clock size={12} /> Available
-                            </p>
-                            <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600, margin: 0 }}>
-                                {new Date(candidate.availableDate) <= new Date()
-                                    ? 'Immediately'
-                                    : new Date(candidate.availableDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Action Buttons — gated behind active paid job post */}
-            {candidate.hasFullAccess ? (
-                <div style={{
-                    ...sectionStyle,
-                    display: 'flex',
-                    gap: '12px',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                }}>
-                    {/* Contact Candidate */}
-                    {!showContact ? (
-                        <button
-                            onClick={() => setShowContact(true)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                paddingTop: '12px',
-                                paddingRight: '24px',
-                                paddingBottom: '12px',
-                                paddingLeft: '24px',
-                                borderRadius: '12px',
-                                border: 'none',
-                                background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-                                color: '#fff',
-                                fontWeight: 700,
-                                fontSize: '14px',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <Mail size={16} /> Contact Candidate
-                        </button>
-                    ) : (
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            paddingTop: '12px',
-                            paddingRight: '20px',
-                            paddingBottom: '12px',
-                            paddingLeft: '20px',
-                            borderRadius: '12px',
-                            backgroundColor: 'rgba(45,212,191,0.08)',
-                            border: '1px solid rgba(45,212,191,0.2)',
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                        <h1 style={{
+                            fontSize: '24px', fontWeight: 800,
+                            fontFamily: 'var(--font-lora), Georgia, serif',
+                            color: '#1A2E35', margin: '0 0 4px',
                         }}>
-                            <Mail size={16} style={{ color: '#2DD4BF' }} />
-                            <a
-                                href={`mailto:${candidate.contactEmail}`}
-                                style={{ color: '#2DD4BF', fontWeight: 600, fontSize: '14px' }}
-                            >
-                                {candidate.contactEmail}
+                            {candidate.displayName}
+                        </h1>
+                        {candidate.headline && (
+                            <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 10px' }}>
+                                {candidate.headline}
+                                {candidate.yearsExperience !== null && ` | ${candidate.yearsExperience} years experience`}
+                            </p>
+                        )}
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                            {expLabel && (
+                                <span style={{ ...recessedPill, background: '#CCFBF1', color: '#0D9488', border: '1px solid #99F6E4' }}>
+                                    {expLabel}
+                                </span>
+                            )}
+                            {candidate.hasResume && (
+                                <span style={{ ...recessedPill, background: '#DBEAFE', color: '#2563EB', border: '1px solid #BFDBFE' }}>
+                                    <FileText size={11} /> Resume Available
+                                </span>
+                            )}
+                            {candidate.preferredWorkMode && (
+                                <span style={{ ...recessedPill, background: '#F4F8F5', color: '#6B7F8A' }}>
+                                    <Briefcase size={11} /> {candidate.preferredWorkMode}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Quick Actions */}
+                        {candidate.hasFullAccess && (
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <button onClick={() => setShowCompose(true)} className="cp-action-btn" style={{
+                                    ...clayBtn,
+                                    background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff', border: 'none',
+                                    boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                }}>
+                                    <Mail size={15} /> Contact Candidate
+                                </button>
+                                {candidate.hasResume && candidate.resumeUrl && (
+                                    <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                                        ...clayBtn, background: '#FFFFFF', color: '#2A4A5A',
+                                    }}>
+                                        <FileText size={15} /> Download Resume
+                                    </a>
+                                )}
+                                {candidate.linkedinUrl && (
+                                    <a href={candidate.linkedinUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                                        ...clayBtn, background: '#FFFFFF', color: '#0A66C2',
+                                    }}>
+                                        <Linkedin size={15} /> LinkedIn
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ═══ Bio ═══ */}
+                {candidate.bio && (
+                    <div style={{ ...cardBase, padding: '20px 24px', marginBottom: '14px' }}>
+                        <p style={{ ...sectionLabel }}><ExternalLink size={12} /> About</p>
+                        <p style={{ fontSize: '14px', color: '#2A4A5A', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
+                            {candidate.bio}
+                        </p>
+                    </div>
+                )}
+
+                {/* ═══ Credentials ═══ */}
+                {(safeSpecs.length > 0 || safeCerts.length > 0 || safeStates.length > 0) && (
+                    <div style={{ ...cardBase, padding: '20px 24px', marginBottom: '14px' }}>
+                        <p style={{ ...sectionLabel }}><Award size={12} /> Credentials</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {safeSpecs.length > 0 && (
+                                <div>
+                                    <p style={{ fontSize: '12px', color: '#8A9BA6', marginBottom: '6px', fontWeight: 500 }}>Specialties</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                        {safeSpecs.map(s => (
+                                            <span key={s} style={{ ...recessedPill, background: '#EDE9FE', color: '#7C3AED', border: '1px solid #DDD6FE' }}>
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {safeCerts.length > 0 && (
+                                <div>
+                                    <p style={{ fontSize: '12px', color: '#8A9BA6', marginBottom: '6px', fontWeight: 500 }}>Certifications</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                        {safeCerts.map(c => (
+                                            <span key={c} style={{ ...recessedPill, background: '#CCFBF1', color: '#0D9488', border: '1px solid #99F6E4' }}>
+                                                {c}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {safeStates.length > 0 && (
+                                <div>
+                                    <p style={{ fontSize: '12px', color: '#8A9BA6', marginBottom: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <MapPin size={11} /> Licensed States
+                                    </p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                        {safeStates.map(st => (
+                                            <span key={st} style={{
+                                                fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '8px',
+                                                background: '#F4F8F5', color: '#6B7F8A', border: '1px solid #E8F0EB',
+                                            }}>
+                                                {st}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══ Preferences & Availability ═══ */}
+                {(candidate.preferredJobType || candidate.preferredWorkMode || candidate.salaryRange || candidate.availableDate) && (
+                    <div style={{ ...cardBase, padding: '20px 24px', marginBottom: '14px' }}>
+                        <p style={{ ...sectionLabel }}><Calendar size={12} /> Preferences & Availability</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px' }}>
+                            {candidate.preferredJobType && (
+                                <div>
+                                    <p style={{ fontSize: '11px', color: '#B0C4BC', marginBottom: '3px' }}>Job Type</p>
+                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>{candidate.preferredJobType}</p>
+                                </div>
+                            )}
+                            {candidate.preferredWorkMode && (
+                                <div>
+                                    <p style={{ fontSize: '11px', color: '#B0C4BC', marginBottom: '3px' }}>Work Mode</p>
+                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>{candidate.preferredWorkMode}</p>
+                                </div>
+                            )}
+                            {candidate.salaryRange && (
+                                <div>
+                                    <p style={{ fontSize: '11px', color: '#B0C4BC', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <DollarSign size={10} /> Desired Salary
+                                    </p>
+                                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#0D9488', margin: 0 }}>{candidate.salaryRange}</p>
+                                </div>
+                            )}
+                            {candidate.availableDate && (
+                                <div>
+                                    <p style={{ fontSize: '11px', color: '#B0C4BC', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <Clock size={10} /> Available
+                                    </p>
+                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>
+                                        {new Date(candidate.availableDate) <= new Date()
+                                            ? 'Immediately'
+                                            : new Date(candidate.availableDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══ Contact Actions (full access) ═══ */}
+                {candidate.hasFullAccess ? (
+                    <div style={{ ...cardBase, padding: '20px 24px', marginBottom: '14px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {!showContact ? (
+                            <button onClick={() => setShowContact(true)} className="cp-action-btn" style={{
+                                ...clayBtn,
+                                background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff', border: 'none',
+                                boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            }}>
+                                <Mail size={15} /> Contact Candidate
+                            </button>
+                        ) : (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '10px 16px', borderRadius: '12px',
+                                background: '#CCFBF1', border: '1px solid #99F6E4',
+                            }}>
+                                <Mail size={15} style={{ color: '#0D9488' }} />
+                                <a href={`mailto:${candidate.contactEmail}`} style={{ color: '#0D9488', fontWeight: 600, fontSize: '14px' }}>
+                                    {candidate.contactEmail}
+                                </a>
+                            </div>
+                        )}
+                        {candidate.hasResume && candidate.resumeUrl && (
+                            <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                                ...clayBtn, background: '#FFFFFF', color: '#2A4A5A',
+                            }}>
+                                <FileText size={15} /> Download Resume
                             </a>
-                        </div>
-                    )}
-
-                    {/* Download Resume */}
-                    {candidate.hasResume && candidate.resumeUrl && (
-                        <a
-                            href={candidate.resumeUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                paddingTop: '12px',
-                                paddingRight: '24px',
-                                paddingBottom: '12px',
-                                paddingLeft: '24px',
-                                borderRadius: '12px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                fontWeight: 600,
-                                fontSize: '14px',
-                                textDecoration: 'none',
-                            }}
-                        >
-                            <FileText size={16} /> Download Resume
-                        </a>
-                    )}
-
-                    {/* LinkedIn */}
-                    {candidate.linkedinUrl && (
-                        <a
-                            href={candidate.linkedinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                paddingTop: '12px',
-                                paddingRight: '24px',
-                                paddingBottom: '12px',
-                                paddingLeft: '24px',
-                                borderRadius: '12px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-secondary)',
-                                color: '#0A66C2',
-                                fontWeight: 600,
-                                fontSize: '14px',
-                                textDecoration: 'none',
-                            }}
-                        >
-                            <Linkedin size={16} /> LinkedIn Profile
-                        </a>
-                    )}
-                </div>
-            ) : (
-                /* Upgrade CTA — employer has no active featured post */
-                <div style={{
-                    ...sectionStyle,
-                    background: 'linear-gradient(135deg, rgba(45,212,191,0.06) 0%, rgba(139,92,246,0.06) 100%)',
-                    border: '1px solid rgba(45,212,191,0.25)',
-                    textAlign: 'center',
-                    paddingTop: '32px',
-                    paddingBottom: '32px',
-                }}>
-                    <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '16px',
-                        background: 'linear-gradient(135deg, rgba(45,212,191,0.15), rgba(139,92,246,0.15))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 16px',
-                    }}>
-                        <Lock size={24} style={{ color: '#2DD4BF' }} />
+                        )}
+                        {candidate.linkedinUrl && (
+                            <a href={candidate.linkedinUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                                ...clayBtn, background: '#FFFFFF', color: '#0A66C2',
+                            }}>
+                                <Linkedin size={15} /> LinkedIn Profile
+                            </a>
+                        )}
                     </div>
-                    <h3 style={{
-                        fontSize: '18px',
-                        fontWeight: 800,
-                        color: 'var(--text-primary)',
-                        margin: '0 0 8px',
-                    }}>
-                        Unlock Full Candidate Access
-                    </h3>
-                    <p style={{
-                        fontSize: '14px',
-                        color: 'var(--text-secondary)',
-                        margin: '0 0 6px',
-                        lineHeight: 1.6,
-                    }}>
-                        To protect candidate privacy, contact info, resume, and LinkedIn
-                        access is exclusively available to employers with an active{' '}
-                        <strong>Featured</strong> job posting.
-                    </p>
-                    <p style={{
-                        fontSize: '13px',
-                        color: 'var(--text-tertiary)',
-                        margin: '0 0 16px',
-                        lineHeight: 1.5,
-                    }}>
-                        Free job postings do not include candidate unlocking.
-                    </p>
+                ) : (
+                    /* ═══ Upgrade CTA ═══ */
                     <div style={{
-                        display: 'flex',
-                        gap: '16px',
-                        flexWrap: 'wrap',
-                        justifyContent: 'center',
-                        marginBottom: '20px',
+                        ...cardBase, padding: '32px 24px', marginBottom: '14px', textAlign: 'center',
+                        background: 'linear-gradient(145deg, #FFFFFF 0%, #F8F9FB 100%)',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                            <Mail size={14} style={{ color: '#2DD4BF' }} /> Direct email
+                        <div style={{
+                            width: '56px', height: '56px', borderRadius: '18px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 14px',
+                            background: 'linear-gradient(145deg, #EDE9FE, #DBEAFE)',
+                            boxShadow: '4px 4px 12px rgba(0,0,0,0.06), -3px -3px 8px rgba(255,255,255,0.9)',
+                        }}>
+                            <Lock size={24} style={{ color: '#7C3AED' }} />
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                            <FileText size={14} style={{ color: '#60A5FA' }} /> Resume download
+                        <h3 style={{
+                            fontSize: '18px', fontWeight: 700,
+                            fontFamily: 'var(--font-lora), Georgia, serif',
+                            color: '#1A2E35', marginBottom: '6px',
+                        }}>
+                            Unlock Full Candidate Access
+                        </h3>
+                        <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '4px', lineHeight: 1.6 }}>
+                            Contact info, resume, and LinkedIn access requires an active job posting with remaining unlocks.
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#B0C4BC', marginBottom: '18px' }}>
+                            Post a job to unlock candidate profiles (first 2 posts are free).
+                        </p>
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '18px' }}>
+                            {[
+                                { icon: <Mail size={13} />, label: 'Direct email', color: '#0D9488' },
+                                { icon: <FileText size={13} />, label: 'Resume download', color: '#2563EB' },
+                                { icon: <Linkedin size={13} />, label: 'LinkedIn profile', color: '#0A66C2' },
+                            ].map(f => (
+                                <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#8A9BA6' }}>
+                                    <span style={{ color: f.color }}>{f.icon}</span> {f.label}
+                                </div>
+                            ))}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                            <Linkedin size={14} style={{ color: '#0A66C2' }} /> LinkedIn profile
-                        </div>
+                        <a href="/post-job" className="cp-action-btn" style={{
+                            ...clayBtn,
+                            background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff', border: 'none',
+                            padding: '12px 24px', fontSize: '14px',
+                            boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                        }}>
+                            Post a Featured Job to Unlock →
+                        </a>
                     </div>
-                    <a
-                        href="/post-job"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            paddingTop: '14px',
-                            paddingRight: '28px',
-                            paddingBottom: '14px',
-                            paddingLeft: '28px',
-                            borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #2DD4BF, #14B8A6)',
-                            color: '#fff',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            textDecoration: 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            boxShadow: '0 4px 15px rgba(45,212,191,0.3)',
-                        }}
-                    >
-                        Post a Featured Job to Unlock →
-                    </a>
-                </div>
-            )}
+                )}
 
-            {/* Member since */}
-            <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                Member since {new Date(candidate.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </p>
+                {/* Member since */}
+                <p style={{ textAlign: 'center', fontSize: '11px', color: '#B0C4BC', marginTop: '8px' }}>
+                    Member since {new Date(candidate.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </p>
 
-            {/* Compose Message Modal */}
-            {showCompose && (
-                <ComposeMessageModal
-                    recipientId={candidate.id}
-                    recipientName={candidate.displayName}
-                    jobId={postingJobId}
-                    jobTitle={postingJobTitle}
-                    onClose={() => setShowCompose(false)}
-                    onSent={() => setShowCompose(false)}
-                />
-            )}
+                {/* Compose Message Modal */}
+                {showCompose && (
+                    <ComposeMessageModal
+                        recipientId={candidate.id}
+                        recipientName={candidate.displayName}
+                        jobId={postingJobId}
+                        jobTitle={postingJobTitle}
+                        onClose={() => setShowCompose(false)}
+                        onSent={() => setShowCompose(false)}
+                    />
+                )}
+            </div>
+
+            {/* Hover styles */}
+            <style>{`
+                .cp-action-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 5px 5px 14px rgba(0,0,0,0.09), -3px -3px 8px rgba(255,255,255,0.9) !important;
+                }
+                .cp-back-link:hover {
+                    color: #0D9488 !important;
+                }
+            `}</style>
         </div>
     );
 }

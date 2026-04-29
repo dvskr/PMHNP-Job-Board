@@ -25,15 +25,7 @@ export async function GET() {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     try {
-        // Gate: Advanced analytics requires Growth or Premium tier
-        const tier = await getEmployerTier(user.id);
-        if (tier === 'starter') {
-            return NextResponse.json({
-                error: 'Advanced analytics requires a Growth or Premium posting',
-                tier,
-                upgradeRequired: true,
-            }, { status: 403 });
-        }
+        // Single-tier model: all employers get full analytics
 
         // Get platform-wide averages from published employer jobs
         const allEmployerJobs = await prisma.employerJob.findMany({

@@ -58,6 +58,42 @@ interface JobOption {
     title: string;
 }
 
+/* ═══ Clay Design Tokens ═══ */
+const cardBase: React.CSSProperties = {
+    background: '#FFFFFF',
+    borderRadius: '20px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+    transition: 'all 0.2s ease',
+};
+
+const clayBtn: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '5px',
+    padding: '7px 14px', borderRadius: '12px',
+    fontSize: '12px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.5)',
+    boxShadow: '3px 3px 8px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.6)',
+    cursor: 'pointer', transition: 'all 0.2s ease',
+    textDecoration: 'none',
+};
+
+const recessedPill: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    padding: '6px 14px', borderRadius: '20px',
+    fontSize: '12px', fontWeight: 600,
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.06), inset -1px -1px 2px rgba(255,255,255,0.4)',
+    cursor: 'pointer', transition: 'all 0.2s ease',
+};
+
+const selectBase: React.CSSProperties = {
+    ...clayBtn,
+    padding: '8px 14px',
+    background: '#FFFFFF',
+    color: '#374151',
+    appearance: 'auto' as const,
+};
+
 export default function ApplicantsTab() {
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [jobs, setJobs] = useState<JobOption[]>([]);
@@ -212,8 +248,12 @@ export default function ApplicantsTab() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+                <div style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    border: '3px solid #E5E7EB', borderTopColor: '#0D9488',
+                    animation: 'spin 0.8s linear infinite',
+                }} />
             </div>
         );
     }
@@ -221,38 +261,36 @@ export default function ApplicantsTab() {
     return (
         <>
             <div>
-                {/* Pipeline Summary */}
-                <div className="flex flex-wrap gap-2 mb-6">
+                {/* Pipeline Summary — Clay Recessed Pills */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                     {STATUSES.map(s => (
                         <button
                             key={s.value}
                             onClick={() => setStatusFilter(statusFilter === s.value ? 'all' : s.value)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+                            className="app-pipeline-pill"
                             style={{
+                                ...recessedPill,
                                 backgroundColor: statusFilter === s.value ? s.color : s.bg,
                                 color: statusFilter === s.value ? '#fff' : s.color,
-                                border: `1.5px solid ${s.color}`,
                                 opacity: statusCounts[s.value] === 0 ? 0.5 : 1,
+                                boxShadow: statusFilter === s.value
+                                    ? `3px 3px 8px rgba(0,0,0,0.1), inset 2px 2px 4px rgba(0,0,0,0.15), inset -1px -1px 2px rgba(255,255,255,0.2)`
+                                    : recessedPill.boxShadow,
                             }}
                         >
                             {s.label}
-                            <span className="font-bold">{statusCounts[s.value]}</span>
+                            <span style={{ fontWeight: 800 }}>{statusCounts[s.value]}</span>
                         </button>
                     ))}
                 </div>
 
-                {/* Filters & Sorting */}
-                <div className="flex flex-wrap gap-3 mb-4">
+                {/* Filters & Sorting — Clay Controls */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
                     {jobs.length > 1 && (
                         <select
                             value={jobFilter}
                             onChange={(e) => setJobFilter(e.target.value)}
-                            className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                            style={{
-                                backgroundColor: 'var(--bg-tertiary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                            }}
+                            style={selectBase}
                         >
                             <option value="all">All Jobs</option>
                             {jobs.map(j => (
@@ -263,14 +301,9 @@ export default function ApplicantsTab() {
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                        className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                        style={{
-                            backgroundColor: 'var(--bg-tertiary)',
-                            color: 'var(--text-primary)',
-                            border: '1px solid var(--border-color)',
-                        }}
+                        style={selectBase}
                     >
-                    <option value="newest">Newest First</option>
+                        <option value="newest">Newest First</option>
                         <option value="oldest">Oldest First</option>
                         <option value="aiScore">AI Score (Highest)</option>
                         <option value="name">Name A-Z</option>
@@ -281,33 +314,31 @@ export default function ApplicantsTab() {
                     {applicants.length > 0 && (
                         <button
                             onClick={handleExportCsv}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                            style={{
-                                backgroundColor: 'var(--bg-tertiary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                            }}
+                            style={{ ...clayBtn, background: '#FFFFFF', color: '#374151' }}
                         >
-                            <Download size={14} /> Export CSV
+                            <Download size={13} /> Export CSV
                         </button>
                     )}
                 </div>
 
                 {/* Bulk Actions Bar */}
                 {selectedIds.size > 0 && (
-                    <div className="flex items-center gap-3 mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.3)' }}>
-                        <span className="text-sm font-medium" style={{ color: '#14B8A6' }}>{selectedIds.size} selected</span>
+                    <div style={{
+                        ...cardBase, padding: '12px 16px', marginBottom: '16px',
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        background: '#F0FDFA', border: '1px solid #99F6E4',
+                    }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>{selectedIds.size} selected</span>
                         <select
                             onChange={(e) => { if (e.target.value) handleBulkStatusChange(e.target.value); e.target.value = ''; }}
                             disabled={bulkUpdating}
-                            className="px-3 py-1.5 rounded-lg text-sm font-medium"
-                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+                            style={{ ...selectBase, fontSize: '12px', padding: '6px 10px' }}
                             defaultValue=""
                         >
                             <option value="" disabled>Change status to...</option>
                             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                         </select>
-                        <button onClick={() => setSelectedIds(new Set())} className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Clear</button>
+                        <button onClick={() => setSelectedIds(new Set())} style={{ fontSize: '12px', color: '#8A9BA6', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>
                     </div>
                 )}
 
@@ -336,102 +367,103 @@ export default function ApplicantsTab() {
 
                 {/* Applicants List */}
                 {applicants.length === 0 ? (
-                    <div className="text-center py-12 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <User size={40} className="mx-auto mb-3" style={{ color: 'var(--text-tertiary)' }} />
-                        <p className="text-lg font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                    <div style={{
+                        ...cardBase, padding: '48px 24px', textAlign: 'center',
+                    }}>
+                        <User size={36} style={{ color: '#B0BEC5', margin: '0 auto 12px' }} />
+                        <p style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
                             No applicants {statusFilter !== 'all' ? `with status "${getStatusInfo(statusFilter).label}"` : 'yet'}
                         </p>
-                        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                        <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0 }}>
                             Applicants will appear here when candidates apply to your jobs.
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {/* Select All */}
-                        <div className="flex items-center gap-2 px-2 pb-1">
-                            <button onClick={toggleSelectAll} className="p-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 8px' }}>
+                            <button onClick={toggleSelectAll} style={{ padding: '2px', color: '#8A9BA6', background: 'none', border: 'none', cursor: 'pointer' }}>
                                 {selectedIds.size === applicants.length && applicants.length > 0 ? <CheckSquare size={16} /> : <Square size={16} />}
                             </button>
-                            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Select all</span>
+                            <span style={{ fontSize: '12px', color: '#8A9BA6' }}>Select all</span>
                         </div>
                         {applicants.map(app => {
                             const statusInfo = getStatusInfo(app.status);
                             return (
                                 <div
                                     key={app.id}
-                                    className="rounded-lg p-5 transition-shadow hover:shadow-md"
+                                    className="app-card"
                                     style={{
-                                        backgroundColor: 'var(--bg-secondary)',
-                                        border: selectedIds.has(app.id) ? '1.5px solid #14B8A6' : '1px solid var(--border-color)',
+                                        ...cardBase,
+                                        padding: '20px',
+                                        border: selectedIds.has(app.id) ? '1.5px solid #0D9488' : '1px solid rgba(0,0,0,0.06)',
                                     }}
                                 >
                                     {/* Row 1: Candidate info + Actions */}
-                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px' }}>
                                         {/* Candidate Info */}
-                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: 0 }}>
                                             {/* Select Checkbox */}
                                             <button
                                                 onClick={() => toggleSelect(app.id)}
-                                                className="flex-shrink-0 mt-1"
-                                                style={{ color: selectedIds.has(app.id) ? '#14B8A6' : 'var(--text-tertiary)' }}
+                                                style={{ flexShrink: 0, marginTop: '4px', color: selectedIds.has(app.id) ? '#0D9488' : '#B0BEC5', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
                                                 {selectedIds.has(app.id) ? <CheckSquare size={16} /> : <Square size={16} />}
                                             </button>
-                                            {/* Avatar */}
+                                            {/* Avatar — Clay Pebble */}
                                             <div
-                                                className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
                                                 style={{
+                                                    flexShrink: 0, width: '40px', height: '40px', borderRadius: '14px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: '14px', fontWeight: 700, color: '#fff',
                                                     background: app.candidate.avatarUrl
                                                         ? `url(${app.candidate.avatarUrl}) center/cover`
-                                                        : 'linear-gradient(135deg, #2DD4BF, #0D9488)',
-                                                    color: '#fff',
+                                                        : 'linear-gradient(145deg, #0D9488, #10B981)',
+                                                    border: '1px solid rgba(255,255,255,0.3)',
+                                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.15), -1px -1px 4px rgba(255,255,255,0.5), inset 1px 1px 2px rgba(255,255,255,0.2)',
                                                 }}
                                             >
                                                 {!app.candidate.avatarUrl && app.candidate.initials}
                                             </div>
 
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
                                                     <Link
                                                         href={`/employer/candidates/${app.candidate.id}`}
-                                                        className="font-semibold hover:text-teal-600 transition-colors"
-                                                        style={{ color: 'var(--text-primary)' }}
+                                                        className="app-name-link"
+                                                        style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', textDecoration: 'none' }}
                                                     >
                                                         {app.candidate.name}
                                                     </Link>
-                                                    <span
-                                                        className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                                                        style={{ backgroundColor: statusInfo.bg, color: statusInfo.color }}
-                                                    >
+                                                    <span style={{
+                                                        ...recessedPill, padding: '3px 10px', fontSize: '11px',
+                                                        backgroundColor: statusInfo.bg, color: statusInfo.color,
+                                                    }}>
                                                         {statusInfo.label}
                                                     </span>
                                                     {app.aiMatchScore !== null && (
-                                                        <span
-                                                            className="px-2 py-0.5 rounded-full text-xs font-bold"
-                                                            style={{
-                                                                backgroundColor:
-                                                                    app.aiMatchScore >= 80 ? 'rgba(5,150,105,0.12)' :
-                                                                    app.aiMatchScore >= 50 ? 'rgba(217,119,6,0.12)' :
-                                                                    'rgba(220,38,38,0.12)',
-                                                                color:
-                                                                    app.aiMatchScore >= 80 ? '#059669' :
-                                                                    app.aiMatchScore >= 50 ? '#D97706' :
-                                                                    '#DC2626',
-                                                            }}
-                                                        >
+                                                        <span style={{
+                                                            ...recessedPill, padding: '3px 10px', fontSize: '11px', fontWeight: 700,
+                                                            backgroundColor:
+                                                                app.aiMatchScore >= 80 ? '#D1FAE5' :
+                                                                app.aiMatchScore >= 50 ? '#FEF3C7' : '#FEE2E2',
+                                                            color:
+                                                                app.aiMatchScore >= 80 ? '#059669' :
+                                                                app.aiMatchScore >= 50 ? '#D97706' : '#DC2626',
+                                                        }}>
                                                             {app.aiMatchScore >= 80 ? '🟢' : app.aiMatchScore >= 50 ? '🟡' : '🔴'} {app.aiMatchScore}% match
                                                         </span>
                                                     )}
                                                 </div>
 
                                                 {app.candidate.headline && (
-                                                    <p className="text-sm mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>
+                                                    <p style={{ fontSize: '13px', color: '#6B7F8A', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {app.candidate.headline}
                                                     </p>
                                                 )}
 
-                                                <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                                    <span className="flex items-center gap-1">
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#8A9BA6' }}>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                         <Clock size={12} />
                                                         Applied {formatDate(app.appliedAt)}
                                                     </span>
@@ -443,38 +475,44 @@ export default function ApplicantsTab() {
 
                                                 {/* Notes */}
                                                 {editingNotes === app.id ? (
-                                                    <div className="mt-3 flex gap-2">
+                                                    <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
                                                         <input
                                                             type="text"
                                                             value={notesValue}
                                                             onChange={(e) => setNotesValue(e.target.value)}
                                                             placeholder="Add private notes..."
-                                                            className="flex-1 px-3 py-1.5 rounded-lg text-sm"
                                                             style={{
-                                                                backgroundColor: 'var(--bg-primary)',
-                                                                border: '1px solid var(--border-color)',
-                                                                color: 'var(--text-primary)',
+                                                                flex: 1, padding: '8px 12px', borderRadius: '12px',
+                                                                fontSize: '13px', color: '#1A2E35',
+                                                                background: '#F5F6F8',
+                                                                border: '1px solid rgba(0,0,0,0.06)',
+                                                                boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
                                                             }}
                                                             autoFocus
                                                         />
                                                         <button
                                                             onClick={() => handleSaveNotes(app.id)}
-                                                            className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                                                            style={{
+                                                                ...clayBtn, background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                                                                color: '#fff', border: 'none',
+                                                                boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                                            }}
                                                         >
                                                             Save
                                                         </button>
-                                                        <button
-                                                            onClick={() => setEditingNotes(null)}
-                                                            className="p-1.5 rounded-lg hover:bg-gray-100"
-                                                        >
-                                                            <X size={16} />
+                                                        <button onClick={() => setEditingNotes(null)} style={{ ...clayBtn, background: '#F5F6F8', color: '#8A9BA6', padding: '6px 8px' }}>
+                                                            <X size={14} />
                                                         </button>
                                                     </div>
                                                 ) : (
                                                     <button
                                                         onClick={() => { setEditingNotes(app.id); setNotesValue(app.notes || ''); }}
-                                                        className="mt-2 flex items-center gap-1 text-xs hover:text-teal-600 transition-colors"
-                                                        style={{ color: app.notes ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}
+                                                        className="app-notes-btn"
+                                                        style={{
+                                                            marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px',
+                                                            fontSize: '12px', color: app.notes ? '#6B7F8A' : '#B0BEC5',
+                                                            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                        }}
                                                     >
                                                         <FileText size={12} />
                                                         {app.notes || 'Add notes'}
@@ -484,29 +522,31 @@ export default function ApplicantsTab() {
                                         </div>
 
                                         {/* Actions — stays pinned right */}
-                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                                             {/* Message Button — featured posts only */}
                                             {app.job.isFeatured && (
                                                 <button
                                                     onClick={() => setMessagingApplicant(app)}
-                                                    className="p-2 rounded-lg transition-colors hover:bg-teal-50"
                                                     title={`Message ${app.candidate.name}`}
-                                                    style={{ color: '#14B8A6' }}
+                                                    className="app-msg-btn"
+                                                    style={{
+                                                        ...clayBtn, padding: '8px', background: '#F0FDFA', color: '#0D9488',
+                                                    }}
                                                 >
-                                                    <Mail size={18} />
+                                                    <Mail size={16} />
                                                 </button>
                                             )}
 
-                                            {/* Status Dropdown */}
-                                            <div className="relative">
+                                            {/* Status Dropdown — Clay */}
+                                            <div style={{ position: 'relative' }}>
                                                 <select
                                                     value={app.status}
                                                     onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                                                    className="appearance-none pl-3 pr-8 py-2 rounded-lg text-sm font-medium cursor-pointer"
                                                     style={{
-                                                        backgroundColor: statusInfo.bg,
-                                                        color: statusInfo.color,
-                                                        border: `1.5px solid ${statusInfo.color}`,
+                                                        ...recessedPill, padding: '8px 30px 8px 12px',
+                                                        backgroundColor: statusInfo.bg, color: statusInfo.color,
+                                                        appearance: 'none' as const, WebkitAppearance: 'none' as const,
+                                                        cursor: 'pointer', fontWeight: 600,
                                                     }}
                                                 >
                                                     {STATUSES.map(s => (
@@ -514,47 +554,32 @@ export default function ApplicantsTab() {
                                                     ))}
                                                 </select>
                                                 <ChevronDown
-                                                    size={14}
-                                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                                                    style={{ color: statusInfo.color }}
+                                                    size={13}
+                                                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: statusInfo.color }}
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Row 2: Resume & Cover Letter buttons (full width, below header) */}
+                                    {/* Row 2: Resume & Cover Letter buttons */}
                                     {(app.resumeUrl || app.coverLetter || app.coverLetterUrl) && (
-                                        <div
-                                            className="mt-3 pt-3 flex flex-wrap items-center gap-2"
-                                            style={{ borderTop: '1px solid var(--border-color)' }}
-                                        >
+                                        <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                             {app.resumeUrl && (
                                                 <a
                                                     href={app.resumeUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-teal-50"
-                                                    style={{
-                                                        backgroundColor: 'rgba(13,148,136,0.08)',
-                                                        color: '#0d9488',
-                                                        border: '1px solid rgba(13,148,136,0.2)',
-                                                    }}
+                                                    className="app-action-btn"
+                                                    style={{ ...clayBtn, background: '#F0FDFA', color: '#0D9488', border: '1px solid #CCFBF1' }}
                                                 >
-                                                    <Download size={12} />
-                                                    View Resume
+                                                    <Download size={12} /> View Resume
                                                 </a>
                                             )}
                                             {app.coverLetter && (
                                                 <button
-                                                    onClick={() => setExpandedCoverLetter(
-                                                        expandedCoverLetter === app.id ? null : app.id
-                                                    )}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
-                                                    style={{
-                                                        backgroundColor: 'rgba(37,99,235,0.08)',
-                                                        color: '#2563EB',
-                                                        border: '1px solid rgba(37,99,235,0.2)',
-                                                    }}
+                                                    onClick={() => setExpandedCoverLetter(expandedCoverLetter === app.id ? null : app.id)}
+                                                    className="app-action-btn"
+                                                    style={{ ...clayBtn, background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' }}
                                                 >
                                                     {expandedCoverLetter === app.id ? <EyeOff size={12} /> : <Eye size={12} />}
                                                     {expandedCoverLetter === app.id ? 'Hide' : 'View'} Cover Letter
@@ -565,12 +590,8 @@ export default function ApplicantsTab() {
                                                     href={app.coverLetterUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-blue-50"
-                                                    style={{
-                                                        backgroundColor: 'rgba(37,99,235,0.08)',
-                                                        color: '#2563EB',
-                                                        border: '1px solid rgba(37,99,235,0.2)',
-                                                    }}
+                                                    className="app-action-btn"
+                                                    style={{ ...clayBtn, background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' }}
                                                 >
                                                     <Download size={12} /> Cover Letter PDF
                                                 </a>
@@ -578,49 +599,52 @@ export default function ApplicantsTab() {
                                         </div>
                                     )}
 
-                                    {/* Row 3: Expanded Cover Letter (full width) */}
+                                    {/* Row 3: Expanded Cover Letter */}
                                     {expandedCoverLetter === app.id && app.coverLetter && (
-                                        <div
-                                            className="mt-3 p-4 rounded-lg text-sm whitespace-pre-wrap"
-                                            style={{
-                                                backgroundColor: 'var(--bg-tertiary)',
-                                                color: 'var(--text-secondary)',
-                                                border: '1px solid var(--border-color)',
-                                                maxHeight: '200px',
-                                                overflowY: 'auto',
-                                                lineHeight: '1.6',
-                                            }}
-                                        >
+                                        <div style={{
+                                            marginTop: '12px', padding: '14px 16px', borderRadius: '14px',
+                                            fontSize: '13px', color: '#4A5568', lineHeight: 1.6,
+                                            whiteSpace: 'pre-wrap',
+                                            background: '#F5F6F8',
+                                            border: '1px solid rgba(0,0,0,0.05)',
+                                            boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.04), inset -1px -1px 2px rgba(255,255,255,0.5)',
+                                            maxHeight: '200px', overflowY: 'auto',
+                                        }}>
                                             {app.coverLetter}
                                         </div>
                                     )}
 
-                                    {/* Row 4: AI Insights (expandable) */}
+                                    {/* Row 4: AI Insights */}
                                     {(app.aiMatchReasons?.length > 0 || app.aiMissingItems?.length > 0) && (
                                         <>
                                             <button
                                                 onClick={() => setExpandedInsights(expandedInsights === app.id ? null : app.id)}
-                                                className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-purple-600"
-                                                style={{ color: '#7C3AED' }}
+                                                className="app-expand-btn"
+                                                style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                                             >
-                                                <ChevronDown size={12} className={`transition-transform ${expandedInsights === app.id ? 'rotate-180' : ''}`} />
+                                                <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: expandedInsights === app.id ? 'rotate(180deg)' : 'none' }} />
                                                 {expandedInsights === app.id ? 'Hide' : 'View'} AI Insights
                                             </button>
                                             {expandedInsights === app.id && (
-                                                <div className="mt-2 p-3 rounded-lg text-sm space-y-2" style={{ backgroundColor: 'rgba(124,58,237,0.04)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                                                <div style={{
+                                                    marginTop: '8px', padding: '14px', borderRadius: '14px',
+                                                    background: '#FAF5FF', border: '1px solid #E9D5FF',
+                                                    boxShadow: 'inset 1px 1px 2px rgba(124,58,237,0.04)',
+                                                    display: 'flex', flexDirection: 'column', gap: '10px',
+                                                }}>
                                                     {app.aiMatchReasons.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-semibold mb-1" style={{ color: '#059669' }}>✅ Strengths</p>
+                                                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#059669', margin: '0 0 4px' }}>✅ Strengths</p>
                                                             {app.aiMatchReasons.map((r, i) => (
-                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>• {r}</p>
+                                                                <p key={i} style={{ fontSize: '12px', color: '#4A5568', margin: '0 0 2px', paddingLeft: '16px' }}>• {r}</p>
                                                             ))}
                                                         </div>
                                                     )}
                                                     {app.aiMissingItems.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-semibold mb-1" style={{ color: '#D97706' }}>⚠️ Gaps</p>
+                                                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#D97706', margin: '0 0 4px' }}>⚠️ Gaps</p>
                                                             {app.aiMissingItems.map((m, i) => (
-                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>• {m}</p>
+                                                                <p key={i} style={{ fontSize: '12px', color: '#4A5568', margin: '0 0 2px', paddingLeft: '16px' }}>• {m}</p>
                                                             ))}
                                                         </div>
                                                     )}
@@ -629,25 +653,30 @@ export default function ApplicantsTab() {
                                         </>
                                     )}
 
-                                    {/* Row 5: Screening Answers (expandable) */}
+                                    {/* Row 5: Screening Answers */}
                                     {app.screeningAnswers && Array.isArray(app.screeningAnswers) && app.screeningAnswers.length > 0 && (
                                         <>
                                             <button
                                                 onClick={() => setExpandedScreening(expandedScreening === app.id ? null : app.id)}
-                                                className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-orange-600"
-                                                style={{ color: '#EA580C' }}
+                                                className="app-expand-btn"
+                                                style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#EA580C', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                                             >
-                                                <ChevronDown size={12} className={`transition-transform ${expandedScreening === app.id ? 'rotate-180' : ''}`} />
+                                                <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: expandedScreening === app.id ? 'rotate(180deg)' : 'none' }} />
                                                 {expandedScreening === app.id ? 'Hide' : 'View'} Screening Answers ({app.screeningAnswers.length})
                                             </button>
                                             {expandedScreening === app.id && (
-                                                <div className="mt-2 p-3 rounded-lg text-sm space-y-2" style={{ backgroundColor: 'rgba(234,88,12,0.04)', border: '1px solid rgba(234,88,12,0.15)' }}>
+                                                <div style={{
+                                                    marginTop: '8px', padding: '14px', borderRadius: '14px',
+                                                    background: '#FFF7ED', border: '1px solid #FED7AA',
+                                                    boxShadow: 'inset 1px 1px 2px rgba(234,88,12,0.04)',
+                                                    display: 'flex', flexDirection: 'column', gap: '10px',
+                                                }}>
                                                     {(app.screeningAnswers as { questionText: string; answer: string }[]).map((sa, i) => (
-                                                        <div key={i} className="flex items-start gap-2">
-                                                            <span className="text-xs font-medium flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>Q:</span>
+                                                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#8A9BA6', flexShrink: 0 }}>Q:</span>
                                                             <div>
-                                                                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{sa.questionText}</p>
-                                                                <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>→ {sa.answer || '(no answer)'}</p>
+                                                                <p style={{ fontSize: '12px', color: '#6B7F8A', margin: 0 }}>{sa.questionText}</p>
+                                                                <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '2px 0 0' }}>→ {sa.answer || '(no answer)'}</p>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -656,27 +685,32 @@ export default function ApplicantsTab() {
                                         </>
                                     )}
 
-                                    {/* Row 6: Candidate Profile Details (expandable) */}
+                                    {/* Row 6: Profile Details */}
                                     {(app.candidate.education?.length > 0 || app.candidate.workExperience?.length > 0 || app.candidate.certificationRecords?.length > 0 || app.candidate.licenses?.length > 0 || app.candidate.specialties || app.candidate.skills?.length > 0) && (
                                         <>
                                             <button
                                                 onClick={() => setExpandedProfile(expandedProfile === app.id ? null : app.id)}
-                                                className="mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors hover:text-teal-600"
-                                                style={{ color: '#0d9488' }}
+                                                className="app-expand-btn"
+                                                style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#0D9488', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                                             >
-                                                <ChevronDown size={12} className={`transition-transform ${expandedProfile === app.id ? 'rotate-180' : ''}`} />
+                                                <ChevronDown size={12} style={{ transition: 'transform 0.2s', transform: expandedProfile === app.id ? 'rotate(180deg)' : 'none' }} />
                                                 {expandedProfile === app.id ? 'Hide' : 'View'} Profile Details
                                             </button>
                                             {expandedProfile === app.id && (
-                                                <div className="mt-2 p-3 rounded-lg text-sm space-y-3" style={{ backgroundColor: 'rgba(13,148,136,0.04)', border: '1px solid rgba(13,148,136,0.15)' }}>
+                                                <div style={{
+                                                    marginTop: '8px', padding: '14px', borderRadius: '14px',
+                                                    background: '#F5F6F8', border: '1px solid rgba(0,0,0,0.05)',
+                                                    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03)',
+                                                    display: 'flex', flexDirection: 'column', gap: '12px',
+                                                }}>
                                                     {/* Specialties & Skills */}
                                                     {(app.candidate.specialties || app.candidate.skills?.length > 0) && (
-                                                        <div className="flex flex-wrap gap-1.5">
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                                             {app.candidate.specialties && app.candidate.specialties.split(',').map((s, i) => (
-                                                                <span key={`s-${i}`} className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(124,58,237,0.08)', color: '#7C3AED' }}>{s.trim()}</span>
+                                                                <span key={`s-${i}`} style={{ ...recessedPill, padding: '3px 10px', fontSize: '11px', background: '#FAF5FF', color: '#7C3AED' }}>{s.trim()}</span>
                                                             ))}
                                                             {app.candidate.skills?.map((s, i) => (
-                                                                <span key={`sk-${i}`} className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'rgba(107,114,128,0.08)', color: 'var(--text-tertiary)' }}>{s}</span>
+                                                                <span key={`sk-${i}`} style={{ ...recessedPill, padding: '3px 10px', fontSize: '11px', background: '#F5F6F8', color: '#6B7F8A' }}>{s}</span>
                                                             ))}
                                                         </div>
                                                     )}
@@ -684,9 +718,9 @@ export default function ApplicantsTab() {
                                                     {/* Education */}
                                                     {app.candidate.education?.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>📚 Education</p>
+                                                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>📚 Education</p>
                                                             {app.candidate.education.map((edu, i) => (
-                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
                                                                     {edu.degreeType}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''} — {edu.schoolName}
                                                                     {edu.graduationDate && ` (${new Date(edu.graduationDate).getFullYear()})`}
                                                                 </p>
@@ -697,9 +731,9 @@ export default function ApplicantsTab() {
                                                     {/* Work Experience */}
                                                     {app.candidate.workExperience?.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>💼 Experience</p>
+                                                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>💼 Experience</p>
                                                             {app.candidate.workExperience.map((exp, i) => (
-                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
                                                                     {exp.jobTitle} at {exp.employerName}
                                                                     {exp.startDate && ` (${new Date(exp.startDate).getFullYear()} - ${exp.isCurrent ? 'Present' : exp.endDate ? new Date(exp.endDate).getFullYear() : '?'})`}
                                                                     {exp.practiceSetting && ` · ${exp.practiceSetting}`}
@@ -711,9 +745,9 @@ export default function ApplicantsTab() {
                                                     {/* Certifications */}
                                                     {app.candidate.certificationRecords?.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>🏅 Certifications</p>
+                                                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>🏅 Certifications</p>
                                                             {app.candidate.certificationRecords.map((cert, i) => (
-                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
                                                                     {cert.name}{cert.body ? ` (${cert.body})` : ''}
                                                                     {cert.expirationDate && ` · Exp: ${new Date(cert.expirationDate).toLocaleDateString()}`}
                                                                 </p>
@@ -724,9 +758,9 @@ export default function ApplicantsTab() {
                                                     {/* Licenses */}
                                                     {app.candidate.licenses?.length > 0 && (
                                                         <div>
-                                                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>🔑 Licenses</p>
+                                                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#1A2E35', margin: '0 0 4px' }}>🔑 Licenses</p>
                                                             {app.candidate.licenses.map((lic, i) => (
-                                                                <p key={i} className="text-xs ml-4" style={{ color: 'var(--text-secondary)' }}>
+                                                                <p key={i} style={{ fontSize: '12px', color: '#6B7F8A', margin: '0 0 2px', paddingLeft: '16px' }}>
                                                                     {lic.type} — {lic.state} ({lic.status})
                                                                 </p>
                                                             ))}
@@ -743,6 +777,26 @@ export default function ApplicantsTab() {
                 )
                 }
             </div>
+
+            {/* Hover Styles */}
+            <style>{`
+                .app-card:hover {
+                    box-shadow: 8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02) !important;
+                    transform: translateY(-1px);
+                }
+                .app-name-link:hover { color: #0D9488 !important; }
+                .app-notes-btn:hover { color: #0D9488 !important; }
+                .app-pipeline-pill:hover { transform: translateY(-1px); }
+                .app-action-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 4px 4px 10px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6) !important;
+                }
+                .app-msg-btn:hover { transform: translateY(-1px); }
+                .app-expand-btn:hover { opacity: 0.8; }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
 
             {/* Compose Message Modal */}
             {messagingApplicant && (

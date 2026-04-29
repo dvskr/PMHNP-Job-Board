@@ -22,7 +22,7 @@ export interface PageVideoSEO {
 }
 
 const VBASE = '/videos';
-const IBASE = '/images/pages';
+const IBASE = 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages';
 const UPLOAD_DATE = '2026-02-20';
 
 export const PAGE_VIDEO_SEO: Record<string, PageVideoSEO> = {

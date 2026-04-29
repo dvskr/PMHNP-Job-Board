@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, SlidersHorizontal } from 'lucide-react';
 import LinkedInFilters from './LinkedInFilters';
 
@@ -10,11 +10,47 @@ interface MobileFilterDrawerProps {
 
 export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // Close on Escape key + focus trap
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      // Focus trap
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    // Auto-focus close button when drawer opens
+    const closeBtn = drawerRef.current?.querySelector<HTMLElement>('button[aria-label="Close filter menu"]');
+    closeBtn?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   return (
     <>
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         onClick={() => setIsOpen(true)}
         className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm"
         aria-label="Open filter menu"
@@ -41,6 +77,7 @@ export default function MobileFilterDrawer({ activeCount }: MobileFilterDrawerPr
 
       {/* Drawer */}
       <div
+        ref={drawerRef}
         id="filter-drawer"
         role="dialog"
         aria-modal="true"

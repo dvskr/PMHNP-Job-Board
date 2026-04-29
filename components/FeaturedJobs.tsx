@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Clock, Sparkles, Briefcase } from 'lucide-react';
+import Image from 'next/image';
+import { MapPin, Clock, ArrowUpRight, Briefcase, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Badge from '@/components/ui/Badge';
 import { trackJobListView, buildJobItem } from '@/lib/analytics';
 
 interface FeaturedJob {
@@ -37,95 +37,179 @@ function isNew(s: string): boolean {
     return Date.now() - new Date(s).getTime() < 48 * 3600000;
 }
 
-/* ── Framer Motion variants ── */
-const sectionFade = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.5 } },
+const fadeUp = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
 };
-const headerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
+const fadeLeft = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5 } },
 };
-const listContainer = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+const fadeRight = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5 } },
 };
-const rowSlide = {
-    hidden: { opacity: 0, x: -24 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] } },
-};
-const ctaPop = {
-    hidden: { opacity: 0, scale: 0.9, y: 16 },
-    visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24, delay: 0.4 } },
+const stagger = {
+    visible: { transition: { staggerChildren: 0.12 } },
 };
 
+const STEPS = [
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-profile.webp', title: 'Build a Profile', desc: 'Create your PMHNP profile with credentials, experience, and preferences in minutes.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-match.webp', title: 'Get Matched', desc: 'Our AI matches you with roles based on your skills, location, and salary goals.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-connect.webp', title: 'Connect Directly', desc: 'Reach hiring managers — no recruiters, no middlemen.' },
+    { img: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/step-practice.webp', title: 'Start Practicing', desc: 'Accept your offer and begin your new clinical role.' },
+];
+
 const css = `
-    .fj-row {
+    .fjs-wrap {
+        background: linear-gradient(175deg, #2A0E1E 0%, #3A1228 35%, #220B18 100%);
         position: relative;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 22px 28px;
-        text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
     }
-    .fj-row::before {
+    .fjs-wrap::before {
         content: '';
         position: absolute;
-        inset: 0;
-        border-radius: 12px;
-        opacity: 0;
-        background: var(--bg-tertiary);
-        transition: opacity 0.3s;
+        top: -200px;
+        right: -100px;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(220,120,140,0.06) 0%, transparent 70%);
         pointer-events: none;
-        z-index: -1;
     }
-    .fj-row:hover::before { opacity: 1; }
-    .fj-row:hover { transform: translateX(3px); }
-    .fj-row .fj-arrow {
-        opacity: 0;
-        transform: translateX(-8px);
+    .fjs-wrap::after {
+        content: '';
+        position: absolute;
+        bottom: -150px;
+        left: -80px;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(180,100,160,0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    /* ── Split layout ── */
+    .fjs-split {
+        display: flex;
+        max-width: 1360px;
+        margin: 0 auto;
+        gap: 0;
+    }
+    .fjs-col-left {
+        width: 500px;
+        flex-shrink: 0;
+        padding: 0 48px 80px 56px;
+        position: relative;
+    }
+    .fjs-col-right {
+        flex: 1;
+        padding: 0 56px 80px 48px;
+        border-left: 1px solid rgba(255,255,255,0.05);
+    }
+    @media (max-width: 1023px) {
+        .fjs-split { flex-direction: column; }
+        .fjs-col-left { width: 100%; padding: 0 24px 48px; }
+        .fjs-col-right { padding: 0 24px 48px; border-left: none; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 48px; }
+    }
+    @media (max-width: 768px) {
+        .fjs-col-left { padding: 0 20px 36px; }
+        .fjs-col-right { padding: 0 20px 36px; padding-top: 36px; }
+    }
+    @media (max-width: 520px) {
+        .fjs-col-left { padding: 0 16px 28px; }
+        .fjs-col-right { padding: 0 16px 28px; padding-top: 28px; }
+    }
+
+    /* ── Vertical spine ── */
+    .fjs-spine {
+        position: relative;
+        padding-left: 32px;
+    }
+    .fjs-spine::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, rgba(220,120,140,0.4), rgba(180,100,160,0.2), transparent);
+        border-radius: 2px;
+    }
+    .fjs-spine-node {
+        position: relative;
+        padding-bottom: 40px;
+    }
+    .fjs-spine-node:last-child {
+        padding-bottom: 0;
+    }
+    /* Glowing dot on the spine */
+    .fjs-spine-node::before {
+        content: '';
+        position: absolute;
+        left: -37px;
+        top: 8px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e8788c, #c05a7a);
+        box-shadow: 0 0 12px rgba(220,120,140,0.5), 0 0 24px rgba(220,120,140,0.2);
+    }
+    /* Pulse ring */
+    .fjs-spine-node::after {
+        content: '';
+        position: absolute;
+        left: -41px;
+        top: 4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 1px solid rgba(220,120,140,0.3);
+        animation: fjsPulse 2s ease-in-out infinite;
+    }
+    @keyframes fjsPulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.4); opacity: 0; }
+    }
+
+    /* ── Job row hover ── */
+    .fjs-job {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 24px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        text-decoration: none;
         transition: all 0.3s;
     }
-    .fj-row:hover .fj-arrow {
-        opacity: 1;
-        transform: translateX(0);
+    .fjs-job:hover .fjs-num { color: rgba(220,120,140,0.4) !important; }
+    .fjs-job:hover .fjs-jtitle { color: #f4c2cc !important; }
+    .fjs-job:hover .fjs-circle-cta {
+        transform: scale(1.1) !important;
+        box-shadow: 0 4px 20px rgba(200,90,120,0.4) !important;
     }
-    .fj-row:hover .fj-title {
-        color: var(--color-primary) !important;
+    @media (max-width: 768px) {
+        .fjs-job { gap: 16px; padding: 20px 0; }
+        .fjs-num { font-size: 28px !important; min-width: 36px !important; }
+        .fjs-jtitle { font-size: 18px !important; }
+        .fjs-circle-cta { width: 36px !important; height: 36px !important; }
     }
-    .fj-row:hover .fj-icon {
-        background: var(--bg-tertiary) !important;
-        border-color: var(--color-primary) !important;
+    @media (max-width: 520px) {
+        .fjs-num { display: none !important; }
+        .fjs-job { gap: 12px; padding: 16px 0; }
+        .fjs-jtitle { font-size: 16px !important; }
     }
-    .fj-cta-btn:hover {
-        transform: translateY(-2px) scale(1.03);
-        box-shadow: 0 6px 30px rgba(13,148,136,0.35), 0 0 60px rgba(13,148,136,0.1) !important;
+    @media (max-width: 768px) {
+        .fjs-header { padding: 48px 20px 36px !important; }
+        .fjs-header h2 { font-size: 28px !important; }
     }
-    @media (max-width: 640px) {
-        .fj-row {
-            padding: 16px 16px !important;
-            gap: 12px !important;
-        }
-        .fj-row .fj-arrow {
-            display: none !important;
-        }
-        .fj-row .fj-title {
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: unset !important;
-        }
-        .fj-section {
-            padding: 48px 0 56px !important;
-        }
-        .fj-heading {
-            font-size: 24px !important;
-        }
+    @media (max-width: 520px) {
+        .fjs-header { padding: 40px 16px 28px !important; }
+        .fjs-header h2 { font-size: 24px !important; }
     }
 `;
 
 export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
-    // Track homepage job list view for GA4 funnel
     useEffect(() => {
         if (jobs.length === 0) return;
         trackJobListView(
@@ -137,170 +221,238 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
     if (jobs.length === 0) return null;
 
     return (
-        <motion.section
-            className="fj-section"
-            style={{
-                padding: '24px 0 88px',
-                position: 'relative',
-                overflow: 'hidden',
-            }}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
-            variants={sectionFade}
-        >
+        <section className="fjs-wrap">
             <style>{css}</style>
 
-            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
-                {/* Header */}
-                <motion.div
-                    style={{ textAlign: 'center', marginBottom: '48px' }}
-                    variants={headerVariants}
+            {/* ── Header ── */}
+            <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-60px' }}
+                variants={stagger}
+                style={{ maxWidth: '1360px', margin: '0 auto', padding: '80px 56px 56px', position: 'relative', zIndex: 1 }}
+                className="fjs-header"
+            >
+                <motion.p
+                    variants={fadeUp}
+                    style={{ fontSize: '13px', fontWeight: 600, color: '#e8788c', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '12px' }}
                 >
-                    <h2 className="fj-heading" style={{
-                        fontSize: '32px', fontWeight: 800, letterSpacing: '-0.02em',
-                        color: 'var(--text-primary)', margin: '16px 0 8px',
-                    }}>
-                        From Our Top Employers
-                    </h2>
-                    <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: 0 }}>
-                        Latest psychiatric NP openings added daily
-                    </p>
+                    A seamless path to your next role
+                </motion.p>
+                <motion.h2
+                    variants={fadeUp}
+                    className="font-lora"
+                    style={{ fontSize: '44px', fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.15 }}
+                >
+                    How it works
+                </motion.h2>
+            </motion.div>
+
+            {/* ── SPLIT: Process Left / Jobs Right ── */}
+            <div className="fjs-split" style={{ position: 'relative', zIndex: 1 }}>
+
+                {/* ═══ LEFT: Vertical process spine ═══ */}
+                <motion.div
+                    className="fjs-col-left"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={stagger}
+                >
+                    <div className="fjs-spine">
+                        {STEPS.map((step, i) => (
+                            <motion.div
+                                key={i}
+                                className="fjs-spine-node"
+                                variants={fadeLeft}
+                            >
+                                {/* Notion-style illustration */}
+                                <div style={{
+                                    width: 180,
+                                    height: 180,
+                                    marginBottom: '16px',
+                                    borderRadius: '20px',
+                                    overflow: 'hidden',
+                                }}>
+                                    <Image
+                                        src={step.img}
+                                        alt={step.title}
+                                        width={180}
+                                        height={180}
+                                        style={{ objectFit: 'cover', borderRadius: '20px' }}
+                                        loading="lazy"
+                                        placeholder="blur"
+                                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzNhMTIyOCIvPjwvc3ZnPg=="
+                                    />
+                                </div>
+
+                                <h4 style={{ fontSize: '18px', fontWeight: 700, color: '#f8e8ec', margin: '0 0 6px' }}>
+                                    {step.title}
+                                </h4>
+                                <p style={{ fontSize: '13px', color: 'rgba(248,232,236,0.4)', margin: 0, lineHeight: 1.55 }}>
+                                    {step.desc}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* CTA */}
+                    <motion.div variants={fadeLeft} style={{ marginTop: '32px', paddingLeft: '32px' }}>
+                        <Link
+                            href="/register"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '13px 32px',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                color: '#fff',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                background: 'linear-gradient(135deg, #c05a7a, #e8788c)',
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 20px rgba(200,90,120,0.3)',
+                                textDecoration: 'none',
+                                transition: 'transform 0.3s, box-shadow 0.3s',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-3px)';
+                                e.currentTarget.style.boxShadow = '0 8px 32px rgba(200,90,120,0.45)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,90,120,0.3)';
+                            }}
+                        >
+                            Join Now <ArrowUpRight size={15} />
+                        </Link>
+                    </motion.div>
                 </motion.div>
 
-                {/* List container */}
+                {/* ═══ RIGHT: Featured jobs ═══ */}
                 <motion.div
-                    style={{
-                        backgroundColor: 'var(--bg-primary)',
-                        borderRadius: '20px',
-                        border: '1px solid var(--border-color)',
-                        overflow: 'hidden',
-                    }}
-                    variants={listContainer}
+                    className="fjs-col-right"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={stagger}
                 >
-                    {jobs.map((job, idx) => {
+                    <motion.div variants={fadeRight} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <p style={{ fontSize: '13px', fontWeight: 600, color: '#e8788c', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0 }}>
+                            Latest openings
+                        </p>
+                        <Link
+                            href="/jobs"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 600, color: 'rgba(248,232,236,0.5)', textDecoration: 'none' }}
+                        >
+                            View all <ArrowUpRight size={13} />
+                        </Link>
+                    </motion.div>
+
+                    {jobs.slice(0, 8).map((job, i) => {
                         const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
                         const postedDate = job.originalPostedAt || job.createdAt;
                         const fresh = isNew(postedDate);
 
                         return (
-                            <motion.div key={job.id} variants={rowSlide}>
-                                <Link
-                                    href={href}
-                                    className="fj-row"
-                                    style={{
-                                        borderBottom: idx < jobs.length - 1 ? '1px solid var(--border-color)' : 'none',
-                                    }}
-                                >
-                                    {/* Icon */}
-                                    <div
-                                        className="fj-icon"
+                            <motion.div key={job.id} variants={fadeRight}>
+                                <Link href={href} className="fjs-job">
+                                    {/* Styled number */}
+                                    <span
+                                        className="fjs-num font-lora"
                                         style={{
-                                            width: '44px', height: '44px', borderRadius: '14px',
-                                            backgroundColor: 'var(--bg-tertiary)',
-                                            border: '1px solid var(--border-color)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: '40px',
+                                            fontWeight: 800,
+                                            color: 'rgba(255,255,255,0.06)',
+                                            lineHeight: 1,
+                                            minWidth: '48px',
                                             flexShrink: 0,
-                                            transition: 'all 0.3s',
+                                            transition: 'color 0.3s',
                                         }}
                                     >
-                                        <Briefcase size={18} style={{ color: 'var(--color-primary)', opacity: 0.8 }} />
-                                    </div>
+                                        {String(i + 1).padStart(2, '0')}
+                                    </span>
 
-                                    {/* Main content */}
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        {/* Company + badges */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', flexWrap: 'wrap' }}>
-                                            <span style={{
-                                                fontSize: '11px', fontWeight: 700,
-                                                textTransform: 'uppercase', letterSpacing: '0.12em',
-                                                color: 'var(--text-tertiary)',
-                                            }}>
+                                        {/* Employer row */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(248,232,236,0.55)', letterSpacing: '0.02em' }}>
                                                 {job.employer}
                                             </span>
-                                            {job.jobType && <Badge variant="primary" size="sm">{job.jobType}</Badge>}
+                                            <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                                            {job.jobType && (
+                                                <>
+                                                    <span style={{ fontSize: '13px', color: 'rgba(248,232,236,0.45)' }}>
+                                                        {job.jobType}
+                                                    </span>
+                                                    <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+                                                </>
+                                            )}
                                             {fresh && (
-                                                <span style={{
-                                                    fontSize: '10px', fontWeight: 700, padding: '2px 10px',
-                                                    borderRadius: '8px',
-                                                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                                                    color: '#fff',
-                                                }}>
-                                                    NEW
+                                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6ee7b7' }}>
+                                                    New
                                                 </span>
                                             )}
+                                            <span style={{ fontSize: '12px', color: 'rgba(248,232,236,0.35)' }}>
+                                                {relativeTime(postedDate)}
+                                            </span>
                                         </div>
 
-                                        {/* Title */}
-                                        <div className="fj-title" style={{
-                                            fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)',
-                                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                            marginBottom: '7px',
-                                            transition: 'color 0.3s',
-                                        }}>
+                                        {/* Big title */}
+                                        <h3
+                                            className="fjs-jtitle font-lora"
+                                            style={{
+                                                fontSize: '22px',
+                                                fontWeight: 700,
+                                                color: '#f8e8ec',
+                                                lineHeight: 1.3,
+                                                margin: '0 0 8px',
+                                                transition: 'color 0.3s',
+                                            }}
+                                        >
                                             {job.title}
-                                        </div>
+                                        </h3>
 
-                                        {/* Meta row */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                                <MapPin size={13} style={{ color: 'var(--color-primary)' }} />
+                                        {/* Details row */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: 'rgba(248,232,236,0.5)' }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                <MapPin size={13} style={{ color: '#e8788c' }} />
                                                 {job.location}
                                             </span>
                                             {job.displaySalary && (
-                                                <span style={{
-                                                    fontSize: '13px', fontWeight: 700,
-                                                    color: 'var(--salary-color, #1d4ed8)',
-                                                }}>
+                                                <span style={{ fontWeight: 700, color: '#6ee7b7', fontSize: '14px' }}>
                                                     {job.displaySalary}
                                                 </span>
                                             )}
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                                                <Clock size={11} />
-                                                {relativeTime(job.originalPostedAt || job.createdAt)}
-                                            </span>
                                         </div>
                                     </div>
 
-                                    {/* Arrow */}
-                                    <div className="fj-arrow" style={{
-                                        flexShrink: 0,
-                                        width: '32px', height: '32px', borderRadius: '10px',
-                                        backgroundColor: 'var(--bg-tertiary)',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    }}>
-                                        <ArrowRight size={16} style={{ color: 'var(--color-primary)' }} />
+                                    {/* Circle CTA */}
+                                    <div
+                                        className="fjs-circle-cta"
+                                        style={{
+                                            width: 44,
+                                            height: 44,
+                                            borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #c05a7a, #e8788c)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                            alignSelf: 'center',
+                                            transition: 'transform 0.3s, box-shadow 0.3s',
+                                            boxShadow: '0 2px 12px rgba(200,90,120,0.2)',
+                                        }}
+                                    >
+                                        <ArrowUpRight size={18} style={{ color: '#fff' }} />
                                     </div>
                                 </Link>
                             </motion.div>
                         );
                     })}
                 </motion.div>
-
-                {/* CTA — Solid gradient button */}
-                <motion.div
-                    style={{ textAlign: 'center', marginTop: '48px' }}
-                    variants={ctaPop}
-                >
-                    <Link
-                        href="/jobs"
-                        className="fj-cta-btn"
-                        style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '8px',
-                            padding: '14px 36px', borderRadius: '14px',
-                            fontSize: '14px', fontWeight: 700, color: '#fff',
-                            background: 'linear-gradient(135deg, #0d9488, #059669)',
-                            textDecoration: 'none',
-                            boxShadow: '0 4px 20px rgba(13,148,136,0.3), 0 0 40px rgba(13,148,136,0.08)',
-                            transition: 'all 0.3s',
-                        }}
-                    >
-                        Browse All Jobs
-                        <ArrowRight size={16} />
-                    </Link>
-                </motion.div>
             </div>
-        </motion.section>
+        </section>
     );
 }

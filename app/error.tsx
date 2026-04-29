@@ -2,8 +2,17 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import Button from '@/components/ui/Button';
-import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { Home, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
+
+/* ═══ Clay Tokens ═══ */
+const clayShadow = '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)';
+const clayCard = {
+    background: '#FFFFFF',
+    borderRadius: '24px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: clayShadow,
+    overflow: 'hidden' as const,
+};
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -11,114 +20,112 @@ interface ErrorProps {
 }
 
 export default function Error({ error, reset }: ErrorProps) {
-  // Log error to console for debugging (not shown to user)
   useEffect(() => {
-    // Note: logger is server-only, so we use console.error here (client side)
-    console.error('Application error:', error);
+    console.error('Application error boundary triggered:', error);
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
-      <div className="max-w-lg w-full text-center">
-        {/* Icon */}
-        <div className="mb-6">
-          <div className="w-24 h-24 mx-auto bg-amber-100 rounded-full flex items-center justify-center">
-            <AlertTriangle className="w-12 h-12 text-amber-600" />
-          </div>
-        </div>
+    <main style={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '60px 20px',
+        fontFamily: 'var(--font-inter), system-ui, sans-serif'
+    }}>
+        <div style={{ maxWidth: '640px', width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            {/* Main Error Node */}
+            <div style={{
+                ...clayCard,
+                position: 'relative',
+                padding: '50px 40px',
+                textAlign: 'center',
+                background: 'linear-gradient(145deg, #FFFFFF, #FFF1F2)',
+            }}>
+                <div style={{
+                    width: '72px', height: '72px', borderRadius: '20px',
+                    background: 'linear-gradient(135deg, #FECDD3, #FDA4AF)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.8), 2px 2px 8px rgba(225,29,72,0.15)',
+                    margin: '0 auto 24px'
+                }}>
+                    <AlertTriangle size={36} color="#E11D48" />
+                </div>
 
-        {/* Heading */}
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-          Something went wrong
-        </h1>
+                <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>
+                    System Malfunction
+                </h1>
+                
+                <p style={{ fontSize: '15px', color: '#64748B', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 30px' }}>
+                    An unexpected error actively disrupted your session. Our engineers have been securely notified.
+                </p>
 
-        {/* Subtext */}
-        <p className="text-lg text-gray-600 mb-8">
-          We&apos;re sorry, an unexpected error occurred. Please try again or return to the homepage.
-        </p>
+                <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button onClick={reset} className="clay-btn-primary" style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 24px', borderRadius: '16px',
+                        fontSize: '15px', fontWeight: 600, color: '#FFFFFF',
+                        background: 'linear-gradient(135deg, #E11D48, #BE123C)',
+                        boxShadow: '0 4px 12px rgba(225,29,72,0.3), inset 1px 1px 3px rgba(255,255,255,0.3)',
+                        border: 'none', cursor: 'pointer', transition: 'all 0.2s ease'
+                    }}>
+                        <RefreshCw size={18} />
+                        Reinitialize Request
+                    </button>
+                    <Link href="/" className="clay-btn-secondary" style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '12px 24px', borderRadius: '16px',
+                        fontSize: '15px', fontWeight: 600, color: '#334155',
+                        background: '#FFFFFF',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                        boxShadow: '4px 4px 10px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7)',
+                        textDecoration: 'none', transition: 'all 0.2s ease'
+                    }}>
+                        <Home size={18} />
+                        Abort to Safety
+                    </Link>
+                </div>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={reset}
-            className="w-full sm:w-auto"
-          >
-            <RefreshCw size={20} />
-            Try Again
-          </Button>
-          <Link href="/">
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto"
-            >
-              <Home size={20} />
-              Go to Homepage
-            </Button>
-          </Link>
-        </div>
-
-        {/* Error Details Card (Optional - for debugging) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-            <p className="text-xs font-mono text-red-900 break-words">
-              <strong>Dev Mode Error:</strong><br />
-              {error.message}
-            </p>
-            {error.digest && (
-              <p className="text-xs font-mono text-red-700 mt-2">
-                Error ID: {error.digest}
-              </p>
+            {/* Developer Diagnostics (Hidden in Prod usually, but stylized just in case) */}
+            {process.env.NODE_ENV === 'development' && (
+                <div style={{
+                    ...clayCard,
+                    padding: '24px',
+                    background: '#FFF5F5',
+                    border: '1px solid #FECACA',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.8)'
+                }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#991B1B', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        Local Diagnostic Matrix
+                    </h3>
+                    <div style={{ padding: '16px', background: '#FEF2F2', borderRadius: '12px', border: '1px dashed #FCA5A5' }}>
+                        <p style={{ fontSize: '13px', fontFamily: 'monospace', color: '#B91C1C', wordBreak: 'break-all' }}>
+                            {error.message}
+                        </p>
+                        {error.digest && (
+                            <p style={{ fontSize: '11px', fontFamily: 'monospace', color: '#DC2626', marginTop: '12px', opacity: 0.8 }}>
+                                DIGEST: {error.digest}
+                            </p>
+                        )}
+                    </div>
+                </div>
             )}
-          </div>
-        )}
 
-        {/* Support Text */}
-        <div className="pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            If this keeps happening, please{' '}
-            <Link
-              href="/contact"
-              className="text-primary-600 hover:text-primary-700 underline"
-            >
-              contact us
-            </Link>
-            {' '}and let us know what you were doing when the error occurred.
-          </p>
+            
+            <style>{`
+                .clay-btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(225,29,72,0.4), inset 1px 1px 4px rgba(255,255,255,0.4) !important;
+                }
+                .clay-btn-secondary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 6px 6px 14px rgba(0,0,0,0.06), -3px -3px 8px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.7) !important;
+                }
+            `}</style>
         </div>
-
-        {/* Quick Links */}
-        <div className="mt-6">
-          <p className="text-xs text-gray-400 mb-2">
-            Or try these pages:
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/jobs"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
-            >
-              Browse Jobs
-            </Link>
-            <span className="text-gray-400">·</span>
-            <Link
-              href="/faq"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
-            >
-              FAQ
-            </Link>
-            <span className="text-gray-400">·</span>
-            <Link
-              href="/about"
-              className="text-sm text-primary-600 hover:text-primary-700 underline"
-            >
-              About
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }
-

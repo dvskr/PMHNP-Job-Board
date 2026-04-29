@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { headers } from 'next/headers';
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Lora, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import dynamic from 'next/dynamic';
 import ProfileNudgeBanner from '@/components/profile/ProfileNudgeWrapper';
 const BottomNav = dynamic(() => import('@/components/BottomNav'));
-const FloatingSocial = dynamic(() => import('@/components/FloatingSocial'));
+
 import { ThemeProvider } from '@/components/ThemeProvider';
 import LayoutShell from '@/components/LayoutShell';
 import MainContent from '@/components/MainContent';
@@ -22,14 +22,26 @@ const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificati
 const CookieConsent = dynamic(() => import('@/components/CookieConsent'));
 const PWAInstallBanner = dynamic(() => import('@/components/PWAInstallBanner'));
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: 'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
   display: 'swap',
 });
@@ -135,18 +147,8 @@ export default async function RootLayout({
   const nonce = (await headers()).get('x-nonce') || '';
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning style={{ backgroundColor: '#060E18', color: '#F1F5F9' } as React.CSSProperties}>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Critical: Dark mode defaults for initial render — scoped to html.dark so theme switching works */}
-        <style nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `html.dark{color-scheme:dark}html.dark,html.dark body{background-color:#060E18!important;color:#F1F5F9!important}html.dark input,html.dark textarea,html.dark select{background-color:#162231!important;color:#F1F5F9!important;-webkit-text-fill-color:#F1F5F9!important}html.dark input:-webkit-autofill,html.dark input:-webkit-autofill:hover,html.dark input:-webkit-autofill:focus,html.dark input:-webkit-autofill:active{-webkit-box-shadow:0 0 0 1000px #162231 inset!important;box-shadow:0 0 0 1000px #162231 inset!important;-webkit-text-fill-color:#F1F5F9!important}html.dark .bg-white{background-color:#0F172A!important}html.dark .bg-gray-50{background-color:#060E18!important}html.dark .bg-gray-100,html.dark .bg-slate-100{background-color:#111827!important}html.dark .text-gray-900{color:#F1F5F9!important}html.dark .text-gray-800{color:#E2E8F0!important}html.dark .text-gray-700{color:#CBD5E1!important}html.dark .text-gray-600{color:#94A3B8!important}html.dark .text-gray-500{color:#64748B!important}html.dark .border-gray-200,html.dark .border-gray-100{border-color:#1E293B!important}html.dark .border-gray-300{border-color:#334155!important}html.dark .shadow-sm,html.dark .shadow-md,html.dark .shadow-lg{box-shadow:0 1px 3px rgba(0,0,0,0.4)!important}html.dark .divide-gray-200>:not(:first-child){border-color:#1E293B!important}` }} />
-        {/* Theme init script — runs before React hydrates to prevent FOUC */}
-        <script
-          nonce={nonce}
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)||(!t&&!window.matchMedia);var h=document.documentElement;var s=h.style;if(d){h.classList.add('dark');h.classList.remove('light');s.backgroundColor='#060E18';s.color='#F1F5F9';s.colorScheme='dark';s.setProperty('--bg-primary','#060E18');s.setProperty('--bg-secondary','#0F1923');s.setProperty('--bg-secondary-rgb','15,25,35');s.setProperty('--bg-tertiary','#162231');s.setProperty('--text-primary','#F1F5F9');s.setProperty('--text-primary-rgb','241,245,249');s.setProperty('--text-secondary','#E2E8F0');s.setProperty('--text-tertiary','#CBD5E1');s.setProperty('--text-muted','#94A3B8');s.setProperty('--border-color','#334155');s.setProperty('--border-color-dark','#475569');s.setProperty('--shadow-color','rgba(0,0,0,0.3)');s.setProperty('--header-bg','#0F1923');s.setProperty('--mobile-menu-bg','#0F1923');s.setProperty('--nav-btn-bg','#1E293B');s.setProperty('--nav-btn-text','#F1F5F9');s.setProperty('--nav-btn-hover-bg','#334155');s.setProperty('--input-text','#F1F5F9');s.setProperty('--input-placeholder','#64748B');s.setProperty('--color-primary','#2DD4BF');s.setProperty('--color-primary-dark','#14B8A6');s.setProperty('--color-primary-light','#5EEAD4');s.setProperty('--salary-color','#2DD4BF');s.setProperty('--shimmer-from','#162231');s.setProperty('--shimmer-via','#1E293B')}else{h.classList.add('light');h.classList.remove('dark');s.backgroundColor='#FFFFFF';s.color='#111827';var st=document.createElement('style');st.textContent='html{background-color:#F9FAFB!important}body{background-color:#FFFFFF!important;color:#111827!important;opacity:1!important}';document.head.appendChild(st);s.setProperty('--bg-primary','#FFFFFF');s.setProperty('--bg-secondary','#F9FAFB');s.setProperty('--bg-secondary-rgb','249,250,251');s.setProperty('--bg-tertiary','#F3F4F6');s.setProperty('--text-primary','#111827');s.setProperty('--text-primary-rgb','17,24,39');s.setProperty('--text-secondary','#374151');s.setProperty('--text-tertiary','#6B7280');s.setProperty('--border-color','#E5E7EB');s.setProperty('--border-color-dark','#D1D5DB');s.setProperty('--shadow-color','rgba(0,0,0,0.1)');s.setProperty('--header-bg','#FFFFFF');s.setProperty('--mobile-menu-bg','#FFFFFF');s.setProperty('--nav-btn-bg','#F3F4F6');s.setProperty('--nav-btn-text','#111827');s.setProperty('--nav-btn-hover-bg','#E5E7EB');s.setProperty('--input-text','#111827');s.setProperty('--input-placeholder','#6B7280');s.setProperty('--selection-bg','#CCFBF1');s.setProperty('--selection-text','#134E4A');s.setProperty('--shimmer-from','#f0f0f0');s.setProperty('--shimmer-via','#e0e0e0');s.setProperty('--color-primary','#0D9488');s.setProperty('--color-primary-dark','#0F766E');s.setProperty('--color-primary-light','#14B8A6');s.setProperty('--salary-color','#1d4ed8')}}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.backgroundColor='#060E18';document.documentElement.style.color='#F1F5F9'}})();`,
-          }}
-        />
         {/* Performance: Preconnect to external domains */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
@@ -217,16 +219,16 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${lora.variable} ${newsreader.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         suppressHydrationWarning
         style={{
-          backgroundColor: '#0F1923',
-          color: '#F1F5F9',
+          backgroundColor: '#F5F6F8',
+          color: '#2D3748',
         }}
       >
         <ThemeProvider>
           <ToastProvider>
-            <div style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' as const, position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: '100%', maxWidth: '100vw', position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
               <GoogleAnalytics nonce={nonce} />
               <SpeedInsights />
               <LayoutShell>
@@ -237,7 +239,6 @@ export default async function RootLayout({
               <LayoutShell>
                 <MobileHideOnAppRoutes>
                   <Footer />
-                  <FloatingSocial />
                   <FeedbackWidget />
                 </MobileHideOnAppRoutes>
                 <BottomNav />

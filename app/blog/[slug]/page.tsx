@@ -11,8 +11,14 @@ import {
     BLOG_CATEGORIES,
 } from '@/lib/blog';
 import { autoLinkCategories } from '@/lib/autoLink';
-import { Calendar, ArrowLeft, Facebook, Linkedin, Twitter, User, Briefcase, ArrowRight, Search, MapPin, Home } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import EditorialTOC from '@/components/blog/EditorialTOC';
+import EditorialToolbar from '@/components/blog/EditorialToolbar';
+import EditorialShare from '@/components/blog/EditorialShare';
+import EditorialStickyFix from '@/components/blog/EditorialStickyFix';
+import VideoLightbox from '@/components/blog/VideoLightbox';
 import BlogEmailSignup from '@/components/BlogEmailSignup';
+import '@/app/editorial.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const url = `https://pmhnphiring.com/blog/${slug}`;
 
     return {
-        title: `${post.title} (2026) | PMHNP Hiring`,
+        title: post.title.match(/\(\d{4}\)\s*$/) ? post.title : `${post.title} (${new Date().getFullYear()})`,
         description: post.meta_description || post.title,
         keywords: post.target_keyword ? [post.target_keyword] : undefined,
         openGraph: {
@@ -107,6 +113,21 @@ export default async function BlogPostPage({ params }: Props) {
             year: 'numeric',
         });
     };
+
+    // Word count and read time for editorial TOC
+    // Strip markdown syntax to get accurate word count
+    const plainText = post.content
+        .replace(/^#{1,6}\s+/gm, '')           // headings
+        .replace(/\*\*(.+?)\*\*/g, '$1')       // bold
+        .replace(/\*(.+?)\*/g, '$1')           // italic
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, '')  // images
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links → keep text
+        .replace(/https?:\/\/\S+/g, '')        // bare URLs
+        .replace(/[`~>|]/g, '')                // code ticks, blockquotes
+        .replace(/\s+/g, ' ')
+        .trim();
+    const wordCount = plainText.split(/\s+/).filter(Boolean).length;
+    const readTime = `${Math.max(1, Math.ceil(wordCount / 238))} min`;
 
     // JSON-LD BlogPosting schema
     const jsonLd = {
@@ -286,361 +307,221 @@ export default async function BlogPostPage({ params }: Props) {
     } : null;
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20">
-            {/* BlogPosting Schema */}
+        <div className="ed-page">
+            <EditorialStickyFix />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            {/* FAQ Schema (only for posts with FAQ data) */}
             {faqSchema && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-                />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
             )}
-            {/* VideoObject Schema (when YouTube video is present) */}
             {videoSchema && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }}
-                />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />
             )}
-            {/* HowTo Schema (state license guides) */}
             {howToSchema && (
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
-                />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />
             )}
-            {/* Breadcrumb Schema */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        '@context': 'https://schema.org',
-                        '@type': 'BreadcrumbList',
-                        itemListElement: [
-                            {
-                                '@type': 'ListItem',
-                                position: 1,
-                                name: 'Home',
-                                item: 'https://pmhnphiring.com',
-                            },
-                            {
-                                '@type': 'ListItem',
-                                position: 2,
-                                name: 'Blog',
-                                item: 'https://pmhnphiring.com/blog',
-                            },
-                            {
-                                '@type': 'ListItem',
-                                position: 3,
-                                name: post.title,
-                                item: currentUrl,
-                            },
-                        ],
-                    }),
-                }}
-            />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+                itemListElement: [
+                    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://pmhnphiring.com' },
+                    { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://pmhnphiring.com/blog' },
+                    { '@type': 'ListItem', position: 3, name: post.title, item: currentUrl },
+                ],
+            }) }} />
 
-            {/* Header */}
-            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 py-12 px-4">
-                <div className="max-w-4xl mx-auto">
-                    <Link
-                        href="/blog"
-                        className="inline-flex items-center text-sm text-gray-500 hover:text-teal-600 mb-6 transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-1" /> Back to Blog
-                    </Link>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                        <span className="bg-teal-100 text-teal-800 text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wide">
-                            {categoryLabel}
-                        </span>
-                    </div>
-                    <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
-                        {post.title}
-                    </h1>
-                    <div className="flex items-center text-gray-500 text-sm gap-6">
-                        <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            {formatDate(post.publish_date || post.created_at)}
-                        </div>
-                        {post.target_keyword && (
-                            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
-                                {post.target_keyword}
-                            </span>
+            {/* -- HERO -- */}
+            <header className="ed-hero">
+                <nav className="ed-breadcrumb">
+                    <Link href="/">Home</Link>
+                    <span className="ed-sep">/</span>
+                    <Link href="/blog">Blog</Link>
+                    <span className="ed-sep">/</span>
+                    <span>{categoryLabel}</span>
+                </nav>
+                <div className="ed-hero-grid">
+                    <div className="ed-hero-main">
+                        <h1 className="ed-title">{post.title}</h1>
+                        {post.meta_description && (
+                            <p className="ed-deck">{post.meta_description}</p>
                         )}
-                        <div className="flex items-center">
-                            <User className="w-4 h-4 mr-1" />
-                            <span>Reviewed by PMHNP Clinical Team</span>
+                        <div className="ed-hero-meta">
+                            <div>
+                                <label>Published</label>
+                                <strong>{formatDate(post.publish_date || post.created_at)}</strong>
+                            </div>
+                            <div>
+                                <label>Read Time</label>
+                                <strong>{readTime}</strong>
+                            </div>
+                            {post.updated_at && (
+                                <div>
+                                    <label>Last Reviewed</label>
+                                    <strong>{formatDate(post.updated_at)}</strong>
+                                </div>
+                            )}
+                            <div>
+                                <label>Category</label>
+                                <strong>{categoryLabel}</strong>
+                            </div>
                         </div>
+                    </div>
+                    <div className="ed-hero-side">
+                        <div
+                            className="ed-hero-photo"
+                            style={post.image_url ? { backgroundImage: `url(${post.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+                        >
+                            <div className="ed-hero-photo-caption">
+                                <strong>{categoryLabel}</strong>
+                                <span>{formatDate(post.publish_date || post.created_at)}</span>
+                            </div>
+                            {post.video_url && (
+                                <VideoLightbox videoUrl={post.video_url} title={post.title} />
+                            )}
+                        </div>
+
+
                     </div>
                 </div>
             </header>
 
-            {/* Featured Image (only if no video) */}
-            {post.image_url && !post.youtube_video_id && !post.video_url && (
-                <div className="max-w-4xl mx-auto px-4 -mb-4 mt-8">
-                    <img
-                        src={post.image_url}
-                        alt={post.title}
-                        width={1200}
-                        height={630}
-                        className="w-full h-auto max-h-[480px] object-cover rounded-xl shadow-md"
-                        loading="eager"
-                    />
-                </div>
-            )}
 
-            {/* YouTube Video Embed */}
-            {post.youtube_video_id && (
-                <div className="max-w-4xl mx-auto px-4 mt-8">
-                    <div className="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-md bg-gray-900">
-                        <iframe
-                            src={`https://www.youtube.com/embed/${post.youtube_video_id}?rel=0`}
-                            title={post.title}
-                            loading="lazy"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="absolute top-0 left-0 w-full h-full"
+            {/* -- THREE-COLUMN LAYOUT -- */}
+            <div className="ed-layout">
+                {/* Left rail - Sticky TOC */}
+                <aside className="ed-col-left">
+                    <EditorialTOC headings={headings} readTime={readTime} wordCount={wordCount} />
+                </aside>
+
+                {/* Center - Article prose */}
+                <main className="ed-col-center">
+                    <article>
+                        <div
+                            className="editorial-prose"
+                            dangerouslySetInnerHTML={{ __html: contentHtml }}
                         />
+                    </article>
+
+                    {/* Share row */}
+                    <EditorialShare title={post.title} url={currentUrl} />
+
+
+                    {/* Author */}
+                    <div className="ed-author">
+                        <div className="ed-author-avatar">P</div>
+                        <div>
+                            <div className="ed-author-role">Editorial Team</div>
+                            <h4 className="ed-author-name">PMHNP Hiring</h4>
+                            <p className="ed-author-bio">Board-certified psychiatric-mental health nurse practitioners and healthcare career specialists.</p>
+                        </div>
+                        <Link href="/about" className="ed-author-link">
+                            About Us <ArrowRight size={14} />
+                        </Link>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2 text-center">
-                        ▶ Watch our complete video walkthrough
-                    </p>
-                </div>
+                </main>
+
+                {/* Right rail - Toolbar + Newsletter */}
+                <aside className="ed-col-right">
+                    <EditorialToolbar slug={slug} title={post.title} url={currentUrl} />
+                </aside>
+            </div>
+
+            {/* -- READ NEXT -- */}
+            {relatedPosts.length > 0 && (
+                <section className="ed-read-next">
+                    <div className="ed-read-next-header">
+                        <h2 className="ed-read-next-title">Read <em>Next</em></h2>
+                        <Link href="/blog" className="ed-read-next-all">All Articles &rarr;</Link>
+                    </div>
+                    <div className="ed-read-next-grid">
+                        {relatedPosts.slice(0, 3).map((relPost, idx) => {
+                            const relLabel = BLOG_CATEGORIES.find((c) => c.id === relPost.category)?.label || relPost.category;
+                            return (
+                                <Link key={relPost.slug} href={`/blog/${relPost.slug}`} className={`ed-next-card ${idx === 0 ? 'ed-next-card-featured' : ''}`}>
+                                    <div
+                                        className="ed-next-card-img"
+                                        style={relPost.image_url ? { backgroundImage: `url(${relPost.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+                                    />
+                                    <div className="ed-next-card-meta">
+                                        <span className="ed-next-card-cat">{relLabel}</span>
+                                    </div>
+                                    <h3 className="ed-next-card-title">{relPost.title}</h3>
+                                    {idx === 0 && relPost.meta_description && (
+                                        <p className="ed-next-card-desc">{relPost.meta_description}</p>
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </section>
             )}
 
-            {/* Supabase Video Embed (fallback when no YouTube ID) */}
-            {!post.youtube_video_id && post.video_url && (
-                <div className="max-w-4xl mx-auto px-4 mt-8">
-                    <div className="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-md bg-gray-900">
-                        <video
-                            controls
-                            playsInline
-                            preload="auto"
-                            poster={post.image_url || undefined}
-                            className="absolute top-0 left-0 w-full h-full object-contain"
-                        >
-                            <source src={post.video_url} type="video/mp4" />
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2 text-center">
-                        ▶ Watch our complete video walkthrough
-                    </p>
-                </div>
-            )}
-
-            {/* Content Area — Full Width, No Sidebar */}
-            <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-                {/* Author Bar (compact inline) */}
-                <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
-                    <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 font-bold text-lg">
-                        P
-                    </div>
-                    <div>
-                        <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">PMHNP Hiring</span>
-                        <span className="text-gray-400 mx-2">·</span>
-                        <span className="text-sm text-gray-500">Editorial Team</span>
-                    </div>
-                </div>
-
-                {/* Table of Contents (collapsible) */}
-                {headings.length > 0 && (
-                    <details className="mb-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <summary className="px-5 py-3 cursor-pointer font-semibold text-gray-900 dark:text-gray-100 text-sm hover:text-teal-600 transition-colors select-none">
-                            📑 Table of Contents
-                        </summary>
-                        <nav className="px-5 pb-4 pt-1 space-y-1.5">
-                            {headings.map((heading, idx) => (
-                                <a
-                                    key={idx}
-                                    href={`#${heading.id}`}
-                                    className={`block text-sm hover:text-teal-600 transition-colors ${heading.level === 3
-                                        ? 'pl-4 text-gray-500'
-                                        : 'text-gray-700 font-medium'
-                                        }`}
-                                >
-                                    {heading.text}
-                                </a>
-                            ))}
-                        </nav>
-                    </details>
-                )}
-
-                {/* Article */}
-                <article className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <div
-                        className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-teal-600 dark:prose-a:text-teal-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-blockquote:border-l-teal-500 prose-blockquote:bg-teal-50 dark:prose-blockquote:bg-teal-950/30 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300 prose-blockquote:italic prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-li:text-gray-700 dark:prose-li:text-gray-300"
-                        dangerouslySetInnerHTML={{ __html: contentHtml }}
-                    />
-
-                    {/* Social Share */}
-                    <div className="mt-12 pt-8 border-t border-gray-100">
-                        <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">
-                            Share this article
-                        </h3>
-                        <div className="flex gap-4">
-                            <a
-                                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(currentUrl)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2.5 bg-gray-100 rounded-full hover:bg-[#1DA1F2] hover:text-white transition-colors"
-                                aria-label="Share on Twitter"
-                            >
-                                <Twitter className="w-5 h-5" />
-                            </a>
-                            <a
-                                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2.5 bg-gray-100 rounded-full hover:bg-[#0A66C2] hover:text-white transition-colors"
-                                aria-label="Share on LinkedIn"
-                            >
-                                <Linkedin className="w-5 h-5" />
-                            </a>
-                            <a
-                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2.5 bg-gray-100 rounded-full hover:bg-[#1877F2] hover:text-white transition-colors"
-                                aria-label="Share on Facebook"
-                            >
-                                <Facebook className="w-5 h-5" />
-                            </a>
-                        </div>
-                    </div>
-                </article>
-
-                {/* F5: End-of-Article Email Signup */}
-                <div className="mt-8 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-950/40 dark:to-cyan-950/40 rounded-xl p-6 border border-teal-100 dark:border-teal-800 text-center">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">📬 Stay Updated</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Get the latest PMHNP career tips, salary data, and job openings delivered to your inbox.</p>
-                    <BlogEmailSignup source={`blog_end_${slug}`} />
-                </div>
-
-                {/* Existing CTA Section */}
-                <div className="mt-8 bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl p-8 text-white text-center">
-                    <h3 className="text-2xl font-bold mb-3">
-                        Ready to Find Your Next PMHNP Position?
-                    </h3>
-                    <p className="text-teal-100 mb-6 max-w-lg mx-auto">
-                        Browse hundreds of psychiatric mental health nurse practitioner
-                        jobs with salary transparency.
-                    </p>
-                    <Link
-                        href="/jobs"
-                        className="inline-flex items-center px-6 py-3 bg-white text-teal-700 font-bold rounded-lg hover:bg-teal-50 transition-colors shadow-lg"
-                    >
-                        Browse PMHNP Jobs →
-                    </Link>
-                </div>
-
-                {/* F7: Job Category CTAs */}
-                <div className="mt-8">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Explore PMHNP Jobs</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[
-                            { label: 'Remote', href: '/jobs/remote', icon: Home, color: '#2DD4BF' },
-                            { label: 'Full-Time', href: '/jobs?jobType=Full-Time', icon: Briefcase, color: '#3B82F6' },
-                            { label: 'Travel / Locum', href: '/jobs?specialty=Travel', icon: MapPin, color: '#E86C2C' },
-                            { label: 'All Jobs', href: '/jobs', icon: Search, color: '#A855F7' },
-                        ].map(({ label, href, icon: Icon, color }) => (
-                            <Link key={label} href={href}
-                                className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-teal-300 hover:shadow-sm transition-all text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-teal-700">
-                                <Icon size={16} style={{ color }} />
-                                {label}
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-
-                {/* F8: Create Your Profile CTA */}
-                <div className="mt-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                            <User size={20} className="text-teal-600" />
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">Let Employers Find You</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Create your PMHNP profile and get discovered by top employers actively hiring.</p>
-                            <Link href="/for-job-seekers/create-profile"
-                                className="inline-flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors">
-                                Create Your Profile <ArrowRight size={14} />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Related Posts */}
-                {relatedPosts.length > 0 && (
-                    <div className="mt-12">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-                            Related Articles
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {relatedPosts.map((relPost) => {
-                                const relLabel =
-                                    BLOG_CATEGORIES.find((c) => c.id === relPost.category)
-                                        ?.label || relPost.category;
-                                return (
-                                    <Link
-                                        key={relPost.slug}
-                                        href={`/blog/${relPost.slug}`}
-                                        className="block group"
-                                    >
-                                        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
-                                            <div className="text-xs text-teal-600 font-bold uppercase mb-2">
-                                                {relLabel}
-                                            </div>
-                                            <h4 className="font-bold text-gray-900 dark:text-gray-100 group-hover:text-teal-600 transition-colors mb-2">
-                                                {relPost.title}
-                                            </h4>
-                                            <p className="text-sm text-gray-500 line-clamp-2">
-                                                {relPost.meta_description || ''}
-                                            </p>
-                                        </div>
+            {/* ══ CONTEXTUAL pSEO LINKS (Phase 7.5) ══ */}
+            <div className="ed-jobs-cta" style={{ textAlign: 'center' }}>
+                {(() => {
+                    // State license guide → link to that state's job pages
+                    const licenseMatch = slug.match(/^pmhnp-license-(.+)$/);
+                    if (licenseMatch) {
+                        const stateSlug = licenseMatch[1];
+                        return (
+                            <>
+                                <p className="ed-jobs-cta-text" style={{ marginBottom: '12px' }}>
+                                    Ready to start your career? Browse PMHNP positions:
+                                </p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+                                    <Link href={`/jobs/state/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        All Jobs in {stateSlug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')} →
                                     </Link>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
+                                    <Link href={`/jobs/remote/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Remote →
+                                    </Link>
+                                    <Link href={`/jobs/telehealth/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Telehealth →
+                                    </Link>
+                                    <Link href={`/jobs/outpatient/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Outpatient →
+                                    </Link>
+                                    <Link href={`/salary-guide/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        Salary Guide →
+                                    </Link>
+                                </div>
+                            </>
+                        );
+                    }
 
-                {/* Popular Resources — bottom of page */}
-                <div className="mt-12 bg-teal-50 dark:bg-teal-950/30 p-6 rounded-xl border border-teal-100 dark:border-teal-800">
-                    <h3 className="font-bold text-teal-900 dark:text-teal-200 mb-4 text-center">
-                        Popular Resources
-                    </h3>
-                    <div className="flex flex-wrap justify-center gap-6">
-                        <Link
-                            href="/salary-guide"
-                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                        >
-                            <span className="mr-2">💰</span> 2026 Salary Guide
-                        </Link>
-                        <Link
-                            href="/jobs"
-                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                        >
-                            <span className="mr-2">🔍</span> Browse All Jobs
-                        </Link>
-                        <Link
-                            href="/jobs/remote"
-                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                        >
-                            <span className="mr-2">🏠</span> Remote Jobs
-                        </Link>
-                        <Link
-                            href="/job-alerts"
-                            className="flex items-center text-sm text-gray-700 hover:text-teal-600 transition-colors"
-                        >
-                            <span className="mr-2">🔔</span> Get Job Alerts
-                        </Link>
-                    </div>
-                </div>
+                    // Career-related posts → relevant category links
+                    const categoryLinks = [
+                        { match: /remote|work.from.home/i, label: 'Remote Jobs', href: '/jobs/remote' },
+                        { match: /telehealth|virtual/i, label: 'Telehealth Jobs', href: '/jobs/telehealth' },
+                        { match: /new.grad|first.job|entry.level/i, label: 'New Grad Jobs', href: '/jobs/new-grad' },
+                        { match: /salary|compensation|pay/i, label: 'Salary Guide', href: '/salary-guide' },
+                        { match: /travel|locum/i, label: 'Travel Jobs', href: '/jobs/travel' },
+                        { match: /private.practice/i, label: 'Private Practice', href: '/jobs/private-practice' },
+                        { match: /inpatient|hospital/i, label: 'Inpatient Jobs', href: '/jobs/inpatient' },
+                        { match: /outpatient|clinic/i, label: 'Outpatient Jobs', href: '/jobs/outpatient' },
+                    ];
+                    const fullText = `${post.title} ${post.content.slice(0, 500)}`;
+                    const matched = categoryLinks.filter(l => l.match.test(fullText)).slice(0, 4);
+
+                    return (
+                        <>
+                            <p className="ed-jobs-cta-text" style={{ marginBottom: '12px' }}>
+                                Looking for your next role?
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+                                <Link href="/jobs" className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                                    Browse All PMHNP Jobs →
+                                </Link>
+                                {matched.map(l => (
+                                    <Link key={l.href} href={l.href} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                        {l.label} →
+                                    </Link>
+                                ))}
+                            </div>
+                        </>
+                    );
+                })()}
             </div>
         </div>
     );

@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { FilterState, FilterCounts } from '@/types/filters';
 import { buildWhereClause } from '@/lib/filters';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'filter-counts', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const raw = await request.json();
     // Normalize: ensure all array fields exist (handles old clients without experienceLevel)
@@ -17,6 +22,10 @@ export async function POST(request: NextRequest) {
       salaryMin: raw.salaryMin ?? null,
       postedWithin: raw.postedWithin ?? null,
       location: raw.location ?? null,
+      cityExact: raw.cityExact ?? null,
+      stateCode: raw.stateCode ?? null,
+      employer: raw.employer ?? null,
+      category: raw.category ?? null,
     };
 
     // Base filters for all counts (excludes the specific category being counted)

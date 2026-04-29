@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -20,7 +21,7 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 2592000, // 30 days — avoids re-optimizing on every request
     remotePatterns: [
       {
         protocol: 'https',
@@ -110,8 +111,43 @@ const nextConfig: NextConfig = {
         destination: '/salary-guide',
         permanent: true,
       },
+      // Consolidate new-grad job routes
+      {
+        source: '/new-grad',
+        destination: '/jobs/new-grad',
+        permanent: true,
+      },
     ];
   },
 };
 
-export default withBundleAnalyzer(nextConfig);
+export default withSentryConfig(
+  withBundleAnalyzer(nextConfig),
+  {
+    // Sentry org/project — set SENTRY_ORG and SENTRY_PROJECT in Vercel env vars
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+
+    // Source map upload auth token — set SENTRY_AUTH_TOKEN in Vercel
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+
+    // Suppress Sentry CLI output during CI builds
+    silent: true,
+
+    // Upload source maps then delete them — don't ship maps to users
+    sourcemaps: {
+      deleteSourcemapsAfterUpload: true,
+    },
+
+    // Tree-shake Sentry debug logging from the production bundle
+    disableLogger: true,
+
+    // Proxy Sentry requests through /monitoring to bypass ad blockers
+    tunnelRoute: '/monitoring',
+
+    // Automatically instrument Next.js data fetching and middleware
+    autoInstrumentServerFunctions: true,
+    autoInstrumentMiddleware: true,
+    autoInstrumentAppDirectory: true,
+  }
+);

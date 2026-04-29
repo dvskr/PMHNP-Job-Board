@@ -9,9 +9,11 @@ interface FAQItem {
 }
 
 interface CategoryFAQProps {
-    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health';
+    category: 'remote' | 'telehealth' | 'travel' | 'new-grad' | 'per-diem' | 'inpatient' | 'outpatient' | 'substance-abuse' | 'child-adolescent' | 'addiction' | 'behavioral-health' | 'community-health' | 'metro';
     totalJobs: number;
     avgSalary?: number;
+    /** Pass custom FAQs (e.g. from metro data) instead of using built-in ones */
+    customFaqs?: { question: string; answer: string }[];
 }
 
 const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
@@ -206,12 +208,32 @@ const CATEGORY_FAQS: Record<string, (props: CategoryFAQProps) => FAQItem[]> = {
             answer: 'You need a PMHNP-BC certification from ANCC, an active APRN license in your state, and a master\'s or doctoral degree in psychiatric-mental health nursing. Most positions also require DEA registration for prescribing controlled substances. Experience requirements vary from new-grad friendly to 3+ years depending on the role.',
         },
     ],
+    'community-health': ({ totalJobs, avgSalary }) => [
+        {
+            question: 'How many community health PMHNP jobs are available?',
+            answer: `There are currently ${totalJobs} community health PMHNP positions available. These include roles at Federally Qualified Health Centers (FQHCs), community mental health centers, public health clinics, and integrated primary-care settings serving underserved populations.`,
+        },
+        {
+            question: 'What is the average salary for community health PMHNPs?',
+            answer: avgSalary
+                ? `Community health PMHNP positions offer an average salary of approximately $${avgSalary.toLocaleString()} per year. Many FQHC and public health roles also include NHSC loan repayment up to $50,000 and PSLF eligibility.`
+                : 'Community health PMHNP salaries typically range from $120,000 to $170,000 per year. Positions at FQHCs often include loan repayment programs, federal benefits, and generous PTO that significantly boost total compensation.',
+        },
+        {
+            question: 'What qualifications are needed for community health PMHNP roles?',
+            answer: 'You need an active PMHNP-BC certification (ANCC), state APRN licensure, DEA registration, and ideally experience working with diverse, underserved populations. Bilingual skills (especially Spanish) are highly valued. Some positions accept new graduates with structured supervision.',
+        },
+        {
+            question: 'Do community health PMHNPs qualify for loan repayment?',
+            answer: 'Yes — many community health positions at FQHCs and nonprofit agencies qualify for National Health Service Corps (NHSC) loan repayment of up to $50,000 for two years of service. Positions at 501(c)(3) employers also qualify for Public Service Loan Forgiveness (PSLF) after 120 qualifying payments.',
+        },
+    ],
 };
 
-export default function CategoryFAQ({ category, totalJobs, avgSalary }: CategoryFAQProps) {
+export default function CategoryFAQ({ category, totalJobs, avgSalary, customFaqs }: CategoryFAQProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-    const faqs = CATEGORY_FAQS[category]?.({ category, totalJobs, avgSalary }) ?? [];
+    const faqs = customFaqs ?? (CATEGORY_FAQS[category]?.({ category, totalJobs, avgSalary }) ?? []);
     if (faqs.length === 0) return null;
 
     const categoryLabels: Record<string, string> = {
@@ -226,6 +248,8 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary }: Category
         'child-adolescent': 'Child & Adolescent',
         addiction: 'Addiction',
         'behavioral-health': 'Behavioral Health',
+        'community-health': 'Community Health',
+        metro: 'Metro',
     };
 
     // FAQ Schema for structured data (FAQPage)
@@ -250,40 +274,68 @@ export default function CategoryFAQ({ category, totalJobs, avgSalary }: Category
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
             />
 
-            <section className="bg-white dark:bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--border-color)] p-6 md:p-8 mt-8">
-                <div className="flex items-center gap-2 mb-6">
-                    <HelpCircle className="w-6 h-6 text-teal-600" />
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                        Frequently Asked Questions About {categoryLabels[category]} PMHNP Jobs
+            <div style={{ background: '#FDFBF7' }}>
+                <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '56px 20px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>
+                        Common Questions
+                    </p>
+                    <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>
+                        {categoryLabels[category]} PMHNP Jobs — FAQ
                     </h2>
-                </div>
 
-                <div className="space-y-3">
-                    {faqs.map((faq, index) => (
-                        <div
-                            key={index}
-                            className="border border-gray-200 dark:border-[var(--border-color)] rounded-lg overflow-hidden"
-                        >
-                            <button
-                                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                                className="w-full flex items-center justify-between p-4 text-left bg-gray-50 hover:bg-gray-100 dark:bg-[var(--bg-tertiary)] dark:hover:bg-[var(--bg-primary)] transition-colors"
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {faqs.map((faq, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    background: '#FFFFFF',
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(255,255,255,0.5)',
+                                    boxShadow: openIndex === index
+                                        ? '6px 6px 20px rgba(0,0,0,0.08), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)'
+                                        : '4px 4px 12px rgba(0,0,0,0.04), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                                    overflow: 'hidden',
+                                    transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+                                }}
                             >
-                                <span className="font-medium text-gray-900 dark:text-[var(--text-primary)] pr-4">{faq.question}</span>
-                                {openIndex === index ? (
-                                    <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                                ) : (
-                                    <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                                <button
+                                    onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                                    style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '20px 24px',
+                                        textAlign: 'left',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    <span style={{ fontSize: '15px', fontWeight: 600, color: '#1A2E35', paddingRight: '16px', lineHeight: 1.4 }}>{faq.question}</span>
+                                    <span style={{
+                                        width: '28px', height: '28px', borderRadius: '8px',
+                                        background: openIndex === index ? '#0D9488' : '#F0FDFA',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0, transition: 'background 0.2s ease',
+                                    }}>
+                                        {openIndex === index ? (
+                                            <ChevronUp size={16} style={{ color: '#fff' }} />
+                                        ) : (
+                                            <ChevronDown size={16} style={{ color: '#0D9488' }} />
+                                        )}
+                                    </span>
+                                </button>
+                                {openIndex === index && (
+                                    <div style={{ padding: '0 24px 20px', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                                        <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: '16px 0 0' }}>{faq.answer}</p>
+                                    </div>
                                 )}
-                            </button>
-                            {openIndex === index && (
-                                <div className="p-4 bg-white dark:bg-[var(--bg-secondary)] border-t border-gray-200 dark:border-[var(--border-color)]">
-                                    <p className="text-gray-700 dark:text-[var(--text-secondary)] leading-relaxed">{faq.answer}</p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </section>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
         </>
     );
 }

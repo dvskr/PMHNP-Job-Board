@@ -6,12 +6,11 @@ import {
 
 /* ─── Styles ─── */
 const card: React.CSSProperties = {
-    backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-    borderRadius: '14px', padding: '24px',
+    backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', padding: '24px',
 };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
-const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
-const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
+const heading: React.CSSProperties = { color: '#1A2E35', fontWeight: 700 };
+const sub: React.CSSProperties = { color: '#6B7F8A', fontSize: '14px' };
+const muted: React.CSSProperties = { color: '#94A3B8', fontSize: '12px' };
 
 function ConfigRow({ icon, label, description, children }: {
     icon: React.ReactNode; label: string; description: string; children?: React.ReactNode;
@@ -19,12 +18,12 @@ function ConfigRow({ icon, label, description, children }: {
     return (
         <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-            padding: '16px 0', borderBottom: '1px solid var(--border-color)',
+            padding: '16px 0', borderBottom: '1px solid #E8ECF0',
         }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1 }}>
-                <div style={{ padding: 8, borderRadius: 8, backgroundColor: 'var(--bg-tertiary)', marginTop: 2 }}>{icon}</div>
+                <div style={{ padding: 8, borderRadius: 8, backgroundColor: '#F8FAF9', marginTop: 2 }}>{icon}</div>
                 <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1A2E35' }}>{label}</div>
                     <div style={muted}>{description}</div>
                 </div>
             </div>
@@ -51,7 +50,7 @@ function EnvIndicator({ name }: { name: string }) {
     return (
         <span style={{
             display: 'inline-flex', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace',
-            fontWeight: 600, backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-tertiary)',
+            fontWeight: 600, backgroundColor: '#F8FAF9', color: '#94A3B8',
         }}>{name}</span>
     );
 }
@@ -67,7 +66,7 @@ export default function AdminSettingsPage() {
             {/* ─── Data Sources ─── */}
             <div style={{ ...card, marginBottom: 24 }}>
                 <h2 style={{ ...heading, fontSize: 18, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Database size={20} style={{ color: '#2DD4BF' }} /> Data Sources
+                    <Database size={20} style={{ color: '#0D9488' }} /> Data Sources
                 </h2>
                 <ConfigRow
                     icon={<Globe size={18} style={{ color: '#3B82F6' }} />}
@@ -168,7 +167,7 @@ export default function AdminSettingsPage() {
                     <Settings size={20} style={{ color: '#EF4444' }} /> Authentication & Security
                 </h2>
                 <ConfigRow
-                    icon={<Settings size={18} style={{ color: '#2DD4BF' }} />}
+                    icon={<Settings size={18} style={{ color: '#0D9488' }} />}
                     label="Auth Provider"
                     description="Supabase authentication with email + social login"
                 >

@@ -97,8 +97,10 @@ export async function middleware(request: NextRequest) {
     // Generate a unique nonce per request for Content-Security-Policy
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
+    const isLocalhost = request.headers.get('host')?.includes('localhost');
+
     // Build CSP with nonce — replaces 'unsafe-inline' for script-src
-    const cspHeader = [
+    const cspDirectives = [
         "default-src 'self'",
         `script-src 'self' 'nonce-${nonce}' https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com`,
         // style-src keeps 'unsafe-inline' — Next.js injects styles at runtime that can't be nonced
@@ -112,8 +114,14 @@ export async function middleware(request: NextRequest) {
         "base-uri 'self'",
         "form-action 'self'",
         "frame-ancestors 'none'",
-        "upgrade-insecure-requests",
-    ].join('; ');
+    ];
+
+    // Only upgrade insecure requests in production (breaks localhost fetch)
+    if (!isLocalhost) {
+        cspDirectives.push("upgrade-insecure-requests");
+    }
+
+    const cspHeader = cspDirectives.join('; ');
 
     // ── Trailing Slash Stripping ─────────────────────────────────────
     // Fixes "Duplicate, Google chose different canonical than user" GSC issue.
@@ -201,6 +209,8 @@ export async function middleware(request: NextRequest) {
             'https://pmhnphiring.com',
             'https://www.pmhnphiring.com',
             process.env.NEXT_PUBLIC_BASE_URL,
+            'http://localhost:3000',
+            'http://localhost:3001',
         ].filter(Boolean);
 
         if (origin && allowedOrigins.includes(origin)) {

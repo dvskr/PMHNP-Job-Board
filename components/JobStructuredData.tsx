@@ -64,6 +64,7 @@ export default function JobStructuredData({ job }: JobStructuredDataProps) {
     "@type": "JobPosting",
     "title": job.title,
     "description": description,
+    "url": `https://pmhnphiring.com/jobs/${job.slug || job.id}`,
     "datePosted": datePosted.toISOString(),
     "validThrough": validThrough.toISOString(),
     "employmentType": mapJobType(job.jobType),

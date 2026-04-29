@@ -82,8 +82,8 @@ interface ConversationDetail {
 /*  Styles                                                                */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
 
-const cardBg = 'var(--bg-secondary)';
-const borderVal = '1px solid var(--border-color)';
+const cardBg = '#F7FBF8';
+const borderVal = '1px solid rgba(213, 232, 224, 0.6)';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
 /*  Avatar                                                                */
@@ -97,7 +97,8 @@ function Avatar({ user, size = 40 }: { user: OtherUser; size?: number }) {
                 alt={user.name}
                 style={{
                     width: size, height: size, borderRadius: '50%', objectFit: 'cover',
-                    flexShrink: 0, border: '2px solid var(--border-color)',
+                    flexShrink: 0, border: '2px solid #D5E8E0',
+                    boxShadow: '3px 3px 8px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8)',
                 }}
             />
         );
@@ -106,10 +107,11 @@ function Avatar({ user, size = 40 }: { user: OtherUser; size?: number }) {
         <div
             style={{
                 width: size, height: size, borderRadius: '50%', flexShrink: 0,
-                backgroundColor: 'rgba(45,212,191,0.15)',
+                backgroundColor: '#D5F5F1',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: size * 0.4, fontWeight: 700, color: '#2DD4BF',
-                border: '2px solid rgba(45,212,191,0.25)',
+                fontSize: size * 0.4, fontWeight: 700, color: '#0D9488',
+                border: '2px solid rgba(13,148,136,0.15)',
+                boxShadow: '3px 3px 8px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.7)',
             }}
         >
             {user.initials}
@@ -412,14 +414,15 @@ export default function MessagesPage() {
         <div className="msg-page-container" suppressHydrationWarning>
             {/* Header — hidden on mobile, shown on desktop */}
             <div className="msg-page-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    Messaging
+                <h1 style={{ fontSize: '24px', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: 0 }}>
+                    Messages
                 </h1>
                 {totalUnread > 0 && (
                     <span style={{
                         backgroundColor: '#EF4444', color: '#fff',
                         fontSize: '12px', fontWeight: 700,
                         padding: '2px 8px', borderRadius: '12px',
+                        boxShadow: '2px 2px 6px rgba(239,68,68,0.2)',
                     }}>
                         {totalUnread}
                     </span>
@@ -433,13 +436,14 @@ export default function MessagesPage() {
             ) : conversations.length === 0 ? (
                 <div style={{
                     textAlign: 'center', padding: '64px 24px',
-                    backgroundColor: cardBg, border: borderVal, borderRadius: '16px',
+                    backgroundColor: '#F7FBF8', border: borderVal, borderRadius: '20px',
+                    boxShadow: '6px 6px 16px rgba(0,0,0,0.05), -3px -3px 10px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6)',
                 }}>
-                    <Inbox size={48} style={{ color: 'var(--text-tertiary)', margin: '0 auto 16px' }} />
-                    <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 8px' }}>
+                    <img src="/illustrations/empty-messages.png" alt="" style={{ width: '100px', height: '100px', margin: '0 auto 16px', objectFit: 'contain', opacity: 0.85 }} />
+                    <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 8px' }}>
                         No messages yet
                     </h2>
-                    <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', maxWidth: '380px', margin: '0 auto' }}>
+                    <p style={{ fontSize: '14px', color: '#6B7F8A', maxWidth: '380px', margin: '0 auto' }}>
                         Conversations with employers and candidates will appear here.
                     </p>
                 </div>
@@ -739,14 +743,15 @@ export default function MessagesPage() {
                                                     maxWidth: '70%',
                                                     padding: '10px 14px',
                                                     borderRadius: msg.isFromMe
-                                                        ? '14px 14px 4px 14px'
-                                                        : '14px 14px 14px 4px',
+                                                        ? '16px 16px 4px 16px'
+                                                        : '16px 16px 16px 4px',
                                                     backgroundColor: msg.isFromMe
-                                                        ? 'rgba(45,212,191,0.12)'
-                                                        : 'var(--bg-tertiary, rgba(0,0,0,0.03))',
+                                                        ? '#D5F5F1'
+                                                        : '#EDF2EE',
                                                     border: msg.isFromMe
-                                                        ? '1px solid rgba(45,212,191,0.2)'
-                                                        : borderVal,
+                                                        ? '1px solid rgba(13,148,136,0.12)'
+                                                        : '1px solid rgba(213,232,224,0.5)',
+                                                    boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
                                                 }}>
                                                     {editingMsgId === msg.id ? (
                                                         <div>
@@ -1012,14 +1017,15 @@ export default function MessagesPage() {
                                                 flex: 1, resize: 'none',
                                                 padding: '12px 16px',
                                                 borderRadius: '24px',
-                                                border: borderVal,
-                                                backgroundColor: 'var(--bg-primary)',
-                                                color: 'var(--text-primary)',
+                                                border: '1px solid rgba(213,232,224,0.5)',
+                                                backgroundColor: '#EDF2EE',
+                                                color: '#1A2E35',
                                                 fontSize: '14px',
                                                 fontFamily: 'inherit',
                                                 outline: 'none',
                                                 minHeight: '44px',
                                                 maxHeight: '120px',
+                                                boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.04), inset -1px -1px 3px rgba(255,255,255,0.6)',
                                             }}
                                         />
                                         <button
@@ -1028,13 +1034,16 @@ export default function MessagesPage() {
                                             style={{
                                                 width: '44px', height: '44px',
                                                 borderRadius: '50%',
-                                                border: 'none',
-                                                backgroundColor: (replyText.trim() || pendingAttachment) ? '#2DD4BF' : 'var(--bg-tertiary, rgba(255,255,255,0.05))',
-                                                color: (replyText.trim() || pendingAttachment) ? '#000' : 'var(--text-tertiary)',
+                                                border: '1px solid rgba(255,255,255,0.3)',
+                                                backgroundColor: (replyText.trim() || pendingAttachment) ? '#0D9488' : '#E8F0EB',
+                                                color: (replyText.trim() || pendingAttachment) ? '#fff' : '#8A9BA6',
                                                 cursor: (replyText.trim() || pendingAttachment) ? 'pointer' : 'not-allowed',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 transition: 'all 0.2s',
                                                 flexShrink: 0,
+                                                boxShadow: (replyText.trim() || pendingAttachment)
+                                                    ? '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.3), inset 1px 1px 2px rgba(255,255,255,0.2)'
+                                                    : '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7)',
                                             }}
                                         >
                                             {sending ? (
@@ -1167,8 +1176,9 @@ export default function MessagesPage() {
                     .msg-page-header { display: flex !important; }
                     .msg-grid {
                         grid-template-columns: minmax(260px, 340px) 1fr !important;
-                        border-radius: 12px !important;
-                        border: 1px solid var(--border-color) !important;
+                        border-radius: 20px !important;
+                        border: 1px solid rgba(213,232,224,0.6) !important;
+                        box-shadow: 6px 6px 16px rgba(0,0,0,0.05), -3px -3px 10px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.6);
                         height: calc(100vh - 180px) !important;
                         max-height: calc(100vh - 180px) !important;
                     }

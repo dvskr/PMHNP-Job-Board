@@ -132,6 +132,7 @@ export async function GET(req: NextRequest) {
         return {
             id: s.id,
             note: s.note,
+            tags: s.tags || [],
             savedAt: s.savedAt.toISOString(),
             postingId: s.employerJobId || null,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

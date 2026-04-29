@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { sanitizeText } from '@/lib/sanitize'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const VALID_LICENSE_TYPES = ['RN', 'APRN', 'Compact (NLC)', 'Compact (APRN)']
 const VALID_STATUSES = ['active', 'inactive', 'restricted']
@@ -37,6 +38,10 @@ export async function GET() {
 
 // POST — create a new license
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'profile-lic', RATE_LIMITS.profile);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         const supabase = await createClient()
         const { data: { user }, error } = await supabase.auth.getUser()

@@ -50,6 +50,8 @@
   "exclude": [
     "node_modules",
     "pmhnp-autofill-extension",
-    "scripts"
+    "scripts",
+    "_recovery",
+    "_turbopack_recovery"
   ]
 }

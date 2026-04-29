@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const VALID_REASONS = ['expired', 'wrong_salary', 'scam', 'duplicate', 'wrong_info', 'other'];
 const AUTO_UNPUBLISH_THRESHOLD = 3;
@@ -33,6 +34,10 @@ function hashIp(ip: string): string {
 }
 
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'job-report', RATE_LIMITS.feedback);
+    if (rateLimitResult) return rateLimitResult;
+
     try {
         // Auth check
         const supabase = await createClient();

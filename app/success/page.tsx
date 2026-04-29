@@ -11,13 +11,18 @@ function SuccessContent() {
   const sessionId = searchParams.get('session_id');
   const freeParam = searchParams.get('free');
 
-  // Determine if this is a free posting
-  const isFreeMode = freeParam === 'true' || !config.isPaidPostingEnabled;
+  // Determine if this was a free posting (from query param)
+  const isFreeMode = freeParam === 'true';
 
   useEffect(() => {
+    // Guard: redirect if accessed directly without a valid session
+    if (!sessionId && !isFreeMode) {
+      window.location.href = '/post-job';
+      return;
+    }
     // Clear jobFormData from localStorage
     localStorage.removeItem('jobFormData');
-  }, []);
+  }, [sessionId, isFreeMode]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">

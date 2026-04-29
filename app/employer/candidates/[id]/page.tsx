@@ -2,7 +2,7 @@ import { requireEmployer } from '@/lib/auth/protect'
 import CandidateProfileClient from '@/components/employer/CandidateProfileClient'
 
 export const metadata = {
-    title: 'Candidate Profile | PMHNP Hiring',
+    title: 'Candidate Profile',
 }
 
 export default async function CandidateDetailPage({

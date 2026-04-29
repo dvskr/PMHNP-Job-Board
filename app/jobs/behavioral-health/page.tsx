@@ -1,13 +1,23 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Heart, DollarSign, TrendingUp, Building2, Bell, Wifi, Video, Plane, GraduationCap, Calendar, Brain } from 'lucide-react';
+import Image from 'next/image';
+import { Heart, DollarSign, TrendingUp, Building2, Bell, Briefcase, Brain, ArrowRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { buildCategoryWhereClause } from '@/lib/filters';
 import JobCard from '@/components/JobCard';
 import { Job } from '@/lib/types';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import CategoryFAQ from '@/components/CategoryFAQ';
+import { JobListViewTracker } from '@/components/analytics/ViewTrackers';
+import CategoryHero from '@/components/CategoryHero';
 
 // ISR caching
+const clayCard = {
+  background: '#FFFFFF', borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.5)',
+  boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
+};
+
 export const revalidate = 3600;
 
 interface EmployerGroupResult {
@@ -20,20 +30,11 @@ interface ProcessedEmployer {
     count: number;
 }
 
-const BEHAVIORAL_HEALTH_KEYWORDS = [
-    { title: { contains: 'behavioral health', mode: 'insensitive' as const } },
-    { title: { contains: 'behavioral', mode: 'insensitive' as const } },
-    { title: { contains: 'mental health', mode: 'insensitive' as const } },
-    { title: { contains: 'psychiatric', mode: 'insensitive' as const } },
-    { title: { contains: 'psych NP', mode: 'insensitive' as const } },
-    { title: { contains: 'PMHNP', mode: 'insensitive' as const } },
-    { description: { contains: 'behavioral health', mode: 'insensitive' as const } },
-    { description: { contains: 'behavioral health facility', mode: 'insensitive' as const } },
-];
+const BH_FILTER = buildCategoryWhereClause('behavioral-health');
 
 async function getBehavioralHealthJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
-        where: { isPublished: true, OR: BEHAVIORAL_HEALTH_KEYWORDS },
+        where: BH_FILTER,
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
@@ -42,14 +43,11 @@ async function getBehavioralHealthJobs(skip = 0, take = 20) {
 
 async function getBehavioralHealthStats() {
     const totalJobs = await prisma.job.count({
-        where: { isPublished: true, OR: BEHAVIORAL_HEALTH_KEYWORDS },
+        where: BH_FILTER,
     });
 
     const salaryData = await prisma.job.aggregate({
-        where: {
-            isPublished: true,
-            OR: BEHAVIORAL_HEALTH_KEYWORDS,
-            normalizedMinSalary: { not: null },
+        where: { ...BH_FILTER, normalizedMinSalary: { not: null },
             normalizedMaxSalary: { not: null },
         },
         _avg: { normalizedMinSalary: true, normalizedMaxSalary: true },
@@ -61,7 +59,7 @@ async function getBehavioralHealthStats() {
 
     const topEmployers = await prisma.job.groupBy({
         by: ['employer'],
-        where: { isPublished: true, OR: BEHAVIORAL_HEALTH_KEYWORDS },
+        where: BH_FILTER,
         _count: { employer: true },
         orderBy: { _count: { employer: 'desc' } },
         take: 8,
@@ -117,281 +115,296 @@ export default async function BehavioralHealthJobsPage({ searchParams }: PagePro
     const totalPages = Math.ceil(stats.totalJobs / limit);
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="min-h-screen" style={{ backgroundColor: '#FDFBF7' }}>
             <BreadcrumbSchema items={[
                 { name: "Home", url: "https://pmhnphiring.com" },
                 { name: "Jobs", url: "https://pmhnphiring.com/jobs" },
                 { name: "Behavioral Health", url: "https://pmhnphiring.com/jobs/behavioral-health" }
             ]} />
+            {jobs.length > 0 && (
+              <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Behavioral Health PMHNP Jobs', numberOfItems: stats.totalJobs, itemListElement: jobs.slice(0, 10).map((job: Job, idx: number) => ({ '@type': 'ListItem', position: idx + 1, name: job.title, url: `https://pmhnphiring.com/jobs/${job.slug || job.id}` })) }) }} />
+            )}
 
-            {/* Hero */}
-            <section className="bg-indigo-600 text-white py-12 md:py-16">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <div className="flex items-center justify-center gap-2 mb-4">
-                            <Brain className="h-8 w-8" />
-                            <Heart className="h-8 w-8" />
-                        </div>
-                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-                            Behavioral Health NP Jobs
-                        </h1>
-                        <p className="text-sm text-indigo-200 text-center mt-2 mb-4">
-                            Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} | Psychiatric & behavioral health positions
-                        </p>
-                        <p className="text-lg md:text-xl text-indigo-100 mb-6">
-                            Discover {stats.totalJobs} behavioral health and psychiatric nurse practitioner positions
-                        </p>
+            {/* ═══ HERO ═══ */}
+      <CategoryHero
+        bgColor="#bda3cd"
+        heroImage="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/hero_v2_behavioralhealth.webp"
+        heroAlt="Behavioral health nurse practitioner setting"
+        badgeText={`${stats.totalJobs} live roles · updated today`}
+        breadcrumbs={['Careers', 'Nurse Practitioner', 'Behavioral Health']}
+        indexLabel="№ 14 / 28"
+        headlineLine1="Behavioral Health"
+        headlineLine2="NP"
+        headlineSub="jobs, whole-person care."
+        stats={[
+          { value: `${stats.totalJobs}+`, label: 'positions' },
+          { value: stats.avgSalary > 0 ? `$${stats.avgSalary}k` : '$155K+', label: 'avg salary' },
+          { value: `${stats.topEmployers.length}+`, label: 'employers' },
+        ]}
+        description="Psychiatric and mental health positions across inpatient, outpatient, telehealth, and community settings."
+        ctaLabel="Browse BH Jobs"
+        ctaHref="/jobs?category=behavioral-health"
+        secondaryCtaLabel="Set Alert"
+        secondaryCtaHref="/job-alerts"
+      />
 
-                        <div className="flex flex-wrap justify-center gap-6 md:gap-8 mt-8">
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{stats.totalJobs}</div>
-                                <div className="text-sm text-indigo-100">BH Positions</div>
-                            </div>
-                            {stats.avgSalary > 0 && (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold">${stats.avgSalary}k</div>
-                                    <div className="text-sm text-indigo-100">Avg. Salary</div>
-                                </div>
-                            )}
-                            <div className="text-center">
-                                <div className="text-3xl font-bold">{stats.topEmployers.length}</div>
-                                <div className="text-sm text-indigo-100">Hiring Employers</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <div className="container mx-auto px-4 py-8 md:py-12">
-                <div className="max-w-7xl mx-auto">
-                    {/* About Behavioral Health */}
-                    <div className="mb-8 md:mb-12">
-                        <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>
-                                Why Behavioral Health NP Careers?
-                            </h2>
-                            <div className="grid md:grid-cols-3 gap-6">
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <TrendingUp className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>45% Job Growth</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Behavioral health NP positions are growing faster than nearly every other healthcare profession through 2032.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <DollarSign className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>$155K+ Average</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Behavioral health NPs earn competitive salaries with opportunities exceeding $200K in private practice and specialty roles.
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                            <Heart className="h-6 w-6" style={{ color: 'var(--color-primary)' }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Meaningful Impact</h3>
-                                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                            Over 160 million Americans live in mental health shortage areas. Your work directly addresses the behavioral health crisis.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-3">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                                    All Behavioral Health Positions ({stats.totalJobs})
-                                </h2>
-                                <Link href="/jobs" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>
-                                    View All Jobs →
-                                </Link>
-                            </div>
-
-                            {jobs.length === 0 ? (
-                                <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <Brain className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
-                                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        No behavioral health positions available right now
-                                    </h3>
-                                    <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                                        Check back soon for new behavioral health NP positions.
-                                    </p>
-                                    <Link href="/jobs" className="inline-block px-6 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity" style={{ backgroundColor: 'var(--color-primary)' }}>
-                                        Browse All Jobs
-                                    </Link>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                                        {jobs.map((job: Job) => (
-                                            <JobCard key={job.id} job={job} />
-                                        ))}
-                                    </div>
-
-                                    {totalPages > 1 && (
-                                        <div className="mt-8 flex items-center justify-center gap-4">
-                                            {page > 1 ? (
-                                                <Link href={`/jobs/behavioral-health?page=${page - 1}`} className="px-4 py-2 text-sm font-medium rounded-lg transition-colors" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                                    ← Previous
-                                                </Link>
-                                            ) : (
-                                                <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                                                    ← Previous
-                                                </span>
-                                            )}
-                                            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Page {page} of {totalPages}</span>
-                                            {page < totalPages ? (
-                                                <Link href={`/jobs/behavioral-health?page=${page + 1}`} className="px-4 py-2 text-sm font-medium rounded-lg transition-colors" style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                                    Next →
-                                                </Link>
-                                            ) : (
-                                                <span className="px-4 py-2 text-sm font-medium rounded-lg cursor-not-allowed" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)' }}>
-                                                    Next →
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-
-                        {/* Sidebar */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-indigo-600 rounded-xl p-6 text-white mb-6 shadow-lg">
-                                <Bell className="h-8 w-8 mb-3" />
-                                <h3 className="text-lg font-bold mb-2">Get BH Job Alerts</h3>
-                                <p className="text-sm text-indigo-100 mb-4">Be the first to know about new behavioral health NP positions.</p>
-                                <Link href="/job-alerts" className="block w-full text-center px-4 py-2 bg-white text-indigo-700 rounded-lg font-medium hover:bg-indigo-50 transition-colors">
-                                    Create Alert
-                                </Link>
-                            </div>
-
-                            {stats.topEmployers.length > 0 && (
-                                <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Building2 className="h-5 w-5" style={{ color: 'var(--color-primary)' }} />
-                                        <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Top Employers</h3>
-                                    </div>
-                                    <ul className="space-y-3">
-                                        {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
-                                            <li key={index} className="flex items-center justify-between">
-                                                <span className="text-sm truncate flex-1" style={{ color: 'var(--text-secondary)' }}>{employer.name}</span>
-                                                <span className="text-sm font-medium ml-2" style={{ color: 'var(--color-primary)' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Settings Types */}
-                    <div className="mt-12 rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-                            Types of Behavioral Health NP Settings
-                        </h2>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Outpatient Behavioral Health</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Community mental health centers, group practices, and outpatient clinics treating depression, anxiety, ADHD, PTSD, and more in an office or telehealth setting.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Inpatient Psychiatry</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Hospital-based psychiatric units managing acute crises, psychotic episodes, and stabilization. Often team-based with psychiatrists and social workers.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Residential Treatment</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Long-term residential programs for eating disorders, substance use recovery, and treatment-resistant conditions requiring structured therapeutic environments.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Integrated Primary Care</h3>
-                                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                                    Embedded behavioral health within primary care practices, FQHCs, and health systems. Collaborative care model addressing mental health alongside physical health.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Explore Other Job Types */}
-                    <div className="mt-12 pt-12" style={{ borderTop: '1px solid var(--border-color)' }}>
-                        <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--text-primary)' }}>Explore Other Job Types</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Link href="/jobs/remote" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Wifi className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Remote Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Work from home</div>
-                            </Link>
-                            <Link href="/jobs/telehealth" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Video className="h-5 w-5 text-purple-500 group-hover:text-white transition-colors" />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Telehealth Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Virtual care</div>
-                            </Link>
-                            <Link href="/jobs/addiction" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-teal-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <Heart className="h-5 w-5 group-hover:text-white transition-colors" style={{ color: 'var(--color-primary)' }} />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Addiction Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>SUD & MAT</div>
-                            </Link>
-                            <Link href="/jobs/new-grad" className="block p-4 rounded-xl hover:shadow-md transition-all group" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-indigo-600 transition-colors" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                                    <GraduationCap className="h-5 w-5 text-indigo-500 group-hover:text-white transition-colors" />
-                                </div>
-                                <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>New Grad Jobs</div>
-                                <div className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Entry level</div>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
-                <section className="mt-12 mb-8 container mx-auto px-4">
-                    <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Explore More PMHNP Resources</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Link href="/salary-guide" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>💰 2026 Salary Guide</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Average PMHNP salary is $155,000+. See pay by state, experience, and setting.</p>
-                        </Link>
-                        <Link href="/jobs/locations" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📍 Jobs by Location</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Browse PMHNP positions by state and city.</p>
-                        </Link>
-                        <Link href="/blog" className="block p-4 rounded-lg hover:shadow-sm transition-all" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                            <h3 className="font-semibold" style={{ color: 'var(--color-primary)' }}>📝 Career Guides</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Expert guides on salary, licensing, interviews, and career growth.</p>
-                        </Link>
-                    </div>
-                </section>
-
-                <CategoryFAQ category="behavioral-health" totalJobs={stats.totalJobs} />
+      {/* ═══ JOB LISTINGS ═══ */}
+      <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35' }}>Behavioral Health Positions ({stats.totalJobs})</h2>
+              <Link href="/jobs" className="text-sm font-medium hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>View All Jobs →</Link>
             </div>
+            {jobs.length === 0 ? (
+              <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <Brain className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
+                <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>No behavioral health positions at this time</h3>
+                <Link href="/jobs" className="inline-block px-6 py-3 text-white rounded-lg font-medium" style={{ backgroundColor: 'var(--color-primary)' }}>Browse All Jobs</Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                {jobs.map((job: Job) => (<JobCard key={job.id} job={job} />))}
+              </div>
+            )}
+          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <Link href="/jobs?category=behavioral-health" className="cat-cta-primary" style={{ padding: '14px 32px', borderRadius: '14px', fontWeight: 700, fontSize: '14px', background: '#0D9488', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', boxShadow: '4px 4px 12px rgba(13,148,136,0.2)' }}>
+                Browse All Behavioral health Jobs <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="cat-bento-card" style={{ ...clayCard, padding: '0', overflow: 'hidden', marginBottom: '20px', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)' }}>
+              <div style={{ padding: '24px' }}>
+                <Bell size={28} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                <h3 className="font-lora" style={{ fontSize: '18px', fontWeight: 700, color: '#134E4A', margin: '0 0 8px' }}>BH Job Alerts</h3>
+                <p style={{ fontSize: '13px', color: '#0D9488', marginBottom: '16px', lineHeight: 1.6, fontWeight: 500 }}>New behavioral health listings delivered daily.</p>
+                <Link href="/job-alerts" className="cat-cta-primary" style={{ display: 'block', width: '100%', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', background: '#0D9488', color: '#fff', textDecoration: 'none', boxShadow: '3px 3px 8px rgba(13,148,136,0.15)' }}>Create Alert</Link>
+              </div>
+            </div>
+            {stats.topEmployers.length > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <Building2 size={20} style={{ color: '#0D9488' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Top Employers</h3>
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {stats.topEmployers.map((employer: ProcessedEmployer, index: number) => (
+                    <li key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: index < stats.topEmployers.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: '#5A4A42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{employer.name}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#0D9488', marginLeft: '8px', whiteSpace: 'nowrap' }}>{employer.count} {employer.count === 1 ? 'job' : 'jobs'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {stats.avgSalary > 0 && (
+              <div className="cat-bento-card" style={{ ...clayCard, padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <TrendingUp size={20} style={{ color: '#34D399' }} />
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>Salary Insights</h3>
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1A2E35', lineHeight: 1 }}>${stats.avgSalary}k</div>
+                <div style={{ fontSize: '13px', color: '#7A6A62', marginTop: '4px' }}>Average annual salary</div>
+              </div>
+            )}
+          </div>
         </div>
-    );
+      </div>
+
+            {/* ═══ BENTO — Why Choose Behavioral Health ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 20px 40px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Why Choose Behavioral Health</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(26px, 3.5vw, 38px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '8px' }}>Built for Whole-Person Care</h2>
+          <p style={{ fontSize: '15px', color: '#5A4A42', textAlign: 'center', maxWidth: '480px', margin: '0 auto 48px', lineHeight: 1.6 }}>Behavioral health roles integrate mental health into primary care, community health, and wellness programs.</p>
+
+          <div className="cat-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '14px' }}>
+            {/* ROW 1: Integrated Care (8) + Population Health (4) */}
+            <div className="cat-bento-hero-1 cat-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+              <div style={{ padding: '32px 28px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Integrated Care</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                  Work alongside PCPs, therapists, and social workers in collaborative care models across diverse healthcare settings.
+                </p>
+              </div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', padding: '16px' }}>
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_bh_collab.webp" alt="Integrated care team collaboration" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              </div>
+            </div>
+
+            <div className="cat-bento-hero-2 cat-bento-card" style={{ ...clayCard, gridColumn: 'span 4', padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: '0 0 auto', background: 'linear-gradient(145deg, #FFFBEB, #FEF3C7)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_bh_community.webp" alt="Community behavioral health populations" width={200} height={140} style={{ width: '100%', maxWidth: '200px', height: 'auto', borderRadius: '10px' }} />
+              </div>
+              <div style={{ padding: '24px 22px', flex: 1 }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1A2E35', margin: '0 0 6px' }}>Population Health</h3>
+                <p style={{ fontSize: '12.5px', color: '#7A6A62', margin: 0, lineHeight: 1.5 }}>
+                  Address behavioral health needs across diverse communities and age groups.
+                </p>
+              </div>
+            </div>
+
+            {/* ROW 2: 4 compact cards */}
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_bh_team.webp" alt="Team collaboration" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Team-Based</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Collaborate in interdisciplinary teams with therapists and case managers.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_bh_settings.webp" alt="Healthcare settings" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Diverse Settings</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>CMHCs, FQHCs, schools, corporate wellness, and primary care clinics.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_bh_demand.webp" alt="Growing demand" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>High Demand</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>BH integration driving massive growth in PMHNP positions nationwide.</p>
+            </div>
+            <div className="cat-bento-card" style={{ ...clayCard, gridColumn: 'span 3', padding: '24px 18px', textAlign: 'center' }}>
+              <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/icon_bh_prevention.webp" alt="Preventive care" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 14px', display: 'block' }} />
+              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#1A2E35', margin: '0 0 6px' }}>Preventive Focus</h3>
+              <p style={{ fontSize: '12px', color: '#7A6A62', margin: 0, lineHeight: 1.55 }}>Early intervention and prevention programs to improve community wellness.</p>
+            </div>
+
+            {/* ROW 3: Salary (8) + CTA (4) */}
+            <div className="cat-bento-hero-3 cat-bento-card" style={{ ...clayCard, gridColumn: 'span 8', padding: '0', overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center' }}>
+              <div style={{ padding: '32px 28px' }}>
+                <TrendingUp size={28} style={{ color: '#0D9488', marginBottom: '16px' }} />
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1A2E35', margin: '0 0 8px' }}>Career Growth</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', margin: 0, lineHeight: 1.6 }}>
+                  BH PMHNPs earn ${stats.avgSalary > 0 ? `${stats.avgSalary}k` : '$130K–$170K'} annually with strong benefits and loan repayment in underserved areas.
+                </p>
+              </div>
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(145deg, #FFF7ED, #FFEDD5)', padding: '16px' }}>
+                <Image src="https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/bento_bh_growth.webp" alt="Behavioral health career advancement" width={280} height={200} style={{ width: '100%', maxWidth: '280px', height: 'auto', borderRadius: '12px' }} />
+              </div>
+            </div>
+
+            <div className="cat-bento-cta cat-bento-card" style={{
+              ...clayCard, gridColumn: 'span 4', padding: '28px 22px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              background: 'linear-gradient(145deg, #F0FDFA, #CCFBF1)', border: '2px solid rgba(13,148,136,0.15)',
+            }}>
+              <Bell size={32} style={{ color: '#0D9488', marginBottom: '14px' }} />
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#134E4A', margin: '0 0 6px' }}>Job Alerts</h3>
+              <p style={{ fontSize: '13px', color: '#0D9488', margin: '0 0 16px', lineHeight: 1.6, fontWeight: 500 }}>
+                New BH listings delivered to your inbox daily.
+              </p>
+              <Link href="/job-alerts" className="cat-cta-primary" style={{
+                padding: '10px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '13px',
+                background: '#0D9488', color: '#fff', textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content',
+                boxShadow: '3px 3px 8px rgba(13,148,136,0.15)',
+              }}>
+                Create Alert <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ BEFORE YOU APPLY ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Before You Apply</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>What You Need to Know</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+              <div key="01" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>01</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Collaborative Practice</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Prepare for interdisciplinary teamwork with PCPs, therapists, and case managers.</p>
+              </div>
+              <div key="02" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>02</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Screening Tools</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Master PHQ-9, GAD-7, AUDIT, and other standardized behavioral health assessments.</p>
+              </div>
+              <div key="03" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>03</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>EHR Proficiency</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Learn integrated EHR systems used in behavioral health settings (Epic, Cerner, Athena).</p>
+              </div>
+              <div key="04" className="cat-bento-card" style={{ ...clayCard, padding: '28px 24px', borderTop: '3px solid #0D9488' }}>
+                <span style={{ fontSize: '28px', fontWeight: 800, color: '#CCFBF1', display: 'block', marginBottom: '12px' }}>04</span>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', marginBottom: '8px' }}>Cultural Competency</h3>
+                <p style={{ fontSize: '13px', color: '#5A4A42', lineHeight: 1.6, margin: 0 }}>Develop cultural humility skills for serving diverse patient populations effectively.</p>
+              </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ EXPLORE MORE ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #F0FDFA 0%, #E6FAF5 50%, #F0FDFA 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#E86C2C', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>Keep Exploring</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>More Ways to Find Your Next Role</h2>
+          <div className="cat-explore-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {[
+              { href: '/jobs/remote', label: 'Remote', sub: 'Work from home', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_remote.webp' },
+              { href: '/jobs/telehealth', label: 'Telehealth', sub: 'Virtual care', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_telehealth.webp' },
+              { href: '/jobs/inpatient', label: 'Inpatient', sub: 'Hospital roles', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_inpatient.webp' },
+              { href: '/jobs/outpatient', label: 'Outpatient', sub: 'Clinic-based', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_outpatient.webp' },
+              { href: '/salary-guide', label: 'Salary Guide', sub: '2026 comp data', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_salary.webp' },
+              { href: '/jobs/locations', label: 'By Location', sub: 'All 50 states', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/categories/clay_icon_location.webp' },
+            ].map(c => (
+              <Link key={c.href} href={c.href} className="cat-bento-card" style={{ ...clayCard, padding: '24px 20px', textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+                <Image src={c.icon} alt="" width={48} height={48} style={{ width: '48px', height: '48px', objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', display: 'block', marginBottom: '4px' }}>{c.label}</span>
+                <span style={{ fontSize: '12px', color: '#7A6A62', display: 'block' }}>{c.sub}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* ═══ FAQ ═══ */}
+      <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #FFF8F0 50%, #FDFBF7 100%)' }}>
+        <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '56px 20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0D9488', textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', marginBottom: '8px' }}>FAQ</p>
+          <h2 className="font-lora" style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', fontWeight: 700, color: '#1A2E35', textAlign: 'center', marginBottom: '40px' }}>Behavioral Health PMHNP Questions</h2>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {[
+              { q: "What is behavioral health vs mental health?", a: "Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care, addressing the whole person rather than just psychiatric diagnoses in isolation." },
+              { q: "What settings do BH PMHNPs work in?", a: "Behavioral health PMHNPs work in community mental health centers (CMHCs), federally qualified health centers (FQHCs), school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms." },
+              { q: "How much do behavioral health PMHNPs earn?", a: "BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs (NHSC up to $50K), sign-on bonuses, and excellent benefits packages." },
+              { q: "What skills are important for BH PMHNPs?", a: "Key skills include collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, brief intervention techniques, and trauma-informed care approaches." },
+            ].map((faq, idx) => (
+              <div key={idx} className="cat-bento-card" style={{ ...clayCard, padding: '28px 28px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>{faq.q}</h3>
+                <p style={{ fontSize: '14px', color: '#5A4A42', lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+              </div>
+            ))}
+          </div>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{q:"What is behavioral health vs mental health?",a:"Behavioral health is a broader term encompassing mental health, substance use, and health behaviors. BH PMHNPs work in integrated settings alongside primary care."},{q:"What settings do BH PMHNPs work in?",a:"CMHCs, FQHCs, school-based clinics, primary care offices with integrated BH, corporate wellness, residential facilities, and telehealth platforms."},{q:"How much do behavioral health PMHNPs earn?",a:"BH PMHNPs typically earn $130K–$170K annually. FQHC and CMHC positions often include loan repayment programs up to $50K."},{q:"What skills are important for BH PMHNPs?",a:"Collaborative care model experience, proficiency with screening tools (PHQ-9, GAD-7, AUDIT), cultural competency, EHR documentation, and trauma-informed care."}].map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) }) }} />
+        </section>
+      </div>
+
+      {/* ═══ Responsive + Hover CSS ═══ */}
+      <style>{`
+        .cat-cta-primary { transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .cat-cta-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(13,148,136,0.35) !important; filter: brightness(1.05); }
+        .cat-bento-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .cat-bento-card:hover { transform: translateY(-4px); box-shadow: 8px 8px 24px rgba(0,0,0,0.1), -4px -4px 12px rgba(255,255,255,0.9), inset 1px 1px 2px rgba(255,255,255,0.6) !important; }
+        .cat-stat-pill { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .cat-stat-pill:hover { transform: translateY(-2px) scale(1.02); box-shadow: 6px 6px 20px rgba(0,0,0,0.1), -3px -3px 10px rgba(255,255,255,0.9) !important; }
+        @media (max-width: 768px) {
+          .cat-hero-grid { grid-template-columns: 1fr !important; }
+          .cat-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .cat-bento-grid { grid-template-columns: 1fr !important; }
+          .cat-bento-hero-1, .cat-bento-hero-2, .cat-bento-hero-3, .cat-bento-cta { grid-column: span 1 !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-template-columns: 1fr !important; }
+          .cat-bento-grid > div { grid-column: span 1 !important; }
+          .cat-explore-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      @media (min-width: 769px) and (max-width: 1024px) {
+          .cat-bento-grid { grid-template-columns: repeat(6, 1fr) !important; }
+          .cat-bento-hero-1, .cat-bento-hero-3 { grid-column: span 6 !important; }
+          .cat-bento-hero-2, .cat-bento-cta { grid-column: span 6 !important; }
+          .cat-bento-grid > div:not(.cat-bento-hero-1):not(.cat-bento-hero-2):not(.cat-bento-hero-3):not(.cat-bento-cta) { grid-column: span 3 !important; }
+        }
+      `}</style>
+    </div>
+  );
 }

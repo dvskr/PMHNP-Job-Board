@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // GET - Unsubscribe
 export async function GET(request: NextRequest) {
@@ -48,6 +49,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Resubscribe
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'email-unsub', RATE_LIMITS.general);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await request.json();
     const { token } = body;

@@ -6,6 +6,7 @@ import { sanitizeText, sanitizeUrl } from '@/lib/sanitize'
 import { verifyCsrf } from '@/lib/csrf'
 import { syncToBeehiiv } from '@/lib/beehiiv'
 import { sendSignupWelcomeEmail } from '@/lib/email-service'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 // Shared include for _count used by completeness scoring
 const profileInclude = {
@@ -78,6 +79,10 @@ export async function GET() {
 
 // POST - Create profile (called during signup)
 export async function POST(request: NextRequest) {
+    // Rate limiting
+    const rateLimitResult = await rateLimit(request, 'auth-profile', RATE_LIMITS.auth);
+    if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await request.json()
     const {

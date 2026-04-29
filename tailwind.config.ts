@@ -10,25 +10,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Primary brand color (teal)
+        diorama: {
+          bg: '#FDFBF7',
+          bgAlt: '#F3F2EF',
+          text: '#2D3748',
+          textMuted: '#718096',
+          accentPink: '#FCE4EC',
+          accentCoral: '#F28B82',
+          accentBlue: '#E3F2FD',
+          border: '#E2E8F0',
+        },
         primary: {
-          50: '#F0FDFA',
-          100: '#CCFBF1',
-          200: '#99F6E4',
-          300: '#5EEAD4',
-          400: '#2DD4BF',
-          500: '#14B8A6',
-          600: '#0D9488',
-          700: '#0F766E',
-          800: '#115E59',
-          900: '#134E4A',
+          50: '#EEFBF9',
+          100: '#D5F3ED',
+          200: '#AEE5DB',
+          300: '#81D3C5',
+          400: '#5FBEAF',
+          500: '#4DB6AC',
+          600: '#3D9E94',
+          700: '#348078',
+          800: '#2E6761',
+          900: '#285550',
         },
-        // Accent color for CTAs, highlights
         accent: {
-          500: '#F59E0B', // amber for "Featured" badges, important CTAs
-          600: '#D97706',
+          500: '#F28B82',
+          600: '#E0756B',
         },
-        // Semantic colors
         success: {
           50: '#F0FDF4',
           500: '#22C55E',
@@ -46,8 +53,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        heading: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-lora)', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'xs': ['0.75rem', { lineHeight: '1rem' }],

@@ -46,13 +46,13 @@ interface UserDetail {
 }
 
 /* ─── Styles ─── */
-const card: React.CSSProperties = { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '14px', overflow: 'hidden' };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontWeight: 700 };
-const sub: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: '14px' };
-const muted: React.CSSProperties = { color: 'var(--text-tertiary)', fontSize: '12px' };
-const th: React.CSSProperties = { padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-color)', textAlign: 'left', whiteSpace: 'nowrap' };
-const td: React.CSSProperties = { padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', whiteSpace: 'nowrap' };
-const inputStyle: React.CSSProperties = { padding: '8px 14px', borderRadius: '8px', fontSize: '13px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', outline: 'none' };
+const card: React.CSSProperties = { backgroundColor: '#FAFBF9', border: '1px solid rgba(255,255,255,0.7)', borderRadius: '18px', boxShadow: '8px 8px 20px rgba(0,0,0,0.05), -6px -6px 16px rgba(255,255,255,0.9), inset 3px 3px 6px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.02)', overflow: 'hidden' };
+const heading: React.CSSProperties = { color: '#1A2E35', fontWeight: 700 };
+const sub: React.CSSProperties = { color: '#6B7F8A', fontSize: '14px' };
+const muted: React.CSSProperties = { color: '#94A3B8', fontSize: '12px' };
+const th: React.CSSProperties = { padding: '12px 16px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94A3B8', borderBottom: '1px solid #E8ECF0', textAlign: 'left', whiteSpace: 'nowrap' };
+const td: React.CSSProperties = { padding: '14px 16px', fontSize: '13px', color: '#6B7F8A', borderBottom: '1px solid #E8ECF0', whiteSpace: 'nowrap' };
+const inputStyle: React.CSSProperties = { padding: '8px 14px', borderRadius: '8px', fontSize: '13px', backgroundColor: '#F8FAF9', border: '1px solid rgba(255,255,255,0.5)', color: '#1A2E35', outline: 'none' };
 
 function badge(text: string, color: 'green' | 'purple' | 'blue' | 'gray' | 'red' | 'orange') {
     const colors = {
@@ -170,16 +170,16 @@ export default function AdminUsersPage() {
 
     const tabStyle = (active: boolean): React.CSSProperties => ({
         padding: '10px 20px', fontSize: '14px', fontWeight: active ? 600 : 400,
-        color: active ? '#2DD4BF' : 'var(--text-secondary)',
+        color: active ? '#0D9488' : '#6B7F8A',
         backgroundColor: active ? 'rgba(45,212,191,0.1)' : 'transparent',
-        border: 'none', borderBottom: active ? '2px solid #2DD4BF' : '2px solid transparent',
+        border: 'none', borderBottom: active ? '2px solid #0D9488' : '2px solid transparent',
         cursor: 'pointer', transition: 'all 0.2s',
     });
 
     if (loading) {
         return (
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 16px', textAlign: 'center' }}>
-                <div style={{ width: 48, height: 48, border: '3px solid var(--border-color)', borderTop: '3px solid #2DD4BF', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+                <div style={{ width: 48, height: 48, border: '3px solid #E8ECF0', borderTop: '3px solid #0D9488', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
                 <p style={{ ...sub, marginTop: 16 }}>Loading users…</p>
             </div>
         );
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
             {summary && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4" style={{ marginBottom: 24 }}>
                     {[
-                        { icon: <Users size={18} />, label: 'Total Users', value: summary.totalUsers, color: '#2DD4BF' },
+                        { icon: <Users size={18} />, label: 'Total Users', value: summary.totalUsers, color: '#0D9488' },
                         { icon: <Briefcase size={18} />, label: 'Job Seekers', value: summary.jobSeekers, color: '#3B82F6' },
                         { icon: <UserCheck size={18} />, label: 'Employers', value: summary.employers, color: '#A855F7' },
                         { icon: <Mail size={18} />, label: 'Subscribers', value: summary.activeSubscribers, color: '#22C55E' },
@@ -217,7 +217,7 @@ export default function AdminUsersPage() {
                     ].map(stat => (
                         <div key={stat.label} style={{ ...card, padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                             <div style={{ color: stat.color, marginBottom: 6 }}>{stat.icon}</div>
-                            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{stat.value}</div>
+                            <div style={{ fontSize: 22, fontWeight: 700, color: '#1A2E35' }}>{stat.value}</div>
                             <div style={muted}>{stat.label}</div>
                         </div>
                     ))}
@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
             )}
 
             {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: 0, overflowX: 'auto' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #E8ECF0', marginBottom: 0, overflowX: 'auto' }}>
                 <button onClick={() => setActiveTab('users')} style={tabStyle(activeTab === 'users')}>
                     <span className="flex items-center gap-2"><Users size={16} /> Users ({users.length})</span>
                 </button>
@@ -244,9 +244,9 @@ export default function AdminUsersPage() {
             {activeTab === 'users' && (
                 <div style={card}>
                     {/* Search & Filter bar */}
-                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8ECF0', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ position: 'relative', flex: '1 1 200px' }}>
-                            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+                            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input type="text" placeholder="Search name or email..." value={userSearch} onChange={e => setUserSearch(e.target.value)}
                                 style={{ ...inputStyle, width: '100%', paddingLeft: 32 }} />
                         </div>
@@ -261,7 +261,7 @@ export default function AdminUsersPage() {
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                                <tr style={{ backgroundColor: '#F8FAF9' }}>
                                     <th style={th}>Name</th>
                                     <th style={th}>Email</th>
                                     <th style={th}>Role</th>
@@ -274,7 +274,7 @@ export default function AdminUsersPage() {
                             <tbody>
                                 {filteredUsers.map(user => (
                                     <tr key={user.id}>
-                                        <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => viewProfile(user.id)}>
+                                        <td style={{ ...td, fontWeight: 600, color: '#1A2E35', cursor: 'pointer' }} onClick={() => viewProfile(user.id)}>
                                             {[user.firstName, user.lastName].filter(Boolean).join(' ') || '—'}
                                         </td>
                                         <td style={td}>{user.email}</td>
@@ -322,8 +322,8 @@ export default function AdminUsersPage() {
             {/* ═══ SUBSCRIBERS TAB ═══ */}
             {activeTab === 'subscribers' && (
                 <div style={card}>
-                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Filter:</span>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8ECF0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 13, color: '#6B7F8A', fontWeight: 500 }}>Filter:</span>
                         <select value={subFilter} onChange={e => setSubFilter(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="all">All ({emailLeads.length})</option>
                             <option value="with">With Account ({emailLeads.filter(l => l.hasAccount).length})</option>
@@ -333,14 +333,14 @@ export default function AdminUsersPage() {
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead><tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                            <thead><tr style={{ backgroundColor: '#F8FAF9' }}>
                                 <th style={th}>Email</th><th style={th}>Source</th><th style={th}>Account</th>
                                 <th style={th}>Subscribed</th><th style={th}>Newsletter</th><th style={th}>Alerts</th><th style={th}>Since</th>
                             </tr></thead>
                             <tbody>
                                 {filteredSubs.map(lead => (
                                     <tr key={lead.id}>
-                                        <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)' }}>{lead.email}</td>
+                                        <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>{lead.email}</td>
                                         <td style={td}>{lead.source || '—'}</td>
                                         <td style={td}>{lead.hasAccount ? badge('Yes', 'green') : badge('No', 'orange')}</td>
                                         <td style={td}>{lead.isSubscribed ? badge('Active', 'green') : badge('Unsub', 'red')}</td>
@@ -359,13 +359,13 @@ export default function AdminUsersPage() {
             {activeTab === 'employers' && (
                 <div style={card}>
                     {summary && (
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4" style={{ padding: 20, borderBottom: '1px solid var(--border-color)' }}>
-                            {[{ l: 'Total', v: summary.totalEmployerLeads, c: 'var(--text-primary)' }, { l: 'Prospects', v: summary.employerProspects, c: '#F59E0B' }, { l: 'Contacted', v: summary.employerContacted, c: '#3B82F6' }, { l: 'With Account', v: summary.employerWithAccount, c: '#22C55E' }, { l: 'No Account', v: summary.employerWithoutAccount, c: '#EF4444' }].map(s => (
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4" style={{ padding: 20, borderBottom: '1px solid #E8ECF0' }}>
+                            {[{ l: 'Total', v: summary.totalEmployerLeads, c: '#1A2E35' }, { l: 'Prospects', v: summary.employerProspects, c: '#F59E0B' }, { l: 'Contacted', v: summary.employerContacted, c: '#3B82F6' }, { l: 'With Account', v: summary.employerWithAccount, c: '#22C55E' }, { l: 'No Account', v: summary.employerWithoutAccount, c: '#EF4444' }].map(s => (
                                 <div key={s.l} style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: s.c }}>{s.v}</div><div style={muted}>{s.l}</div></div>
                             ))}
                         </div>
                     )}
-                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8ECF0', display: 'flex', alignItems: 'center', gap: 12 }}>
                         <select value={empFilter} onChange={e => setEmpFilter(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                             <option value="all">All ({employerLeads.length})</option>
                             <option value="with">With Account ({employerLeads.filter(l => l.hasAccount).length})</option>
@@ -375,15 +375,15 @@ export default function AdminUsersPage() {
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead><tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                            <thead><tr style={{ backgroundColor: '#F8FAF9' }}>
                                 <th style={th}>Company</th><th style={th}>Contact</th><th style={th}>Email</th>
                                 <th style={th}>Account</th><th style={th}>Status</th><th style={th}>Jobs</th><th style={th}>Since</th>
                             </tr></thead>
                             <tbody>
                                 {filteredEmps.map(lead => (
                                     <tr key={lead.id}>
-                                        <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)' }}>
-                                            {lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" style={{ color: '#2DD4BF', textDecoration: 'none' }}>{lead.companyName}</a> : lead.companyName}
+                                        <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>
+                                            {lead.website ? <a href={lead.website} target="_blank" rel="noopener noreferrer" style={{ color: '#0D9488', textDecoration: 'none' }}>{lead.companyName}</a> : lead.companyName}
                                         </td>
                                         <td style={td}>{lead.contactName || '—'}</td>
                                         <td style={td}>{lead.contactEmail || '—'}</td>
@@ -410,15 +410,15 @@ export default function AdminUsersPage() {
             {activeTab === 'alerts' && (
                 <div style={card}>
                     {summary && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ padding: 20, borderBottom: '1px solid var(--border-color)' }}>
-                            {[{ l: 'Total', v: summary.totalAlerts, c: 'var(--text-primary)' }, { l: 'Active', v: summary.activeAlerts, c: '#22C55E' }, { l: 'Daily', v: summary.dailyAlerts, c: '#3B82F6' }, { l: 'Weekly', v: summary.weeklyAlerts, c: '#A855F7' }].map(s => (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ padding: 20, borderBottom: '1px solid #E8ECF0' }}>
+                            {[{ l: 'Total', v: summary.totalAlerts, c: '#1A2E35' }, { l: 'Active', v: summary.activeAlerts, c: '#22C55E' }, { l: 'Daily', v: summary.dailyAlerts, c: '#3B82F6' }, { l: 'Weekly', v: summary.weeklyAlerts, c: '#A855F7' }].map(s => (
                                 <div key={s.l} style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: s.c }}>{s.v}</div><div style={muted}>{s.l}</div></div>
                             ))}
                         </div>
                     )}
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead><tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                            <thead><tr style={{ backgroundColor: '#F8FAF9' }}>
                                 <th style={th}>Email</th><th style={th}>Frequency</th><th style={th}>Status</th>
                                 <th style={th}>Keyword</th><th style={th}>Location</th><th style={th}>Last Sent</th>
                             </tr></thead>
@@ -426,7 +426,7 @@ export default function AdminUsersPage() {
                                 {emailLeads.filter(l => l.jobAlerts.length > 0).flatMap(lead =>
                                     lead.jobAlerts.map(alert => (
                                         <tr key={alert.id}>
-                                            <td style={{ ...td, fontWeight: 600, color: 'var(--text-primary)' }}>{lead.email}</td>
+                                            <td style={{ ...td, fontWeight: 600, color: '#1A2E35' }}>{lead.email}</td>
                                             <td style={td}>{alert.frequency === 'daily' ? badge('Daily', 'blue') : badge('Weekly', 'purple')}</td>
                                             <td style={td}>{alert.isActive ? badge('Active', 'green') : badge('Paused', 'gray')}</td>
                                             <td style={td}>{alert.keyword || 'All jobs'}</td>
@@ -448,11 +448,11 @@ export default function AdminUsersPage() {
                     <div style={{
                         position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                         zIndex: 51, width: '90%', maxWidth: 650, maxHeight: '85vh', overflowY: 'auto',
-                        backgroundColor: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-color)', padding: 28,
+                        backgroundColor: '#FFFFFF', borderRadius: 16, border: '1px solid rgba(255,255,255,0.5)', padding: 28,
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                             <h2 style={{ ...heading, fontSize: 20 }}>User Profile</h2>
-                            <button onClick={() => setSelectedUser(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={20} /></button>
+                            <button onClick={() => setSelectedUser(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={20} /></button>
                         </div>
 
                         {/* Profile info */}
@@ -469,7 +469,7 @@ export default function AdminUsersPage() {
                             ].map(f => (
                                 <div key={f.l}>
                                     <div style={{ ...muted, fontWeight: 600, marginBottom: 2 }}>{f.l}</div>
-                                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{f.v}</div>
+                                    <div style={{ fontSize: 13, color: '#1A2E35' }}>{f.v}</div>
                                 </div>
                             ))}
                         </div>
@@ -482,7 +482,7 @@ export default function AdminUsersPage() {
                                 { l: 'Telemetry', v: selectedUser._count.autofillTelemetry, c: '#3B82F6' },
                                 { l: 'Jobs Posted', v: selectedUser._count.employerJobs, c: '#F59E0B' },
                             ].map(s => (
-                                <div key={s.l} style={{ textAlign: 'center', padding: 12, borderRadius: 10, backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div key={s.l} style={{ textAlign: 'center', padding: 12, borderRadius: 10, backgroundColor: '#F8FAF9' }}>
                                     <div style={{ fontSize: 20, fontWeight: 700, color: s.c }}>{s.v}</div>
                                     <div style={muted}>{s.l}</div>
                                 </div>
@@ -495,9 +495,9 @@ export default function AdminUsersPage() {
                                 <h3 style={{ ...heading, fontSize: 15, marginBottom: 10 }}>Recent Applications</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {selectedUser.jobApplications.slice(0, 5).map(app => (
-                                        <div key={app.id} style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: 'var(--bg-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div key={app.id} style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: '#F8FAF9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
-                                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{app.job.title}</div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: '#1A2E35' }}>{app.job.title}</div>
                                                 <div style={muted}>{app.job.employer}</div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
@@ -516,9 +516,9 @@ export default function AdminUsersPage() {
                                 <h3 style={{ ...heading, fontSize: 15, marginBottom: 10 }}>Recent Autofill Usage</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {selectedUser.autofillUsage.slice(0, 5).map(af => (
-                                        <div key={af.id} style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: 'var(--bg-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div key={af.id} style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: '#F8FAF9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
-                                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{af.atsName || 'Unknown ATS'}</div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: '#1A2E35' }}>{af.atsName || 'Unknown ATS'}</div>
                                                 <div style={muted}>{af.fieldsFilled} fields filled</div>
                                             </div>
                                             <div style={muted}>{new Date(af.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>

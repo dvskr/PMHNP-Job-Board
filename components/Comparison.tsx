@@ -71,11 +71,10 @@ function StatusIcon({ status }: { status: Status }) {
 
 export default function Comparison() {
     return (
-        <section style={{ backgroundColor: 'var(--bg-primary)', padding: '64px 0 72px' }}>
-            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 20px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 20px' }}>
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h2 style={{
+                    <h2 className="font-heading" style={{
                         fontSize: '28px', fontWeight: 700,
                         color: 'var(--text-primary)', margin: '0 0 8px',
                     }}>
@@ -110,15 +109,15 @@ export default function Comparison() {
                                     borderBottom: '1px solid var(--border-color)',
                                     borderLeft: '1px solid var(--border-color)',
                                     ...(p.highlighted ? {
-                                        background: 'linear-gradient(180deg, rgba(232,108,44,0.08), transparent)',
-                                        borderTop: '3px solid #E86C2C',
+                                        background: 'linear-gradient(180deg, rgba(13,148,136,0.08), transparent)',
+                                        borderTop: '3px solid var(--color-primary)',
                                     } : {}),
                                 }}
                             >
                                 <span style={{
                                     fontSize: '13px',
                                     fontWeight: p.highlighted ? 800 : 600,
-                                    color: p.highlighted ? '#E86C2C' : 'var(--text-primary)',
+                                    color: p.highlighted ? 'var(--color-primary)' : 'var(--text-primary)',
                                 }}>
                                     {p.name}
                                 </span>
@@ -151,7 +150,7 @@ export default function Comparison() {
                                             borderLeft: '1px solid var(--border-color)',
                                             borderBottom: rowIdx < featureLabels.length - 1 ? '1px solid var(--border-color)' : 'none',
                                             ...(p.highlighted ? {
-                                                backgroundColor: 'rgba(232,108,44,0.03)',
+                                                backgroundColor: 'rgba(13,148,136,0.03)',
                                             } : {}),
                                         }}
                                     >
@@ -184,13 +183,13 @@ export default function Comparison() {
                             style={{
                                 padding: '20px',
                                 borderRadius: '12px',
-                                border: p.highlighted ? '2px solid #E86C2C' : '1px solid var(--border-color)',
-                                backgroundColor: p.highlighted ? 'rgba(232,108,44,0.04)' : 'var(--bg-secondary)',
+                                border: p.highlighted ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                                backgroundColor: p.highlighted ? 'rgba(13,148,136,0.04)' : 'var(--bg-secondary)',
                             }}
                         >
                             <div style={{
                                 fontSize: '15px', fontWeight: 700, marginBottom: '12px',
-                                color: p.highlighted ? '#E86C2C' : 'var(--text-primary)',
+                                color: p.highlighted ? 'var(--color-primary)' : 'var(--text-primary)',
                             }}>
                                 {p.name}
                             </div>
@@ -206,7 +205,6 @@ export default function Comparison() {
                         </div>
                     ))}
                 </div>
-            </div>
-        </section>
+        </div>
     );
 }

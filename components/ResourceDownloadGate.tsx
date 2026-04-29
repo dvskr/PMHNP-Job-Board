@@ -66,7 +66,7 @@ export default function ResourceDownloadGate({ resourceUrl, resourceTitle }: Res
         >
             <div className="flex items-center gap-2 mb-3">
                 <Mail size={20} style={{ color: '#14B8A6' }} />
-                <h4 className="font-semibold text-gray-900">Get free access</h4>
+                <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Get free access</h4>
             </div>
             <p className="text-sm text-gray-600 mb-4">
                 Enter your email to download the {resourceTitle}. You&apos;ll also receive career tips & job market updates.
