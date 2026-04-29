@@ -1,6 +1,6 @@
 # Job Health Detection — Runbook
 
-**Status:** Sprint 1 (foundation) shipped on `feature/job-health-priority-1`. Sprint 2 (Greenhouse direct-API probe + source-presence shadow mode) shipped on `feature/job-health-priority-2`. Sprint 3 (Inngest queue, presence-driven auto-unpublish, observability) pending.
+**Status:** Sprints 1-3 shipped. Sprint 1 = HTTP probe + soft-404 detector (`feature/job-health-priority-1`). Sprint 2 = Greenhouse direct-API probe + source-presence shadow mode (`feature/job-health-priority-2`). Sprint 3 = `job_health_check` append-only audit table + recorder integration (`feature/job-health-priority-3`). Sprint 4+ (Inngest queue, presence-driven auto-unpublish, multi-signal voting, FP recovery loop, chunked-source presence aggregator, anomaly alerts) deferred.
 
 This document tells operators **what was changed, what to monitor after deploy, and how to roll back**.
 
@@ -202,13 +202,116 @@ WHERE source_provider = 'greenhouse'
 ORDER BY updated_at DESC LIMIT 50;
 ```
 
-## Known limitations (deferred to Sprint 3)
+## Sprint 3 changes — append-only audit table
 
-- **No audit history** — the `job_health_check` append-only table from the architecture doc is not yet built. Currently we lose the per-check evidence after the cron logs; only the final `is_published` flip is recorded.
-- **Single-signal kills** — the architecture doc requires 2 independent dead signals before flipping. Sprints 1 + 2 still allow a single soft-404 match (or a single Greenhouse-API 404) to unpublish. The Greenhouse-API 404 is high-confidence enough that single-signal kill is defensible; soft-404 single-signal kill is the bigger residual risk.
-- **No FP recovery loop** — the architecture doc specifies a re-probe after 6h/24h/72h with rotated UAs. Not in Sprints 1 or 2.
-- **Source-presence shadow only** — the presence columns are written but not used to auto-unpublish. Sprint 3 adds the cron with `health_consecutive_missing >= 3` threshold (gated on telemetry).
-- **Chunked source presence** — Greenhouse and Workday are excluded from per-run presence checks. Sprint 3 adds an aggregated presence cron that runs after the last chunk completes.
+### What shipped
+
+`job_health_check` (append-only) now records every health decision the system makes. This is the foundation for everything in the architecture doc that's "deferred":
+- Per-job timeline of "why was my job removed?"
+- Multi-signal voting (read N most-recent rows for a job and require 2 dead).
+- FP-rate dashboards per pattern, per source, per checker version.
+- Anomaly detection — dead-rate moves >Nσ alerts.
+
+| Area | Before | After |
+|---|---|---|
+| Audit trail | None — decisions vanished after `console.log` | Every probe, every Greenhouse-API result, every source-presence sweep lands as one row in `job_health_check` |
+| Schema fields | n/a | `check_type`, `outcome`, `alive`, `http_status`, `redirect_hops`, `final_url`, `api_url`, `soft_pattern_id`, `soft_match_text`, `error_kind`, `error_message`, `elapsed_ms`, `presence_*`, `checker_version` |
+| Write path | n/a | Batched (default 100 rows / flush) via `HealthRecorder` — recorder failures are non-fatal and surfaced in cron summary stats |
+| FK behavior | n/a | `ON DELETE CASCADE` from `jobs` — deleting a job removes its history |
+| Indexes | n/a | `(job_id, checked_at DESC)`, `(outcome, checked_at DESC)`, `(checked_at DESC)` |
+
+### Files
+
+- `prisma/schema.prisma` — `JobHealthCheck` model + `Job.healthChecks` relation.
+- `prisma/migrations/20260429_add_job_health_checks/migration.sql` — forward-only DDL.
+- `lib/health/recorder.ts` — `HealthRecorder` class + `rowFromDecision` / `rowFromPresence` pure helpers.
+- `app/api/cron/check-dead-links/route.ts` — creates one recorder per run, `stageDecision` per probed job, `flush()` on shutdown. Run summary now includes `audit: { staged, flushed, failedFlushes }`.
+- `lib/health/source-presence.ts` — accepts an optional `recorder`; stages one summary row per run anchored to a representative published job from the source. Skip-path runs are recorded too.
+- `lib/ingestion-service.ts` — creates a recorder per source-presence call, flushes inline.
+- `tests/lib/health-recorder.test.ts` — 12 tests (row-builders, batch threshold, manual flush, no-op flush, error capture, presence with/without anchor).
+
+### Pre-deploy checklist for Sprint 3
+
+- [x] `npm run test -- tests/lib/health-*.test.ts tests/lib/soft-404-detector.test.ts tests/lib/check-job-health.test.ts tests/lib/source-presence.test.ts tests/lib/greenhouse-api-probe.test.ts` → 82/82 passing
+- [x] `npm run type-check` → clean
+- [x] `npx eslint <touched files>` → clean
+- [ ] Run the migration: `prisma migrate deploy` (adds `job_health_checks` table + 3 indexes + FK; safe for live writes — no existing-row backfill needed)
+- [ ] After 24 h: spot-check the table is populating: `SELECT check_type, outcome, COUNT(*) FROM job_health_checks WHERE checked_at > NOW() - INTERVAL '1 day' GROUP BY 1, 2 ORDER BY 3 DESC;`
+- [ ] After 7 days: review FP-rate dashboard candidates (one query per pattern, per source).
+
+### Sprint 3 monitoring queries
+
+```sql
+-- Per-checker decision volume in last 24h
+SELECT
+  check_type,
+  outcome,
+  alive,
+  COUNT(*) AS rows
+FROM job_health_checks
+WHERE checked_at > NOW() - INTERVAL '24 hours'
+GROUP BY check_type, outcome, alive
+ORDER BY rows DESC;
+
+-- Latest decision per job (for support tickets — "why was my job removed?")
+SELECT DISTINCT ON (j.id)
+  j.id, j.title, j.source_provider, j.is_published,
+  c.checked_at, c.check_type, c.outcome, c.alive,
+  c.http_status, c.soft_pattern_id, c.checker_version
+FROM jobs j
+JOIN job_health_checks c ON c.job_id = j.id
+WHERE j.id = '<UUID>'
+ORDER BY j.id, c.checked_at DESC;
+
+-- Soft-404 pattern volume per source (FP-rate audit candidates)
+SELECT
+  soft_pattern_id,
+  COUNT(*) FILTER (WHERE alive = false) AS marked_dead,
+  COUNT(*) FILTER (WHERE alive = true) AS marked_alive
+FROM job_health_checks
+WHERE check_type = 'http_probe'
+  AND soft_pattern_id IS NOT NULL
+  AND checked_at > NOW() - INTERVAL '7 days'
+GROUP BY soft_pattern_id
+ORDER BY marked_dead DESC;
+
+-- Greenhouse-API outcome split (verify the API probe is doing its job)
+SELECT outcome, alive, COUNT(*) AS rows
+FROM job_health_checks
+WHERE check_type = 'greenhouse_api'
+  AND checked_at > NOW() - INTERVAL '24 hours'
+GROUP BY outcome, alive;
+
+-- Source-presence run timeline (one row per run; track skip rate over time)
+SELECT
+  date_trunc('hour', checked_at) AS hour,
+  presence_source,
+  outcome,
+  AVG(presence_seen_again)::int AS avg_seen,
+  AVG(presence_missing)::int AS avg_missing
+FROM job_health_checks
+WHERE check_type = 'source_presence'
+  AND checked_at > NOW() - INTERVAL '7 days'
+GROUP BY hour, presence_source, outcome
+ORDER BY hour DESC, presence_source;
+```
+
+### Volume planning
+
+Estimated row volume from current production load:
+- `check-dead-links` cron: 1,500 jobs × 2 runs/day = **3,000 rows/day**
+- Source-presence: 10 non-chunked sources × 2 runs/day = **20 rows/day**
+- ~**~22k rows/week** across both. After 1 year: ~1.1M rows.
+- Indexes total ~30% of table size. Negligible Supabase storage cost (< 100 MB/year).
+- Sprint 5 will add monthly partitioning + 13-month retention vacuum.
+
+## Known limitations (deferred to Sprint 4+)
+
+- **No auto-unpublish from presence data** — `health_consecutive_missing` is written but not read by an unpublish path yet. Sprint 4 adds the cron after Sprint 2 telemetry confirms the right threshold.
+- **Single-signal kills** — Sprints 1-3 still allow a single soft-404 (or a single Greenhouse-API 404) to unpublish. The Greenhouse-API 404 is high-confidence enough that single-signal kill is defensible; soft-404 single-signal kill is the bigger residual risk. Multi-signal voting is now data-feasible (read recent `job_health_checks` rows and require 2 dead) and will land in Sprint 4.
+- **No FP recovery loop** — re-probe at 6h/24h/72h with rotated UAs is Sprint 5 (needs a workflow runtime — Inngest).
+- **Chunked source presence** — Greenhouse and Workday are still excluded from per-run presence. Sprint 4 adds an aggregated presence cron that runs after the last chunk completes (likely Redis-buffered).
+- **No table partitioning / vacuum** — Sprint 5 adds monthly partitioning + 13-month retention.
 
 ## Pattern library maintenance
 
