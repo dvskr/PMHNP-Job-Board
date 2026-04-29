@@ -70,6 +70,7 @@ model Job {
   employerMessages    EmployerMessage[]
   conversations       Conversation[]
   company             Company?     @relation(fields: [companyId], references: [id])
+  healthChecks        JobHealthCheck[]
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -84,6 +85,61 @@ model Job {
   @@index([qualityScore(sort: Desc)])
   @@index([sourceProvider, healthConsecutiveMissing])
   @@map("jobs")
+}
+
+/// Append-only audit log of every job-health decision.
+/// Records the evidence behind each `is_published` flip so we can:
+///   - Compute false-positive rates per checker / pattern / source.
+///   - Answer support tickets ("why was my job removed?").
+///   - Build multi-signal voting (Sprint 4) on top of the history.
+///   - Run anomaly detection (Sprint 5) when dead-rate moves >Nσ.
+///
+/// Never delete rows. Retention is enforced by a partitioned monthly
+/// vacuum job (Sprint 5) — until then the table grows ~100k rows/week.
+model JobHealthCheck {
+  id              String    @id @default(uuid())
+  jobId           String    @map("job_id")
+  checkedAt       DateTime  @default(now()) @map("checked_at")
+
+  /// What kind of check produced this row.
+  /// 'http_probe' | 'greenhouse_api' | 'source_presence'
+  checkType       String    @map("check_type")
+
+  /// Specific outcome — mirrors HealthReason / PresenceCheckOutcome literals.
+  outcome         String
+
+  /// Convenience boolean — true means "alive or inconclusive".
+  alive           Boolean
+
+  // ── HTTP-probe / greenhouse-api evidence (nullable when N/A) ──
+  httpStatus      Int?      @map("http_status")
+  redirectHops    Int?      @map("redirect_hops")
+  finalUrl        String?   @map("final_url")
+  apiUrl          String?   @map("api_url")
+  softPatternId   String?   @map("soft_pattern_id")
+  softMatchText   String?   @map("soft_match_text")
+  errorKind       String?   @map("error_kind")
+  errorMessage    String?   @map("error_message")
+  elapsedMs       Int?      @map("elapsed_ms")
+
+  // ── Source-presence evidence (nullable when N/A) ──
+  presenceSource           String? @map("presence_source")
+  presenceFetched          Int?    @map("presence_fetched")
+  presenceHistoricalAvg    Float?  @map("presence_historical_avg")
+  presenceSeenAgain        Int?    @map("presence_seen_again")
+  presenceMissing          Int?    @map("presence_missing")
+  presenceSkippedReason    String? @map("presence_skipped_reason")
+
+  /// Stable identifier for the rule set that produced this row. Bump
+  /// when patterns / decision logic changes so old rows stay comparable.
+  checkerVersion  String    @map("checker_version")
+
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, checkedAt(sort: Desc)])
+  @@index([outcome, checkedAt(sort: Desc)])
+  @@index([checkedAt(sort: Desc)])
+  @@map("job_health_checks")
 }
 
 model EmailLead {

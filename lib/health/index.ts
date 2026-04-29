@@ -29,3 +29,11 @@ export {
     type PresenceCheckResult,
     type PresenceCheckOutcome,
 } from './source-presence';
+export {
+    HealthRecorder,
+    rowFromDecision,
+    rowFromPresence,
+    type CheckType,
+    type JobHealthCheckRow,
+    type RecorderStats,
+} from './recorder';
