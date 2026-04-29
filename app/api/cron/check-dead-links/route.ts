@@ -1,223 +1,219 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkJobHealth, type HealthDecision } from '@/lib/health';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
 
 const BATCH_SIZE = 15;
-const REQUEST_TIMEOUT_MS = 8000;
-const MAX_JOBS_PER_RUN = 1500;  // Check up to 1500 per run
-const TIME_BUDGET_MS = 250_000; // 250s budget (Vercel 300s max)
-const BATCH_DELAY_MS = 200;     // Rate-limit delay between batches
+const MAX_JOBS_PER_RUN = 1500;
+const TIME_BUDGET_MS = 250_000;
+const BATCH_DELAY_MS = 200;
+const UNPUBLISH_FLUSH_THRESHOLD = 50;
+const CHECKED_FLUSH_THRESHOLD = 100;
 
-/**
- * Check if an apply URL is still reachable.
- * HEAD first (faster), falls back to GET on 405/403.
- * 404/410 = dead. Network errors = assume alive (transient).
- */
-async function isLinkAlive(url: string): Promise<{ alive: boolean; status: number }> {
-    // Use a real browser User-Agent — many ATS platforms (Adzuna, Jooble, Workday)
-    // return 403 to bot-like UAs even when the job is still live.
-    const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+interface JobToCheck {
+    id: string;
+    applyLink: string | null;
+    title: string;
+    sourceProvider: string | null;
+}
+
+interface RunSummary {
+    checked: number;
+    aliveTotal: number;
+    deadTotal: number;
+    inconclusive: number;
+    errors: number;
+    deadBySource: Record<string, number>;
+    deadByReason: Record<string, number>;
+    elapsedSeconds: string;
+}
+
+export async function GET(req: Request): Promise<NextResponse> {
+    const log = logger.withContext({ cron: 'check-dead-links' });
+
+    const authError = checkAuth(req);
+    if (authError) return authError;
+
+    const startTime = Date.now();
 
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        log.info('Starting dead-link sweep');
 
-        const response = await fetch(url, {
-            method: 'HEAD',
-            redirect: 'follow',
-            signal: controller.signal,
-            headers: { 'User-Agent': BROWSER_UA },
-        });
-        clearTimeout(timeout);
+        const jobs = await loadJobsToCheck();
+        log.info(`Loaded ${jobs.length} jobs for health check`);
 
-        if (response.ok) return { alive: true, status: response.status };
+        const summary = await runSweep(jobs, startTime, log);
 
-        // ONLY 404/410 = definitively dead
-        if (response.status === 404 || response.status === 410) return { alive: false, status: response.status };
-
-        // 403 = server exists but blocks us — NOT dead (Adzuna, Jooble do this)
-        if (response.status === 403) return { alive: true, status: response.status };
-
-        // Some servers block HEAD — retry with GET
-        if (response.status === 405) {
-            const controller2 = new AbortController();
-            const timeout2 = setTimeout(() => controller2.abort(), REQUEST_TIMEOUT_MS);
-
-            const getResponse = await fetch(url, {
-                method: 'GET',
-                redirect: 'follow',
-                signal: controller2.signal,
-                headers: { 'User-Agent': BROWSER_UA },
-            });
-            clearTimeout(timeout2);
-
-            // Only 404/410 = dead, everything else = alive
-            if (getResponse.status === 404 || getResponse.status === 410) {
-                return { alive: false, status: getResponse.status };
-            }
-            return { alive: true, status: getResponse.status };
-        }
-
-        // 5xx, 429, etc. — assume temporarily down, not dead
-        return { alive: true, status: response.status };
-    } catch {
-        // Network errors, timeouts — don't unpublish (could be temporary)
-        return { alive: true, status: 0 };
+        log.info('Sweep complete', { ...summary });
+        return NextResponse.json({ success: true, ...summary });
+    } catch (error: unknown) {
+        log.error('Fatal error during dead-link sweep', error);
+        return NextResponse.json({ error: 'Dead link check failed' }, { status: 500 });
     }
 }
 
-export async function GET(req: Request) {
-    // Verify cron secret
+function checkAuth(req: Request): NextResponse | null {
     const authHeader = req.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
         if (process.env.NODE_ENV !== 'development') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
     }
+    return null;
+}
 
-    const startTime = Date.now();
+async function loadJobsToCheck(): Promise<JobToCheck[]> {
+    // Order by lastLinkCheckedAt ASC NULLS FIRST so never-checked jobs come first,
+    // then least-recently-checked. Ensures fair rotation across runs.
+    const jobs = await prisma.job.findMany({
+        where: {
+            isPublished: true,
+            sourceType: 'external',
+            applyLink: { not: '' },
+        },
+        select: {
+            id: true,
+            applyLink: true,
+            title: true,
+            sourceProvider: true,
+        },
+        orderBy: {
+            lastLinkCheckedAt: { sort: 'asc', nulls: 'first' },
+        },
+        take: MAX_JOBS_PER_RUN,
+    });
+    return jobs as JobToCheck[];
+}
 
-    try {
-        console.log('[Dead Link Check] Starting...');
+async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Promise<RunSummary> {
+    let checked = 0;
+    let aliveTotal = 0;
+    let deadTotal = 0;
+    let inconclusive = 0;
+    let errors = 0;
+    const deadBySource: Record<string, number> = {};
+    const deadByReason: Record<string, number> = {};
+    let pendingDead: string[] = [];
+    let pendingChecked: string[] = [];
 
-        // Get published external jobs with apply links.
-        // Order by lastLinkCheckedAt ASC NULLS FIRST — never-checked jobs first,
-        // then the least-recently-checked jobs. This ensures fair rotation
-        // across all published jobs over multiple runs.
-        const jobs = await prisma.job.findMany({
-            where: {
-                isPublished: true,
-                sourceType: 'external',
-                applyLink: { not: '' },
-            },
-            select: {
-                id: true,
-                applyLink: true,
-                title: true,
-                sourceProvider: true,
-            },
-            orderBy: {
-                lastLinkCheckedAt: { sort: 'asc', nulls: 'first' },
-            },
-            take: MAX_JOBS_PER_RUN,
-        });
-
-        console.log(`[Dead Link Check] Checking ${jobs.length} job links...`);
-
-        let checked = 0;
-        let dead = 0;
-        let alive = 0;
-        let errors = 0;
-        const deadIds: string[] = [];
-        const checkedIds: string[] = [];
-        const deadBySource: Record<string, number> = {};
-
-        for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
-            // Time budget check
-            if (Date.now() - startTime >= TIME_BUDGET_MS) {
-                console.warn(`[Dead Link Check] Time budget exhausted at ${checked}/${jobs.length} jobs.`);
-                break;
-            }
-
-            const batch = jobs.slice(i, i + BATCH_SIZE);
-
-            const results = await Promise.allSettled(
-                batch.map(async (job) => {
-                    if (!job.applyLink) return 'error';
-                    const result = await isLinkAlive(job.applyLink);
-
-                    if (!result.alive) {
-                        deadIds.push(job.id as string);
-                        const src = job.sourceProvider || 'unknown';
-                        deadBySource[src] = (deadBySource[src] || 0) + 1;
-                        console.log(`[Dead Link Check] 💀 [${src}] "${job.title}" → ${result.status}`);
-                        return 'dead';
-                    }
-
-                    return result.status === 0 ? 'error' : 'alive';
-                })
-            );
-
-            // Track all checked job IDs for timestamp update
-            for (const job of batch) {
-                checkedIds.push(job.id as string);
-            }
-
-            for (const result of results) {
-                checked++;
-                if (result.status === 'fulfilled') {
-                    if (result.value === 'dead') dead++;
-                    else if (result.value === 'alive') alive++;
-                    else errors++;
-                } else {
-                    errors++;
-                }
-            }
-
-            // Batch unpublish every 50 dead links to avoid accumulating too many
-            if (deadIds.length >= 50 && deadIds.length % 50 < BATCH_SIZE) {
-                await prisma.job.updateMany({
-                    where: { id: { in: deadIds } },
-                    data: { isPublished: false },
-                });
-            }
-
-            // Update lastLinkCheckedAt for all checked jobs in this batch
-            // This ensures proper rotation — checked jobs move to the back of the queue
-            if (checkedIds.length >= 100) {
-                await prisma.job.updateMany({
-                    where: { id: { in: checkedIds } },
-                    data: { lastLinkCheckedAt: new Date() },
-                });
-                checkedIds.length = 0; // Reset batch
-            }
-
-            // Rate limit between batches
-            if (i + BATCH_SIZE < jobs.length) {
-                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
-            }
+    for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
+        if (Date.now() - startTime >= TIME_BUDGET_MS) {
+            log.warn('Time budget exhausted', { checked, total: jobs.length });
+            break;
         }
 
-        // Final batch: unpublish dead jobs
-        if (deadIds.length > 0) {
-            await prisma.job.updateMany({
-                where: { id: { in: deadIds } },
-                data: { isPublished: false },
-            });
-        }
+        const batch = jobs.slice(i, i + BATCH_SIZE);
 
-        // Final batch: update lastLinkCheckedAt for remaining checked jobs
-        if (checkedIds.length > 0) {
-            await prisma.job.updateMany({
-                where: { id: { in: checkedIds } },
-                data: { lastLinkCheckedAt: new Date() },
-            });
-        }
-
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const summary = {
-            checked,
-            alive,
-            dead,
-            errors,
-            deadBySource,
-            elapsedSeconds: elapsed,
-        };
-
-        console.log(`[Dead Link Check] Complete:`, summary);
-
-        return NextResponse.json({
-            success: true,
-            ...summary,
-        });
-    } catch (error) {
-        console.error('[Dead Link Check] Fatal error:', error);
-        return NextResponse.json(
-            { error: 'Dead link check failed' },
-            { status: 500 }
+        const results = await Promise.allSettled(
+            batch.map((job) => checkOne(job, log)),
         );
+
+        for (let j = 0; j < results.length; j++) {
+            const r = results[j];
+            const job = batch[j];
+            checked++;
+
+            if (r.status !== 'fulfilled') {
+                errors++;
+                continue;
+            }
+
+            const decision = r.value;
+            pendingChecked.push(job.id);
+
+            if (!decision.alive) {
+                deadTotal++;
+                pendingDead.push(job.id);
+                const src = job.sourceProvider ?? 'unknown';
+                deadBySource[src] = (deadBySource[src] ?? 0) + 1;
+                deadByReason[decision.reason] = (deadByReason[decision.reason] ?? 0) + 1;
+            } else if (decision.reason === 'alive_2xx') {
+                aliveTotal++;
+            } else {
+                inconclusive++;
+            }
+        }
+
+        if (pendingDead.length >= UNPUBLISH_FLUSH_THRESHOLD) {
+            await flushUnpublish(pendingDead);
+            pendingDead = [];
+        }
+        if (pendingChecked.length >= CHECKED_FLUSH_THRESHOLD) {
+            await flushCheckedTimestamp(pendingChecked);
+            pendingChecked = [];
+        }
+
+        if (i + BATCH_SIZE < jobs.length) {
+            await delay(BATCH_DELAY_MS);
+        }
     }
+
+    if (pendingDead.length > 0) await flushUnpublish(pendingDead);
+    if (pendingChecked.length > 0) await flushCheckedTimestamp(pendingChecked);
+
+    return {
+        checked,
+        aliveTotal,
+        deadTotal,
+        inconclusive,
+        errors,
+        deadBySource,
+        deadByReason,
+        elapsedSeconds: ((Date.now() - startTime) / 1000).toFixed(1),
+    };
+}
+
+async function checkOne(job: JobToCheck, log = logger): Promise<HealthDecision> {
+    if (!job.applyLink) {
+        // Treat as inconclusive_other so we don't unpublish purely on missing data.
+        return {
+            alive: true,
+            reason: 'inconclusive_other',
+            evidence: {
+                finalStatus: null,
+                finalUrl: '',
+                redirectHops: 0,
+                softMatch: null,
+                elapsedMs: 0,
+                errorKind: null,
+                errorMessage: 'no apply link',
+                checkerVersion: 'n/a',
+            },
+        };
+    }
+    const decision = await checkJobHealth(job.applyLink, job.sourceProvider);
+    if (!decision.alive) {
+        log.info('Job marked dead', {
+            jobId: job.id,
+            source: job.sourceProvider ?? 'unknown',
+            reason: decision.reason,
+            finalStatus: decision.evidence.finalStatus,
+            redirectHops: decision.evidence.redirectHops,
+            softPattern: decision.evidence.softMatch?.patternId,
+        });
+    }
+    return decision;
+}
+
+async function flushUnpublish(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await prisma.job.updateMany({
+        where: { id: { in: ids } },
+        data: { isPublished: false },
+    });
+}
+
+async function flushCheckedTimestamp(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await prisma.job.updateMany({
+        where: { id: { in: ids } },
+        data: { lastLinkCheckedAt: new Date() },
+    });
+}
+
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
