@@ -2,24 +2,26 @@
  * Source-presence-driven auto-unpublish cron.
  *
  * Reads jobs with `health_consecutive_missing >= MISSES_THRESHOLD` and flips
- * `is_published=false`. This is the "Sprint 4" companion to the shadow-mode
- * recorder added in Sprint 2 — once Sprint 2 has been collecting telemetry
- * for a week and the threshold is confirmed, set the env flag below and
- * this cron starts removing orphaned listings (the Jooble blind-spot fix).
- *
- * Until the env flag is set, this cron runs in REPORT-ONLY mode — it logs
- * what it WOULD unpublish without flipping anything. That gives you the
- * observation period to validate the threshold against real data.
+ * `is_published=false`. Companion to the source-presence recorder added in
+ * Sprint 2 — closes the Jooble blind-spot from the original audit (jobs
+ * that the source has stopped returning across multiple ingest runs but
+ * that we have no HTTP signal on, so the dead-link cron leaves them up).
  *
  * Env flags:
- *   JOB_HEALTH_PRESENCE_AUTO_UNPUBLISH=true  — actually flip is_published
- *   JOB_HEALTH_MIN_PRESENCE_MISSES=3         — override threshold (default 3)
+ *   JOB_HEALTH_MIN_PRESENCE_MISSES=3  — override threshold (default 3)
  *
- * Safety guards:
- *   - Never touches employer/direct posts (only `source_type = 'external'`).
- *   - Never overrides admin manual unpublishes.
- *   - Caps unpublishes per run via DEFAULT_MAX_UNPUBLISH_PER_RUN.
- *   - Records every flip into job_health_checks for audit.
+ * Safety guards baked in:
+ *   - Only `source_type = 'external'` (never employer/direct posts).
+ *   - Skips jobs with `is_manually_unpublished = true` (admin sticky).
+ *   - DEFAULT_MAX_UNPUBLISH_PER_RUN = 1000 cap.
+ *   - The counter only increments when the partial-fetch guard in
+ *     recordSourcePresence passes (fetched >= 0.5 * 7d-rolling-avg) —
+ *     source outages do not falsely strike jobs as missing.
+ *   - Records every flip into job_health_checks for full audit.
+ *
+ * To temporarily disable: pause the cron entry in vercel.json or revert
+ * the most recent code change. There is no env flag for off — the cron
+ * is either scheduled or it isn't.
  */
 
 import { NextResponse } from 'next/server';
@@ -40,7 +42,6 @@ interface JobRow {
 }
 
 interface RunSummary {
-    mode: 'report_only' | 'live';
     threshold: number;
     candidates: number;
     flipped: number;
@@ -60,11 +61,9 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     try {
         const threshold = readThreshold(log);
-        const live = process.env.JOB_HEALTH_PRESENCE_AUTO_UNPUBLISH === 'true';
-        const mode: RunSummary['mode'] = live ? 'live' : 'report_only';
-        log.info('Starting presence-unpublish sweep', { mode, threshold });
+        log.info('Starting presence-unpublish sweep', { threshold });
 
-        const summary = await runSweep(threshold, live, startTime, log);
+        const summary = await runSweep(threshold, startTime, log);
         log.info('Presence-unpublish sweep complete', { ...summary });
 
         return NextResponse.json({ success: true, ...summary });
@@ -98,7 +97,6 @@ function readThreshold(log = logger): number {
 
 async function runSweep(
     threshold: number,
-    live: boolean,
     startTime: number,
     log = logger,
 ): Promise<RunSummary> {
@@ -124,11 +122,9 @@ async function runSweep(
     }
 
     const recorder = new HealthRecorder(prisma);
-    let flipped = 0;
 
     if (candidates.length === 0) {
         return finalize({
-            mode: live ? 'live' : 'report_only',
             threshold,
             candidates: 0,
             flipped: 0,
@@ -139,31 +135,16 @@ async function runSweep(
         });
     }
 
-    if (!live) {
-        // Report-only mode — log volumes but do not flip.
-        log.info('REPORT-ONLY: would unpublish candidates', {
-            count: candidates.length,
-            bySource,
-        });
-        return finalize({
-            mode: 'report_only',
-            threshold,
-            candidates: candidates.length,
-            flipped: 0,
-            bySource,
-            cappedAt: DEFAULT_MAX_UNPUBLISH_PER_RUN,
-            recorder,
-            startTime,
-        });
-    }
+    log.info('Unpublishing candidates', {
+        count: candidates.length,
+        bySource,
+    });
 
-    // Live mode — flip in batches and audit each.
     const ids = candidates.map((c) => c.id);
     await prisma.job.updateMany({
         where: { id: { in: ids } },
         data: { isPublished: false },
     });
-    flipped = candidates.length;
 
     for (const c of candidates) {
         await recorder.stagePresenceUnpublish(c);
@@ -171,10 +152,9 @@ async function runSweep(
     await recorder.flush();
 
     return finalize({
-        mode: 'live',
         threshold,
         candidates: candidates.length,
-        flipped,
+        flipped: candidates.length,
         bySource,
         cappedAt: DEFAULT_MAX_UNPUBLISH_PER_RUN,
         recorder,
@@ -183,7 +163,6 @@ async function runSweep(
 }
 
 function finalize(args: {
-    mode: 'live' | 'report_only';
     threshold: number;
     candidates: number;
     flipped: number;
@@ -193,7 +172,6 @@ function finalize(args: {
     startTime: number;
 }): RunSummary {
     return {
-        mode: args.mode,
         threshold: args.threshold,
         candidates: args.candidates,
         flipped: args.flipped,

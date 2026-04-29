@@ -325,18 +325,19 @@ Files:
 - `app/api/cron/check-dead-links/route.ts` — calls `castFlipVote` after `recorder.stageDecision` so the current decision is in the window.
 - `tests/lib/health-vote.test.ts` — 15 unit tests covering all flip / defer paths plus DB-driven retrieval and unknown-reason filtering.
 
-### Slice B — Source-presence-driven auto-unpublish (feature-gated, default OFF)
+### Slice B — Source-presence-driven auto-unpublish
 
-New cron `app/api/cron/source-presence-unpublish` reads jobs with `health_consecutive_missing >= JOB_HEALTH_MIN_PRESENCE_MISSES` (default `3`) and flips `is_published=false`.
-
-**Default mode is REPORT-ONLY.** The cron logs what it WOULD unpublish without flipping anything. After ~1 week of Sprint 3 audit data confirms the threshold is right, set `JOB_HEALTH_PRESENCE_AUTO_UNPUBLISH=true` in Vercel env and the cron starts flipping.
+New cron `app/api/cron/source-presence-unpublish` reads jobs with `health_consecutive_missing >= JOB_HEALTH_MIN_PRESENCE_MISSES` (default `3`) and flips `is_published=false`. Always live — the safety lives in the cron's filters and threshold, not in a separate enable flag.
 
 Schedule: `55 12 * * *` (12:55 UTC daily).
 
-Safety guards:
+Why no separate enable flag: the counter starts at 0 for every job after the migration applies. Most non-chunked sources run 2× per day, so the minimum time from 0 → flip is ~36-48h, and only for jobs that are genuinely missing from 3 consecutive full ingest runs. The partial-fetch guard in `recordSourcePresence` prevents source outages from incrementing the counter, so a flaky day doesn't strike anything. To temporarily disable: pause the cron entry in `vercel.json` or revert.
+
+Safety guards in code:
 - Only `source_type = 'external'` (never employer/direct posts).
 - Skips jobs with `is_manually_unpublished = true` (admin override is sticky).
 - Caps at 1,000 unpublishes per run.
+- Threshold is configurable via `JOB_HEALTH_MIN_PRESENCE_MISSES` env (default 3).
 - Records every flip into `job_health_checks` with `outcome = 'presence_unpublished'`.
 
 Files:
@@ -352,7 +353,7 @@ Files:
 - [x] `npx eslint <touched files>` → clean
 - [ ] Confirm Sprints 1-3 migrations have applied (audit table exists; voting needs it).
 - [ ] After 24 h: check `voteOutcomes` in cron logs — `awaiting_confirmation` should be a small minority of dead decisions; `flip_high_confidence` the majority on Greenhouse / Adzuna.
-- [ ] After 7 days of presence-unpublish cron in REPORT-ONLY mode: review the daily candidate count. If sane, set `JOB_HEALTH_PRESENCE_AUTO_UNPUBLISH=true` to flip into live mode.
+- [ ] After 48-72 h: presence-unpublish cron starts having candidates as counters cross the threshold. Watch the daily `bySource` breakdown for sanity. If a single source spikes to thousands in one run, investigate before the next cron fire.
 
 ### Sprint 4 monitoring queries
 
