@@ -12,6 +12,7 @@ import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
 import { parseLocation } from '@/lib/location-parser';
+import { summarizeForMeta } from '@/lib/description-cleaner';
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for job posting
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
       displaySalary,
       normalizedMinSalary: normalizedSalary.normalizedMinSalary,
       normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
-      descriptionSummary: sanitized.description.slice(0, 300),
+      descriptionSummary: summarizeForMeta(sanitized.description),
       description: sanitized.description,
       city: null,
       state: null,
@@ -237,7 +238,7 @@ export async function POST(request: NextRequest) {
         jobType: sanitized.jobType || null,
         mode: sanitized.mode || null,
         description: sanitized.description,
-        descriptionSummary: sanitized.description.slice(0, 300),
+        descriptionSummary: summarizeForMeta(sanitized.description),
         applyLink: applyOnPlatform ? null : sanitized.applyLink,
         applyOnPlatform: applyOnPlatform || false,
         minSalary: parsedMinSalary,

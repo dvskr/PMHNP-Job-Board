@@ -85,6 +85,26 @@ export function cleanDescription(rawDescription: string): string {
   return cleaned.trim();
 }
 
+/**
+ * Generate a single-line plain-text meta-description from raw job HTML.
+ *
+ * Used by the job-post + edit API routes when populating
+ * `descriptionSummary` so the column never holds raw HTML or unrendered
+ * entities (which would surface as visible markup if the slot ever gets
+ * rendered as text — e.g. meta tags, structured data, email previews).
+ *
+ * Pipeline:
+ *   1. cleanDescription — decode entities, drop tags, normalize newlines.
+ *   2. Collapse newlines + repeated whitespace into single spaces.
+ *   3. Trim and slice to maxLength, appending an ellipsis when truncated.
+ */
+export function summarizeForMeta(rawHtml: string, maxLength = 300): string {
+  if (!rawHtml) return '';
+  const stripped = cleanDescription(rawHtml).replace(/\s+/g, ' ').trim();
+  if (stripped.length <= maxLength) return stripped;
+  return stripped.slice(0, maxLength).trimEnd() + '…';
+}
+
 export async function cleanAllJobDescriptions(): Promise<{
   total: number;
   cleaned: number;
@@ -105,6 +125,7 @@ export async function cleanAllJobDescriptions(): Promise<{
       id: true,
       description: true,
       descriptionSummary: true,
+      sourceType: true,
     },
   });
 
@@ -122,11 +143,28 @@ export async function cleanAllJobDescriptions(): Promise<{
         continue;
       }
 
-      // Clean the description
+      // Employer-posted jobs come through the Quill rich-text editor and
+      // store intentional HTML formatting (bold, lists, paragraphs) that
+      // is rendered safely on the slug page via sanitizeHtmlContent +
+      // dangerouslySetInnerHTML. Stripping HTML from `description` here
+      // would destroy that formatting daily — so for employer jobs we
+      // leave `description` alone and only normalize `descriptionSummary`
+      // (which is rendered as plain text in meta tags / structured data /
+      // email previews).
+      if (job.sourceType === 'employer') {
+        const cleanedSummary = summarizeForMeta(job.description || '');
+        await prisma.job.update({
+          where: { id: job.id },
+          data: { descriptionSummary: cleanedSummary },
+        });
+        cleaned++;
+        continue;
+      }
+
+      // Aggregated/external jobs: clean both description and summary.
       const cleanedDescription = cleanDescription(job.description || '');
       const cleanedSummary = cleanedDescription.slice(0, 300) + (cleanedDescription.length > 300 ? '...' : '');
 
-      // Update the job
       await prisma.job.update({
         where: { id: job.id },
         data: {
