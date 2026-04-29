@@ -1,6 +1,6 @@
 # Job Health Detection — Runbook
 
-**Status:** Sprints 1-3 shipped. Sprint 1 = HTTP probe + soft-404 detector (`feature/job-health-priority-1`). Sprint 2 = Greenhouse direct-API probe + source-presence shadow mode (`feature/job-health-priority-2`). Sprint 3 = `job_health_check` append-only audit table + recorder integration (`feature/job-health-priority-3`). Sprint 4+ (Inngest queue, presence-driven auto-unpublish, multi-signal voting, FP recovery loop, chunked-source presence aggregator, anomaly alerts) deferred.
+**Status:** Sprints 1-4 shipped. Sprint 1 = HTTP probe + soft-404 detector (`feature/job-health-priority-1`). Sprint 2 = Greenhouse direct-API probe + source-presence shadow mode (`feature/job-health-priority-2`). Sprint 3 = `job_health_check` append-only audit table + recorder integration (`feature/job-health-priority-3`). Sprint 4 = multi-signal voting + presence-driven auto-unpublish (feature-gated, default off) (`feature/job-health-priority-4`). Sprint 5 (Inngest queue, FP recovery loop, anomaly alerts, audit-table partitioning) is genuinely blocked on infra decisions and ~1 week of telemetry; the chunked-source presence aggregator will land in its own sprint when Redis buffering is wired in.
 
 This document tells operators **what was changed, what to monitor after deploy, and how to roll back**.
 
@@ -305,13 +305,91 @@ Estimated row volume from current production load:
 - Indexes total ~30% of table size. Negligible Supabase storage cost (< 100 MB/year).
 - Sprint 5 will add monthly partitioning + 13-month retention vacuum.
 
-## Known limitations (deferred to Sprint 4+)
+## Sprint 4 changes — multi-signal voting + presence-driven auto-unpublish (gated)
 
-- **No auto-unpublish from presence data** — `health_consecutive_missing` is written but not read by an unpublish path yet. Sprint 4 adds the cron after Sprint 2 telemetry confirms the right threshold.
-- **Single-signal kills** — Sprints 1-3 still allow a single soft-404 (or a single Greenhouse-API 404) to unpublish. The Greenhouse-API 404 is high-confidence enough that single-signal kill is defensible; soft-404 single-signal kill is the bigger residual risk. Multi-signal voting is now data-feasible (read recent `job_health_checks` rows and require 2 dead) and will land in Sprint 4.
-- **No FP recovery loop** — re-probe at 6h/24h/72h with rotated UAs is Sprint 5 (needs a workflow runtime — Inngest).
-- **Chunked source presence** — Greenhouse and Workday are still excluded from per-run presence. Sprint 4 adds an aggregated presence cron that runs after the last chunk completes (likely Redis-buffered).
-- **No table partitioning / vacuum** — Sprint 5 adds monthly partitioning + 13-month retention.
+### Slice A — Multi-signal voting
+
+The `check-dead-links` cron now consults the `job_health_checks` audit table before flipping `is_published`.
+
+| Reason of current decision | Vote rule |
+|---|---|
+| `greenhouse_api_404` / `http_404` / `http_410` | High-confidence — flip immediately. |
+| `soft_404` | Low-confidence — require **at least one** prior dead row in the last 2 audit entries (HIGH or LOW), otherwise defer to next probe run. |
+| Anything else marked dead | Treated as low-confidence. |
+| `alive_*` / `inconclusive_*` | Never flips. |
+
+Eliminates the residual single-signal soft-404 risk we left in Sprint 1-3. New cron summary fields: `deferred` (count of held-back flips) and `voteOutcomes` (per-outcome counts).
+
+Files:
+- `lib/health/vote.ts` — pure `tally(current, recentReasons)` plus `castFlipVote(prisma, jobId, decision)` that reads recent rows.
+- `app/api/cron/check-dead-links/route.ts` — calls `castFlipVote` after `recorder.stageDecision` so the current decision is in the window.
+- `tests/lib/health-vote.test.ts` — 15 unit tests covering all flip / defer paths plus DB-driven retrieval and unknown-reason filtering.
+
+### Slice B — Source-presence-driven auto-unpublish (feature-gated, default OFF)
+
+New cron `app/api/cron/source-presence-unpublish` reads jobs with `health_consecutive_missing >= JOB_HEALTH_MIN_PRESENCE_MISSES` (default `3`) and flips `is_published=false`.
+
+**Default mode is REPORT-ONLY.** The cron logs what it WOULD unpublish without flipping anything. After ~1 week of Sprint 3 audit data confirms the threshold is right, set `JOB_HEALTH_PRESENCE_AUTO_UNPUBLISH=true` in Vercel env and the cron starts flipping.
+
+Schedule: `55 12 * * *` (12:55 UTC daily).
+
+Safety guards:
+- Only `source_type = 'external'` (never employer/direct posts).
+- Skips jobs with `is_manually_unpublished = true` (admin override is sticky).
+- Caps at 1,000 unpublishes per run.
+- Records every flip into `job_health_checks` with `outcome = 'presence_unpublished'`.
+
+Files:
+- `app/api/cron/source-presence-unpublish/route.ts` — the new cron handler.
+- `lib/health/recorder.ts` — adds `stagePresenceUnpublish(job)` for the audit row.
+- `vercel.json` — adds the cron entry.
+- `tests/lib/recorder-presence-unpublish.test.ts` — 3 unit tests.
+
+### Pre-deploy checklist for Sprint 4
+
+- [x] `npm run test` (health suite) → 100/100 passing
+- [x] `npm run type-check` → clean
+- [x] `npx eslint <touched files>` → clean
+- [ ] Confirm Sprints 1-3 migrations have applied (audit table exists; voting needs it).
+- [ ] After 24 h: check `voteOutcomes` in cron logs — `awaiting_confirmation` should be a small minority of dead decisions; `flip_high_confidence` the majority on Greenhouse / Adzuna.
+- [ ] After 7 days of presence-unpublish cron in REPORT-ONLY mode: review the daily candidate count. If sane, set `JOB_HEALTH_PRESENCE_AUTO_UNPUBLISH=true` to flip into live mode.
+
+### Sprint 4 monitoring queries
+
+```sql
+-- Vote-outcome distribution (last 24h, only HTTP / Greenhouse-API rows)
+SELECT outcome, alive, COUNT(*) AS rows
+FROM job_health_checks
+WHERE check_type IN ('http_probe', 'greenhouse_api')
+  AND checked_at > NOW() - INTERVAL '24 hours'
+GROUP BY outcome, alive
+ORDER BY rows DESC;
+
+-- Presence-unpublish audit rows (only populated in live mode)
+SELECT presence_source, COUNT(*) AS unpublished
+FROM job_health_checks
+WHERE outcome = 'presence_unpublished'
+  AND checked_at > NOW() - INTERVAL '7 days'
+GROUP BY presence_source
+ORDER BY unpublished DESC;
+
+-- Sizing check: jobs that WOULD unpublish if we flipped right now
+SELECT source_provider, COUNT(*) AS would_unpublish
+FROM jobs
+WHERE is_published = true
+  AND is_manually_unpublished = false
+  AND source_type = 'external'
+  AND health_consecutive_missing >= 3
+GROUP BY source_provider
+ORDER BY would_unpublish DESC;
+```
+
+## Known limitations (deferred to Sprint 5+)
+
+- **No FP recovery loop** — re-probe at 6h/24h/72h with rotated UAs requires a durable workflow runtime (Inngest / Trigger.dev / Temporal). Blocked on the runtime decision.
+- **Chunked source presence** — Greenhouse and Workday are still excluded from per-run presence. Will land in its own sprint once Redis-buffered cross-chunk aggregation is designed.
+- **No anomaly alerts** — needs ~1 week of `job_health_checks` baseline plus Sentry/Datadog credentials decision.
+- **No table partitioning / vacuum** — irrelevant until table is ≥10M rows; revisit in ~6 months.
 
 ## Pattern library maintenance
 

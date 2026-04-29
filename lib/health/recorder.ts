@@ -102,6 +102,32 @@ export class HealthRecorder {
     }
 
     /**
+     * Stage a presence-driven unpublish event. Used by the
+     * source-presence-unpublish cron when a job's
+     * `health_consecutive_missing` exceeds the configured threshold and
+     * `is_published` is flipped. Each affected job gets one audit row.
+     */
+    async stagePresenceUnpublish(job: {
+        id: string;
+        sourceProvider: string | null;
+        healthConsecutiveMissing: number;
+    }): Promise<void> {
+        this.buffer.push({
+            jobId: job.id,
+            checkType: 'source_presence',
+            outcome: 'presence_unpublished',
+            alive: false,
+            presenceSource: job.sourceProvider ?? null,
+            presenceMissing: job.healthConsecutiveMissing,
+            checkerVersion: 'presence-unpublish-v1.0.0',
+        });
+        this.staged++;
+        if (this.buffer.length >= this.batchSize) {
+            await this.flush();
+        }
+    }
+
+    /**
      * Drain the buffer to the database. Called automatically on size
      * threshold and explicitly by the cron at end-of-run.
      */

@@ -37,3 +37,12 @@ export {
     type JobHealthCheckRow,
     type RecorderStats,
 } from './recorder';
+export {
+    castFlipVote,
+    tally,
+    DEFAULT_VOTE_WINDOW,
+    VOTE_CHECKER_VERSION,
+    type VoteOutcome,
+    type VoteResult,
+    type CastVoteOptions,
+} from './vote';
