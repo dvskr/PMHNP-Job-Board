@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkJobHealth, type HealthDecision } from '@/lib/health';
+import { checkJobHealth, HealthRecorder, type HealthDecision } from '@/lib/health';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
@@ -28,6 +28,7 @@ interface RunSummary {
     errors: number;
     deadBySource: Record<string, number>;
     deadByReason: Record<string, number>;
+    audit: { staged: number; flushed: number; failedFlushes: number };
     elapsedSeconds: string;
 }
 
@@ -98,6 +99,7 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
     let errors = 0;
     const deadBySource: Record<string, number> = {};
     const deadByReason: Record<string, number> = {};
+    const recorder = new HealthRecorder(prisma);
     let pendingDead: string[] = [];
     let pendingChecked: string[] = [];
 
@@ -125,6 +127,9 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
 
             const decision = r.value;
             pendingChecked.push(job.id);
+            // Record every decision (alive + dead + inconclusive). Failures are
+            // captured in recorder stats, never thrown.
+            await recorder.stageDecision(job.id, decision);
 
             if (!decision.alive) {
                 deadTotal++;
@@ -132,7 +137,7 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
                 const src = job.sourceProvider ?? 'unknown';
                 deadBySource[src] = (deadBySource[src] ?? 0) + 1;
                 deadByReason[decision.reason] = (deadByReason[decision.reason] ?? 0) + 1;
-            } else if (decision.reason === 'alive_2xx') {
+            } else if (decision.reason === 'alive_2xx' || decision.reason === 'alive_greenhouse_api') {
                 aliveTotal++;
             } else {
                 inconclusive++;
@@ -155,6 +160,7 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
 
     if (pendingDead.length > 0) await flushUnpublish(pendingDead);
     if (pendingChecked.length > 0) await flushCheckedTimestamp(pendingChecked);
+    await recorder.flush();
 
     return {
         checked,
@@ -164,6 +170,7 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
         errors,
         deadBySource,
         deadByReason,
+        audit: recorder.stats(),
         elapsedSeconds: ((Date.now() - startTime) / 1000).toFixed(1),
     };
 }

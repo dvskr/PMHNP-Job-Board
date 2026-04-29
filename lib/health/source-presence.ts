@@ -23,6 +23,7 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import type { HealthRecorder } from './recorder';
 
 export const PRESENCE_CHECKER_VERSION = 'v1.0.0';
 
@@ -48,6 +49,14 @@ export interface PresenceCheckInput {
     minFetchRatio?: number;
     /** Cap update fan-out for safety. */
     maxUpdates?: number;
+    /**
+     * Optional audit recorder. When supplied, a single summary row is
+     * staged per run, anchored to a representative job_id from this
+     * source (chosen deterministically for traceability). Skip-path runs
+     * are recorded too — anchored to any published job from this source
+     * if one exists, otherwise dropped.
+     */
+    recorder?: HealthRecorder;
 }
 
 export type PresenceCheckOutcome =
@@ -116,14 +125,26 @@ export async function recordSourcePresence(
         elapsedMs: Date.now() - start,
     });
 
+    const recordSkip = async (
+        outcome: PresenceCheckOutcome,
+        skippedReason: string,
+    ): Promise<PresenceCheckResult> => {
+        const result = finalize(outcome, skippedReason);
+        if (input.recorder) {
+            const anchor = await findRepresentativeJobId(prisma, input.source);
+            await input.recorder.stagePresence(anchor, result);
+        }
+        return result;
+    };
+
     if (input.fetchedCount === 0) {
         log.warn('Skipping presence check — source returned 0 jobs');
-        return finalize('skipped_zero_fetched', 'fetchedCount=0');
+        return recordSkip('skipped_zero_fetched', 'fetchedCount=0');
     }
 
     if (input.historicalAvgFetched <= 0) {
         log.info('Skipping presence check — no baseline yet for this source');
-        return finalize('skipped_no_baseline', 'historicalAvgFetched<=0');
+        return recordSkip('skipped_no_baseline', 'historicalAvgFetched<=0');
     }
 
     const minRequired = Math.max(1, Math.floor(input.historicalAvgFetched * minFetchRatio));
@@ -133,7 +154,7 @@ export async function recordSourcePresence(
             required: minRequired,
             avg: input.historicalAvgFetched,
         });
-        return finalize('skipped_partial_fetch', `fetched=${input.fetchedCount} < required=${minRequired}`);
+        return recordSkip('skipped_partial_fetch', `fetched=${input.fetchedCount} < required=${minRequired}`);
     }
 
     const fetchedSet = new Set(input.fetchedExternalIds);
@@ -196,7 +217,30 @@ export async function recordSourcePresence(
         elapsedMs: result.elapsedMs,
     });
 
+    if (input.recorder) {
+        // Anchor to the first published job from this source for FK
+        // traceability. Audit row carries the run-level metrics in the
+        // presence_* columns; per-job state lives on the jobs table.
+        const anchor = published.length > 0 ? published[0].id : null;
+        await input.recorder.stagePresence(anchor, result);
+    }
+
     return result;
+}
+
+/**
+ * Find any published job from a source — used to anchor presence audit rows
+ * when no jobs were touched in the run (skip paths).
+ */
+async function findRepresentativeJobId(
+    prisma: PrismaClient,
+    source: string,
+): Promise<string | null> {
+    const job = await prisma.job.findFirst({
+        where: { sourceProvider: source, isPublished: true },
+        select: { id: true },
+    });
+    return job?.id ?? null;
 }
 
 /**

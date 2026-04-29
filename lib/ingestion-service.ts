@@ -23,6 +23,7 @@ import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
 import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
+import { HealthRecorder } from './health/recorder';
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
@@ -475,18 +476,22 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
         const fetchedExternalIds = collectExternalIds(rawJobs);
         if (fetchedExternalIds.length > 0) {
           const baseline = await loadHistoricalAvgFetched(prisma, source);
+          const recorder = new HealthRecorder(prisma);
           const presence = await recordSourcePresence(prisma, {
             source,
             fetchedExternalIds,
             fetchedCount: fetched,
             historicalAvgFetched: baseline,
+            recorder,
           });
+          await recorder.flush();
           console.log(`[${source.toUpperCase()}] Source-presence:`, {
             outcome: presence.outcome,
             seenAgain: presence.seenAgain,
             missing: presence.missingThisRun,
             updates: presence.updatesIssued,
             skipped: presence.skippedReason,
+            audit: recorder.stats(),
           });
         }
       } catch (presenceErr) {
