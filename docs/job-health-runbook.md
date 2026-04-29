@@ -1,6 +1,6 @@
-# Job Health Detection — Runbook (Sprint 1)
+# Job Health Detection — Runbook
 
-**Status:** Sprint 1 (foundation) shipped on `feature/job-health-priority-1`. Sprints 2–3 (Inngest queue, observability) pending.
+**Status:** Sprint 1 (foundation) shipped on `feature/job-health-priority-1`. Sprint 2 (Greenhouse direct-API probe + source-presence shadow mode) shipped on `feature/job-health-priority-2`. Sprint 3 (Inngest queue, presence-driven auto-unpublish, observability) pending.
 
 This document tells operators **what was changed, what to monitor after deploy, and how to roll back**.
 
@@ -109,12 +109,106 @@ WHERE is_published = false
   AND source_provider = 'greenhouse';
 ```
 
-## Known limitations (deferred to Sprint 2)
+## Sprint 2 changes — Greenhouse direct-API probe + source-presence shadow mode
 
-- **Jooble blanket-403** — server-to-server probes always 403. No ground truth. Need either headless browser probe sample, or source-presence cross-check (mark jooble jobs `orphaned` if missing from 3 consecutive ingest fetches).
+### Slice A — Greenhouse direct-API probe
+
+The Greenhouse JSON API at `https://boards-api.greenhouse.io/v1/boards/<slug>/jobs/<id>` returns a clean `404` when a listing is closed. This is dramatically more reliable than HTML scraping (no soft-404 to detect, no bot-block).
+
+| Area | Before | After |
+|---|---|---|
+| Greenhouse jobs | Generic HTML probe + soft-404 pattern matching (caught ~92 % of dead but with pattern-FP risk) | **Direct API probe first**, falls back to generic probe only when the API returns `unknown` (5xx/timeout/non-greenhouse URL) |
+| Reasons | `http_404` / `soft_404` / `alive_2xx` | Adds `greenhouse_api_404` and `alive_greenhouse_api` for unambiguous Greenhouse signal |
+| External ID flow | Cron didn't pass `externalId` to checker | Cron now passes `externalId`; the probe uses it to derive `(boardSlug, jobId)` even when apply URLs use the embedded `gh_jid` form (e.g. `https://riviamind.com/careers?gh_jid=…`) |
+
+**Files:**
+- `lib/health/probes/greenhouse-api.ts` — parser (`parseGreenhouseExternalId`, `parseGreenhouseApplyUrl`, `resolveGreenhouseRef`) + probe (`probeGreenhouseApi`).
+- `lib/health/check-job-health.ts` — routes greenhouse jobs through the API probe first; preserves the existing decision policy as a fallback.
+- `app/api/cron/check-dead-links/route.ts` — selects `externalId`, threads it into `checkJobHealth`.
+- `tests/lib/greenhouse-api-probe.test.ts` — 19 tests (parser + probe + fallback).
+- `tests/lib/check-job-health.test.ts` — 4 new integration tests.
+
+### Slice B — Source-presence tracking (shadow mode)
+
+After every successful, non-chunked, non-truncated ingest run, we compare the set of `external_id`s the source returned against the set of currently-published jobs from that source. Jobs that re-appeared get `health_consecutive_missing=0` + `health_last_seen_at=NOW()`. Jobs that didn't get `health_consecutive_missing += 1`.
+
+**Sprint 2 ships shadow-mode only** — these columns are written but never used to flip `is_published`. Sprint 3 adds the auto-unpublish cron after we've collected ~1 week of telemetry and tuned the partial-fetch threshold.
+
+| Area | Before | After |
+|---|---|---|
+| Sources without HTTP signal (Jooble = 100 % blanket-403) | No way to tell if a job was orphaned at source | `health_consecutive_missing` increments each ingest run when the external_id is absent from the fetch |
+| Source outages | Risk of mass-marking jobs missing during a flaky day | **Partial-fetch guard**: presence check skipped when `fetchedCount < 0.5 × historicalAvgFetched` (7-day rolling average from `source_stats`) |
+| Chunked sources (greenhouse, workday) | N/A | Skipped from per-run presence (cross-chunk visibility incomplete). Sprint 3 will add an aggregated presence cron that runs after all chunks land. |
+| Truncated runs | N/A | Skipped when `stoppedEarly=true` (the existing time-budget exit) |
+
+**Schema migration** (`prisma/migrations/20260429_add_source_presence_tracking/migration.sql`):
+```sql
+ALTER TABLE jobs
+  ADD COLUMN health_consecutive_missing INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN health_last_seen_at TIMESTAMP(3);
+CREATE INDEX jobs_source_provider_health_consecutive_missing_idx
+  ON jobs(source_provider, health_consecutive_missing);
+```
+
+**Files:**
+- `prisma/schema.prisma` — adds `healthConsecutiveMissing` / `healthLastSeenAt` + composite index.
+- `lib/health/source-presence.ts` — `recordSourcePresence`, `loadHistoricalAvgFetched`, `computePresenceDiff`, `PRESENCE_CHECKER_VERSION`.
+- `lib/ingestion-service.ts` — hooks the presence check at the end of `ingestFromSource` for non-chunked, non-truncated runs only. Logs outcome under `[SOURCE] Source-presence:` and is wrapped in try/catch (non-fatal).
+- `tests/lib/source-presence.test.ts` — 11 tests (computeDiff + recordSourcePresence + partial-fetch guard + maxUpdates cap + checker version).
+
+### Pre-deploy checklist for Sprint 2
+
+- [x] `npm run test -- tests/lib/health-probe.test.ts tests/lib/soft-404-detector.test.ts tests/lib/check-job-health.test.ts tests/lib/greenhouse-api-probe.test.ts tests/lib/source-presence.test.ts` → 70/70 passing
+- [x] `npm run type-check` → clean
+- [x] `npx eslint <touched files>` → clean (pre-existing errors in ingestion-service.ts unchanged)
+- [ ] **Run the migration** in your Supabase project: `supabase db push` (or `prisma migrate deploy`). Recommended timing: off-peak window. Forward-only — adds nullable column + non-null with default, safe for live writes.
+- [ ] After 24 h: inspect `SELECT source_provider, COUNT(*) FILTER (WHERE health_consecutive_missing >= 1) FROM jobs WHERE is_published GROUP BY source_provider;` — confirm Jooble starts populating non-zero counts.
+- [ ] After 7 days: review the distribution to set the Sprint 3 auto-unpublish threshold (target: 3 consecutive misses with FP rate < 5 %).
+
+### Expected behavior after Sprint 2 deploys
+
+**Greenhouse:**
+- Most published Greenhouse jobs will be classified `greenhouse_api_404` on next cron run and unpublished.
+- Of the 331 currently-published Greenhouse jobs, expect **~300+** to flip dead within 2 cron runs.
+
+**Source-presence (shadow mode):**
+- No jobs unpublished by the presence check itself.
+- New columns (`health_consecutive_missing`, `health_last_seen_at`) populated for every non-chunked source after each ingest.
+- For Jooble specifically (3,871 published, our largest blind spot), expect a slow build of `health_consecutive_missing` values: jobs genuinely closed at source will hit 3+ misses within ~2 days; jobs still listed will reset to 0 each run.
+
+### Sprint 2 monitoring queries
+
+```sql
+-- Source-presence telemetry by source (run daily after Sprint 2 lands)
+SELECT
+  source_provider,
+  COUNT(*) AS published_total,
+  COUNT(*) FILTER (WHERE health_consecutive_missing = 0) AS seen_recently,
+  COUNT(*) FILTER (WHERE health_consecutive_missing = 1) AS missing_1,
+  COUNT(*) FILTER (WHERE health_consecutive_missing = 2) AS missing_2,
+  COUNT(*) FILTER (WHERE health_consecutive_missing >= 3) AS missing_3plus,
+  AVG(health_consecutive_missing)::numeric(5,2) AS avg_missing
+FROM jobs
+WHERE is_published = true AND source_provider IS NOT NULL
+GROUP BY source_provider
+ORDER BY published_total DESC;
+
+-- Greenhouse-API decision audit (greenhouse_api_404 → unpublished within last 24h)
+SELECT id, title, employer, apply_link, updated_at
+FROM jobs
+WHERE source_provider = 'greenhouse'
+  AND is_published = false
+  AND updated_at > NOW() - INTERVAL '24 hours'
+ORDER BY updated_at DESC LIMIT 50;
+```
+
+## Known limitations (deferred to Sprint 3)
+
 - **No audit history** — the `job_health_check` append-only table from the architecture doc is not yet built. Currently we lose the per-check evidence after the cron logs; only the final `is_published` flip is recorded.
-- **Single-signal kills** — the architecture doc requires 2 independent dead signals before flipping. Sprint 1 still allows a single soft-404 match to unpublish. The FP risk is mitigated by curated patterns + URL-fragment first ordering, but proper multi-signal voting is Sprint 2.
-- **No FP recovery loop** — the architecture doc specifies a re-probe after 6h/24h/72h with rotated UAs. Not in Sprint 1.
+- **Single-signal kills** — the architecture doc requires 2 independent dead signals before flipping. Sprints 1 + 2 still allow a single soft-404 match (or a single Greenhouse-API 404) to unpublish. The Greenhouse-API 404 is high-confidence enough that single-signal kill is defensible; soft-404 single-signal kill is the bigger residual risk.
+- **No FP recovery loop** — the architecture doc specifies a re-probe after 6h/24h/72h with rotated UAs. Not in Sprints 1 or 2.
+- **Source-presence shadow only** — the presence columns are written but not used to auto-unpublish. Sprint 3 adds the cron with `health_consecutive_missing >= 3` threshold (gated on telemetry).
+- **Chunked source presence** — Greenhouse and Workday are excluded from per-run presence checks. Sprint 3 adds an aggregated presence cron that runs after the last chunk completes.
 
 ## Pattern library maintenance
 
