@@ -244,11 +244,47 @@ async function findRepresentativeJobId(
 }
 
 /**
- * Read the 7-day rolling average fetch count for a source. Used as the
- * baseline for the partial-fetch guard.
+ * Per-source-per-day cron run count. `recordIngestionStats` upserts one
+ * row per source per day with `jobsFetched: { increment: fetched }`, so
+ * the value in `source_stats` is the SUM across all cron runs that day.
  *
- * Returns 0 when the source has no `source_stats` rows yet (caller should
- * skip the presence check in that case).
+ * The partial-fetch guard compares against a SINGLE-RUN fetch count, so
+ * we must divide the daily baseline by this number to compare apples to
+ * apples. Otherwise per-run fetches always look ~half the baseline and
+ * the guard incorrectly aborts.
+ *
+ * Reflects the cron schedule in vercel.json. Update this map when a cron
+ * frequency changes.
+ *
+ * For chunked sources (greenhouse, workday) the chunked-presence
+ * aggregator passes `fetchedCount = sum of all chunks in one cycle`, so
+ * the same divide-by-cycles math holds.
+ */
+const RUNS_PER_DAY: Readonly<Record<string, number>> = {
+    adzuna: 2,
+    jooble: 2,
+    lever: 2,
+    usajobs: 2,
+    ashby: 2,
+    workday: 2,
+    greenhouse: 2,
+    'fantastic-jobs-db': 2,
+    smartrecruiters: 2,
+    icims: 2,
+    jazzhr: 2,
+    'ats-jobs-db': 2,
+};
+
+/**
+ * Read the rolling per-RUN fetch baseline for a source. Used by the
+ * partial-fetch guard inside recordSourcePresence.
+ *
+ * Implementation: takes the average of `source_stats.jobs_fetched` over
+ * `windowDays` days (which is a per-day total) and divides by the
+ * source's expected runs-per-day.
+ *
+ * Returns 0 when the source has no `source_stats` rows yet (caller
+ * should skip the presence check in that case).
  */
 export async function loadHistoricalAvgFetched(
     prisma: PrismaClient,
@@ -263,8 +299,13 @@ export async function loadHistoricalAvgFetched(
     `;
     const value = rows[0]?.avg;
     if (value === null || value === undefined) return 0;
-    return typeof value === 'bigint' ? Number(value) : Number(value);
+    const dailyAvg = typeof value === 'bigint' ? Number(value) : Number(value);
+    const runsPerDay = RUNS_PER_DAY[source] ?? 1;
+    return dailyAvg / runsPerDay;
 }
+
+/** Exposed for tests + admin scripts. */
+export { RUNS_PER_DAY };
 
 /**
  * Pure helper for tests / dry-runs. Computes the diff between published and
