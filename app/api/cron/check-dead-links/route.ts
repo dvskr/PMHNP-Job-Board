@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { checkJobHealth, HealthRecorder, type HealthDecision } from '@/lib/health';
+import { checkJobHealth, HealthRecorder, castFlipVote, type HealthDecision } from '@/lib/health';
 import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
@@ -25,9 +25,16 @@ interface RunSummary {
     aliveTotal: number;
     deadTotal: number;
     inconclusive: number;
+    /**
+     * Dead decisions that were held back from flipping is_published because
+     * voting did not yet have enough confirming signals (low-confidence
+     * single soft_404 signals). Will be reconsidered on the next probe run.
+     */
+    deferred: number;
     errors: number;
     deadBySource: Record<string, number>;
     deadByReason: Record<string, number>;
+    voteOutcomes: Record<string, number>;
     audit: { staged: number; flushed: number; failedFlushes: number };
     elapsedSeconds: string;
 }
@@ -96,9 +103,11 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
     let aliveTotal = 0;
     let deadTotal = 0;
     let inconclusive = 0;
+    let deferred = 0;
     let errors = 0;
     const deadBySource: Record<string, number> = {};
     const deadByReason: Record<string, number> = {};
+    const voteOutcomes: Record<string, number> = {};
     const recorder = new HealthRecorder(prisma);
     let pendingDead: string[] = [];
     let pendingChecked: string[] = [];
@@ -131,17 +140,37 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
             // captured in recorder stats, never thrown.
             await recorder.stageDecision(job.id, decision);
 
-            if (!decision.alive) {
-                deadTotal++;
-                pendingDead.push(job.id);
-                const src = job.sourceProvider ?? 'unknown';
-                deadBySource[src] = (deadBySource[src] ?? 0) + 1;
-                deadByReason[decision.reason] = (deadByReason[decision.reason] ?? 0) + 1;
-            } else if (decision.reason === 'alive_2xx' || decision.reason === 'alive_greenhouse_api') {
-                aliveTotal++;
-            } else {
-                inconclusive++;
+            if (decision.alive) {
+                if (decision.reason === 'alive_2xx' || decision.reason === 'alive_greenhouse_api') {
+                    aliveTotal++;
+                } else {
+                    inconclusive++;
+                }
+                continue;
             }
+
+            // Dead decision — let the multi-signal voter decide whether to flip
+            // now or defer to the next probe run. Voting reads recent
+            // job_health_checks rows; for a brand-new dead-classified job the
+            // current decision is the only signal in the window.
+            const vote = await castFlipVote(prisma, job.id, decision);
+            voteOutcomes[vote.outcome] = (voteOutcomes[vote.outcome] ?? 0) + 1;
+
+            if (!vote.flip) {
+                deferred++;
+                log.info('Vote deferred dead-flip — awaiting confirmation', {
+                    jobId: job.id,
+                    reason: decision.reason,
+                    voteOutcome: vote.outcome,
+                });
+                continue;
+            }
+
+            deadTotal++;
+            pendingDead.push(job.id);
+            const src = job.sourceProvider ?? 'unknown';
+            deadBySource[src] = (deadBySource[src] ?? 0) + 1;
+            deadByReason[decision.reason] = (deadByReason[decision.reason] ?? 0) + 1;
         }
 
         if (pendingDead.length >= UNPUBLISH_FLUSH_THRESHOLD) {
@@ -167,9 +196,11 @@ async function runSweep(jobs: JobToCheck[], startTime: number, log = logger): Pr
         aliveTotal,
         deadTotal,
         inconclusive,
+        deferred,
         errors,
         deadBySource,
         deadByReason,
+        voteOutcomes,
         audit: recorder.stats(),
         elapsedSeconds: ((Date.now() - startTime) / 1000).toFixed(1),
     };
