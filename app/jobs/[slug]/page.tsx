@@ -790,7 +790,6 @@ export default async function JobPage({ params }: JobPageProps) {
               </div>
             </AnimatedContainer>
 
-
             {/* Description Section */}
             <AnimatedContainer animation="fade-in-up" delay={200}>
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)', padding: '24px 28px', marginBottom: '20px', overflow: 'hidden' }}>

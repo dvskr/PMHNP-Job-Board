@@ -5,13 +5,14 @@ import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
 import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
-import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText } from '@/lib/sanitize';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
 import { formatDisplaySalary } from '@/lib/salary-display';
 import { computeQualityScore } from '@/lib/utils/quality-score';
 import { parseLocation } from '@/lib/location-parser';
+import { summarizeForMeta } from '@/lib/description-cleaner';
 
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for job posting
@@ -68,7 +69,11 @@ export async function POST(request: NextRequest) {
       title,
       employer,
       location,
-      description,
+      // Strip non-breaking-space artefacts (Quill emits these when content
+      // is pasted from Word) before sanitizing — otherwise the body shows
+      // mid-word line breaks at render time and `descriptionSummary` gets
+      // populated with literal `&nbsp;` markup.
+      description: normalizeContentWhitespace(description ?? ''),
       applyLink,
       contactEmail,
       mode,
@@ -249,7 +254,7 @@ export async function POST(request: NextRequest) {
       displaySalary,
       normalizedMinSalary: normalizedSalary.normalizedMinSalary,
       normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
-      descriptionSummary: sanitized.description.slice(0, 300),
+      descriptionSummary: summarizeForMeta(sanitized.description),
       description: sanitized.description,
       city: null,
       state: null,
@@ -268,7 +273,7 @@ export async function POST(request: NextRequest) {
         jobType: sanitized.jobType || null,
         mode: sanitized.mode || null,
         description: sanitized.description,
-        descriptionSummary: sanitized.description.slice(0, 300),
+        descriptionSummary: summarizeForMeta(sanitized.description),
         applyLink: applyOnPlatform ? null : sanitized.applyLink,
         applyOnPlatform: applyOnPlatform || false,
         minSalary: parsedMinSalary,
