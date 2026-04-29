@@ -78,15 +78,27 @@ interface OrphanReport {
     }>;
 }
 
-function parseArgs(): { apply: boolean; maxUnpublish: number } {
+interface RunArgs {
+    apply: boolean;
+    maxUnpublish: number;
+    /** When set, only apply to orphans whose qualityScore < this value. */
+    maxQualityExclusive: number | null;
+}
+
+function parseArgs(): RunArgs {
     const args = process.argv.slice(2);
     const maxIdx = args.indexOf('--max-unpublish');
+    const qualIdx = args.indexOf('--max-quality');
     return {
         apply: args.includes('--apply'),
         maxUnpublish:
             maxIdx >= 0 && args[maxIdx + 1]
                 ? Math.max(0, parseInt(args[maxIdx + 1], 10) || 0)
                 : Number.POSITIVE_INFINITY,
+        maxQualityExclusive:
+            qualIdx >= 0 && args[qualIdx + 1]
+                ? parseInt(args[qualIdx + 1], 10)
+                : null,
     };
 }
 
@@ -217,8 +229,21 @@ async function main(): Promise<void> {
         return;
     }
 
-    const targets = orphans.slice(0, args.maxUnpublish);
-    console.log(`\nUnpublishing ${targets.length}${targets.length < orphans.length ? ` (capped from ${orphans.length})` : ''}...`);
+    // Filter by quality if requested.
+    let candidates = orphans;
+    if (args.maxQualityExclusive !== null) {
+        const before = candidates.length;
+        candidates = candidates.filter((o) => o.qualityScore < args.maxQualityExclusive!);
+        console.log(`\n--max-quality ${args.maxQualityExclusive}: kept ${candidates.length} of ${before} orphans (those with quality_score < ${args.maxQualityExclusive}).`);
+    }
+
+    if (candidates.length === 0) {
+        console.log('\nAfter filters, no orphans qualify. Done.\n');
+        return;
+    }
+
+    const targets = candidates.slice(0, args.maxUnpublish);
+    console.log(`\nUnpublishing ${targets.length}${targets.length < candidates.length ? ` (capped from ${candidates.length})` : ''}...`);
     let total = 0;
     for (let i = 0; i < targets.length; i += DB_WRITE_BATCH_SIZE) {
         const slice = targets.slice(i, i + DB_WRITE_BATCH_SIZE).map((o) => o.id);
