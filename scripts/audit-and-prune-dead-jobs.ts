@@ -164,8 +164,8 @@ async function runWithLimits<T>(
     const domainCounts = new Map<string, number>();
     let nextIndex = 0;
     let activeGlobal = 0;
-    let resolveDone: (() => void) | null = null;
-    const done = new Promise<void>((r) => (resolveDone = r));
+    let resolveDone: () => void = () => undefined;
+    const done = new Promise<void>((r) => { resolveDone = r; });
 
     const tryStart = (): void => {
         while (nextIndex < items.length && activeGlobal < globalLimit) {
@@ -198,7 +198,7 @@ async function runWithLimits<T>(
                     activeGlobal--;
                     domainCounts.set(dom, (domainCounts.get(dom) ?? 1) - 1);
                     if (nextIndex >= items.length && activeGlobal === 0) {
-                        resolveDone?.();
+                        resolveDone();
                     } else {
                         tryStart();
                     }
@@ -207,7 +207,7 @@ async function runWithLimits<T>(
     };
 
     tryStart();
-    if (items.length === 0) resolveDone?.();
+    if (items.length === 0) resolveDone();
     await done;
 }
 
