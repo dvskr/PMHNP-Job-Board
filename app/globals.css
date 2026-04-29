@@ -807,8 +807,12 @@ select:focus {
 
 /* ===== JOB DESCRIPTION HTML (Quill editor output) ===== */
 .job-description-html {
+  /* Only break unbroken strings if they would actually overflow the
+     container. Do NOT use `word-break: break-word` (deprecated alias for
+     break-all in modern browsers) — it forces mid-character splits when
+     Quill emits U+00A0/&nbsp; between every word, which surfaced as
+     "Th ere", "caselo ad", "b illing" in customer reports. */
   overflow-wrap: break-word;
-  word-break: break-word;
   overflow: hidden;
 }
 

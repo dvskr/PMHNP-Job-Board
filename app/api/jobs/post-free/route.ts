@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
 import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
-import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText } from '@/lib/sanitize';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { normalizeSalary } from '@/lib/salary-normalizer';
@@ -75,7 +75,11 @@ export async function POST(request: NextRequest) {
       title,
       employer,
       location,
-      description,
+      // Strip non-breaking-space artefacts (Quill emits these when content
+      // is pasted from Word) before sanitizing — otherwise the body shows
+      // mid-word line breaks at render time and `descriptionSummary` gets
+      // populated with literal `&nbsp;` markup.
+      description: normalizeContentWhitespace(description ?? ''),
       applyLink,
       contactEmail,
       mode,
