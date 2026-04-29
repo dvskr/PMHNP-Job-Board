@@ -171,6 +171,10 @@
     {
       "path": "/api/cron/source-presence-unpublish",
       "schedule": "55 12 * * *"
+    },
+    {
+      "path": "/api/cron/health-anomaly-check",
+      "schedule": "0 13 * * *"
     }
   ],
   "headers": [
