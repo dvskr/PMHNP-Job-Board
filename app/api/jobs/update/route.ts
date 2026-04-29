@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, normalizeContentWhitespace } from '@/lib/sanitize';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -28,12 +28,18 @@ export async function POST(request: NextRequest) {
     const body: UpdateRequestBody = await request.json();
     const { token, jobData: rawJobData } = body;
 
-    // Sanitize job data
-    const jobData = {
+    // Sanitize job data. Description is whitespace-normalized first so Quill-
+    // emitted &nbsp; / U+00A0 between words doesn't make the body line-break
+    // mid-character at render time (root cause reported by employers).
+    const normalizedRawJobData = {
       ...rawJobData,
-      title: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).title,
-      location: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).location,
-      description: sanitizeJobPosting({ ...rawJobData, employer: '' } as any).description,
+      description: normalizeContentWhitespace(rawJobData.description ?? ''),
+    };
+    const jobData = {
+      ...normalizedRawJobData,
+      title: sanitizeJobPosting({ ...normalizedRawJobData, employer: '' } as any).title,
+      location: sanitizeJobPosting({ ...normalizedRawJobData, employer: '' } as any).location,
+      description: sanitizeJobPosting({ ...normalizedRawJobData, employer: '' } as any).description,
       applyLink: rawJobData.applyLink ? sanitizeUrl(rawJobData.applyLink) : null,
       contactEmail: rawJobData.contactEmail ? sanitizeEmail(rawJobData.contactEmail) : undefined,
       companyWebsite: rawJobData.companyWebsite ? sanitizeUrl(rawJobData.companyWebsite) : undefined,

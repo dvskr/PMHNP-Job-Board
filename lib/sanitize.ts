@@ -191,13 +191,34 @@ export function sanitizeJobAlert(input: JobAlertInput): JobAlertInput {
 }
 
 /**
+ * Normalize whitespace inside body HTML before storage or rendering.
+ *
+ * Quill (and Word-paste handlers) emit `&nbsp;` / U+00A0 between regular
+ * words, which surfaces in two ways downstream:
+ *   1. The browser treats `Tessahealth is hiring...` as ONE
+ *      unbreakable word and splits it mid-character when the line wraps,
+ *      producing artefacts like "Th ere" / "b illing" reported by users.
+ *   2. Plain-text consumers (meta description, structured data, email
+ *      previews) show literal `&nbsp;` markup.
+ *
+ * Convert both forms to regular spaces. Tags, entities other than nbsp,
+ * and content semantics are preserved.
+ */
+export function normalizeContentWhitespace(html: string): string {
+    if (!html) return html;
+    return html
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/ /g, ' ');
+}
+
+/**
  * Sanitize HTML content for safe rendering via dangerouslySetInnerHTML.
  * Uses the sanitize-html library for robust, battle-tested XSS prevention.
  * Allows safe formatting tags but strips scripts, iframes, event handlers,
  * and dangerous URI schemes.
  */
 export function sanitizeHtmlContent(html: string): string {
-    return sanitizeHtml(html, {
+    return sanitizeHtml(normalizeContentWhitespace(html), {
         allowedTags: sanitizeHtml.defaults.allowedTags.concat([
             'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
             'pre', 'code', 'hr', 'br',
@@ -230,4 +251,5 @@ export default {
     sanitizeContactForm,
     sanitizeJobAlert,
     sanitizeHtmlContent,
+    normalizeContentWhitespace,
 };
