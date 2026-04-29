@@ -57,6 +57,11 @@ model Job {
   originalPostedAt    DateTime?    @map("original_posted_at")
   lastLinkCheckedAt   DateTime?    @map("last_link_checked_at")
   lastEnrichedAt      DateTime?    @map("last_enriched_at")
+  // Source-presence tracking — incremented when a job's external_id is missing
+  // from a successful source ingest. Resets to 0 on each re-appearance.
+  // Currently shadow-mode: written but not used to auto-unpublish until tuned.
+  healthConsecutiveMissing Int       @default(0) @map("health_consecutive_missing")
+  healthLastSeenAt    DateTime?    @map("health_last_seen_at")
   applyClicks         ApplyClick[]
   jobApplications     JobApplication[]
   jobReports          JobReport[]
@@ -77,6 +82,7 @@ model Job {
   @@index([slug])
   @@index([externalId, sourceProvider])
   @@index([qualityScore(sort: Desc)])
+  @@index([sourceProvider, healthConsecutiveMissing])
   @@map("jobs")
 }
 
