@@ -22,6 +22,7 @@ import { linkJobToCompany } from './company-normalizer';
 import { recordIngestionStats } from './source-analytics';
 import { isRelevantJob } from './utils/job-filter';
 import { collectEmployerEmails } from './employer-email-collector';
+import { recordSourcePresence, loadHistoricalAvgFetched } from './health/source-presence';
 
 // ── Global dedup maps (pre-loaded once at start of full ingestion run) ──
 let globalExternalIdMap: Map<string, { id: string; sourceProvider: string; originalPostedAt: Date | null }> | null = null;
@@ -52,6 +53,12 @@ export interface IngestionResult {
 
 // Max time budget per cron invocation — stop gracefully before Vercel's 300s hard limit
 const MAX_INGESTION_MS = 240_000; // 240s (leave 60s buffer for post-processing)
+
+// Sources whose fetch is split across multiple cron chunks. Source-presence
+// tracking is unsafe per-chunk (would falsely mark jobs from other chunks as
+// missing). Sprint 3 will run an aggregated presence check after all chunks
+// land. Until then we skip these sources from per-run presence updates.
+const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday']);
 
 // ── Quality Gate (DISABLED — volume too low, re-enable when more ATS sources are added) ──
 // Jobs scoring below this threshold at ingestion will NOT be published.
@@ -102,6 +109,23 @@ function extractRawTitle(rawJob: Record<string, unknown>): string {
   return String(
     rawJob.title || rawJob.job_title || rawJob.jobOpeningName || rawJob.positionName || ''
   );
+}
+
+/**
+ * Extract external IDs from raw fetch results, matching the priority order
+ * the normalizer uses (`externalId` → `id` → `external_id`). Returns a
+ * de-duplicated array of non-empty string IDs for source-presence tracking.
+ */
+function collectExternalIds(rawJobs: Array<Record<string, unknown>>): string[] {
+  const seen = new Set<string>();
+  for (const raw of rawJobs) {
+    const candidate = raw.externalId ?? raw.id ?? raw.external_id;
+    if (candidate === null || candidate === undefined) continue;
+    const id = String(candidate).trim();
+    if (id.length === 0) continue;
+    seen.add(id);
+  }
+  return Array.from(seen);
 }
 
 /**
@@ -439,6 +463,35 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
       await recordIngestionStats(source, fetched, added, duplicates);
     } catch (statsError) {
       console.error(`Failed to record stats for ${source}:`, statsError);
+    }
+
+    // Source-presence tracking (Sprint 2 — shadow mode).
+    // Skips:
+    //   - chunked sources (per-chunk visibility is incomplete)
+    //   - runs that hit the time budget (partial fetches must not strike jobs)
+    //   - sources with no historical baseline (loadHistoricalAvgFetched returns 0)
+    if (!stoppedEarly && !CHUNKED_SOURCES.has(source) && fetched > 0) {
+      try {
+        const fetchedExternalIds = collectExternalIds(rawJobs);
+        if (fetchedExternalIds.length > 0) {
+          const baseline = await loadHistoricalAvgFetched(prisma, source);
+          const presence = await recordSourcePresence(prisma, {
+            source,
+            fetchedExternalIds,
+            fetchedCount: fetched,
+            historicalAvgFetched: baseline,
+          });
+          console.log(`[${source.toUpperCase()}] Source-presence:`, {
+            outcome: presence.outcome,
+            seenAgain: presence.seenAgain,
+            missing: presence.missingThisRun,
+            updates: presence.updatesIssued,
+            skipped: presence.skippedReason,
+          });
+        }
+      } catch (presenceErr) {
+        console.error(`[${source.toUpperCase()}] Source-presence check failed (non-fatal):`, presenceErr);
+      }
     }
 
     // Batch-insert rejected jobs for accuracy analysis
