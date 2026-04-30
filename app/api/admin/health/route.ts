@@ -103,15 +103,19 @@ export async function GET() {
             .sort((a, b) => b.published - a.published);
 
         // ── Vote / outcome distribution (last 7d, grouped by outcome) ─
-        const outcomeCounts = await prisma.jobHealthCheck.groupBy({
+        // Sort in JS — Prisma groupBy orderBy on _count of a non-counted
+        // field fails at runtime in some setups.
+        const outcomeCountsRaw = await prisma.jobHealthCheck.groupBy({
             by: ['outcome'],
             where: { checkedAt: { gte: week } },
             _count: { _all: true },
-            orderBy: { _count: { outcome: 'desc' } },
         });
+        const outcomeCounts = [...outcomeCountsRaw].sort(
+            (a, b) => b._count._all - a._count._all,
+        );
 
         // ── Soft-404 pattern hits (last 7d) ───────────────────────────
-        const softPatternHits = await prisma.jobHealthCheck.groupBy({
+        const softPatternHitsRaw = await prisma.jobHealthCheck.groupBy({
             by: ['softPatternId'],
             where: {
                 checkedAt: { gte: week },
@@ -119,9 +123,10 @@ export async function GET() {
                 softPatternId: { not: null },
             },
             _count: { _all: true },
-            orderBy: { _count: { softPatternId: 'desc' } },
-            take: 15,
         });
+        const softPatternHits = [...softPatternHitsRaw]
+            .sort((a, b) => b._count._all - a._count._all)
+            .slice(0, 15);
 
         // ── Source-presence (consecutive-missing) distribution ───────
         const presenceBuckets = await prisma.$queryRaw<
@@ -234,10 +239,14 @@ export async function GET() {
         });
     } catch (error) {
         logger.error('[Admin Health] Failed to load job-health dashboard data', error);
+        const isDev = process.env.NODE_ENV !== 'production';
         return NextResponse.json(
             {
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to fetch health data',
+                ...(isDev && error instanceof Error
+                    ? { stack: error.stack, name: error.name }
+                    : {}),
             },
             { status: 500 },
         );
