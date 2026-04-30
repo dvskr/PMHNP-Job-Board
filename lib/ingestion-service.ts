@@ -81,9 +81,13 @@ const MAX_INGESTION_MS = 240_000; // 240s (leave 60s buffer for post-processing)
 // land. Until then we skip these sources from per-run presence updates.
 const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday']);
 
-// ── Quality Gate (DISABLED — volume too low, re-enable when more ATS sources are added) ──
-// Jobs scoring below this threshold at ingestion will NOT be published.
-// const MIN_QUALITY_SCORE = 5;
+// Quality score is computed for every job after insert and used as a
+// ranking signal (DB index `qualityScore(sort: Desc)`). It is intentionally
+// NOT used as a hard gate: at the catalog's current distribution (mean
+// ~35, P5 < 10), any gate strict enough to bite (>=30) would unpublish
+// ~40% of inventory, while a gate lax enough to be safe (5) catches zero.
+// Ranking-by-quality already surfaces good jobs first without the
+// false-positive risk of an unpublish gate. Last reviewed: 2026-04-30.
 
 /**
  * Fetch raw jobs from a specific source
@@ -494,12 +498,6 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
               isEmployerPosted: false,  // aggregated jobs are never employer-posted
             });
             await prisma.job.update({ where: { id: savedJob.id }, data: { qualityScore: qScore } });
-
-            // ── Quality Gate (DISABLED) ──
-            // if (qScore < MIN_QUALITY_SCORE) {
-            //   await prisma.job.update({ where: { id: savedJob.id }, data: { isPublished: false } });
-            //   console.log(`[${source.toUpperCase()}] Quality gate: unpublished job "${normalizedJob.title}" (score: ${qScore} < ${MIN_QUALITY_SCORE})`);
-            // }
           }
         } catch (qError) {
           // Non-fatal — job remains with default score of 0
