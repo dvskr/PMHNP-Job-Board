@@ -231,7 +231,7 @@ export default function InPlatformApplyForm({
     // ─── Success state ───
     if (submitted) {
         return createPortal(
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="fixed inset-0 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}>
                 <div className="relative w-full max-w-2xl rounded-2xl p-6 text-center" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
                     <button onClick={onClose} className="absolute right-4 top-4 p-1.5 rounded-lg transition-colors hover:bg-black/5" aria-label="Close">
                         <X size={18} style={{ color: 'var(--text-muted)' }} />
@@ -262,7 +262,7 @@ export default function InPlatformApplyForm({
     }
 
     const modalContent = (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}>
         <div
             className="relative w-full max-w-2xl rounded-2xl overflow-hidden animate-scale-in"
             style={{
