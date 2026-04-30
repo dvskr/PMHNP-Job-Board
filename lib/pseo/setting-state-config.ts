@@ -348,7 +348,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       OR: [
-        { employmentType: { contains: 'Full', mode: 'insensitive' } },
+        { jobType: { contains: 'Full', mode: 'insensitive' } },
         { title: { contains: 'full-time', mode: 'insensitive' } },
         { title: { contains: 'full time', mode: 'insensitive' } },
       ],
@@ -378,7 +378,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       OR: [
-        { employmentType: { contains: 'Part', mode: 'insensitive' } },
+        { jobType: { contains: 'Part', mode: 'insensitive' } },
         { title: { contains: 'part-time', mode: 'insensitive' } },
         { title: { contains: 'part time', mode: 'insensitive' } },
         { title: { contains: 'PRN', mode: 'insensitive' } },
@@ -409,7 +409,7 @@ export const SETTING_CONFIGS: Record<string, SettingConfig> = {
       isPublished: true,
       state: { equals: stateName, mode: 'insensitive' },
       OR: [
-        { employmentType: { contains: 'Contract', mode: 'insensitive' } },
+        { jobType: { contains: 'Contract', mode: 'insensitive' } },
         { title: { contains: 'contract', mode: 'insensitive' } },
         { title: { contains: 'temp', mode: 'insensitive' } },
         { description: { contains: 'contract position', mode: 'insensitive' } },
