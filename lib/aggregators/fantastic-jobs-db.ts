@@ -58,55 +58,63 @@ const API_HOST = 'active-jobs-db.p.rapidapi.com';
 const BASE_URL = `https://${API_HOST}/active-ats-7d`;
 const PAGE_SIZE = 100;
 
-// PMHNP-specific search filters — ONE term per entry (API does NOT support | OR syntax)
-// The API treats "|" as a literal character, so compound filters return 0 results.
-// Each term gets its own API call. Overlap is handled by seenUrls dedup.
-const TITLE_FILTERS = [
-    // ── Core credentials & titles ──
+// ── Search Strategy (refactored 2026-04-30) ──────────────────────────────
+// Old approach: 26 separate `title_filter` calls (one per phrase). 99%+
+// overlap → wasted API calls. Capped runs at ~22 adds / 7 days.
+//
+// New approach: three small passes that each catch a different shape of
+// PMHNP listing the catalog was missing.
+//   PASS 1 — advanced_title_filter (OR'd) for explicit psychiatric titles
+//   PASS 2 — description_filter for "Nurse Practitioner" / "APRN" titles
+//            where the description names psychiatric / mental health work
+//   PASS 3 — fallback: legacy single-term loop, kept as a safety net in
+//            case the API rejects advanced_title_filter for our plan tier
+// Dedup across passes via seenUrls (Set).
+//
+// Boolean syntax inferred from the Apify-side docs of the same dataset:
+//   `OR` (uppercase), parentheses for grouping, double-quotes for phrases.
+// If the API returns HTTP 400 for a syntax we send, the pass logs and
+// continues — the next pass picks up.
+
+const ADVANCED_TITLE_OR = [
+    '"PMHNP"',
+    '"PMHNP-BC"',
+    '"Psychiatric Nurse Practitioner"',
+    '"Psychiatric Mental Health Nurse Practitioner"',
+    '"Mental Health Nurse Practitioner"',
+    '"Behavioral Health Nurse Practitioner"',
+    '"Psych NP"',
+    '"Psychiatric NP"',
+    '"Mental Health NP"',
+    '"Behavioral Health NP"',
+    '"Psychiatric APRN"',
+    '"Mental Health APRN"',
+    '"Psychiatric Prescriber"',
+    '"Telepsychiatry"',
+    '"Telepsych"',
+].join(' OR ');
+
+// Description-side widening: any title that contains "Nurse Practitioner"
+// or "APRN" or "NP" — but only if the description names psychiatric work.
+const TITLE_FILTERS_BROAD = [
+    'Nurse Practitioner',
+    'APRN',
+];
+const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR "psychiatry"';
+
+// Legacy single-term list, used only by the fallback pass if advanced
+// filtering fails. Kept compact — broader terms covered by description
+// filter above.
+const TITLE_FILTERS_FALLBACK = [
     'PMHNP',
-    'PMHNP-BC',
-    'Psychiatric Mental Health Nurse Practitioner',
     'Psychiatric Nurse Practitioner',
-    'Psychiatric NP',
-    'Psych NP',
-
-    // ── Behavioral / Mental Health NP ──
     'Mental Health Nurse Practitioner',
-    'Behavioral Health Nurse Practitioner',
-    'Mental Health NP',
-    'Behavioral Health NP',
-
-    // ── APRN in psychiatry ──
-    'Psychiatric APRN',
-    'Mental Health APRN',
-
-    // ── Prescriber / provider ──
-    'Psychiatric Prescriber',
-    'Psychiatry Nurse Practitioner',
-
-    // ── Telepsychiatry ──
     'Telepsychiatry',
-    'Remote PMHNP',
-
-    // ── Addiction / MAT ──
-    'MAT Nurse Practitioner',
-    'Addiction Nurse Practitioner',
-    'Suboxone Nurse Practitioner',
-
-    // ── Specialty settings ──
-    'Inpatient Psychiatry NP',
-    'Outpatient Psychiatry NP',
-    'Forensic Psychiatry NP',
-    'Child Psychiatry NP',
-
-    // ── Broader psychiatric nursing ──
-    'Psychiatric Nurse',
 ];
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
-// 18 filters × 15 pages max = 270 requests/run × 2 runs/day × 30 days = 16,200 (within budget)
-// 7-day endpoint returns limited data per filter, 15 pages handles any spikes
+// New approach uses ~30-50 calls/run × 2 runs/day × 30d ≈ 3,000 (well within)
 const MAX_PAGES_PER_FILTER = 15;
 const MAX_REQUESTS_PER_RUN = 500;
 const MIN_REMAINING_BUFFER = 2000; // stop if API reports fewer than this remaining
@@ -146,12 +154,15 @@ function mapEmploymentType(job: FantasticJobApiResponse): string | null {
     return t;
 }
 
-async function fetchPage(titleFilter: string, offset: number): Promise<FantasticJobApiResponse[] | null> {
+async function fetchPage(
+    extraParams: Record<string, string>,
+    offset: number,
+): Promise<FantasticJobApiResponse[] | null> {
     const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
         offset: offset.toString(),
-        title_filter: titleFilter,
         location_filter: 'United States',
+        ...extraParams,
     });
 
     const url = `${BASE_URL}?${params}`;
@@ -200,67 +211,133 @@ async function fetchPage(titleFilter: string, offset: number): Promise<Fantastic
     }
 }
 
+interface PassResult {
+    label: string;
+    jobsFound: number;
+    apiCalls: number;
+    /** True if the pass was abandoned for budget / rate-limit reasons. */
+    aborted: boolean;
+}
+
+async function runPass(
+    label: string,
+    extraParams: Record<string, string>,
+    out: FantasticJobOutput[],
+    seenUrls: Set<string>,
+    callBudget: { used: number; cap: number },
+): Promise<PassResult> {
+    let offset = 0;
+    let hasMore = true;
+    let pageCalls = 0;
+    let initialOut = out.length;
+    let aborted = false;
+
+    while (
+        hasMore &&
+        offset / PAGE_SIZE < MAX_PAGES_PER_FILTER &&
+        callBudget.used < callBudget.cap
+    ) {
+        const jobs = await fetchPage(extraParams, offset);
+        callBudget.used++;
+        pageCalls++;
+
+        if (!jobs) {
+            // null = rate-limited / budget exhausted / API error.
+            aborted = true;
+            break;
+        }
+
+        if (jobs.length === 0) break;
+
+        for (const job of jobs) {
+            const jobKey = job.url || job.id;
+            if (seenUrls.has(jobKey)) continue;
+            seenUrls.add(jobKey);
+
+            out.push({
+                externalId: `fantasticjobs-${job.source || 'unknown'}-${job.id}`,
+                title: job.title,
+                company: job.organization || 'Unknown',
+                location: formatLocation(job),
+                description: job.description || '',
+                applyLink: job.url,
+                job_type: mapEmploymentType(job),
+                postedDate: job.date_posted || job.date_created || undefined,
+                source_ats: job.source,
+            });
+        }
+
+        hasMore = jobs.length === PAGE_SIZE;
+        offset += PAGE_SIZE;
+
+        // Rate limiting — Ultra plan: 5 req/sec
+        await sleep(200);
+    }
+
+    const found = out.length - initialOut;
+    console.log(`[Fantastic-Jobs-DB] PASS "${label}": +${found} (cumulative ${out.length}) using ${pageCalls} API calls${aborted ? ' [ABORTED]' : ''}`);
+    return { label, jobsFound: found, apiCalls: pageCalls, aborted };
+}
+
 export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> {
     if (!RAPIDAPI_KEY) {
         console.error('[Fantastic-Jobs-DB] RAPIDAPI_KEY env var is not set. Skipping.');
         return [];
     }
 
-    console.log(`[Fantastic-Jobs-DB] Searching across 120K+ orgs for PMHNP jobs...`);
+    console.log(`[Fantastic-Jobs-DB] Searching across 120K+ orgs for PMHNP jobs (3-pass strategy)...`);
 
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
-    let totalApiCalls = 0;
-    let budgetExhausted = false;
+    const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
 
-    for (const titleFilter of TITLE_FILTERS) {
-        if (budgetExhausted) break;
-        let offset = 0;
-        let hasMore = true;
+    // ── PASS 1: advanced_title_filter (consolidated OR'd terms) ──────────
+    const pass1 = await runPass(
+        'advanced_title_filter',
+        { advanced_title_filter: ADVANCED_TITLE_OR },
+        allJobs,
+        seenUrls,
+        callBudget,
+    );
 
-        while (hasMore && offset / PAGE_SIZE < MAX_PAGES_PER_FILTER && totalApiCalls < MAX_REQUESTS_PER_RUN) {
-            const jobs = await fetchPage(titleFilter, offset);
-            totalApiCalls++;
+    await sleep(1000);
 
-            if (!jobs || jobs.length === 0) {
-                if (!jobs) budgetExhausted = true; // null = rate limited or budget exhausted
-                break;
-            }
-
-            for (const job of jobs) {
-                // Skip duplicates from overlapping search terms
-                const jobKey = job.url || job.id;
-                if (seenUrls.has(jobKey)) continue;
-                seenUrls.add(jobKey);
-
-                // Apply PMHNP relevance filter
-
-                allJobs.push({
-                    externalId: `fantasticjobs-${job.source || 'unknown'}-${job.id}`,
-                    title: job.title,
-                    company: job.organization || 'Unknown',
-                    location: formatLocation(job),
-                    description: job.description || '',
-                    applyLink: job.url,
-                    job_type: mapEmploymentType(job),
-                    postedDate: job.date_posted || job.date_created || undefined,
-                    source_ats: job.source,
-                });
-            }
-
-            hasMore = jobs.length === PAGE_SIZE;
-            offset += PAGE_SIZE;
-
-            // Rate limiting — Ultra plan: 5 req/sec
-            await sleep(200);
+    // ── PASS 2: description_filter — Nurse Practitioner / APRN titles
+    //     where description mentions psychiatric / mental health work ────
+    if (callBudget.used < callBudget.cap) {
+        for (const titleFilter of TITLE_FILTERS_BROAD) {
+            if (callBudget.used >= callBudget.cap) break;
+            await runPass(
+                `desc-pass: ${titleFilter}`,
+                {
+                    title_filter: titleFilter,
+                    description_filter: DESCRIPTION_FILTER_PSYCH,
+                },
+                allJobs,
+                seenUrls,
+                callBudget,
+            );
+            await sleep(1000);
         }
-
-        console.log(`[Fantastic-Jobs-DB] Filter "${titleFilter.substring(0, 40)}...": ${allJobs.length} PMHNP jobs found (${totalApiCalls} API calls)`);
-
-        // Rate limit between filters
-        await sleep(1000);
     }
 
-    console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} PMHNP jobs (${totalApiCalls} API calls used)`);
+    // ── PASS 3: legacy single-term fallback (only if pass 1 returned 0
+    //     — protects us if advanced_title_filter is rejected at our tier) ─
+    if (pass1.jobsFound === 0 && callBudget.used < callBudget.cap) {
+        console.warn('[Fantastic-Jobs-DB] PASS 1 returned 0 — falling back to per-term loop');
+        for (const titleFilter of TITLE_FILTERS_FALLBACK) {
+            if (callBudget.used >= callBudget.cap) break;
+            await runPass(
+                `fallback: ${titleFilter}`,
+                { title_filter: titleFilter },
+                allJobs,
+                seenUrls,
+                callBudget,
+            );
+            await sleep(1000);
+        }
+    }
+
+    console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget)`);
     return allJobs;
 }
