@@ -65,10 +65,11 @@ export async function GET(request: NextRequest) {
     console.log('[CRON] JOB INGESTION CRON STARTED');
     console.log('='.repeat(80));
 
-    // Get source and chunk parameters from URL
+    // Get source, chunk, and endpoint parameters from URL
     const searchParams = request.nextUrl.searchParams;
     const sourceParam = searchParams.get('source');
     const chunkParam = searchParams.get('chunk');
+    const endpointParam = searchParams.get('endpoint'); // '7d' | '6m' (fantastic-jobs-db only)
 
     // Determine which sources to run
     let sources: JobSource[];
@@ -84,13 +85,16 @@ export async function GET(request: NextRequest) {
       sources = ALL_SOURCES;
     }
 
-    const chunkOption = chunkParam !== null ? { chunk: parseInt(chunkParam, 10) } : undefined;
+    const ingestOptions: { chunk?: number; fantasticEndpoint?: '7d' | '6m' } = {};
+    if (chunkParam !== null) ingestOptions.chunk = parseInt(chunkParam, 10);
+    if (endpointParam === '6m' || endpointParam === '7d') ingestOptions.fantasticEndpoint = endpointParam;
+    const ingestOption = Object.keys(ingestOptions).length > 0 ? ingestOptions : undefined;
 
-    console.log(`[CRON] Sources to process: ${sources.join(', ')}${chunkOption ? ` (chunk ${chunkOption.chunk})` : ''}`);
+    console.log(`[CRON] Sources to process: ${sources.join(', ')}${ingestOption?.chunk !== undefined ? ` (chunk ${ingestOption.chunk})` : ''}${ingestOption?.fantasticEndpoint ? ` (endpoint ${ingestOption.fantasticEndpoint})` : ''}`);
 
     // Step 1: Ingest jobs from all sources
     console.log('\n[CRON] Step 1: Starting job ingestion...');
-    const ingestionResults = await ingestJobs(sources, chunkOption);
+    const ingestionResults = await ingestJobs(sources, ingestOption);
 
     // Send notifications for each source
     for (const result of ingestionResults) {
