@@ -151,6 +151,46 @@ export function detectJobType(text: string): string | null {
   return null;
 }
 
+/**
+ * Map raw aggregator-supplied jobType values to the canonical taxonomy.
+ * Without this, Workday's enum values (FULL_TIME, OTHER_EMPLOYMENT_TYPE,
+ * UNAVAILABLE, etc.) leak straight into the DB and split the facet filter.
+ *
+ * Returns the canonical string, or null if the input is unrecognized /
+ * a sentinel value that means "no information" — in which case the caller
+ * should fall back to detectJobType(fullText).
+ */
+export function canonicalizeJobType(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const upper = trimmed.toUpperCase().replace(/[\s_-]+/g, '_');
+
+  // Workday + generic "no info" sentinels — discard.
+  if (upper === 'OTHER' || upper === 'OTHER_EMPLOYMENT_TYPE' || upper === 'UNAVAILABLE' || upper === 'NA' || upper === 'N_A' || upper === 'UNKNOWN') {
+    return null;
+  }
+
+  // Canonical taxonomy.
+  if (upper === 'FULL_TIME' || upper === 'FULLTIME' || upper === 'PERMANENT') return 'Full-Time';
+  if (upper === 'PART_TIME' || upper === 'PARTTIME') return 'Part-Time';
+  if (upper === 'CONTRACT' || upper === 'CONTRACTOR' || upper === 'TEMPORARY' || upper === 'TEMP') return 'Contract';
+  if (upper === 'PER_DIEM' || upper === 'CASUAL') return 'Per Diem';
+  if (upper === 'PRN') return 'PRN';
+  if (upper === 'LOCUM_TENENS' || upper === 'LOCUMS' || upper === 'LOCUM') return 'Locum Tenens';
+  if (upper === 'INTERN' || upper === 'INTERNSHIP') return 'Internship';
+
+  // "Healthcare" and similar industry tags — discard.
+  if (upper === 'HEALTHCARE' || upper === 'MEDICAL' || upper === 'NURSING') return null;
+
+  // Already-canonical pass-through.
+  const passthrough = ['Full-Time', 'Part-Time', 'Contract', 'Per Diem', 'PRN', 'Locum Tenens', 'Internship'];
+  if (passthrough.includes(trimmed)) return trimmed;
+
+  // Anything else: return null and let detectJobType fall back to text scan.
+  return null;
+}
+
 function detectMode(text: string): string | null {
   const lowerText = text.toLowerCase();
 
@@ -506,7 +546,13 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
     salaryMax = validatedSalary.maxSalary;
     const salaryPeriod = validatedSalary.salaryPeriod;
 
-    const jobType = rawJob.jobType ? String(rawJob.jobType) : detectJobType(fullText);
+    // Canonicalize aggregator-supplied jobType (Workday enums like
+    // OTHER_EMPLOYMENT_TYPE, UNAVAILABLE, FULL_TIME used to leak through).
+    // Falls back to text-scan if the raw value is missing or unrecognized.
+    const canonicalRaw = canonicalizeJobType(
+      rawJob.jobType ? String(rawJob.jobType) : null,
+    );
+    const jobType = canonicalRaw ?? detectJobType(fullText);
     const mode = detectMode(fullText);
     const experienceLevel = detectExperienceLevel(title, fullText);
 
