@@ -28,7 +28,7 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 |---|---|---|---|---|
 | 1 | [x] | ~~GA defaults to `analytics_storage: 'granted'` before consent~~ → flipped to `'denied'` in `lib/analytics.ts:97` and `components/GoogleAnalytics.tsx:76`. Verified pre-consent external telemetry = 0 hits. | `lib/analytics.ts:97`, `components/GoogleAnalytics.tsx:76` | Direct GDPR Art. 7 / ePrivacy violation. Google receives IP/UA/session before "Accept" click. |
 | 2 | [x] | ~~No GPC (Global Privacy Control) signal handling~~ → middleware now detects `Sec-GPC: 1` and `DNT: 1`, sets `pmhnp_privacy_signal` cookie + `x-privacy-signal` header. `CookieConsent` reads the cookie and auto-stores `'denied'`, suppressing the banner. Verified end-to-end with Playwright. | `middleware.ts:202-228`, `lib/consent.ts`, `components/CookieConsent.tsx` | CCPA/CPRA legal requirement. Auto-fail in California audits. |
-| 3 | [ ] | Sub-processor list / DPAs not published | privacy page | GDPR Art. 28. Stripe/Resend/Supabase/Vercel/Google undisclosed. |
+| 3 | [x] | ~~Sub-processor list / DPAs not published~~ → published `/sub-processors` listing all 6 vendors with purpose, data shared, location, transfer mechanism, DPA + privacy-policy links. Linked from privacy policy + footer. | `app/sub-processors/page.tsx`, `components/Footer.tsx` |
 | 4 | [ ] | No data retention / auto-purge | `app/api/cron/cleanup-expired/route.ts` only unpublishes jobs | GDPR storage-limitation principle violated. Resumes/profiles linger forever. |
 | 5 | [ ] | No incident-response / breach-notification plan | nowhere | GDPR Art. 33 = 72-hour notification SLA. No plan = automatic non-compliance. |
 
@@ -43,11 +43,11 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 | 8 | [x] | ~~No consent withdrawal UI~~ → "Cookie Settings" button added next to Privacy/Terms in `components/Footer.tsx`. Calls `reopenConsentBanner()`, clears storage, dispatches `pmhnp:consent-reopen`, banner re-mounts without page reload. | `components/Footer.tsx`, `lib/consent.ts` |
 | 9 | [x] | ~~No consent versioning~~ → storage now `{value, version, ts}` JSON. `CONSENT_VERSION = '1'` in `lib/consent.ts`; bumping it invalidates prior consents. Legacy bare-string values also treated as expired. Verified: stale version → re-prompt. | `lib/consent.ts:8-15` |
 | 10 | [x] | ~~Vercel Speed Insights + Sentry fire **before** consent~~ → Speed Insights now wrapped in `components/ConsentGatedTelemetry.tsx`, mounts only after `'accepted'`. Sentry is build-time wired only (no client init), so latent — revisit if `sentry.client.config.ts` is added. | `app/layout.tsx:233`, `next.config.ts:124` |
-| 11 | [ ] | AI candidate match scoring not disclosed (GDPR Art. 22 right-to-object) | `prisma/schema.prisma:430-432` `aiMatchScore` |
+| 11 | [x] | ~~AI candidate match scoring not disclosed~~ → privacy policy section 12 ("Automated Decision-Making and AI") discloses the matching algorithm and the right under GDPR Art. 22 to obtain human review. Right-to-object route via `/data-request` (type: object). | `app/privacy/page.tsx` §12 |
 | 12 | [ ] | EEO data (race, disability, veteran status) + DEA/NPI stored without separate sensitive-data consent | `prisma/schema.prisma:367-378` |
 | 13 | [ ] | Hard-delete of account with no legal-hold / soft-delete window | `app/api/auth/delete-account/route.ts:28` |
 | 14 | [ ] | Password-reset rate limit is 10/min (too lenient — should be ~3/hour) | `lib/rate-limit.ts` |
-| 15 | [ ] | No CCPA "Do Not Sell or Share" link / endpoint | privacy page claims "we don't sell" but pixels = "share" under CPRA |
+| 15 | [x] | ~~No CCPA "Do Not Sell or Share" link / endpoint~~ → `/do-not-sell` page added with one-click opt-out (calls `denyAllConsent` + persists ALL_DENIED categories). Footer link present. Surfaces GPC status. | `app/do-not-sell/page.tsx`, `components/Footer.tsx` |
 
 ---
 
@@ -57,13 +57,13 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 |---|---|---|
 | 16 | [x] | ~~No IP anonymization on GA4~~ → added `anonymize_ip: true` + flipped `allow_google_signals: false` in `components/GoogleAnalytics.tsx:108-110` |
 | 17 | [ ] | No virus scanning on resume uploads (SOC2 / HIPAA-adjacent expectation) |
-| 18 | [ ] | Privacy policy doesn't name vendors (GA, Sentry, Vercel) explicitly |
+| 18 | [x] | ~~Privacy policy doesn't name vendors explicitly~~ → §3 now lists Vercel, Supabase, Stripe, Resend, Google Analytics, Sentry by name with purpose; §11 retention; §13 sensitive data; §16 cross-border transfers. |
 | 19 | [ ] | Consent stored in localStorage (XSS-vulnerable) instead of HttpOnly cookie |
 | 20 | [ ] | CSP allows `'unsafe-inline'` styles + non-nonced GTM/Stripe sources |
 | 21 | [ ] | No double-opt-in on job alerts (CASL/GDPR best practice) |
 | 22 | [ ] | Click-tracking endpoint not gated by consent (`app/api/analytics/clicks/route.ts`) |
 | 23 | [ ] | Audit logging is `console`-only (`lib/audit-log.ts`) — no DB audit trail for exports/deletions |
-| 24 | [ ] | No DSAR intake form / SLA tracker — privacy policy promises 30 days but nothing enforces it |
+| 24 | [x] | ~~No DSAR intake form / SLA tracker~~ → `/data-request` form with 7 request types, jurisdiction picker, rate-limited POST to `/api/data-request`. Persists to new `DataRequest` table with `dueBy` computed at insert (30d GDPR / 45d CCPA). Run `prisma migrate dev --name add_data_request` to apply. | `app/data-request/page.tsx`, `app/api/data-request/route.ts`, `prisma/schema.prisma` |
 | 25 | [ ] | Email logged in plaintext at `app/auth/callback/route.ts` (stripped in prod, but leaks in staging) |
 
 ---
@@ -82,10 +82,12 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 **Sprint 1 complete** — current state: ~50% enterprise-ready. EU/UK/CA launchable for the consent layer. Remaining CRITICAL gaps (#3, #4, #5) are policy/process work in Sprints 2 + 3.
 
 ### Sprint 2 — legal docs (1 week)
-- [ ] Publish sub-processor list page + DPA template
-- [ ] Rewrite privacy policy: name every vendor, retention periods, GDPR Art. 22 (AI matching), CCPA opt-out, sensitive EEO consent
-- [ ] Add `/data-request` form + DSAR tracking table
-- [ ] Add "Do Not Sell or Share" link + endpoint
+- [x] Publish sub-processor list page + DPA template
+- [x] Rewrite privacy policy: name every vendor, retention periods, GDPR Art. 22 (AI matching), CCPA opt-out, sensitive EEO consent
+- [x] Add `/data-request` form + DSAR tracking table _(requires `prisma migrate dev --name add_data_request` to activate)_
+- [x] Add "Do Not Sell or Share" link + endpoint
+
+**Sprint 2 complete** — current state: ~70% enterprise-ready. 13 of 25 audit gaps closed (3 of 5 CRITICAL, 7 of 10 HIGH, 3 of 10 MEDIUM).
 
 ### Sprint 3 — data lifecycle (1 week)
 - [ ] Soft-delete + 30-day grace + hard-purge cron

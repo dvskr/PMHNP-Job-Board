@@ -58,6 +58,8 @@ export const RATE_LIMITS = {
     publicDetail: { limit: 240, windowSeconds: 60 },
     /** Public company pages: 60 req/min per IP (rarely deep-browsed) */
     publicCompany: { limit: 60, windowSeconds: 60 },
+    /** DSAR submission: 3 per hour per IP — privacy requests don't burst */
+    dataRequest: { limit: 3, windowSeconds: 3600 },
 } as const;
 
 // --- Redis Backend Setup ---

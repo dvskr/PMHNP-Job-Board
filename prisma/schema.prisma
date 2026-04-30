@@ -976,3 +976,40 @@ model PseoStats {
   @@index([type, locationSlug])
   @@index([categorySlug])
 }
+
+
+// ─── Data Subject Access Requests (DSAR) ─────────────────────────────
+// Tracks GDPR Art. 15-22 / CCPA-CPRA requests. SLA: 30 days (GDPR)
+// or 45 days (CCPA, with 45-day extension on notice).
+//
+// IMPORTANT: this model was added in commit "feat(privacy): DSAR intake".
+// Run `npx prisma migrate dev --name add_data_request` to apply.
+model DataRequest {
+  id              String   @id @default(cuid())
+  email           String
+  fullName        String?  @map("full_name")
+  type            String   // 'access' | 'deletion' | 'correction' | 'portability' | 'object' | 'restrict' | 'opt_out_sale'
+  description     String?  @db.Text
+  jurisdiction    String?  // 'gdpr' | 'ccpa' | 'lgpd' | 'pipeda' | 'other'
+
+  // Tracking
+  status          String   @default("received")  // 'received' | 'in_progress' | 'awaiting_id' | 'completed' | 'rejected'
+  identityVerified Boolean @default(false) @map("identity_verified")
+  resolutionNote  String?  @db.Text @map("resolution_note")
+
+  // Audit timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  acknowledgedAt  DateTime? @map("acknowledged_at")
+  completedAt     DateTime? @map("completed_at")
+  dueBy           DateTime  @map("due_by")  // computed at insert time from jurisdiction
+
+  // Anti-abuse — IP for rate limiting; cleared after completion
+  requesterIp     String?  @map("requester_ip")
+  userAgent       String?  @db.Text @map("user_agent")
+
+  @@index([email])
+  @@index([status])
+  @@index([dueBy(sort: Asc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("data_requests")
+}
