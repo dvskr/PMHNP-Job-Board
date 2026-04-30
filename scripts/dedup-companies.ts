@@ -26,7 +26,7 @@ if (process.env.PROD_DATABASE_URL && !process.env.DATABASE_URL) {
 }
 
 import { prisma } from '@/lib/prisma';
-import { normalizeCompanyName } from '@/lib/company-normalizer';
+import { normalizeCompanyName, findCanonicalName } from '@/lib/company-normalizer';
 
 const APPLY = process.argv.includes('--apply');
 
@@ -54,9 +54,15 @@ async function main(): Promise<void> {
     console.log(`Loaded ${companies.length} Company rows.\n`);
 
     // Group by NEW normalized key.
+    // Layer 1: try findCanonicalName (resolves KNOWN_COMPANIES aliases).
+    //   This catches "LifeStance Health" + "Lifestance" + "Life Stance" all
+    //   mapping to the canonical "LifeStance Health" entry, even when their
+    //   normalizeCompanyName outputs differ (CamelCase split vs not).
+    // Layer 2: fall back to normalizeCompanyName(name).
     const groups = new Map<string, CompanyRow[]>();
     for (const c of companies) {
-        const k = normalizeCompanyName(c.name);
+        const canonical = findCanonicalName(c.name);
+        const k = canonical ?? normalizeCompanyName(c.name);
         if (!k) continue;
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k)!.push(c);
