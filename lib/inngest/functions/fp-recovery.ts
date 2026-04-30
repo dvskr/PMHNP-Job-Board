@@ -96,7 +96,10 @@ export const fpRecoveryProbe = inngest.createFunction(
         name: 'Job-health: FP-recovery re-probe',
         triggers: [{ event: 'job.health.fp_probe.scheduled' }],
         // Cap concurrency so a flood of events doesn't hammer one source.
-        concurrency: { limit: 25 },
+        // Limited to 5 to fit Inngest's free-tier ceiling — bump if/when
+        // upgrading the plan. Volume is light anyway: a few dozen flips
+        // per day × 3 re-probes each, spread over 72h.
+        concurrency: { limit: 5 },
     },
     async ({ event, step, logger: inngestLog }) => {
         const { jobId, sourceProvider, externalId, applyLink, attempt } = event.data;

@@ -51,7 +51,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Verify required secret is present
         run: |
@@ -67,10 +66,27 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        # --legacy-peer-deps because some peer-dep conflicts in the project
+        # tree (e.g. inngest <-> @prisma/client major versions) reject the
+        # default `npm ci` resolution but install fine with the legacy
+        # algorithm. Same flag the local `npm install` uses.
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+
+      - name: Baseline migration history (idempotent)
+        # The prod DB was originally bootstrapped with `prisma db push`,
+        # which never created `_prisma_migrations`. The first time this
+        # workflow runs successfully it must mark the pre-existing schema
+        # as applied so `migrate deploy` can pick up only the new
+        # migrations. After the first successful run this becomes a no-op
+        # because resolve fails harmlessly when a migration is already
+        # tracked.
+        continue-on-error: true
+        run: |
+          npx prisma migrate resolve --applied 0_init || true
+          npx prisma migrate resolve --applied 20260215_add_source_site || true
 
       - name: Show pending migrations
-        run: npx prisma migrate status
+        run: npx prisma migrate status || true
 
       - name: Apply pending migrations
         run: npx prisma migrate deploy
