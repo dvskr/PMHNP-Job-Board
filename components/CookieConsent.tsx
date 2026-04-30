@@ -11,15 +11,50 @@ import {
     ALL_DENIED,
     ALL_GRANTED,
     ANALYTICS_ONLY,
+    CONSENT_EVENT,
     CONSENT_REOPEN_EVENT,
-    getConsent,
-    getConsentCategories,
     getConsentRegion,
     getPrivacySignal,
-    setConsent,
-    setConsentCategories,
     type ConsentCategories,
 } from '@/lib/consent';
+
+interface Props {
+    /** Server-rendered initial state from the HttpOnly consent cookie. */
+    initialConsent: ConsentCategories | null;
+}
+
+/**
+ * Persist the user's choice via the HttpOnly cookie API. We also dispatch
+ * the consent-changed event so other client components (Speed Insights
+ * gate, GA inline) can react without a full page reload.
+ */
+async function persistConsent(categories: ConsentCategories) {
+    try {
+        await fetch('/api/consent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categories }),
+            credentials: 'same-origin',
+        });
+    } catch {
+        /* the in-memory state is still updated; cookie persistence
+           is best-effort and re-tries on next interaction. */
+    }
+    try {
+        window.dispatchEvent(
+            new CustomEvent<ConsentCategories>(CONSENT_EVENT, { detail: categories }),
+        );
+    } catch { /* noop */ }
+}
+
+async function clearConsentServer() {
+    try {
+        await fetch('/api/consent', { method: 'DELETE', credentials: 'same-origin' });
+    } catch { /* noop */ }
+    try {
+        window.dispatchEvent(new CustomEvent<ConsentCategories | null>(CONSENT_EVENT, { detail: null }));
+    } catch { /* noop */ }
+}
 
 /**
  * Cookie consent banner — Consent Mode v2 compliant with granular categories.
@@ -35,23 +70,25 @@ import {
  *   analytics  → analytics_storage, personalization_storage
  *   marketing  → ad_storage, ad_user_data, ad_personalization
  */
-export default function CookieConsent() {
+export default function CookieConsent({ initialConsent }: Props) {
     const [show, setShow] = useState(false);
     const [expanded, setExpanded] = useState(false);
-    const [cats, setCats] = useState<ConsentCategories>(ALL_DENIED);
+    const [cats, setCats] = useState<ConsentCategories>(initialConsent ?? ALL_DENIED);
+    const [savedCats, setSavedCats] = useState<ConsentCategories | null>(initialConsent);
 
     const evaluate = useCallback(() => {
         // 1. Honor browser privacy signals — legal requirement under CCPA/CPRA.
         const signal = getPrivacySignal();
         if (signal) {
             denyAllConsent();
-            setConsent('denied');
+            void persistConsent(ALL_DENIED);
+            setSavedCats(ALL_DENIED);
             setShow(false);
             return;
         }
 
-        // 2. Respect any prior, still-current-version choice.
-        if (getConsent() !== null) {
+        // 2. Respect any prior choice already on the cookie (server-rendered).
+        if (initialConsent) {
             setShow(false);
             return;
         }
@@ -59,47 +96,49 @@ export default function CookieConsent() {
         // 3. Implied-consent regions: grant analytics only, suppress banner.
         if (getConsentRegion() === 'implied') {
             updateConsentByCategories(ANALYTICS_ONLY);
-            setConsentCategories(ANALYTICS_ONLY);
+            void persistConsent(ANALYTICS_ONLY);
+            setSavedCats(ANALYTICS_ONLY);
             setShow(false);
             return;
         }
 
         // 4. Strict-consent regions: show banner after small delay.
         setTimeout(() => setShow(true), 1500);
-    }, []);
+    }, [initialConsent]);
 
     useEffect(() => {
         evaluate();
         const onReopen = () => {
-            // Pre-populate toggles with current saved state when re-opened.
-            const saved = getConsentCategories();
-            if (saved) setCats(saved);
+            if (savedCats) setCats(savedCats);
             setExpanded(false);
             setShow(true);
         };
         window.addEventListener(CONSENT_REOPEN_EVENT, onReopen);
         return () => window.removeEventListener(CONSENT_REOPEN_EVENT, onReopen);
-    }, [evaluate]);
+    }, [evaluate, savedCats]);
 
     const acceptAll = () => {
         setShow(false);
         setExpanded(false);
         grantAllConsent();
-        setConsentCategories(ALL_GRANTED);
+        void persistConsent(ALL_GRANTED);
+        setSavedCats(ALL_GRANTED);
     };
 
     const declineAll = () => {
         setShow(false);
         setExpanded(false);
         denyAllConsent();
-        setConsentCategories(ALL_DENIED);
+        void persistConsent(ALL_DENIED);
+        setSavedCats(ALL_DENIED);
     };
 
     const savePreferences = () => {
         setShow(false);
         setExpanded(false);
         updateConsentByCategories(cats);
-        setConsentCategories(cats);
+        void persistConsent(cats);
+        setSavedCats(cats);
     };
 
     if (!show) return null;

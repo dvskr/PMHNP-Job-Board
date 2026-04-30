@@ -1,11 +1,18 @@
 /**
  * Consent state + event bus.
  *
- * Stored in localStorage under `pmhnp_cookie_consent` for backward compat
- * with the existing CookieConsent banner.
+ * Source of truth (Sprint 4 onwards): the HttpOnly cookie
+ * `pmhnp_consent_v2`, set by `POST /api/consent`. Server reads it via
+ * `cookies()` in `app/layout.tsx` and passes initial state to client
+ * components as a prop.
  *
- * Components (Vercel Speed Insights, Sentry, etc.) read getConsent() and
- * listen for the `pmhnp:consent-changed` window event to mount or unmount.
+ * Client components (CookieConsent banner, ConsentGatedTelemetry,
+ * GoogleAnalytics inline script) read the prop and listen for the
+ * `pmhnp:consent-changed` window event to react to mid-session
+ * accept/deny without a page reload.
+ *
+ * `getConsentCategories()` below still reads localStorage purely as a
+ * legacy fallback for old tabs. Writes never go to localStorage.
  */
 
 export type ConsentState = 'accepted' | 'denied' | null;
@@ -39,6 +46,33 @@ export const CONSENT_EVENT = 'pmhnp:consent-changed';
 export const CONSENT_REOPEN_EVENT = 'pmhnp:consent-reopen';
 export const PRIVACY_SIGNAL_COOKIE = 'pmhnp_privacy_signal';
 export const CONSENT_REGION_COOKIE = 'pmhnp_consent_region';
+export const CONSENT_COOKIE = 'pmhnp_consent_v2';
+
+/**
+ * Format used for both the legacy localStorage value and the new
+ * HttpOnly cookie. Server reads the cookie; client receives initial
+ * state as a layout prop and only mutates via /api/consent.
+ */
+export function serializeConsent(categories: ConsentCategories): string {
+    return JSON.stringify({
+        categories,
+        version: CONSENT_VERSION,
+        ts: Date.now(),
+    });
+}
+
+export function parseConsentCookie(raw: string | undefined | null): ConsentCategories | null {
+    if (!raw) return null;
+    try {
+        const obj = JSON.parse(raw) as { categories?: unknown; version?: unknown };
+        if (obj.version !== CONSENT_VERSION) return null;
+        const c = obj.categories as Partial<ConsentCategories> | undefined;
+        if (!c || typeof c.analytics !== 'boolean' || typeof c.marketing !== 'boolean') return null;
+        return { analytics: c.analytics, marketing: c.marketing };
+    } catch {
+        return null;
+    }
+}
 
 interface StoredConsent {
     categories: ConsentCategories;
@@ -105,12 +139,17 @@ export function getPrivacySignal(): PrivacySignal {
     return value === 'gpc' || value === 'dnt' ? value : null;
 }
 
+/**
+ * Legacy localStorage reader. Kept around so any old build sitting in a
+ * tab can still find its prior choice during the rollover; new writes
+ * go to the HttpOnly cookie via setConsentCategories(). Returns null
+ * once localStorage is empty.
+ */
 export function getConsentCategories(): ConsentCategories | null {
     if (typeof window === 'undefined') return null;
     try {
         const stored = parseStored(window.localStorage.getItem(CONSENT_STORAGE_KEY));
-        if (!stored) return null;
-        if (stored.version !== CONSENT_VERSION) return null; // Policy changed → re-prompt
+        if (!stored || stored.version !== CONSENT_VERSION) return null;
         return stored.categories;
     } catch {
         return null;
@@ -123,39 +162,43 @@ export function getConsent(): ConsentState {
     return cats.analytics || cats.marketing ? 'accepted' : 'denied';
 }
 
-export function setConsentCategories(categories: ConsentCategories): void {
+/**
+ * Persist consent via the HttpOnly cookie endpoint (Sprint 4).
+ * Returns once the cookie is written so callers can be sure subsequent
+ * page loads will see it.
+ *
+ * Falls back to dispatching the event even if the network call fails so
+ * the in-memory listeners (e.g. ConsentGatedTelemetry) react immediately.
+ */
+export async function setConsentCategories(categories: ConsentCategories): Promise<void> {
     if (typeof window === 'undefined') return;
-    const payload: StoredConsent = {
-        categories,
-        version: CONSENT_VERSION,
-        ts: Date.now(),
-    };
     try {
-        window.localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(payload));
-    } catch {
-        /* localStorage may be disabled */
-    }
+        await fetch('/api/consent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categories }),
+            credentials: 'same-origin',
+        });
+    } catch { /* surface state via event below regardless */ }
     try {
         window.dispatchEvent(
             new CustomEvent<ConsentCategories>(CONSENT_EVENT, { detail: categories }),
         );
-    } catch {
-        /* CustomEvent unavailable in extremely old browsers */
-    }
+    } catch { /* noop */ }
 }
 
 /**
  * Convenience: store an all-or-nothing decision.
  * Kept for callers that don't need granular control.
  */
-export function setConsent(value: Exclude<ConsentState, null>): void {
-    setConsentCategories(value === 'accepted' ? ALL_GRANTED : ALL_DENIED);
+export async function setConsent(value: Exclude<ConsentState, null>): Promise<void> {
+    await setConsentCategories(value === 'accepted' ? ALL_GRANTED : ALL_DENIED);
 }
 
-export function clearConsent(): void {
+export async function clearConsent(): Promise<void> {
     if (typeof window === 'undefined') return;
     try {
-        window.localStorage.removeItem(CONSENT_STORAGE_KEY);
+        await fetch('/api/consent', { method: 'DELETE', credentials: 'same-origin' });
     } catch { /* noop */ }
     try {
         window.dispatchEvent(
@@ -167,19 +210,28 @@ export function clearConsent(): void {
 /**
  * Re-opens the cookie consent banner so the user can change a prior choice.
  * Triggered by the "Cookie Settings" link in the footer.
+ *
+ * Fires the reopen event immediately for a snappy UI response, then
+ * clears the server-side cookie in the background.
  */
 export function reopenConsentBanner(): void {
     if (typeof window === 'undefined') return;
-    clearConsent();
     try {
         window.dispatchEvent(new CustomEvent(CONSENT_REOPEN_EVENT));
     } catch { /* noop */ }
+    void clearConsent();
 }
 
-export function hasAnalyticsConsent(): boolean {
-    return getConsentCategories()?.analytics === true;
+/**
+ * Client-side helpers retained for the rare component that doesn't get
+ * `initialConsent` from the server (e.g. the Do Not Sell page). They
+ * dispatch the consent-changed event and call the API; the read side
+ * reflects the server prop, not a localStorage echo.
+ */
+export function hasAnalyticsConsent(initial: ConsentCategories | null): boolean {
+    return initial?.analytics === true;
 }
 
-export function hasMarketingConsent(): boolean {
-    return getConsentCategories()?.marketing === true;
+export function hasMarketingConsent(initial: ConsentCategories | null): boolean {
+    return initial?.marketing === true;
 }

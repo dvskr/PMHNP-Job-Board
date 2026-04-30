@@ -10,11 +10,12 @@ import {
   bodyTextV2, V2, SANS, SERIF,
 } from '@/lib/email-templates-v2';
 import { Resend } from 'resend';
+import { brand } from '@/config/brand';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
-const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || 'PMHNP Hiring <alerts@pmhnphiring.com>';
-const EMAIL_REPLY_TO = 'hello@pmhnphiring.com';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl;
+const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || brand.email.marketingFrom;
+const EMAIL_REPLY_TO = brand.email.replyTo;
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 interface CreateAlertBody {
@@ -48,33 +49,36 @@ function buildCriteriaSummary(alert: CreateAlertBody): string {
     }
   }
 
-  return parts.length > 0 ? parts.join(' · ') : 'all PMHNP jobs';
+  return parts.length > 0 ? parts.join(' · ') : `all ${brand.niche.short} jobs`;
 }
 
-// Send alert confirmation email with Salary Guide — V2 Warm Diorama design
+// Send the confirm-your-subscription email (CASL / GDPR double opt-in).
+// The alert is created inactive; the cron only fires for confirmed alerts.
 async function sendAlertConfirmationEmail(
   email: string,
   frequency: string,
   criteriaSummary: string,
-  token: string
+  token: string,
+  confirmationToken: string,
 ): Promise<void> {
   try {
     const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${token}`;
+    const confirmUrl = `${BASE_URL}/api/job-alerts/confirm?token=${confirmationToken}`;
 
     const html = emailShellV2(`
-      ${headerBlockV2('Job Alert Activated!', 'You\u2019ll never miss a matching job')}
+      ${headerBlockV2('One last step', 'Confirm your job alert subscription')}
       ${spacerV2(8)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-          ${featureRowV2('&#9993;', `${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts`, `New jobs matching: ${criteriaSummary}`)}
-          ${featureRowV2('&#10003;', 'Smart Matching', 'Only relevant PMHNP positions \u2014 no spam')}
+          ${featureRowV2('&#9993;', `${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts`, `Once confirmed, we'll email new jobs matching: ${criteriaSummary}`)}
+          ${featureRowV2('&#10003;', 'Smart Matching', `Only relevant ${brand.niche.short} positions \u2014 no spam`)}
           ${featureRowV2('&#9889;', 'Be First to Apply', 'Jobs delivered before they fill up')}
         </table>
       </td></tr>
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" cellspacing="0" cellpadding="0"><tr class="stack">
-          <td style="padding-right:12px;">${primaryButtonV2('Browse Jobs Now \u2192', `${BASE_URL}/jobs`)}</td>
+          <td style="padding-right:12px;">${primaryButtonV2('Confirm Subscription \u2192', confirmUrl)}</td>
           <td>${secondaryButtonV2('Manage Alert', `${BASE_URL}/job-alerts/manage?token=${token}`)}</td>
         </tr></table>
       </td></tr>
@@ -107,7 +111,7 @@ async function sendAlertConfirmationEmail(
       from: EMAIL_FROM,
       to: email,
       replyTo: EMAIL_REPLY_TO,
-      subject: 'Job Alert Activated + Free Salary Guide',
+      subject: `Confirm your ${brand.niche.short} job alert subscription`,
       html,
       text,
       headers: {
@@ -121,8 +125,8 @@ async function sendAlertConfirmationEmail(
       await prisma.emailSend.create({
         data: {
           to: email,
-          subject: 'Job Alert Activated + Free Salary Guide',
-          emailType: 'welcome_alert',
+          subject: `Confirm your ${brand.niche.short} job alert subscription`,
+          emailType: 'alert_confirm',
         },
       });
     } catch { /* non-blocking */ }
@@ -201,12 +205,15 @@ export async function POST(request: NextRequest) {
     // Sync to Beehiiv newsletter (fire-and-forget)
     syncToBeehiiv(normalizedEmail, { utmSource: 'job_alert' });
 
-    // Dedup: check if an alert with the same criteria already exists for this email
+    // Dedup: match BOTH confirmed (is_active = true) and unconfirmed
+    // alerts. Without checking the unconfirmed bucket too, a user who
+    // resubmits the same form before clicking the confirmation link
+    // would receive a fresh email per submission. We dedupe instead and
+    // re-send the existing confirmation if the original is still pending.
     let jobAlert;
     const existing = await prisma.jobAlert.findFirst({
       where: {
         email: normalizedEmail,
-        isActive: true,
         keyword: keyword || null,
         location: location || null,
         mode: mode || null,
@@ -240,9 +247,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build criteria summary and send confirmation email
+    // Build criteria summary and send confirm-your-subscription email.
+    // The alert was inserted with isActive=false; the cron only fires
+    // for alerts where confirmedAt is set, which happens at /api/job-
+    // alerts/confirm when the user clicks the link in this email.
+    // Reuse the existing token if the row was already confirmed (the
+    // dedup branch above) so we don't re-prompt subscribed users.
     const criteriaSummary = buildCriteriaSummary(body);
-    await sendAlertConfirmationEmail(normalizedEmail, frequency, criteriaSummary, jobAlert.token);
+    if (!jobAlert.confirmedAt) {
+      await sendAlertConfirmationEmail(
+        normalizedEmail,
+        frequency,
+        criteriaSummary,
+        jobAlert.token,
+        jobAlert.confirmationToken ?? jobAlert.token,
+      );
+    }
 
     return NextResponse.json({
       success: true,

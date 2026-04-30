@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { scanFileForViruses } from '@/lib/virus-scan';
+import { logger } from '@/lib/logger';
 
 // Initialize Supabase client for storage operations
 const supabase = createClient(
@@ -47,6 +49,21 @@ export async function uploadResume(
     throw new Error(`File size exceeds maximum of ${MAX_RESUME_SIZE / 1024 / 1024}MB`);
   }
 
+  // Virus scan BEFORE writing to storage. Fails closed by default
+  // (see lib/virus-scan.ts for the env knobs). When the scan API key
+  // is missing, the scan is skipped with a structured warn — uploads
+  // still go through, so dev environments aren't blocked.
+  const scan = await scanFileForViruses(file, fileName);
+  if (!scan.clean) {
+    logger.warn('uploadResume: rejected by virus scanner', {
+      userId,
+      fileName,
+      threats: scan.threats,
+      contentRisks: scan.contentRisks,
+    });
+    throw new Error(scan.message || 'File rejected by virus scanner.');
+  }
+
   // Generate unique path
   const timestamp = Date.now();
   const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -61,7 +78,7 @@ export async function uploadResume(
     });
 
   if (error) {
-    console.error('Supabase upload error:', error);
+    logger.error('Supabase upload error', error);
     throw new Error(`Failed to upload resume: ${error.message}`);
   }
 
@@ -113,7 +130,7 @@ export async function uploadAvatar(
     });
 
   if (error) {
-    console.error('Supabase upload error:', error);
+    logger.error('Supabase upload error', error);
     throw new Error(`Failed to upload avatar: ${error.message}`);
   }
 
@@ -139,7 +156,7 @@ export async function deleteFile(path: string, fileType: 'resume' | 'avatar'): P
     .remove([path]);
 
   if (error) {
-    console.error('Supabase delete error:', error);
+    logger.error('Supabase delete error', error);
     throw new Error(`Failed to delete file: ${error.message}`);
   }
 }

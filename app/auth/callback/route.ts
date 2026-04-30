@@ -136,7 +136,6 @@ export async function GET(request: Request) {
         try {
           const userRole = metadata.role || 'job_seeker'
           await sendSignupWelcomeEmail(data.user.email, firstName || '', userRole)
-          console.log('Welcome email sent for new Google OAuth user', { email: data.user.email })
         } catch (emailError) {
           console.error('Failed to send welcome email', emailError)
         }

@@ -151,6 +151,14 @@
     {
       "path": "/api/cron/health-anomaly-check",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/purge-soft-deleted",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/purge-inactive-users",
+      "schedule": "45 8 * * *"
     }
   ],
   "headers": [
