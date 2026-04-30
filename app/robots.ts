@@ -79,6 +79,16 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/dashboard/', '/auth/', '/login', '/signup', '/settings', '/saved', '/employer/', '/messages'],
       },
       {
+        userAgent: 'anthropic-ai',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/', '/auth/', '/login', '/signup', '/settings', '/saved', '/employer/', '/messages'],
+      },
+      {
+        userAgent: 'Claude-Web',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/dashboard/', '/auth/', '/login', '/signup', '/settings', '/saved', '/employer/', '/messages'],
+      },
+      {
         userAgent: 'Google-Extended',
         allow: '/',
         disallow: ['/api/', '/admin/', '/dashboard/', '/auth/', '/login', '/signup', '/settings', '/saved', '/employer/', '/messages'],
