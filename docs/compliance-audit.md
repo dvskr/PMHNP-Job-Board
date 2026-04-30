@@ -39,9 +39,9 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 | # | Status | Gap | Where |
 |---|---|---|---|
 | 6 | [x] | ~~No geo-targeting~~ → middleware reads `x-vercel-ip-country` (+ `cf-ipcountry` fallback), classifies into `strict` (EEA + UK + CH + CA + BR + AU) vs `implied` (rest). Banner shows only in strict regions; implied regions auto-grant analytics. GPC always trumps. Verified across 7 scenarios. | `middleware.ts:33-53,229-249`, `lib/consent.ts`, `components/CookieConsent.tsx` |
-| 7 | [ ] | No granular consent categories (essential / analytics / marketing toggles) | `CookieConsent.tsx` — only Accept/Decline |
-| 8 | [ ] | No consent withdrawal UI (no "Cookie Settings" link in footer) | Footer / settings |
-| 9 | [ ] | No consent versioning — policy update can't trigger re-prompt | localStorage key `pmhnp_cookie_consent` is just a string |
+| 7 | [x] | ~~No granular consent categories~~ → banner now has Customize panel with Essential (locked-on), Analytics, Marketing toggles. Each maps to distinct GA Consent Mode v2 signals via `updateConsentByCategories()`. Storage shape: `{categories:{analytics, marketing}, version, ts}`. "Cookie Settings" reopen pre-populates current toggle state. Verified across 5 flows. | `components/CookieConsent.tsx`, `lib/consent.ts`, `lib/analytics.ts:136-145` |
+| 8 | [x] | ~~No consent withdrawal UI~~ → "Cookie Settings" button added next to Privacy/Terms in `components/Footer.tsx`. Calls `reopenConsentBanner()`, clears storage, dispatches `pmhnp:consent-reopen`, banner re-mounts without page reload. | `components/Footer.tsx`, `lib/consent.ts` |
+| 9 | [x] | ~~No consent versioning~~ → storage now `{value, version, ts}` JSON. `CONSENT_VERSION = '1'` in `lib/consent.ts`; bumping it invalidates prior consents. Legacy bare-string values also treated as expired. Verified: stale version → re-prompt. | `lib/consent.ts:8-15` |
 | 10 | [x] | ~~Vercel Speed Insights + Sentry fire **before** consent~~ → Speed Insights now wrapped in `components/ConsentGatedTelemetry.tsx`, mounts only after `'accepted'`. Sentry is build-time wired only (no client init), so latent — revisit if `sentry.client.config.ts` is added. | `app/layout.tsx:233`, `next.config.ts:124` |
 | 11 | [ ] | AI candidate match scoring not disclosed (GDPR Art. 22 right-to-object) | `prisma/schema.prisma:430-432` `aiMatchScore` |
 | 12 | [ ] | EEO data (race, disability, veteran status) + DEA/NPI stored without separate sensitive-data consent | `prisma/schema.prisma:367-378` |
@@ -76,8 +76,10 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 - [x] Flip GA defaults to `'denied'`; gate Speed Insights behind consent _(Sentry has no client init — latent only)_
 - [x] Add GPC + DNT signal handling in middleware (auto-deny)
 - [x] Geo-detect via Vercel `x-vercel-ip-country` — restrictive defaults only for EU/UK/CA, US implied consent
-- [ ] Add consent versioning (hash) + "Cookie Settings" footer link to re-open banner
-- [ ] Add granular categories (Essential / Analytics / Marketing) to banner
+- [x] Add consent versioning + "Cookie Settings" footer link to re-open banner
+- [x] Add granular categories (Essential / Analytics / Marketing) to banner
+
+**Sprint 1 complete** — current state: ~50% enterprise-ready. EU/UK/CA launchable for the consent layer. Remaining CRITICAL gaps (#3, #4, #5) are policy/process work in Sprints 2 + 3.
 
 ### Sprint 2 — legal docs (1 week)
 - [ ] Publish sub-processor list page + DPA template

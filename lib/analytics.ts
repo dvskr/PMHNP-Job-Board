@@ -89,12 +89,12 @@ function gtag(...args: unknown[]) {
 }
 
 // ── Consent Mode v2 ─────────────────────────────────────────────
-// analytics_storage is 'granted' by default for US users.
-// Ad-related consent stays 'denied' until cookie consent accepted.
+// All non-essential storage is 'denied' by default (GDPR/CCPA/ePrivacy).
+// CookieConsent component flips signals to 'granted' on user accept.
 
 export function initConsentDefaults() {
   gtag('consent', 'default', {
-    analytics_storage: 'granted',
+    analytics_storage: 'denied',
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
@@ -126,6 +126,20 @@ export function denyAllConsent() {
     ad_user_data: 'denied',
     ad_personalization: 'denied',
     personalization_storage: 'denied',
+  });
+}
+
+/**
+ * Map per-category consent (Essential / Analytics / Marketing) to the
+ * granular Consent Mode v2 signals.
+ */
+export function updateConsentByCategories(cats: { analytics: boolean; marketing: boolean }) {
+  updateConsent({
+    analytics_storage: cats.analytics ? 'granted' : 'denied',
+    personalization_storage: cats.analytics ? 'granted' : 'denied',
+    ad_storage: cats.marketing ? 'granted' : 'denied',
+    ad_user_data: cats.marketing ? 'granted' : 'denied',
+    ad_personalization: cats.marketing ? 'granted' : 'denied',
   });
 }
 

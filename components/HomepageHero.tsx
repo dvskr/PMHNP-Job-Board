@@ -72,11 +72,11 @@ export default function HomepageHero({ jobCountDisplay }: HomepageHeroProps) {
                 style={{
                     position: 'absolute',
                     inset: 0,
-                    background: `linear-gradient(to bottom, 
-                        rgba(250,248,243,1) 0%, 
-                        rgba(250,248,243,0.98) 25%, 
-                        rgba(250,248,243,0.85) 45%, 
-                        rgba(250,248,243,0.3) 65%, 
+                    background: `linear-gradient(to bottom,
+                        rgba(245,240,235,1) 0%,
+                        rgba(245,240,235,0.98) 25%,
+                        rgba(245,240,235,0.85) 45%,
+                        rgba(245,240,235,0.3) 65%,
                         transparent 80%
                     )`,
                     pointerEvents: 'none',

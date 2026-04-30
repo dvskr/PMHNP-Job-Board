@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { XLogo, FacebookLogo, InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
+import { reopenConsentBanner } from '@/lib/consent';
 /* ──────────────────────────────────────────────
  *  Footer — Dark, clean, professional
  *  Uses inline styles for background/color to
@@ -189,6 +190,16 @@ export default function Footer() {
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
               >Terms</Link>
+              <button
+                type="button"
+                onClick={reopenConsentBanner}
+                style={{
+                  fontSize: '13px', color: '#78716c', background: 'none', border: 'none',
+                  padding: 0, cursor: 'pointer', font: 'inherit',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              >Cookie Settings</button>
 
               <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
 

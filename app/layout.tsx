@@ -14,7 +14,7 @@ import MainContent from '@/components/MainContent';
 import MobileHideOnAppRoutes from '@/components/MobileHideOnAppRoutes';
 
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import ConsentGatedTelemetry from '@/components/ConsentGatedTelemetry';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'));
 const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
@@ -222,7 +222,7 @@ export default async function RootLayout({
         className={`${inter.variable} ${lora.variable} ${newsreader.variable} ${jetbrainsMono.variable} font-sans antialiased`}
         suppressHydrationWarning
         style={{
-          backgroundColor: '#F5F6F8',
+          backgroundColor: '#F5F0EB',
           color: '#2D3748',
         }}
       >
@@ -230,7 +230,7 @@ export default async function RootLayout({
           <ToastProvider>
             <div style={{ width: '100%', maxWidth: '100vw', position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
               <GoogleAnalytics nonce={nonce} />
-              <SpeedInsights />
+              <ConsentGatedTelemetry />
               <LayoutShell>
                 <Header />
                 <ProfileNudgeBanner />
