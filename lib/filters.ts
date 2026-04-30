@@ -479,7 +479,11 @@ export function buildWhereClause(filters: FilterState): Prisma.JobWhereInput {
       default:
         cutoff = new Date(0);
     }
-    andConditions.push({ createdAt: { gte: cutoff } });
+    // User-facing freshness filter uses ORIGINAL posting date, not when
+    // we ingested the row. After the 2026-04-30 backfill, every job has
+    // originalPostedAt set (defaulting to createdAt for sources that
+    // don't provide a date_posted), so this is a single-field clause.
+    andConditions.push({ originalPostedAt: { gte: cutoff } });
   }
 
   // Location

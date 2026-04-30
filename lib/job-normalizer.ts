@@ -636,7 +636,12 @@ export function normalizeJobWithReason(rawJob: Record<string, unknown>, source: 
         sourceProvider: source,
         sourceSite: rawJob.sourceSite ? String(rawJob.sourceSite) : null,
         externalId,
-        originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : null,
+        // Default to "now" when the source doesn't provide a date — keeps
+        // every row with a non-null originalPostedAt so user-facing
+        // freshness filters and "Posted N days ago" labels are
+        // consistent across all sources. The value is essentially
+        // equivalent to createdAt for these rows.
+        originalPostedAt: originalPostedAt && !isNaN(originalPostedAt.getTime()) ? originalPostedAt : new Date(),
         expiresAt,
         companyId: null,
       }
