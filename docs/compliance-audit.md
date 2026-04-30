@@ -114,6 +114,11 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 
 **All 25 audit gaps now closed.** Status: ~92% enterprise-ready. Final 8% is the SOC2 / DPIA / vendor-questionnaire process work that can't be done in code.
 
+### Process docs (free, internal)
+- [x] DPIA self-assessment — `docs/dpia.md` (1.0, dated 2026-04-30, references every Sprint 1–4 mitigation)
+- [x] Public Trust Center / Security page — `app/security/page.tsx` (linked from footer; what we share with SMB customers and procurement teams when asked)
+- [ ] SOC 2 Type 1 attestation — pending first enterprise customer who requires it (~$15–18k via Drata + Johanson Group when triggered)
+
 ---
 
 ## Detailed findings (reference)
