@@ -2,12 +2,12 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import { Building2 } from 'lucide-react';
+import { brand } from '@/config/brand';
 
 export const metadata: Metadata = {
     title: 'Sub-processors',
-    description:
-        'List of sub-processors used by PMHNP Hiring to operate the service, including the data shared, processing location, and DPA status. Updated as vendors change.',
-    alternates: { canonical: 'https://pmhnphiring.com/sub-processors' },
+    description: `List of sub-processors used by ${brand.name} to operate the service, including the data shared, processing location, and DPA status. Updated as vendors change.`,
+    alternates: { canonical: `${brand.baseUrl}/sub-processors` },
     robots: { index: true, follow: true },
 };
 
@@ -96,8 +96,8 @@ export default function SubProcessorsPage() {
     return (
         <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '48px 16px 80px' }}>
             <BreadcrumbSchema items={[
-                { name: 'Home', url: 'https://pmhnphiring.com' },
-                { name: 'Sub-processors', url: 'https://pmhnphiring.com/sub-processors' },
+                { name: 'Home', url: brand.baseUrl },
+                { name: 'Sub-processors', url: `${brand.baseUrl}/sub-processors` },
             ]} />
             <article style={{ ...clayCard, maxWidth: '880px', margin: '0 auto', padding: '48px 40px' }}>
                 <header style={{ marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -111,7 +111,7 @@ export default function SubProcessorsPage() {
                 </header>
 
                 <p style={pStyle}>
-                    To operate PMHNP Hiring we use a small set of third-party service providers (&quot;sub-processors&quot;).
+                    To operate {brand.name} we use a small set of third-party service providers (&quot;sub-processors&quot;).
                     Each sub-processor only receives the data necessary for its specific function and is bound by a Data
                     Processing Agreement that mirrors the protections in our{' '}
                     <Link href="/privacy" style={{ color: '#1D4ED8', textDecoration: 'underline' }}>Privacy Policy</Link>.
@@ -177,8 +177,8 @@ export default function SubProcessorsPage() {
                 <p style={pStyle}>
                     If you are an employer customer and need a counter-signed Data Processing Addendum, or you have
                     any question about this list, contact{' '}
-                    <a href="mailto:privacy@pmhnphiring.com" style={{ color: '#1D4ED8', textDecoration: 'underline' }}>
-                        privacy@pmhnphiring.com
+                    <a href={`mailto:${brand.email.privacy}`} style={{ color: '#1D4ED8', textDecoration: 'underline' }}>
+                        {brand.email.privacy}
                     </a>.
                 </p>
             </article>

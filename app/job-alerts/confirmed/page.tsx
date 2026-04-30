@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { brand } from '@/config/brand';
 
 export const metadata: Metadata = {
     title: 'Job alert confirmed',
-    description: 'Your PMHNP job alert subscription has been confirmed.',
+    description: `Your ${brand.niche.short} job alert subscription has been confirmed.`,
     robots: { index: false, follow: false },
 };
 
@@ -24,7 +25,7 @@ export default async function JobAlertConfirmedPage({
     const ok = status === 'ok' || status === undefined;
     const headline = ok ? 'You’re all set' : status === 'invalid' ? 'Confirmation link invalid' : status === 'missing' ? 'Confirmation link incomplete' : 'Something went wrong';
     const message = ok
-        ? 'Your job alert is now active. We’ll email matching PMHNP positions on your chosen schedule. You can change frequency or unsubscribe at any time from any alert email.'
+        ? `Your job alert is now active. We’ll email matching ${brand.niche.short} positions on your chosen schedule. You can change frequency or unsubscribe at any time from any alert email.`
         : status === 'invalid'
             ? 'This confirmation link is no longer valid. It may have already been used. If your alert isn’t firing, sign up again from the Job Alerts page and we’ll send a fresh link.'
             : status === 'missing'
@@ -58,7 +59,7 @@ export default async function JobAlertConfirmedPage({
                         boxShadow: '4px 4px 12px rgba(13,148,136,0.25), inset 1px 1px 2px rgba(255,255,255,0.25)',
                     }}
                 >
-                    Browse PMHNP jobs
+                    Browse {brand.niche.short} jobs
                 </Link>
             </article>
         </div>

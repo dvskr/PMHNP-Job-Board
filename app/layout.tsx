@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers, cookies } from 'next/headers';
 import { CONSENT_COOKIE, parseConsentCookie } from '@/lib/consent';
+import { brand } from '@/config/brand';
 import { Inter, Lora, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
@@ -48,11 +49,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl),
 
   title: {
-    default: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
-    template: '%s | PMHNP Hiring',
+    default: `${brand.name} - ${brand.niche.long} Job Board`,
+    template: `%s | ${brand.name}`,
   },
 
   description: 'Browse thousands of PMHNP jobs updated daily. Find remote, telehealth, and in-person psychiatric NP positions with salary transparency across all 50 states. Free for job seekers.',
@@ -68,31 +69,31 @@ export const metadata: Metadata = {
     'nurse practitioner psychiatry',
   ],
 
-  authors: [{ name: 'PMHNP Hiring' }],
-  creator: 'PMHNP Hiring',
-  publisher: 'PMHNP Hiring',
+  authors: [{ name: brand.name }],
+  creator: brand.name,
+  publisher: brand.name,
 
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'PMHNP Hiring',
-    title: 'PMHNP Hiring - Find Psychiatric Nurse Practitioner Positions',
-    description: 'The #1 job board for PMHNPs. Browse 10,000+ remote and in-person psychiatric NP jobs from 3,000+ companies across 50 states.',
+    siteName: brand.name,
+    title: `${brand.name} - Find ${brand.niche.long} Positions`,
+    description: `The #1 job board for ${brand.niche.short}s. Browse remote and in-person ${brand.niche.descriptor} jobs across all 50 states.`,
     images: [
       {
         url: '/api/og',
         width: 1200,
         height: 630,
-        alt: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
+        alt: `${brand.name} - ${brand.niche.long} Job Board`,
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'PMHNP Hiring - Psychiatric Nurse Practitioner Job Board',
-    description: 'Find your next PMHNP position. 10,000+ remote and in-person jobs from 3,000+ companies across 50 states, updated daily.',
+    title: `${brand.name} - ${brand.niche.long} Job Board`,
+    description: `Find your next ${brand.niche.short} position. Remote and in-person jobs across 50 states, updated daily.`,
     images: ['/api/og'],
   },
 
@@ -163,7 +164,7 @@ export default async function RootLayout({
         <link rel="author" href="/humans.txt" />
         <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM Site Information" />
         <link rel="alternate" type="text/plain" href="/ai.txt" title="AI Permissions" />
-        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title="PMHNP Hiring — Latest Jobs" />
+        <link rel="alternate" type="application/rss+xml" href="/feed.xml" title={`${brand.name} — Latest Jobs`} />
         {/* Organization and WebSite Schema Markup */}
         <meta property="fb:app_id" content="940556045303701" />
         <script
@@ -174,46 +175,45 @@ export default async function RootLayout({
               "@graph": [
                 {
                   "@type": "Organization",
-                  "@id": "https://pmhnphiring.com/#organization",
-                  "name": "PMHNP Hiring",
-                  "alternateName": "PMHNP Jobs",
-                  "url": "https://pmhnphiring.com",
-                  "logo": "https://pmhnphiring.com/logo.png",
-                  "image": "https://pmhnphiring.com/pmhnp_logo.png",
-                  "description": "The #1 job board for Psychiatric Mental Health Nurse Practitioners",
-                  "foundingDate": "2026",
+                  "@id": `${brand.baseUrl}/#organization`,
+                  "name": brand.name,
+                  "alternateName": `${brand.niche.short} Jobs`,
+                  "url": brand.baseUrl,
+                  "logo": `${brand.baseUrl}/logo.png`,
+                  "image": `${brand.baseUrl}/pmhnp_logo.png`,
+                  "description": `The #1 job board for ${brand.niche.long}s`,
+                  "foundingDate": brand.legal.foundingYear,
                   "founder": {
                     "@type": "Person",
-                    "name": "Pavan Kumar Reddy Daggula"
+                    "name": brand.legal.founderName
                   },
                   "sameAs": [
-                    "https://www.linkedin.com/company/pmhnpjobs",
-                    "https://www.facebook.com/pmhnphiring",
-                    "https://www.crunchbase.com/organization/pmhnp-hiring",
-                    "https://wellfound.com/company/pmhnp-hiring",
-                    "https://www.producthunt.com/products/pmhnp-jobs",
-                    "https://www.saashub.com/10000-pmhnp-jobs"
+                    brand.social.linkedin,
+                    brand.social.facebook,
+                    brand.social.x,
+                    brand.social.instagram,
+                    brand.social.youtube,
                   ],
                   "contactPoint": {
                     "@type": "ContactPoint",
-                    "email": "contact@pmhnphiring.com",
+                    "email": brand.email.contact,
                     "contactType": "customer service"
                   }
                 },
                 {
                   "@type": "WebSite",
-                  "@id": "https://pmhnphiring.com/#website",
-                  "url": "https://pmhnphiring.com",
-                  "name": "PMHNP Hiring",
-                  "description": "Find psychiatric mental health nurse practitioner jobs",
+                  "@id": `${brand.baseUrl}/#website`,
+                  "url": brand.baseUrl,
+                  "name": brand.name,
+                  "description": `Find ${brand.niche.descriptor} jobs`,
                   "publisher": {
-                    "@id": "https://pmhnphiring.com/#organization"
+                    "@id": `${brand.baseUrl}/#organization`
                   },
                   "potentialAction": {
                     "@type": "SearchAction",
                     "target": {
                       "@type": "EntryPoint",
-                      "urlTemplate": "https://pmhnphiring.com/jobs?q={search_term_string}"
+                      "urlTemplate": `${brand.baseUrl}/jobs?q={search_term_string}`
                     },
                     "query-input": "required name=search_term_string"
                   }

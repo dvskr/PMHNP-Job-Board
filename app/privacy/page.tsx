@@ -3,15 +3,16 @@ import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import Image from 'next/image';
 import { Shield } from 'lucide-react';
+import { brand } from '@/config/brand';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Privacy Policy for PMHNP Hiring. Learn how we collect, use, and protect your information.',
+  description: `Privacy Policy for ${brand.name}. Learn how we collect, use, and protect your information.`,
   openGraph: {
-    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp', width: 1280, height: 900, alt: 'PMHNP Hiring privacy policy page detailing data collection, security measures, and user privacy rights' }],
+    images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp', width: 1280, height: 900, alt: `${brand.name} privacy policy page detailing data collection, security measures, and user privacy rights` }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-privacy-policy.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/privacy' },
+  alternates: { canonical: `${brand.baseUrl}/privacy` },
 };
 
 /* ═══ Clay Tokens ═══ */
@@ -36,8 +37,8 @@ export default function PrivacyPage() {
   return (
     <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '48px 16px 80px' }}>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://pmhnphiring.com' },
-        { name: 'Privacy Policy', url: 'https://pmhnphiring.com/privacy' },
+        { name: 'Home', url: brand.baseUrl },
+        { name: 'Privacy Policy', url: `${brand.baseUrl}/privacy` },
       ]} />
       <article style={{ ...clayCard, maxWidth: '760px', margin: '0 auto', padding: '48px 40px' }}>
 
@@ -60,7 +61,7 @@ export default function PrivacyPage() {
         </header>
 
         <div>
-          <p style={pStyle}>At PMHNP Hiring, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.</p>
+          <p style={pStyle}>At {brand.name}, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.</p>
           <p style={pStyle}>Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.</p>
 
           <h2 style={h2Style}>1. Information We Collect</h2>
@@ -140,9 +141,9 @@ export default function PrivacyPage() {
           <h3 style={h3Style}>Unsubscribe from Emails</h3>
           <ul style={ulStyle}>
             <li style={liStyle}>Click the &quot;Unsubscribe&quot; link in any email we send you</li>
-            <li style={liStyle}>Contact us at support@pmhnphiring.com</li>
+            <li style={liStyle}>Contact us at {brand.email.support}</li>
           </ul>
-          <p style={pStyle}>To exercise any of these rights, contact us at support@pmhnphiring.com. We will respond within 30 days.</p>
+          <p style={pStyle}>To exercise any of these rights, contact us at {brand.email.support}. We will respond within 30 days.</p>
 
           <h2 style={h2Style}>7. Third-Party Links</h2>
           <p style={pStyle}>Our Service may contain links to third-party websites. We are not responsible for their privacy practices. When you click &quot;Apply Now&quot;, you may be directed to the employer&apos;s website, governed by their privacy policy.</p>
@@ -156,7 +157,7 @@ export default function PrivacyPage() {
           <h2 style={h2Style}>10. Contact Us</h2>
           <p style={pStyle}>If you have questions about this Privacy Policy or wish to exercise your privacy rights, please contact us:</p>
           <ul style={{ ...ulStyle, listStyleType: 'none', paddingLeft: 0 }}>
-            <li style={liStyle}><strong>Email:</strong> support@pmhnphiring.com</li>
+            <li style={liStyle}><strong>Email:</strong> {brand.email.support}</li>
             <li style={liStyle}><strong>Subject line:</strong> &quot;Privacy Inquiry&quot;</li>
           </ul>
           <p style={pStyle}>For general questions, visit our <Link href="/faq" style={{ color: '#0D9488', textDecoration: 'none' }}>FAQ page</Link> or <Link href="/contact" style={{ color: '#0D9488', textDecoration: 'none' }}>Contact page</Link>.</p>
@@ -174,7 +175,7 @@ export default function PrivacyPage() {
 
           <h2 style={h2Style}>12. Automated Decision-Making and AI</h2>
           <p style={pStyle}>We use a candidate-matching algorithm (an AI model) to suggest jobs that may be a good fit and to surface relevant applicants to employers. The output is a non-binding score; a human (the employer) makes the final hiring decision.</p>
-          <p style={pStyle}>Under GDPR Article 22 you have the right to obtain human review of any decision that is based solely on automated processing. Because our matching is decision-support, not decision-making, this rarely applies — but if you believe the algorithm has produced an unfair outcome, contact <a href="mailto:privacy@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'underline' }}>privacy@pmhnphiring.com</a> and we will review.</p>
+          <p style={pStyle}>Under GDPR Article 22 you have the right to obtain human review of any decision that is based solely on automated processing. Because our matching is decision-support, not decision-making, this rarely applies — but if you believe the algorithm has produced an unfair outcome, contact <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'underline' }}>{brand.email.privacy}</a> and we will review.</p>
 
           <h2 style={h2Style}>13. Sensitive Information</h2>
           <p style={pStyle}>Some fields in your profile are sensitive under GDPR Article 9 or treated as &quot;sensitive personal information&quot; under CPRA. We collect them only when you choose to provide them and only for the specific purpose described:</p>
@@ -200,7 +201,7 @@ export default function PrivacyPage() {
             <Link href="/do-not-sell" style={{ color: '#0D9488', textDecoration: 'underline', fontWeight: 600 }}>Do Not Sell or Share My Personal Information</Link>{' '}
             or send a Global Privacy Control signal from your browser — we honor both.
           </p>
-          <p style={pStyle}>To exercise any other CCPA right, file a request through our <Link href="/data-request" style={{ color: '#0D9488', textDecoration: 'underline' }}>Data Request form</Link> or email <a href="mailto:privacy@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'underline' }}>privacy@pmhnphiring.com</a> with &quot;CCPA Request&quot; in the subject. We respond within 45 days.</p>
+          <p style={pStyle}>To exercise any other CCPA right, file a request through our <Link href="/data-request" style={{ color: '#0D9488', textDecoration: 'underline' }}>Data Request form</Link> or email <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'underline' }}>{brand.email.privacy}</a> with &quot;CCPA Request&quot; in the subject. We respond within 45 days.</p>
 
           <h2 style={h2Style}>15. European Privacy Rights (GDPR / UK GDPR)</h2>
           <ul style={ulStyle}>

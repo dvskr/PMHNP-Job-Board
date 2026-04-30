@@ -10,11 +10,12 @@ import {
   bodyTextV2, V2, SANS, SERIF,
 } from '@/lib/email-templates-v2';
 import { Resend } from 'resend';
+import { brand } from '@/config/brand';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com';
-const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || 'PMHNP Hiring <alerts@pmhnphiring.com>';
-const EMAIL_REPLY_TO = 'hello@pmhnphiring.com';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl;
+const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || brand.email.marketingFrom;
+const EMAIL_REPLY_TO = brand.email.replyTo;
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 interface CreateAlertBody {
@@ -48,7 +49,7 @@ function buildCriteriaSummary(alert: CreateAlertBody): string {
     }
   }
 
-  return parts.length > 0 ? parts.join(' · ') : 'all PMHNP jobs';
+  return parts.length > 0 ? parts.join(' · ') : `all ${brand.niche.short} jobs`;
 }
 
 // Send the confirm-your-subscription email (CASL / GDPR double opt-in).
@@ -70,7 +71,7 @@ async function sendAlertConfirmationEmail(
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
           ${featureRowV2('&#9993;', `${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts`, `Once confirmed, we'll email new jobs matching: ${criteriaSummary}`)}
-          ${featureRowV2('&#10003;', 'Smart Matching', 'Only relevant PMHNP positions \u2014 no spam')}
+          ${featureRowV2('&#10003;', 'Smart Matching', `Only relevant ${brand.niche.short} positions \u2014 no spam`)}
           ${featureRowV2('&#9889;', 'Be First to Apply', 'Jobs delivered before they fill up')}
         </table>
       </td></tr>
@@ -110,7 +111,7 @@ async function sendAlertConfirmationEmail(
       from: EMAIL_FROM,
       to: email,
       replyTo: EMAIL_REPLY_TO,
-      subject: 'Confirm your PMHNP job alert subscription',
+      subject: `Confirm your ${brand.niche.short} job alert subscription`,
       html,
       text,
       headers: {
@@ -124,7 +125,7 @@ async function sendAlertConfirmationEmail(
       await prisma.emailSend.create({
         data: {
           to: email,
-          subject: 'Confirm your PMHNP job alert subscription',
+          subject: `Confirm your ${brand.niche.short} job alert subscription`,
           emailType: 'alert_confirm',
         },
       });

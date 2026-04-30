@@ -9,12 +9,12 @@ import {
     FileLock2,
     Mail,
 } from 'lucide-react';
+import { brand } from '@/config/brand';
 
 export const metadata: Metadata = {
     title: 'Security & Trust',
-    description:
-        'How PMHNP Hiring protects your data: encryption, sub-processors, consent, soft-delete, virus scanning, incident response, and compliance posture.',
-    alternates: { canonical: 'https://pmhnphiring.com/security' },
+    description: `How ${brand.name} protects your data: encryption, sub-processors, consent, soft-delete, virus scanning, incident response, and compliance posture.`,
+    alternates: { canonical: `${brand.baseUrl}/security` },
     robots: { index: true, follow: true },
 };
 
@@ -74,8 +74,8 @@ export default function SecurityPage() {
         <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '48px 16px 80px' }}>
             <BreadcrumbSchema
                 items={[
-                    { name: 'Home', url: 'https://pmhnphiring.com' },
-                    { name: 'Security', url: 'https://pmhnphiring.com/security' },
+                    { name: 'Home', url: brand.baseUrl },
+                    { name: 'Security', url: `${brand.baseUrl}/security` },
                 ]}
             />
             <article style={{ ...clayCard, maxWidth: '820px', margin: '0 auto', padding: '48px 40px' }}>
@@ -114,7 +114,7 @@ export default function SecurityPage() {
                 </header>
 
                 <p style={{ fontSize: '15px', color: '#4A5568', lineHeight: 1.75, marginTop: '32px' }}>
-                    PMHNP Hiring handles personal information that matters — resumes, contact details,
+                    {brand.name} handles personal information that matters — resumes, contact details,
                     sometimes credentialing identifiers. This page explains how we protect that data,
                     which vendors we share it with, and what to do if you spot a security issue.
                     It is intentionally specific. If a customer or auditor wants more detail, the
@@ -179,8 +179,8 @@ export default function SecurityPage() {
                     </p>
                     <p>
                         Spotted something suspicious? Email{' '}
-                        <a href="mailto:security@pmhnphiring.com" style={linkStyle}>
-                            security@pmhnphiring.com
+                        <a href={`mailto:${brand.email.security}`} style={linkStyle}>
+                            {brand.email.security}
                         </a>
                         . We acknowledge within one business day.
                     </p>
@@ -297,8 +297,8 @@ export default function SecurityPage() {
                 </h2>
                 <p style={{ fontSize: '14px', color: '#4A5568', lineHeight: 1.75 }}>
                     If you believe you&apos;ve found a security vulnerability, please email{' '}
-                    <a href="mailto:security@pmhnphiring.com" style={linkStyle}>
-                        security@pmhnphiring.com
+                    <a href={`mailto:${brand.email.security}`} style={linkStyle}>
+                        {brand.email.security}
                     </a>{' '}
                     with reproduction steps and any affected URLs. We commit to:
                 </p>
@@ -328,12 +328,12 @@ export default function SecurityPage() {
                     }}
                 >
                     <Mail size={16} /> Privacy questions:&nbsp;
-                    <a href="mailto:privacy@pmhnphiring.com" style={linkStyle}>
-                        privacy@pmhnphiring.com
+                    <a href={`mailto:${brand.email.privacy}`} style={linkStyle}>
+                        {brand.email.privacy}
                     </a>
                     &nbsp;·&nbsp;Security reports:&nbsp;
-                    <a href="mailto:security@pmhnphiring.com" style={linkStyle}>
-                        security@pmhnphiring.com
+                    <a href={`mailto:${brand.email.security}`} style={linkStyle}>
+                        {brand.email.security}
                     </a>
                 </div>
             </article>

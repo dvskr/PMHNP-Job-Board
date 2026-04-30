@@ -9,6 +9,7 @@ import {
     getPrivacySignal,
     setConsentCategories,
 } from '@/lib/consent';
+import { brand } from '@/config/brand';
 
 const clayCard: React.CSSProperties = {
     background: '#FFFFFF',
@@ -60,7 +61,7 @@ export default function DoNotSellPage() {
                     behavioral advertising.
                 </p>
                 <p style={pStyle}>
-                    PMHNP Hiring does not sell personal information for money. Loading third-party analytics
+                    {brand.name} does not sell personal information for money. Loading third-party analytics
                     (Google Analytics, Vercel Speed Insights) may meet the broader CPRA definition of
                     &quot;sharing&quot;. The button below opts your device out of all analytics and marketing
                     cookies. Essential cookies (login, security, fraud prevention) remain active because the
@@ -139,7 +140,7 @@ export default function DoNotSellPage() {
                 <p style={pStyle}>
                     For requests to access, delete, correct, or limit the use of your sensitive personal
                     information, use our <Link href="/data-request" style={{ color: '#0D9488', textDecoration: 'underline' }}>Data Request form</Link> or
-                    email <a href="mailto:privacy@pmhnphiring.com" style={{ color: '#0D9488', textDecoration: 'underline' }}>privacy@pmhnphiring.com</a>.
+                    email <a href={`mailto:${brand.email.privacy}`} style={{ color: '#0D9488', textDecoration: 'underline' }}>{brand.email.privacy}</a>.
                 </p>
                 <p style={pStyle}>
                     Read the full <Link href="/privacy" style={{ color: '#0D9488', textDecoration: 'underline' }}>Privacy Policy</Link>.
