@@ -149,9 +149,12 @@ function buildQuery(category: Category, state: string | null, limit: number) {
             };
 
         case 'newest':
+            // "Newest" featured slot — user-facing, must reflect when the
+            // source posted (not when we ingested) so backfill doesn't
+            // pollute. Sort by originalPostedAt for the same reason.
             return {
-                where: { ...baseWhere, createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) } },
-                orderBy: { createdAt: 'desc' as const },
+                where: { ...baseWhere, originalPostedAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) } },
+                orderBy: { originalPostedAt: 'desc' as const },
             };
 
         case 'remote':
