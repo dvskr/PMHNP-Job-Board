@@ -174,6 +174,35 @@ const BASE_FILTERS: Record<string, string> = {
     location_filter: 'United States',
 };
 
+// Per-run diagnostics so we can surface API responses to Discord/console
+// without scraping Vercel logs. Reset at the start of each fetch run.
+interface RunDiagnostics {
+    firstResponseStatus: number | null;
+    firstResponseUrl: string | null;
+    firstResponseBodySample: string | null;
+    rateLimitRemaining: number | null;
+    statusCounts: Record<string, number>;
+    abortReasons: string[];
+}
+let runDiag: RunDiagnostics = {
+    firstResponseStatus: null,
+    firstResponseUrl: null,
+    firstResponseBodySample: null,
+    rateLimitRemaining: null,
+    statusCounts: {},
+    abortReasons: [],
+};
+function resetDiag(): void {
+    runDiag = {
+        firstResponseStatus: null,
+        firstResponseUrl: null,
+        firstResponseBodySample: null,
+        rateLimitRemaining: null,
+        statusCounts: {},
+        abortReasons: [],
+    };
+}
+
 async function fetchPage(
     extraParams: Record<string, string>,
     offset: number,
@@ -201,8 +230,18 @@ async function fetchPage(
 
         clearTimeout(timeout);
 
+        // Diagnostics — capture the first response so we can dump it to
+        // Discord if the run produces zero rows.
+        const statusKey = String(res.status);
+        runDiag.statusCounts[statusKey] = (runDiag.statusCounts[statusKey] ?? 0) + 1;
+        if (runDiag.firstResponseStatus === null) {
+            runDiag.firstResponseStatus = res.status;
+            runDiag.firstResponseUrl = url.replace(RAPIDAPI_KEY ?? '', 'XXX');
+        }
+
         if (res.status === 429) {
             console.warn('[Fantastic-Jobs-DB] Rate limited — stopping.');
+            runDiag.abortReasons.push('rate-limit-429');
             return null;
         }
 
@@ -215,27 +254,44 @@ async function fetchPage(
                 `[Fantastic-Jobs-DB] HTTP ${res.status} for offset ${offset} ` +
                 `params=${JSON.stringify(extraParams)} body=${body}`,
             );
+            if (runDiag.firstResponseBodySample === null) {
+                runDiag.firstResponseBodySample = body;
+            }
+            runDiag.abortReasons.push(`http-${res.status}`);
             return null;
         }
 
         const remaining = res.headers.get('x-ratelimit-requests-remaining');
         const remainingNum = remaining ? parseInt(remaining, 10) : null;
         if (remainingNum !== null) {
+            runDiag.rateLimitRemaining = remainingNum;
             console.log(`[Fantastic-Jobs-DB] API calls remaining this month: ${remainingNum}`);
             // Stop if dangerously close to monthly limit
             if (remainingNum < MIN_REMAINING_BUFFER) {
                 console.warn(`[Fantastic-Jobs-DB] ⚠️ Only ${remainingNum} requests remaining — stopping to preserve budget`);
+                runDiag.abortReasons.push(`budget-${remainingNum}`);
                 return null;
             }
         }
 
         const data = await res.json();
+        // Capture sample of the first SUCCESS body too (truncated, no PII).
+        if (runDiag.firstResponseBodySample === null) {
+            const dataStr = JSON.stringify(data).slice(0, 300);
+            runDiag.firstResponseBodySample = dataStr;
+        }
         // API returns an array directly
         return Array.isArray(data) ? data : [];
     } catch (error) {
         console.warn(`[Fantastic-Jobs-DB] Error at offset ${offset}:`, error);
+        runDiag.abortReasons.push(`exception-${error instanceof Error ? error.name : 'unknown'}`);
         return null;
     }
+}
+
+/** Public accessor so the cron can dump diagnostics to Discord. */
+export function getLastRunDiagnostics(): RunDiagnostics {
+    return { ...runDiag };
 }
 
 interface PassResult {
@@ -311,6 +367,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
         console.error('[Fantastic-Jobs-DB] RAPIDAPI_KEY env var is not set. Skipping.');
         return [];
     }
+    resetDiag();
 
     console.log(`[Fantastic-Jobs-DB] Searching across 120K+ orgs for PMHNP jobs (3-pass strategy)...`);
 
