@@ -203,7 +203,14 @@ async function fetchPage(
         }
 
         if (!res.ok) {
-            console.warn(`[Fantastic-Jobs-DB] HTTP ${res.status} for offset ${offset}`);
+            // Read the error body so we know WHY — invalid param, plan
+            // restriction, etc. Truncated to keep Vercel logs readable.
+            let body = '';
+            try { body = (await res.text()).slice(0, 500); } catch { /* ignore */ }
+            console.warn(
+                `[Fantastic-Jobs-DB] HTTP ${res.status} for offset ${offset} ` +
+                `params=${JSON.stringify(extraParams)} body=${body}`,
+            );
             return null;
         }
 
