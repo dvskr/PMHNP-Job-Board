@@ -129,11 +129,12 @@ export default function SecurityPage() {
                 </Practice>
 
                 <Practice icon={<FileLock2 size={20} />} title="Resume & file safety">
-                    Every resume upload is virus-scanned before it is written to storage. The scan
+                    Resume uploads are virus-scanned before they are written to storage. The scan
                     refuses executables, scripts, macro-laden Office files, password-protected
-                    archives, and XML external-entity payloads. Failed scans block the upload and
-                    surface a clear error to the user. Aggregate counters track upload success rate
-                    so we can detect a misconfigured scanner quickly.
+                    archives, and XML external-entity payloads. In the rare case the scanning
+                    service itself is unreachable we accept the upload and log the gap, rather
+                    than block legitimate users. Aggregate counters track scanner availability so
+                    we know quickly if it stays offline.
                 </Practice>
 
                 <Practice icon={<Eye size={20} />} title="Privacy by default">
