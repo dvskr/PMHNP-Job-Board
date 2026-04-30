@@ -39,6 +39,10 @@ export interface GreenhouseJobRaw {
 }
 
 const GREENHOUSE_COMPANIES = [
+  // ── Trimmed 2026-04-30: dropped 622/622 configured tenants
+  // that had never added a PMHNP job. See scripts/audit-greenhouse-tenants.ts
+  // and .tmp_greenhouse_tenant_audit.json for the source data.
+
   // VERIFIED WORKING - Primary sources
   'headway',             // 2 PMHNP jobs
   'modernhealth',        // 1 PMHNP job
@@ -59,15 +63,10 @@ const GREENHOUSE_COMPANIES = [
   // === NEW - VERIFIED WITH PMHNP JOBS ===
   'blueskytelepsych',    // Blue Sky Telepsych — 922 PMHNP jobs!
   'bicyclehealth',       // Bicycle Health — 27 PMHNP jobs
-  'valerahealth',        // Valera Health
-  'charliehealth',       // Charlie Health
   'blackbirdhealth',     // Blackbird Health
-  'ophelia',             // Ophelia
 
   // === NEW - VERIFIED VALID, monitoring for PMHNP ===
   'springhealth66',      // Spring Health — 91 total jobs
-  'omadahealth',         // Omada Health — 32 total jobs
-  'brave',               // Brave Health — 9 total jobs
 
   // === ADDED 2026-02-13 — VERIFIED WITH PMHNP JOBS ===
   'betterhelp',          // BetterHelp — 19 PMHNP jobs (18 recent)
@@ -75,23 +74,12 @@ const GREENHOUSE_COMPANIES = [
   'compasspathways',     // COMPASS Pathways — 11 PMHNP jobs (11 recent)
 
   // === ADDED 2026-02-13 — VALID, monitoring for PMHNP ===
-  'alma',                // Alma — 10 total jobs
-  'cortica',             // Cortica — 65 total jobs
-  'galileo',             // Galileo — 7 total jobs
   'amaehealth',          // Amae Health — 27 total jobs
-  'pelago',              // Pelago — 8 total jobs
 
   // === ADDED 2026-02-13 — EXPANDED SCAN (278 slugs tested) ===
   'bouldercare',         // Boulder Care — 18 PMHNP jobs (18 recent) ⭐
 
   // === EXPANDED SCAN — VALID, monitoring for PMHNP ===
-  'daybreakhealth',      // Daybreak Health — 37 total jobs
-  'parallellearning',    // Parallel Learning — 22 total jobs
-  'legion',              // Legion — 20 total jobs
-  'array',               // Array Behavioral Care — 20 total jobs
-  'neuroflow',           // NeuroFlow — 14 total jobs
-  'forgehealth',         // Forge Health — 9 total jobs
-  'iris',                // Iris — 4 total jobs
 
   // === PROD DB MINING — 9,295 slugs from 3,602 employers ===
   'strivehealth',        // Strive Health — 14 PMHNP (14 recent) ⭐
@@ -114,644 +102,38 @@ const GREENHOUSE_COMPANIES = [
   'mentalhealthcenterofdenver', // MH Center of Denver — 1 PMHNP
   'overstoryhealth',     // Overstory Health — 1 PMHNP
   'nursing',             // Nursing Wellness Center — 1 PMHNP
-  'vitalcaringgroup',    // VitalCaring Group — 1 PMHNP (1 recent)
-  'peregrinehealth',     // Peregrine Health — 1 PMHNP (1 recent)
   'tia',                 // Tia — 1 PMHNP
-  'lts',                 // LTS — 1 PMHNP (1 recent)
 
   // === ADDED 2026-02-16 — Full ATS Discovery (189 companies scanned) ===
-  'prosperhealth',       // Prosper Health — 47 total jobs
-  'pma',                 // Pathlight Mood & Anxiety — 18 total jobs
-  'carbon',              // Carbon Health — 7 total jobs
-  'veterans',            // Veterans Affairs — 6 total jobs
-  'summit',              // Summit Healthcare — 5 total jobs
-  'universal',           // Universal Health Services — 2 total jobs
-  'calm',                // Calm — 1 total job
 
   // === ADDED 2026-02-16 — CSV test: 62 new PMHNP-active slugs ===
-  'theoriamedical',      // Theoria Medical — 90 PMHNP
   'talkspacepsychiatry', // Talkspace Psychiatry — 50 PMHNP
-  'midihealth',          // Midi Health — 46 PMHNP
-  'luminishealth',       // Luminis Health — 41 PMHNP
   'ennoblecare',         // Ennoble Care — 38 PMHNP
-  'integrityrehabgroup', // Integrity Rehab Group — 56 PMHNP
-  'formhealth',          // Form Health — 24 PMHNP
   'guidelighthealth',    // Guidelight Health — 24 PMHNP
-  'optimalcare',         // Optimal Care — 18 PMHNP
   'cartwheelcare',       // Cartwheel Care — 15 PMHNP
-  'healthlink',          // HealthLink — 15 PMHNP
   'moodhealth',          // Mood Health — 15 PMHNP (dupe check OK)
-  'engageseniortherapy', // Engage Senior Therapy — 14 PMHNP
   'pairteam',            // Pair Team — 14 PMHNP
-  'sollishealth',        // Sollis Health — 14 PMHNP
   'dianahealth94',       // Diana Health — 12 PMHNP
   'vailclinicincdbavailhealthhospital', // Vail Health Hospital — 12 PMHNP
-  'axisteletherapy',     // Axis Teletherapy — 9 PMHNP
   'folxhealth',          // FOLX Health — 9 PMHNP
-  'neurahealth',         // Neura Health — 8 PMHNP
-  'centrumhealth',       // Centrum Health — 7 PMHNP
-  'reemahealth',         // Reema Health — 7 PMHNP
   'welbehealth',         // Welbe Health — 7 PMHNP
-  'wovencare',           // Woven Care — 7 PMHNP
-  'allarahealth',        // Allara Health — 6 PMHNP
   'amaehealth',          // Amae Health — 6 PMHNP (already in COMPANY_NAMES)
-  'eucalyptus',          // Eucalyptus — 6 PMHNP
-  'mavenclinicproviders',// Maven Clinic Providers — 6 PMHNP
-  'triumvirateenvironmental', // Triumvirate Environmental — 6 PMHNP
   'aspirehealthalliance',// Aspire Health Alliance — 5 PMHNP
-  'lumimeds',            // Lumimeds — 5 PMHNP
-  'seenhealth',          // Seen Health — 5 PMHNP
-  'sensiblecare',        // Sensible Care — 4 PMHNP
-  'cardioone',           // Cardio One — 4 PMHNP
-  'assemblyhealth',      // Assembly Health — 3 PMHNP
-  'bridgebio',           // BridgeBio — 3 PMHNP
-  'cadencehealth',       // Cadence Health — 3 PMHNP
   'imaginepediatrics',   // Imagine Pediatrics — 3 PMHNP
-  'oncoverycare',        // Oncovery Care — 3 PMHNP
-  'theoncologyinstitute',// The Oncology Institute — 3 PMHNP
-  'thymecare',           // Thyme Care — 3 PMHNP
-  'allcareers',          // AllCareers — 73 PMHNP
   'foresightmentalhealth', // Foresight Mental Health — 2 PMHNP
-  'herselfhealth',       // Herself Health — 2 PMHNP
-  'maplighttherapeutics',// MapLight Therapeutics — 2 PMHNP
-  'meruhealth',          // Meru Health — 2 PMHNP
-  'sandstonecarebroomfield', // Sandstone Care Broomfield — 1 PMHNP
-  'sandstonecoloradomedicaldetox', // Sandstone CO Medical Detox — 2 PMHNP
-  'vardaspace',          // Varda Space — 2 PMHNP
-  'axsometherapeutics',  // Axsome Therapeutics — 1 PMHNP
-  'cadrehospice',        // Cadre Hospice — 1 PMHNP
-  'dynetherapeutics',    // Dyne Therapeutics — 1 PMHNP
-  'found',               // Found Health — 1 PMHNP
-  'habitathealth',       // Habitat Health — 1 PMHNP
-  'kernalbio',           // Kernal Bio — 1 PMHNP
   'khealthcareers',      // K Health — 1 PMHNP
-  'luminaryhospice',     // Luminary Hospice — 1 PMHNP
-  'pomelocare',          // Pomelo Care — 1 PMHNP
-  'sportandspinephysicaltherapy', // Sport \u0026 Spine PT — 1 PMHNP
-  'twinhealth',          // Twin Health — 1 PMHNP
-  'understoodcare',      // Understood Care — 1 PMHNP
-  'vitablehealth',       // Vitable Health — 1 PMHNP
-  'vitahealth',          // Vita Health — 1 PMHNP
 
   // === ADDED 2026-02-16 — All live healthcare slugs from CSV ===
-  '1uphealth',
-  '30thstreetanimalhospital',
-  '4dmoleculartherapeutics',
-  'abcellera',
-  'absci',
-  'achievementfirstnetworksupportcareers',
-  'acornhealth',
-  'adahealth',
-  'adaugeohealthcare',
-  'adelphigraduatecareers',
-  'adicettherapeuticsinc',
-  'aizerhealth',
-  'alayacare',
-  'alpha9oncology',
-  'animalcarecenterpearisburg',
-  'animalcarecenterprinceton',
-  'animalmedicalcenter',
-  'apogeetherapeutics',
-  'applytopassagehealth',
-  'arcadiacareers',
-  'arizonaliverhealth',
-  'arspharmaceuticalsoperationsinc',
-  'automatticcareers',
-  'azuritypharmaceuticals',
-  'azuritypharmaceuticalsindia',
-  'beamtherapeutics',
-  'biocaremedical',
-  'blinkhealth',
-  'blueprintmedicines',
-  'bubbleskincare',
-  'calahealth',
-  'caliberhealth',
-  'calibratecareers',
-  'canopycare',
-  'careem',
-  'careersatpeakenergy',
-  'careerteam',
-  'carefeed',
-  'careportalinc',
-  'carerev',
-  'carewell',
   'carrumhealth',
-  'cayabacare',
-  'centessapharmaceuticalsinc',
-  'cerulacare',
-  'clearviewhealthcarepartners',
-  'clicktherapeutics',
-  'coherehealth',
-  'collectivehealth',
-  'corcepttherapeutics',
-  'corporatecareers',
-  'courierhealth',
-  'coverahealth',
-  'crescendohealth',
-  'daymarkhealth',
-  'dayonebiopharmaceuticals',
-  'dental365',
-  'dianthustherapeutics',
-  'divergehealth',
-  'drdansanimalhospital',
-  'eclinicalsolutions',
-  'eikontherapeutics',
-  'elationhealth',
-  'eleoshealth',
-  'elitedentalpartnersllc',
-  'elliginthealth',
-  'employerdirecthealthcare',
-  'enavatecareers',
-  'entradatherapeutics',
-  'flatironhealth',
-  'flohealth',
-  'florencehealthcare',
-  'foliahealth',
-  'forcetherapeutics',
-  'formationbio',
-  'fractylhealthinc',
-  'fronterahealth',
-  'futurhealth',
-  'garnerhealth',
-  'generatebiomedicines',
-  'ginkgobioworks',
-  'globalhealthcareexchangeinc',
-  'gramgamescareers',
-  'greenbrookmedical',
-  'gsgcareers',
-  'harrowhealth',
-  'hatchcareers',
-  'headoutcareers',
-  'healthjoy',
-  'healthverity',
-  'homewardhealth',
-  'honehealth',
-  'honestmedicalgroup',
   'hopscotchprimarycare',
-  'hotmartcareersbr',
-  'hotmartcareersen',
-  'iconcareers',
-  'inspiremedicalsystemsinc',
-  'instridehealth',
-  'interwellhealth',
-  'iovancebiotherapeutics',
-  'isccareers',
-  'iterativehealth',
-  'j2health',
-  'jackhealth',
-  'jukeboxhealth',
-  'kalvistapharmaceuticals',
-  'komodohealth',
-  'kuraoncology',
-  'la28careers',
-  'lakeforestanimalhospital',
-  'lambcareers',
-  'legendcareers',
-  'legendcareerseu',
-  'lenusehealth',
-  'linushealth',
-  'logiwacareers',
-  'lumahealth',
-  'lyellimmunopharma',
-  'mainstreethealth',
-  'maslanskycareers',
-  'mavenclinic',
-  'mavenscareers',
-  'maxmanufacturingcareers',
-  'mcghealth',
-  'medicalinformaticsengineering',
-  'mineralystherapeutics',
-  'mirumpharmaceuticals',
-  'mochihealth',
-  'monocl',
-  'montaihealth',
-  'monumentalsports',
-  'msfcareers',
-  'neuehealth',
-  'neumora',
-  'newlabcareers',
-  'nexhealth',
-  'nflcareers',
-  'nilotherapeutics',
-  'nmcareers',
-  'noahmedical',
-  'noctrixhealth',
-  'nonantumveterinaryclinic',
-  'noyocareers',
-  'obsidiantherapeutics',
-  'odlesalescareers',
-  'ogilvyhealthcanada',
-  'ogilvyhealthuk',
-  'ogilvyhealthusa',
-  'olaplexcareers',
-  'omnicomhealth',
-  'operationscareers',
-  'optimadermatologycareers',
   'oshihealth',
-  'ostrohealth',
-  'oulahealth',
-  'outsetmedical',
-  'oxosmedical',
-  'pagerhealth',
-  'panteracapitalcareers',
-  'parachutehealth',
-  'paradigminccareersopenpositions',
-  'parkcareers',
-  'particlehealth',
-  'picnichealth',
-  'plianttherapeuticsinc',
-  'pokemoncareers',
-  'polycamcareers',
-  'primemedicine',
-  'privategdcareers',
-  'privatehealthmanagement',
-  'procaresolutions',
-  'pumpcareers',
-  'pursuecare',
-  'qualifiedhealth',
-  'quanthealth',
-  'radiclehealth',
-  'rakutenmedical18',
-  'rdccareers',
-  'recursionpharmaceuticals',
-  'reflexionmedical',
-  'relaytherapeutics',
-  'remixtherapeutics',
-  'remodelhealth',
-  'rightwayhealthcare',
-  'rvohealth',
-  'sandstonecareboulder',
-  'seaporttherapeutics',
-  'shieldshealthsolutions',
-  'shunnarahcareers',
-  'sidecarhealth',
-  'sironamedical',
   'skildai-careers',
-  'skilledwoundcare',
-  'sonymusicasiacareers',
-  'sonymusiccareersfrance',
-  'sonymusiccareersnetherlands',
-  'spcareers',
-  'springsworkstherapeutics',
-  'spyretherapeutics',
-  'stemhealthcare',
-  'strandtherapeutics',
-  'stratacareers',
-  'stridehealth',
-  'studycareers',
-  'tangotherapeutics',
-  'tesseratherapeutics',
-  'thepharmacyhub',
-  'thesiscareers',
-  'thirtymadison',
-  'thltestcareers',
-  'tomorrowhealth',
-  'transcarent',
-  'transcendtherapeutics',
-  'trinityairmedical',
-  'trovohealth',
-  'truveta',
-  'twistbioscience',
-  'ultragenyxpharmaceutical',
-  'uniteus',
-  'unlockhealth',
-  'urgentcareforchildren',
-  'valohealth',
-  'veocorporatecareers',
-  'veranahealth',
-  'veratherapeuticsinc',
-  'vizai',
-  'volastratherapeutics',
-  'vorbiopharma',
-  'voyagertherapeutics',
-  'waltzhealth',
-  'waymark',
-  'xairatherapeutics',
-  'xphealth',
-  'zenithhealth',
-  'zocalohealth',
-  'zocdoc',
-  'zyngacareers',
 
   // === BULK ADD — All remaining CSV companies (480) ===
-  '10alabs',
-  '10xgenomics',
-  '1910genetics',
-  '5minlab',
-  'aavantgardebio',
-  'abclabs',
-  'abilitypath',
-  'abiologics',
-  'accreditedlabs',
-  'acgcareers',
-  'adaptivebiotechnologies',
-  'aditumbio',
-  'affirmedrxpbc',
   'akidolabs',
-  'alabamatitleloansinc',
-  'alamarbiosciences',
-  'alertmedia',
-  'alltrna',
-  'altoslabs',
-  'aluinternalopenings',
-  'annexonbioscience',
-  'antaresrx',
-  'aptoslabs',
-  'aquaticcapitalmanagement',
-  'aralezbio',
-  'arcellx',
-  'arkoselabs',
-  'ashfieldmedcomms',
-  'aspectbiosystems',
-  'asteralabs',
-  'atalantatherapeutics',
-  'avalabs',
-  'avalabsecosystem',
-  'aviatornation',
-  'beaconbiosignals',
-  'bertramcapitalmanagement',
-  'bescareers',
-  'bevlabvet',
-  'biohub',
-  'biomechanicsconsultingandresearchllc',
-  'biomedrealty',
-  'bioptimus8',
-  'bitbio',
-  'blab',
-  'blabuscanada',
-  'blackforestlabs',
-  'bluecrestcapitalmanagement',
-  'boostinsurance',
-  'boundlessbio',
-  'braveheartbio',
-  'bugcrowd',
-  'calicolabs',
-  'capitalrx',
-  'careersatkokua',
-  'cariboubiosciencesinc',
-  'carrotfertility',
-  'ccscorpcareers',
-  'cellanome',
-  'cellarity',
-  'cellsignalingtechnology79',
-  'chaincodelabs',
-  'chromamedicine',
-  'cipherhealth',
-  'clearpathforveterans',
-  'cloverly',
-  'co58owxtuvc3ql11n5p1b79mj5flai45kbbwmpk5zvyfvj7tphwrf7kj9r0vr8krxku3n93jffzugl2w8420bfji9ar3q8hle6ty',
-  'cockroachlabs',
-  'codepath',
-  'cofertility',
-  'coherusbiosciences',
-  'colabsoftware',
-  'colossalbiosciences',
-  'cosmoslabs',
-  'cosseandsilmonorthodontics',
-  'cottinghambutlerinsuranceservicesinc',
-  'crescolabs',
-  'criticalmass',
-  'criticalmassgroup',
-  'crookedmedia',
-  'crossbeam',
-  'crowdstreet',
-  'culthealth',
-  'dagsterlabs',
-  'datagrail',
-  'dbtlabsinc',
-  'ddbhealth',
-  'ddbhealthbarcelona',
-  'ddbremedy',
-  'dealpath',
-  'debutbiotech25',
-  'decimainternational',
-  'discmedicine',
-  'districtofcolumbiainternationalschool',
-  'dkatalislabs',
-  'dna',
-  'doctorswithoutborders',
-  'dodgshunmedlin',
-  'dominodatalab',
-  'doxocareers',
-  'dragonflytherapeutics',
-  'edgewoodpartnersinsurancecenter',
-  'elementalimpact',
-  'elementbiosciences',
-  'endorlabs',
-  'energyandenvironmentlab',
-  'envisionconsulting',
-  'epicbio',
-  'evergreennephrology',
-  'excella',
-  'fastspring',
-  'feinternational',
-  'firstconnectinsurance',
-  'foresitelabs',
-  'forgebiologics',
-  'formbio',
-  'formlabs',
-  'freenome',
-  'frostorthodontics',
-  'genea',
-  'genedx',
-  'gener8tor',
-  'generalassembly',
-  'generalatlantic',
-  'generalcatalyst',
-  'generalmatter',
-  'generalproximity',
-  'generationbio',
-  'genevatrading',
-  'genezenlabs',
-  'genomenoninc',
-  'georgiadermatology',
-  'getitstraightorthodontics',
-  'gingerlabsinc',
-  'gitlab',
-  'glyphicbiotechnologies',
-  'gohealth',
-  'goremutualinsurance',
-  'grafanalabs',
-  'grahamcapitalmanagement',
-  'greenlightbiosciences',
-  'grovecollaborative',
-  'haizelabs',
-  'henrymeds',
-  'hexagonbio',
-  'homechefinternalemployees',
-  'honeycombinsurance',
-  'horizenlabs',
-  'huntedlabs',
-  'immunefi',
-  'impinjexternal',
-  'industriouslabs',
-  'insightmediagroupllc',
-  'insightrx',
-  'intecrowd',
-  'internaljobsatlush',
-  'internationalrecruitment',
-  'interstellarlab',
-  'intrinsicrobotics',
-  'isomorphiclabs',
-  'jadebiosciences',
-  'jellyvision',
-  'juullabs',
-  'kernagency',
-  'kmgmedicalgroup',
-  'labelbox',
-  'laboratoirertingscom',
-  'layerzerolabs',
-  'liaisoninternational',
-  'lifeedittherapeutics',
-  'lightforceorthodontics',
-  'lottebiologicsusallc',
-  'lumenbioscience',
-  'lusternational',
-  'lyratechgroup',
-  'manifoldbio',
-  'maravailifesciences',
-  'medeanalytics',
-  'medeloop',
-  'mediaalpha',
-  'mediabrands',
-  'mediacurrent',
-  'mediasmart',
-  'medier',
-  'medistrava',
-  'medium',
-  'medrio',
-  'medsien',
-  'messagelab',
-  'metalab',
-  'metoxinternationalinc',
-  'mgtinsurance',
-  'microblink',
-  'mirakllabs',
-  'modernanimal',
-  'modernizingmedicineinc',
-  'morsemicro',
-  'moshiriorthodontics',
-  'nanopathinc',
-  'natera',
-  'nearspacelabs',
-  'neptunebio',
-  'nextinsurance66',
-  'nkartatherapeutics',
-  'nomadhealth',
-  'noomgrowth',
-  'notexternal',
-  'o1labs',
-  'obrienveterinarygroup',
-  'ocrolusinc',
-  'ohalogenetics',
-  'omicron',
-  'onepath',
-  'opendoor',
-  'orthodonticpartners',
-  'oscar',
-  'outerbiosciences',
-  'pantherlabs',
-  'pathai',
-  'pathrobotics',
-  'pathward',
-  'patientpoint',
-  'peachtreebioresearchsolutions',
-  'pearsonorthodontics',
-  'pendo',
-  'phynetdermatology',
-  'pieinsurance',
-  'pioneersquarelabs',
-  'pivotbio',
-  'placerlabs',
-  'planetlabs',
-  'plootocareers',
-  'powerdigitalmarketing',
-  'praxisprecisionmedicines',
-  'preciselyinternationaljobs',
-  'precisionmedicinegroup',
-  'premierdermatology',
-  'prendiodbaprendiobioprocure',
-  'prophecysimpledatalabs',
-  'proyectosinternacionales',
   'purposemed',
-  'redcellpartners',
-  'remotereferralboardinternaluseonly',
-  'renewedvision',
-  'revivecareers',
-  'ripplcare',
-  'rocketlab',
-  'rootstocklabsltd',
-  'rxmosaic',
-  'rxsense',
-  'rxvantage',
-  'safetyworxs',
-  'sanabiotech',
-  'sandscapitalmanagementllc',
-  'sandstonecarecastlerock',
-  'sandstonecoloradospringsoutpatient',
-  'sarverorthodontics',
-  'sbinternal',
-  'sendabiosciences',
-  'sentinellabs',
-  'septerna',
-  'sesolabor',
-  'shennonbiotechnologies',
-  'siegelfamilyendowment',
-  'sightlinemediagroup',
   'silvus-international-opportunites',
-  'slingshotbiosciences',
-  'smithrx',
-  'sociummedia',
-  'sonymusiccareersaustralia',
-  'southeastdermatology',
-  'springboardmentors',
-  'springfertility',
-  'superluminalrx',
-  'supernal',
-  'takecommandhealth',
-  'tealmedia',
-  'telemedicine',
-  'teravision',
-  'terremotobiosciencesinc',
-  'testendouble',
-  'toastmastersinternational',
-  'torcrobotics',
-  'totusmedicines',
-  'townsquaremedia',
-  'traveledgenetwork',
-  'treelinebiosciences',
-  'trinternational',
-  'truepill',
-  'truloveorthodontics',
-  'ukmed',
-  'ultimagenomics',
-  'unchainedlabs',
-  'unispacelifesciences',
-  'unitedmedia',
-  'urschellaboratoriesinc',
-  'valuatehealthconsultancy',
-  'vannevarlabs',
-  'vaticlabs',
-  'vedantabiosciences',
-  'ventustherapeutics',
-  'veracyte',
-  'veterinaryemergencygroupst',
-  'veterinarypracticepartners',
-  'vicarioussurgical',
-  'virbiotechnologyinc',
-  'vitalfarmsinternalcrew',
-  'voxmedia',
   'walleyecapital-external-students',
-  'watchmakergenomics',
-  'wehrtyou',
-  'wellsaidlabs',
-  'wikimedia',
-  'windfallbio',
-  'wppmedia',
-  'wyndlabs',
-  'yarrowbiotechnology',
-  'zafinlabsamericasinc',
-  'zennioptical',
 ];
 
 
