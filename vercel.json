@@ -61,6 +61,10 @@
       "schedule": "25 11,17 * * *"
     },
     {
+      "path": "/api/cron/ingest?source=fantastic-jobs-db",
+      "schedule": "30 11,17 * * *"
+    },
+    {
       "path": "/api/cron/ingest?source=smartrecruiters",
       "schedule": "35 11,17 * * *"
     },
