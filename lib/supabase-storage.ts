@@ -78,7 +78,7 @@ export async function uploadResume(
     });
 
   if (error) {
-    console.error('Supabase upload error:', error);
+    logger.error('Supabase upload error', error);
     throw new Error(`Failed to upload resume: ${error.message}`);
   }
 
@@ -130,7 +130,7 @@ export async function uploadAvatar(
     });
 
   if (error) {
-    console.error('Supabase upload error:', error);
+    logger.error('Supabase upload error', error);
     throw new Error(`Failed to upload avatar: ${error.message}`);
   }
 
@@ -156,7 +156,7 @@ export async function deleteFile(path: string, fileType: 'resume' | 'avatar'): P
     .remove([path]);
 
   if (error) {
-    console.error('Supabase delete error:', error);
+    logger.error('Supabase delete error', error);
     throw new Error(`Failed to delete file: ${error.message}`);
   }
 }

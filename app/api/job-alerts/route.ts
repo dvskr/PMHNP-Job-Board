@@ -205,12 +205,15 @@ export async function POST(request: NextRequest) {
     // Sync to Beehiiv newsletter (fire-and-forget)
     syncToBeehiiv(normalizedEmail, { utmSource: 'job_alert' });
 
-    // Dedup: check if an alert with the same criteria already exists for this email
+    // Dedup: match BOTH confirmed (is_active = true) and unconfirmed
+    // alerts. Without checking the unconfirmed bucket too, a user who
+    // resubmits the same form before clicking the confirmation link
+    // would receive a fresh email per submission. We dedupe instead and
+    // re-send the existing confirmation if the original is still pending.
     let jobAlert;
     const existing = await prisma.jobAlert.findFirst({
       where: {
         email: normalizedEmail,
-        isActive: true,
         keyword: keyword || null,
         location: location || null,
         mode: mode || null,

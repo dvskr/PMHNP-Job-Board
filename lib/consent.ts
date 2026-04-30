@@ -1,11 +1,18 @@
 /**
  * Consent state + event bus.
  *
- * Stored in localStorage under `pmhnp_cookie_consent` for backward compat
- * with the existing CookieConsent banner.
+ * Source of truth (Sprint 4 onwards): the HttpOnly cookie
+ * `pmhnp_consent_v2`, set by `POST /api/consent`. Server reads it via
+ * `cookies()` in `app/layout.tsx` and passes initial state to client
+ * components as a prop.
  *
- * Components (Vercel Speed Insights, Sentry, etc.) read getConsent() and
- * listen for the `pmhnp:consent-changed` window event to mount or unmount.
+ * Client components (CookieConsent banner, ConsentGatedTelemetry,
+ * GoogleAnalytics inline script) read the prop and listen for the
+ * `pmhnp:consent-changed` window event to react to mid-session
+ * accept/deny without a page reload.
+ *
+ * `getConsentCategories()` below still reads localStorage purely as a
+ * legacy fallback for old tabs. Writes never go to localStorage.
  */
 
 export type ConsentState = 'accepted' | 'denied' | null;
