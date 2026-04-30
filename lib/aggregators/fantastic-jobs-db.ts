@@ -154,6 +154,22 @@ function mapEmploymentType(job: FantasticJobApiResponse): string | null {
     return t;
 }
 
+// Common quality filters applied to every pass. Tightens the funnel so
+// each fetched row has a higher chance of becoming a catalog add.
+const COMMON_FILTERS: Record<string, string> = {
+    location_filter: 'United States',
+    // Skip recruitment / staffing agencies — they post duplicates of
+    // direct-employer roles and pollute employer dedup. Documented param
+    // on Apify-side; harmless if the RapidAPI tier ignores it.
+    remove_agency: 'true',
+    // Plain text descriptions (smaller payload, easier downstream cleaning).
+    description_type: 'text',
+    // Whitelist high-quality ATS platforms. The free-form career-page
+    // scrapes from unknown ATS providers tend to be lower-quality and
+    // we already ingest most direct ATS sources separately.
+    ats: 'greenhouse,lever,workday,ashby,paylocity,smartrecruiters,bamboohr,jobvite,icims,paycom,ukg,adp',
+};
+
 async function fetchPage(
     extraParams: Record<string, string>,
     offset: number,
@@ -161,7 +177,7 @@ async function fetchPage(
     const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
         offset: offset.toString(),
-        location_filter: 'United States',
+        ...COMMON_FILTERS,
         ...extraParams,
     });
 

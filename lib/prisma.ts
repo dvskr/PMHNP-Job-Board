@@ -20,8 +20,18 @@ if (!globalForPrisma.pool) {
 
   globalForPrisma.pool = new Pool({
     connectionString,
-    max: 10, // Increased from 5 for better concurrency under crawl pressure.
-             // PgBouncer handles external pooling, this is the local pool.
+    // Pool sizing for Vercel serverless + Supabase PgBouncer:
+    // Each function instance gets its own Pool. Vercel cold-starts can
+    // spin up 50-100 instances during bot crawl bursts. With max=10 that
+    // produced 500-1000 simultaneous conns to PgBouncer → EMAXCONN
+    // (observed 2026-04-30 05:55-05:57 UTC: 108 EMAXCONN errors during
+    // a Mozilla/Googlebot/GPTBot burst on /jobs/* SEO pages).
+    //
+    // PgBouncer in transaction mode multiplexes — each query borrows a
+    // backend conn for the statement only, so 1 client conn per instance
+    // is plenty. Burst headroom comes from PgBouncer's 200-500 client
+    // capacity, not from per-instance pooling.
+    max: 2,
     idleTimeoutMillis: 20000, // 20 seconds
     connectionTimeoutMillis: 10000, // 10 seconds to connect
     allowExitOnIdle: true, // Allow cleanup in serverless
