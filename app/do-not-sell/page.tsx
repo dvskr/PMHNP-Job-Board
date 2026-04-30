@@ -6,7 +6,6 @@ import { Shield, CheckCircle2 } from 'lucide-react';
 import { denyAllConsent, updateConsentByCategories } from '@/lib/analytics';
 import {
     ALL_DENIED,
-    getConsentCategories,
     getPrivacySignal,
     setConsentCategories,
 } from '@/lib/consent';
@@ -37,14 +36,12 @@ export default function DoNotSellPage() {
 
     useEffect(() => {
         setGpcActive(getPrivacySignal() !== null);
-        const cats = getConsentCategories();
-        if (cats && !cats.analytics && !cats.marketing) setOptedOut(true);
     }, []);
 
-    const handleOptOut = () => {
+    const handleOptOut = async () => {
         denyAllConsent();
-        setConsentCategories(ALL_DENIED);
         updateConsentByCategories(ALL_DENIED);
+        await setConsentCategories(ALL_DENIED);
         setOptedOut(true);
     };
 

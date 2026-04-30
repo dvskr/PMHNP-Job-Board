@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { scanFileForViruses } from '@/lib/virus-scan';
+import { logger } from '@/lib/logger';
 
 // Initialize Supabase client for storage operations
 const supabase = createClient(
@@ -45,6 +47,21 @@ export async function uploadResume(
   // Validate file size
   if (file.length > MAX_RESUME_SIZE) {
     throw new Error(`File size exceeds maximum of ${MAX_RESUME_SIZE / 1024 / 1024}MB`);
+  }
+
+  // Virus scan BEFORE writing to storage. Fails closed by default
+  // (see lib/virus-scan.ts for the env knobs). When the scan API key
+  // is missing, the scan is skipped with a structured warn — uploads
+  // still go through, so dev environments aren't blocked.
+  const scan = await scanFileForViruses(file, fileName);
+  if (!scan.clean) {
+    logger.warn('uploadResume: rejected by virus scanner', {
+      userId,
+      fileName,
+      threats: scan.threats,
+      contentRisks: scan.contentRisks,
+    });
+    throw new Error(scan.message || 'File rejected by virus scanner.');
   }
 
   // Generate unique path

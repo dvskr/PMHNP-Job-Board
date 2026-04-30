@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
+import { CONSENT_COOKIE, parseConsentCookie } from '@/lib/consent';
 import { Inter, Lora, Newsreader, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from '@/components/Header';
@@ -145,6 +146,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const nonce = (await headers()).get('x-nonce') || '';
+  // Read the HttpOnly consent cookie at SSR time so we can initialize
+  // GA, Speed Insights, and the banner with the right state without
+  // exposing the value to client JavaScript (closes audit gap #19).
+  const initialConsent = parseConsentCookie((await cookies()).get(CONSENT_COOKIE)?.value);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -229,8 +234,8 @@ export default async function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <div style={{ width: '100%', maxWidth: '100vw', position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-              <GoogleAnalytics nonce={nonce} />
-              <ConsentGatedTelemetry />
+              <GoogleAnalytics nonce={nonce} initialConsent={initialConsent} />
+              <ConsentGatedTelemetry initialConsent={initialConsent} />
               <LayoutShell>
                 <Header />
                 <ProfileNudgeBanner />
@@ -244,7 +249,7 @@ export default async function RootLayout({
                 <BottomNav />
                 <ExitIntentPopup />
                 <PushNotificationPrompt />
-                <CookieConsent />
+                <CookieConsent initialConsent={initialConsent} />
                 <PWAInstallBanner />
               </LayoutShell>
             </div>
