@@ -240,9 +240,39 @@ async function fetchPage(
         }
 
         if (res.status === 429) {
-            console.warn('[Fantastic-Jobs-DB] Rate limited — stopping.');
-            runDiag.abortReasons.push('rate-limit-429');
-            return null;
+            // Honor Retry-After if present, else default to 3s. Try ONCE
+            // more — repeated 429 means we're saturating the quota and
+            // should abort the pass rather than burn budget.
+            const retryAfterRaw = res.headers.get('retry-after');
+            const retryAfterSec = retryAfterRaw ? parseInt(retryAfterRaw, 10) : 3;
+            const waitMs = Math.max(1000, (Number.isFinite(retryAfterSec) ? retryAfterSec : 3) * 1000);
+            console.warn(`[Fantastic-Jobs-DB] 429 rate-limited. Waiting ${waitMs}ms then retrying once.`);
+            await sleep(waitMs);
+
+            const retryRes = await fetch(url, {
+                headers: {
+                    'x-rapidapi-key': RAPIDAPI_KEY!,
+                    'x-rapidapi-host': API_HOST,
+                },
+                signal: AbortSignal.timeout(15000),
+            });
+            const retryStatusKey = String(retryRes.status);
+            runDiag.statusCounts[retryStatusKey] = (runDiag.statusCounts[retryStatusKey] ?? 0) + 1;
+            if (retryRes.status === 429) {
+                console.warn('[Fantastic-Jobs-DB] Still rate-limited after retry — aborting pass.');
+                runDiag.abortReasons.push('rate-limit-429-after-retry');
+                return null;
+            }
+            if (!retryRes.ok) {
+                let body = '';
+                try { body = (await retryRes.text()).slice(0, 500); } catch { /* ignore */ }
+                console.warn(`[Fantastic-Jobs-DB] Retry returned ${retryRes.status}: ${body}`);
+                if (runDiag.firstResponseBodySample === null) runDiag.firstResponseBodySample = body;
+                runDiag.abortReasons.push(`retry-http-${retryRes.status}`);
+                return null;
+            }
+            const retryData = await retryRes.json();
+            return Array.isArray(retryData) ? retryData : [];
         }
 
         if (!res.ok) {
@@ -353,8 +383,12 @@ async function runPass(
         hasMore = jobs.length === PAGE_SIZE;
         offset += PAGE_SIZE;
 
-        // Rate limiting — Ultra plan: 5 req/sec
-        await sleep(200);
+        // Rate limiting — Ultra plan claims 5 req/sec but we observed 429s
+        // at 200ms spacing (= exactly 5/sec, zero margin). Bumped to 350ms
+        // (≈2.8 req/sec) so timing jitter, key-shared concurrent triggers,
+        // or burst windows don't trip the quota. Ultra plan budget is
+        // 20k req/month so we can afford the slower cadence.
+        await sleep(350);
     }
 
     const found = out.length - initialOut;
@@ -374,6 +408,12 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
     const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
+
+    // Cooldown buffer at the start of the run. Two consecutive admin
+    // triggers can collide on the API's per-second window — giving 1s
+    // of breathing room here means the second trigger won't inherit the
+    // first's saturated quota.
+    await sleep(1000);
 
     // ── PASS 1: advanced_title_filter + experimental quality filters ─────
     const pass1 = await runPass(
@@ -401,7 +441,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
                 seenUrls,
                 callBudget,
             );
-            await sleep(1000);
+            await sleep(2000);
         }
     }
 
@@ -421,7 +461,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
                 seenUrls,
                 callBudget,
             );
-            await sleep(1000);
+            await sleep(2000);
         }
     }
 
