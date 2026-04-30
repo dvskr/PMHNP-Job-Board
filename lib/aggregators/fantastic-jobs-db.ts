@@ -58,59 +58,39 @@ const API_HOST = 'active-jobs-db.p.rapidapi.com';
 const BASE_URL = `https://${API_HOST}/active-ats-7d`;
 const PAGE_SIZE = 100;
 
-// ── Search Strategy (refactored 2026-04-30) ──────────────────────────────
-// Old approach: 26 separate `title_filter` calls (one per phrase). 99%+
-// overlap → wasted API calls. Capped runs at ~22 adds / 7 days.
+// ── Search Strategy (refactored again 2026-04-30 after live probe) ──────
+// The Active Jobs DB (RapidAPI) was probed directly with the new key.
+// Findings:
+//   - `title_filter` works only as a single literal phrase. OR/AND/quotes
+//     are NOT honored (`advanced_title_filter` returns 0 for any OR syntax).
+//   - `description_filter` works AND supports `OR` between terms — this
+//     is the high-value lever.
+//   - `ai_employment_type_filter` works (e.g. FULL_TIME).
 //
-// New approach: three small passes that each catch a different shape of
-// PMHNP listing the catalog was missing.
-//   PASS 1 — advanced_title_filter (OR'd) for explicit psychiatric titles
-//   PASS 2 — description_filter for "Nurse Practitioner" / "APRN" titles
-//            where the description names psychiatric / mental health work
-//   PASS 3 — fallback: legacy single-term loop, kept as a safety net in
-//            case the API rejects advanced_title_filter for our plan tier
-// Dedup across passes via seenUrls (Set).
-//
-// Boolean syntax inferred from the Apify-side docs of the same dataset:
-//   `OR` (uppercase), parentheses for grouping, double-quotes for phrases.
-// If the API returns HTTP 400 for a syntax we send, the pass logs and
-// continues — the next pass picks up.
+// Strategy: two passes, deduped by URL.
+//   PASS A — per-term title loop (compact list). Each term hits the
+//            psychiatric/PMHNP titles directly. ~3 pages each is plenty
+//            since most return < 50 unique results.
+//   PASS B — description_filter broaden. Title=Nurse Practitioner OR APRN,
+//            description=psychiatric/mental-health/PMHNP. Catches the
+//            generic-titled jobs that title-only filtering missed.
 
-const ADVANCED_TITLE_OR = [
-    '"PMHNP"',
-    '"PMHNP-BC"',
-    '"Psychiatric Nurse Practitioner"',
-    '"Psychiatric Mental Health Nurse Practitioner"',
-    '"Mental Health Nurse Practitioner"',
-    '"Behavioral Health Nurse Practitioner"',
-    '"Psych NP"',
-    '"Psychiatric NP"',
-    '"Mental Health NP"',
-    '"Behavioral Health NP"',
-    '"Psychiatric APRN"',
-    '"Mental Health APRN"',
-    '"Psychiatric Prescriber"',
-    '"Telepsychiatry"',
-    '"Telepsych"',
-].join(' OR ');
+const TITLE_TERMS = [
+    'PMHNP',
+    'Psychiatric Nurse Practitioner',
+    'Psychiatric Mental Health Nurse Practitioner',
+    'Mental Health Nurse Practitioner',
+    'Behavioral Health Nurse Practitioner',
+    'Psychiatric APRN',
+    'Telepsychiatry',
+];
 
-// Description-side widening: any title that contains "Nurse Practitioner"
-// or "APRN" or "NP" — but only if the description names psychiatric work.
+// Title=NP/APRN, description filter widens the catch.
 const TITLE_FILTERS_BROAD = [
     'Nurse Practitioner',
     'APRN',
 ];
 const DESCRIPTION_FILTER_PSYCH = '"psychiatric" OR "mental health" OR "PMHNP" OR "psychiatry"';
-
-// Legacy single-term list, used only by the fallback pass if advanced
-// filtering fails. Kept compact — broader terms covered by description
-// filter above.
-const TITLE_FILTERS_FALLBACK = [
-    'PMHNP',
-    'Psychiatric Nurse Practitioner',
-    'Mental Health Nurse Practitioner',
-    'Telepsychiatry',
-];
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
@@ -160,21 +140,6 @@ function mapEmploymentType(job: FantasticJobApiResponse): string | null {
     if (lower.includes('temp') || lower.includes('per diem')) return 'Per Diem';
     return t;
 }
-
-// Quality filters for the EXPERIMENTAL passes. Trying these in passes
-// 1+2 to see if the API supports them. If they're rejected (Discord-
-// observed fetch=0 across all passes after 2026-04-30 trigger), the
-// fallback pass below ignores them so we always get a working baseline.
-const QUALITY_FILTERS: Record<string, string> = {
-    // Skip recruitment / staffing agencies. Docs ('removeAgency') confirm
-    // it but the param name might be different on the RapidAPI version
-    // (could also be 'remove_agency' or 'agency_filter').
-    remove_agency: 'true',
-    // Plain text descriptions (smaller payload).
-    description_type: 'text',
-    // Whitelist high-quality ATS platforms.
-    ats: 'greenhouse,lever,workday,ashby,paylocity,smartrecruiters,bamboohr,jobvite,icims,paycom,ukg,adp',
-};
 
 // Required for every pass.
 const BASE_FILTERS: Record<string, string> = {
@@ -427,66 +392,47 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
     }
     resetDiag();
 
-    console.log(`[Fantastic-Jobs-DB] Searching across 120K+ orgs for PMHNP jobs (3-pass strategy)...`);
+    console.log(`[Fantastic-Jobs-DB] Searching across 120K+ orgs for PMHNP jobs (2-pass probe-validated strategy)...`);
 
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
     const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
 
-    // Cooldown buffer at the start of the run. Two consecutive admin
-    // triggers can collide on the API's per-second window — giving 1s
-    // of breathing room here means the second trigger won't inherit the
-    // first's saturated quota.
+    // Cooldown buffer at run start.
     await sleep(1000);
 
-    // ── PASS 1: advanced_title_filter + experimental quality filters ─────
-    const pass1 = await runPass(
-        'advanced_title_filter+quality',
-        { advanced_title_filter: ADVANCED_TITLE_OR, ...QUALITY_FILTERS },
-        allJobs,
-        seenUrls,
-        callBudget,
-    );
-
-    await sleep(1000);
-
-    // ── PASS 2: description_filter + quality filters ─────────────────────
-    if (callBudget.used < callBudget.cap) {
-        for (const titleFilter of TITLE_FILTERS_BROAD) {
-            if (callBudget.used >= callBudget.cap) break;
-            await runPass(
-                `desc-pass: ${titleFilter}`,
-                {
-                    title_filter: titleFilter,
-                    description_filter: DESCRIPTION_FILTER_PSYCH,
-                    ...QUALITY_FILTERS,
-                },
-                allJobs,
-                seenUrls,
-                callBudget,
-            );
-            await sleep(2000);
-        }
+    // ── PASS A: per-term title loop ──────────────────────────────────────
+    // The API doesn't accept OR in title_filter — verified via probe
+    // 2026-04-30. Each term is a separate paginated query.
+    for (const titleFilter of TITLE_TERMS) {
+        if (callBudget.used >= callBudget.cap) break;
+        await runPass(
+            `title: ${titleFilter}`,
+            { title_filter: titleFilter },
+            allJobs,
+            seenUrls,
+            callBudget,
+        );
+        await sleep(2000);
     }
 
-    // ── PASS 3: legacy single-term fallback — NO quality filters, NO
-    //     advanced syntax. Mirrors exactly what worked before today's
-    //     refactor. Always fires when the count from passes 1+2 is zero,
-    //     so we always have a working baseline if any new param is
-    //     rejected by the API tier.
-    if (allJobs.length === 0 && callBudget.used < callBudget.cap) {
-        console.warn('[Fantastic-Jobs-DB] Passes 1+2 returned 0 — falling back to per-term legacy loop without experimental filters');
-        for (const titleFilter of TITLE_FILTERS_FALLBACK) {
-            if (callBudget.used >= callBudget.cap) break;
-            await runPass(
-                `fallback: ${titleFilter}`,
-                { title_filter: titleFilter },
-                allJobs,
-                seenUrls,
-                callBudget,
-            );
-            await sleep(2000);
-        }
+    // ── PASS B: description_filter widener ───────────────────────────────
+    // Catches generic-titled jobs (Nurse Practitioner / APRN) where
+    // descriptions name psychiatric work. description_filter DOES support
+    // OR — verified via probe.
+    for (const titleFilter of TITLE_FILTERS_BROAD) {
+        if (callBudget.used >= callBudget.cap) break;
+        await runPass(
+            `desc: ${titleFilter}`,
+            {
+                title_filter: titleFilter,
+                description_filter: DESCRIPTION_FILTER_PSYCH,
+            },
+            allJobs,
+            seenUrls,
+            callBudget,
+        );
+        await sleep(2000);
     }
 
     console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget)`);
