@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
             isVerifiedEmployer: true,
             mode: true,
             originalPostedAt: true,
+            applyOnPlatform: true,
+            sourceType: true,
             employerJobs: { select: { companyLogoUrl: true } },
           },
         });
@@ -115,6 +117,12 @@ export async function GET(request: NextRequest) {
           // NOTE: applyLink intentionally excluded from listing API
           // to prevent mass link harvesting by scrapers.
           // Apply links are only exposed on individual job detail pages.
+          // applyOnPlatform is a boolean flag (no scrape value) and is
+          // needed by JobCard to render the Easy Apply CTA.
+          applyOnPlatform: true,
+          // sourceType lets JobCard show "Direct Apply" (vs generic "Apply")
+          // for jobs posted directly by employers on our platform.
+          sourceType: true,
           employerJobs: { select: { companyLogoUrl: true } },
         },
       }),
