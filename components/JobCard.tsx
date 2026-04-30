@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck, Zap } from 'lucide-react';
 import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
@@ -76,6 +77,7 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const { isApplied } = useAppliedJobs();
   const { isSaved, saveJob, removeJob } = useSavedJobs();
   const { isViewed, markAsViewed, isHydrated } = useViewedJobs();
+  const router = useRouter();
   const [showShareMenu, setShowShareMenu] = useState(false);
   const saved = isSaved(job.id);
   const applied = isApplied(job.id);
@@ -87,7 +89,24 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
   const viewed = isHydrated && isViewed(jobSlug);
-  const directApply = isDirectApply(job.applyLink);
+  const easyApply = job.applyOnPlatform === true;
+  // "Direct Apply" = employer posted the job here AND links to their own
+  // ATS, OR an aggregated job whose apply URL matches a known ATS pattern.
+  // Either way, the user is going straight to the employer (no aggregator
+  // middleman) so the "Direct Apply" label is honest.
+  const directApply =
+    !easyApply &&
+    !!job.applyLink &&
+    (job.sourceType === 'employer' || isDirectApply(job.applyLink));
+
+  // Card "Easy Apply" → navigate to job detail with ?apply=1 so the apply
+  // popup auto-opens. Stops the surrounding card-link from firing too.
+  const handleEasyApplyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    markAsViewed(jobSlug);
+    router.push(`${jobUrl}?apply=1`);
+  };
 
   // Clean summary for display
   const cleanSummary = stripHtml(job.descriptionSummary);
@@ -293,7 +312,25 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               >
                 View Job →
               </span>
-              {job.applyLink && (
+              {easyApply ? (
+                <button
+                  className="jc-easy-apply-btn"
+                  onClick={handleEasyApplyClick}
+                  style={{
+                    padding: '8px 16px', borderRadius: '14px',
+                    fontSize: '13px', fontWeight: 700, color: '#fff',
+                    background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
+                    whiteSpace: 'nowrap',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    boxShadow: '4px 4px 10px rgba(13,148,136,0.25), -2px -2px 6px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08)',
+                    cursor: 'pointer', transition: 'all 0.2s ease',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  }}
+                >
+                  <Zap size={13} fill="currentColor" />
+                  Easy Apply
+                </button>
+              ) : job.applyLink && (
                 <button
                   className={directApply ? "jc-direct-apply-btn" : "jc-apply-btn"}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
@@ -526,7 +563,24 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
             >
               View Job <span className="jc-cta-arrow" style={{ transition: 'transform 0.2s ease' }}>→</span>
             </span>
-            {job.applyLink && (
+            {easyApply ? (
+              <button
+                className="jc-easy-apply-btn"
+                onClick={handleEasyApplyClick}
+                style={{
+                  fontSize: '13px', fontWeight: 700, color: '#fff',
+                  background: 'linear-gradient(135deg, #2DD4BF, #0D9488)',
+                  padding: '7px 16px', borderRadius: '14px',
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  boxShadow: '4px 4px 10px rgba(13,148,136,0.25), -2px -2px 6px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08)',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                }}
+              >
+                <Zap size={13} fill="currentColor" />
+                Easy Apply
+              </button>
+            ) : job.applyLink && (
               <button
                 className={directApply ? "jc-direct-apply-btn" : "jc-apply-btn"}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(job.applyLink!, '_blank', 'noopener,noreferrer'); }}
@@ -587,6 +641,15 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           background-color: #0F766E !important;
           transform: translateY(-2px);
           box-shadow: 6px 6px 16px rgba(13,148,136,0.30), -3px -3px 8px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
+        }
+        .jc-easy-apply-btn:hover {
+          background: linear-gradient(135deg, #14B8A6, #0F766E) !important;
+          transform: translateY(-2px);
+          box-shadow: 6px 6px 16px rgba(13,148,136,0.35), -3px -3px 8px rgba(255,255,255,0.3), inset 2px 2px 4px rgba(255,255,255,0.3), inset -1px -1px 2px rgba(0,0,0,0.08) !important;
+        }
+        .jc-easy-apply-btn:active {
+          transform: translateY(1px);
+          box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15), inset -2px -2px 4px rgba(255,255,255,0.15) !important;
         }
         .jc-direct-apply-btn:hover {
           background-color: #93C5FD !important;

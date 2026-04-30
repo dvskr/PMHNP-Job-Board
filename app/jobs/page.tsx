@@ -165,6 +165,8 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           originalPostedAt: true,
           mode: true,
           applyLink: true,
+          applyOnPlatform: true,
+          sourceType: true,
           employerJobs: { select: { companyLogoUrl: true } },
         },
       }),

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ExternalLink, LogIn } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { ExternalLink, LogIn, Zap } from 'lucide-react';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 
 import InPlatformApplyForm from '@/components/InPlatformApplyForm';
@@ -14,6 +15,12 @@ interface ApplyButtonProps {
   jobTitle: string;
   isAuthenticated?: boolean;
   applyOnPlatform?: boolean;
+  /**
+   * Whether the job was posted directly by an employer on this platform
+   * (vs aggregated from an external source). Used to label external
+   * applies as "Direct Apply" instead of generic "Apply Now".
+   */
+  sourceType?: string | null;
 }
 
 function formatAppliedDate(date: Date): string {
@@ -23,12 +30,15 @@ function formatAppliedDate(date: Date): string {
   });
 }
 
-export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false }: ApplyButtonProps) {
+export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticated = false, applyOnPlatform = false, sourceType = null }: ApplyButtonProps) {
   const { isApplied, markApplied, getAppliedDate } = useAppliedJobs();
+  const searchParams = useSearchParams();
+  const directApply = !applyOnPlatform && !!applyLink && sourceType === 'employer';
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPlatformApply, setShowPlatformApply] = useState(false);
   const [serverApplied, setServerApplied] = useState<{ applied: boolean; appliedAt?: string; status?: string } | null>(null);
+  const autoOpened = useRef(false);
 
   // Check server for existing application (for platform-apply jobs)
   useEffect(() => {
@@ -38,6 +48,21 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       .then(data => setServerApplied(data))
       .catch(() => { });
   }, [isAuthenticated, applyOnPlatform, jobId]);
+
+  // Auto-open the apply popup when arriving via ?apply=1 from a job card.
+  // Fires once per mount; only for in-platform jobs to avoid popping a new
+  // tab on external links without a user gesture.
+  useEffect(() => {
+    if (autoOpened.current) return;
+    if (searchParams?.get('apply') !== '1') return;
+    if (!applyOnPlatform) return;
+    autoOpened.current = true;
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+    } else {
+      setShowPlatformApply(true);
+    }
+  }, [searchParams, applyOnPlatform, isAuthenticated]);
 
   const applied = isApplied(jobId) || serverApplied?.applied;
   const appliedDate = getAppliedDate(jobId);
@@ -237,7 +262,8 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
                 boxShadow: '6px 6px 16px rgba(13,148,136,0.30), -3px -3px 10px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.25), inset -1px -1px 2px rgba(0,0,0,0.08)',
               }}
             >
-              {applied ? 'Apply Again' : 'Apply Now'}
+              {applyOnPlatform && <Zap size={18} fill="currentColor" />}
+              {applied ? 'Apply Again' : applyOnPlatform ? 'Easy Apply' : directApply ? 'Direct Apply' : 'Apply Now'}
               {!applyOnPlatform && <ExternalLink size={20} />}
             </button>
 

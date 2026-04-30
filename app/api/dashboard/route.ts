@@ -218,6 +218,8 @@ async function getRecommendedJobs(userId: string) {
             isFeatured: true,
             isVerifiedEmployer: true,
             applyLink: true,
+            applyOnPlatform: true,
+            sourceType: true,
             employerJobs: { select: { companyLogoUrl: true } },
         },
     })

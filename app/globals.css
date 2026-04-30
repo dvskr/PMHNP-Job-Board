@@ -48,7 +48,7 @@ html,
 body {
   overflow-x: hidden;
   max-width: 100vw;
-  background-color: #F5F6F8 !important;
+  background-color: #F5F0EB !important;
   scrollbar-width: none !important;
   /* Firefox */
   -ms-overflow-style: none !important;
@@ -128,12 +128,12 @@ html.dark select:-webkit-autofill {
   --color-accent-light: #FCE4EC;
 
   /* ══════ BACKGROUNDS — Diorama Palette ══════ */
-  --bg-primary: #F5F6F8;
+  --bg-primary: #F5F0EB;
   --bg-secondary: #F3F2EF;
   --bg-secondary-rgb: 243, 242, 239;
   --bg-tertiary: #FFFFFF;
   --bg-shell: #1c1917; /* header, footer — warm near-black */
-  --bg-panel-alt: #F5F6F8; /* unified with body — no alt panels */
+  --bg-panel-alt: #F5F0EB; /* unified with body — no alt panels */
 
   /* ══════ TEXT — Deep Charcoal ══════ */
   --text-primary: #2D3748;

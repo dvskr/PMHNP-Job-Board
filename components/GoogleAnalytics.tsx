@@ -63,17 +63,17 @@ export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
 
   return (
     <>
-      {/* 
+      {/*
         1. Consent Mode v2 defaults — MUST be set BEFORE gtag.js loads.
-           Sets all consent to "denied" by default (GDPR/CCPA compliant).
-           CookieConsent component will call grantAllConsent() on accept. 
+           All non-essential storage denied by default (GDPR Art. 7 / ePrivacy).
+           CookieConsent component flips to 'granted' on user accept.
       */}
       <Script id="ga-consent-defaults" strategy="beforeInteractive" nonce={nonce}>
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('consent', 'default', {
-            'analytics_storage': 'granted',
+            'analytics_storage': 'denied',
             'ad_storage': 'denied',
             'ad_user_data': 'denied',
             'ad_personalization': 'denied',
@@ -105,7 +105,8 @@ export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
             cookie_flags: 'SameSite=None;Secure',
             cookie_domain: 'auto',
             cookie_expires: 63072000,
-            allow_google_signals: true,
+            anonymize_ip: true,
+            allow_google_signals: false,
             allow_ad_personalization_signals: false,
             custom_map: {
               'dimension1': 'user_role',

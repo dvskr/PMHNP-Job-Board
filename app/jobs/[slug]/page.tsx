@@ -891,7 +891,7 @@ export default async function JobPage({ params }: JobPageProps) {
                 )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
+                  <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
                   <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
                     <SaveJobButton jobId={job.id} />
                     {job.sourceType === 'employer' && (
@@ -994,7 +994,7 @@ export default async function JobPage({ params }: JobPageProps) {
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-[60] shadow-lg safe-bottom" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="px-4 py-2 pb-safe">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} />
+            <ApplyButton jobId={job.id} applyLink={job.applyLink} jobTitle={job.title} isAuthenticated={isAuthenticated} applyOnPlatform={job.applyOnPlatform} sourceType={job.sourceType} />
             <div style={{ display: 'grid', gridTemplateColumns: job.sourceType === 'employer' ? '1fr 1fr' : '1fr', gap: '8px' }}>
               <SaveJobButton jobId={job.id} />
               {job.sourceType === 'employer' && (
