@@ -114,10 +114,17 @@ const TITLE_FILTERS_FALLBACK = [
 
 // ── Budget Protection ──
 // Ultra plan: 20,000 requests/month, 5 req/sec
-// New approach uses ~30-50 calls/run × 2 runs/day × 30d ≈ 3,000 (well within)
+// New 3-pass approach uses ~30-50 calls/run × 2 runs/day × 30d ≈ 3,000.
+// Pre-2026-04-30 (the per-filter loop) used up to 390 calls/run, ~23k/mo,
+// and DID exhaust the quota. Caps below force-stop well before the next
+// quota cliff:
+//   MAX_REQUESTS_PER_RUN = 200 — equivalent to 12k/month worst-case
+//   MIN_REMAINING_BUFFER = 5000 — refuse to start a run when fewer than
+//     this many monthly requests remain. With 60 runs/month a 5k cushion
+//     covers ~10 admin-triggered manual runs without dipping below 0.
 const MAX_PAGES_PER_FILTER = 15;
-const MAX_REQUESTS_PER_RUN = 500;
-const MIN_REMAINING_BUFFER = 2000; // stop if API reports fewer than this remaining
+const MAX_REQUESTS_PER_RUN = 200;
+const MIN_REMAINING_BUFFER = 5000;
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
