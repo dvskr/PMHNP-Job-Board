@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendSavedJobReminderEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120 // 2 minutes — saved job reminder emails
 
@@ -120,6 +121,7 @@ export async function GET(request: NextRequest) {
             timestamp: new Date().toISOString(),
         })
     } catch (error) {
+        await sendCronFailureAlert('saved-job-reminder', error);
         console.error('Saved job reminder cron error:', error)
         return NextResponse.json({ error: 'Saved job reminder failed' }, { status: 500 })
     }

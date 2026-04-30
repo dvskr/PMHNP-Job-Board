@@ -4,6 +4,7 @@ import { CITIES } from '@/lib/pseo/city-data/cities'
 import { ALL_CATEGORY_CONFIGS } from '@/lib/pseo/category-city-template'
 import { SETTING_CONFIGS, getAllStateSlugs, resolveStateSlug } from '@/lib/pseo/setting-state-config'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 // Vercel Pro/Enterprise: up to 300s. Hobby: 60s.
 // Batched aggregation: processes a chunk of cities per invocation.
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
+      await sendCronFailureAlert('aggregate-pseo', error);
     console.error('[pseo-agg] Cron aggregation error:', error)
     return NextResponse.json({ error: 'Aggregation failed' }, { status: 500 })
   }

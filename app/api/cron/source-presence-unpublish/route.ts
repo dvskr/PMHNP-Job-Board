@@ -29,6 +29,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { HealthRecorder } from '@/lib/health';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120;
 
@@ -69,6 +70,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
         return NextResponse.json({ success: true, ...summary });
     } catch (error: unknown) {
+        await sendCronFailureAlert('source-presence-unpublish', error);
         log.error('Fatal error in presence-unpublish sweep', error);
         return NextResponse.json({ error: 'Presence unpublish failed' }, { status: 500 });
     }

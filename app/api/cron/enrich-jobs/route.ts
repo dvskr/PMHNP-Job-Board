@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -58,7 +59,7 @@ Fields:
 - salary_max: number, maximum annual salary in USD
 - salary_period: "hour", "month", or "year" (original unit BEFORE conversion)
 - job_type: "Full-Time", "Part-Time", "Contract", "Per Diem", or "PRN"
-- work_mode: "Remote", "On-site", "Hybrid", or "Telehealth"
+- work_mode: EXACTLY ONE of "Remote", "Hybrid", "In-Person" (use these strings verbatim — do NOT use "On-site", "Onsite", "Telehealth", or other variants; map "Telehealth" to "Remote" and "On-site"/"Onsite" to "In-Person")
 - city: string, job city (not employer HQ)
 - state: string, full US state name
 - experience_level: "Entry Level", "Mid Level", "Senior Level", or "Director"
@@ -252,17 +253,21 @@ export async function GET(req: Request) {
           fieldsUpdated++;
         }
 
-        // Work Mode
+        // Work Mode — canonicalize defensively (the prompt asks for the
+        // canonical taxonomy but LLMs sometimes ignore instructions).
         if (extracted.work_mode && !job.mode) {
-          updateData.mode = extracted.work_mode;
-          if (extracted.work_mode === 'Remote' || extracted.work_mode === 'Telehealth') {
-            updateData.isRemote = true;
+          const raw = extracted.work_mode.trim();
+          const canon = raw === 'Telehealth' ? 'Remote'
+            : (raw === 'On-site' || raw === 'Onsite') ? 'In-Person'
+            : (raw === 'Remote' || raw === 'Hybrid' || raw === 'In-Person') ? raw
+            : null;
+          if (canon) {
+            updateData.mode = canon;
+            if (canon === 'Remote') updateData.isRemote = true;
+            if (canon === 'Hybrid') updateData.isHybrid = true;
+            stats.modeUpdated++;
+            fieldsUpdated++;
           }
-          if (extracted.work_mode === 'Hybrid') {
-            updateData.isHybrid = true;
-          }
-          stats.modeUpdated++;
-          fieldsUpdated++;
         }
 
         // City
@@ -366,6 +371,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, ...summary });
   } catch (error) {
+      await sendCronFailureAlert('enrich-jobs', error);
     console.error('[Enrich Jobs] Fatal error:', error);
     return NextResponse.json({ error: 'Enrichment failed' }, { status: 500 });
   }

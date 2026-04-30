@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { checkSourceHealth } from '@/lib/ingestion-monitor';
 import { sendDailyReport, sendHealthAlert } from '@/lib/discord-notifier';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 60; // 1 minute — DB aggregations + Discord webhook
 
@@ -104,6 +105,7 @@ export async function GET(request: NextRequest) {
         console.log('[CRON] Daily report complete:', summary);
         return NextResponse.json(summary);
     } catch (error) {
+        await sendCronFailureAlert('daily-report', error);
         console.error('[CRON] Daily report error:', error);
         return NextResponse.json(
             { success: false, error: error instanceof Error ? error.message : 'Unknown error' },

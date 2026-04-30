@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendPerformanceReportEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120 // 2 minutes — employer report emails
 
@@ -95,6 +96,7 @@ export async function GET(request: NextRequest) {
             timestamp: new Date().toISOString(),
         })
     } catch (error) {
+        await sendCronFailureAlert('employer-report', error);
         console.error('Employer report cron error:', error)
         return NextResponse.json({ error: 'Employer report failed' }, { status: 500 })
     }

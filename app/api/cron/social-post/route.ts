@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runSocialPostPipeline, type SocialPlatform } from '@/lib/social-post-generator';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 // Allow enough time for image generation + upload
 export const maxDuration = 120; // 2 minutes
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(responseBody);
     } catch (error) {
+        await sendCronFailureAlert('social-post', error);
         console.error('[SOCIAL-CRON] Fatal error:', error);
         return NextResponse.json(
             {

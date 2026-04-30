@@ -158,3 +158,50 @@ export async function sendIngestionSummary(results: Array<{
 
     await sendDiscordMessage('', [embed]);
 }
+
+/**
+ * Send a cron-failure alert to Discord. Use from any cron's catch block
+ * so an unhandled error or 500-level outcome surfaces to the team channel
+ * instead of disappearing into Vercel function logs.
+ *
+ * Throttled internally — at most one alert per cron name per 30 minutes,
+ * tracked via in-memory map. Vercel functions are stateless so this only
+ * coalesces within a single run; cron-to-cron coalescing happens at the
+ * Discord side via the channel rate limit.
+ */
+const cronAlertSeen = new Map<string, number>();
+
+export async function sendCronFailureAlert(
+    cronName: string,
+    err: unknown,
+    extras?: Record<string, string | number | undefined>,
+): Promise<void> {
+    const last = cronAlertSeen.get(cronName) ?? 0;
+    if (Date.now() - last < 30 * 60 * 1000) return;
+    cronAlertSeen.set(cronName, Date.now());
+
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack?.split('\n').slice(0, 3).join('\n') : undefined;
+
+    const fields: Array<{ name: string; value: string; inline?: boolean }> = [
+        { name: 'Cron', value: cronName, inline: true },
+        { name: 'When', value: new Date().toISOString(), inline: true },
+        { name: 'Error', value: '```\n' + message.slice(0, 800) + '\n```', inline: false },
+    ];
+    if (stack) fields.push({ name: 'Stack', value: '```\n' + stack.slice(0, 600) + '\n```', inline: false });
+    if (extras) {
+        for (const [k, v] of Object.entries(extras)) {
+            if (v === undefined) continue;
+            fields.push({ name: k, value: String(v).slice(0, 500), inline: true });
+        }
+    }
+
+    const embed: DiscordEmbed = {
+        title: `🚨 Cron failed: ${cronName}`,
+        color: 0xFF0000,
+        fields,
+        timestamp: new Date().toISOString(),
+        footer: { text: 'PMHNP Job Board — Cron Failure' },
+    };
+    await sendDiscordMessage('', [embed]);
+}

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendNewCandidateAlertEmail } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120; // 2 minutes — email sends to multiple employers
 
@@ -137,6 +138,7 @@ export async function GET(req: Request) {
         logger.info('Candidate alert cron complete', { alertsProcessed: alerts.length, emailsSent: totalSent });
         return NextResponse.json({ message: 'Candidate alerts processed', sent: totalSent, total: alerts.length });
     } catch (error) {
+        await sendCronFailureAlert('candidate-alerts', error);
         logger.error('Candidate alert cron failed', error);
         return NextResponse.json({ error: 'Internal error' }, { status: 500 });
     }

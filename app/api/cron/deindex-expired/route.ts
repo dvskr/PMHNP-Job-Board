@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { pingAllSearchEnginesBatchDeleted } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300; // 5 minutes — may send up to 100 URL_DELETED to Google
 
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(summary);
     } catch (error) {
+        await sendCronFailureAlert('deindex-expired', error);
         console.error('[CRON:deindex-expired] Error:', error);
 
         return NextResponse.json(

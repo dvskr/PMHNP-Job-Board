@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 60 // 1 minute
 
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
+      await sendCronFailureAlert('cleanup-expired', error);
     console.error('Cron cleanup-expired error:', error)
     return NextResponse.json({ error: 'Cleanup failed' }, { status: 500 })
   }

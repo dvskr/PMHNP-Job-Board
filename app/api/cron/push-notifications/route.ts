@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import webpush from 'web-push'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120 // 2 minutes — push notifications to subscribers
 
@@ -99,6 +100,7 @@ export async function GET(request: NextRequest) {
             timestamp: new Date().toISOString(),
         })
     } catch (error) {
+        await sendCronFailureAlert('push-notifications', error);
         console.error('Push notification cron error:', error)
         return NextResponse.json({ error: 'Push notification failed' }, { status: 500 })
     }
