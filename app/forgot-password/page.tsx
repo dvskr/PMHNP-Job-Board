@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { Loader2, AlertCircle, CheckCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import AuthLayout from '@/components/auth/AuthLayout'
 import { inputStyle, labelStyle, errorBannerStyle, ctaButtonStyle } from '@/components/auth/authTokens'
@@ -19,11 +18,24 @@ export default function ForgotPasswordPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        }),
       })
-      if (resetError) { setError(resetError.message); return; }
+      if (!res.ok) {
+        if (res.status === 429) {
+          setError('Too many reset attempts. Try again in an hour.')
+        } else {
+          setError('Could not send reset email. Please try again.')
+        }
+        return
+      }
+      // The server returns the same 200 OK whether or not the email
+      // exists — show the same success UI to avoid account enumeration.
       setSuccess(true)
     } catch {
       setError('An unexpected error occurred')

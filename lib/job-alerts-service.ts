@@ -10,13 +10,14 @@ import {
 } from '@/lib/email-templates-v2'
 import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
+import { brand } from '@/config/brand'
 
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const BASE_URL = 'https://pmhnphiring.com'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl
 const IMG = `${BASE_URL}/images/email`
-const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || 'PMHNP Hiring <alerts@pmhnphiring.com>'
-const EMAIL_REPLY_TO = 'hello@pmhnphiring.com'
+const EMAIL_FROM = process.env.EMAIL_FROM_MARKETING || process.env.EMAIL_FROM || brand.email.marketingFrom
+const EMAIL_REPLY_TO = brand.email.replyTo
 
 // ─── State name → abbreviation map (for location matching) ────────────────────
 const STATE_TO_CODE: Record<string, string> = {
@@ -227,7 +228,10 @@ export async function sendJobAlerts(): Promise<{
 
     const alerts = await prisma.jobAlert.findMany({
       where: {
+        // Double opt-in: both flags must be set. Older rows
+        // are grandfathered by the migration (confirmed_at = created_at).
         isActive: true,
+        confirmedAt: { not: null },
         OR: [
           { lastSentAt: null },
           {

@@ -139,17 +139,33 @@ export async function middleware(request: NextRequest) {
 
     const isLocalhost = request.headers.get('host')?.includes('localhost');
 
-    // Build CSP with nonce — replaces 'unsafe-inline' for script-src
+    // Build CSP with nonce.
+    //
+    // Scripts: nonce + explicit hosts. We do NOT use 'strict-dynamic' —
+    // we still want the host whitelist to block third-party scripts a
+    // successful XSS might try to inject.
+    //
+    // Styles: 'unsafe-inline' is kept because Next.js (App Router +
+    // Turbopack) injects runtime style elements that cannot be nonced.
+    // Removing it breaks the app. Documented as residual gap.
+    //
+    // script-src-elem / style-src-elem / style-src-attr are explicit
+    // because some browsers (Safari) treat the unprefixed directive
+    // differently for inline vs external resources.
     const cspDirectives = [
         "default-src 'self'",
         `script-src 'self' 'nonce-${nonce}' https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com`,
-        // style-src keeps 'unsafe-inline' — Next.js injects styles at runtime that can't be nonced
+        `script-src-elem 'self' 'nonce-${nonce}' https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com`,
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "style-src-attr 'unsafe-inline'",
         "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://www.google-analytics.com https://www.googletagmanager.com",
         "font-src 'self' https://fonts.gstatic.com",
         "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://api.resend.com https://*.upstash.io https://api.stripe.com",
         "frame-src 'self' https://js.stripe.com https://www.youtube.com",
         "media-src 'self' https://*.supabase.co",
+        "worker-src 'self' blob:",
+        "manifest-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

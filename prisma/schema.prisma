@@ -173,7 +173,12 @@ model JobAlert {
   minSalary  Int?      @map("min_salary")
   maxSalary  Int?      @map("max_salary")
   frequency  String    @default("weekly")
-  isActive   Boolean   @default(true) @map("is_active")
+  // Double opt-in (CASL / GDPR best practice). New rows start with
+  // is_active = false and confirmed_at = null. The send-alerts cron
+  // only fires for confirmed alerts. Flipped by /api/job-alerts/confirm.
+  isActive   Boolean   @default(false) @map("is_active")
+  confirmedAt DateTime? @map("confirmed_at")
+  confirmationToken String? @unique @default(cuid()) @map("confirmation_token")
   lastSentAt DateTime? @map("last_sent_at")
   token      String    @unique @default(cuid())
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -183,6 +188,7 @@ model JobAlert {
   @@index([email])
   @@index([token])
   @@index([isActive])
+  @@index([confirmedAt])
   @@map("job_alerts")
 }
 
@@ -371,6 +377,13 @@ model UserProfile {
   disabilityStatus      String?   @map("disability_status")
   raceEthnicity         String?   @map("race_ethnicity")
   gender                String?
+  // Separate consent for the use of sensitive personal info under
+  // GDPR Art. 9 / CPRA SPI rules. Set to true only when the user
+  // explicitly checks the consent box that appears in the profile
+  // form when any EEO / DEA / NPI field is touched. Read by the
+  // employer-facing serializer to redact those fields when false.
+  sensitiveDataConsent       Boolean   @default(false) @map("sensitive_data_consent")
+  sensitiveDataConsentAt     DateTime? @map("sensitive_data_consent_at")
 
   // ── Federal Registrations ──
   npiNumber                    String?    @map("npi_number")
@@ -382,6 +395,18 @@ model UserProfile {
   lastNudgedAt      DateTime?     @map("last_nudged_at")
   lastSavedJobReminderAt DateTime? @map("last_saved_job_reminder_at")
   emailSuppressedAt DateTime?     @map("email_suppressed_at")
+
+  // ── Activity tracking + soft-delete lifecycle (GDPR storage limitation) ──
+  // lastSeenAt is bumped by middleware on each authenticated request (throttled
+  // to once per 15 minutes). It feeds the inactive-user purge cron.
+  // deletedAt is set on user-initiated account deletion; purgeAt is the
+  // deadline after which the hard-purge cron physically removes the record.
+  // purgeWarningEmailSentAt prevents the inactive purge from sending the
+  // warning more than once.
+  lastSeenAt              DateTime? @map("last_seen_at")
+  deletedAt               DateTime? @map("deleted_at")
+  purgeAt                 DateTime? @map("purge_at")
+  purgeWarningEmailSentAt DateTime? @map("purge_warning_email_sent_at")
 
   // ── Relations ──
   employerJobs         EmployerJob[]
@@ -407,6 +432,9 @@ model UserProfile {
   @@index([supabaseId])
   @@index([email])
   @@index([profileVisible, openToOffers, role])
+  @@index([deletedAt])
+  @@index([purgeAt])
+  @@index([lastSeenAt])
   @@map("user_profiles")
 }
 
@@ -975,4 +1003,68 @@ model PseoStats {
   @@unique([type, categorySlug, locationSlug])
   @@index([type, locationSlug])
   @@index([categorySlug])
+}
+
+
+// ─── Data Subject Access Requests (DSAR) ─────────────────────────────
+// Tracks GDPR Art. 15-22 / CCPA-CPRA requests. SLA: 30 days (GDPR)
+// or 45 days (CCPA, with 45-day extension on notice).
+//
+// IMPORTANT: this model was added in commit "feat(privacy): DSAR intake".
+// Run `npx prisma migrate dev --name add_data_request` to apply.
+model DataRequest {
+  id              String   @id @default(cuid())
+  email           String
+  fullName        String?  @map("full_name")
+  type            String   // 'access' | 'deletion' | 'correction' | 'portability' | 'object' | 'restrict' | 'opt_out_sale'
+  description     String?  @db.Text
+  jurisdiction    String?  // 'gdpr' | 'ccpa' | 'lgpd' | 'pipeda' | 'other'
+
+  // Tracking
+  status          String   @default("received")  // 'received' | 'in_progress' | 'awaiting_id' | 'completed' | 'rejected'
+  identityVerified Boolean @default(false) @map("identity_verified")
+  resolutionNote  String?  @db.Text @map("resolution_note")
+
+  // Audit timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  acknowledgedAt  DateTime? @map("acknowledged_at")
+  completedAt     DateTime? @map("completed_at")
+  dueBy           DateTime  @map("due_by")  // computed at insert time from jurisdiction
+
+  // Anti-abuse — IP for rate limiting; cleared after completion
+  requesterIp     String?  @map("requester_ip")
+  userAgent       String?  @db.Text @map("user_agent")
+
+  @@index([email])
+  @@index([status])
+  @@index([dueBy(sort: Asc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("data_requests")
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────────
+// Append-only record of sensitive actions (deletions, exports, role
+// changes, DSAR completions, cron purges, etc.). Used for SOC2 audit
+// trail and GDPR Art. 30 record-of-processing.
+//
+// Forward-only — rows here should never be updated or deleted.
+// A periodic archival job (>365 days) can move old rows to cold storage
+// but deletion is never automatic.
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // 'account.delete' | 'account.restore' | 'account.purge' | 'data.export' | 'data.request.received' | 'data.request.completed' | 'role.change' | 'cron.purge_soft_deleted' | 'cron.purge_inactive' | etc.
+  actorType   String   @map("actor_type")    // 'user' | 'admin' | 'system'
+  actorId     String?  @map("actor_id")      // null when actorType = 'system'
+  targetType  String?  @map("target_type")   // 'user' | 'job' | 'application' | 'data_request'
+  targetId    String?  @map("target_id")
+  ip          String?
+  userAgent   String?  @db.Text @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([action])
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }

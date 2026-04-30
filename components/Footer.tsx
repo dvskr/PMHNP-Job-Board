@@ -190,6 +190,22 @@ export default function Footer() {
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
               >Terms</Link>
+              <Link href="/security" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              >Security</Link>
+              <Link href="/sub-processors" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              >Sub-processors</Link>
+              <Link href="/data-request" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              >Data Request</Link>
+              <Link href="/do-not-sell" style={{ fontSize: '13px', color: '#78716c', textDecoration: 'none' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#5eead4'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#78716c'; }}
+              >Do Not Sell or Share</Link>
               <button
                 type="button"
                 onClick={reopenConsentBanner}

@@ -4,12 +4,12 @@ import Script from 'next/script';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useCallback } from 'react';
 import {
-  initConsentDefaults,
   trackPageView,
   setUserId,
   setUserProperties,
   type UserProperties,
 } from '@/lib/analytics';
+import type { ConsentCategories } from '@/lib/consent';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -56,29 +56,43 @@ function UserIdentitySync() {
 }
 
 // ── Main Component ──────────────────────────────────────────────
-export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
+interface GoogleAnalyticsProps {
+  nonce?: string;
+  /**
+   * Initial consent state from the HttpOnly cookie, read by the server
+   * component. When present we bake the analytics/marketing flags
+   * directly into the consent default — no localStorage probe needed.
+   */
+  initialConsent?: ConsentCategories | null;
+}
+
+export default function GoogleAnalytics({ nonce, initialConsent = null }: GoogleAnalyticsProps) {
   if (!GA_MEASUREMENT_ID || process.env.NODE_ENV !== 'production') {
     return null;
   }
+
+  const analytics = initialConsent?.analytics === true ? 'granted' : 'denied';
+  const marketing = initialConsent?.marketing === true ? 'granted' : 'denied';
 
   return (
     <>
       {/*
         1. Consent Mode v2 defaults — MUST be set BEFORE gtag.js loads.
-           All non-essential storage denied by default (GDPR Art. 7 / ePrivacy).
-           CookieConsent component flips to 'granted' on user accept.
+           Defaults are baked from the HttpOnly cookie at SSR time so we
+           never touch localStorage and the consent state is always
+           authoritative on the first paint.
       */}
       <Script id="ga-consent-defaults" strategy="beforeInteractive" nonce={nonce}>
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('consent', 'default', {
-            'analytics_storage': 'denied',
-            'ad_storage': 'denied',
-            'ad_user_data': 'denied',
-            'ad_personalization': 'denied',
+            'analytics_storage': '${analytics}',
+            'ad_storage': '${marketing}',
+            'ad_user_data': '${marketing}',
+            'ad_personalization': '${marketing}',
             'functionality_storage': 'granted',
-            'personalization_storage': 'denied',
+            'personalization_storage': '${analytics}',
             'security_storage': 'granted',
             'wait_for_update': 500
           });
@@ -118,19 +132,10 @@ export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
             }
           });
 
-          // Check for stored consent
-          try {
-            var consent = localStorage.getItem('pmhnp_cookie_consent');
-            if (consent === 'accepted') {
-              gtag('consent', 'update', {
-                'analytics_storage': 'granted',
-                'ad_storage': 'granted',
-                'ad_user_data': 'granted',
-                'ad_personalization': 'granted',
-                'personalization_storage': 'granted'
-              });
-            }
-          } catch(e) {}
+          // No localStorage probe — the consent default above is
+          // already authoritative because it was baked from the
+          // HttpOnly cookie. Subsequent updates flow through
+          // gtag('consent','update', ...) calls fired by the banner.
         `}
       </Script>
 

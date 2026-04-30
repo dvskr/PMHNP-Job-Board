@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { getResumeUrl, getPathFromUrl } from '@/lib/supabase-storage'
 import { verifyExtensionToken } from '@/lib/verify-extension-token'
+import { logAudit } from '@/lib/audit-log'
 
 function tryParseJson(val: string | null): string[] | null {
     if (!val) return null
@@ -47,6 +48,17 @@ export async function GET(req: NextRequest) {
         })
 
         if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+        void logAudit({
+            action: 'data.export',
+            actorType: extensionUser ? 'user' : 'user',
+            actorId: profile.id,
+            targetType: 'user',
+            targetId: profile.id,
+            ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+            userAgent: req.headers.get('user-agent'),
+            metadata: { source: extensionUser ? 'extension' : 'web' },
+        })
 
         const exportData = {
             personal: {

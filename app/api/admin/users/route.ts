@@ -12,7 +12,11 @@ export async function GET(request: NextRequest) {
     // Audit log: admin accessing user data
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    logAudit('admin_users_list', user?.email || 'unknown');
+    void logAudit({
+        action: 'admin.users.list',
+        actorType: 'admin',
+        metadata: { email: user?.email || 'unknown' },
+    });
 
     try {
         // User profiles
