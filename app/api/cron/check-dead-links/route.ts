@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { checkJobHealth, HealthRecorder, castFlipVote, type HealthDecision } from '@/lib/health';
 import { logger } from '@/lib/logger';
 import { inngest } from '@/lib/inngest/client';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
 
@@ -43,7 +44,7 @@ interface RunSummary {
 export async function GET(req: Request): Promise<NextResponse> {
     const log = logger.withContext({ cron: 'check-dead-links' });
 
-    const authError = checkAuth(req);
+    const authError = await verifyCronOrAdmin(req);
     if (authError) return authError;
 
     const startTime = Date.now();
@@ -62,17 +63,6 @@ export async function GET(req: Request): Promise<NextResponse> {
         log.error('Fatal error during dead-link sweep', error);
         return NextResponse.json({ error: 'Dead link check failed' }, { status: 500 });
     }
-}
-
-function checkAuth(req: Request): NextResponse | null {
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        if (process.env.NODE_ENV !== 'development') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-    }
-    return null;
 }
 
 async function loadJobsToCheck(): Promise<JobToCheck[]> {
