@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { pingGoogle, pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 300;
 
@@ -39,10 +40,8 @@ interface ScoredUrl {
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = await verifyCronOrAdmin(request);
+  if (authError) return authError;
 
   const startTime = Date.now();
   console.log('[CRON:index-pseo] Starting pSEO URL indexing...');

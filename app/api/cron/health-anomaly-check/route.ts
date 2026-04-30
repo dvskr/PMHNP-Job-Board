@@ -17,13 +17,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { detectAnomalies, emitAnomaly } from '@/lib/health/anomaly-alerts';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 60;
 
 export async function GET(req: Request): Promise<NextResponse> {
     const log = logger.withContext({ cron: 'health-anomaly-check' });
 
-    const authError = checkAuth(req);
+    const authError = await verifyCronOrAdmin(req);
     if (authError) return authError;
 
     const startTime = Date.now();
@@ -50,13 +51,3 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 }
 
-function checkAuth(req: Request): NextResponse | null {
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        if (process.env.NODE_ENV !== 'development') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-    }
-    return null;
-}

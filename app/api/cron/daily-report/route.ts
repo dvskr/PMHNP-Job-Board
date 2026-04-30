@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSourceHealth } from '@/lib/ingestion-monitor';
 import { sendDailyReport, sendHealthAlert } from '@/lib/discord-notifier';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 60; // 1 minute — DB aggregations + Discord webhook
 
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
 
     try {
         console.log('[CRON] Starting daily quality report...');

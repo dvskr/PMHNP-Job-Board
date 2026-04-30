@@ -10,31 +10,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { runSocialPostPipeline, type SocialPlatform } from '@/lib/social-post-generator';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 // Allow enough time for image generation + upload
 export const maxDuration = 120; // 2 minutes
 
-function verifyCronSecret(request: NextRequest): boolean {
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (!cronSecret) {
-        console.error('[SOCIAL-CRON] CRON_SECRET not configured');
-        return false;
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-        return true;
-    }
-
-    return authHeader === `Bearer ${cronSecret}`;
-}
-
 export async function GET(request: NextRequest) {
     try {
-        if (!verifyCronSecret(request)) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        const authError = await verifyCronOrAdmin(request);
+        if (authError) return authError;
 
         const dryRun = request.nextUrl.searchParams.get('dry') === 'true';
         const platform = (request.nextUrl.searchParams.get('platform') || 'facebook') as SocialPlatform;

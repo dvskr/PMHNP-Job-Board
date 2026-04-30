@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { pingAllSearchEnginesBatch } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 300; // 5 minutes — submits 200+ URLs to search engines
 
@@ -18,10 +19,8 @@ const BASE_URL = 'https://pmhnphiring.com';
  */
 export async function GET(request: NextRequest) {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
 
     const startTime = Date.now();
     console.log('[CRON:index-urls] Starting daily search engine indexing');

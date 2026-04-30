@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import webpush from 'web-push'
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 120 // 2 minutes — push notifications to subscribers
 
@@ -17,10 +18,8 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 }
 
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
 
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
         return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 500 })

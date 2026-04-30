@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendNewCandidateAlertEmail } from '@/lib/email-service';
 import { logger } from '@/lib/logger';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 120; // 2 minutes — email sends to multiple employers
 
@@ -12,12 +13,8 @@ export const maxDuration = 120; // 2 minutes — email sends to multiple employe
  */
 export async function GET(req: Request) {
     // Auth: verify cron secret
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await verifyCronOrAdmin(req);
+    if (authError) return authError;
 
     try {
         // Get all active alerts
