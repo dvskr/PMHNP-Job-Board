@@ -124,13 +124,15 @@ export async function POST(request: NextRequest) {
         },
       }),
 
-      // Posted Within — using createdAt (when job appeared on PMHNPHiring.com)
+      // Posted Within — uses originalPostedAt (the source's posting date)
+      // to match the filter logic in lib/filters.ts and the user-facing
+      // "Posted N days ago" labels. Standardized 2026-04-30.
       // Past 24h
       prisma.job.count({
         where: {
           AND: [
             postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+            { originalPostedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
           ],
         },
       }),
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
         where: {
           AND: [
             postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+            { originalPostedAt: { gte: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
           ],
         },
       }),
@@ -147,7 +149,7 @@ export async function POST(request: NextRequest) {
         where: {
           AND: [
             postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+            { originalPostedAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
           ],
         },
       }),
@@ -155,7 +157,7 @@ export async function POST(request: NextRequest) {
         where: {
           AND: [
             postedBase,
-            { createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+            { originalPostedAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
           ],
         },
       }),

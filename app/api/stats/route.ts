@@ -21,11 +21,15 @@ export async function GET(request: NextRequest) {
           by: ['employer'],
           where: { isPublished: true },
         }),
+        // User-facing "NEW TODAY" / "NEW THIS WEEK" homepage badges use
+        // originalPostedAt — consistent with the lib/filters.ts standard.
+        // A job ingested today but posted 30 days ago by the source is
+        // NOT "new today" from the user's perspective.
         prisma.job.count({
-          where: { isPublished: true, createdAt: { gte: oneDayAgo } },
+          where: { isPublished: true, originalPostedAt: { gte: oneDayAgo } },
         }),
         prisma.job.count({
-          where: { isPublished: true, createdAt: { gte: oneWeekAgo } },
+          where: { isPublished: true, originalPostedAt: { gte: oneWeekAgo } },
         }),
         prisma.job.groupBy({
           by: ['state'],
