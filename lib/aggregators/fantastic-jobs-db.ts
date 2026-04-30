@@ -154,20 +154,24 @@ function mapEmploymentType(job: FantasticJobApiResponse): string | null {
     return t;
 }
 
-// Common quality filters applied to every pass. Tightens the funnel so
-// each fetched row has a higher chance of becoming a catalog add.
-const COMMON_FILTERS: Record<string, string> = {
-    location_filter: 'United States',
-    // Skip recruitment / staffing agencies — they post duplicates of
-    // direct-employer roles and pollute employer dedup. Documented param
-    // on Apify-side; harmless if the RapidAPI tier ignores it.
+// Quality filters for the EXPERIMENTAL passes. Trying these in passes
+// 1+2 to see if the API supports them. If they're rejected (Discord-
+// observed fetch=0 across all passes after 2026-04-30 trigger), the
+// fallback pass below ignores them so we always get a working baseline.
+const QUALITY_FILTERS: Record<string, string> = {
+    // Skip recruitment / staffing agencies. Docs ('removeAgency') confirm
+    // it but the param name might be different on the RapidAPI version
+    // (could also be 'remove_agency' or 'agency_filter').
     remove_agency: 'true',
-    // Plain text descriptions (smaller payload, easier downstream cleaning).
+    // Plain text descriptions (smaller payload).
     description_type: 'text',
-    // Whitelist high-quality ATS platforms. The free-form career-page
-    // scrapes from unknown ATS providers tend to be lower-quality and
-    // we already ingest most direct ATS sources separately.
+    // Whitelist high-quality ATS platforms.
     ats: 'greenhouse,lever,workday,ashby,paylocity,smartrecruiters,bamboohr,jobvite,icims,paycom,ukg,adp',
+};
+
+// Required for every pass.
+const BASE_FILTERS: Record<string, string> = {
+    location_filter: 'United States',
 };
 
 async function fetchPage(
@@ -177,7 +181,7 @@ async function fetchPage(
     const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
         offset: offset.toString(),
-        ...COMMON_FILTERS,
+        ...BASE_FILTERS,
         ...extraParams,
     });
 
@@ -314,10 +318,10 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
     const seenUrls = new Set<string>();
     const callBudget = { used: 0, cap: MAX_REQUESTS_PER_RUN };
 
-    // ── PASS 1: advanced_title_filter (consolidated OR'd terms) ──────────
+    // ── PASS 1: advanced_title_filter + experimental quality filters ─────
     const pass1 = await runPass(
-        'advanced_title_filter',
-        { advanced_title_filter: ADVANCED_TITLE_OR },
+        'advanced_title_filter+quality',
+        { advanced_title_filter: ADVANCED_TITLE_OR, ...QUALITY_FILTERS },
         allJobs,
         seenUrls,
         callBudget,
@@ -325,8 +329,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
 
     await sleep(1000);
 
-    // ── PASS 2: description_filter — Nurse Practitioner / APRN titles
-    //     where description mentions psychiatric / mental health work ────
+    // ── PASS 2: description_filter + quality filters ─────────────────────
     if (callBudget.used < callBudget.cap) {
         for (const titleFilter of TITLE_FILTERS_BROAD) {
             if (callBudget.used >= callBudget.cap) break;
@@ -335,6 +338,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
                 {
                     title_filter: titleFilter,
                     description_filter: DESCRIPTION_FILTER_PSYCH,
+                    ...QUALITY_FILTERS,
                 },
                 allJobs,
                 seenUrls,
@@ -344,10 +348,13 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
         }
     }
 
-    // ── PASS 3: legacy single-term fallback (only if pass 1 returned 0
-    //     — protects us if advanced_title_filter is rejected at our tier) ─
-    if (pass1.jobsFound === 0 && callBudget.used < callBudget.cap) {
-        console.warn('[Fantastic-Jobs-DB] PASS 1 returned 0 — falling back to per-term loop');
+    // ── PASS 3: legacy single-term fallback — NO quality filters, NO
+    //     advanced syntax. Mirrors exactly what worked before today's
+    //     refactor. Always fires when the count from passes 1+2 is zero,
+    //     so we always have a working baseline if any new param is
+    //     rejected by the API tier.
+    if (allJobs.length === 0 && callBudget.used < callBudget.cap) {
+        console.warn('[Fantastic-Jobs-DB] Passes 1+2 returned 0 — falling back to per-term legacy loop without experimental filters');
         for (const titleFilter of TITLE_FILTERS_FALLBACK) {
             if (callBudget.used >= callBudget.cap) break;
             await runPass(
