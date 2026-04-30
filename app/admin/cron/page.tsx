@@ -15,6 +15,32 @@ interface TriggerState {
     };
 }
 
+function buildSuccessMessage(parsed: unknown): string {
+    if (typeof parsed === 'object' && parsed !== null) {
+        const p = parsed as Record<string, unknown>;
+        const audit = p.audit as { staged?: number; flushed?: number; failedFlushes?: number; lastError?: string | null } | undefined;
+        if (audit) {
+            const parts = [`staged=${audit.staged ?? 0}`, `flushed=${audit.flushed ?? 0}`];
+            if (audit.failedFlushes && audit.failedFlushes > 0) {
+                parts.push(`FAILED=${audit.failedFlushes}`);
+                if (audit.lastError) parts.push(`error="${audit.lastError}"`);
+            }
+            return `OK · ${parts.join(' · ')}`;
+        }
+        if (typeof p.message === 'string') return `OK · ${p.message}`;
+    }
+    return 'Triggered successfully';
+}
+
+function buildErrorMessage(status: number, parsed: unknown, fallback: string): string {
+    if (typeof parsed === 'object' && parsed !== null) {
+        const p = parsed as Record<string, unknown>;
+        const err = (p.error as string | undefined) ?? (p.message as string | undefined);
+        if (err) return `HTTP ${status} · ${err}`;
+    }
+    return `HTTP ${status} · ${fallback.slice(0, 200)}`;
+}
+
 export default function CronHealthDashboard() {
     const [crons, setCrons] = useState<CronJobInfo[]>([]);
     const [loading, setLoading] = useState(true);
@@ -46,19 +72,25 @@ export default function CronHealthDashboard() {
         }));
 
         try {
-            // Note: In production this would require vercel cron secret auth header 
-            // but for admin dashboard we can assume backend verifies session token.
-            const res = await fetch(path, { method: 'POST' });
-            
-            const data = await res.text();
-            let msg = data;
-            try { msg = JSON.parse(data).message || data; } catch(e) {}
+            // Vercel cron handlers are GET. Admin sessions are accepted by
+            // verifyCronOrAdmin; the cron secret is not exposed to browsers.
+            const res = await fetch(path, { method: 'GET' });
+
+            const text = await res.text();
+            let parsed: unknown = text;
+            try { parsed = JSON.parse(text); } catch { /* not JSON, keep raw */ }
+
+            // Surface as much detail as possible — recorder lastError lives
+            // at audit.lastError, generic error at .error, etc.
+            const message = res.ok
+                ? buildSuccessMessage(parsed)
+                : buildErrorMessage(res.status, parsed, text);
 
             setTriggerState(prev => ({
                 ...prev,
                 [path]: {
                     loading: false,
-                    result: { success: res.ok, message: res.ok ? 'Triggered successfully' : `Failed: ${msg.slice(0, 50)}` }
+                    result: { success: res.ok, message }
                 }
             }));
         } catch (err) {
@@ -66,7 +98,7 @@ export default function CronHealthDashboard() {
                 ...prev,
                 [path]: {
                     loading: false,
-                    result: { success: false, message: 'Execution error' }
+                    result: { success: false, message: `Execution error: ${err instanceof Error ? err.message : 'unknown'}` }
                 }
             }));
         }
@@ -153,14 +185,17 @@ export default function CronHealthDashboard() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', maxWidth: '60%' }}>
                                         {state?.result && (
-                                            <div style={{ 
-                                                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px',
-                                                color: state.result.success ? '#16A34A' : '#DC2626'
+                                            <div style={{
+                                                display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12px',
+                                                color: state.result.success ? '#16A34A' : '#DC2626',
+                                                fontFamily: 'ui-monospace, monospace',
+                                                wordBreak: 'break-word',
+                                                lineHeight: 1.4,
                                             }}>
-                                                {state.result.success ? <CheckCircle size={16} /> : <XCircle size={16} />}
-                                                {state.result.message}
+                                                {state.result.success ? <CheckCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} /> : <XCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />}
+                                                <span>{state.result.message}</span>
                                             </div>
                                         )}
 

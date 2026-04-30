@@ -28,6 +28,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { HealthRecorder } from '@/lib/health';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 120;
 
@@ -54,7 +55,7 @@ interface RunSummary {
 export async function GET(req: Request): Promise<NextResponse> {
     const log = logger.withContext({ cron: 'source-presence-unpublish' });
 
-    const authError = checkAuth(req);
+    const authError = await verifyCronOrAdmin(req);
     if (authError) return authError;
 
     const startTime = Date.now();
@@ -71,17 +72,6 @@ export async function GET(req: Request): Promise<NextResponse> {
         log.error('Fatal error in presence-unpublish sweep', error);
         return NextResponse.json({ error: 'Presence unpublish failed' }, { status: 500 });
     }
-}
-
-function checkAuth(req: Request): NextResponse | null {
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        if (process.env.NODE_ENV !== 'development') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-    }
-    return null;
 }
 
 function readThreshold(log = logger): number {
