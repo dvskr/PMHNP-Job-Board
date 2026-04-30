@@ -1,30 +1,59 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
-// ── Known Bot User-Agents to Block ────────────────────────────────────────
-// These are scraping tools, not legitimate search crawlers.
-const BLOCKED_BOT_PATTERNS = [
-    /python-requests/i,
-    /python-urllib/i,
-    /scrapy/i,
-    /httpx/i,
-    /aiohttp/i,
-    /curl\/\d/i,
-    /wget/i,
-    /phantomjs/i,
-    /headlesschrome/i,
-    /selenium/i,
-    /puppeteer/i,
-    /playwright/i,
-    /java\/\d/i,
-    /go-http-client/i,
-    /node-fetch/i,
-    /axios/i,
-    /undici/i,
+// ── Verified Search & AI Crawlers ─────────────────────────────────
+// Allowlist of well-known crawlers that bypass per-IP rate limits.
+// We trust the UA here because:
+//   1. Vercel's Verified Bots feature reverse-DNS-validates these at the edge
+//      before they even reach this middleware (when enabled).
+//   2. Anyone spoofing these UAs from a non-verified IP gets caught by
+//      Vercel's Bot Filter (low BotScore → challenge or block).
+//   3. The rate limit is a backstop, not the primary defense — it's there
+//      to throttle the long tail of unidentified scrapers.
+const KNOWN_CRAWLER_UAS = [
+    // Search engines
+    /Googlebot/i,
+    /Google-InspectionTool/i,
+    /AdsBot-Google/i,
+    /Mediapartners-Google/i,
+    /Bingbot/i,
+    /BingPreview/i,
+    /DuckDuckBot/i,
+    /Yandex(?:Bot|Images)/i,
+    /Baiduspider/i,
+    /Applebot/i,
+    /Sogou/i,
+    /Exabot/i,
+    /facebot/i,
+    // AI search & LLM crawlers
+    /OAI-SearchBot/i,
+    /GPTBot/i,
+    /ChatGPT-User/i,
+    /ClaudeBot/i,
+    /anthropic-ai/i,
+    /PerplexityBot/i,
+    /Google-Extended/i,
+    /Bytespider/i,
+    /CCBot/i,
+    /cohere-ai/i,
+    /YouBot/i,
+    /Diffbot/i,
+    // Social / link-preview bots (legitimate, low volume)
+    /facebookexternalhit/i,
+    /LinkedInBot/i,
+    /Twitterbot/i,
+    /Slackbot/i,
+    /Discordbot/i,
+    /WhatsApp/i,
+    /TelegramBot/i,
+    /Pinterest/i,
+    /redditbot/i,
 ];
 
-function isBlockedBot(ua: string): boolean {
-    return BLOCKED_BOT_PATTERNS.some(pattern => pattern.test(ua));
+function isKnownCrawler(ua: string): boolean {
+    if (!ua) return false;
+    return KNOWN_CRAWLER_UAS.some((p) => p.test(ua));
 }
 
 // ── Strict-Consent Regions ─────────────────────────────────────────
@@ -54,19 +83,6 @@ const STRICT_CONSENT_COUNTRIES = new Set([
 export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const pathname = url.pathname;
-
-    // ── Bot Detection ─────────────────────────────────────────────────
-    // Block known scraping tools. Legitimate crawlers (Googlebot, Bingbot)
-    // are NOT blocked — only programmatic scraping libraries.
-    const userAgent = request.headers.get('user-agent') || '';
-    if (isBlockedBot(userAgent)) {
-        return new NextResponse('Forbidden', { status: 403 });
-    }
-
-    // Block requests with no User-Agent (almost always bots)
-    if (!userAgent && pathname.startsWith('/api/')) {
-        return new NextResponse('Forbidden', { status: 403 });
-    }
 
     // ── 410 Gone for Deleted/Expired Job URLs ─────────────────────────
     // GSC Fix: Returns HTTP 410 for job detail pages where the job no longer
@@ -215,6 +231,44 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/jobs/undefined') || pathname.startsWith('/jobs/null')) {
         url.pathname = '/jobs';
         return NextResponse.redirect(url, 301);
+    }
+
+    // ── Per-IP Rate Limiting on Public Listing Paths ─────────────────
+    // Anti-scraping defense for our highest-value public pages. Verified
+    // crawlers (Googlebot, GPTBot, etc.) bypass the limit. Real users
+    // browse 5–30 pages/min — well under the thresholds. Anything
+    // hitting these limits is mass-scraping our job catalog.
+    //
+    // Edge cases:
+    //   - GET only (POSTs go through their own API rate limits)
+    //   - Skipped on _next/data/ JSON fetches (handled by Next.js itself)
+    const userAgent = request.headers.get('user-agent') || '';
+    const isCrawler = isKnownCrawler(userAgent);
+    if (
+        request.method === 'GET' &&
+        !isCrawler &&
+        !pathname.startsWith('/_next/')
+    ) {
+        let limitConfig: { limit: number; windowSeconds: number } | null = null;
+        let limitKey = '';
+
+        if (pathname.startsWith('/jobs/') && pathname.split('/').length === 3) {
+            // Job detail: /jobs/[slug]
+            limitConfig = RATE_LIMITS.publicDetail;
+            limitKey = 'public:job-detail';
+        } else if (pathname === '/jobs' || pathname.startsWith('/jobs/')) {
+            // Job listings + faceted listings (/jobs/remote, /jobs/full-time, etc.)
+            limitConfig = RATE_LIMITS.publicListing;
+            limitKey = 'public:job-listing';
+        } else if (pathname.startsWith('/companies/')) {
+            limitConfig = RATE_LIMITS.publicCompany;
+            limitKey = 'public:company';
+        }
+
+        if (limitConfig) {
+            const limited = await rateLimit(request, limitKey, limitConfig);
+            if (limited) return limited;
+        }
     }
 
     // Refresh the Supabase session (keeps auth cookies alive)

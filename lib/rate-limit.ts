@@ -52,6 +52,12 @@ export const RATE_LIMITS = {
     employer: { limit: 30, windowSeconds: 60 },
     /** Candidate messaging: 10 messages per 24h */
     candidateMessage: { limit: 10, windowSeconds: 86400 },
+    /** Public job listing pages: 120 req/min per IP (real users < 30/min) */
+    publicListing: { limit: 120, windowSeconds: 60 },
+    /** Public job detail pages: 240 req/min per IP (4/sec — fast browsing OK) */
+    publicDetail: { limit: 240, windowSeconds: 60 },
+    /** Public company pages: 60 req/min per IP (rarely deep-browsed) */
+    publicCompany: { limit: 60, windowSeconds: 60 },
 } as const;
 
 // --- Redis Backend Setup ---
