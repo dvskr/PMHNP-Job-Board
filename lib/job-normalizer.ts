@@ -191,19 +191,20 @@ export function canonicalizeJobType(raw: string | null | undefined): string | nu
   return null;
 }
 
+// Mode patterns. Order matters in the detectMode function — Hybrid is the
+// most specific (mentions of "split between..." or "X days remote" are
+// indicators of Hybrid even if "remote" or "in-person" appear in the same
+// sentence).
+const MODE_HYBRID_RE = /\b(?:hybrid|split between|days (?:in[\s-]office|remote)|(?:\d+\s*)?days? (?:on[\s-]site|in[\s-]person)|flex(?:ible)? schedule|partial(?:ly)? remote)\b/i;
+const MODE_REMOTE_RE = /\b(?:fully remote|100% remote|100 ?% remote|wfh|work[\s-]from[\s-]home|remote[\s-]?friendly|remote[\s-]?eligible|telecommute|telework|virtual position|virtual role|home[\s-]based|telehealth|tele[\s-]psychiatry|tele[\s-]health|remote)\b/i;
+const MODE_ONSITE_RE = /\b(?:on[\s-]?site|onsite|in[\s-]?person|in person|office[\s-]?based|in[\s-]?office|office\s+location|clinic[\s-]?based|hospital[\s-]?based|outpatient (?:clinic|setting)|brick[\s-]and[\s-]mortar|on[\s-]premises?)\b/i;
+
 function detectMode(text: string): string | null {
-  const lowerText = text.toLowerCase();
-
-  if (lowerText.includes('hybrid')) {
-    return 'Hybrid';
-  }
-  if (lowerText.includes('remote') || lowerText.includes('telehealth') || lowerText.includes('telepsychiatry') || lowerText.includes('work from home')) {
-    return 'Remote';
-  }
-  if (lowerText.includes('on-site') || lowerText.includes('onsite') || lowerText.includes('in-person') || lowerText.includes('in person')) {
-    return 'In-Person';
-  }
-
+  // Hybrid is most specific — check first so "remote" in a hybrid post
+  // doesn't get classified as fully Remote.
+  if (MODE_HYBRID_RE.test(text)) return 'Hybrid';
+  if (MODE_REMOTE_RE.test(text)) return 'Remote';
+  if (MODE_ONSITE_RE.test(text)) return 'In-Person';
   return null;
 }
 
