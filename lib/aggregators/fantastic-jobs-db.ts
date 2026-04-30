@@ -149,6 +149,13 @@ function mapEmploymentType(job: FantasticJobApiResponse): string | null {
 // Required for every pass.
 const BASE_FILTERS: Record<string, string> = {
     location_filter: 'United States',
+    // Without description_type=text, the API returns description=null for
+    // many jobs — observed via investigate-normalizer-rejections.ts on
+    // 2026-04-30: 41/50 normalizer rejections were valid PMHNP titles with
+    // 0-length descriptions. The normalizer requires a description body
+    // for LLM enrichment + SEO so the job got dropped at insert time.
+    // This param is documented and was confirmed safe via the probe run.
+    description_type: 'text',
 };
 
 // Per-run diagnostics so we can surface API responses to Discord/console
