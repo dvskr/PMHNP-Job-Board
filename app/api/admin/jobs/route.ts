@@ -15,7 +15,11 @@ export async function GET(request: NextRequest) {
     // Audit log: admin accessing job data
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    logAudit('admin_jobs_list', user?.email || 'unknown');
+    void logAudit({
+        action: 'admin.jobs.list',
+        actorType: 'admin',
+        metadata: { email: user?.email || 'unknown' },
+    });
 
     try {
         const { searchParams } = new URL(request.url);

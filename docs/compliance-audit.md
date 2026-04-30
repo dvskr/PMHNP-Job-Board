@@ -29,7 +29,7 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 | 1 | [x] | ~~GA defaults to `analytics_storage: 'granted'` before consent~~ → flipped to `'denied'` in `lib/analytics.ts:97` and `components/GoogleAnalytics.tsx:76`. Verified pre-consent external telemetry = 0 hits. | `lib/analytics.ts:97`, `components/GoogleAnalytics.tsx:76` | Direct GDPR Art. 7 / ePrivacy violation. Google receives IP/UA/session before "Accept" click. |
 | 2 | [x] | ~~No GPC (Global Privacy Control) signal handling~~ → middleware now detects `Sec-GPC: 1` and `DNT: 1`, sets `pmhnp_privacy_signal` cookie + `x-privacy-signal` header. `CookieConsent` reads the cookie and auto-stores `'denied'`, suppressing the banner. Verified end-to-end with Playwright. | `middleware.ts:202-228`, `lib/consent.ts`, `components/CookieConsent.tsx` | CCPA/CPRA legal requirement. Auto-fail in California audits. |
 | 3 | [x] | ~~Sub-processor list / DPAs not published~~ → published `/sub-processors` listing all 6 vendors with purpose, data shared, location, transfer mechanism, DPA + privacy-policy links. Linked from privacy policy + footer. | `app/sub-processors/page.tsx`, `components/Footer.tsx` |
-| 4 | [ ] | No data retention / auto-purge | `app/api/cron/cleanup-expired/route.ts` only unpublishes jobs | GDPR storage-limitation principle violated. Resumes/profiles linger forever. |
+| 4 | [x] | ~~No data retention / auto-purge~~ → soft-delete on `/api/auth/delete-account` (30-day grace), restorable via `/api/auth/restore-account`. Daily crons `purge-soft-deleted` (hard-removes after grace) and `purge-inactive-users` (warns at 23 months no-login, soft-deletes 30d later). Cron schedules added to `vercel.json`. | `app/api/cron/purge-*`, `vercel.json`, `prisma/schema.prisma` |
 | 5 | [ ] | No incident-response / breach-notification plan | nowhere | GDPR Art. 33 = 72-hour notification SLA. No plan = automatic non-compliance. |
 
 ---
@@ -45,8 +45,8 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 | 10 | [x] | ~~Vercel Speed Insights + Sentry fire **before** consent~~ → Speed Insights now wrapped in `components/ConsentGatedTelemetry.tsx`, mounts only after `'accepted'`. Sentry is build-time wired only (no client init), so latent — revisit if `sentry.client.config.ts` is added. | `app/layout.tsx:233`, `next.config.ts:124` |
 | 11 | [x] | ~~AI candidate match scoring not disclosed~~ → privacy policy section 12 ("Automated Decision-Making and AI") discloses the matching algorithm and the right under GDPR Art. 22 to obtain human review. Right-to-object route via `/data-request` (type: object). | `app/privacy/page.tsx` §12 |
 | 12 | [ ] | EEO data (race, disability, veteran status) + DEA/NPI stored without separate sensitive-data consent | `prisma/schema.prisma:367-378` |
-| 13 | [ ] | Hard-delete of account with no legal-hold / soft-delete window | `app/api/auth/delete-account/route.ts:28` |
-| 14 | [ ] | Password-reset rate limit is 10/min (too lenient — should be ~3/hour) | `lib/rate-limit.ts` |
+| 13 | [x] | ~~Hard-delete of account with no legal-hold / soft-delete window~~ → delete-account now soft-deletes with 30-day grace; restore endpoint reverses; cron hard-purges after grace. | `app/api/auth/delete-account/route.ts`, `app/api/auth/restore-account/route.ts` |
+| 14 | [x] | ~~Password-reset rate limit is 10/min~~ → new server route `/api/auth/forgot-password` rate-limits at 3/hour/IP; client page calls it instead of Supabase directly. Identical 200 OK regardless of email existence (avoids account enumeration). | `app/api/auth/forgot-password/route.ts`, `app/forgot-password/page.tsx` |
 | 15 | [x] | ~~No CCPA "Do Not Sell or Share" link / endpoint~~ → `/do-not-sell` page added with one-click opt-out (calls `denyAllConsent` + persists ALL_DENIED categories). Footer link present. Surfaces GPC status. | `app/do-not-sell/page.tsx`, `components/Footer.tsx` |
 
 ---
@@ -62,7 +62,7 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 | 20 | [ ] | CSP allows `'unsafe-inline'` styles + non-nonced GTM/Stripe sources |
 | 21 | [ ] | No double-opt-in on job alerts (CASL/GDPR best practice) |
 | 22 | [ ] | Click-tracking endpoint not gated by consent (`app/api/analytics/clicks/route.ts`) |
-| 23 | [ ] | Audit logging is `console`-only (`lib/audit-log.ts`) — no DB audit trail for exports/deletions |
+| 23 | [x] | ~~Audit logging is `console`-only~~ → new `audit_logs` table + structured `logAudit({ action, actorType, actorId, targetType, targetId, ip, userAgent, metadata })`. Wired into account.delete, account.restore, account.purge (cron), data.export, data.request.received, admin.users.list, admin.jobs.list. Best-effort write — never throws. |
 | 24 | [x] | ~~No DSAR intake form / SLA tracker~~ → `/data-request` form with 7 request types, jurisdiction picker, rate-limited POST to `/api/data-request`. Persists to new `DataRequest` table with `dueBy` computed at insert (30d GDPR / 45d CCPA). Run `prisma migrate dev --name add_data_request` to apply. | `app/data-request/page.tsx`, `app/api/data-request/route.ts`, `prisma/schema.prisma` |
 | 25 | [ ] | Email logged in plaintext at `app/auth/callback/route.ts` (stripped in prod, but leaks in staging) |
 
@@ -90,10 +90,12 @@ Foundation exists (consent banner, privacy/terms pages, account deletion, data e
 **Sprint 2 complete** — current state: ~70% enterprise-ready. 13 of 25 audit gaps closed (3 of 5 CRITICAL, 7 of 10 HIGH, 3 of 10 MEDIUM).
 
 ### Sprint 3 — data lifecycle (1 week)
-- [ ] Soft-delete + 30-day grace + hard-purge cron
-- [ ] Inactive-user purge cron (e.g., 24-month no-login)
-- [ ] Audit log table for exports / deletions / role changes
-- [ ] Tighten password-reset rate limit; add separate sensitive-data consent toggle for EEO/DEA
+- [x] Soft-delete + 30-day grace + hard-purge cron
+- [x] Inactive-user purge cron (e.g., 24-month no-login)
+- [x] Audit log table for exports / deletions / role changes
+- [x] Tighten password-reset rate limit _(EEO/DEA consent toggle deferred to a UI sprint — touches the profile form heavily)_
+
+**Sprint 3 complete** — current state: ~85% enterprise-ready. 17 of 25 audit gaps closed (4 of 5 CRITICAL, 9 of 10 HIGH, 4 of 10 MEDIUM). Only Sprint 4 (security polish) remains.
 
 ### Sprint 4 — security polish (1 week)
 - [ ] Add IP anonymization + remove `'unsafe-inline'` styles where possible

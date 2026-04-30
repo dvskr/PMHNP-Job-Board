@@ -383,6 +383,18 @@ model UserProfile {
   lastSavedJobReminderAt DateTime? @map("last_saved_job_reminder_at")
   emailSuppressedAt DateTime?     @map("email_suppressed_at")
 
+  // ── Activity tracking + soft-delete lifecycle (GDPR storage limitation) ──
+  // lastSeenAt is bumped by middleware on each authenticated request (throttled
+  // to once per 15 minutes). It feeds the inactive-user purge cron.
+  // deletedAt is set on user-initiated account deletion; purgeAt is the
+  // deadline after which the hard-purge cron physically removes the record.
+  // purgeWarningEmailSentAt prevents the inactive purge from sending the
+  // warning more than once.
+  lastSeenAt              DateTime? @map("last_seen_at")
+  deletedAt               DateTime? @map("deleted_at")
+  purgeAt                 DateTime? @map("purge_at")
+  purgeWarningEmailSentAt DateTime? @map("purge_warning_email_sent_at")
+
   // ── Relations ──
   employerJobs         EmployerJob[]
   jobApplications      JobApplication[]
@@ -407,6 +419,9 @@ model UserProfile {
   @@index([supabaseId])
   @@index([email])
   @@index([profileVisible, openToOffers, role])
+  @@index([deletedAt])
+  @@index([purgeAt])
+  @@index([lastSeenAt])
   @@map("user_profiles")
 }
 
@@ -1012,4 +1027,31 @@ model DataRequest {
   @@index([dueBy(sort: Asc)])
   @@index([createdAt(sort: Desc)])
   @@map("data_requests")
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────────
+// Append-only record of sensitive actions (deletions, exports, role
+// changes, DSAR completions, cron purges, etc.). Used for SOC2 audit
+// trail and GDPR Art. 30 record-of-processing.
+//
+// Forward-only — rows here should never be updated or deleted.
+// A periodic archival job (>365 days) can move old rows to cold storage
+// but deletion is never automatic.
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // 'account.delete' | 'account.restore' | 'account.purge' | 'data.export' | 'data.request.received' | 'data.request.completed' | 'role.change' | 'cron.purge_soft_deleted' | 'cron.purge_inactive' | etc.
+  actorType   String   @map("actor_type")    // 'user' | 'admin' | 'system'
+  actorId     String?  @map("actor_id")      // null when actorType = 'system'
+  targetType  String?  @map("target_type")   // 'user' | 'job' | 'application' | 'data_request'
+  targetId    String?  @map("target_id")
+  ip          String?
+  userAgent   String?  @db.Text @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([action])
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { logAudit } from '@/lib/audit-log';
 
 /**
  * DSAR intake endpoint.
@@ -81,6 +82,20 @@ export async function POST(request: NextRequest) {
             id: created.id,
             type: created.type,
             jurisdiction: parsed.jurisdiction,
+        });
+
+        void logAudit({
+            action: 'data.request.received',
+            actorType: 'user',
+            targetType: 'data_request',
+            targetId: created.id,
+            ip,
+            userAgent,
+            metadata: {
+                type: created.type,
+                jurisdiction: parsed.jurisdiction ?? null,
+                dueBy: created.dueBy.toISOString(),
+            },
         });
 
         return NextResponse.json(
