@@ -6,24 +6,10 @@ import {
   ALL_SOURCES,
   type JobSource
 } from '@/lib/ingestion-service';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 // Allow maximum execution time for Vercel Pro plan
 export const maxDuration = 300; // 5 minutes
-
-/**
- * Verify the cron secret from the request headers
- */
-function verifyCronSecret(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret) {
-    console.error('[CRON] CRON_SECRET not configured');
-    return false;
-  }
-
-  return authHeader === `Bearer ${cronSecret}`;
-}
 
 
 async function sendDiscordNotification(data: {
@@ -70,14 +56,8 @@ async function sendDiscordNotification(data: {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    if (!verifyCronSecret(request)) {
-      console.warn('[CRON] Unauthorized access attempt');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
 
     const startTime = Date.now();
     console.log('\n' + '='.repeat(80));

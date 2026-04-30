@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -112,14 +113,8 @@ async function extractWithLLM(description: string, title: string, employer: stri
 
 export async function GET(req: Request) {
   // Verify cron secret
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    if (process.env.NODE_ENV !== 'development') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  }
+  const authError = await verifyCronOrAdmin(req);
+  if (authError) return authError;
 
   // Check for OpenAI API key
   if (!process.env.OPENAI_API_KEY) {

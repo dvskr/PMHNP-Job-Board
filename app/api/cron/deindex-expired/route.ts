@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { pingAllSearchEnginesBatchDeleted } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 300; // 5 minutes — may send up to 100 URL_DELETED to Google
 
@@ -20,10 +21,8 @@ export const maxDuration = 300; // 5 minutes — may send up to 100 URL_DELETED 
  * Schedule: 45 12,18 * * * (runs twice daily, 30 min after cleanup-expired)
  */
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
 
     const startTime = Date.now();
     console.log('[CRON:deindex-expired] Starting expired URL de-indexing');

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { CITIES } from '@/lib/pseo/city-data/cities'
 import { ALL_CATEGORY_CONFIGS } from '@/lib/pseo/category-city-template'
 import { SETTING_CONFIGS, getAllStateSlugs, resolveStateSlug } from '@/lib/pseo/setting-state-config'
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 // Vercel Pro/Enterprise: up to 300s. Hobby: 60s.
 // Batched aggregation: processes a chunk of cities per invocation.
@@ -12,10 +13,8 @@ export const maxDuration = 300
 const BATCH_SIZE = 200 // Cities per batch
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authError = await verifyCronOrAdmin(request);
+  if (authError) return authError;
 
   const startTime = Date.now()
   const url = new URL(request.url)

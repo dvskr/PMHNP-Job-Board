@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendProfileIncompleteEmail } from '@/lib/email-service'
+import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
 
 export const maxDuration = 120 // 2 minutes — profile nudge emails
 
@@ -33,10 +34,8 @@ function computeCompleteness(profile: Record<string, unknown>) {
 }
 
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authError = await verifyCronOrAdmin(request);
+    if (authError) return authError;
 
     try {
         // Find job_seeker profiles created 3+ days ago with < 60% completeness
