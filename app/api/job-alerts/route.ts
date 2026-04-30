@@ -51,22 +51,25 @@ function buildCriteriaSummary(alert: CreateAlertBody): string {
   return parts.length > 0 ? parts.join(' · ') : 'all PMHNP jobs';
 }
 
-// Send alert confirmation email with Salary Guide — V2 Warm Diorama design
+// Send the confirm-your-subscription email (CASL / GDPR double opt-in).
+// The alert is created inactive; the cron only fires for confirmed alerts.
 async function sendAlertConfirmationEmail(
   email: string,
   frequency: string,
   criteriaSummary: string,
-  token: string
+  token: string,
+  confirmationToken: string,
 ): Promise<void> {
   try {
     const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${token}`;
+    const confirmUrl = `${BASE_URL}/api/job-alerts/confirm?token=${confirmationToken}`;
 
     const html = emailShellV2(`
-      ${headerBlockV2('Job Alert Activated!', 'You\u2019ll never miss a matching job')}
+      ${headerBlockV2('One last step', 'Confirm your job alert subscription')}
       ${spacerV2(8)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-          ${featureRowV2('&#9993;', `${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts`, `New jobs matching: ${criteriaSummary}`)}
+          ${featureRowV2('&#9993;', `${frequency === 'daily' ? 'Daily' : 'Weekly'} Job Alerts`, `Once confirmed, we'll email new jobs matching: ${criteriaSummary}`)}
           ${featureRowV2('&#10003;', 'Smart Matching', 'Only relevant PMHNP positions \u2014 no spam')}
           ${featureRowV2('&#9889;', 'Be First to Apply', 'Jobs delivered before they fill up')}
         </table>
@@ -74,7 +77,7 @@ async function sendAlertConfirmationEmail(
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <table role="presentation" cellspacing="0" cellpadding="0"><tr class="stack">
-          <td style="padding-right:12px;">${primaryButtonV2('Browse Jobs Now \u2192', `${BASE_URL}/jobs`)}</td>
+          <td style="padding-right:12px;">${primaryButtonV2('Confirm Subscription \u2192', confirmUrl)}</td>
           <td>${secondaryButtonV2('Manage Alert', `${BASE_URL}/job-alerts/manage?token=${token}`)}</td>
         </tr></table>
       </td></tr>
@@ -107,7 +110,7 @@ async function sendAlertConfirmationEmail(
       from: EMAIL_FROM,
       to: email,
       replyTo: EMAIL_REPLY_TO,
-      subject: 'Job Alert Activated + Free Salary Guide',
+      subject: 'Confirm your PMHNP job alert subscription',
       html,
       text,
       headers: {
@@ -121,8 +124,8 @@ async function sendAlertConfirmationEmail(
       await prisma.emailSend.create({
         data: {
           to: email,
-          subject: 'Job Alert Activated + Free Salary Guide',
-          emailType: 'welcome_alert',
+          subject: 'Confirm your PMHNP job alert subscription',
+          emailType: 'alert_confirm',
         },
       });
     } catch { /* non-blocking */ }
@@ -240,9 +243,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build criteria summary and send confirmation email
+    // Build criteria summary and send confirm-your-subscription email.
+    // The alert was inserted with isActive=false; the cron only fires
+    // for alerts where confirmedAt is set, which happens at /api/job-
+    // alerts/confirm when the user clicks the link in this email.
+    // Reuse the existing token if the row was already confirmed (the
+    // dedup branch above) so we don't re-prompt subscribed users.
     const criteriaSummary = buildCriteriaSummary(body);
-    await sendAlertConfirmationEmail(normalizedEmail, frequency, criteriaSummary, jobAlert.token);
+    if (!jobAlert.confirmedAt) {
+      await sendAlertConfirmationEmail(
+        normalizedEmail,
+        frequency,
+        criteriaSummary,
+        jobAlert.token,
+        jobAlert.confirmationToken ?? jobAlert.token,
+      );
+    }
 
     return NextResponse.json({
       success: true,

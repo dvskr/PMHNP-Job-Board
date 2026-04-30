@@ -227,7 +227,10 @@ export async function sendJobAlerts(): Promise<{
 
     const alerts = await prisma.jobAlert.findMany({
       where: {
+        // Double opt-in: both flags must be set. Older rows
+        // are grandfathered by the migration (confirmed_at = created_at).
         isActive: true,
+        confirmedAt: { not: null },
         OR: [
           { lastSentAt: null },
           {

@@ -173,7 +173,12 @@ model JobAlert {
   minSalary  Int?      @map("min_salary")
   maxSalary  Int?      @map("max_salary")
   frequency  String    @default("weekly")
-  isActive   Boolean   @default(true) @map("is_active")
+  // Double opt-in (CASL / GDPR best practice). New rows start with
+  // is_active = false and confirmed_at = null. The send-alerts cron
+  // only fires for confirmed alerts. Flipped by /api/job-alerts/confirm.
+  isActive   Boolean   @default(false) @map("is_active")
+  confirmedAt DateTime? @map("confirmed_at")
+  confirmationToken String? @unique @default(cuid()) @map("confirmation_token")
   lastSentAt DateTime? @map("last_sent_at")
   token      String    @unique @default(cuid())
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -183,6 +188,7 @@ model JobAlert {
   @@index([email])
   @@index([token])
   @@index([isActive])
+  @@index([confirmedAt])
   @@map("job_alerts")
 }
 
@@ -371,6 +377,13 @@ model UserProfile {
   disabilityStatus      String?   @map("disability_status")
   raceEthnicity         String?   @map("race_ethnicity")
   gender                String?
+  // Separate consent for the use of sensitive personal info under
+  // GDPR Art. 9 / CPRA SPI rules. Set to true only when the user
+  // explicitly checks the consent box that appears in the profile
+  // form when any EEO / DEA / NPI field is touched. Read by the
+  // employer-facing serializer to redact those fields when false.
+  sensitiveDataConsent       Boolean   @default(false) @map("sensitive_data_consent")
+  sensitiveDataConsentAt     DateTime? @map("sensitive_data_consent_at")
 
   // ── Federal Registrations ──
   npiNumber                    String?    @map("npi_number")
