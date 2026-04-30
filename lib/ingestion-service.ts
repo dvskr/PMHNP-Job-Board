@@ -103,7 +103,7 @@ const CHUNKED_SOURCES: ReadonlySet<JobSource> = new Set(['greenhouse', 'workday'
 /**
  * Fetch raw jobs from a specific source
  */
-async function fetchFromSource(source: JobSource, options?: { chunk?: number }): Promise<Array<Record<string, unknown>>> {
+async function fetchFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }): Promise<Array<Record<string, unknown>>> {
   switch (source) {
     case 'adzuna':
       return await fetchAdzunaJobs();
@@ -119,7 +119,7 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
     case 'ats-jobs-db':
       return await fetchAtsJobsDbJobs() as unknown as Array<Record<string, unknown>>;
     case 'fantastic-jobs-db':
-      return await fetchFantasticJobsDbJobs() as unknown as Array<Record<string, unknown>>;
+      return await fetchFantasticJobsDbJobs({ endpoint: options?.fantasticEndpoint }) as unknown as Array<Record<string, unknown>>;
     // case 'bamboohr': REMOVED 2026-03-11 — dead source
     //   return await fetchBambooHRJobs() as unknown as Array<Record<string, unknown>>;
     case 'smartrecruiters':
@@ -159,7 +159,7 @@ function collectExternalIds(rawJobs: Array<Record<string, unknown>>): string[] {
 /**
  * Ingest jobs from a single source
  */
-async function ingestFromSource(source: JobSource, options?: { chunk?: number }): Promise<IngestionResult> {
+async function ingestFromSource(source: JobSource, options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }): Promise<IngestionResult> {
   const startTime = Date.now();
   let fetched = 0;
   let added = 0;
@@ -653,7 +653,7 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
  */
 export async function ingestJobs(
   sources: JobSource[] = ALL_SOURCES,
-  options?: { chunk?: number }
+  options?: { chunk?: number; fantasticEndpoint?: '7d' | '6m' }
 ): Promise<IngestionResult[]> {
   const overallStartTime = Date.now();
   const timestamp = new Date().toISOString();
@@ -699,7 +699,12 @@ export async function ingestJobs(
   // Process each source sequentially
   for (const source of sources) {
     const useChunk = source === 'workday' || source === 'greenhouse';
-    let sourceOptions = useChunk ? options : undefined;
+    const isFantastic = source === 'fantastic-jobs-db';
+    let sourceOptions: typeof options = undefined;
+    if (useChunk) sourceOptions = { chunk: options?.chunk };
+    if (isFantastic && options?.fantasticEndpoint) {
+      sourceOptions = { ...(sourceOptions ?? {}), fantasticEndpoint: options.fantasticEndpoint };
+    }
     const result = await ingestFromSource(source, sourceOptions);
     results.push(result);
   }

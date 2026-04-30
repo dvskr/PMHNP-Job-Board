@@ -54,8 +54,13 @@ export interface FantasticJobOutput {
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const API_HOST = 'active-jobs-db.p.rapidapi.com';
-// Production: 7-day endpoint — 6-month backfill completed 2026-03-12
-const BASE_URL = `https://${API_HOST}/active-ats-7d`;
+// Production default: 7-day endpoint. The 6-month endpoint is used only
+// when an admin triggers a backfill via ?endpoint=6m. The job-normalizer
+// rejects rows older than 90 days for non-ATS sources (line 519), so a
+// 6m backfill effectively becomes a 90-day backfill — caps the useful
+// range without us needing a date filter on the API side.
+const ENDPOINT_7D = `https://${API_HOST}/active-ats-7d`;
+const ENDPOINT_6M = `https://${API_HOST}/active-ats-6m`;
 const PAGE_SIZE = 100;
 
 // ── Search Strategy (refactored again 2026-04-30 after live probe) ──────
@@ -178,6 +183,7 @@ function resetDiag(): void {
 async function fetchPage(
     extraParams: Record<string, string>,
     offset: number,
+    endpoint: string,
 ): Promise<FantasticJobApiResponse[] | null> {
     const params = new URLSearchParams({
         limit: PAGE_SIZE.toString(),
@@ -186,7 +192,7 @@ async function fetchPage(
         ...extraParams,
     });
 
-    const url = `${BASE_URL}?${params}`;
+    const url = `${endpoint}?${params}`;
 
     try {
         const controller = new AbortController();
@@ -325,6 +331,7 @@ async function runPass(
     out: FantasticJobOutput[],
     seenUrls: Set<string>,
     callBudget: { used: number; cap: number },
+    endpoint: string,
 ): Promise<PassResult> {
     let offset = 0;
     let hasMore = true;
@@ -337,7 +344,7 @@ async function runPass(
         offset / PAGE_SIZE < MAX_PAGES_PER_FILTER &&
         callBudget.used < callBudget.cap
     ) {
-        const jobs = await fetchPage(extraParams, offset);
+        const jobs = await fetchPage(extraParams, offset, endpoint);
         callBudget.used++;
         pageCalls++;
 
@@ -385,14 +392,32 @@ async function runPass(
     return { label, jobsFound: found, apiCalls: pageCalls, aborted };
 }
 
-export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> {
+export interface FantasticJobsFetchOptions {
+    /**
+     * Time-window endpoint to query.
+     *   '7d' (default) — jobs posted in the last 7 days. Right for the
+     *     scheduled cron since it runs 2x/day and 7d > worst-case skip.
+     *   '6m' — jobs posted in the last 6 months. Used for ONE-SHOT backfill
+     *     only. The job-normalizer's 90-day staleness filter (line 519,
+     *     non-ATS sources) already rejects rows older than 90 days, so a
+     *     6m fetch effectively becomes a 90-day backfill.
+     */
+    endpoint?: '7d' | '6m';
+}
+
+export async function fetchFantasticJobsDbJobs(
+    opts: FantasticJobsFetchOptions = {},
+): Promise<FantasticJobOutput[]> {
     if (!RAPIDAPI_KEY) {
         console.error('[Fantastic-Jobs-DB] RAPIDAPI_KEY env var is not set. Skipping.');
         return [];
     }
     resetDiag();
 
-    console.log(`[Fantastic-Jobs-DB] Searching across 120K+ orgs for PMHNP jobs (2-pass probe-validated strategy)...`);
+    const endpointKey = opts.endpoint ?? '7d';
+    const endpointUrl = endpointKey === '6m' ? ENDPOINT_6M : ENDPOINT_7D;
+
+    console.log(`[Fantastic-Jobs-DB] endpoint=${endpointKey} — running 2-pass probe-validated strategy${endpointKey === '6m' ? ' (BACKFILL MODE)' : ''}`);
 
     const allJobs: FantasticJobOutput[] = [];
     const seenUrls = new Set<string>();
@@ -412,6 +437,7 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
             allJobs,
             seenUrls,
             callBudget,
+            endpointUrl,
         );
         await sleep(2000);
     }
@@ -431,10 +457,11 @@ export async function fetchFantasticJobsDbJobs(): Promise<FantasticJobOutput[]> 
             allJobs,
             seenUrls,
             callBudget,
+            endpointUrl,
         );
         await sleep(2000);
     }
 
-    console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget)`);
+    console.log(`[Fantastic-Jobs-DB] Total: ${allJobs.length} jobs (${callBudget.used} API calls used out of ${callBudget.cap} budget, endpoint=${endpointKey})`);
     return allJobs;
 }
