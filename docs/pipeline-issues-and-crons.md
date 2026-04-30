@@ -14,7 +14,7 @@ This document catalogs every known issue in the ingest → publish → expire pi
 | 1 | Source-presence threshold not yet tuned | medium | rationale documented; reassess 2026-05-06 with real data | `/api/cron/source-presence-unpublish` |
 | 2 | ~~Greenhouse fetch budget (271k/wk → 15 adds)~~ | ~~medium~~ | **resolved 2026-04-30** (622 dead tenants purged, 92% reduction) | `/api/cron/ingest?source=greenhouse&chunk=*` |
 | 3 | Catalog staleness — 43% of published jobs > 45 d old | medium | mitigated by ranking, not removal | `/api/cron/freshness-decay` |
-| 4 | ~~Mode taxonomy null rate (45% of published)~~ | ~~low~~ | **partially resolved 2026-04-30** (LLM prompt + write-side canonicalization tightened) | `/api/cron/enrich-jobs` |
+| 4 | ~~Mode taxonomy null rate (45% of published)~~ | ~~low~~ | **resolved 2026-04-30** — LLM prompt tightened, write-side canonicalization, detectMode regex expanded (8 → 21 patterns), 130 already-enriched rows backfilled. Remaining nulls (2,050) are structural — descriptions without any mode signal. | `/api/cron/enrich-jobs` |
 | 5 | Direct-employer post share (11 vs 5,285) | medium | product/outreach issue | `/api/cron/employer-report` |
 | 6 | 2,124 jooble + 1,440 jsearch zombie rows still published | low | aging out via 60-d expiry | `/api/cron/cleanup-expired` |
 | 7 | Five low-salary outliers from non-PMHNP roles | low | relevance-filter false-positives | none — relevance filter at ingest |
