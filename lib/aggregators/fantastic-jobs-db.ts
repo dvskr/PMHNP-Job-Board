@@ -240,13 +240,28 @@ async function fetchPage(
         }
 
         if (res.status === 429) {
+            // Capture the 429 body + ALL rate-limit headers — without these
+            // we can't tell if the throttle is per-second, per-minute, or
+            // monthly-quota-exhaustion. Diagnostic-first approach.
+            let body429 = '';
+            try { body429 = (await res.text()).slice(0, 500); } catch { /* ignore */ }
+            const allHeaders: Record<string, string> = {};
+            res.headers.forEach((v, k) => {
+                if (k.toLowerCase().startsWith('x-ratelimit') || k.toLowerCase() === 'retry-after') {
+                    allHeaders[k] = v;
+                }
+            });
+            if (runDiag.firstResponseBodySample === null) {
+                runDiag.firstResponseBodySample = `429 body: ${body429} | headers: ${JSON.stringify(allHeaders)}`;
+            }
+
             // Honor Retry-After if present, else default to 3s. Try ONCE
             // more — repeated 429 means we're saturating the quota and
             // should abort the pass rather than burn budget.
             const retryAfterRaw = res.headers.get('retry-after');
             const retryAfterSec = retryAfterRaw ? parseInt(retryAfterRaw, 10) : 3;
             const waitMs = Math.max(1000, (Number.isFinite(retryAfterSec) ? retryAfterSec : 3) * 1000);
-            console.warn(`[Fantastic-Jobs-DB] 429 rate-limited. Waiting ${waitMs}ms then retrying once.`);
+            console.warn(`[Fantastic-Jobs-DB] 429 body=${body429} headers=${JSON.stringify(allHeaders)} — waiting ${waitMs}ms then retrying once.`);
             await sleep(waitMs);
 
             const retryRes = await fetch(url, {
@@ -383,12 +398,14 @@ async function runPass(
         hasMore = jobs.length === PAGE_SIZE;
         offset += PAGE_SIZE;
 
-        // Rate limiting — Ultra plan claims 5 req/sec but we observed 429s
-        // at 200ms spacing (= exactly 5/sec, zero margin). Bumped to 350ms
-        // (≈2.8 req/sec) so timing jitter, key-shared concurrent triggers,
-        // or burst windows don't trip the quota. Ultra plan budget is
-        // 20k req/month so we can afford the slower cadence.
-        await sleep(350);
+        // Rate limiting — diagnostic mode (2026-04-30): 350ms still produced
+        // 429s. Pacing is now 1 req/sec which is well below ANY plausible
+        // sliding-window enforcement, even if the key is shared with
+        // another consumer or RapidAPI uses 1s buckets internally. A full
+        // run uses ~30-50 calls = 30-50 seconds wall-time, fits in Vercel's
+        // 5-min function ceiling with room to spare. Once we identify the
+        // root cause from the new 429-body diagnostics, we'll re-tune.
+        await sleep(1000);
     }
 
     const found = out.length - initialOut;
