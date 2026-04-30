@@ -127,16 +127,47 @@ export async function GET(req: Request) {
   try {
     console.log('[Enrich Jobs] Starting LLM enrichment...');
 
-    // Find published jobs that need enrichment:
-    // - Have descriptions (>100 chars)
-    // - Missing key data fields
-    // - NOT already enriched (lastEnrichedAt is null)
-    // - Order by newest first (enrich fresh jobs first)
-    const jobs = await prisma.job.findMany({
+    // Find published jobs that need enrichment.
+    //
+    // Two cohorts in priority order:
+    //   1. NEVER-enriched: lastEnrichedAt IS NULL and at least one core
+    //      field is null. Fresh first (orderBy createdAt desc).
+    //   2. RE-ENRICH null-mode: lastEnrichedAt was set by an earlier pass
+    //      that returned null mode under the OLD prompt. Now that the
+    //      prompt + canonicalization are tightened (2026-04-30), give them
+    //      one more shot. Capped at 50/run + only attempted if the row
+    //      hasn't been re-tried in 30 days, so we don't burn tokens
+    //      forever on descriptions that genuinely have no mode signal.
+    const REENRICH_CAP = 50;
+    const REENRICH_COOLDOWN_DAYS = 30;
+    const reenrichCutoff = new Date(Date.now() - REENRICH_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
+
+    const select = {
+      id: true,
+      title: true,
+      employer: true,
+      location: true,
+      description: true,
+      normalizedMinSalary: true,
+      jobType: true,
+      mode: true,
+      city: true,
+      state: true,
+      stateCode: true,
+      isRemote: true,
+      isHybrid: true,
+      experienceLevel: true,
+      setting: true,
+      population: true,
+      benefits: true,
+      sourceProvider: true,
+    } as const;
+
+    const freshJobs = await prisma.job.findMany({
       where: {
         isPublished: true,
         description: { not: '' },
-        lastEnrichedAt: null,  // Skip already-processed jobs
+        lastEnrichedAt: null,
         OR: [
           { normalizedMinSalary: null },
           { jobType: null },
@@ -147,29 +178,36 @@ export async function GET(req: Request) {
           { population: null },
         ],
       },
-      select: {
-        id: true,
-        title: true,
-        employer: true,
-        location: true,
-        description: true,
-        normalizedMinSalary: true,
-        jobType: true,
-        mode: true,
-        city: true,
-        state: true,
-        stateCode: true,
-        isRemote: true,
-        isHybrid: true,
-        experienceLevel: true,
-        setting: true,
-        population: true,
-        benefits: true,
-        sourceProvider: true,
-      },
+      select,
       orderBy: { createdAt: 'desc' },
       take: MAX_JOBS_PER_RUN,
     });
+
+    // Reserve some headroom for the re-enrich cohort.
+    const remainingBudget = Math.max(0, MAX_JOBS_PER_RUN - freshJobs.length);
+    const reenrichJobs = remainingBudget > 0
+      ? await prisma.job.findMany({
+          where: {
+            isPublished: true,
+            description: { not: '' },
+            mode: null,
+            lastEnrichedAt: { not: null, lt: reenrichCutoff },
+            // Only sources actively producing inventory — the dead ones
+            // (jooble/jsearch/usajobs/ashby/icims/jazzhr) are aging out
+            // and not worth re-enrichment spend.
+            sourceProvider: { in: ['adzuna', 'greenhouse', 'lever', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters'] },
+          },
+          select,
+          orderBy: { lastEnrichedAt: 'asc' },
+          take: Math.min(remainingBudget, REENRICH_CAP),
+        })
+      : [];
+
+    const jobs = [...freshJobs, ...reenrichJobs];
+
+    if (reenrichJobs.length > 0) {
+      console.log(`[Enrich Jobs] Including ${reenrichJobs.length} null-mode re-enrichment candidates (cooldown ${REENRICH_COOLDOWN_DAYS}d).`);
+    }
 
     console.log(`[Enrich Jobs] Processing ${jobs.length} jobs...`);
 
