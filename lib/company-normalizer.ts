@@ -22,12 +22,19 @@ const ANCHOR_WORDS = ['university', 'hospital', 'hospitals', 'medical center', '
 
 const SUFFIXES = [...LEGAL_SUFFIXES, ...INDUSTRY_SUFFIXES];
 
-// Known companies with their canonical names and aliases
+// Known companies with their canonical names and aliases.
+// Aliases are matched case-insensitively against normalizeCompanyName(input),
+// which lowercases + splits CamelCase + strips legal suffixes. So
+// "LifeStance Health" → "life stance" matches alias "life stance".
 const KNOWN_COMPANIES: Record<string, string[]> = {
   'Talkiatry': ['talkiatry', 'talkiatry inc'],
-  'Talkspace': ['talkspace', 'talkspace inc', 'talkspace llc'],
+  'Talkspace': ['talkspace', 'talkspace inc', 'talkspace llc', 'talkspace psychiatry'],
   'SonderMind': ['sondermind', 'sonder mind', 'sondermind inc'],
-  'LifeStance Health': ['lifestance', 'lifestance health', 'life stance'],
+  // LifeStance: handles "LifeStance Health" (CamelCase splits to "life stance"
+  // since "stance" isn't an institutional anchor and "health" gets stripped),
+  // "Lifestance" (no caps, no strip → "lifestance"), and "Life Stance".
+  'LifeStance Health': ['lifestance', 'lifestance health', 'life stance', 'life stance health'],
+  'BlueSky Telepsych': ['blueskytelepsych', 'blue sky telepsych', 'bluesky telepsych'],
   'Cerebral': ['cerebral', 'cerebral inc'],
   'Headway': ['headway', 'headway health'],
   'Spring Health': ['spring health', 'springhealth'],
@@ -35,6 +42,10 @@ const KNOWN_COMPANIES: Record<string, string[]> = {
   'Modern Health': ['modern health', 'modernhealth'],
   'Teladoc Health': ['teladoc', 'teladoc health', 'teladochealth'],
   'Brightside Health': ['brightside', 'brightside health'],
+  'TeamHealth': ['teamhealth', 'team health', 'team'],
+  'BetterHelp': ['betterhelp', 'better help'],
+  'CoreCivic': ['corecivic', 'core civic'],
+  'DocCafe': ['doccafe', 'doc cafe'],
   'Department of Veterans Affairs': ['veterans affairs', 'va hospital', 'va health', 'va medical'],
 };
 
