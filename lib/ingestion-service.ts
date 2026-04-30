@@ -23,7 +23,7 @@ import { fetchLeverJobs } from './aggregators/lever';
 // import { fetchAshbyJobs } from './aggregators/ashby';
 // import { fetchICIMSJobs } from './aggregators/icims';
 // import { fetchJazzHRJobs } from './aggregators/jazzhr';
-import { fetchFantasticJobsDbJobs } from './aggregators/fantastic-jobs-db';
+import { fetchFantasticJobsDbJobs, getLastRunDiagnostics as getFantasticJobsDiag } from './aggregators/fantastic-jobs-db';
 import { fetchWorkdayJobs } from './aggregators/workday';
 import { fetchAtsJobsDbJobs } from './aggregators/ats-jobs-db';
 // REMOVED 2026-03-11 — 0 PMHNP jobs, dead endpoints
@@ -190,6 +190,31 @@ async function ingestFromSource(source: JobSource, options?: { chunk?: number })
     }> = [];
 
     if (fetched === 0) {
+      // Surface diagnostics to Discord so we can debug without scraping
+      // Vercel function logs. Only fantastic-jobs-db exposes a per-run
+      // diagnostic accessor today.
+      if (source === 'fantastic-jobs-db') {
+        try {
+          const diag = getFantasticJobsDiag();
+          const { sendDiscordMessage } = await import('./discord-notifier');
+          await sendDiscordMessage('', [{
+            title: `⚠️ ${source}: zero rows fetched`,
+            color: 0xFFAA00,
+            fields: [
+              { name: 'First HTTP status', value: String(diag.firstResponseStatus ?? 'no-response'), inline: true },
+              { name: 'Rate-limit remaining', value: String(diag.rateLimitRemaining ?? 'unknown'), inline: true },
+              { name: 'Status counts', value: '```' + JSON.stringify(diag.statusCounts) + '```', inline: false },
+              { name: 'Abort reasons', value: '```' + (diag.abortReasons.length > 0 ? diag.abortReasons.join(', ') : '(none)') + '```', inline: false },
+              { name: 'First URL', value: '```' + (diag.firstResponseUrl ?? '(none)').slice(0, 500) + '```', inline: false },
+              { name: 'First body sample', value: '```' + (diag.firstResponseBodySample ?? '(none)').slice(0, 500) + '```', inline: false },
+            ],
+            timestamp: new Date().toISOString(),
+            footer: { text: `PMHNP Job Board — ${source} diagnostic` },
+          }]);
+        } catch (e) {
+          console.error('[Ingest] Failed to push fantastic-jobs diag to Discord', e);
+        }
+      }
       return { source, fetched, added, duplicates, errors, duration: Date.now() - startTime, newJobUrls, newJobIds };
     }
 
