@@ -27,6 +27,30 @@ function isBlockedBot(ua: string): boolean {
     return BLOCKED_BOT_PATTERNS.some(pattern => pattern.test(ua));
 }
 
+// ── Strict-Consent Regions ─────────────────────────────────────────
+// Countries with explicit opt-in laws (GDPR / UK GDPR / FADP / CASL+PIPEDA /
+// LGPD / Privacy Act). Visitors from these regions get the consent banner
+// and analytics defaults to denied. Everyone else (US, etc.) gets implied
+// consent — analytics auto-granted, no banner — with footer-level opt-out.
+const STRICT_CONSENT_COUNTRIES = new Set([
+    // EU 27
+    'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR',
+    'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+    'SI', 'ES', 'SE',
+    // EEA non-EU
+    'NO', 'IS', 'LI',
+    // UK
+    'GB',
+    // Switzerland (FADP)
+    'CH',
+    // Canada (CASL + PIPEDA)
+    'CA',
+    // Brazil (LGPD)
+    'BR',
+    // Australia (Privacy Act)
+    'AU',
+]);
+
 export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const pathname = url.pathname;
@@ -199,6 +223,55 @@ export async function middleware(request: NextRequest) {
     // Set CSP header and pass nonce to layout via request header
     response.headers.set('Content-Security-Policy', cspHeader);
     response.headers.set('x-nonce', nonce);
+
+    // ── GPC / DNT Privacy Signals ────────────────────────────────────
+    // CCPA/CPRA legally requires honoring Global Privacy Control.
+    // We honor DNT as best practice. Both signals = auto-opt-out of
+    // analytics/advertising consent. We expose the signal as a non-
+    // HttpOnly cookie so client components can auto-deny without a
+    // round-trip, and as a request header for SSR awareness.
+    const gpc = request.headers.get('sec-gpc') === '1';
+    const dnt = request.headers.get('dnt') === '1';
+    if (gpc || dnt) {
+        const signal = gpc ? 'gpc' : 'dnt';
+        response.headers.set('x-privacy-signal', signal);
+        // Refreshed each request so disabling the browser flag clears it
+        // on the next navigation. Not HttpOnly — the consent banner needs
+        // to read it client-side. Not Secure-only because dev runs http.
+        response.cookies.set('pmhnp_privacy_signal', signal, {
+            path: '/',
+            sameSite: 'lax',
+            secure: !isLocalhost,
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+        });
+    } else {
+        // Clear stale cookie if user disabled the browser signal
+        if (request.cookies.get('pmhnp_privacy_signal')) {
+            response.cookies.delete('pmhnp_privacy_signal');
+        }
+    }
+
+    // ── Consent Region (geo-targeted defaults) ───────────────────────
+    // Vercel injects x-vercel-ip-country on every request in production.
+    // Strict regions get opt-in (banner + denied defaults). Everyone else
+    // gets implied consent (no banner, analytics auto-granted, ads denied).
+    // Default to 'strict' when the country is unknown (dev / proxy / VPN
+    // edge cases) so we fail safe toward stronger consent.
+    const country = (
+        request.headers.get('x-vercel-ip-country') ||
+        request.headers.get('cf-ipcountry') ||
+        ''
+    ).toUpperCase();
+    const region = country && !STRICT_CONSENT_COUNTRIES.has(country)
+        ? 'implied'
+        : 'strict';
+    response.headers.set('x-consent-region', region);
+    response.cookies.set('pmhnp_consent_region', region, {
+        path: '/',
+        sameSite: 'lax',
+        secure: !isLocalhost,
+        maxAge: 60 * 60 * 24, // 1 day — re-evaluated on every visit
+    });
 
     // ── CORS Headers for API Routes ──────────────────────────────────
     // Restrict cross-origin API access to only our own domain.
