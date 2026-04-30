@@ -4,6 +4,7 @@ import { checkJobHealth, HealthRecorder, castFlipVote, type HealthDecision } fro
 import { logger } from '@/lib/logger';
 import { inngest } from '@/lib/inngest/client';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300; // 5 minutes — checks up to 1500 links with 250s time budget
 
@@ -60,6 +61,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         log.info('Sweep complete', { ...summary });
         return NextResponse.json({ success: true, ...summary });
     } catch (error: unknown) {
+        await sendCronFailureAlert('check-dead-links', error);
         log.error('Fatal error during dead-link sweep', error);
         return NextResponse.json({ error: 'Dead link check failed' }, { status: 500 });
     }

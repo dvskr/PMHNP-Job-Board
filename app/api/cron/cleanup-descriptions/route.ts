@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanAllJobDescriptions } from '@/lib/description-cleaner';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300; // 5 minutes — cleans all job descriptions
 
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
+      await sendCronFailureAlert('cleanup-descriptions', error);
     console.error('[CLEANUP API] Error:', error);
     return NextResponse.json(
       { error: 'Cleanup failed' },

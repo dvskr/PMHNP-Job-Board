@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendProfileIncompleteEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120 // 2 minutes — profile nudge emails
 
@@ -121,6 +122,7 @@ export async function GET(request: NextRequest) {
             timestamp: new Date().toISOString(),
         })
     } catch (error) {
+        await sendCronFailureAlert('profile-nudge', error);
         console.error('Profile nudge cron error:', error)
         return NextResponse.json({ error: 'Profile nudge failed' }, { status: 500 })
     }

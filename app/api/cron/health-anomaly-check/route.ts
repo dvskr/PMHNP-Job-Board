@@ -18,6 +18,7 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { detectAnomalies, emitAnomaly } from '@/lib/health/anomaly-alerts';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 60;
 
@@ -46,6 +47,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         log.info('Anomaly sweep complete', summary);
         return NextResponse.json(summary);
     } catch (error: unknown) {
+        await sendCronFailureAlert('health-anomaly-check', error);
         log.error('Fatal error in anomaly sweep', error);
         return NextResponse.json({ error: 'Anomaly sweep failed' }, { status: 500 });
     }

@@ -18,6 +18,7 @@ import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
 import { pingGoogle, pingBingBatch, pingIndexNow } from '@/lib/search-indexing';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300;
 
@@ -219,6 +220,7 @@ export async function GET(request: NextRequest) {
     console.log('[CRON:index-pseo] Complete:', JSON.stringify(summary));
     return NextResponse.json(summary);
   } catch (error) {
+      await sendCronFailureAlert('index-pseo', error);
     console.error('[CRON:index-pseo] Error:', error);
     return NextResponse.json(
       {

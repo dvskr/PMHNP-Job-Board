@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -366,6 +367,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, ...summary });
   } catch (error) {
+      await sendCronFailureAlert('enrich-jobs', error);
     console.error('[Enrich Jobs] Fatal error:', error);
     return NextResponse.json({ error: 'Enrichment failed' }, { status: 500 });
   }

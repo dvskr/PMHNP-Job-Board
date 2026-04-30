@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { applyFreshnessDecay } from '@/lib/freshness-decay';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120; // 2 minutes — updates quality scores for all jobs
 
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(summary);
   } catch (error) {
+      await sendCronFailureAlert('freshness-decay', error);
     console.error('[CRON] Freshness decay error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

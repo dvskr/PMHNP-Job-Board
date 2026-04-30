@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runSocialPostPipeline } from '@/lib/social-post-generator';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 // Instagram needs time: generate 10 PNGs + upload 10 images + post carousel
 export const maxDuration = 120; // 2 minutes
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(responseBody);
     } catch (error) {
+        await sendCronFailureAlert('instagram-post', error);
         console.error('[INSTA-CRON] Fatal error:', error);
         return NextResponse.json(
             {

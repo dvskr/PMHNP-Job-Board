@@ -7,6 +7,7 @@ import {
   type JobSource
 } from '@/lib/ingestion-service';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 // Allow maximum execution time for Vercel Pro plan
 export const maxDuration = 300; // 5 minutes
@@ -140,6 +141,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+      await sendCronFailureAlert('ingest', error);
     console.error('[CRON] Fatal error during cron execution:', error);
 
     return NextResponse.json(

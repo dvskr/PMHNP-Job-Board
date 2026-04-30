@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendJobAlerts } from '@/lib/job-alerts-service'
 import { logger } from '@/lib/logger'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 60
 
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
+      await sendCronFailureAlert('send-alerts', error);
     logger.error('Cron send-alerts error', error)
     return NextResponse.json({ error: 'Alert sending failed' }, { status: 500 })
   }

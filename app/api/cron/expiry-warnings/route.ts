@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendExpiryWarningEmail } from '@/lib/email-service'
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 120 // 2 minutes — expiry warning emails
 
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
+      await sendCronFailureAlert('expiry-warnings', error);
     console.error('Cron expiry-warnings error:', error)
     return NextResponse.json({ error: 'Expiry warnings failed' }, { status: 500 })
   }

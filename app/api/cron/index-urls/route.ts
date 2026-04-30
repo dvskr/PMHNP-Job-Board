@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { pingAllSearchEnginesBatch } from '@/lib/search-indexing';
 import { slugify } from '@/lib/utils';
 import { verifyCronOrAdmin } from '@/lib/auth/verify-cron-or-admin';
+import { sendCronFailureAlert } from '@/lib/discord-notifier';
 
 export const maxDuration = 300; // 5 minutes — submits 200+ URLs to search engines
 
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(summary);
     } catch (error) {
+        await sendCronFailureAlert('index-urls', error);
         console.error('[CRON:index-urls] Error:', error);
 
         return NextResponse.json(
