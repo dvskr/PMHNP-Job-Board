@@ -3,7 +3,12 @@ import { fetchAdzunaJobs } from './aggregators/adzuna';
 import { fetchUSAJobs } from './aggregators/usajobs';
 import { fetchGreenhouseJobs, GREENHOUSE_TOTAL_CHUNKS } from './aggregators/greenhouse';
 import { fetchLeverJobs } from './aggregators/lever';
-import { fetchJoobleJobs } from './aggregators/jooble';
+// REMOVED 2026-04-29 — Jooble decommissioned. Quality 24.6 (2nd-lowest after JSearch),
+// blocks server-to-server probes (403 on every URL → can never verify alive/dead),
+// 93.2% of historical Jooble entries no longer in their fresh keyword search,
+// most are aggregations of sources we already ingest directly (Greenhouse/Lever).
+// Existing 2,124 published Jooble jobs will age out via 60-day expiry clock.
+// import { fetchJoobleJobs } from './aggregators/jooble';
 // REMOVED 2026-03-11 — JSearch subscription cancelled ($75/mo, lowest quality source)
 // import { fetchJSearchJobs } from './aggregators/jsearch';
 import { fetchAshbyJobs } from './aggregators/ashby';
@@ -45,7 +50,7 @@ let globalApplyLinkMap: Map<string, string> | null = null; // normalizedUrl -> j
 import { pingAllSearchEnginesBatch } from './search-indexing';
 import { computeQualityScore } from './utils/quality-score';
 
-export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble' | 'ashby' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'smartrecruiters' | 'icims' | 'jazzhr';
+export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'ashby' | 'workday' | 'ats-jobs-db' | 'fantastic-jobs-db' | 'smartrecruiters' | 'icims' | 'jazzhr';
 
 /** Single source of truth — add new sources here and they'll auto-register everywhere */
 // REMOVED bamboohr 2026-02-20 — 0 PMHNP jobs in production, 14/31 dead endpoints
@@ -53,7 +58,8 @@ export type JobSource = 'adzuna' | 'usajobs' | 'greenhouse' | 'lever' | 'jooble'
 // REMOVED jsearch 2026-03-11 — subscription cancelled
 // ADDED fantastic-jobs-db 2026-03-11 — replacing JSearch ($45/mo Pro, direct ATS links)
 // REMOVED bamboohr from ALL_SOURCES 2026-03-11 — was still running despite being dead
-export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'jooble', 'ashby', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters', 'icims', 'jazzhr'];
+// REMOVED jooble 2026-04-29 — see import comment above for rationale
+export const ALL_SOURCES: JobSource[] = ['adzuna', 'usajobs', 'greenhouse', 'lever', 'ashby', 'workday', 'ats-jobs-db', 'fantastic-jobs-db', 'smartrecruiters', 'icims', 'jazzhr'];
 
 export interface IngestionResult {
   source: JobSource;
@@ -92,8 +98,7 @@ async function fetchFromSource(source: JobSource, options?: { chunk?: number }):
       return await fetchGreenhouseJobs({ chunk: options?.chunk }) as unknown as Array<Record<string, unknown>>;
     case 'lever':
       return await fetchLeverJobs() as unknown as Array<Record<string, unknown>>;
-    case 'jooble':
-      return await fetchJoobleJobs();
+    // case 'jooble': REMOVED 2026-04-29 — see import-level comment
     // case 'jsearch': REMOVED 2026-03-11
     case 'ashby':
       return await fetchAshbyJobs() as unknown as Array<Record<string, unknown>>;
