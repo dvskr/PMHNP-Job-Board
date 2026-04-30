@@ -47,6 +47,12 @@ export interface RecorderStats {
     staged: number;
     flushed: number;
     failedFlushes: number;
+    /**
+     * Last error message captured by `flush()`. Null when no flush has
+     * failed. Useful for surfacing silent-failure diagnostics through the
+     * cron's JSON response without grep'ing Vercel function logs.
+     */
+    lastError: string | null;
 }
 
 /**
@@ -58,6 +64,7 @@ export class HealthRecorder {
     private staged = 0;
     private flushed = 0;
     private failedFlushes = 0;
+    private lastError: string | null = null;
 
     constructor(
         private readonly prisma: PrismaClient,
@@ -142,6 +149,7 @@ export class HealthRecorder {
             this.flushed += batch.length;
         } catch (err: unknown) {
             this.failedFlushes++;
+            this.lastError = err instanceof Error ? err.message : String(err);
             this.logErr('JobHealthCheck flush failed', err);
         }
     }
@@ -151,6 +159,7 @@ export class HealthRecorder {
             staged: this.staged,
             flushed: this.flushed,
             failedFlushes: this.failedFlushes,
+            lastError: this.lastError,
         };
     }
 }

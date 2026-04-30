@@ -47,7 +47,7 @@ interface RunSummary {
     flipped: number;
     bySource: Record<string, number>;
     cappedAt: number;
-    audit: { staged: number; flushed: number; failedFlushes: number };
+    audit: { staged: number; flushed: number; failedFlushes: number; lastError: string | null };
     elapsedSeconds: string;
 }
 
