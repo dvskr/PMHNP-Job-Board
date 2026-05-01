@@ -101,6 +101,12 @@ export async function PATCH(
  * DELETE /api/admin/jobs/:id
  * Soft-delete by default (sets isPublished=false).
  * Use ?hard=true for permanent deletion.
+ *
+ * Audit #25: hard-delete is BLOCKED on free posts. Cascade-deleting an
+ * EmployerJob row that recorded a freebie use would drop the domain's
+ * freebie count, letting the (probably-just-spammy) employer post 2 fresh
+ * free jobs from a clean slate. Admin can still soft-delete free posts,
+ * which removes them from search without nuking the quota signal.
  */
 export async function DELETE(
     request: NextRequest,
@@ -114,6 +120,23 @@ export async function DELETE(
 
     try {
         if (hard) {
+            // Audit #25: refuse hard-delete if the job is a free posting.
+            // Cascade through EmployerJob would drop the quotaDomain row that
+            // anchors the freebie quota count.
+            const employerJob = await prisma.employerJob.findUnique({
+                where: { jobId: id },
+                select: { paymentStatus: true },
+            });
+            if (employerJob && employerJob.paymentStatus === 'free') {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Cannot hard-delete a free posting — cascade would erase the freebie-quota record. Soft-delete (default, no ?hard flag) instead, or contact engineering for a quota-preserving removal.',
+                    },
+                    { status: 409 },
+                );
+            }
+
             await prisma.job.delete({ where: { id } });
             return NextResponse.json({ success: true, action: 'hard_deleted' });
         }

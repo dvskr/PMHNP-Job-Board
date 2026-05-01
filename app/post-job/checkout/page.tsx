@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { config } from '@/lib/config';
+import { trackBeginCheckout } from '@/lib/analytics';
 
 interface JobFormData {
   title: string;
@@ -18,7 +19,7 @@ interface JobFormData {
   salaryCompetitive?: boolean;
   description: string;
   applyUrl: string;
-  pricingTier: 'starter' | 'growth' | 'premium';
+  pricingTier: 'pro';
 }
 
 export default function CheckoutPage() {
@@ -54,6 +55,9 @@ export default function CheckoutPage() {
 
     setLoading(true);
     setError(null);
+
+    // P7: fire begin_checkout before redirect to Stripe
+    trackBeginCheckout(config.stripePriceInCents, 'new');
 
     try {
       const response = await fetch('/api/create-checkout', {
@@ -186,7 +190,7 @@ export default function CheckoutPage() {
           <div>
             <h3 className="text-lg font-semibold">{getPlanName()}</h3>
             <p className="text-sm text-gray-500">
-              60-day listing · Featured badge · Top search placement · 25 candidate unlocks · 25 InMails
+              {config.durationDays}-day listing · Featured badge · Top search placement · {config.limits.candidateUnlocksPerPosting} candidate unlocks · {config.limits.inmailsPerPosting} InMails
             </p>
           </div>
           <div className="text-right">

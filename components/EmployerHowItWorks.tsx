@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { config } from '@/lib/config';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
@@ -216,7 +217,7 @@ export default function EmployerHowItWorks() {
                             e.currentTarget.style.boxShadow = '0 4px 20px rgba(200,90,120,0.3)';
                         }}
                     >
-                        Post a Job — First 2 Free <ArrowUpRight size={15} />
+                        Post a Job — First {config.freePostsPerEmail} Free <ArrowUpRight size={15} />
                     </Link>
                 </motion.div>
             </motion.div>

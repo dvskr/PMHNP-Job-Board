@@ -56,13 +56,16 @@ export default function UsageWidget() {
 
     const { usage, tierLabel, tier } = data;
 
+    // Single-tier model — gradient palette keyed for current 'pro' value with
+    // legacy fallbacks so older cached payloads still render correctly.
     const tierGradients: Record<string, { gradient: string; accent: string; glow: string }> = {
+        pro: { gradient: 'linear-gradient(145deg, #0D9488, #10B981)', accent: '#0D9488', glow: 'rgba(13,148,136,0.15)' },
         starter: { gradient: 'linear-gradient(145deg, #94A3B8, #64748B)', accent: '#94A3B8', glow: 'rgba(148,163,184,0.15)' },
         growth: { gradient: 'linear-gradient(145deg, #0D9488, #10B981)', accent: '#0D9488', glow: 'rgba(13,148,136,0.15)' },
         premium: { gradient: 'linear-gradient(145deg, #8B5CF6, #A855F7)', accent: '#8B5CF6', glow: 'rgba(139,92,246,0.15)' },
     };
 
-    const t = tierGradients[tier] || tierGradients.starter;
+    const t = tierGradients[tier] || tierGradients.pro;
 
     return (
         <div style={{
@@ -120,37 +123,35 @@ export default function UsageWidget() {
                 glow="rgba(59,130,246,0.12)"
             />
 
-            {/* ─── Upgrade CTA ─── */}
-            {tier !== 'premium' && (
-                <Link
-                    href="/post-job"
-                    className="clay-upgrade-btn"
-                    style={{
-                        ...clayCard, padding: '18px 20px',
-                        display: 'flex', alignItems: 'center', gap: '14px',
-                        textDecoration: 'none',
-                        transition: 'all 0.25s ease',
-                    }}
-                >
-                    <div style={{
-                        ...clayIconWrap,
+            {/* ─── Post-another-job CTA — every additional posting adds 25 unlocks + 25 InMails ─── */}
+            <Link
+                href="/post-job"
+                className="clay-upgrade-btn"
+                style={{
+                    ...clayCard, padding: '18px 20px',
+                    display: 'flex', alignItems: 'center', gap: '14px',
+                    textDecoration: 'none',
+                    transition: 'all 0.25s ease',
+                }}
+            >
+                <div style={{
+                    ...clayIconWrap,
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)',
+                    boxShadow: '4px 4px 10px rgba(13,148,136,0.15), inset 1px 1px 2px rgba(255,255,255,0.2)',
+                }}>
+                    <TrendingUp size={17} color="#fff" />
+                </div>
+                <div>
+                    <p style={{
+                        fontSize: '13px', fontWeight: 700, margin: 0,
                         background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                        boxShadow: '4px 4px 10px rgba(13,148,136,0.15), inset 1px 1px 2px rgba(255,255,255,0.2)',
-                    }}>
-                        <TrendingUp size={17} color="#fff" />
-                    </div>
-                    <div>
-                        <p style={{
-                            fontSize: '13px', fontWeight: 700, margin: 0,
-                            background: 'linear-gradient(145deg, #0D9488, #10B981)',
-                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                        }}>Upgrade Plan</p>
-                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: '2px 0 0' }}>
-                            Get more unlocks & InMails
-                        </p>
-                    </div>
-                </Link>
-            )}
+                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    }}>Post Another Job</p>
+                    <p style={{ fontSize: '11px', color: '#8A9BA6', margin: '2px 0 0' }}>
+                        Adds 25 more unlocks & 25 InMails
+                    </p>
+                </div>
+            </Link>
 
             <style>{`
                 .clay-upgrade-btn:hover {

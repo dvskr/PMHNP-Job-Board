@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     const payments = employerJobs.map((ej) => ({
         id: ej.id,
         jobTitle: ej.job.title,
-        tier: config.getTierLabel((ej.pricingTier || 'starter') as PricingTier),
+        tier: config.getTierLabel((ej.pricingTier || 'pro') as PricingTier),
         status: ej.paymentStatus,
         date: ej.createdAt.toISOString(),
         expiresAt: ej.job.expiresAt?.toISOString() || null,

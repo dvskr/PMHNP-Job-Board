@@ -60,7 +60,7 @@ export default async function EmployerDashboardPage() {
         expiresAt: record.job.expiresAt ? record.job.expiresAt.toISOString() : null,
         editToken: record.editToken,
         paymentStatus: record.paymentStatus,
-        pricingTier: record.pricingTier || 'starter',
+        pricingTier: record.pricingTier || 'pro',
         slug: record.job.slug,
     }));
 

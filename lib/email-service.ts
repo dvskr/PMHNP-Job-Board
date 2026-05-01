@@ -60,6 +60,7 @@ export type EmailType =
   | 'job_confirmation'
   | 'job_alert'
   | 'renewal_confirmation'
+  | 'refund_confirmation'
   | 'expiry_warning'
   | 'draft_saved'
   | 'employer_message'
@@ -265,14 +266,21 @@ export async function sendSignupWelcomeEmail(
       ${headerBlockV2('Your Employer Account Is Ready', '')}
       ${spacerV2(12)}
       ${bodyTextV2('Post positions, track engagement, and connect with qualified Psychiatric Mental Health Nurse Practitioners \u2014 all from one dashboard.')}
-      ${spacerV2(36)}
+      ${spacerV2(20)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;text-align:center;">
+          <p style="margin:0 0 4px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Welcome offer</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:15px;color:${V2.textPrimary};line-height:1.5;">Your first ${config.freePostsPerEmail} job posts are <strong>completely free</strong> \u2014 no credit card required.</p>
+        </div>
+      </td></tr>
+      ${spacerV2(28)}
       ${sectionHeadV2('Three steps to your first hire')}
       ${spacerV2(20)}
-      ${stepBlock('icon-emp-megaphone.png', 'Publish your listing', 'Our guided form takes under five minutes. Add role details, compensation, and requirements.')}
+      ${stepBlock('icon-emp-megaphone.png', 'Publish your listing', `Our guided form takes under five minutes. ${config.durationDays}-day listing with Featured badge, ${config.limits.candidateUnlocksPerPosting} unlocks, ${config.limits.inmailsPerPosting} InMails included.`)}
       ${spacerV2(16)}
       ${stepBlock('icon-emp-analytics.png', 'Track engagement', 'Monitor views, apply clicks, and applicant quality in real time.')}
       ${spacerV2(16)}
-      ${stepBlock('icon-emp-handshake.png', 'Connect with candidates', 'Message qualified PMHNPs directly through the platform.')}
+      ${stepBlock('icon-emp-handshake.png', 'Connect with candidates', 'Message qualified PMHNPs directly through the platform. Candidates you unlock stay accessible forever.')}
       ${spacerV2(32)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('Post Your First Job', `${SITE_URL}/post-job`)}
@@ -280,7 +288,7 @@ export async function sendSignupWelcomeEmail(
       ${spacerV2(48)}
       ${closeContentV2()}`,
         unsubscribeFooterV2('sample'),
-        'Your employer account is ready \u2014 start hiring PMHNPs today.'
+        `Your employer account is ready \u2014 your first ${config.freePostsPerEmail} posts are free.`
       );
     } else {
       html = emailShellV2(`
@@ -341,18 +349,32 @@ export async function sendConfirmationEmail(
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
-    const dashboardUrl = `${BASE_URL}/employer/dashboard`;
+    // Token-based dashboard URL when available so employers without an account
+    // can still access their listing/analytics from this email.
+    const dashboardUrl = dashboardToken
+      ? `${BASE_URL}/employer/dashboard/${dashboardToken}`
+      : `${BASE_URL}/employer/dashboard`;
+
+    const featuresLine = `${config.durationDays}-day listing · Featured badge · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Full analytics`;
 
     const html = emailShellV2(`
       ${headerBlockV2('Your Listing Is Live', '')}
       ${spacerV2(12)}
       ${simpleBlock('hero-job-post.png', `Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for ${config.durationDays} days.`)}
-      ${spacerV2(32)}
+      ${spacerV2(20)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">What's Included</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${featuresLine}</p>
+          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you unlock stay in your dashboard forever — even after this posting expires.</p>
+        </div>
+      </td></tr>
+      ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}
       </td></tr>
       ${spacerV2(16)}
-      <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.</p></td></tr>
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Manage your posting from your <a href="${dashboardUrl}" style="color:${V2.teal};text-decoration:underline;">dashboard</a>.</p></td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2('sample'),
@@ -404,14 +426,23 @@ export async function sendRenewalConfirmationEmail(
       month: 'long',
       day: 'numeric'
     });
+    const dashboardUrl = `${BASE_URL}/employer/dashboard/${dashboardToken}`;
 
     const html = emailShellV2(`
       ${headerBlockV2('Listing Renewed Successfully', '')}
       ${spacerV2(12)}
       ${simpleBlock('hero-renewal.png', `Your posting for <strong>${escapeHtml(jobTitle)}</strong> has been renewed and will remain active until ${expiryStr}.`)}
-      ${spacerV2(32)}
+      ${spacerV2(20)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Receipt</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal — $${config.renewalPrice}.00 · A formal invoice is available from your dashboard.</p>
+          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">You also got a fresh ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails for this renewal cycle.</p>
+        </div>
+      </td></tr>
+      ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('View Your Dashboard', `${BASE_URL}/employer/dashboard`)}
+        ${primaryButtonV2('View Your Dashboard', dashboardUrl)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
@@ -462,20 +493,31 @@ export async function sendExpiryWarningEmail(
       day: 'numeric'
     });
 
+    const dashboardUrl = `${BASE_URL}/employer/dashboard/${dashboardToken}`;
+    const discountPct = Math.round((1 - config.renewalPrice / config.postingPrice) * 100);
+
     const html = emailShellV2(`
       ${headerBlockV2(`Your Listing Expires in ${daysUntilExpiry} Days`, '')}
       ${spacerV2(12)}
       ${bodyTextV2(`Your posting for <strong>${escapeHtml(jobTitle)}</strong> will expire on ${expiryDateStr}. Renew now to maintain visibility and continue receiving applications.`)}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(viewCount.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(applyClickCount.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2('—', 'Saved')}</tr></table></td></tr>
-      ${spacerV2(28)}
+      ${spacerV2(20)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Renew for $${config.renewalPrice} (Save ${discountPct}%)</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Adds ${config.durationDays} days to your current expiration plus a fresh ${config.limits.candidateUnlocksPerPosting} unlocks and ${config.limits.inmailsPerPosting} InMails. Renewing early doesn't lose any remaining days.</p>
+          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Heads up: even after expiry, candidates you've already unlocked stay accessible in your dashboard.</p>
+        </div>
+      </td></tr>
+      ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('Renew Your Listing', `${BASE_URL}/employer/dashboard`)}
+        ${primaryButtonV2('Renew Your Listing', dashboardUrl)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubscribeToken || 'sample'),
-      `Your listing expires in ${daysUntilExpiry} days — renew now.`
+      `Your listing expires in ${daysUntilExpiry} days — renew for $${config.renewalPrice} (save ${discountPct}%).`
     );
 
     // Always pass a real unsubscribe token (was previously optional, falling
@@ -496,6 +538,66 @@ export async function sendExpiryWarningEmail(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send expiry warning email',
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6b. REFUND CONFIRMATION EMAIL (audit #28)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function sendRefundConfirmationEmail(
+  email: string,
+  jobTitle: string,
+  amountCents: number,
+  isPartial: boolean,
+  unsubscribeToken: string | null,
+): Promise<EmailResult> {
+  try {
+    const formattedAmount = `$${(amountCents / 100).toFixed(2)}`;
+    const refundType = isPartial ? 'Partial refund' : 'Refund';
+
+    const html = emailShellV2(
+      `
+      ${headerBlockV2('Refund processed', '')}
+      ${spacerV2(12)}
+      ${bodyTextV2(`We've processed a ${refundType.toLowerCase()} of <strong>${formattedAmount}</strong> for your job posting <strong>${escapeHtml(jobTitle)}</strong>.`)}
+      ${spacerV2(20)}
+      <tr><td class="content-pad" style="padding:0 40px;">
+        <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">${refundType}</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${formattedAmount} will appear on the original payment method within <strong>5–10 business days</strong>, depending on your bank or card issuer.</p>
+          <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Reference for your records: this refund relates to the posting "${escapeHtml(jobTitle)}".</p>
+        </div>
+      </td></tr>
+      ${spacerV2(28)}
+      <tr><td class="content-pad" style="padding:0 40px;text-align:center;"><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.6;">Questions? Reply to this email or contact <a href="mailto:support@pmhnphiring.com" style="color:${V2.teal};text-decoration:underline;">support@pmhnphiring.com</a>.</p></td></tr>
+      ${spacerV2(48)}
+      ${closeContentV2()}`,
+      unsubscribeFooterV2(unsubscribeToken || 'sample'),
+      `${refundType} of ${formattedAmount} processed — appears in 5–10 business days.`,
+    );
+
+    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
+    await sendAndLog(
+      {
+        from: EMAIL_FROM,
+        to: email,
+        subject: `${refundType} processed — ${formattedAmount} for "${jobTitle}"`,
+        html,
+      },
+      'refund_confirmation',
+      { jobTitle, amountCents, isPartial },
+      `${BASE_URL}/unsubscribe?token=${unsubToken}`,
+    );
+
+    logger.info('Refund confirmation email sent', { email, jobTitle, amountCents, isPartial });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending refund confirmation email', error, { email });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send refund email',
     };
   }
 }

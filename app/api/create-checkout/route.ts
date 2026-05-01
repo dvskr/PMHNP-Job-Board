@@ -8,7 +8,13 @@ import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail } from '@/lib/sanitize';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy Stripe client — instantiated per-request so a missing STRIPE_SECRET_KEY
+// surfaces as a clean 503 instead of crashing on module import.
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
 
 interface CheckoutRequestBody {
   title: string;
@@ -32,7 +38,14 @@ export async function POST(request: NextRequest) {
   if (rateLimitResult) return rateLimitResult;
 
   try {
-    // Paid checkout is always available — used when employer has used their free posts
+    const stripe = getStripe();
+    if (!stripe) {
+      logger.error('Paid checkout attempted but STRIPE_SECRET_KEY is not configured', null);
+      return NextResponse.json(
+        { error: 'Paid checkout is currently unavailable' },
+        { status: 503 }
+      );
+    }
 
     const rawBody: CheckoutRequestBody = await request.json();
 
@@ -90,8 +103,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Single-tier: all paid posts are 'growth' internally, $199
-    const pricing: PricingTier = 'growth';
+    // Single-tier: all paid posts are 'pro' internally, $199
+    const pricing: PricingTier = 'pro';
     const price = config.stripePriceInCents;
 
     // DUPLICATE CHECK
@@ -151,59 +164,59 @@ export async function POST(request: NextRequest) {
       pricing,
     });
 
-    // Create job in database first (unpublished, pending payment)
-    const job = await prisma.job.create({
-      data: {
-        title: trimmedTitle,
-        employer: trimmedEmployer,
-        location: trimmedLocation,
-        jobType,
-        mode,
-        description: trimmedDescription,
-        descriptionSummary: trimmedDescription.slice(0, 300),
-        applyLink: trimmedApplyLink,
-        minSalary: salaryMin ? Math.round(salaryMin) : null,
-        maxSalary: salaryMax ? Math.round(salaryMax) : null,
-        salaryPeriod,
-        isFeatured: config.isFeaturedTier(pricing),
-        isPublished: false, // Will be published after payment
-        sourceType: 'employer',
-        expiresAt,
-      },
+    // Audit #7: wrap the three writes in a single transaction so a slug-update
+    // or employerJob-create failure can't leave an orphan job row that the
+    // employer can never recover.
+    const { job, employerJob } = await prisma.$transaction(async (tx) => {
+      const created = await tx.job.create({
+        data: {
+          title: trimmedTitle,
+          employer: trimmedEmployer,
+          location: trimmedLocation,
+          jobType,
+          mode,
+          description: trimmedDescription,
+          descriptionSummary: trimmedDescription.slice(0, 300),
+          applyLink: trimmedApplyLink,
+          minSalary: salaryMin ? Math.round(salaryMin) : null,
+          maxSalary: salaryMax ? Math.round(salaryMax) : null,
+          salaryPeriod,
+          isFeatured: config.isFeaturedTier(pricing),
+          isPublished: false, // Will be published after payment
+          sourceType: 'employer',
+          expiresAt,
+        },
+      });
+
+      const computedSlug = `${trimmedTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()}-${created.id}`;
+
+      const updatedJob = await tx.job.update({
+        where: { id: created.id },
+        data: { slug: computedSlug },
+      });
+
+      const ej = await tx.employerJob.create({
+        data: {
+          employerName: trimmedEmployer,
+          contactEmail: trimmedContactEmail,
+          companyWebsite: companyWebsite?.trim() || null,
+          jobId: created.id,
+          editToken,
+          dashboardToken,
+          paymentStatus: 'pending',
+          pricingTier: pricing,
+        },
+      });
+
+      return { job: updatedJob, employerJob: ej };
     });
 
     logger.info('Job created successfully', { jobId: job.id });
-
-    // Generate and update slug
-    const slug = `${trimmedTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()}-${job.id}`;
-
-    await prisma.job.update({
-      where: { id: job.id },
-      data: { slug },
-    });
-
-    // Create employer job record
-    const employerJobData = {
-      employerName: trimmedEmployer,
-      contactEmail: trimmedContactEmail,
-      companyWebsite: companyWebsite?.trim() || null,
-      jobId: job.id,
-      editToken,
-      dashboardToken,
-      paymentStatus: 'pending',
-      pricingTier: pricing,
-    };
-
-    logger.debug('Creating employer job record', { jobId: job.id, email: trimmedContactEmail });
-
-    const employerJob = await prisma.employerJob.create({
-      data: employerJobData,
-    });
 
     // Create Stripe Checkout session with job ID and dashboard token in metadata
     const session = await stripe.checkout.sessions.create({
@@ -230,6 +243,14 @@ export async function POST(request: NextRequest) {
         dashboardToken: employerJob.dashboardToken,
       },
     });
+
+    if (!session.url) {
+      logger.error('Stripe returned a checkout session without a URL', null, { sessionId: session.id });
+      return NextResponse.json(
+        { error: 'Checkout session created but URL is missing' },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       sessionId: session.id,

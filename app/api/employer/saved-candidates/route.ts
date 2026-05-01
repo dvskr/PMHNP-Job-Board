@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
-import { getEmployerTier } from '@/lib/tier-limits';
+import { getEmployerTier, getEmployerActivePostings } from '@/lib/tier-limits';
 import { PricingTier } from '@/lib/config';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
@@ -30,9 +30,13 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Determine employer tier for field gating
+    // Real gates: isAdmin (admin-only fields) and hasActivePosting (unlock-eligible
+    // metadata). Tier value is informational only in the single-tier model.
     const isAdmin = profile.role === 'admin';
-    const tier: PricingTier = isAdmin ? 'premium' : await getEmployerTier(user.id);
+    const tier: PricingTier = await getEmployerTier(user.id);
+    const hasActivePosting = isAdmin
+        ? true
+        : (await getEmployerActivePostings(user.id)).length > 0;
 
     // Starter fields (always included)
     const candidateSelect: Record<string, boolean> = {
@@ -47,8 +51,8 @@ export async function GET(req: NextRequest) {
         preferredWorkMode: true,
     };
 
-    // Growth+ fields
-    if (tier === 'growth' || tier === 'premium') {
+    // Active-posting fields — unlock-eligible metadata
+    if (hasActivePosting) {
         candidateSelect.certifications = true;
         candidateSelect.licenseStates = true;
         candidateSelect.desiredSalaryMin = true;
@@ -58,8 +62,8 @@ export async function GET(req: NextRequest) {
         candidateSelect.resumeUrl = true;
     }
 
-    // Premium fields
-    if (tier === 'premium') {
+    // Admin-only fields
+    if (isAdmin) {
         candidateSelect.bio = true;
         candidateSelect.preferredJobType = true;
         candidateSelect.state = true;
@@ -100,7 +104,7 @@ export async function GET(req: NextRequest) {
         const base: Record<string, unknown> = {
             id: c.supabaseId,
             displayName: c.firstName
-                ? `${c.firstName} ${tier === 'premium' && c.lastName ? c.lastName : (c.lastName ? c.lastName.charAt(0) + '.' : '')}`.trim()
+                ? `${c.firstName} ${isAdmin && c.lastName ? c.lastName : (c.lastName ? c.lastName.charAt(0) + '.' : '')}`.trim()
                 : 'PMHNP Candidate',
             initials: `${(c.firstName || 'P').charAt(0)}${(c.lastName || 'C').charAt(0)}`.toUpperCase(),
             avatarUrl: c.avatarUrl,
@@ -110,8 +114,8 @@ export async function GET(req: NextRequest) {
             preferredWorkMode: c.preferredWorkMode,
         };
 
-        // Growth+ fields
-        if (tier === 'growth' || tier === 'premium') {
+        // Active-posting fields
+        if (hasActivePosting) {
             base.certifications = c.certifications ? c.certifications.split(',').map((s: string) => s.trim()) : [];
             base.licenseStates = c.licenseStates ? c.licenseStates.split(',').map((s: string) => s.trim()) : [];
             base.desiredSalaryMin = c.desiredSalaryMin;
@@ -121,8 +125,8 @@ export async function GET(req: NextRequest) {
             base.hasResume = !!c.resumeUrl;
         }
 
-        // Premium fields
-        if (tier === 'premium') {
+        // Admin-only fields
+        if (isAdmin) {
             base.bio = c.bio;
             base.preferredJobType = c.preferredJobType;
             base.state = c.state;

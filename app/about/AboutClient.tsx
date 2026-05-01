@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import './about.css';
 import { Briefcase, Users, MapPin, RefreshCw, CheckCircle, DollarSign, CalendarDays, Target, BarChart3, Layers, Shield, ArrowRight, Play } from 'lucide-react';
+import { brand } from '@/config/brand';
 
 export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: number; totalEmployers: number }) {
   return (
@@ -135,6 +136,9 @@ export default function AboutClient({ totalJobs, totalEmployers }: { totalJobs: 
               <div className="ab-sig-mark">S.K.</div>
               <div><div className="name">Kumar</div><div className="role">Creator & Principal Engineer</div></div>
             </div>
+            <p style={{ marginTop: 28, fontSize: 13, color: 'var(--ink-soft, #6B7F8A)', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 18 }}>
+              {brand.name} is a service operated by <strong>{brand.legal.entityName}</strong>, a {brand.legal.jurisdiction.split(',')[0]} limited liability company headquartered at {brand.legal.address}.
+            </p>
           </div>
         </div>
       </div></section>

@@ -203,7 +203,17 @@ model EmployerJob {
   editToken           String       @unique @map("edit_token")
   dashboardToken      String       @unique @default(cuid()) @map("dashboard_token")
   paymentStatus       String       @map("payment_status")
-  pricingTier         String       @default("starter") @map("pricing_tier")
+  pricingTier         String       @default("pro") @map("pricing_tier")
+  // Immutable snapshot of the signup email's domain at posting time.
+  // Used as the canonical anchor for the free-post quota count so that:
+  //   - Editing contactEmail can't shift the count
+  //   - Deleting/nullifying userId (account deletion) can't drop the count
+  //   - Form-submitted contactEmail can be anything (recruiter posting on
+  //     behalf of a client, multi-brand orgs, etc.) without affecting quota
+  // Set ONLY at row creation by /api/jobs/post-free; never written by any
+  // update path. Null on legacy paid rows / pre-2026-05-01 rows that the
+  // backfill couldn't infer; those rows don't drive the quota anyway.
+  quotaDomain         String?      @map("quota_domain")
   createdAt           DateTime     @default(now()) @map("created_at")
   updatedAt           DateTime     @updatedAt @map("updated_at")
   expiryWarningSentAt DateTime?    @map("expiry_warning_sent_at")
@@ -219,7 +229,49 @@ model EmployerJob {
   @@index([editToken])
   @@index([contactEmail])
   @@index([dashboardToken])
+  @@index([quotaDomain, paymentStatus])
   @@map("employer_jobs")
+}
+
+/// Idempotency log for Stripe webhook events. Audit #3: Stripe redelivers
+/// `checkout.session.completed` on transient failures or manual replays. Without
+/// this dedupe, the handler sends duplicate confirmation emails and re-runs
+/// state writes. We insert-then-process; on a unique-violation we skip safely.
+model ProcessedStripeEvent {
+  id          String   @id @default(uuid())
+  eventId     String   @unique @map("event_id")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@index([eventType])
+  @@map("processed_stripe_events")
+}
+
+/// Per-charge ledger for paid job postings. Audit #2: replaces the broken
+/// invoice-by-employerJob lookup that always printed $199 even for $179
+/// renewals. One row per Stripe checkout (new post or renewal). Invoices
+/// are now generated from this ledger so they always match the charged amount.
+///
+/// Refund fields (audit #28): populated by the `charge.refunded` webhook
+/// handler when a refund is issued from Stripe Dashboard. `refundedAmountCents`
+/// supports partial refunds; full-refund flag is `refundedAmountCents = amountCents`.
+model JobCharge {
+  id                   String    @id @default(uuid())
+  employerJobId        String    @map("employer_job_id")
+  stripeSessionId      String    @unique @map("stripe_session_id")
+  stripePaymentIntentId String?  @unique @map("stripe_payment_intent_id")
+  amountCents          Int       @map("amount_cents")
+  currency             String    @default("usd")
+  type                 String    // 'new' | 'renewal'
+  createdAt            DateTime  @default(now()) @map("created_at")
+  refundedAt           DateTime? @map("refunded_at")
+  refundedAmountCents  Int?      @map("refunded_amount_cents")
+  refundReason         String?   @map("refund_reason")
+
+  @@index([employerJobId])
+  @@index([type])
+  @@index([refundedAt])
+  @@map("job_charges")
 }
 
 model SiteStat {

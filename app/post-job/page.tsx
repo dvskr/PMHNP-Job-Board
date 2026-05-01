@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { config } from '@/lib/config';
+import { trackViewPostJobPage } from '@/lib/analytics';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
 import ScreeningQuestionsBuilder from '@/components/ScreeningQuestionsBuilder';
 import { Building2, MapPin, FileText, DollarSign, Rocket, ChevronRight, ChevronLeft, Check, Loader2, Save, Trash2, Upload } from 'lucide-react';
@@ -37,7 +38,7 @@ const jobPostingSchema = z.object({
   description: z.string().min(200, 'Job description must be at least 200 characters').max(5000, 'Job description cannot exceed 5,000 characters'),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
-  pricingTier: z.enum(['starter', 'growth', 'premium']),
+  pricingTier: z.enum(['pro']),
   benefits: z.array(z.string()).optional(),
   setting: z.string().optional(),
   population: z.string().optional(),
@@ -254,7 +255,7 @@ function PostJobContent() {
   } = useForm<JobPostingFormData>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
-      pricingTier: 'starter',
+      pricingTier: 'pro',
       salaryCompetitive: false,
       salaryPeriod: 'annual',
       benefits: [],
@@ -266,7 +267,16 @@ function PostJobContent() {
   const contactEmail = watch('contactEmail');
   const salaryPeriod = watch('salaryPeriod');
 
-  // Auth check
+  // P7: pricing-funnel analytics — landed on post-job page
+  useEffect(() => {
+    trackViewPostJobPage();
+  }, []);
+
+  // Auth + role gate. Allowlist approach: only 'employer' and 'admin' may
+  // post jobs. Everyone else (job_seeker, missing role, future roles) is
+  // blocked by the in-page "Wrong Account Type" screen rendered below.
+  // No silent router.push — the in-page block tells the user what's wrong
+  // and gives them a sign-out path.
   useEffect(() => {
     async function checkUser() {
       try {
@@ -280,14 +290,16 @@ function PostJobContent() {
             .select('role')
             .eq('supabase_id', user.id)
             .single();
-          setUserRole(profile?.role || null);
-          if (profile?.role === 'job_seeker') {
-            router.push('/jobs');
-            return;
+          const role = profile?.role || null;
+          setUserRole(role);
+          // Only employers and admins proceed to the form (auto-fill, etc.).
+          if (role === 'employer' || role === 'admin') {
+            if (user.email) {
+              setValue('contactEmail', user.email);
+            }
           }
-          if (user.email) {
-            setValue('contactEmail', user.email);
-          }
+          // For all other roles (job_seeker / null / unknown) the render
+          // path below catches it and shows the wrong-account-type screen.
         }
       } catch (e) {
         console.error('Auth check failed', e);
@@ -508,8 +520,16 @@ function PostJobContent() {
     );
   }
 
-  // Job Seeker warning
-  if (userRole === 'job_seeker') {
+  // Allowlist gate: only employers and admins reach the form. Everyone else
+  // (job seekers, accounts with missing/unknown role) gets the wrong-account
+  // screen — the API also enforces this, but blocking at the page level
+  // prevents wasted form-fill effort and confusing 403s on submit.
+  if (userRole !== 'employer' && userRole !== 'admin') {
+    const roleLabel = userRole === 'job_seeker'
+      ? 'Job Seeker'
+      : userRole
+        ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}`
+        : 'unknown';
     return (
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '48px 16px' }}>
         <div style={{ ...cardBase, padding: '40px 32px', textAlign: 'center' }}>
@@ -518,13 +538,26 @@ function PostJobContent() {
             Wrong Account Type
           </h2>
           <p style={{ fontSize: '14px', color: '#6B7F8A', margin: '0 0 20px', lineHeight: 1.5 }}>
-            You are logged in with a Job Seeker account. You need an Employer account to post jobs.
+            You are logged in as <strong>{roleLabel}</strong>. Posting a job requires an Employer account.
           </p>
-          <form action="/auth/signout" method="post">
-            <button type="submit" style={{ ...clayBtn, background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
-              Sign out and switch
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <a href="/jobs" style={{ ...clayBtn, justifyContent: 'center', background: '#F0FDFA', color: '#0D9488', border: '1px solid rgba(13,148,136,0.2)' }}>
+              Browse jobs instead
+            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                const { createClient } = await import('@/lib/supabase/client');
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                router.refresh();
+                router.push('/signup?role=employer');
+              }}
+              style={{ ...clayBtn, width: '100%', justifyContent: 'center', background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
+            >
+              Sign out and create an Employer account
             </button>
-          </form>
+          </div>
         </div>
       </div>
     );
@@ -974,7 +1007,7 @@ function PostJobContent() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {['60-day listing', 'Featured badge', 'Top placement', 'Email alerts', '25 candidate unlocks', '25 InMails', 'Analytics'].map(f => (
+                  {[`${config.durationDays}-day listing`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
                     <span key={f} style={{
                       fontSize: '11px', fontWeight: 500, padding: '4px 10px',
                       borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',

@@ -16,7 +16,9 @@
 //   - Security/info cards: #F3F2EF bg with #EDF2F7 border, 12px radius
 //   - CTA button: #4DB6AC, 14px/40px padding, 8px radius, 16px font
 
-const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(/\/$/, '');
+import { brand } from '@/config/brand';
+
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || brand.baseUrl).replace(/\/$/, '');
 const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
 
 // ── Font stacks ──────────────────────────────────────────────────────────────
@@ -134,9 +136,13 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
             <td class="footer-bg" bgcolor="#1c1917" style="background-color:#1c1917;padding:24px 24px 48px;text-align:center;">
               ${footerContent}
               <p class="footer-text" style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:#A0AEC0;">
-                &copy; ${new Date().getFullYear()} PMHNP Hiring &nbsp;&middot;&nbsp;
-                <a href="${BASE_URL}" style="color:#A0AEC0;text-decoration:underline;">pmhnphiring.com</a> &nbsp;&middot;&nbsp;
-                <a href="mailto:support@pmhnphiring.com" style="color:#A0AEC0;text-decoration:underline;">support@pmhnphiring.com</a>
+                &copy; ${new Date().getFullYear()} ${brand.name} &nbsp;&middot;&nbsp;
+                <a href="${BASE_URL}" style="color:#A0AEC0;text-decoration:underline;">${brand.domain}</a> &nbsp;&middot;&nbsp;
+                <a href="mailto:${brand.email.support}" style="color:#A0AEC0;text-decoration:underline;">${brand.email.support}</a>
+              </p>
+              <p class="footer-text" style="margin:6px 0 0;font-family:${SANS};font-size:11px;color:#718096;line-height:1.5;">
+                ${brand.name} is a service operated by ${brand.legal.entityName}.<br/>
+                ${brand.legal.address}
               </p>
             </td>
           </tr>

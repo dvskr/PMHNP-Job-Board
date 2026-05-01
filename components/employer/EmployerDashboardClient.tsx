@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatDate, getExpiryStatus } from '@/lib/utils';
 import { ExternalLink, Edit, RefreshCw, Mail, Loader2, Shield, Bell, Pause, Play, Rocket, Users, Eye, MousePointerClick, User, Plus, Briefcase, BarChart3, Star, MessageSquare, Send, HelpCircle } from 'lucide-react';
 import { config } from '@/lib/config';
+import { trackBeginCheckout } from '@/lib/analytics';
 import ApplicantsTab from '@/components/employer/ApplicantsTab';
 import AnalyticsTab from '@/components/employer/AnalyticsTab';
 import SavedCandidatesTab from '@/components/employer/SavedCandidatesTab';
@@ -210,11 +211,14 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         }
     };
 
-    const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
+    const handleRenewCheckout = async (tier: 'pro') => {
         if (!selectedJob) return;
 
         setRenewingJobId(selectedJob.id);
         setShowRenewModal(false);
+
+        // P7: fire begin_checkout for renewal
+        trackBeginCheckout(config.stripeRenewalPriceInCents, 'renewal');
 
         try {
             const response = await fetch('/api/create-renewal-checkout', {
@@ -769,8 +773,53 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                     </>
                 )}
 
-                {/* ═══ Renewal Modal ═══ */}
-                {showRenewModal && selectedJob && (
+                {/* ═══ Renewal Modal — branches on whether the original posting was free ═══ */}
+                {showRenewModal && selectedJob && selectedJob.paymentStatus === 'free' && (
+                    <div style={{
+                        position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                    }}>
+                        <div style={{
+                            ...cardBase, maxWidth: '440px', width: '100%', padding: '24px',
+                            boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '18px', fontWeight: 700,
+                                fontFamily: 'var(--font-lora), Georgia, serif',
+                                color: '#1A2E35', marginBottom: '4px',
+                            }}>This free post can&apos;t be renewed</h3>
+                            <p style={{ fontSize: '13px', color: '#8A9BA6', marginBottom: '14px' }}>{selectedJob.title}</p>
+
+                            <p style={{ fontSize: '14px', color: '#1A2E35', lineHeight: 1.6, marginBottom: '8px' }}>
+                                Renewals at the discounted ${config.renewalPrice} rate are available for paid postings only.
+                            </p>
+                            <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.6, marginBottom: '20px' }}>
+                                You can post this role again as a fresh listing for ${config.postingPrice} — same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
+                            </p>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <Link href="/post-job" style={{
+                                    ...clayBtn, width: '100%', justifyContent: 'center',
+                                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                                    textDecoration: 'none', padding: '12px 16px', fontWeight: 700, fontSize: '14px',
+                                }}>
+                                    Post a New Job — ${config.postingPrice}
+                                </Link>
+                                <button
+                                    onClick={() => { setShowRenewModal(false); setSelectedJob(null); }}
+                                    style={{
+                                        ...clayBtn, width: '100%', justifyContent: 'center',
+                                        background: '#EDF5F0', color: '#6B7F8A',
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showRenewModal && selectedJob && selectedJob.paymentStatus !== 'free' && (
                     <div style={{
                         position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
@@ -788,7 +837,7 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
                                 {/* Single-tier renewal */}
-                                <button onClick={() => handleRenewCheckout('growth')} className="emp-tier-btn" style={{
+                                <button onClick={() => handleRenewCheckout('pro')} className="emp-tier-btn" style={{
                                     ...cardBase, padding: '14px 16px', cursor: 'pointer',
                                     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                                     textAlign: 'left', transition: 'all 0.2s',
@@ -796,11 +845,11 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                 }}>
                                     <div>
                                         <p style={{ fontSize: '14px', fontWeight: 700, color: '#134E4A', margin: '0 0 4px' }}>Renew Listing</p>
-                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ 60 more days · Featured · 25 unlocks · 25 InMails</p>
+                                        <p style={{ fontSize: '11px', color: '#0D9488', margin: 0, lineHeight: 1.5 }}>✓ Adds {config.durationDays} days to your expiration · Featured · {config.limits.candidateUnlocksPerPosting} unlocks · {config.limits.inmailsPerPosting} InMails</p>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <span style={{ fontSize: '20px', fontWeight: 800, color: '#134E4A' }}>${config.renewalPrice}</span>
-                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 20%</p>
+                                        <p style={{ fontSize: '10px', color: '#6B7F8A', margin: 0 }}>Save 10%</p>
                                     </div>
                                 </button>
                             </div>

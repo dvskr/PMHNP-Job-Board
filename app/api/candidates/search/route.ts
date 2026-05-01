@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
-import { getEmployerTier } from '@/lib/tier-limits';
+import { getEmployerTier, getEmployerActivePostings } from '@/lib/tier-limits';
 
 export async function GET(req: NextRequest) {
     try {
@@ -22,8 +22,13 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Determine employer tier from server (admin gets premium access)
-        const tier = profile.role === 'admin' ? 'premium' : await getEmployerTier(user.id);
+        // Real gates: isAdmin (admin-only fields) and hasActivePosting (unlock-eligible
+        // metadata). Tier value is informational only in the single-tier model.
+        const isAdmin = profile.role === 'admin';
+        const tier = await getEmployerTier(user.id);
+        const hasActivePosting = isAdmin
+            ? true
+            : (await getEmployerActivePostings(user.id)).length > 0;
 
         const url = new URL(req.url);
         const specialty = url.searchParams.get('specialty');
@@ -47,7 +52,7 @@ export async function GET(req: NextRequest) {
         if (specialty) where.specialties = { contains: specialty, mode: 'insensitive' };
         if (workMode) where.preferredWorkMode = { contains: workMode, mode: 'insensitive' };
 
-        // Base select fields (all tiers)
+        // Base select fields (everyone)
         const baseSelect = {
             id: true,
             firstName: true,
@@ -63,8 +68,8 @@ export async function GET(req: NextRequest) {
             createdAt: true,
         };
 
-        // Growth tier: more details
-        const growthSelect = {
+        // Active-posting fields — unlock-eligible metadata
+        const activeSelect = {
             ...baseSelect,
             licenseStates: true,
             certifications: true,
@@ -73,9 +78,9 @@ export async function GET(req: NextRequest) {
             availableDate: true,
         };
 
-        // Premium tier: full access
-        const premiumSelect = {
-            ...growthSelect,
+        // Admin-only — full PII access (email, phone, NPI, etc.)
+        const adminSelect = {
+            ...activeSelect,
             email: true,
             phone: true,
             npiNumber: true,
@@ -83,17 +88,9 @@ export async function GET(req: NextRequest) {
             linkedinUrl: true,
         };
 
-        let select;
-        switch (tier) {
-            case 'premium':
-                select = premiumSelect;
-                break;
-            case 'growth':
-                select = growthSelect;
-                break;
-            default:
-                select = baseSelect;
-        }
+        const select = isAdmin ? adminSelect
+            : hasActivePosting ? activeSelect
+            : baseSelect;
 
         const [candidates, total] = await Promise.all([
             prisma.userProfile.findMany({
@@ -106,9 +103,9 @@ export async function GET(req: NextRequest) {
             prisma.userProfile.count({ where }),
         ]);
 
-        // For starter/growth tiers, mask the last name. Premium gets full names.
+        // Privacy: full last name only for admins; everyone else first-initial
         const masked = candidates.map((c) => {
-            if (tier === 'premium') return c;
+            if (isAdmin) return c;
             return {
                 ...c,
                 lastName: c.lastName ? c.lastName[0] + '.' : '',

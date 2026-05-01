@@ -36,9 +36,6 @@ const envSchema = z.object({
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
 
-    // Feature flags
-    ENABLE_PAID_POSTING: z.string().optional().default('false'),
-
     // Cron security (required — protects all cron endpoints)
     CRON_SECRET: z.string().min(16, 'CRON_SECRET must be at least 16 characters'),
 
@@ -114,11 +111,9 @@ export function getEnv(): Env {
 /**
  * Check if a specific feature is enabled
  */
-export function isFeatureEnabled(feature: 'paidPosting' | 'sentry'): boolean {
+export function isFeatureEnabled(feature: 'sentry'): boolean {
     const env = getEnv();
     switch (feature) {
-        case 'paidPosting':
-            return env.ENABLE_PAID_POSTING === 'true';
         case 'sentry':
             return !!env.SENTRY_DSN;
         default:

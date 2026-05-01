@@ -6,6 +6,7 @@ import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign, ChevronLeft, Chev
 import { formatSalary } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { config } from '@/lib/config';
+import { trackFreePostLimitHit } from '@/lib/analytics';
 
 interface JobFormData {
   title: string;
@@ -22,7 +23,7 @@ interface JobFormData {
   applyUrl?: string;
   applyOnPlatform?: boolean;
   contactEmail: string;
-  pricingTier: 'starter' | 'growth' | 'premium';
+  pricingTier: 'pro';
   benefits?: string[];
   setting?: string;
   population?: string;
@@ -104,7 +105,7 @@ export default function PreviewPage() {
           maxSalary: formData.salaryMax,
           salaryPeriod: formData.salaryPeriod || 'annual',
           companyWebsite: formData.companyWebsite,
-          pricing: 'growth',
+          pricing: 'pro',
           benefits: formData.benefits,
           setting: formData.setting,
           population: formData.population,
@@ -118,7 +119,13 @@ export default function PreviewPage() {
         localStorage.removeItem('jobScreeningQuestions');
         router.push('/success?free=true');
       } else if (result.requiresPayment) {
-        // Free posts exhausted — redirect to checkout
+        // Free posts exhausted — fire P7 limit-hit event then redirect to checkout
+        const domain = (formData.contactEmail || '').split('@')[1] || 'unknown';
+        trackFreePostLimitHit(
+          domain,
+          result.freePostsUsed ?? config.freePostsPerEmail,
+          result.freePostsLimit ?? config.freePostsPerEmail
+        );
         router.push('/post-job/checkout');
       } else {
         setError(result.error || 'Failed to post job');
@@ -315,7 +322,7 @@ export default function PreviewPage() {
             </div>
             <div>
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package Included</p>
-              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>60-day listing · Featured badge · Top placement · Analytics · 25 unlocks · 25 InMails</p>
+              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{config.durationDays}-day listing · Featured badge · Top placement · Analytics · {config.limits.candidateUnlocksPerPosting} unlocks · {config.limits.inmailsPerPosting} InMails</p>
             </div>
           </div>
         </div>

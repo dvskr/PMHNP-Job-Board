@@ -318,6 +318,50 @@ export function trackJobPost(jobId: string, tier: string) {
   });
 }
 
+// ── Pricing Funnel (P7) ─────────────────────────────────────────
+// Client-side events for measuring the employer-side pricing funnel.
+// Server-side `purchase` events fire from the Stripe webhook via
+// Measurement Protocol (lib/analytics-server.ts) — webhook is the only
+// place we know payment actually completed.
+
+/** Employer landed on the post-job page */
+export function trackViewPostJobPage() {
+  gtag('event', 'view_post_job_page', {});
+}
+
+/** Employer clicked through to Stripe checkout */
+export function trackBeginCheckout(amountCents: number, type: 'new' | 'renewal') {
+  gtag('event', 'begin_checkout', {
+    currency: 'USD',
+    value: amountCents / 100,
+    checkout_type: type,
+  });
+}
+
+/** Free post submitted successfully (no Stripe involved) */
+export function trackSubmitFreePost(jobId: string) {
+  gtag('event', 'submit_free_post', { job_id: jobId });
+}
+
+/** Employer hit the free-post lifetime limit on this domain */
+export function trackFreePostLimitHit(domain: string, used: number, limit: number) {
+  gtag('event', 'free_post_limit_hit', {
+    email_domain: domain,
+    used,
+    limit,
+  });
+}
+
+/** Employer hit the per-posting unlock cap */
+export function trackUnlockLimitHit(used: number, limit: number) {
+  gtag('event', 'unlock_limit_hit', { used, limit });
+}
+
+/** Employer hit the per-posting InMail cap */
+export function trackInMailLimitHit(used: number, limit: number) {
+  gtag('event', 'inmail_limit_hit', { used, limit });
+}
+
 export function trackCandidateView(candidateId: string) {
   gtag('event', 'view_candidate', {
     candidate_id: candidateId,

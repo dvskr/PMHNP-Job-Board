@@ -87,7 +87,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update employer job if contact info changed
+    // Update employer job if contact info changed. Free-post quota is now
+    // anchored on userId (audit #26 follow-up), so editing contactEmail no
+    // longer affects the freebie count — no longer need a special-case block.
     if (jobData.contactEmail || jobData.companyWebsite) {
       await prisma.employerJob.update({
         where: { id: employerJob.id },

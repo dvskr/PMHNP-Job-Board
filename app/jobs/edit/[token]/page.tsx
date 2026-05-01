@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { Job } from '@/lib/types';
+import { config } from '@/lib/config';
+import { trackBeginCheckout } from '@/lib/analytics';
 import { AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 
 const ReactQuill = lazy(() => import('react-quill-new'));
@@ -64,7 +66,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
-  const [renewingTier, setRenewingTier] = useState<'starter' | 'growth' | 'premium' | null>(null);
+  const [renewingTier, setRenewingTier] = useState<'pro' | null>(null);
   const [isApplyOnPlatform, setIsApplyOnPlatform] = useState(false);
 
   const {
@@ -198,11 +200,14 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
     return isExpired() || isExpiringSoon();
   };
 
-  const handleRenewCheckout = async (tier: 'starter' | 'growth' | 'premium') => {
+  const handleRenewCheckout = async (tier: 'pro') => {
     if (!job) return;
 
     setRenewingTier(tier);
     setShowRenewModal(false);
+
+    // P7: fire begin_checkout for renewal
+    trackBeginCheckout(config.stripeRenewalPriceInCents, 'renewal');
 
     try {
       const response = await fetch('/api/create-renewal-checkout', {
@@ -581,8 +586,43 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
         </div>
       )}
 
-      {/* Renewal Modal */}
-      {showRenewModal && job && (
+      {/* Renewal Modal — branches on whether the original posting was free */}
+      {showRenewModal && job && employerJob?.paymentStatus === 'free' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="rounded-lg shadow-xl max-w-md w-full p-6" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="mb-4">
+              <h3 className="text-xl font-bold mb-2">This free post can&apos;t be renewed</h3>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{job.title}</p>
+            </div>
+
+            <p className="mb-3" style={{ color: 'var(--text-secondary)' }}>
+              Renewals at the discounted ${config.renewalPrice} rate are available for paid postings only.
+            </p>
+            <p className="mb-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              You can still post this role again as a fresh listing for ${config.postingPrice} — same {config.durationDays}-day duration and a new bucket of {config.limits.candidateUnlocksPerPosting} unlocks &amp; {config.limits.inmailsPerPosting} InMails.
+            </p>
+
+            <div className="space-y-2">
+              <a
+                href="/post-job"
+                className="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg font-semibold transition-colors"
+                style={{ background: 'var(--color-primary)', color: 'white' }}
+              >
+                Post a New Job — ${config.postingPrice}
+              </a>
+              <button
+                onClick={() => setShowRenewModal(false)}
+                className="w-full px-4 py-2 border rounded-lg font-medium transition-colors"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRenewModal && job && employerJob?.paymentStatus !== 'free' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="rounded-lg shadow-xl max-w-md w-full p-6" style={{ background: 'var(--bg-secondary)' }}>
             <div className="mb-4">
@@ -595,22 +635,22 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
             <div className="space-y-3 mb-6">
               {/* Single-tier renewal */}
               <button
-                onClick={() => handleRenewCheckout('growth')}
+                onClick={() => handleRenewCheckout('pro')}
                 className="w-full text-left border-2 border-teal-500 rounded-lg p-4 transition-all group"
                 style={{ background: 'rgba(13,148,136,0.08)' }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Renew Listing</span>
                   <div className="text-right">
-                    <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>$159</span>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Save 20%</p>
+                    <span className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>${config.renewalPrice}</span>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Save {Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}%</p>
                   </div>
                 </div>
                 <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                  <li>✓ 60 more days of visibility</li>
+                  <li>✓ Adds {config.durationDays} days to your current expiration</li>
                   <li>✓ Featured placement (top of list)</li>
-                  <li>✓ 25 candidate unlocks</li>
-                  <li>✓ 25 InMails</li>
+                  <li>✓ {config.limits.candidateUnlocksPerPosting} candidate unlocks</li>
+                  <li>✓ {config.limits.inmailsPerPosting} InMails</li>
                 </ul>
               </button>
             </div>
