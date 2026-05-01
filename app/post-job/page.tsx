@@ -35,7 +35,21 @@ const jobPostingSchema = z.object({
   salaryMin: z.number().positive('Minimum salary must be a positive number').optional().nullable(),
   salaryMax: z.number().positive('Maximum salary must be a positive number').optional().nullable(),
   salaryCompetitive: z.boolean().optional(),
-  description: z.string().min(200, 'Job description must be at least 200 characters').max(5000, 'Job description cannot exceed 5,000 characters'),
+  // Validation operates on visible-text length (HTML stripped) to match the
+  // character counter shown in the UI. Quill stores formatted HTML, so a
+  // raw .length() check on the field includes <p>/<ul>/<li>/<strong>/etc.
+  // markup that the user can't see — leading to the bug where the counter
+  // showed 4,880/5,000 but the form refused to advance because the HTML
+  // was ~6,000+ chars.
+  description: z.string()
+    .refine(
+      (html) => html.replace(/<[^>]*>/g, '').length >= 200,
+      { message: 'Job description must be at least 200 characters' }
+    )
+    .refine(
+      (html) => html.replace(/<[^>]*>/g, '').length <= 5000,
+      { message: 'Job description cannot exceed 5,000 characters' }
+    ),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
   pricingTier: z.enum(['pro']),
@@ -252,6 +266,7 @@ function PostJobContent() {
     setValue,
     watch,
     trigger,
+    getValues,
   } = useForm<JobPostingFormData>({
     resolver: zodResolver(jobPostingSchema),
     defaultValues: {
@@ -285,12 +300,22 @@ function PostJobContent() {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
         if (user) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('supabase_id', user.id)
-            .single();
-          const role = profile?.role || null;
+          // Use the server-side /api/auth/profile endpoint (Prisma + DATABASE_URL,
+          // bypasses RLS and auto-recovers profiles whose supabase_id was relinked).
+          // The previous direct supabase.from('user_profiles') query was blocked
+          // by RLS for browser anon-key callers, returning null → "unknown" role
+          // even when the header dropdown — which uses this same endpoint —
+          // correctly showed the user as Employer.
+          let role: string | null = null;
+          try {
+            const profileRes = await fetch('/api/auth/profile');
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              role = profile?.role ?? null;
+            }
+          } catch {
+            // Network failure → treated as unknown; render path below handles it.
+          }
           setUserRole(role);
           // Only employers and admins proceed to the form (auto-fill, etc.).
           if (role === 'employer' || role === 'admin') {
@@ -349,6 +374,38 @@ function PostJobContent() {
     };
     loadFormData();
   }, [setValue, searchParams]);
+
+  // Pre-fill company fields from the employer's most recent posting after
+  // draft/localStorage hydration is done. Only fills fields that are still
+  // empty — never overwrites a resumed draft or the user's in-progress edits.
+  useEffect(() => {
+    if (!draftLoaded) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/employer/profile-snapshot');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled || !data?.found || !data.profile) return;
+
+        const current = getValues();
+        const fill = (field: keyof JobPostingFormData, value: string | undefined) => {
+          if (value && !current[field]) {
+            setValue(field, value as never, { shouldDirty: false, shouldValidate: false });
+          }
+        };
+
+        fill('companyName', data.profile.companyName);
+        fill('companyWebsite', data.profile.companyWebsite);
+
+        if (data.profile.companyLogoUrl && !current.companyLogoUrl) {
+          setValue('companyLogoUrl', data.profile.companyLogoUrl, { shouldDirty: false });
+          setLogoPreview(data.profile.companyLogoUrl);
+        }
+      } catch { /* silent — pre-fill is best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  }, [draftLoaded, getValues, setValue]);
 
   const quillModules = useMemo(() => ({
     toolbar: [
@@ -1007,7 +1064,7 @@ function PostJobContent() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {[`${config.durationDays}-day listing`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
+                  {[`${config.durationDays}-day paid · ${config.freeDurationDays}-day free`, 'Featured badge', 'Top placement', 'Email alerts', `${config.limits.candidateUnlocksPerPosting} candidate unlocks`, `${config.limits.inmailsPerPosting} InMails`, 'Analytics'].map(f => (
                     <span key={f} style={{
                       fontSize: '11px', fontWeight: 500, padding: '4px 10px',
                       borderRadius: '10px', background: '#CCFBF1', color: '#0D9488',

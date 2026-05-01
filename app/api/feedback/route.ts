@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
 
         await prisma.userFeedback.create({
             data: {
+                userId: user.id,
                 rating,
                 message: message?.slice(0, 500) || null,
                 page: page?.slice(0, 255) || null,

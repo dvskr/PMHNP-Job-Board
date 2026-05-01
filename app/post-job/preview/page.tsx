@@ -31,6 +31,17 @@ interface JobFormData {
   screeningQuestions?: { text: string; type: string; options?: string[]; required?: boolean; knockout?: boolean; knockoutAnswer?: string }[];
 }
 
+interface QuotaStatus {
+  eligible: boolean;
+  willBeFree?: boolean;
+  remaining?: number;
+  limit?: number;
+  durationDays?: number;
+  paidDurationDays?: number;
+  freeDurationDays?: number;
+  reason?: string;
+}
+
 /* ═══ Clay Tokens ═══ */
 const cardBase: React.CSSProperties = {
   background: '#FFFFFF',
@@ -61,6 +72,7 @@ export default function PreviewPage() {
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaStatus, setQuotaStatus] = useState<QuotaStatus | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('jobFormData');
@@ -79,6 +91,21 @@ export default function PreviewPage() {
     }
     setLoading(false);
   }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/employer/free-quota-status');
+        if (!res.ok) return;
+        const data = (await res.json()) as QuotaStatus;
+        if (!cancelled) setQuotaStatus(data);
+      } catch {
+        /* leave quotaStatus null — falls back to neutral copy */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleBack = () => { router.push('/post-job'); };
 
@@ -152,6 +179,14 @@ export default function PreviewPage() {
 
   const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
   const isFeatured = true; // All posts are featured in single-tier model
+
+  const willBeFree = quotaStatus?.eligible === true && quotaStatus.willBeFree === true;
+  const packageHeadline = willBeFree
+    ? `Free trial post — live for ${quotaStatus?.freeDurationDays ?? config.freeDurationDays} days`
+    : quotaStatus?.eligible === true
+      ? `Live for ${quotaStatus?.paidDurationDays ?? config.durationDays} days`
+      : `Live for ${config.durationDays} days`;
+  const packageDetails = `Featured badge · Top placement · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Applicant analytics`;
 
   return (
     <div style={{ background: '#F5F6F8', minHeight: '100vh', padding: '24px 16px 80px' }}>
@@ -321,8 +356,13 @@ export default function PreviewPage() {
               <Check size={18} color="#fff" />
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Full Package Included</p>
-              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{config.durationDays}-day listing · Featured badge · Top placement · Analytics · {config.limits.candidateUnlocksPerPosting} unlocks · {config.limits.inmailsPerPosting} InMails</p>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>{packageHeadline}</p>
+              <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0' }}>{packageDetails}</p>
+              {willBeFree && typeof quotaStatus?.remaining === 'number' && (
+                <p style={{ fontSize: '11px', color: '#0D9488', margin: '4px 0 0', fontWeight: 600 }}>
+                  {quotaStatus.remaining} of {quotaStatus.limit} free posts remaining for your domain
+                </p>
+              )}
             </div>
           </div>
         </div>

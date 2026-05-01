@@ -109,6 +109,25 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/renewal-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/employer/dashboard`,
       customer_email: employerJob.contactEmail,
+      billing_address_collection: 'required',
+      tax_id_collection: { enabled: true },
+      // Force Stripe receipt regardless of dashboard toggle — see comment in
+      // /api/create-checkout for rationale.
+      payment_intent_data: {
+        receipt_email: employerJob.contactEmail,
+      },
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          description: `Job Renewal: ${employerJob.job.title} — ${employerJob.job.employer}`,
+          metadata: {
+            jobId,
+            employerJobId: employerJob.id,
+            type: 'renewal',
+          },
+          rendering_options: { amount_tax_display: 'exclude_tax' },
+        },
+      },
       metadata: {
         jobId,
         type: 'renewal',

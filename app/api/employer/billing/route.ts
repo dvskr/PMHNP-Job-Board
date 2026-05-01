@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
         include: {
             job: {
                 select: {
+                    id: true,
                     title: true,
                     isFeatured: true,
                     createdAt: true,
@@ -49,15 +50,64 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
     });
 
-    const payments = employerJobs.map((ej) => ({
-        id: ej.id,
-        jobTitle: ej.job.title,
-        tier: config.getTierLabel((ej.pricingTier || 'pro') as PricingTier),
-        status: ej.paymentStatus,
-        date: ej.createdAt.toISOString(),
-        expiresAt: ej.job.expiresAt?.toISOString() || null,
-        isActive: ej.job.isPublished && (!ej.job.expiresAt || new Date(ej.job.expiresAt) > new Date()),
-    }));
+    // Pull all JobCharge rows for this employer's postings in a single query,
+    // then bucket them by employerJobId. Cheaper than N+1 individual queries.
+    // No Prisma back-relation defined on EmployerJob → manual join.
+    const employerJobIds = employerJobs.map((ej) => ej.id);
+    const charges = employerJobIds.length > 0
+        ? await prisma.jobCharge.findMany({
+            where: { employerJobId: { in: employerJobIds } },
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                employerJobId: true,
+                type: true,
+                amountCents: true,
+                currency: true,
+                createdAt: true,
+                invoicePdfUrl: true,
+                hostedInvoiceUrl: true,
+                invoiceNumber: true,
+                refundedAt: true,
+            },
+        })
+        : [];
+    const chargesByJob = new Map<string, typeof charges>();
+    for (const c of charges) {
+        const arr = chargesByJob.get(c.employerJobId) ?? [];
+        arr.push(c);
+        chargesByJob.set(c.employerJobId, arr);
+    }
+
+    const isFreeStatus = (status: string) => status === 'free' || status === 'free_renewed' || status === 'free_upgraded';
+
+    const payments = employerJobs.map((ej) => {
+        const isActive = ej.job.isPublished && (!ej.job.expiresAt || new Date(ej.job.expiresAt) > new Date());
+        const isFree = isFreeStatus(ej.paymentStatus);
+        const ejCharges = chargesByJob.get(ej.id) ?? [];
+        return {
+            id: ej.id,
+            jobId: ej.job.id,
+            jobTitle: ej.job.title,
+            tier: config.getTierLabel((ej.pricingTier || 'pro') as PricingTier),
+            status: ej.paymentStatus,
+            isFree,
+            date: ej.createdAt.toISOString(),
+            expiresAt: ej.job.expiresAt?.toISOString() || null,
+            isActive,
+            charges: ejCharges.map((c) => ({
+                id: c.id,
+                type: c.type,
+                amountCents: c.amountCents,
+                currency: c.currency,
+                createdAt: c.createdAt.toISOString(),
+                invoicePdfUrl: c.invoicePdfUrl,
+                hostedInvoiceUrl: c.hostedInvoiceUrl,
+                invoiceNumber: c.invoiceNumber,
+                refundedAt: c.refundedAt?.toISOString() || null,
+            })),
+        };
+    });
 
     return NextResponse.json({ payments });
 }

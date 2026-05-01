@@ -63,6 +63,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Idempotency check failed' }, { status: 500 });
     }
 
+    // Helper: pull invoice URLs off a session that had `invoice_creation` enabled.
+    // Returns null fields gracefully if the invoice is missing or can't be fetched —
+    // payment processing must never fail because the invoice URL lookup hiccupped.
+    const fetchInvoiceData = async (
+      stripeClient: Stripe,
+      session: Stripe.Checkout.Session
+    ): Promise<{
+      stripeInvoiceId: string | null;
+      invoicePdfUrl: string | null;
+      hostedInvoiceUrl: string | null;
+      invoiceNumber: string | null;
+    }> => {
+      const invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice?.id ?? null;
+      if (!invoiceId) {
+        return { stripeInvoiceId: null, invoicePdfUrl: null, hostedInvoiceUrl: null, invoiceNumber: null };
+      }
+      try {
+        const invoice = await stripeClient.invoices.retrieve(invoiceId);
+        return {
+          stripeInvoiceId: invoice.id ?? invoiceId,
+          invoicePdfUrl: invoice.invoice_pdf ?? null,
+          hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+          invoiceNumber: invoice.number ?? null,
+        };
+      } catch (invErr) {
+        logger.error('Failed to retrieve Stripe invoice for JobCharge', invErr, { invoiceId, sessionId: session.id });
+        return { stripeInvoiceId: invoiceId, invoicePdfUrl: null, hostedInvoiceUrl: null, invoiceNumber: null };
+      }
+    };
+
     // Handle checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -138,6 +168,7 @@ export async function POST(request: NextRequest) {
             // the actual amount paid ($179 renewal vs $199 new post).
             // Audit #28: also persist payment_intent so the refund webhook can
             // match `charge.refunded` events back to this JobCharge row.
+            const renewalInvoiceData = await fetchInvoiceData(stripe, session);
             try {
               await prisma.jobCharge.create({
                 data: {
@@ -147,6 +178,7 @@ export async function POST(request: NextRequest) {
                   amountCents: session.amount_total ?? config.stripeRenewalPriceInCents,
                   currency: session.currency ?? 'usd',
                   type: 'renewal',
+                  ...renewalInvoiceData,
                 },
               });
             } catch (chargeErr) {
@@ -175,7 +207,12 @@ export async function POST(request: NextRequest) {
                 job.title,
                 newExpiresAt,
                 employerJob.dashboardToken,
-                emailLead.unsubscribeToken
+                emailLead.unsubscribeToken,
+                {
+                  invoicePdfUrl: renewalInvoiceData.invoicePdfUrl,
+                  hostedInvoiceUrl: renewalInvoiceData.hostedInvoiceUrl,
+                  invoiceNumber: renewalInvoiceData.invoiceNumber,
+                }
               );
             } catch (emailError) {
               logger.error('Failed to send renewal confirmation email', emailError, { jobId });
@@ -233,6 +270,7 @@ export async function POST(request: NextRequest) {
             // Audit #2: record JobCharge for the new-post payment.
             // Audit #28: also persist payment_intent so the refund webhook can
             // match `charge.refunded` events back to this JobCharge row.
+            const newPostInvoiceData = await fetchInvoiceData(stripe, session);
             try {
               await prisma.jobCharge.create({
                 data: {
@@ -242,6 +280,7 @@ export async function POST(request: NextRequest) {
                   amountCents: session.amount_total ?? config.stripePriceInCents,
                   currency: session.currency ?? 'usd',
                   type: 'new',
+                  ...newPostInvoiceData,
                 },
               });
             } catch (chargeErr) {
@@ -258,7 +297,14 @@ export async function POST(request: NextRequest) {
                 job.title,
                 job.id,
                 employerJob.editToken,
-                employerJob.dashboardToken
+                employerJob.dashboardToken,
+                undefined, // unsubscribeToken — sendConfirmationEmail looks it up by email
+                undefined, // durationDays — paid posts use config.durationDays default
+                {
+                  invoicePdfUrl: newPostInvoiceData.invoicePdfUrl,
+                  hostedInvoiceUrl: newPostInvoiceData.hostedInvoiceUrl,
+                  invoiceNumber: newPostInvoiceData.invoiceNumber,
+                }
               );
             } catch (emailError) {
               logger.error('Failed to send confirmation email', emailError, { jobId });

@@ -20,7 +20,12 @@ export const config = {
   renewalPrice: 179,       // dollars (10% off)
   stripePriceInCents: 19900,
   stripeRenewalPriceInCents: 17900,
-  durationDays: 60,
+  // Duration split (audit #30): paid posts get 60 days as the headline value;
+  // free posts get 30 days (trial-feel) so a domain's lifetime free giveaway
+  // is 60 days total instead of 120, and there's headroom to add a Premium
+  // tier at 90 days later without rewriting customer expectations.
+  durationDays: 60,        // paid posts + paid renewals
+  freeDurationDays: 30,    // free posts only
 
   // All posts are featured (no differentiation)
   isFeatured: true,

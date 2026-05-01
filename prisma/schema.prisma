@@ -39,6 +39,7 @@ model Job {
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
   isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
+  archivedAt          DateTime?    @map("archived_at")
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
   benefits            String[]     @default([])
   setting             String?      @map("clinical_setting")
@@ -260,6 +261,10 @@ model JobCharge {
   employerJobId        String    @map("employer_job_id")
   stripeSessionId      String    @unique @map("stripe_session_id")
   stripePaymentIntentId String?  @unique @map("stripe_payment_intent_id")
+  stripeInvoiceId      String?   @map("stripe_invoice_id")
+  invoicePdfUrl        String?   @map("invoice_pdf_url")
+  hostedInvoiceUrl     String?   @map("hosted_invoice_url")
+  invoiceNumber        String?   @map("invoice_number")
   amountCents          Int       @map("amount_cents")
   currency             String    @default("usd")
   type                 String    // 'new' | 'renewal'
@@ -271,6 +276,7 @@ model JobCharge {
   @@index([employerJobId])
   @@index([type])
   @@index([refundedAt])
+  @@index([stripeInvoiceId])
   @@map("job_charges")
 }
 
@@ -845,12 +851,50 @@ model JobReport {
 
 model UserFeedback {
   id        String   @id @default(cuid())
+  // Optional Supabase auth user id of the submitter. Nullable because old
+  // rows pre-2026-05-01 didn't capture it, and we still allow anonymous
+  // feedback if/when we surface a public form. New auth-gated submissions
+  // populate this from `supabase.auth.getUser()`.
+  userId    String?  @map("user_id")
   rating    Int
   message   String?
   page      String?
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([userId])
   @@map("user_feedback")
+}
+
+/// Per-employer testimonial / "share your story" submissions. Separate from
+/// UserFeedback because:
+///   - Has structured consent + display preferences (full / initial / anonymous)
+///   - May or may not include a star rating (testimonial without rating is fine)
+///   - Surfaced publicly when consent=true and featuredAt is set by an admin
+///   - Tied back to the employer / posting for moderation and PR review
+model EmployerTestimonial {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  employerJobId String?   @map("employer_job_id")
+  employerName  String    @map("employer_name")
+  content       String
+  // Optional rating — most testimonials are pure narrative, but capture if
+  // the employer also gave a star score so it doesn't pollute UserFeedback.
+  rating        Int?
+  // Did the employer explicitly consent to public display? Default false —
+  // a testimonial without consent is internal-only.
+  consent       Boolean   @default(false)
+  // 'full' | 'initial' | 'anonymous' — controls how the name appears when
+  // featured. Stored as text so we can extend without a migration.
+  displayAs     String    @default("initial")
+  // Set by an admin when this testimonial is approved for public display
+  // on the marketing site / employer landing page. Null = never featured.
+  featuredAt    DateTime? @map("featured_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([employerJobId])
+  @@index([featuredAt])
+  @@map("employer_testimonials")
 }
 
 model AutofillTelemetry {

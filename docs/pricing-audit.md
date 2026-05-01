@@ -242,6 +242,19 @@ The rule stays the same: **2 free posts per email domain, lifetime, shared acros
 **Still pending:** there is no user-facing email-change endpoint today; nothing currently calls `evaluateEmailChange`. **When email-change UI is added, the new endpoint MUST call this helper.** Reference comment in [lib/auth/email-change-policy.ts](../lib/auth/email-change-policy.ts) flags the requirement. Also applicable to: any admin override that changes a user's email; any Supabase Auth email-change webhook handler we add.
 **Tests landed (2026-05-01):** [tests/lib/email-change-policy.test.ts](../tests/lib/email-change-policy.test.ts) — 9 tests covering same-domain pass-through (no DB call), case-insensitive comparison, invalid email rejection, zero-freebie domain change allowed, blocked when freebies exist (with locked-domain in response), correct query filter shape. The helper is fully tested and ready to plug in whenever the email-change endpoint is built.
 
+### [x] 30. Hybrid duration: free posts shortened to 30 days; paid stays 60 — **DONE 2026-05-01**
+**Files:** [lib/config.ts](../lib/config.ts), [app/api/jobs/post-free/route.ts](../app/api/jobs/post-free/route.ts), [lib/email-service.ts](../lib/email-service.ts), pricing/FAQ/post-job marketing copy.
+**Concern raised:** A domain getting 2 free posts × 60 days each = 120 days of value per domain, lifetime. That's generous to the point that "why would they ever pay?" becomes a real question for niche-board economics. The flip-side concern: dropping all posts to 30 days kneecaps the "60-day listing" marketing pitch that differentiates the platform from Indeed/LinkedIn (both 30 days).
+**Fix (2026-05-01):** Hybrid split — free posts run **30 days** (trial-feel), paid posts run **60 days** (the headline-value pitch). Renewals are paid-only and run 60 days. The paid 60-day differentiator vs competitors stays intact in marketing copy.
+**Implementation:**
+1. `config.durationDays: 60` (paid) + new `config.freeDurationDays: 30` — separate values for distinct flows.
+2. `/api/jobs/post-free` writes `expiresAt = now + freeDurationDays`. Confirmation email is passed `freeDurationDays` so the email's "30-day listing" line matches the actual DB expiry.
+3. `/api/create-checkout` and the renewal webhook continue to use `config.durationDays` (60). Paid path unchanged.
+4. `sendConfirmationEmail` now accepts an optional `durationDays` param, defaulting to `config.durationDays` for backward compat. The webhook's paid-post call site picks up the default.
+5. Marketing copy updated on `/pricing` (FAQs + bento checklist), `/faq` (employer FAQs), `/post-job` feature pills, `/post-job/preview` summary. Hero card "60-Day Listing" copy retained — that's the paid-tier headline.
+**Effect on the lifetime giveaway:** 2 free × 30 days = 60 days/domain (was 120). Conversion-pressure window halved. Free posts can still be replaced with a fresh paid post at $199.
+**Future-tier headroom:** 30/60 split leaves obvious room for a Premium tier at 90 days later (audit P4).
+
 ### [x] 29. Job seekers could load the post-job form despite an existing role check — **DONE 2026-05-01**
 **File:** [app/post-job/page.tsx](../app/post-job/page.tsx)
 **Problem:** Customer report — a job-seeker account at `daggulasatish143@gmail.com` was able to load `/post-job` and see the full form populated with their email and a draft. Existing role-check redirected via `router.push('/jobs')` and rendered a "Wrong Account Type" page if `role === 'job_seeker'`, but it had two gaps:

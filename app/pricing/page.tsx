@@ -50,10 +50,10 @@ const comparisonRows: { feature: string; us: true | false | 'partial'; indeed: t
 const faqs = [
     { q: 'How many free posts do I get?', a: `Your first ${config.freePostsPerEmail} job posts per email address are completely free — no credit card required. Every feature is included.` },
     { q: 'What happens after my free posts?', a: `Posts 3+ cost a flat $${config.postingPrice} each. Same features, same visibility. Just add payment at checkout.` },
-    { q: 'How long do job postings stay active?', a: `All postings — free or paid — are active for ${config.durationDays} days. You can renew at any time from your employer dashboard.` },
-    { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (10% off the regular price). Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
+    { q: 'How long do job postings stay active?', a: `Paid postings (and renewals) run for ${config.durationDays} days. Free postings run for ${config.freeDurationDays} days — a shorter trial window. You can renew paid postings at any time from your employer dashboard.` },
+    { q: 'What does renewal cost?', a: `Renewals are $${config.renewalPrice} (10% off the regular price) and apply to paid postings only. Your listing gets another ${config.durationDays} days and is boosted back to the top of search results.` },
     { q: 'If I renew before my posting expires, do I lose the remaining days?', a: `No. Renewing early adds ${config.durationDays} days to your current expiration date — you don't lose any time you've already paid for. Renew whenever it's convenient.` },
-    { q: 'Are free posts different from paid posts?', a: `No. Every post gets the exact same features: Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, and full analytics. No downgrades.` },
+    { q: 'Are free posts different from paid posts?', a: `Same features — Featured badge, top placement, ${config.limits.candidateUnlocksPerPosting} candidate unlocks, ${config.limits.inmailsPerPosting} InMails, and full analytics. The only difference is duration: free posts run ${config.freeDurationDays} days, paid posts run ${config.durationDays} days.` },
     { q: 'Do I lose access to candidates I\'ve unlocked when my posting expires?', a: 'No. Once you\'ve unlocked a candidate (viewed their full profile), their contact info, resume, and details remain in your dashboard forever — even after the posting expires. To unlock new candidates or send new InMails, you\'ll need an active posting.' },
     { q: 'Can I edit my job posting after publishing?', a: 'Yes! You can edit your posting anytime from your dashboard — update salary, requirements, or any details. Changes go live immediately.' },
     { q: 'Do you offer bulk discounts?', a: 'Yes! Contact us at support@pmhnphiring.com for custom pricing if you need to post 5+ positions. We offer volume discounts for larger organizations.' },
@@ -154,7 +154,7 @@ export default function PricingPage() {
                                     <p style={{ fontSize: '13px', color: '#5A4A42', margin: '0 0 20px', lineHeight: 1.5 }}>No tiers. No downgrades. Free or paid, you get everything.</p>
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px' }}>
                                         {[
-                                            `${config.durationDays}-day listing`,
+                                            `${config.durationDays}-day listing (${config.freeDurationDays} days free)`,
                                             '★ Featured badge',
                                             'Top search placement',
                                             'Highlighted in job alerts',

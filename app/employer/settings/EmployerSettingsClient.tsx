@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
     Save, Loader2, Globe, Mail,
     Phone, CheckCircle, AlertTriangle, FileText, Lock,
+    Building2, CreditCard, BellRing, ShieldCheck, Bell,
 } from 'lucide-react';
-import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 interface CompanyInfo {
@@ -25,14 +25,29 @@ interface ProfileInfo {
     company: string | null;
 }
 
+interface PaymentCharge {
+    id: string;
+    type: string;
+    amountCents: number;
+    currency: string;
+    createdAt: string;
+    invoicePdfUrl: string | null;
+    hostedInvoiceUrl: string | null;
+    invoiceNumber: string | null;
+    refundedAt: string | null;
+}
+
 interface Payment {
     id: string;
+    jobId: string;
     jobTitle: string;
     tier: string;
     status: string;
+    isFree: boolean;
     date: string;
     expiresAt: string | null;
     isActive: boolean;
+    charges: PaymentCharge[];
 }
 
 interface AlertPrefs {
@@ -133,7 +148,97 @@ export default function EmployerSettingsClient() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [alertPrefs, setAlertPrefs] = useState<AlertPrefs>({ specialties: [], states: [], minExperience: null, workMode: '', isActive: false });
     const [savingAlerts, setSavingAlerts] = useState(false);
-    const [activeSection, setActiveSection] = useState<'company' | 'billing' | 'alerts' | 'account'>('company');
+    const [activeSection, setActiveSection] = useState<'company' | 'billing' | 'alerts' | 'notifications' | 'account'>('company');
+
+    // Newsletter (employer marketing newsletter — separate from per-job alerts)
+    const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+    const [newsletterLoading, setNewsletterLoading] = useState(false);
+    const [newsletterChecked, setNewsletterChecked] = useState(false);
+
+    // Per-job application notifications
+    interface NotifPref {
+        employerJobId: string;
+        jobId: string;
+        jobTitle: string;
+        notifyOnApplication: boolean;
+        notifyDigest: string;
+    }
+    const [notifPrefs, setNotifPrefs] = useState<NotifPref[]>([]);
+    const [notifLoading, setNotifLoading] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Fetch newsletter status once profile email is known
+        if (!profile?.email) return;
+        fetch('/api/newsletter/status?' + new URLSearchParams({ email: profile.email }))
+            .then(r => r.json())
+            .then(d => { setNewsletterOptIn(d.optIn ?? false); setNewsletterChecked(true); })
+            .catch(() => setNewsletterChecked(true));
+    }, [profile?.email]);
+
+    useEffect(() => {
+        // Per-job notification preferences
+        fetch('/api/employer/settings/notifications')
+            .then(r => r.json())
+            .then(d => setNotifPrefs(d.preferences || []))
+            .catch(() => {});
+    }, []);
+
+    const handleNewsletterToggle = async () => {
+        if (!profile?.email) return;
+        setNewsletterLoading(true);
+        const newState = !newsletterOptIn;
+        setNewsletterOptIn(newState);
+        try {
+            await fetch('/api/newsletter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: profile.email, optIn: newState, source: 'employer_newsletter' }),
+            });
+        } catch {
+            setNewsletterOptIn(!newState);
+        } finally {
+            setNewsletterLoading(false);
+        }
+    };
+
+    const handleNotifToggle = async (employerJobId: string, current: boolean) => {
+        const newState = !current;
+        setNotifLoading(employerJobId);
+        setNotifPrefs(prev => prev.map(p =>
+            p.employerJobId === employerJobId ? { ...p, notifyOnApplication: newState } : p
+        ));
+        try {
+            await fetch('/api/employer/settings/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employerJobId, notifyOnApplication: newState }),
+            });
+        } catch {
+            setNotifPrefs(prev => prev.map(p =>
+                p.employerJobId === employerJobId ? { ...p, notifyOnApplication: !newState } : p
+            ));
+        } finally {
+            setNotifLoading(null);
+        }
+    };
+
+    // Clay-style toggle (matches the employer dashboard's existing toggles)
+    const clayToggle = (isActive: boolean): React.CSSProperties => ({
+        position: 'relative', width: '44px', height: '24px', borderRadius: '12px',
+        background: isActive ? 'linear-gradient(145deg, #10B981, #0D9488)' : '#E5E7EB',
+        border: 'none', cursor: 'pointer', flexShrink: 0,
+        boxShadow: isActive
+            ? 'inset 1px 1px 3px rgba(0,0,0,0.1), 0 0 8px rgba(13,148,136,0.2)'
+            : 'inset 1px 1px 3px rgba(0,0,0,0.08)',
+        transition: 'background 0.2s ease',
+    });
+
+    const clayToggleKnob = (isActive: boolean): React.CSSProperties => ({
+        position: 'absolute', top: '2px', left: isActive ? '22px' : '2px',
+        width: '20px', height: '20px', borderRadius: '50%', background: '#fff',
+        boxShadow: '2px 2px 4px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.5)',
+        transition: 'left 0.2s ease',
+    });
 
     useEffect(() => {
         (async () => {
@@ -254,10 +359,11 @@ export default function EmployerSettingsClient() {
     if (!profile) return null;
 
     const sections = [
-        { key: 'company' as const, label: 'Company Profile', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-office.webp', desc: 'Brand & info' },
-        { key: 'billing' as const, label: 'Billing & Plans', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-credit-card.webp', desc: 'Payment history' },
-        { key: 'alerts' as const, label: 'Candidate Alerts', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-bell.webp', desc: 'Match notifications' },
-        { key: 'account' as const, label: 'Account Security', icon: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/employers/clay-icon-shield.webp', desc: 'Password reset' },
+        { key: 'company' as const, label: 'Company Profile', icon: <Building2 size={18} />, color: '#0D9488', bg: '#CCFBF1', desc: 'Brand & info' },
+        { key: 'billing' as const, label: 'Billing & Plans', icon: <CreditCard size={18} />, color: '#7C3AED', bg: '#EDE9FE', desc: 'Invoices & receipts' },
+        { key: 'alerts' as const, label: 'Candidate Alerts', icon: <BellRing size={18} />, color: '#F59E0B', bg: '#FEF3C7', desc: 'Match notifications' },
+        { key: 'notifications' as const, label: 'Notifications', icon: <Bell size={18} />, color: '#EC4899', bg: '#FCE7F3', desc: 'Newsletter & app alerts' },
+        { key: 'account' as const, label: 'Account Security', icon: <ShieldCheck size={18} />, color: '#0EA5E9', bg: '#DBEAFE', desc: 'Password & access' },
     ];
 
     const Label = ({ children }: { children: React.ReactNode }) => (
@@ -297,7 +403,15 @@ export default function EmployerSettingsClient() {
                             onClick={() => setActiveSection(s.key)}
                             style={activeSection === s.key ? clayTabActive : clayTabInactive}
                         >
-                            <Image src={s.icon} alt={s.label} width={32} height={32} style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
+                            <div style={{
+                                width: '36px', height: '36px', borderRadius: '10px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: s.bg, color: s.color, flexShrink: 0,
+                                border: '1px solid rgba(255,255,255,0.5)',
+                                boxShadow: '2px 2px 6px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                            }}>
+                                {s.icon}
+                            </div>
                             <div style={{ textAlign: 'left' }}>
                                 <div style={{ fontSize: '14px', fontWeight: 700, color: activeSection === s.key ? '#1A2E35' : '#8A9BA6' }}>{s.label}</div>
                                 <div style={{ fontSize: '11.5px', color: '#B0BEC5', fontWeight: 500, marginTop: '2px' }}>{s.desc}</div>
@@ -469,36 +583,74 @@ export default function EmployerSettingsClient() {
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                                        {['Job', 'Tier', 'Status', 'Date'].map(h => (
+                                        {['Job', 'Plan', 'Status', 'Posted', 'Invoice'].map(h => (
                                             <th key={h} style={{ textAlign: 'left', padding: '10px 8px', color: '#8A9BA6', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {payments.map(p => (
-                                        <tr key={p.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                                            <td style={{ padding: '14px 8px', color: '#1A2E35', fontWeight: 600 }}>{p.jobTitle}</td>
-                                            <td style={{ padding: '14px 8px' }}>
-                                                <span style={{
-                                                    fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '8px',
-                                                    background: p.tier.includes('Featured') ? '#FFF8E1' : '#F0FDFA',
-                                                    color: p.tier.includes('Featured') ? '#F59E0B' : '#0D9488',
-                                                    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03)',
-                                                }}>{p.tier}</span>
-                                            </td>
-                                            <td style={{ padding: '14px 8px' }}>
-                                                <span style={{
-                                                    fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '8px',
-                                                    background: p.isActive ? '#D1FAE5' : '#F3F4F6',
-                                                    color: p.isActive ? '#059669' : '#6B7280',
-                                                    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03)',
-                                                }}>{p.isActive ? 'Active' : 'Expired'}</span>
-                                            </td>
-                                            <td style={{ padding: '14px 8px', color: '#8A9BA6', fontSize: '13px' }}>
-                                                {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {payments.map(p => {
+                                        // Free posts have no charge → no invoice link.
+                                        // Paid posts get a "Download" button that hits our PDF generator.
+                                        const latestCharge = p.charges[0];
+                                        const planLabel = p.isFree ? 'Free trial' : p.tier;
+                                        const planBg = p.isFree ? '#F0FDFA' : (p.tier.includes('Featured') ? '#FFF8E1' : '#F0FDFA');
+                                        const planColor = p.isFree ? '#0D9488' : (p.tier.includes('Featured') ? '#F59E0B' : '#0D9488');
+                                        const statusLabel = p.isActive ? 'Active' : 'Expired';
+                                        const downloadUrl = `/api/employer/invoice?jobId=${p.jobId}${latestCharge?.id ? `&chargeId=${latestCharge.id}` : ''}`;
+                                        return (
+                                            <tr key={p.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                                <td style={{ padding: '14px 8px', color: '#1A2E35', fontWeight: 600, minWidth: '180px' }}>{p.jobTitle}</td>
+                                                <td style={{ padding: '14px 8px', whiteSpace: 'nowrap' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '8px',
+                                                        background: planBg, color: planColor,
+                                                        boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03)',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>{planLabel}</span>
+                                                </td>
+                                                <td style={{ padding: '14px 8px', whiteSpace: 'nowrap' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '8px',
+                                                        background: p.isActive ? '#D1FAE5' : '#F3F4F6',
+                                                        color: p.isActive ? '#059669' : '#6B7280',
+                                                        boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03)',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>{statusLabel}</span>
+                                                </td>
+                                                <td style={{ padding: '14px 8px', color: '#8A9BA6', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                                                    {new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </td>
+                                                <td style={{ padding: '14px 8px', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                                                    {p.isFree ? (
+                                                        <span style={{ color: '#B0BEC5', fontSize: '12px' }}>—</span>
+                                                    ) : latestCharge ? (
+                                                        // download attribute + no target=_blank → browser downloads
+                                                        // in-place using the Content-Disposition: attachment header,
+                                                        // no flash of blank tab.
+                                                        <a
+                                                            href={downloadUrl}
+                                                            download={`invoice-${p.jobTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`}
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                                fontSize: '12px', fontWeight: 600, color: '#0D9488',
+                                                                padding: '6px 12px', borderRadius: '8px',
+                                                                background: '#F0FDFA', textDecoration: 'none',
+                                                                border: '1px solid rgba(13,148,136,0.18)',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            <FileText size={13} /> Download
+                                                        </a>
+                                                    ) : (
+                                                        <span style={{ color: '#B0BEC5', fontSize: '12px', fontStyle: 'italic' }}>Pending</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -596,6 +748,107 @@ export default function EmployerSettingsClient() {
                                 {WORK_MODES.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ Notifications Section — Newsletter + per-job application alerts ═══ */}
+            {activeSection === 'notifications' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Employer Newsletter */}
+                    <div style={clayCard}>
+                        <div style={{ marginBottom: '20px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
+                                Employer Newsletter
+                            </h3>
+                            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '4px 0 0' }}>
+                                Hiring tips, salary benchmarks, and PMHNP market insights delivered monthly.
+                            </p>
+                        </div>
+                        {newsletterChecked ? (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: '16px', flexWrap: 'wrap',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                                    <div style={{
+                                        width: '36px', height: '36px', borderRadius: '12px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: '#CCFBF1', color: '#0D9488',
+                                        border: '1px solid rgba(255,255,255,0.5)',
+                                        boxShadow: '3px 3px 8px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                        flexShrink: 0,
+                                    }}>
+                                        <Mail size={16} />
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>
+                                            Send me the monthly newsletter
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: '#8A9BA6', margin: '2px 0 0' }}>
+                                            Sent to {profile.email} · unsubscribe any time
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleNewsletterToggle}
+                                    disabled={newsletterLoading}
+                                    style={clayToggle(newsletterOptIn)}
+                                    aria-label={newsletterOptIn ? 'Unsubscribe from newsletter' : 'Subscribe to newsletter'}
+                                >
+                                    <div style={clayToggleKnob(newsletterOptIn)} />
+                                </button>
+                            </div>
+                        ) : (
+                            <p style={{ fontSize: '13px', color: '#B0BEC5', margin: 0 }}>Loading…</p>
+                        )}
+                    </div>
+
+                    {/* Per-job Application Notifications */}
+                    <div style={clayCard}>
+                        <div style={{ marginBottom: '20px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '16px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1A2E35', margin: 0 }}>
+                                Application Notifications
+                            </h3>
+                            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: '4px 0 0' }}>
+                                Choose which job postings should email you when a new candidate applies.
+                            </p>
+                        </div>
+                        {notifPrefs.length === 0 ? (
+                            <p style={{ fontSize: '13px', color: '#8A9BA6', margin: 0, padding: '16px 0' }}>
+                                You don&apos;t have any active job postings yet. Once you post a job, you&apos;ll see per-listing notification toggles here.
+                            </p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {notifPrefs.map(pref => (
+                                    <div
+                                        key={pref.employerJobId}
+                                        style={{
+                                            background: '#F8FAFC', borderRadius: '12px', padding: '12px 14px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+                                            border: '1px solid rgba(0,0,0,0.04)',
+                                        }}
+                                    >
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <p style={{ fontSize: '13px', fontWeight: 600, color: '#1A2E35', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {pref.jobTitle}
+                                            </p>
+                                            <p style={{ fontSize: '11px', color: '#8A9BA6', margin: '2px 0 0' }}>
+                                                {pref.notifyOnApplication ? 'Email on each application' : 'Notifications off'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleNotifToggle(pref.employerJobId, pref.notifyOnApplication)}
+                                            disabled={notifLoading === pref.employerJobId}
+                                            style={clayToggle(pref.notifyOnApplication)}
+                                            aria-label={`Toggle notifications for ${pref.jobTitle}`}
+                                        >
+                                            <div style={clayToggleKnob(pref.notifyOnApplication)} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

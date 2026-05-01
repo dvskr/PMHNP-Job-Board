@@ -58,6 +58,7 @@ export default async function EmployerDashboardPage() {
         applicantCount: record.job._count.jobApplications,
         createdAt: record.job.createdAt.toISOString(),
         expiresAt: record.job.expiresAt ? record.job.expiresAt.toISOString() : null,
+        archivedAt: record.job.archivedAt ? record.job.archivedAt.toISOString() : null,
         editToken: record.editToken,
         paymentStatus: record.paymentStatus,
         pricingTier: record.pricingTier || 'pro',

@@ -339,13 +339,24 @@ export async function sendSignupWelcomeEmail(
 // 3. JOB CONFIRMATION EMAIL (Employer)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+export interface InvoiceLinks {
+  invoicePdfUrl?: string | null;
+  hostedInvoiceUrl?: string | null;
+  invoiceNumber?: string | null;
+}
+
 export async function sendConfirmationEmail(
   employerEmail: string,
   jobTitle: string,
   jobId: string,
   editToken: string,
   dashboardToken?: string,
-  unsubscribeToken?: string
+  unsubscribeToken?: string,
+  // Audit #30: confirmation email duration must match the actual expiry
+  // written to the DB — free posts run 30 days, paid posts run 60. Caller
+  // passes the right value; defaults to the paid duration for backward compat.
+  durationDays: number = config.durationDays,
+  invoice?: InvoiceLinks,
 ): Promise<EmailResult> {
   try {
     const jobSlug = slugify(jobTitle, jobId);
@@ -355,12 +366,25 @@ export async function sendConfirmationEmail(
       ? `${BASE_URL}/employer/dashboard/${dashboardToken}`
       : `${BASE_URL}/employer/dashboard`;
 
-    const featuresLine = `${config.durationDays}-day listing · Featured badge · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Full analytics`;
+    const featuresLine = `${durationDays}-day listing · Featured badge · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Full analytics`;
+
+    const invoiceBlock = (invoice?.invoicePdfUrl || invoice?.hostedInvoiceUrl)
+      ? `
+        ${spacerV2(16)}
+        <tr><td class="content-pad" style="padding:0 40px;">
+          <div style="background:#F8FAFC;border:1px solid rgba(0,0,0,0.06);border-radius:12px;padding:16px 20px;">
+            <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.textPrimary};text-transform:uppercase;letter-spacing:0.05em;">Receipt &amp; Invoice</p>
+            <p style="margin:0 0 8px;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${invoice.invoiceNumber ? `Invoice #${invoice.invoiceNumber}` : 'Your payment receipt is ready.'}</p>
+            ${invoice.invoicePdfUrl ? `<a href="${invoice.invoicePdfUrl}" style="display:inline-block;margin-right:12px;font-family:${SANS_V2};font-size:14px;color:${V2.teal};text-decoration:underline;">Download PDF</a>` : ''}
+            ${invoice.hostedInvoiceUrl ? `<a href="${invoice.hostedInvoiceUrl}" style="display:inline-block;font-family:${SANS_V2};font-size:14px;color:${V2.teal};text-decoration:underline;">View online</a>` : ''}
+          </div>
+        </td></tr>`
+      : '';
 
     const html = emailShellV2(`
       ${headerBlockV2('Your Listing Is Live', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-job-post.png', `Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for ${config.durationDays} days.`)}
+      ${simpleBlock('hero-job-post.png', `Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for ${durationDays} days.`)}
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
@@ -368,7 +392,7 @@ export async function sendConfirmationEmail(
           <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">${featuresLine}</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">Candidates you unlock stay in your dashboard forever — even after this posting expires.</p>
         </div>
-      </td></tr>
+      </td></tr>${invoiceBlock}
       ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
         ${primaryButtonV2('View Your Listing', `${BASE_URL}/jobs/${jobSlug}`)}
@@ -417,7 +441,8 @@ export async function sendRenewalConfirmationEmail(
   jobTitle: string,
   newExpiresAt: Date,
   dashboardToken: string,
-  unsubscribeToken: string
+  unsubscribeToken: string,
+  invoice?: InvoiceLinks,
 ): Promise<EmailResult> {
   try {
     const expiryStr = newExpiresAt.toLocaleDateString('en-US', {
@@ -428,6 +453,10 @@ export async function sendRenewalConfirmationEmail(
     });
     const dashboardUrl = `${BASE_URL}/employer/dashboard/${dashboardToken}`;
 
+    const invoiceLine = invoice?.invoicePdfUrl || invoice?.hostedInvoiceUrl
+      ? `${invoice.invoiceNumber ? `Invoice #${invoice.invoiceNumber} · ` : ''}${invoice.invoicePdfUrl ? `<a href="${invoice.invoicePdfUrl}" style="color:${V2.teal};text-decoration:underline;">Download PDF</a>` : ''}${invoice.invoicePdfUrl && invoice.hostedInvoiceUrl ? ' · ' : ''}${invoice.hostedInvoiceUrl ? `<a href="${invoice.hostedInvoiceUrl}" style="color:${V2.teal};text-decoration:underline;">View online</a>` : ''}`
+      : 'A formal invoice is available from your dashboard.';
+
     const html = emailShellV2(`
       ${headerBlockV2('Listing Renewed Successfully', '')}
       ${spacerV2(12)}
@@ -436,7 +465,7 @@ export async function sendRenewalConfirmationEmail(
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
           <p style="margin:0 0 6px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:${V2.teal};text-transform:uppercase;letter-spacing:0.05em;">Receipt</p>
-          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal — $${config.renewalPrice}.00 · A formal invoice is available from your dashboard.</p>
+          <p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textPrimary};line-height:1.6;">Renewal — $${config.renewalPrice}.00 · ${invoiceLine}</p>
           <p style="margin:8px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};line-height:1.5;">You also got a fresh ${config.limits.candidateUnlocksPerPosting} candidate unlocks and ${config.limits.inmailsPerPosting} InMails for this renewal cycle.</p>
         </div>
       </td></tr>

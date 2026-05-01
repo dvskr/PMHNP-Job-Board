@@ -141,7 +141,10 @@ const InvoiceDocument = ({ data }: { data: InvoiceData }) => (
     <Page size="A4" style={styles.page}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.companyName}>PMHNP Jobs</Text>
+        <Text style={styles.companyName}>PMHNP Hiring</Text>
+        <Text style={[styles.invoiceTitle, { fontSize: 10, color: '#6b7280', marginTop: 2 }]}>
+          A division of Akari Labs LLC
+        </Text>
         <Text style={styles.invoiceTitle}>Invoice</Text>
       </View>
 
@@ -204,9 +207,12 @@ const InvoiceDocument = ({ data }: { data: InvoiceData }) => (
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text>Thank you for using PMHNP Jobs!</Text>
+        <Text>Thank you for using PMHNP Hiring.</Text>
         <Text style={{ marginTop: 5 }}>
           Questions? Contact us at support@pmhnphiring.com
+        </Text>
+        <Text style={{ marginTop: 8, fontSize: 8, color: '#9ca3af' }}>
+          Akari Labs LLC · 30 North Gould Street, Sheridan, WY 82801, United States
         </Text>
       </View>
     </Page>

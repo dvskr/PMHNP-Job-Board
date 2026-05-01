@@ -240,11 +240,13 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   // Loading state
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-            <p className="text-gray-600">Loading job details...</p>
+      <div style={{ background: '#F5F0EB', minHeight: '100vh' }}>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+              <p className="text-gray-600">Loading job details...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -254,27 +256,47 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
   // Error state (invalid token)
   if (error && !job) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Edit Link</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">
-            This link may have expired or is invalid. Please check your email for the correct edit link.
-          </p>
+      <div style={{ background: '#F5F0EB', minHeight: '100vh' }}>
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Edit Link</h1>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-sm text-gray-500">
+              This link may have expired or is invalid. Please check your email for the correct edit link.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Edit Job Posting</h1>
-        <p className="text-gray-600">
-          Update your job listing for <strong>{employerJob?.employerName}</strong>
-        </p>
+    <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '0 0 60px' }}>
+      <div className="max-w-3xl mx-auto px-4">
+      {/* Page Header — matches the employer dashboard cream hero */}
+      <div style={{
+        background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
+        borderBottom: '1px solid #E5DDD3',
+        padding: '24px 0 28px',
+        marginLeft: '-9999px',
+        marginRight: '-9999px',
+        paddingLeft: '9999px',
+        paddingRight: '9999px',
+        marginBottom: '28px',
+      }}>
+        <div className="max-w-3xl mx-auto px-4">
+          <h1 style={{
+            fontSize: '26px', fontWeight: 800,
+            fontFamily: 'var(--font-lora), Georgia, serif',
+            color: '#1A2E35', margin: '0 0 4px',
+          }}>
+            Edit Job Posting
+          </h1>
+          <p style={{ fontSize: '13px', color: '#6B7F8A', margin: 0 }}>
+            Update your job listing for <strong style={{ color: '#1A2E35' }}>{employerJob?.employerName}</strong>
+          </p>
+        </div>
       </div>
 
       {/* Success Message */}
@@ -666,6 +688,7 @@ export default function EditJobPage({ params }: { params: Promise<{ token: strin
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

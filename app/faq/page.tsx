@@ -56,11 +56,11 @@ export default function FAQPage() {
     },
     {
       question: "What features are included?",
-      answer: `Every job post — free or paid — gets the same features: ${config.durationDays}-day listing, Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform.`
+      answer: `Every job post — free or paid — gets the same features: Featured badge, top placement in search results, company logo, full analytics with salary benchmarks, ${config.limits.candidateUnlocksPerPosting} candidate profile views, ${config.limits.inmailsPerPosting} InMails, up to 5 screening questions, and apply-on-platform. The only difference is listing duration: free posts run ${config.freeDurationDays} days, paid posts run ${config.durationDays} days.`
     },
     {
       question: "How long do job postings last?",
-      answer: `All job postings are active for ${config.durationDays} days. You can renew your posting at any time from your employer dashboard for $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off the regular price).`
+      answer: `Paid postings are active for ${config.durationDays} days; free postings run for ${config.freeDurationDays} days. Paid postings can be renewed any time from the employer dashboard for $${config.renewalPrice} (${Math.round((1 - config.renewalPrice / config.postingPrice) * 100)}% off the regular price). Free postings cannot be renewed at the discounted rate — post a fresh listing at $${config.postingPrice} instead.`
     },
     {
       question: "If I renew before my post expires, do I lose the remaining days?",

@@ -211,10 +211,11 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
 
-    // All posts get the same features (60 days, featured, 25 unlocks, 25 InMails)
+    // Free posts get the shorter trial duration (audit #30); paid posts use the
+    // full duration via /api/create-checkout. Features are otherwise identical.
     const tierForDuration: PricingTier = 'pro';
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + config.durationDays);
+    expiresAt.setDate(expiresAt.getDate() + config.freeDurationDays);
 
     // Parse salary values
     const parsedMinSalary = (() => {
@@ -396,14 +397,18 @@ export async function POST(request: NextRequest) {
       logger.info('Screening questions created', { jobId: job.id, count: questions.length });
     }
 
-    // Send confirmation email with dashboard token
+    // Send confirmation email with dashboard token + free-post duration so
+    // the email's "30-day listing" line matches the actual expiresAt written
+    // to the DB (audit #30).
     try {
       await sendConfirmationEmail(
         sanitized.contactEmail,
         sanitized.title,
         job.id,
         editToken,
-        dashboardToken
+        dashboardToken,
+        undefined,
+        config.freeDurationDays,
       );
     } catch (emailError) {
       logger.error('Failed to send confirmation email', emailError);
