@@ -44,6 +44,8 @@ async function getNewGradJobs(skip: number = 0, take: number = 20) {
         where: NEW_GRAD_FILTER,
         orderBy: [
             { isFeatured: 'desc' },
+            { qualityScore: 'desc' },
+            { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ],
         skip,

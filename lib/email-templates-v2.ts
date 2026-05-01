@@ -103,7 +103,7 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
       body, .body-bg { background-color: ${V2.bgPeach} !important; }
       .header-bg { background-color: ${V2.bgPeach} !important; }
       .content-bg { background-color: ${V2.bgCard} !important; }
-      .footer-bg { background-color: #292524 !important; }
+      .footer-bg { background-color: #1c1917 !important; }
       h1, .heading-text { color: ${V2.textHeading} !important; }
       p, .body-text { color: ${V2.textBody} !important; }
       .brand-text { color: ${V2.textPrimary} !important; }
@@ -119,7 +119,7 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
     [data-ogsc] .footer-text, [data-ogsc] .footer-text a { color: #A0AEC0 !important; }
     [data-ogsb] .header-bg { background-color: ${V2.bgPeach} !important; }
     [data-ogsb] .content-bg { background-color: ${V2.bgCard} !important; }
-    [data-ogsb] .footer-bg { background-color: #292524 !important; }
+    [data-ogsb] .footer-bg { background-color: #1c1917 !important; }
   </style>
 </head>
 <body style="margin:0;padding:0;background-color:${V2.bgBody};" bgcolor="${V2.bgBody}">
@@ -131,7 +131,7 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
         <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width:600px;width:100%;border-collapse:collapse;border-spacing:0;">
           ${content}
           <tr>
-            <td class="footer-bg" bgcolor="#292524" style="background-color:#292524;padding:24px 24px 48px;text-align:center;">
+            <td class="footer-bg" bgcolor="#1c1917" style="background-color:#1c1917;padding:24px 24px 48px;text-align:center;">
               ${footerContent}
               <p class="footer-text" style="margin:8px 0 0;font-family:${SANS};font-size:13px;color:#A0AEC0;">
                 &copy; ${new Date().getFullYear()} PMHNP Hiring &nbsp;&middot;&nbsp;
@@ -158,14 +158,14 @@ export function emailShellV2(content: string, footerContent: string = '', prehea
 //         [MENTAL HEALTH CAREERS — centered]
 
 export function headerBlockV2(title: string, subtitle: string = ''): string {
-  const logoUrl = process.env.EMAIL_ASSETS_URL ? `${IMG}/logo-email.png` : `${BASE_URL}/logo.png`;
+  const logoUrl = process.env.EMAIL_ASSETS_URL ? `${IMG}/logo-cropped.png` : `${BASE_URL}/logo-cropped.png`;
   return `<tr><td class="header-bg" align="center" bgcolor="${V2.bgPeach}" style="background-color:${V2.bgPeach};padding:24px 0 16px;text-align:center;">
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
       <tr>
-        <td valign="middle" style="padding-right:12px;"><img src="${logoUrl}" alt="PMHNP Hiring" width="56" height="64" style="display:block;width:56px;height:64px;" /></td>
+        <td valign="middle" style="padding-right:6px;"><img src="${logoUrl}" alt="PMHNP Hiring logo" width="48" height="55" style="display:block;width:48px;height:55px;border:0;background-color:${V2.bgPeach};color:${V2.textPrimary};font-family:${SERIF};font-size:13px;font-weight:700;text-align:center;line-height:55px;" /></td>
         <td valign="middle">
-          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;line-height:1;text-align:left;">PMHNP Hiring</p>
-          <p class="tagline-text" style="margin:3px 0 0;font-family:${SANS};font-size:9px;font-weight:500;color:${V2.teal};letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;">Mental Health Careers</p>
+          <p class="brand-text" style="margin:0;font-family:${SERIF};font-size:26px;font-weight:700;color:#1F2937;-webkit-text-fill-color:#1F2937;mso-line-height-rule:exactly;letter-spacing:-0.02em;line-height:1;text-align:center;">PMHNP Hiring</p>
+          <p class="tagline-text" style="margin:4px 0 0;font-family:${SANS};font-size:10px;font-weight:700;color:#0d9488;-webkit-text-fill-color:#0d9488;mso-line-height-rule:exactly;letter-spacing:0.08em;text-transform:uppercase;line-height:1;text-align:center;">Mental Health Careers</p>
         </td>
       </tr>
     </table>
@@ -194,7 +194,7 @@ export function amberHeaderV2(title: string, subtitle: string = ''): string {
               <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;">
                 <tr>
                   <td valign="middle">
-                    <img src="${BASE_URL}/logo.png" alt="" width="100" height="100" style="display:block;width:100px;height:100px;object-fit:contain;" />
+                    <img src="${BASE_URL}/logo.png" alt="PMHNP Hiring" width="100" height="100" style="display:block;width:100px;height:100px;object-fit:contain;border:0;background-color:${V2.bgAmberWarn};color:${V2.amber};font-family:${SERIF};font-size:14px;font-weight:700;text-align:center;line-height:100px;" />
                   </td>
                   <td valign="bottom" style="padding-bottom:24px;">
                     <span style="font-family:${SERIF};font-size:28px;font-weight:700;color:${V2.textPrimary};letter-spacing:-0.02em;display:block;line-height:1;margin-left:-24px;">PMHNP Hiring</span>
@@ -244,12 +244,27 @@ export function closeContentV2(): string {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Matches: 14px/40px padding, 8px radius, 16px font, Inter semi-bold
 
+// Bulletproof button pattern — VML for Outlook (which strips background, padding,
+// and border-radius on <a> tags), standard anchor for everyone else.
+// Fallback solid color is honored when gradients are stripped.
 export function primaryButtonV2(text: string, url: string): string {
-  return `<a href="${url}" class="btn-full" style="display:inline-block;background-color:${V2.tealButton};color:#FFFFFF;text-decoration:none;padding:14px 40px;border-radius:8px;font-family:${SANS};font-weight:600;font-size:16px;text-align:center;">${text}</a>`;
+  return `<!--[if mso]>
+  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="17%" stroke="f" fillcolor="${V2.tealButton}">
+    <w:anchorlock/>
+    <center style="color:#FFFFFF;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">${text}</center>
+  </v:roundrect>
+  <![endif]-->
+  <!--[if !mso]><!-- --><a href="${url}" class="btn-full" style="display:inline-block;box-sizing:border-box;background-color:${V2.tealButton};background-image:linear-gradient(135deg,#2DD4BF,#0D9488);color:#FFFFFF;-webkit-text-fill-color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-family:${SANS};font-weight:600;font-size:16px;text-align:center;mso-hide:all;">${text}</a><!--<![endif]-->`;
 }
 
 export function secondaryButtonV2(text: string, url: string): string {
-  return `<a href="${url}" class="btn-full" style="display:inline-block;background:transparent;color:${V2.teal};text-decoration:none;padding:12px 32px;border-radius:8px;font-family:${SANS};font-weight:600;font-size:15px;border:2px solid ${V2.borderMed};text-align:center;">${text}</a>`;
+  return `<!--[if mso]>
+  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:44px;v-text-anchor:middle;width:200px;" arcsize="18%" strokecolor="${V2.borderMed}" strokeweight="2px" fillcolor="#FFFFFF">
+    <w:anchorlock/>
+    <center style="color:${V2.teal};font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">${text}</center>
+  </v:roundrect>
+  <![endif]-->
+  <!--[if !mso]><!-- --><a href="${url}" class="btn-full" style="display:inline-block;box-sizing:border-box;background:transparent;color:${V2.teal};-webkit-text-fill-color:${V2.teal};text-decoration:none;padding:12px 28px;border-radius:8px;font-family:${SANS};font-weight:600;font-size:15px;border:2px solid ${V2.borderMed};text-align:center;mso-hide:all;">${text}</a><!--<![endif]-->`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -313,7 +328,7 @@ export function sectionLabelV2(text: string, color: string = V2.textMuted): stri
 }
 
 export function bodyTextV2(text: string): string {
-  return `<p style="margin:0;font-family:${SERIF};font-size:19px;color:${V2.textBody};line-height:1.6;">${text}</p>`;
+  return `<p style="margin:0;font-family:${SERIF};font-size:19px;color:${V2.textBody};line-height:1.6;text-align:center;">${text}</p>`;
 }
 
 export function mutedTextV2(text: string): string {

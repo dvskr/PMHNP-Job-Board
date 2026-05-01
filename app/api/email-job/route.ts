@@ -3,11 +3,9 @@ import {
   emailShellV2, headerBlockV2, primaryButtonV2, secondaryButtonV2,
   spacerV2, closeContentV2, infoCardV2, V2, SANS, SERIF,
 } from '@/lib/email-templates-v2'
-import { Resend } from 'resend'
+import { sendAndLog, isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>'
 const BASE_URL = 'https://pmhnphiring.com'
 
 /**
@@ -51,17 +49,22 @@ export async function POST(request: NextRequest) {
       `<p style="margin:0 0 4px;font-family:${SANS};font-size:12px;color:${V2.textMuted};">
         <a href="${BASE_URL}/job-alerts" style="color:${V2.textMuted};text-decoration:underline;">Set up job alerts</a>
         &nbsp;&middot;&nbsp;
-        <a href="mailto:hello@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">Contact us</a>
+        <a href="mailto:support@pmhnphiring.com" style="color:${V2.textMuted};text-decoration:underline;">Contact us</a>
       </p>`,
       `You saved "${jobTitle}" — view the full listing and apply!`
     )
 
-    await resend.emails.send({
-      from: EMAIL_FROM,
+    if (await isEmailSuppressed(email)) {
+      return NextResponse.json({ success: true, suppressed: true })
+    }
+
+    const unsubToken = await getOrCreateUnsubToken(email)
+    await sendAndLog({
+      from: '', // overridden by sendAndLog based on emailType
       to: email,
       subject: `Saved: ${jobTitle}`,
       html,
-    })
+    }, 'email_job', { jobTitle }, `${BASE_URL}/unsubscribe?token=${unsubToken}`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

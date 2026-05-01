@@ -80,7 +80,6 @@ vi.mock('@/lib/email-service', () => {
     return {
         sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
         sendConfirmationEmail: vi.fn().mockResolvedValue({ success: true }),
-        sendJobAlertEmail: vi.fn().mockResolvedValue(undefined),
         sendRenewalConfirmationEmail: vi.fn().mockResolvedValue({ success: true }),
         sendExpiryWarningEmail: vi.fn().mockResolvedValue({ success: true }),
         sendDraftSavedEmail: vi.fn().mockResolvedValue({ success: true }),

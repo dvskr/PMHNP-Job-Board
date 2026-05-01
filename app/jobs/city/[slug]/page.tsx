@@ -127,6 +127,8 @@ async function getCityJobs(cityName: string, stateName: string, stateCode: strin
         },
         orderBy: [
             { isFeatured: 'desc' },
+            { qualityScore: 'desc' },
+            { originalPostedAt: 'desc' },
             { createdAt: 'desc' },
         ],
         take: 10,

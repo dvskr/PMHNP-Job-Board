@@ -290,8 +290,13 @@ export async function middleware(request: NextRequest) {
     // Refresh the Supabase session (keeps auth cookies alive)
     const response = await updateSession(request);
 
-    // Set CSP header and pass nonce to layout via request header
-    response.headers.set('Content-Security-Policy', cspHeader);
+    // Set CSP header and pass nonce to layout via request header.
+    // Skip CSP injection for the admin email-preview route — it self-manages a
+    // looser policy so its inline polling script can resize iframes.
+    const skipCsp = request.nextUrl.pathname.startsWith('/api/email-preview');
+    if (!skipCsp) {
+      response.headers.set('Content-Security-Policy', cspHeader);
+    }
     response.headers.set('x-nonce', nonce);
 
     // ── GPC / DNT Privacy Signals ────────────────────────────────────

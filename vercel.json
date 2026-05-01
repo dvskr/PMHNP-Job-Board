@@ -132,11 +132,7 @@
       "path": "/api/cron/instagram-post",
       "schedule": "5 14 * * *"
     },
-    {
-      "path": "/api/cron/profile-nudge",
-      "schedule": "0 18 * * *"
-    },
-    {
+{
       "path": "/api/cron/employer-report",
       "schedule": "0 14 * * 1"
     },

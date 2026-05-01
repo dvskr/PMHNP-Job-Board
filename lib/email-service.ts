@@ -11,6 +11,7 @@ import {
   sectionLabelV2, infoCardV2,
   V2, SANS as SANS_V2, SERIF as SERIF_V2,
 } from '@/lib/email-templates-v2';
+import { renderJobCardHtml } from '@/lib/utils/render-job-card';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -23,13 +24,13 @@ const IMG = process.env.EMAIL_ASSETS_URL || `${BASE_URL}/images/email`;
  *  The heading → text → CTA pattern is cleaner without a sandwiched image. */
 function simpleBlock(_iconFile: string, bodyHtml: string): string {
   return `<tr><td class="content-pad" style="padding:0 40px;">
-  <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">${bodyHtml}</p>
+  <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;text-align:center;">${bodyHtml}</p>
 </td></tr>`;
 }
 
 /** Step row — icon + title + description (matches v2 step pattern) */
 function stepBlock(iconFile: string, title: string, desc: string): string {
-  return `<tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/${iconFile}" alt="${title}" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${title}</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">${desc}</p></td></tr></table></td></tr>`;
+  return `<tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;" bgcolor="${V2.bgCardAlt}"><img src="${IMG}/${iconFile}" alt="${title}" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;border:0;background-color:${V2.bgCardAlt};color:${V2.teal};font-family:${SANS_V2};font-size:11px;font-weight:700;text-align:center;line-height:80px;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">${title}</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">${desc}</p></td></tr></table></td></tr>`;
 }
 
 /** Section heading — matches v2 sectionHead */
@@ -44,15 +45,43 @@ function statBlockV2(value: string, label: string): string {
 const SALARY_GUIDE_URL = process.env.SALARY_GUIDE_URL || 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/resources/PMHNP_Salary_Guide_2026.pdf';
 
 // ── Sender addresses — separate transactional from marketing ──
+// Defaults match config/brand.ts; runtime values come from env (validated in lib/env.ts).
 const EMAIL_FROM_TRANSACTIONAL = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>';
 const EMAIL_FROM_MARKETING = process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>';
 const EMAIL_FROM = EMAIL_FROM_TRANSACTIONAL; // backward compat
-const EMAIL_REPLY_TO = 'support@pmhnphiring.com';
+const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@pmhnphiring.com';
+
+// Canonical EmailType union — every value the platform sends should be in this list.
+// Drives MARKETING_EMAIL_TYPES below and is the type for `sendAndLog`'s emailType param,
+// so a typo or new type added without thinking gets caught at compile time.
+export type EmailType =
+  | 'welcome_alert'
+  | 'welcome_signup'
+  | 'job_confirmation'
+  | 'job_alert'
+  | 'renewal_confirmation'
+  | 'expiry_warning'
+  | 'draft_saved'
+  | 'employer_message'
+  | 'candidate_inquiry'
+  | 'candidate_alert'
+  | 'broadcast'
+  | 'application_notification'
+  | 'application_confirmation'
+  | 'status_update'
+  | 'performance_report'
+  | 'saved_job_reminder'
+  | 'salary_guide'
+  | 'contact_confirmation'
+  | 'contact_internal'
+  | 'employer_outreach'
+  | 'email_job'
+  | 'auth_confirm';
 
 // Marketing email types — these use the marketing sender address
-const MARKETING_EMAIL_TYPES = new Set([
+const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'welcome_alert', 'job_alert', 'salary_guide', 'broadcast',
-  'profile_nudge', 'performance_report', 'saved_job_reminder',
+  'performance_report', 'saved_job_reminder',
   'candidate_alert',
 ]);
 
@@ -91,9 +120,17 @@ function htmlToPlainText(html: string): string {
 }
 
 // ── Email send wrapper — logs every email to EmailSend table ──
-async function sendAndLog(
+//
+// Every send across the platform should go through this wrapper so we get:
+//   • Suppression check (callers should still gate with isEmailSuppressed before
+//     building expensive HTML, but this is the last line of defense)
+//   • Sender-domain selection (transactional vs marketing, based on emailType)
+//   • List-Unsubscribe header injection (Gmail/Yahoo bulk-sender rule)
+//   • EmailSend row in the DB for analytics + webhook status updates
+//   • Plain-text fallback computed from HTML
+export async function sendAndLog(
   params: { from: string; to: string; subject: string; html: string },
-  emailType: string,
+  emailType: EmailType,
   metadata?: Record<string, unknown>,
   unsubscribeUrl?: string
 ) {
@@ -155,7 +192,7 @@ interface EmailResult {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Get or create an unsubscribe token for any email address
-async function getOrCreateUnsubToken(email: string): Promise<string> {
+export async function getOrCreateUnsubToken(email: string): Promise<string> {
   const existing = await prisma.emailLead.findUnique({
     where: { email },
     select: { unsubscribeToken: true },
@@ -248,17 +285,16 @@ export async function sendSignupWelcomeEmail(
     } else {
       html = emailShellV2(`
             ${headerBlockV2('Welcome to PMHNP Hiring', '')}
-            <tr><td style="padding:0 40px;"><img src="${IMG}/welcome-email-hero.png" alt="" width="520" style="width:100%;max-width:520px;height:auto;display:block;border-radius:12px;margin:0 auto;" /></td></tr>
-            ${spacerV2(28)}
-            <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.</p></td></tr>
+            ${spacerV2(20)}
+            <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;text-align:center;">You have unlocked a new way to find your perfect role. Search curated positions, get matched by AI, and connect directly with hiring managers \u2014 no recruiters, no middlemen.</p></td></tr>
             ${spacerV2(36)}
             <tr><td class="content-pad" style="padding:0 40px;"><p style="margin:0;font-family:${SERIF_V2};font-size:26px;font-weight:700;color:${V2.textHeading};text-align:center;">Here is how to get started</p></td></tr>
             ${spacerV2(20)}
-            <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/step-build-profile.png" alt="Build profile" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">Build your profile</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">Take 60 seconds to add your credentials, specialties, and location preferences.</p></td></tr></table></td></tr>
+            ${stepBlock('step-build-profile.png', 'Build your profile', 'Take 60 seconds to add your credentials, specialties, and location preferences.')}
             ${spacerV2(16)}
-            <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/step-ai-alerts.png" alt="AI alerts" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">Turn on AI alerts</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">Get notified the exact minute a perfectly matched role lands on the board.</p></td></tr></table></td></tr>
+            ${stepBlock('step-ai-alerts.png', 'Turn on AI alerts', 'Get notified the exact minute a perfectly matched role lands on the board.')}
             ${spacerV2(16)}
-            <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="80" height="80" valign="middle" style="padding-right:16px;width:80px;min-width:80px;height:80px;overflow:hidden;"><img src="${IMG}/step-connect.png" alt="Connect" width="80" height="80" style="width:80px;min-width:80px;height:80px;min-height:80px;max-height:80px;border-radius:12px;display:block;" /></td><td valign="middle"><p style="margin:0 0 4px;font-family:${SANS_V2};font-size:15px;font-weight:700;color:${V2.textHeading};">Connect directly</p><p style="margin:0;font-family:${SANS_V2};font-size:14px;color:${V2.textMuted};line-height:1.5;">Connect to hiring managers directly, no recruiters involved.</p></td></tr></table></td></tr>
+            ${stepBlock('step-connect.png', 'Connect directly', 'Connect to hiring managers directly, no recruiters involved.')}
             ${spacerV2(32)}
             <tr><td class="content-pad" style="padding:0 40px;text-align:center;">${primaryButtonV2('Explore Your Dashboard', `${BASE_URL}/dashboard`)}</td></tr>
             ${spacerV2(16)}
@@ -270,6 +306,7 @@ export async function sendSignupWelcomeEmail(
       );
     }
 
+    const unsubToken = await getOrCreateUnsubToken(email);
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
@@ -277,7 +314,7 @@ export async function sendSignupWelcomeEmail(
         ? 'Welcome to PMHNP Hiring — Start Hiring Today'
         : `Welcome to PMHNP Hiring, ${firstName || 'there'}!`,
       html,
-    }, 'welcome_signup', { role });
+    }, 'welcome_signup', { role }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
     logger.info('Signup welcome email sent', { email, role });
     return { success: true };
@@ -322,12 +359,13 @@ export async function sendConfirmationEmail(
       'Your job posting is now live.'
     );
 
+    const unsubToken = await getOrCreateUnsubToken(employerEmail);
     await sendAndLog({
       from: EMAIL_FROM,
       to: employerEmail,
       subject: `✅ Your PMHNP job post is live — "${jobTitle}"`,
       html,
-    }, 'job_confirmation', { jobId });
+    }, 'job_confirmation', { jobId }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
     logger.info('Confirmation email sent', { email: employerEmail, jobId });
     return { success: true };
@@ -341,99 +379,12 @@ export async function sendConfirmationEmail(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. JOB ALERT EMAIL (Matching Jobs)
+// 4. JOB ALERT EMAIL — moved to lib/job-alerts-service.ts
 // ═══════════════════════════════════════════════════════════════════════════════
+// The previous `sendJobAlertEmail` here was an orphan (no callers). The actual
+// production sender is `sendJobAlerts()` in lib/job-alerts-service.ts which is
+// invoked by /api/cron/send-alerts. Removed 2026-04-30 — see audit issue 10.
 
-export async function sendJobAlertEmail(
-  email: string,
-  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; salaryPeriod?: string | null; jobType?: string | null; mode?: string | null; slug?: string | null }>,
-  alertToken: string
-): Promise<void> {
-  const jobCount = jobs.length;
-  const displayJobs = jobs.slice(0, 10);
-  const COLORS = ['#4DB6AC', '#E8937A', '#7C8CF5', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4', '#10B981', '#F97316', '#6366F1'];
-
-  const v2Badge = (text: string, bg: string, fg: string, border: string) =>
-    `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};border:1px solid ${border};">${escapeHtml(text)}</span>`;
-
-  const jobCardsHtml = displayJobs.map((job, index) => {
-    const jobUrl = `${BASE_URL}/jobs/${job.slug || slugify(job.title, job.id)}`;
-    const salaryText = job.minSalary ? `$${(job.minSalary / 1000).toFixed(0)}k${job.maxSalary ? `\u2013$${(job.maxSalary / 1000).toFixed(0)}k` : '+'}` : '';
-    const color = COLORS[index % COLORS.length];
-    const initial = escapeHtml(job.employer.charAt(0).toUpperCase());
-    const badges: string[] = [];
-    if (job.mode) badges.push(v2Badge(job.mode, job.mode === 'Remote' ? '#ECFDF5' : '#F3F6F4', job.mode === 'Remote' ? '#065F46' : '#374151', job.mode === 'Remote' ? '#A7F3D0' : '#E0E5E1'));
-    if (job.jobType) badges.push(v2Badge(job.jobType, '#F3F6F4', '#374151', '#E0E5E1'));
-
-    return `
-        <tr><td style="padding:0 40px ${index < displayJobs.length - 1 ? '16px' : '0'};">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-            <tr><td style="height:4px;background:${color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-            <tr><td style="padding:24px 24px 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-                <td width="48" valign="top" style="padding-right:16px;">
-                  <div style="width:48px;height:48px;border-radius:12px;background:${color};color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">${initial}</div>
-                </td>
-                <td valign="top" style="width:100%;">
-                  <a href="${jobUrl}" style="font-family:${SERIF_V2};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">${escapeHtml(job.title)}</a>
-                  <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:13px;font-weight:500;color:${V2.textMuted};">${escapeHtml(job.employer)} &middot; ${escapeHtml(job.location)}</p>
-                </td>
-                ${salaryText ? `<td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
-                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS_V2};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;">${salaryText}</span>
-                </td>` : ''}
-              </tr></table>
-              ${badges.length > 0 ? `<div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
-              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                ${badges.map((b, i) => `<td${i < badges.length - 1 ? ' style="padding-right:6px;"' : ''}>${b}</td>`).join('')}
-              </tr></table>` : ''}
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
-                <td align="right" valign="middle">
-                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                    <td style="padding-right:8px;">
-                      <a href="${jobUrl}" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
-                    </td>
-                    <td>
-                      <a href="${jobUrl}" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
-                    </td>
-                  </tr></table>
-                </td>
-              </tr></table>
-            </td></tr>
-          </table>
-        </td></tr>`;
-  }).join('');
-
-  const html = emailShellV2(`
-      ${headerBlockV2(`${jobCount} New Job${jobCount > 1 ? 's' : ''} Match Your Alert`, '')}
-      ${spacerV2(12)}
-      ${bodyTextV2(`We found <strong>${jobCount} new position${jobCount > 1 ? 's' : ''}</strong> matching your preferences. Apply early for the best response rates.`)}
-      ${spacerV2(20)}
-      ${jobCardsHtml}
-      ${jobCount > 10 ? `${spacerV2(12)}
-      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        <p style="margin:0;font-family:${SANS_V2};font-size:13px;color:${V2.textMuted};">+ ${jobCount - 10} more matching jobs</p>
-      </td></tr>` : ''}
-      ${spacerV2(28)}
-      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('View All Matching Jobs \u2192', `${BASE_URL}/jobs`)}
-      </td></tr>
-      ${spacerV2(48)}
-      ${closeContentV2()}`,
-    `<p style="margin:0 0 4px;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">
-      <a href="${BASE_URL}/job-alerts/manage?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Manage alert</a>
-      &nbsp;&middot;&nbsp;
-      <a href="${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}" style="color:${V2.textMuted};text-decoration:underline;">Delete alert</a>
-    </p>`,
-    `${jobCount} new PMHNP jobs matching your alert \u2014 view them before they're filled!`
-  );
-
-  await sendAndLog({
-    from: EMAIL_FROM,
-    to: email,
-    subject: `\uD83D\uDD14 ${jobCount} New PMHNP Job${jobCount > 1 ? 's' : ''} Match Your Alert`,
-    html,
-  }, 'job_alert', { jobCount }, `${BASE_URL}/job-alerts/unsubscribe?token=${alertToken}`);
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 5. RENEWAL CONFIRMATION EMAIL
@@ -514,16 +465,7 @@ export async function sendExpiryWarningEmail(
     const html = emailShellV2(`
       ${headerBlockV2(`Your Listing Expires in ${daysUntilExpiry} Days`, '')}
       ${spacerV2(12)}
-      <tr><td class="content-pad" style="padding:0 40px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-          <td width="22%" valign="top" style="padding-right:16px;">
-            <img src="${IMG}/hero-expiry-warning.png" alt="" style="width:100%;height:auto;display:block;border-radius:12px;" />
-          </td>
-          <td width="78%" valign="top">
-            <p style="margin:0;font-family:${SERIF_V2};font-size:17px;color:${V2.textBody};line-height:1.7;">Your posting for <strong>${escapeHtml(jobTitle)}</strong> will expire on ${expiryDateStr}. Renew now to maintain visibility and continue receiving applications.</p>
-          </td>
-        </tr></table>
-      </td></tr>
+      ${bodyTextV2(`Your posting for <strong>${escapeHtml(jobTitle)}</strong> will expire on ${expiryDateStr}. Renew now to maintain visibility and continue receiving applications.`)}
       ${spacerV2(24)}
       <tr><td class="content-pad" style="padding:0 40px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>${statBlockV2(viewCount.toLocaleString(), 'Views')}<td width="8"></td>${statBlockV2(applyClickCount.toLocaleString(), 'Applies')}<td width="8"></td>${statBlockV2('—', 'Saved')}</tr></table></td></tr>
       ${spacerV2(28)}
@@ -536,12 +478,16 @@ export async function sendExpiryWarningEmail(
       `Your listing expires in ${daysUntilExpiry} days — renew now.`
     );
 
+    // Always pass a real unsubscribe token (was previously optional, falling
+    // back to the editToken which is semantically wrong — that's a job edit
+    // link, not an email-list unsubscribe).
+    const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
     await sendAndLog({
       from: EMAIL_FROM,
       to: email,
       subject: `⏰ Your job posting expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} — Renew Now`,
       html,
-    }, 'expiry_warning', { jobTitle, daysUntilExpiry }, unsubscribeToken ? `${BASE_URL}/unsubscribe?token=${unsubscribeToken}` : undefined);
+    }, 'expiry_warning', { jobTitle, daysUntilExpiry }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
 
     logger.info('Expiry warning email sent', { email });
     return { success: true };
@@ -1158,70 +1104,6 @@ export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Pr
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// I6. PROFILE INCOMPLETE NUDGE EMAIL
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export async function sendProfileIncompleteEmail(
-  email: string,
-  firstName: string | null,
-  completedPercentage: number,
-  missingFields: string[]
-): Promise<EmailResult> {
-  try {
-    const name = firstName || 'there';
-    const topMissing = missingFields.slice(0, 4);
-    const unsubToken = await getOrCreateUnsubToken(email);
-
-    const missingListHtml = topMissing.map((f, i) =>
-      `<tr><td style="padding:12px 20px;${i < topMissing.length - 1 ? 'border-bottom:1px solid #F0F3F1;' : ''}">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-          <td width="24" style="font-family:${SANS_V2};font-size:14px;color:#D1D5DB;">&#9744;</td>
-          <td style="font-family:${SANS_V2};font-size:14px;color:${V2.textBody};">${escapeHtml(f)}</td>
-        </tr></table>
-      </td></tr>`
-    ).join('');
-
-    const html = emailShellV2(`
-      ${headerBlockV2('Your Profile Is Almost There', '')}
-      ${spacerV2(12)}
-      ${bodyTextV2(`Your profile is ${completedPercentage} percent complete. Candidates with finished profiles receive 3 times more visibility from employers. Take a moment to fill in the remaining details.`)}
-      ${spacerV2(36)}
-      ${sectionHeadV2('What to add next')}
-      ${spacerV2(20)}
-      ${stepBlock('icon-profile-credential.png', 'Add your credentials', 'List your certifications, licenses, and education to stand out.')}
-      ${spacerV2(16)}
-      ${stepBlock('icon-profile-location.png', 'Set location preferences', 'Tell us where you want to work so we can match you accurately.')}
-      ${spacerV2(16)}
-      ${stepBlock('icon-profile-specialty.png', 'Choose your specialties', 'Select your areas of focus to receive the most relevant opportunities.')}
-      ${spacerV2(32)}
-      <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('Complete Your Profile', `${BASE_URL}/settings/profile`)}
-      </td></tr>
-      ${spacerV2(48)}
-      ${closeContentV2()}`,
-      unsubscribeFooterV2(unsubToken),
-      `Your profile is ${completedPercentage}% complete \u2014 finish it to boost visibility.`
-    );
-
-    await sendAndLog({
-      from: EMAIL_FROM,
-      to: email,
-      subject: `📋 Your profile is ${completedPercentage}% complete — finish it to get noticed`,
-      html,
-    }, 'profile_nudge', { completedPercentage }, `${BASE_URL}/unsubscribe?token=${unsubToken}`);
-
-    logger.info('Profile incomplete email sent', { email, completedPercentage });
-    return { success: true };
-  } catch (error) {
-    logger.error('Error sending profile incomplete email', error, { email });
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to send profile email',
-    };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // I8. EMPLOYER PERFORMANCE REPORT EMAIL
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1303,54 +1185,67 @@ export async function sendPerformanceReportEmail(
 export async function sendSavedJobReminderEmail(
   email: string,
   firstName: string | null,
-  jobs: Array<{ title: string; employer: string; location: string; slug: string }>
+  jobs: Array<{
+    id?: string;
+    title: string;
+    employer: string;
+    location: string;
+    slug: string;
+    minSalary?: number | null;
+    maxSalary?: number | null;
+    normalizedMinSalary?: number | null;
+    normalizedMaxSalary?: number | null;
+    mode?: string | null;
+    jobType?: string | null;
+    isFeatured?: boolean | null;
+    applyOnPlatform?: boolean | null;
+    sourceType?: string | null;
+    createdAt?: Date;
+  }>
 ): Promise<EmailResult> {
   try {
     const name = firstName || 'there';
     const unsubToken = await getOrCreateUnsubToken(email);
 
-    const COLORS = ['#4DB6AC', '#E8937A', '#7C8CF5', '#F59E0B', '#EC4899'];
     const jobCardsHtml = jobs.slice(0, 5).map((job, i) => {
-      const color = COLORS[i % COLORS.length];
-      const initial = job.employer.charAt(0).toUpperCase();
-      return `<tr><td style="padding:0 40px ${i < jobs.length - 1 ? '12px' : '0'};">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-          <tr><td style="height:4px;background:${color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-          <tr><td style="padding:20px 24px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-              <td width="40" valign="top" style="padding-right:14px;">
-                <div style="width:40px;height:40px;border-radius:10px;background:${color};color:#fff;font-size:18px;font-weight:700;text-align:center;line-height:40px;">${escapeHtml(initial)}</div>
-              </td>
-              <td valign="middle" style="width:100%;">
-                <a href="${BASE_URL}/jobs/${job.slug}" style="font-family:${SERIF_V2};font-size:16px;font-weight:700;color:${V2.textHeading};text-decoration:none;display:block;">${escapeHtml(job.title)}</a>
-                <p style="margin:3px 0 0;font-family:${SANS_V2};font-size:12px;color:${V2.textMuted};">${escapeHtml(job.employer)} &middot; ${escapeHtml(job.location)}</p>
-              </td>
-              <td valign="middle" align="right" style="padding-left:12px;">
-                <a href="${BASE_URL}/jobs/${job.slug}" style="display:inline-block;padding:7px 16px;border-radius:8px;font-family:${SANS_V2};font-size:12px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;">Apply</a>
-              </td>
-            </tr></table>
-          </td></tr>
-        </table>
-      </td></tr>`;
+      const minK = (job.normalizedMinSalary || job.minSalary) && (job.normalizedMinSalary || job.minSalary)! > 0
+        ? Math.round((job.normalizedMinSalary || job.minSalary)! / 1000) : 0;
+      const maxK = (job.normalizedMaxSalary || job.maxSalary) && (job.normalizedMaxSalary || job.maxSalary)! > 0
+        ? Math.round((job.normalizedMaxSalary || job.maxSalary)! / 1000) : 0;
+      const salaryText = minK && maxK ? `$${minK}k–$${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : '';
+      return renderJobCardHtml({
+        title: job.title,
+        employer: job.employer,
+        location: job.location,
+        jobType: job.jobType ?? null,
+        mode: job.mode ?? null,
+        isFeatured: job.isFeatured ?? null,
+        applyOnPlatform: job.applyOnPlatform ?? null,
+        sourceType: job.sourceType ?? null,
+        salaryText,
+        jobUrl: `${BASE_URL}/jobs/${job.slug}`,
+      }, i, i === jobs.slice(0, 5).length - 1);
     }).join('');
 
-    const firstJob = jobs[0];
+    const headline = jobs.length === 1 ? 'Your Saved Job Is Still Open' : `${jobs.length} Saved Jobs Still Open`;
     const bodyMsg = jobs.length === 1
-      ? `You saved <strong>${escapeHtml(firstJob.title)}</strong> at ${escapeHtml(firstJob.employer)} recently. This position is still accepting applications \u2014 do not miss your window.`
+      ? `You saved this position recently. It's still accepting applications \u2014 do not miss your window.`
       : `You saved <strong>${jobs.length} jobs</strong> recently. These positions are still accepting applications \u2014 do not miss your window.`;
 
     const html = emailShellV2(`
-      ${headerBlockV2('Your Saved Job Is Still Open', '')}
+      ${headerBlockV2(headline, '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-saved-job.png', bodyMsg)}
-      ${spacerV2(32)}
+      ${bodyTextV2(bodyMsg)}
+      ${spacerV2(20)}
+      ${jobCardsHtml}
+      ${spacerV2(28)}
       <tr><td class="content-pad" style="padding:0 40px;text-align:center;">
-        ${primaryButtonV2('View and Apply', `${BASE_URL}/saved`)}
+        ${primaryButtonV2('View All Saved \u2192', `${BASE_URL}/saved`)}
       </td></tr>
       ${spacerV2(48)}
       ${closeContentV2()}`,
       unsubscribeFooterV2(unsubToken),
-      `The job you saved is still open.`
+      jobs.length === 1 ? `The job you saved is still open.` : `${jobs.length} saved jobs are still open.`
     );
 
     await sendAndLog({

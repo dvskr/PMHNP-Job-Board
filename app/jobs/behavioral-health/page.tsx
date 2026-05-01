@@ -35,7 +35,7 @@ const BH_FILTER = buildCategoryWhereClause('behavioral-health');
 async function getBehavioralHealthJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
         where: BH_FILTER,
-        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
     });
