@@ -44,6 +44,14 @@ test-alert-email.html
 test-candidate-welcome.html
 test-employer-welcome.html
 
+# Local debugging artifacts under scripts/ — one-off diagnostic scripts
+# (named after specific users/incidents) and screenshots from manual debug
+# sessions. None of these should ever be committed.
+scripts/diag-*.ts
+scripts/debug-*.mjs
+scripts/inspect-*.mjs
+scripts/*.png
+
 # vercel
 .vercel
 
