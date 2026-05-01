@@ -11,6 +11,8 @@ import {
 import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import { brand } from '@/config/brand'
+import { BEST_SORT_ORDER_BY, compareJobsBest } from '@/lib/utils/job-sort'
+import { renderJobCardHtml } from '@/lib/utils/render-job-card'
 
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -86,14 +88,9 @@ function timeAgo(date: Date): string {
   return `${Math.floor(diffD / 7)}w ago`
 }
 
-// ─── V2 badge helper (local to this file) ─────────────────────────────────────
-function v2Badge(text: string, bg: string, fg: string, border?: string): string {
-  return `<span style="display:inline-block;padding:5px 14px;border-radius:20px;font-family:${SANS_V2};font-size:11px;font-weight:600;letter-spacing:0.3px;background:${bg};color:${fg};${border ? 'border:1px solid ' + border + ';' : ''}">${text}</span>`
-}
-
 // ─── Build a single alert email HTML (V2 Warm Diorama) ────────────────────────
 function buildAlertHtml(
-  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; normalizedMinSalary?: number | null; normalizedMaxSalary?: number | null; mode?: string | null; isFeatured?: boolean; createdAt: Date }>,
+  jobs: Array<{ id: string; title: string; employer: string; location: string; minSalary?: number | null; maxSalary?: number | null; normalizedMinSalary?: number | null; normalizedMaxSalary?: number | null; mode?: string | null; jobType?: string | null; isFeatured?: boolean; applyOnPlatform?: boolean; sourceType?: string | null; createdAt: Date }>,
   alertToken: string,
   criteriaText: string,
   filteredUrl: string,
@@ -101,57 +98,23 @@ function buildAlertHtml(
 ): string {
   const jobCount = totalCount || jobs.length
   const displayJobs = jobs.slice(0, 10)
-  const COLORS = ['#4DB6AC', '#E8937A', '#7C8CF5', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4', '#10B981', '#F97316', '#6366F1']
-
   const jobCardsHtml = displayJobs.map((job, index) => {
-    const jobUrl = `${BASE_URL}/jobs/${slugify(job.title, job.id)}`
-    const color = COLORS[index % COLORS.length]
-    const initial = job.employer.charAt(0).toUpperCase()
     const minK = (job.normalizedMinSalary || job.minSalary) && (job.normalizedMinSalary || job.minSalary)! > 0 ? Math.round((job.normalizedMinSalary || job.minSalary)! / 1000) : 0
     const maxK = (job.normalizedMaxSalary || job.maxSalary) && (job.normalizedMaxSalary || job.maxSalary)! > 0 ? Math.round((job.normalizedMaxSalary || job.maxSalary)! / 1000) : 0
-    const salaryText = minK && maxK ? `$${minK}k\u2013$${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : ''
-    const postedText = timeAgo(job.createdAt)
-
-    const badges: string[] = []
-    badges.push(v2Badge(job.location, '#F3F6F4', '#374151', '#E0E5E1'))
-    if (job.mode) badges.push(v2Badge(job.mode, job.mode.toLowerCase().includes('remote') ? '#ECFDF5' : '#F3F6F4', job.mode.toLowerCase().includes('remote') ? '#065F46' : '#374151', job.mode.toLowerCase().includes('remote') ? '#A7F3D0' : '#E0E5E1'))
-
-    return `
-        <tr><td style="padding:0 40px ${index < displayJobs.length - 1 ? '16px' : '0'};">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #E8ECE9;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-            <tr><td style="height:4px;background:${color};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-            <tr><td style="padding:24px 24px 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-                <td width="48" valign="top" style="padding-right:16px;">
-                  <div style="width:48px;height:48px;border-radius:12px;background:${color};color:#fff;font-size:20px;font-weight:700;text-align:center;line-height:48px;">${initial}</div>
-                </td>
-                <td valign="top" style="width:100%;">
-                  <a href="${jobUrl}" style="font-family:${SERIF_V2};font-size:18px;font-weight:700;color:${V2.textHeading};text-decoration:none;line-height:1.35;display:block;">${job.title}</a>
-                  <p style="margin:4px 0 0;font-family:${SANS_V2};font-size:13px;font-weight:500;color:${V2.textMuted};">${job.employer} &middot; ${postedText}</p>
-                </td>
-                ${salaryText ? `<td valign="top" align="right" style="white-space:nowrap;padding-left:12px;">
-                  <span style="display:inline-block;padding:6px 16px;border-radius:8px;font-family:${SANS_V2};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;">${salaryText}</span>
-                </td>` : ''}
-              </tr></table>
-              ${badges.length > 0 ? `<div style="border-top:1px solid #F0F3F1;margin:16px 0;"></div>
-              <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                ${badges.map((b, i) => `<td${i < badges.length - 1 ? ' style="padding-right:6px;"' : ''}>${b}</td>`).join('')}
-              </tr></table>` : ''}
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:16px;"><tr>
-                <td align="right" valign="middle">
-                  <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-                    <td style="padding-right:8px;">
-                      <a href="${jobUrl}" style="display:inline-block;padding:8px 18px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:600;color:#374151;background:#F3F6F4;border:1px solid #E0E5E1;text-decoration:none;">View Job &rarr;</a>
-                    </td>
-                    <td>
-                      <a href="${jobUrl}" style="display:inline-block;padding:8px 20px;border-radius:10px;font-family:${SANS_V2};font-size:13px;font-weight:700;color:#fff;background:#0d9488;text-decoration:none;box-shadow:0 2px 6px rgba(13,148,136,0.25);">Apply Now</a>
-                    </td>
-                  </tr></table>
-                </td>
-              </tr></table>
-            </td></tr>
-          </table>
-        </td></tr>`
+    const salaryText = minK && maxK ? `$${minK}k–$${maxK}k` : minK ? `$${minK}k+` : maxK ? `Up to $${maxK}k` : ''
+    return renderJobCardHtml({
+      title: job.title,
+      employer: job.employer,
+      location: job.location,
+      jobType: job.jobType ?? null,
+      mode: job.mode ?? null,
+      isFeatured: job.isFeatured ?? null,
+      applyOnPlatform: job.applyOnPlatform ?? null,
+      sourceType: job.sourceType ?? null,
+      salaryText,
+      postedText: timeAgo(job.createdAt),
+      jobUrl: `${BASE_URL}/jobs/${slugify(job.title, job.id)}`,
+    }, index, index === displayJobs.length - 1)
   }).join('')
 
   return emailShellV2(`
@@ -248,12 +211,17 @@ export async function sendJobAlerts(): Promise<{
 
     console.log(`[Alerts] Processing ${alerts.length} job alerts`)
 
-    // Phase 1: Build all email payloads in parallel (no API calls yet)
-    const emailPayloads: Array<{
-      alertId: string
-      email: string
-      payload: { from: string; to: string; subject: string; html: string; text: string; replyTo: string; headers: Record<string, string> }
-    }> = []
+    // Phase 1a: Run per-alert queries in parallel batches and collect raw results.
+    //   We DON'T render HTML or build payloads yet — we need to dedupe matches across
+    //   the same user's multiple alerts before composing a single consolidated email.
+    type AlertJob = Awaited<ReturnType<typeof prisma.job.findMany>>[number]
+    type AlertResult = {
+      alert: typeof alerts[number]
+      matchingJobs: AlertJob[]
+      totalCount: number
+    }
+    const alertResults: AlertResult[] = []
+    const suppressedEmails = new Set<string>()
 
     // Process alerts in parallel batches of 10 to avoid overwhelming the DB
     const QUERY_BATCH = 10
@@ -262,16 +230,33 @@ export async function sendJobAlerts(): Promise<{
 
       const settled = await Promise.allSettled(batch.map(async (alert) => {
         // ── Suppression check ──
+        // Cache per-email since many alerts can share an address.
+        if (suppressedEmails.has(alert.email)) return null
         const suppressed = await isEmailSuppressed(alert.email)
         if (suppressed) {
+          suppressedEmails.add(alert.email)
           results.suppressed++
           return null
         }
 
         // ── Build WHERE clause ──
+        //
+        // Freshness cutoff:
+        //   - Subsequent sends: jobs created since lastSentAt (~24h or ~7d window depending on frequency).
+        //   - FIRST send: clamp backfill to a max of 7 days. Without this clamp, an alert created
+        //     30 days ago that finally fires today would surface 30 days of stale jobs in one
+        //     "welcome" digest. Cap to 7 days so the first email looks like a recent-jobs snapshot.
+        const FIRST_SEND_BACKFILL_DAYS = 7
+        const cutoff = alert.lastSentAt
+          ? alert.lastSentAt
+          : new Date(Math.max(
+              alert.createdAt.getTime(),
+              now.getTime() - FIRST_SEND_BACKFILL_DAYS * 24 * 60 * 60 * 1000
+            ))
+
         const whereClause: Prisma.JobWhereInput = {
           isPublished: true,
-          createdAt: { gt: alert.lastSentAt || alert.createdAt },
+          createdAt: { gt: cutoff },
           AND: [
             {
               OR: [
@@ -368,47 +353,30 @@ export async function sendJobAlerts(): Promise<{
           })
         }
 
-        // Get total count first, then fetch top 10 for the email
+        // Get total count first, then fetch top 10 for the email.
+        // We fetch a few extra (top 20) so that when merging across a user's
+        // multiple alerts we still have headroom after dedup before truncating to 10.
         const totalCount = await prisma.job.count({ where: whereClause })
 
         if (totalCount > 0) {
+          // Fetch 20 (vs the 10 we display) to leave headroom for cross-alert dedup
+          // when the same user has multiple alerts. Sort uses the canonical
+          // BEST_SORT_ORDER_BY (lib/utils/job-sort.ts) so email ordering matches
+          // the website's `best` sort exactly.
           const matchingJobs = await prisma.job.findMany({
             where: whereClause,
-            orderBy: [
-              { isFeatured: 'desc' },
-              { createdAt: 'desc' },
-            ],
-            take: 10,
+            orderBy: BEST_SORT_ORDER_BY,
+            take: 20,
           })
 
-          const criteriaText = buildCriteriaSummary(alert)
-          const filteredUrl = buildFilteredJobsUrl(alert)
-          const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${alert.token}`
-          const html = buildAlertHtml(matchingJobs, alert.token, criteriaText, filteredUrl, totalCount)
-
-          return {
-            alertId: alert.id,
-            email: alert.email,
-            payload: {
-              from: EMAIL_FROM,
-              to: alert.email,
-              subject: `${totalCount} New PMHNP Job${totalCount > 1 ? 's' : ''} Match Your Alert`,
-              html,
-              text: htmlToPlainText(html),
-              replyTo: EMAIL_REPLY_TO,
-              headers: {
-                'List-Unsubscribe': `<${unsubUrl}>`,
-                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-              },
-            },
-          }
+          return { alert, matchingJobs, totalCount } satisfies AlertResult
         }
         return null // no matching jobs
       }))
 
       for (const result of settled) {
         if (result.status === 'fulfilled' && result.value) {
-          emailPayloads.push(result.value)
+          alertResults.push(result.value)
         } else if (result.status === 'fulfilled' && !result.value) {
           results.skipped++
         } else if (result.status === 'rejected') {
@@ -417,7 +385,83 @@ export async function sendJobAlerts(): Promise<{
       }
     }
 
-    console.log(`[Alerts] ${emailPayloads.length} emails to send, ${results.skipped} skipped (no matches), ${results.suppressed} suppressed`)
+    // Phase 1b: Group alerts by recipient email and merge their matches.
+    //   A user with N triggered alerts gets ONE email with deduped jobs across
+    //   all their alerts, NOT N separate emails. Fixes the multi-alert dedup bug.
+    const byEmail = new Map<string, AlertResult[]>()
+    for (const r of alertResults) {
+      const key = r.alert.email.toLowerCase().trim()
+      const list = byEmail.get(key) ?? []
+      list.push(r)
+      byEmail.set(key, list)
+    }
+
+    const emailPayloads: Array<{
+      alertIds: string[]
+      email: string
+      payload: { from: string; to: string; subject: string; html: string; text: string; replyTo: string; headers: Record<string, string> }
+    }> = []
+
+    for (const [, group] of byEmail) {
+      // Merge matchingJobs across all alerts for this user, dedupe by job ID.
+      const seen = new Set<string>()
+      const merged: AlertJob[] = []
+      let totalAcrossAlerts = 0
+      for (const r of group) {
+        totalAcrossAlerts += r.totalCount
+        for (const j of r.matchingJobs) {
+          if (!seen.has(j.id)) {
+            seen.add(j.id)
+            merged.push(j)
+          }
+        }
+      }
+
+      // ── Re-sort merged list to match the website's `best` sort ──
+      // Each per-alert list is already in DB order, but cross-alert dedup may have
+      // interleaved them. Re-apply the canonical comparator so the email ordering
+      // matches what users see at /jobs?sort=best.
+      merged.sort(compareJobsBest)
+
+      // Cap display at 10 (was previously the per-alert cap; now applies post-merge).
+      const displayJobs = merged.slice(0, 10)
+      const dedupedTotal = merged.length
+
+      // Combine criteria summaries for the "Your Alert(s)" box.
+      const criteriaTexts = group.map(r => buildCriteriaSummary(r.alert)).filter(Boolean)
+      const combinedCriteria = criteriaTexts.length > 1
+        ? criteriaTexts.map((t, i) => `${i + 1}. ${t}`).join('  •  ')
+        : criteriaTexts[0] || ''
+
+      // Use the first alert's token for the manage/unsubscribe links.
+      // If a user has multiple alerts they can navigate to manage all from there.
+      const primary = group[0].alert
+      const filteredUrl = buildFilteredJobsUrl(primary)
+      const unsubUrl = `${BASE_URL}/job-alerts/unsubscribe?token=${primary.token}`
+      const html = buildAlertHtml(displayJobs, primary.token, combinedCriteria, filteredUrl, dedupedTotal)
+      const alertWord = group.length > 1 ? 'Alerts' : 'Alert'
+      const subject = `${dedupedTotal} New PMHNP Job${dedupedTotal > 1 ? 's' : ''} Match Your ${alertWord}`
+
+      emailPayloads.push({
+        alertIds: group.map(r => r.alert.id),
+        email: primary.email,
+        payload: {
+          from: EMAIL_FROM,
+          to: primary.email,
+          subject,
+          html,
+          text: htmlToPlainText(html),
+          replyTo: EMAIL_REPLY_TO,
+          headers: {
+            'List-Unsubscribe': `<${unsubUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
+        },
+      })
+    }
+
+    const dedupSavings = alertResults.length - emailPayloads.length
+    console.log(`[Alerts] ${emailPayloads.length} emails to send (${dedupSavings} dedup savings across multi-alert users), ${results.skipped} skipped (no matches), ${results.suppressed} suppressed`)
 
     if (emailPayloads.length === 0) return results
 
@@ -450,14 +494,14 @@ export async function sendJobAlerts(): Promise<{
       }
 
       if (sent) {
-        // Mark all alerts in this batch as sent
-        const alertIds = batch.map(b => b.alertId)
+        // Mark every alert that contributed to a sent email (across multi-alert users).
+        const alertIds = batch.flatMap(b => b.alertIds)
         await prisma.jobAlert.updateMany({
           where: { id: { in: alertIds } },
           data: { lastSentAt: now },
         })
         results.sent += batch.length
-        console.log(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails)`)
+        console.log(`[Alerts] Batch ${batchNum} sent successfully (${batch.length} emails, covering ${alertIds.length} alerts)`)
 
         // Log each batch send to EmailSend (non-blocking)
         try {
@@ -473,7 +517,7 @@ export async function sendJobAlerts(): Promise<{
         }
       } else {
         for (const b of batch) {
-          results.errors.push(`Alert ${b.alertId} (${b.email}): Rate limited after 3 retries`)
+          results.errors.push(`Alert(s) ${b.alertIds.join(',')} (${b.email}): Rate limited after 3 retries`)
         }
       }
 

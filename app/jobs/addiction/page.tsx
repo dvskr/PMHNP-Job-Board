@@ -36,7 +36,7 @@ const ADDICTION_FILTER = buildCategoryWhereClause('addiction');
 async function getAddictionJobs(skip = 0, take = 20) {
     return prisma.job.findMany({
         where: ADDICTION_FILTER,
-        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take,
     });

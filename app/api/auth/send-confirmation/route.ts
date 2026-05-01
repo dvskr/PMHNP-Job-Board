@@ -4,15 +4,12 @@ import { rateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import {
   emailShellV2, headerBlockV2, primaryButtonV2,
-  spacerV2, closeContentV2, noteCardV2, contactFooterV2,
+  spacerV2, closeContentV2, noteCardV2,
   V2, SANS, SERIF,
 } from '@/lib/email-templates-v2'
-import { prisma } from '@/lib/prisma'
-import { Resend } from 'resend'
+import { sendAndLog } from '@/lib/email-service'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
-const EMAIL_FROM = process.env.EMAIL_FROM || 'PMHNP Hiring <noreply@pmhnphiring.com>'
 
 /**
  * POST /api/auth/send-confirmation
@@ -89,28 +86,15 @@ export async function POST(request: NextRequest) {
       'Confirm your PMHNP Hiring account \u2014 one click to activate!'
     )
 
-    // Send via Resend and log to EmailSend
-    const result = await resend.emails.send({
-      from: EMAIL_FROM,
+    // Account confirmation is transactional and required to use the platform —
+    // we deliberately do NOT skip it for suppressed addresses (a suppressed user
+    // re-signing up with the same email needs the confirm link to come through).
+    await sendAndLog({
+      from: '', // overridden by sendAndLog (transactional sender)
       to: normalizedEmail,
-      replyTo: 'hello@pmhnphiring.com',
       subject: 'Confirm your PMHNP Hiring account',
       html,
-    })
-
-    // Log the send
-    try {
-      await prisma.emailSend.create({
-        data: {
-          resendId: result?.data?.id ?? null,
-          to: normalizedEmail,
-          subject: 'Confirm your PMHNP Hiring account',
-          emailType: 'confirmation',
-        },
-      })
-    } catch (logErr) {
-      logger.error('Failed to log confirmation email send', logErr)
-    }
+    }, 'auth_confirm', { isSignup: true })
 
     logger.info('Confirmation email sent via Resend', { email: normalizedEmail })
 

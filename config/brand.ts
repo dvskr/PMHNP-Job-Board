@@ -51,10 +51,12 @@ export const brand = {
         security: 'security@pmhnphiring.com',
         support: 'support@pmhnphiring.com',
         contact: 'contact@pmhnphiring.com',
-        // From-addresses for outbound mail. Read by lib/email-service-v2.
+        // From-addresses for outbound mail. Read by lib/email-service.ts and
+        // lib/job-alerts-service.ts. Env vars EMAIL_FROM, EMAIL_FROM_MARKETING,
+        // and EMAIL_REPLY_TO override these at runtime when set.
         marketingFrom: 'PMHNP Hiring <alerts@pmhnphiring.com>',
-        transactionalFrom: 'PMHNP Hiring <hello@pmhnphiring.com>',
-        replyTo: 'hello@pmhnphiring.com',
+        transactionalFrom: 'PMHNP Hiring <noreply@pmhnphiring.com>',
+        replyTo: 'support@pmhnphiring.com',
     },
 
     /** Public social handles — used in footer + Organization schema. */

@@ -8,9 +8,11 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
+import { isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE = 'https://pmhnphiring.com';
+const UNSUB_BASE = `${BASE}/unsubscribe`;
 
 function buildEmail(): string {
   return `<!DOCTYPE html>
@@ -49,7 +51,7 @@ function buildEmail(): string {
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
         <tr>
           <td>
-            <img src="${BASE}/logo.png" width="36" height="36" alt="P" style="width:36px;height:36px;border-radius:8px;" />
+            <img src="${BASE}/logo.png" width="36" height="36" alt="PMHNP Hiring" style="width:36px;height:36px;border-radius:8px;border:0;background-color:#FFF8EE;color:#0d9488;font-family:Georgia,serif;font-size:11px;font-weight:700;text-align:center;line-height:36px;" />
           </td>
           <td style="text-align:right;">
             <a href="${BASE}" style="font-size:13px;color:#6b7280;text-decoration:none;font-weight:500;">pmhnphiring.com</a>
@@ -197,7 +199,7 @@ function buildEmail(): string {
   <tr>
     <td class="pad" style="padding:24px 48px 40px;text-align:center;">
       <p style="margin:0 0 10px;font-size:12px;color:#9ca3af;line-height:1.6;">
-        Questions? Reply to this email or write to <a href="mailto:hello@pmhnphiring.com" style="color:#0d9488;text-decoration:none;">hello@pmhnphiring.com</a>
+        Questions? Reply to this email or write to <a href="mailto:support@pmhnphiring.com" style="color:#0d9488;text-decoration:none;">support@pmhnphiring.com</a>
       </p>
       <p style="margin:0 0 8px;font-size:11px;color:#9ca3af;">
         <a href="https://www.linkedin.com/company/pmhnpjobs" style="color:#9ca3af;text-decoration:none;">LinkedIn</a> &nbsp;&middot;&nbsp;
@@ -284,14 +286,28 @@ export async function POST(request: Request) {
       }
     }
 
-    const recipients = Array.from(emailMap.entries()).map(([email, data]) => ({
+    const allRecipients = Array.from(emailMap.entries()).map(([email, data]) => ({
       email, name: data.name, company: data.company,
     }));
+
+    // Filter out suppressed addresses (bounced or complained). Cap parallelism to
+    // avoid hammering the EmailLead/UserProfile tables; 25 at a time is plenty.
+    const suppressedSet = new Set<string>();
+    for (let i = 0; i < allRecipients.length; i += 25) {
+      const slice = allRecipients.slice(i, i + 25);
+      const checks = await Promise.all(
+        slice.map(async r => ({ email: r.email, suppressed: await isEmailSuppressed(r.email) }))
+      );
+      for (const c of checks) if (c.suppressed) suppressedSet.add(c.email);
+    }
+    const recipients = allRecipients.filter(r => !suppressedSet.has(r.email));
+    const skippedSuppressed = allRecipients.length - recipients.length;
 
     if (isDry) {
       return NextResponse.json({
         mode: 'DRY RUN — no emails sent',
         totalRecipients: recipients.length,
+        skippedSuppressed,
         recipients: recipients.slice(0, 20),
       });
     }
@@ -303,16 +319,26 @@ export async function POST(request: Request) {
     const errors: string[] = [];
     const html = buildEmail();
     const text = htmlToPlainText(html);
+    const sentLogRows: { resendId: string | null; to: string; subject: string }[] = [];
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batch = recipients.slice(i, i + BATCH_SIZE);
+      // Per-recipient unsubscribe token + List-Unsubscribe header for one-click compliance.
+      const tokenByEmail = new Map<string, string>();
+      for (const r of batch) {
+        tokenByEmail.set(r.email, await getOrCreateUnsubToken(r.email));
+      }
       const emails = batch.map(r => ({
-        from: 'PMHNP Hiring <hello@pmhnphiring.com>',
+        from: process.env.EMAIL_FROM_MARKETING || 'PMHNP Hiring <alerts@pmhnphiring.com>',
         to: r.email,
-        replyTo: 'hello@pmhnphiring.com',
+        replyTo: process.env.EMAIL_REPLY_TO || 'support@pmhnphiring.com',
         subject: 'Your first 2 job posts are free — all features included',
         html,
         text,
+        headers: {
+          'List-Unsubscribe': `<${UNSUB_BASE}?token=${tokenByEmail.get(r.email)}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       }));
 
       try {
@@ -322,6 +348,15 @@ export async function POST(request: Request) {
           failed += batch.length;
         } else {
           sent += batch.length;
+          // Stash per-recipient send IDs so the webhook can update status by resendId.
+          const data = result.data?.data ?? [];
+          for (let j = 0; j < batch.length; j++) {
+            sentLogRows.push({
+              resendId: data[j]?.id ?? null,
+              to: batch[j].email,
+              subject: 'Your first 2 job posts are free — all features included',
+            });
+          }
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -334,20 +369,17 @@ export async function POST(request: Request) {
       }
     }
 
-    try {
-      await prisma.emailSend.create({
-        data: {
-          to: 'campaign@employer-outreach',
-          emailType: 'employer_outreach_campaign',
-          subject: 'Employer outreach — free posting announcement',
-          status: failed === 0 ? 'sent' : 'partial',
-          metadata: { sent, failed, totalRecipients: recipients.length, errors } as any,
-        },
-      });
-    } catch { /* logging failure shouldn't break response */ }
+    // Per-recipient EmailSend rows so the resend webhook (bounce/complaint) can find them.
+    if (sentLogRows.length > 0) {
+      try {
+        await prisma.emailSend.createMany({
+          data: sentLogRows.map(r => ({ ...r, emailType: 'employer_outreach', status: 'sent' })),
+        });
+      } catch { /* non-blocking */ }
+    }
 
     return NextResponse.json({
-      success: true, sent, failed,
+      success: true, sent, failed, skippedSuppressed,
       totalRecipients: recipients.length,
       errors: errors.length > 0 ? errors : undefined,
     });

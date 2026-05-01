@@ -58,7 +58,7 @@ async function getMetroStats(city: string, stateCode: string) {
     }),
     prisma.job.findMany({
       where,
-      orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ isFeatured: 'desc' }, { qualityScore: 'desc' }, { originalPostedAt: 'desc' }, { createdAt: 'desc' }],
       take: 10,
     }),
   ]);

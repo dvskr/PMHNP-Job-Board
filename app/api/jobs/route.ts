@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { buildWhereClause, parseFiltersFromParams } from '@/lib/filters';
 import { logger } from '@/lib/logger';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { BEST_SORT_ORDER_BY } from '@/lib/utils/job-sort';
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,12 +65,7 @@ export async function GET(request: NextRequest) {
 
     // Parse sort option
     const sort = searchParams.get('sort') || 'best';
-    let orderBy: Record<string, unknown>[] = [
-      { isFeatured: 'desc' },
-      { qualityScore: 'desc' },
-      { originalPostedAt: 'desc' },
-      { createdAt: 'desc' },
-    ];
+    let orderBy: Record<string, unknown>[] = [...BEST_SORT_ORDER_BY] as Record<string, unknown>[];
     if (sort === 'newest') {
       orderBy = [
         { originalPostedAt: { sort: 'desc', nulls: 'last' } },

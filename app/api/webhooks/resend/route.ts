@@ -94,18 +94,20 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Update EmailSend log status
-      if (resendId) {
-        await prisma.emailSend.updateMany({
-          where: { resendId },
-          data: { status: suppressionReason === 'bounce' ? 'bounced' : 'complained' },
-        });
-      }
-
       logger.info('Email suppressed via webhook', {
         email: normalizedEmail,
         reason: suppressionReason,
         resendId,
+      });
+    }
+
+    // Update the EmailSend log status ONCE per webhook (not per recipient).
+    // Resend sends one webhook per email send so this is keyed by resendId,
+    // not by recipient — avoids redundant writes if a multi-recipient webhook ever ships.
+    if (resendId) {
+      await prisma.emailSend.updateMany({
+        where: { resendId },
+        data: { status: suppressionReason === 'bounce' ? 'bounced' : 'complained' },
       });
     }
 
