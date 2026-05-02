@@ -632,11 +632,18 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                             <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#6B7F8A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                 <MousePointerClick size={11} /> {job.applyClickCount} clicks
                                             </span>
-                                            {(job.applicantCount !== undefined && job.applicantCount > 0) && (
-                                                <span style={{ ...cardRecessed, padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: '#059669', background: '#D1FAE5', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                    <User size={11} /> {job.applicantCount} applicant{job.applicantCount !== 1 ? 's' : ''}
-                                                </span>
-                                            )}
+                                            {/* Always render the applicant chip — even at zero — so the row reads
+                                                consistently with the views and clicks chips. Greyed when zero so the
+                                                empty state doesn't read as "broken counter". */}
+                                            <span style={{
+                                                ...cardRecessed,
+                                                padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                                color: (job.applicantCount ?? 0) > 0 ? '#059669' : '#6B7F8A',
+                                                background: (job.applicantCount ?? 0) > 0 ? '#D1FAE5' : undefined,
+                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                            }}>
+                                                <User size={11} /> {(job.applicantCount ?? 0)} applicant{(job.applicantCount ?? 0) !== 1 ? 's' : ''}
+                                            </span>
                                         </div>
 
                                         {/* Date Row */}
