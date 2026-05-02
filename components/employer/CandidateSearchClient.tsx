@@ -32,20 +32,21 @@ const EXPERIENCE_OPTIONS = [
 ];
 
 /* ═══════════════════════════════════════════
-   CLAY DESIGN TOKENS
+   CLAY DESIGN TOKENS — match the redesigned employer dashboard
+   (cream #F5F0EB page bg, white cards, neutral inset surfaces)
    ═══════════════════════════════════════════ */
 const cardBase: React.CSSProperties = {
-    background: '#F7FBF8',
+    background: '#FFFFFF',
     borderRadius: '20px',
-    border: '1px solid rgba(255,255,255,0.5)',
-    boxShadow: '8px 8px 20px rgba(0,0,0,0.07), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '6px 6px 16px rgba(0,0,0,0.06), -3px -3px 10px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(0,0,0,0.02)',
 };
 
 const cardRecessed: React.CSSProperties = {
-    background: '#EDF5F0',
+    background: '#F5F0EB',
     borderRadius: '14px',
-    border: '1px solid #D5E8E0',
-    boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.5)',
+    border: '1px solid rgba(0,0,0,0.04)',
+    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.04), inset -1px -1px 2px rgba(255,255,255,0.4)',
 };
 
 const clayInput: React.CSSProperties = {
@@ -53,10 +54,10 @@ const clayInput: React.CSSProperties = {
     padding: '10px 14px',
     fontSize: '13px',
     borderRadius: '12px',
-    border: '1px solid #D5E8E0',
-    background: '#EDF5F0',
+    border: '1px solid rgba(0,0,0,0.08)',
+    background: '#F5F6F8',
     color: '#1A2E35',
-    boxShadow: 'inset 2px 2px 6px rgba(0,60,50,0.06), inset -1px -1px 3px rgba(255,255,255,0.4)',
+    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
     outline: 'none',
     transition: 'all 0.2s',
 };
@@ -243,12 +244,12 @@ export default function CandidateSearchClient() {
     ].filter(Boolean).length;
 
     return (
-        <div style={{ background: '#F5F6F8' }}>
+        <div style={{ background: '#F5F0EB' }}>
             {/* ═══ Hero Header ═══ */}
             <div style={{
-                padding: '28px 16px 20px',
-                background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
-                borderBottom: '1px solid #E5E7EB',
+                padding: '20px 16px 16px',
+                background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
+                borderBottom: '1px solid #E5DDD3',
             }}>
                 <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{

@@ -36,6 +36,14 @@ export const config = {
     inmailsPerPosting: 25,
   },
 
+  // Cross-posting safety cap on candidate unlocks. The per-posting limit
+  // (25) prevents abuse within a single posting, but an employer with N
+  // active postings has N×25 total — fine for normal hiring, suspicious for
+  // mass scraping. Cap at 50 unique unlocks across ALL postings in any
+  // rolling 24h window. Real hiring teams don't review more than ~50
+  // profiles in a single day; scrapers do.
+  dailyUnlockCap: 50,
+
   // ─── Helper Functions ───
 
   formatPrice: (amount: number) => {

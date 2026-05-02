@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
 import { canUnlockCandidate, getEmployerTier } from '@/lib/tier-limits'
 import { PricingTier } from '@/lib/config'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 /**
  * Generate a fresh signed URL for a resume stored as a storage path.
@@ -54,6 +55,11 @@ export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    // Rate limiting — without this, an authenticated employer could mass-scrape
+    // candidate profiles by enumerating IDs. Same bucket as the list endpoint.
+    const rateLimitResult = await rateLimit(req, 'employer:candidate-detail', RATE_LIMITS.employer)
+    if (rateLimitResult) return rateLimitResult
+
     const { id } = await params
 
     // Auth check — employer or admin only
@@ -107,16 +113,25 @@ export async function GET(
     let chargePostingId: string | undefined
 
     if (!existingView && !isAdmin) {
-        // This is a new unlock — check per-posting credit pool
+        // This is a new unlock — check per-posting credit pool + daily cap
         const tier = await getEmployerTier(user.id)
         const unlockCheck = await canUnlockCandidate(user.id, tier)
         if (!unlockCheck.allowed) {
+            // Branch the message by reason — daily cap means "come back tomorrow",
+            // posting cap means "buy another posting", no posting means "post first".
+            const messages: Record<string, string> = {
+                daily_cap: `Daily unlock cap reached (${unlockCheck.limit} per 24h). This is an anti-scrape safety limit — try again tomorrow.`,
+                posting_cap: 'Candidate unlock limit reached for your active postings.',
+                no_posting: 'You need at least one active job posting to unlock candidates.',
+            };
+            const reason = unlockCheck.reason || 'posting_cap';
             return NextResponse.json({
-                error: 'Candidate unlock limit reached for this posting',
+                error: messages[reason] || messages.posting_cap,
+                reason,
                 used: unlockCheck.used,
                 limit: unlockCheck.limit,
                 tier,
-                upgradeRequired: true,
+                upgradeRequired: reason === 'posting_cap',
             }, { status: 403 })
         }
         chargePostingId = unlockCheck.postingId

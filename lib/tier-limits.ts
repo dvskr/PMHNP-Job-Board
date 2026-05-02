@@ -101,7 +101,7 @@ export async function getInMailsForPosting(
 export async function canUnlockCandidate(
     employerId: string,
     tier: PricingTier
-): Promise<{ allowed: boolean; used: number; limit: number; postingId?: string }> {
+): Promise<{ allowed: boolean; used: number; limit: number; postingId?: string; reason?: 'no_posting' | 'posting_cap' | 'daily_cap' }> {
     const limits = config.getTierLimits(tier);
     const limit = limits.candidateUnlocksPerPosting;
 
@@ -110,10 +110,30 @@ export async function canUnlockCandidate(
         return { allowed: true, used: 0, limit: Infinity };
     }
 
+    // Cross-posting daily cap (anti-scrape). Even if per-posting headroom exists,
+    // refuse if the employer has unlocked >= dailyUnlockCap unique candidates in
+    // the last 24h. Bypasses the rest of the math when triggered so we don't
+    // reveal posting-level state to abusers via error responses.
+    const dailyCap = config.dailyUnlockCap;
+    if (Number.isFinite(dailyCap) && dailyCap > 0) {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentUnlocks = await prisma.profileView.count({
+            where: { viewerId: employerId, viewedAt: { gte: since } },
+        });
+        if (recentUnlocks >= dailyCap) {
+            return {
+                allowed: false,
+                used: recentUnlocks,
+                limit: dailyCap,
+                reason: 'daily_cap',
+            };
+        }
+    }
+
     // Get all active postings
     const postings = await getEmployerActivePostings(employerId);
     if (postings.length === 0) {
-        return { allowed: false, used: 0, limit };
+        return { allowed: false, used: 0, limit, reason: 'no_posting' };
     }
 
     // Calculate total limit across all currently-active postings
