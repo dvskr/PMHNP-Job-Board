@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { config, PricingTier } from '@/lib/config';
+import { expiresFromNow } from '@/lib/expires-at';
 import { sendConfirmationEmail } from '@/lib/email-service';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
@@ -213,9 +214,9 @@ export async function POST(request: NextRequest) {
 
     // Free posts get the shorter trial duration (audit #30); paid posts use the
     // full duration via /api/create-checkout. Features are otherwise identical.
+    // UTC math via expiresFromNow — setDate() drifted across DST boundaries.
     const tierForDuration: PricingTier = 'pro';
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + config.freeDurationDays);
+    const expiresAt = expiresFromNow(config.freeDurationDays);
 
     // Parse salary values
     const parsedMinSalary = (() => {
