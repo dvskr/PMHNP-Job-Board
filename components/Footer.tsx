@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { XLogo, FacebookLogo, InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
 import { reopenConsentBanner } from '@/lib/consent';
+import { brand } from '@/config/brand';
 /* ──────────────────────────────────────────────
  *  Footer — Dark, clean, professional
  *  Uses inline styles for background/color to
@@ -266,7 +267,7 @@ export default function Footer() {
               <span className="footer-pipe" style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
 
               <p style={{ fontSize: '13px', color: '#57534e', margin: 0, whiteSpace: 'nowrap' }}>
-                © {new Date().getFullYear()} PMHNP Hiring
+                © {new Date().getFullYear()} {brand.name} · operated by {brand.legal.entityName}
               </p>
             </div>
           </div>

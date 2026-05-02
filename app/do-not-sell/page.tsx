@@ -61,11 +61,11 @@ export default function DoNotSellPage() {
                     behavioral advertising.
                 </p>
                 <p style={pStyle}>
-                    {brand.name} does not sell personal information for money. Loading third-party analytics
-                    (Google Analytics, Vercel Speed Insights) may meet the broader CPRA definition of
-                    &quot;sharing&quot;. The button below opts your device out of all analytics and marketing
-                    cookies. Essential cookies (login, security, fraud prevention) remain active because the
-                    site won&apos;t function without them.
+                    {brand.name} (operated by <strong>{brand.legal.entityName}</strong>) does not sell personal
+                    information for money. Loading third-party analytics (Google Analytics, Vercel Speed Insights)
+                    may meet the broader CPRA definition of &quot;sharing&quot;. The button below opts your device
+                    out of all analytics and marketing cookies. Essential cookies (login, security, fraud
+                    prevention) remain active because the site won&apos;t function without them.
                 </p>
 
                 <h2 style={h2Style}>How to opt out</h2>

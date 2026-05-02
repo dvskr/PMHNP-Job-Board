@@ -61,7 +61,7 @@ const cardBase: React.CSSProperties = {
 const recessedPill: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: '4px',
     fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '10px',
-    border: '1px solid #E8F0EB',
+    border: '1px solid rgba(0,0,0,0.06)',
     boxShadow: 'inset 1px 1px 3px rgba(0,60,50,0.04), inset -1px -1px 2px rgba(255,255,255,0.3)',
 };
 
@@ -123,7 +123,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
 
     if (loading) {
         return (
-            <div style={{ background: '#F5F6F8', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
                     <Loader2 size={32} className="animate-spin" style={{ color: '#0D9488', marginBottom: '12px' }} />
                     <p style={{ color: '#8A9BA6', fontSize: '14px' }}>Loading candidate profile…</p>
@@ -134,7 +134,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
 
     if (error || !candidate) {
         return (
-            <div style={{ background: '#F5F6F8', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '420px' }}>
                     <Shield size={36} style={{ color: '#B0C4BC', marginBottom: '12px' }} />
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '8px' }}>
@@ -154,11 +154,11 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     const safeStates = candidate.licenseStates || [];
 
     return (
-        <div style={{ background: '#F5F6F8' }}>
+        <div style={{ background: '#F5F0EB' }}>
             {/* Header band */}
             <div style={{
                 padding: '20px 16px',
-                background: 'linear-gradient(180deg, #F0F2F5 0%, #F5F6F8 100%)',
+                background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
                 borderBottom: '1px solid #E5E7EB',
             }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -213,7 +213,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                 </span>
                             )}
                             {candidate.preferredWorkMode && (
-                                <span style={{ ...recessedPill, background: '#F4F8F5', color: '#6B7F8A' }}>
+                                <span style={{ ...recessedPill, background: '#F5F6F8', color: '#6B7F8A' }}>
                                     <Briefcase size={11} /> {candidate.preferredWorkMode}
                                 </span>
                             )}
@@ -296,7 +296,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                         {safeStates.map(st => (
                                             <span key={st} style={{
                                                 fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '8px',
-                                                background: '#F4F8F5', color: '#6B7F8A', border: '1px solid #E8F0EB',
+                                                background: '#F5F6F8', color: '#6B7F8A', border: '1px solid rgba(0,0,0,0.06)',
                                             }}>
                                                 {st}
                                             </span>

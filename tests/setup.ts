@@ -36,8 +36,37 @@ vi.mock('@/lib/prisma', () => {
             },
             employerJob: {
                 findFirst: vi.fn(),
+                findMany: vi.fn(),
+                count: vi.fn(),
                 create: vi.fn(),
                 update: vi.fn(),
+            },
+            profileView: {
+                count: vi.fn(),
+                findUnique: vi.fn(),
+                findMany: vi.fn(),
+                upsert: vi.fn(),
+                create: vi.fn(),
+            },
+            conversation: {
+                count: vi.fn(),
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+            },
+            employerMessage: {
+                count: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+            },
+            processedStripeEvent: {
+                create: vi.fn(),
+                findUnique: vi.fn(),
+            },
+            jobCharge: {
+                create: vi.fn(),
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
             },
             jobDraft: {
                 deleteMany: vi.fn(),

@@ -67,6 +67,18 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
   const applied = isApplied(jobId) || serverApplied?.applied;
   const appliedDate = getAppliedDate(jobId);
 
+  // Fire the click-tracker. Used by both apply paths (external link + platform
+  // form). Previously only external clicks were tracked, so platform-apply
+  // jobs always reported 0 clicks even when they had real applications —
+  // employer dashboards showed misleading "0 clicks · N applicants" rows.
+  const fireApplyClick = () => {
+    try {
+      fetch(`/api/jobs/${jobId}/track-apply`, {
+        method: 'POST',
+      }).catch(() => { });
+    } catch { }
+  };
+
   const handleApply = () => {
     // If user is not authenticated, show auth gate
     if (!isAuthenticated) {
@@ -74,8 +86,10 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
       return;
     }
 
-    // Platform apply: show inline form
+    // Platform apply: show inline form (and bump the click counter — opening
+    // the form is the equivalent intent-to-apply moment as clicking external)
     if (applyOnPlatform) {
+      fireApplyClick();
       setShowPlatformApply(true);
       return;
     }
@@ -83,11 +97,7 @@ export default function ApplyButton({ jobId, applyLink, jobTitle, isAuthenticate
     // External apply: open link in new tab
     if (applyLink) {
       // Track apply click (fire and forget — internal analytics)
-      try {
-        fetch(`/api/jobs/${jobId}/track-apply`, {
-          method: 'POST',
-        }).catch(() => { });
-      } catch { }
+      fireApplyClick();
 
       // Track in Google Analytics (GA4 conversion event)
       trackJobApply(buildJobItem({ id: jobId, title: jobTitle }), 'external');

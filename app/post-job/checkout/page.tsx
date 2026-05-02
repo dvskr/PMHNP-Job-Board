@@ -4,6 +4,16 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { config } from '@/lib/config';
+import { trackBeginCheckout } from '@/lib/analytics';
+
+interface ScreeningQuestion {
+  text: string;
+  type: string;
+  options?: string[];
+  required?: boolean;
+  knockout?: boolean;
+  knockoutAnswer?: string;
+}
 
 interface JobFormData {
   title: string;
@@ -15,10 +25,17 @@ interface JobFormData {
   jobType: string;
   salaryMin?: number | null;
   salaryMax?: number | null;
+  salaryPeriod?: string;
   salaryCompetitive?: boolean;
   description: string;
-  applyUrl: string;
-  pricingTier: 'starter' | 'growth' | 'premium';
+  applyUrl?: string;
+  applyOnPlatform?: boolean;
+  pricingTier: 'pro';
+  benefits?: string[];
+  setting?: string;
+  population?: string;
+  companyLogoUrl?: string;
+  screeningQuestions?: ScreeningQuestion[];
 }
 
 export default function CheckoutPage() {
@@ -42,6 +59,10 @@ export default function CheckoutPage() {
 
     try {
       const parsedData: JobFormData = JSON.parse(storedData);
+      try {
+        const storedQuestions = localStorage.getItem('jobScreeningQuestions');
+        if (storedQuestions) parsedData.screeningQuestions = JSON.parse(storedQuestions);
+      } catch { /* ignore */ }
       setJobData(parsedData);
     } catch (err) {
       console.error('Error parsing job data:', err);
@@ -55,18 +76,44 @@ export default function CheckoutPage() {
     setLoading(true);
     setError(null);
 
+    // P7: fire begin_checkout before redirect to Stripe
+    trackBeginCheckout(config.stripePriceInCents, 'new');
+
     try {
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(jobData),
+        body: JSON.stringify({
+          title: jobData.title,
+          companyName: jobData.companyName,
+          companyWebsite: jobData.companyWebsite,
+          contactEmail: jobData.contactEmail,
+          location: jobData.location,
+          mode: jobData.mode,
+          jobType: jobData.jobType,
+          salaryMin: jobData.salaryMin,
+          salaryMax: jobData.salaryMax,
+          salaryPeriod: jobData.salaryPeriod,
+          salaryCompetitive: jobData.salaryCompetitive,
+          description: jobData.description,
+          applyUrl: jobData.applyOnPlatform ? undefined : jobData.applyUrl,
+          applyOnPlatform: jobData.applyOnPlatform || false,
+          pricingTier: jobData.pricingTier,
+          benefits: jobData.benefits,
+          setting: jobData.setting,
+          population: jobData.population,
+          companyLogoUrl: jobData.companyLogoUrl,
+          screeningQuestions: jobData.screeningQuestions || [],
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        const errorData = await response.json().catch(() => ({} as { error?: string; cause?: string }));
+        const baseMsg = errorData.error || 'Failed to create checkout session';
+        const fullMsg = errorData.cause ? `${baseMsg} — ${errorData.cause}` : baseMsg;
+        throw new Error(fullMsg);
       }
 
       const { url } = await response.json();
@@ -86,6 +133,25 @@ export default function CheckoutPage() {
   const getPrice = () => `$${config.postingPrice}`;
 
   const getPlanName = () => 'Job Post';
+
+  const getDescriptionExcerpt = (html: string, max = 220): string => {
+    if (!html) return '';
+    // Strip tags, decode common HTML entities, collapse whitespace
+    const text = html
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text.length <= max) return text;
+    return `${text.slice(0, max).trimEnd()}…`;
+  };
 
   const formatSalary = () => {
     if (jobData?.salaryCompetitive) {
@@ -115,10 +181,10 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 pt-4 pb-8">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Confirm Your Job Posting</h1>
+      <div className="mb-6 text-center">
+        <h1 className="text-3xl font-bold mb-1">Confirm Your Job Posting</h1>
         <p className="text-gray-600">Review your listing before payment</p>
       </div>
 
@@ -172,9 +238,8 @@ export default function CheckoutPage() {
           {/* Description Preview */}
           <div>
             <span className="text-sm font-medium text-gray-500">Description Preview</span>
-            <p className="text-gray-700 text-sm mt-1 line-clamp-3">
-              {jobData.description.substring(0, 200)}
-              {jobData.description.length > 200 && '...'}
+            <p className="text-gray-700 text-sm mt-1 leading-relaxed">
+              {getDescriptionExcerpt(jobData.description)}
             </p>
           </div>
         </div>
@@ -182,18 +247,36 @@ export default function CheckoutPage() {
 
       {/* Pricing Card */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-6 mb-4">
           <div>
-            <h3 className="text-lg font-semibold">{getPlanName()}</h3>
-            <p className="text-sm text-gray-500">
-              60-day listing · Featured badge · Top search placement · 25 candidate unlocks · 25 InMails
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900">{getPlanName()}</h3>
+            <p className="text-sm text-gray-500 mt-0.5">{config.durationDays}-day listing</p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <span className="text-3xl font-bold text-gray-900">{getPrice()}</span>
             <p className="text-sm text-gray-500">one-time</p>
           </div>
         </div>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-700">
+          <li className="flex items-center gap-2">
+            <span className="text-teal-500">✓</span> Featured badge
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-teal-500">✓</span> Top search placement
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-teal-500">✓</span> {config.limits.candidateUnlocksPerPosting} candidate unlocks
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-teal-500">✓</span> {config.limits.inmailsPerPosting} InMail credits
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-teal-500">✓</span> Applicant analytics
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-teal-500">✓</span> Email candidate alerts
+          </li>
+        </ul>
       </div>
 
       {/* Error Message */}

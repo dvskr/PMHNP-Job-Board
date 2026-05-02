@@ -117,3 +117,6 @@ notebooklm-*.md
 
 # Recovery artifacts (not production code)
 /_recovery/
+
+# Claude Code harness state (per-session locks, etc.)
+.claude/

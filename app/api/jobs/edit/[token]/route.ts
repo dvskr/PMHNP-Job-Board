@@ -18,7 +18,15 @@ export async function GET(
 
     const employerJob = await prisma.employerJob.findFirst({
       where: { editToken: token },
-      include: { job: true },
+      include: {
+        job: {
+          include: {
+            // Pull screening questions so the edit form can display + modify
+            // them in-place. Order by sortOrder for stable rendering.
+            screeningQuestions: { orderBy: { sortOrder: 'asc' } },
+          },
+        },
+      },
     });
 
     if (!employerJob) {
@@ -35,6 +43,7 @@ export async function GET(
         employerName: employerJob.employerName,
         contactEmail: employerJob.contactEmail,
         companyWebsite: employerJob.companyWebsite,
+        companyLogoUrl: employerJob.companyLogoUrl,
         paymentStatus: employerJob.paymentStatus,
       },
     });

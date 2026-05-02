@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
 import { isEmailSuppressed, getOrCreateUnsubToken } from '@/lib/email-service';
+import { config } from '@/lib/config';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE = 'https://pmhnphiring.com';
@@ -37,7 +38,7 @@ function buildEmail(): string {
 <body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
 
 <div style="display:none;max-height:0;overflow:hidden;font-size:1px;color:#ffffff;">
-  Your first 2 job posts are free — all features included: Featured badge, 25 unlocks, 25 InMails &amp; more &#8199;&#65279;&#847;
+  Your first ${config.freePostsPerEmail} job posts are free — all features included: Featured badge, ${config.limits.candidateUnlocksPerPosting} unlocks, ${config.limits.inmailsPerPosting} InMails &amp; more &#8199;&#65279;&#847;
 </div>
 
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;">

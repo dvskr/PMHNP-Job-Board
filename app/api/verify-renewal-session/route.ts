@@ -4,10 +4,19 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { slugify } from '@/lib/utils';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const sessionId = searchParams.get('session_id');
 
@@ -65,7 +74,7 @@ export async function GET(request: NextRequest) {
       jobTitle: employerJob.job.title,
       jobSlug: slugify(employerJob.job.title, employerJob.job.id),
       dashboardToken: employerJob.dashboardToken,
-      tier: tier || 'starter',
+      tier: tier || 'pro',
     });
   } catch (error) {
     logger.error('Error verifying renewal session:', error);

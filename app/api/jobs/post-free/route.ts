@@ -14,6 +14,13 @@ import { computeQualityScore } from '@/lib/utils/quality-score';
 import { parseLocation } from '@/lib/location-parser';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 
+class FreeQuotaExceededError extends Error {
+  constructor(public readonly usedCount: number) {
+    super('Free post quota exceeded');
+    this.name = 'FreeQuotaExceededError';
+  }
+}
+
 export async function POST(request: NextRequest) {
   // Rate limiting - strict for job posting
   const rateLimitResult = await rateLimit(request, 'postJob', RATE_LIMITS.postJob);
@@ -84,53 +91,30 @@ export async function POST(request: NextRequest) {
       salaryPeriod,
     });
 
-    // Block free email providers to prevent spam
-    const FREE_EMAIL_DOMAINS = [
-      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
-      'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
-      'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
-    ];
-
-    const emailDomain = sanitized.contactEmail.toLowerCase().split('@')[1];
-    if (FREE_EMAIL_DOMAINS.includes(emailDomain)) {
-      return NextResponse.json(
-        {
-          error: 'Company email required',
-          message: 'Please use your company email address (not Gmail, Yahoo, etc.) to verify you represent this employer.'
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate sanitized URL (only for external apply)
-    if (!applyOnPlatform && !sanitized.applyLink) {
-      return NextResponse.json(
-        { error: 'Invalid apply link URL' },
-        { status: 400 }
-      );
-    }
-
-    // Require authenticated user
-    let userId: string | null = null;
+    // ── Auth FIRST — the signup email is the canonical identity for the freebie quota.
+    // Audit #26: previously the FREE_EMAIL_DOMAINS check + quota count both keyed off
+    // the form-submitted contactEmail, which let an attacker submit each free post with
+    // a different `bob@example<N>.com` and bypass the per-domain cap. Now we anchor
+    // both checks to the signup email — what they typed in the form is just public
+    // contact info and can't shift the quota or sneak past the spam block.
+    let userId: string;
+    let signupEmail: string;
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (!user || !user.email) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       }
 
-      // Verify profile and get userId
       const profile = await prisma.userProfile.findUnique({
         where: { supabaseId: user.id }
       });
 
       if (!profile) {
-        // This technically shouldn't happen if they are logged in, but just in case
         return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
       }
 
-      // Only employers can post jobs
       if (profile.role !== 'employer') {
         return NextResponse.json(
           { error: 'Only employer accounts can post jobs. Please sign up as an employer.' },
@@ -139,10 +123,50 @@ export async function POST(request: NextRequest) {
       }
 
       userId = user.id;
-
+      signupEmail = user.email;
     } catch (error) {
       logger.warn('Failed to fetch user session in post-free', { error });
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    }
+
+    // Block free email providers — keyed off SIGNUP email, not form input.
+    const FREE_EMAIL_DOMAINS = [
+      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',
+      'aol.com', 'icloud.com', 'mail.com', 'protonmail.com',
+      'ymail.com', 'live.com', 'msn.com', 'googlemail.com'
+    ];
+
+    const signupDomain = signupEmail.toLowerCase().split('@')[1];
+    if (!signupDomain || FREE_EMAIL_DOMAINS.includes(signupDomain)) {
+      return NextResponse.json(
+        {
+          error: 'Company email required',
+          message: 'Free job posts require a company email account (not Gmail, Yahoo, etc.). Please sign up with your company email.'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Per-domain freebie quota anchored to an IMMUTABLE per-row snapshot
+    // (EmployerJob.quotaDomain), not to mutable contactEmail or nullable userId.
+    // Rule unchanged: 2 free posts per email domain, lifetime, shared across
+    // every employee at that domain.
+    //
+    // Why the immutable snapshot:
+    //   - Editing contactEmail later cannot shift the count (audit #23)
+    //   - Account deletion / userId being nulled cannot drop the count
+    //   - Form contactEmail can be anything (recruiter posting on behalf of a
+    //     client, multi-brand orgs); the quota is keyed off who signed up
+    //   - Hard-deleting the row is the only way to drop the count, and that's
+    //     admin-only (audit #25 — separate concern)
+    const quotaDomain = signupDomain;
+
+    // Validate sanitized URL (only for external apply)
+    if (!applyOnPlatform && !sanitized.applyLink) {
+      return NextResponse.json(
+        { error: 'Invalid apply link URL' },
+        { status: 400 }
+      );
     }
 
     // DUPLICATE CHECK
@@ -187,40 +211,11 @@ export async function POST(request: NextRequest) {
     const editToken = crypto.randomBytes(32).toString('hex');
     const dashboardToken = crypto.randomBytes(32).toString('hex');
 
-    // Free post gate: count existing FREE posts by company DOMAIN
-    // Prevents abuse via john+1@acme.com, sarah@acme.com, etc.
-    const existingPostCount = await prisma.employerJob.count({
-      where: {
-        contactEmail: {
-          endsWith: `@${emailDomain}`,
-          mode: 'insensitive',
-        },
-        paymentStatus: 'free',
-      },
-    });
-
-    if (existingPostCount >= config.freePostsPerEmail) {
-      logger.info('Free post limit reached for domain', {
-        domain: emailDomain,
-        email: sanitized.contactEmail,
-        existingCount: existingPostCount,
-        limit: config.freePostsPerEmail,
-      });
-      return NextResponse.json(
-        {
-          error: `Your organization (${emailDomain}) has used all ${config.freePostsPerEmail} free posts. Additional posts cost $${config.postingPrice}.`,
-          requiresPayment: true,
-          freePostsUsed: existingPostCount,
-          freePostsLimit: config.freePostsPerEmail,
-        },
-        { status: 403 }
-      );
-    }
-
-    // All posts get the same features (60 days, featured, 25 unlocks, 25 InMails)
-    const tierForDuration: PricingTier = 'growth';
+    // Free posts get the shorter trial duration (audit #30); paid posts use the
+    // full duration via /api/create-checkout. Features are otherwise identical.
+    const tierForDuration: PricingTier = 'pro';
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + config.durationDays);
+    expiresAt.setDate(expiresAt.getDate() + config.freeDurationDays);
 
     // Parse salary values
     const parsedMinSalary = (() => {
@@ -264,71 +259,117 @@ export async function POST(request: NextRequest) {
     // Parse location into structured fields
     const parsedLoc = parseLocation(sanitized.location);
 
-    // Create job with Prisma
-    const job = await prisma.job.create({
-      data: {
-        title: sanitized.title,
-        employer: sanitized.employer,
-        location: sanitized.location,
-        jobType: sanitized.jobType || null,
-        mode: sanitized.mode || null,
-        description: sanitized.description,
-        descriptionSummary: summarizeForMeta(sanitized.description),
-        applyLink: applyOnPlatform ? null : sanitized.applyLink,
-        applyOnPlatform: applyOnPlatform || false,
-        minSalary: parsedMinSalary,
-        maxSalary: parsedMaxSalary,
-        salaryPeriod: parsedSalaryPeriod,
-        normalizedMinSalary: normalizedSalary.normalizedMinSalary,
-        normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
-        salaryIsEstimated: normalizedSalary.salaryIsEstimated,
-        salaryConfidence: normalizedSalary.salaryConfidence,
-        displaySalary,
-        city: parsedLoc.city,
-        state: parsedLoc.state,
-        stateCode: parsedLoc.stateCode,
-        isRemote: parsedLoc.isRemote,
-        isHybrid: parsedLoc.isHybrid,
-        isFeatured: config.isFeaturedTier(tierForDuration),
-        isPublished: true,
-        isVerifiedEmployer: true,
-        sourceType: 'employer',
-        expiresAt,
-        qualityScore,
-        benefits: Array.isArray(benefits) ? benefits : [],
-        setting: setting || null,
-        population: population || null,
-      },
-    });
+    // Audit #6 + #7: gate-check + writes wrapped in a single Serializable
+    // transaction. Postgres aborts the second transaction if two requests
+    // race past the count check. Atomicity also fixes the orphan-row risk
+    // when the slug update or employerJob insert fails after the job insert.
+    let job;
+    try {
+      job = await prisma.$transaction(async (tx) => {
+        // Per-domain freebie quota — see comment block above. Counted from the
+        // immutable EmployerJob.quotaDomain snapshot. Re-checked inside the
+        // Serializable transaction so two parallel submitters at the same
+        // domain can't both slip past.
+        const existingPostCount = await tx.employerJob.count({
+          where: {
+            quotaDomain: quotaDomain,
+            paymentStatus: 'free',
+          },
+        });
 
-    // Generate and update slug
-    const slug = `${sanitized.title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()}-${job.id}`;
+        if (existingPostCount >= config.freePostsPerEmail) {
+          throw new FreeQuotaExceededError(existingPostCount);
+        }
 
-    await prisma.job.update({
-      where: { id: job.id },
-      data: { slug },
-    });
+        const created = await tx.job.create({
+          data: {
+            title: sanitized.title,
+            employer: sanitized.employer,
+            location: sanitized.location,
+            jobType: sanitized.jobType || null,
+            mode: sanitized.mode || null,
+            description: sanitized.description,
+            descriptionSummary: summarizeForMeta(sanitized.description),
+            applyLink: applyOnPlatform ? null : sanitized.applyLink,
+            applyOnPlatform: applyOnPlatform || false,
+            minSalary: parsedMinSalary,
+            maxSalary: parsedMaxSalary,
+            salaryPeriod: parsedSalaryPeriod,
+            normalizedMinSalary: normalizedSalary.normalizedMinSalary,
+            normalizedMaxSalary: normalizedSalary.normalizedMaxSalary,
+            salaryIsEstimated: normalizedSalary.salaryIsEstimated,
+            salaryConfidence: normalizedSalary.salaryConfidence,
+            displaySalary,
+            city: parsedLoc.city,
+            state: parsedLoc.state,
+            stateCode: parsedLoc.stateCode,
+            isRemote: parsedLoc.isRemote,
+            isHybrid: parsedLoc.isHybrid,
+            isFeatured: config.isFeaturedTier(tierForDuration),
+            isPublished: true,
+            isVerifiedEmployer: true,
+            sourceType: 'employer',
+            expiresAt,
+            qualityScore,
+            benefits: Array.isArray(benefits) ? benefits : [],
+            setting: setting || null,
+            population: population || null,
+          },
+        });
 
-    // Create employer job record
-    await prisma.employerJob.create({
-      data: {
-        employerName: sanitized.employer,
-        contactEmail: sanitized.contactEmail,
-        companyWebsite: sanitized.companyWebsite || null,
-        companyLogoUrl: companyLogoUrl || null,
-        jobId: job.id,
-        editToken,
-        dashboardToken,
-        paymentStatus: 'free',
-        pricingTier: 'growth',
-        userId: userId,
-      },
-    });
+        const computedSlug = `${sanitized.title
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim()}-${created.id}`;
+
+        const updated = await tx.job.update({
+          where: { id: created.id },
+          data: { slug: computedSlug },
+        });
+
+        await tx.employerJob.create({
+          data: {
+            employerName: sanitized.employer,
+            contactEmail: sanitized.contactEmail,
+            companyWebsite: sanitized.companyWebsite || null,
+            companyLogoUrl: companyLogoUrl || null,
+            jobId: created.id,
+            editToken,
+            dashboardToken,
+            paymentStatus: 'free',
+            pricingTier: 'pro',
+            userId: userId,
+            // Immutable quota anchor — never written by any update path
+            quotaDomain: quotaDomain,
+          },
+        });
+
+        return updated;
+      }, { isolationLevel: 'Serializable' });
+    } catch (txErr) {
+      if (txErr instanceof FreeQuotaExceededError) {
+        logger.info('Free post limit reached for domain', {
+          domain: quotaDomain,
+          userId,
+          existingCount: txErr.usedCount,
+          limit: config.freePostsPerEmail,
+        });
+        return NextResponse.json(
+          {
+            error: `Your organization (${quotaDomain}) has used all ${config.freePostsPerEmail} free posts. Additional posts cost $${config.postingPrice}.`,
+            requiresPayment: true,
+            freePostsUsed: txErr.usedCount,
+            freePostsLimit: config.freePostsPerEmail,
+          },
+          { status: 403 }
+        );
+      }
+      throw txErr;
+    }
+
+    const slug = job.slug!;
 
     // Create screening questions (if any, only for platform-apply jobs)
     if (applyOnPlatform && Array.isArray(body.screeningQuestions)) {
@@ -356,14 +397,17 @@ export async function POST(request: NextRequest) {
       logger.info('Screening questions created', { jobId: job.id, count: questions.length });
     }
 
-    // Send confirmation email with dashboard token
+    // Send confirmation email with dashboard token + free-post duration so
+    // the email's "30-day listing" line matches the actual expiresAt written
+    // to the DB (audit #30).
     try {
       await sendConfirmationEmail(
         sanitized.contactEmail,
         sanitized.title,
         job.id,
-        editToken,
-        dashboardToken
+        dashboardToken,
+        undefined,
+        config.freeDurationDays,
       );
     } catch (emailError) {
       logger.error('Failed to send confirmation email', emailError);

@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
 import { canUnlockCandidate, getEmployerTier } from '@/lib/tier-limits'
 import { PricingTier } from '@/lib/config'
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
 /**
  * Generate a fresh signed URL for a resume stored as a storage path.
@@ -54,6 +55,11 @@ export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    // Rate limiting — without this, an authenticated employer could mass-scrape
+    // candidate profiles by enumerating IDs. Same bucket as the list endpoint.
+    const rateLimitResult = await rateLimit(req, 'employer:candidate-detail', RATE_LIMITS.employer)
+    if (rateLimitResult) return rateLimitResult
+
     const { id } = await params
 
     // Auth check — employer or admin only
@@ -107,16 +113,25 @@ export async function GET(
     let chargePostingId: string | undefined
 
     if (!existingView && !isAdmin) {
-        // This is a new unlock — check per-posting credit pool
+        // This is a new unlock — check per-posting credit pool + daily cap
         const tier = await getEmployerTier(user.id)
         const unlockCheck = await canUnlockCandidate(user.id, tier)
         if (!unlockCheck.allowed) {
+            // Branch the message by reason — daily cap means "come back tomorrow",
+            // posting cap means "buy another posting", no posting means "post first".
+            const messages: Record<string, string> = {
+                daily_cap: `Daily unlock cap reached (${unlockCheck.limit} per 24h). This is an anti-scrape safety limit — try again tomorrow.`,
+                posting_cap: 'Candidate unlock limit reached for your active postings.',
+                no_posting: 'You need at least one active job posting to unlock candidates.',
+            };
+            const reason = unlockCheck.reason || 'posting_cap';
             return NextResponse.json({
-                error: 'Candidate unlock limit reached for this posting',
+                error: messages[reason] || messages.posting_cap,
+                reason,
                 used: unlockCheck.used,
                 limit: unlockCheck.limit,
                 tier,
-                upgradeRequired: true,
+                upgradeRequired: reason === 'posting_cap',
             }, { status: 403 })
         }
         chargePostingId = unlockCheck.postingId
@@ -141,15 +156,16 @@ export async function GET(
         // Don't fail the request if view tracking fails
     }
 
-    // Determine employer tier for field gating
-    const tier: PricingTier = isAdmin ? 'premium' : await getEmployerTier(user.id)
+    // Tier is informational only (always 'pro' in single-tier model). Real gates
+    // are isAdmin (admin-only fields) and hasFullAccess (unlock-gated fields).
+    const tier: PricingTier = await getEmployerTier(user.id)
 
-    // Build response with tier-based field gating + privacy transforms
+    // Privacy: full last name only for admins; everyone else sees first-initial only.
     const displayName = candidate.firstName
-        ? `${candidate.firstName} ${tier === 'premium' && candidate.lastName ? candidate.lastName : (candidate.lastName ? candidate.lastName.charAt(0) + '.' : '')}`.trim()
+        ? `${candidate.firstName} ${isAdmin && candidate.lastName ? candidate.lastName : (candidate.lastName ? candidate.lastName.charAt(0) + '.' : '')}`.trim()
         : 'PMHNP Candidate'
 
-    // Base fields — all tiers see these
+    // Base fields — everyone sees these
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response: Record<string, any> = {
         id: candidate.supabaseId,
@@ -165,8 +181,9 @@ export async function GET(
         hasFullAccess,
     }
 
-    // Growth+ fields — certifications, license, salary, availability
-    if (tier === 'growth' || tier === 'premium') {
+    // Unlock-gated fields — certifications, license, salary, availability.
+    // Same gate as contact info (hasFullAccess) so the response is consistent.
+    if (hasFullAccess) {
         response.certifications = candidate.certifications ? candidate.certifications.split(',').map(s => s.trim()) : []
         response.licenseStates = candidate.licenseStates ? candidate.licenseStates.split(',').map(s => s.trim()) : []
         response.availableDate = candidate.availableDate?.toISOString() || null
@@ -187,14 +204,13 @@ export async function GET(
         }
     }
 
-    // Premium fields — bio, job type preference
-    if (tier === 'premium') {
+    // Admin-only fields — bio, job type preference
+    if (isAdmin) {
         response.bio = candidate.bio
         response.preferredJobType = candidate.preferredJobType
     }
 
-    // Paid access only — resume download, email, LinkedIn
-    // Requires an active featured (Growth/Premium) job posting
+    // hasFullAccess fields — resume download, email, LinkedIn (unchanged)
     const freshResumeUrl = hasFullAccess ? await generateResumeUrl(candidate.resumeUrl) : null
     response.resumeUrl = freshResumeUrl
     response.contactEmail = hasFullAccess ? candidate.email : null

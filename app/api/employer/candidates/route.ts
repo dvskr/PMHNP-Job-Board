@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { getEmployerTier } from '@/lib/tier-limits'
+import { getEmployerTier, getEmployerActivePostings } from '@/lib/tier-limits'
 import { PricingTier } from '@/lib/config'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 
@@ -26,9 +26,13 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Determine access tier from employer's best active posting
+    // Real gates: isAdmin (admin-only fields) and hasActivePosting (unlock-eligible
+    // metadata). Tier value is informational only in the single-tier model.
     const isAdmin = profile.role === 'admin'
-    const tier: PricingTier = isAdmin ? 'premium' : await getEmployerTier(user.id)
+    const tier: PricingTier = await getEmployerTier(user.id)
+    const hasActivePosting = isAdmin
+        ? true
+        : (await getEmployerActivePostings(user.id)).length > 0
 
     // Parse query params
     const { searchParams } = new URL(req.url)
@@ -111,9 +115,8 @@ export async function GET(req: NextRequest) {
         where.resumeUrl = null
     }
 
-    // ── Tier-based field selection ──
-    // Starter: basic info only
-    const starterSelect = {
+    // ── Field selection by access level ──
+    const baseSelect = {
         id: true,
         supabaseId: true,
         firstName: true,
@@ -126,9 +129,9 @@ export async function GET(req: NextRequest) {
         createdAt: true,
     }
 
-    // Growth: add license, certifications, salary, availability
-    const growthSelect = {
-        ...starterSelect,
+    // Active-posting employers see unlock-eligible metadata for shopping
+    const activeSelect = {
+        ...baseSelect,
         certifications: true,
         licenseStates: true,
         desiredSalaryMin: true,
@@ -138,18 +141,18 @@ export async function GET(req: NextRequest) {
         resumeUrl: true,
     }
 
-    // Premium: full access including bio, join date, etc.
-    const premiumSelect = {
-        ...growthSelect,
+    // Admin-only — full profile including bio, location
+    const adminSelect = {
+        ...activeSelect,
         bio: true,
         preferredJobType: true,
         state: true,
         city: true,
     }
 
-    const select = tier === 'premium' ? premiumSelect
-        : tier === 'growth' ? growthSelect
-        : starterSelect
+    const select = isAdmin ? adminSelect
+        : hasActivePosting ? activeSelect
+        : baseSelect
 
     // Query + fetch viewed candidates in parallel
     const [candidates, totalCount, viewedProfiles] = await Promise.all([
@@ -169,12 +172,12 @@ export async function GET(req: NextRequest) {
 
     const viewedCandidateIds = viewedProfiles.map(v => v.candidateId)
 
-    // Privacy transform: mask last name for non-premium tiers
+    // Privacy transform: full last name only for admins; everyone else first-initial
     const results = candidates.map(c => {
         const base = {
             id: c.supabaseId,
             displayName: c.firstName
-                ? `${c.firstName} ${tier === 'premium' && c.lastName ? c.lastName : (c.lastName ? c.lastName.charAt(0) + '.' : '')}`.trim()
+                ? `${c.firstName} ${isAdmin && c.lastName ? c.lastName : (c.lastName ? c.lastName.charAt(0) + '.' : '')}`.trim()
                 : 'PMHNP Candidate',
             headline: c.headline,
             yearsExperience: c.yearsExperience,
@@ -185,9 +188,9 @@ export async function GET(req: NextRequest) {
             joinedAt: c.createdAt.toISOString(),
         }
 
-        // Growth fields
-        if (tier === 'growth' || tier === 'premium') {
-            const growthData = c as typeof c & {
+        // Unlock-eligible metadata — visible to anyone with an active posting
+        if (hasActivePosting) {
+            const activeData = c as typeof c & {
                 certifications?: string | null;
                 licenseStates?: string | null;
                 desiredSalaryMin?: number | null;
@@ -197,29 +200,29 @@ export async function GET(req: NextRequest) {
                 resumeUrl?: string | null;
             }
             Object.assign(base, {
-                certifications: growthData.certifications ? growthData.certifications.split(',').map(s => s.trim()) : [],
-                licenseStates: growthData.licenseStates ? growthData.licenseStates.split(',').map(s => s.trim()) : [],
-                desiredSalaryMin: growthData.desiredSalaryMin,
-                desiredSalaryMax: growthData.desiredSalaryMax,
-                desiredSalaryType: growthData.desiredSalaryType,
-                availableDate: growthData.availableDate?.toISOString() || null,
-                hasResume: !!growthData.resumeUrl,
+                certifications: activeData.certifications ? activeData.certifications.split(',').map(s => s.trim()) : [],
+                licenseStates: activeData.licenseStates ? activeData.licenseStates.split(',').map(s => s.trim()) : [],
+                desiredSalaryMin: activeData.desiredSalaryMin,
+                desiredSalaryMax: activeData.desiredSalaryMax,
+                desiredSalaryType: activeData.desiredSalaryType,
+                availableDate: activeData.availableDate?.toISOString() || null,
+                hasResume: !!activeData.resumeUrl,
             })
         }
 
-        // Premium fields
-        if (tier === 'premium') {
-            const premiumData = c as typeof c & {
+        // Admin-only fields
+        if (isAdmin) {
+            const adminData = c as typeof c & {
                 bio?: string | null;
                 preferredJobType?: string | null;
                 state?: string | null;
                 city?: string | null;
             }
             Object.assign(base, {
-                bio: premiumData.bio,
-                preferredJobType: premiumData.preferredJobType,
-                state: premiumData.state,
-                city: premiumData.city,
+                bio: adminData.bio,
+                preferredJobType: adminData.preferredJobType,
+                state: adminData.state,
+                city: adminData.city,
             })
         }
 

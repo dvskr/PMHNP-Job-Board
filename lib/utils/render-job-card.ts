@@ -62,8 +62,8 @@ export function renderJobCardHtml(job: JobCardData, index: number, isLast: boole
       ? 'Direct Apply'
       : 'Apply Now ↗';
 
+  // Chip row excludes location — that now sits inline with the salary badge.
   const chips: string[] = [];
-  if (job.location) chips.push(chip(job.location, '#F3F6F4', '#374151', '#E0E5E1'));
   if (job.jobType) chips.push(chip(job.jobType, '#F3F6F4', '#374151', '#E0E5E1'));
   if (job.mode) {
     const isRemote = job.mode.toLowerCase().includes('remote');
@@ -84,9 +84,10 @@ export function renderJobCardHtml(job: JobCardData, index: number, isLast: boole
               <p style="margin:4px 0 0;font-family:${SANS};font-size:13px;font-weight:500;color:${V2.textMuted};">${escapeHtml(job.employer)}</p>
             </td>
           </tr></table>
-          ${(job.salaryText || job.isFeatured) ? `<div style="margin-top:12px;">
-            ${job.salaryText ? `<span style="display:inline-block;padding:6px 14px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;margin-right:6px;">${escapeHtml(job.salaryText)}</span>` : ''}
-            ${job.isFeatured ? `<span style="display:inline-block;padding:6px 12px;border-radius:8px;font-family:${SANS};font-size:12px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;letter-spacing:0.3px;text-transform:uppercase;">★ Featured</span>` : ''}
+          ${(job.salaryText || job.isFeatured || job.location) ? `<div style="margin-top:12px;">
+            ${job.salaryText ? `<span style="display:inline-block;padding:6px 14px;border-radius:8px;font-family:${SANS};font-size:14px;font-weight:700;background:#E6FAF8;color:#0d9488;margin-right:6px;vertical-align:middle;">${escapeHtml(job.salaryText)}</span>` : ''}
+            ${job.location ? `<span style="display:inline-block;padding:6px 12px;border-radius:8px;font-family:${SANS};font-size:13px;font-weight:600;background:#F3F6F4;color:#4A5568;border:1px solid #E0E5E1;margin-right:6px;vertical-align:middle;">${escapeHtml(job.location)}</span>` : ''}
+            ${job.isFeatured ? `<span style="display:inline-block;padding:6px 12px;border-radius:8px;font-family:${SANS};font-size:12px;font-weight:700;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;letter-spacing:0.3px;text-transform:uppercase;vertical-align:middle;">★ Featured</span>` : ''}
           </div>` : ''}
           ${chips.length > 0 ? `<div style="border-top:1px solid #F0F3F1;margin:14px 0;"></div>
           <table role="presentation" cellspacing="0" cellpadding="0"><tr>

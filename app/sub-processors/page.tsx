@@ -107,11 +107,12 @@ export default function SubProcessorsPage() {
                     <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 800, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 12px 0', lineHeight: 1.15 }}>
                         Sub-<span style={{ color: '#1D4ED8' }}>processors</span>
                     </h1>
-                    <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: 2026-04-30</p>
+                    <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>Last updated: 2026-05-01</p>
                 </header>
 
                 <p style={pStyle}>
-                    To operate {brand.name} we use a small set of third-party service providers (&quot;sub-processors&quot;).
+                    {brand.name} is operated by <strong>{brand.legal.entityName}</strong> ({brand.legal.address}). To operate the service,
+                    {' '}{brand.legal.entityName} engages a small set of third-party service providers (&quot;sub-processors&quot;).
                     Each sub-processor only receives the data necessary for its specific function and is bound by a Data
                     Processing Agreement that mirrors the protections in our{' '}
                     <Link href="/privacy" style={{ color: '#1D4ED8', textDecoration: 'underline' }}>Privacy Policy</Link>.

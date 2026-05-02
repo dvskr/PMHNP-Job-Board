@@ -109,16 +109,16 @@ export default function SecurityPage() {
                         Security & <span style={{ color: '#059669' }}>Trust</span>
                     </h1>
                     <p style={{ fontSize: '15px', color: '#6B7F8A', margin: 0, lineHeight: 1.6 }}>
-                        Last updated: 2026-04-30
+                        Last updated: 2026-05-01
                     </p>
                 </header>
 
                 <p style={{ fontSize: '15px', color: '#4A5568', lineHeight: 1.75, marginTop: '32px' }}>
-                    {brand.name} handles personal information that matters — resumes, contact details,
-                    sometimes credentialing identifiers. This page explains how we protect that data,
-                    which vendors we share it with, and what to do if you spot a security issue.
-                    It is intentionally specific. If a customer or auditor wants more detail, the
-                    documents linked below back every claim with code and policy references.
+                    {brand.name} (operated by <strong>{brand.legal.entityName}</strong>) handles personal information
+                    that matters — resumes, contact details, sometimes credentialing identifiers. This page explains
+                    how we protect that data, which vendors we share it with, and what to do if you spot a security
+                    issue. It is intentionally specific. If a customer or auditor wants more detail, the documents
+                    linked below back every claim with code and policy references.
                 </p>
 
                 <Practice icon={<Lock size={20} />} title="Encryption everywhere">

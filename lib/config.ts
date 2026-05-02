@@ -3,24 +3,29 @@
  *
  * All job posts get the SAME features (60-day, featured, 25 unlocks, 25 InMails).
  * First 2 posts per employer email are free. Posts 3+ cost $199.
- * Renewals cost $159 (20% off).
+ * Renewals cost $179 (10% off).
  *
- * Internally we store pricingTier='growth' in the DB for backward compatibility
- * with existing records. The paymentStatus field ('free' vs 'paid') distinguishes
- * free from paid posts.
+ * Every employer_jobs row has pricing_tier='pro' after the 2026-04-30 migration
+ * (see prisma/migrations/20260430_normalize_pricing_tier_to_pro/). The schema
+ * default is 'pro', and all write paths write 'pro'. The paymentStatus field
+ * ('free' vs 'paid') distinguishes free from paid posts.
  */
 
-// Keep legacy type for DB compatibility — existing records use these values
-export type PricingTier = 'starter' | 'growth' | 'premium';
+export type PricingTier = 'pro';
 
 export const config = {
   // ─── Single-Tier Pricing ───
   freePostsPerEmail: 2,
   postingPrice: 199,       // dollars
-  renewalPrice: 159,       // dollars (20% off)
+  renewalPrice: 179,       // dollars (10% off)
   stripePriceInCents: 19900,
-  stripeRenewalPriceInCents: 15900,
-  durationDays: 60,
+  stripeRenewalPriceInCents: 17900,
+  // Duration split (audit #30): paid posts get 60 days as the headline value;
+  // free posts get 30 days (trial-feel) so a domain's lifetime free giveaway
+  // is 60 days total instead of 120, and there's headroom to add a Premium
+  // tier at 90 days later without rewriting customer expectations.
+  durationDays: 60,        // paid posts + paid renewals
+  freeDurationDays: 30,    // free posts only
 
   // All posts are featured (no differentiation)
   isFeatured: true,
@@ -31,6 +36,14 @@ export const config = {
     inmailsPerPosting: 25,
   },
 
+  // Cross-posting safety cap on candidate unlocks. The per-posting limit
+  // (25) prevents abuse within a single posting, but an employer with N
+  // active postings has N×25 total — fine for normal hiring, suspicious for
+  // mass scraping. Cap at 50 unique unlocks across ALL postings in any
+  // rolling 24h window. Real hiring teams don't review more than ~50
+  // profiles in a single day; scrapers do.
+  dailyUnlockCap: 50,
+
   // ─── Helper Functions ───
 
   formatPrice: (amount: number) => {
@@ -39,109 +52,26 @@ export const config = {
   },
 
   /**
-   * Returns the tier label for display purposes.
-   * Used in emails, dashboard, etc. Accepts legacy tier values for backward compat.
+   * Returns the tier label for display purposes. Always 'Pro' in the
+   * single-tier model — accepts legacy values for backward compat with stored rows.
    */
-  getTierLabel: (tier: PricingTier | string) => {
-    // Legacy tiers map to "Pro" for display
-    switch (tier) {
-      case 'premium': return 'Pro'
-      case 'growth': return 'Pro'
-      case 'starter': return 'Pro'
-      default: return 'Pro'
-    }
-  },
+  getTierLabel: (_tier?: PricingTier | string) => 'Pro',
 
   /**
-   * Duration in days. Accepts legacy tier values for backward compat.
-   * All tiers now return the same duration.
+   * Duration in days. Always config.durationDays — parameter retained for
+   * call-site backward compatibility.
    */
-  getDurationDays: (tier?: PricingTier | string) => {
-    return config.durationDays
-  },
+  getDurationDays: (_tier?: PricingTier | string) => config.durationDays,
 
-  /**
-   * All posts are featured. Accepts legacy tier values for backward compat.
-   */
-  isFeaturedTier: (_tier?: PricingTier | string) => {
-    return true
-  },
+  /** All posts are featured. */
+  isFeaturedTier: (_tier?: PricingTier | string) => true,
 
-  /**
-   * Returns limits for a posting. All tiers get the same limits now.
-   * Accepts legacy tier values for backward compat.
-   */
-  getTierLimits: (_tier?: PricingTier | string) => {
-    return config.limits
-  },
+  /** Returns limits for a posting. All tiers get the same limits. */
+  getTierLimits: (_tier?: PricingTier | string) => config.limits,
 
-  // ─── Legacy Compat (for existing code that reads these) ───
-  // TODO: Remove once all references are cleaned up
-
-  /** @deprecated Use config.postingPrice */
-  pricing: {
-    starter: 199,
-    growth: 199,
-    premium: 199,
-  },
-
-  /** @deprecated Use config.stripePriceInCents */
-  stripePricing: {
-    starter: 19900,
-    growth: 19900,
-    premium: 19900,
-  },
-
-  /** @deprecated Use config.renewalPrice */
-  renewalPricing: {
-    starter: 159,
-    growth: 159,
-    premium: 159,
-  },
-
-  /** @deprecated Use config.stripeRenewalPriceInCents */
-  stripeRenewalPricing: {
-    starter: 15900,
-    growth: 15900,
-    premium: 15900,
-  },
-
-  /** @deprecated Always returns config.postingPrice now */
-  getPostingPrice: (_tier?: PricingTier | string) => {
-    return config.postingPrice
-  },
-
-  /** @deprecated Always returns config.renewalPrice now */
-  getRenewalPrice: (_tier?: PricingTier | string) => {
-    return config.renewalPrice
-  },
-
-  /** @deprecated Always returns config.stripePriceInCents now */
-  getStripePriceInCents: (_tier?: PricingTier | string) => {
-    return config.stripePriceInCents
-  },
-
-  /** @deprecated Always returns config.stripeRenewalPriceInCents now */
-  getStripeRenewalPriceInCents: (_tier?: PricingTier | string) => {
-    return config.stripeRenewalPriceInCents
-  },
-
-  /** @deprecated No upgrades in single-tier model */
-  getUpgradePrice: (_from?: PricingTier | string, _to?: PricingTier | string) => {
-    return 0
-  },
-
-  /** @deprecated Use config.postingPrice */
-  getPricingLabel: (_tier?: PricingTier | string) => {
-    return `$${config.postingPrice}`
-  },
-
-  // Legacy tierLimits object for backward compat
-  tierLimits: {
-    starter: { candidateUnlocksPerPosting: 25, inmailsPerPosting: 25 },
-    growth: { candidateUnlocksPerPosting: 25, inmailsPerPosting: 25 },
-    premium: { candidateUnlocksPerPosting: 25, inmailsPerPosting: 25 },
-  },
+  // Kept for active reference by app/api/employer/invoice/route.ts.
+  // TODO (audit #2): replace with reading actual amount from the Stripe session.
+  getStripePriceInCents: (_tier?: PricingTier | string) => config.stripePriceInCents,
 }
 
 // Type export

@@ -1,9 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, normalizeContentWhitespace } from '@/lib/sanitize';
+import { sanitizeJobPosting, sanitizeUrl, sanitizeEmail, sanitizeText, normalizeContentWhitespace } from '@/lib/sanitize';
 import { summarizeForMeta } from '@/lib/description-cleaner';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+
+interface ScreeningQuestionInput {
+  text: string;
+  type: string;
+  options?: string[];
+  required?: boolean;
+  knockout?: boolean;
+  knockoutAnswer?: string;
+}
 
 interface UpdateJobData {
   title: string;
@@ -11,12 +20,19 @@ interface UpdateJobData {
   mode: string;
   jobType: string;
   description: string;
-  applyLink: string;
+  applyLink: string | null;
   minSalary?: number | null;
   maxSalary?: number | null;
   salaryPeriod?: string | null;
   companyWebsite?: string | null;
   contactEmail?: string;
+  // New editable fields — mirror the post-job inputs
+  applyOnPlatform?: boolean;
+  benefits?: string[];
+  setting?: string | null;
+  population?: string | null;
+  companyLogoUrl?: string | null;
+  screeningQuestions?: ScreeningQuestionInput[];
 }
 
 interface UpdateRequestBody {
@@ -69,6 +85,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Apply-on-platform: clear applyLink when switching to in-platform.
+    const applyOnPlatform = rawJobData.applyOnPlatform === true;
+
     // Update job
     const updatedJob = await prisma.job.update({
       where: { id: employerJob.jobId },
@@ -79,23 +98,62 @@ export async function POST(request: NextRequest) {
         jobType: jobData.jobType,
         description: jobData.description,
         descriptionSummary: summarizeForMeta(jobData.description),
-        applyLink: jobData.applyLink,
+        applyLink: applyOnPlatform ? null : jobData.applyLink,
+        applyOnPlatform,
         minSalary: jobData.minSalary ? Math.round(jobData.minSalary) : null,
         maxSalary: jobData.maxSalary ? Math.round(jobData.maxSalary) : null,
         salaryPeriod: jobData.salaryPeriod || null,
+        benefits: Array.isArray(rawJobData.benefits) ? rawJobData.benefits : undefined,
+        setting: rawJobData.setting !== undefined ? (rawJobData.setting || null) : undefined,
+        population: rawJobData.population !== undefined ? (rawJobData.population || null) : undefined,
         updatedAt: new Date(),
       },
     });
 
-    // Update employer job if contact info changed
-    if (jobData.contactEmail || jobData.companyWebsite) {
+    // Update employer-level fields (contact email, website, logo)
+    if (
+      jobData.contactEmail
+      || jobData.companyWebsite
+      || rawJobData.companyLogoUrl !== undefined
+    ) {
       await prisma.employerJob.update({
         where: { id: employerJob.id },
         data: {
           contactEmail: jobData.contactEmail || employerJob.contactEmail,
           companyWebsite: jobData.companyWebsite || employerJob.companyWebsite,
+          ...(rawJobData.companyLogoUrl !== undefined
+            ? { companyLogoUrl: rawJobData.companyLogoUrl ? sanitizeUrl(rawJobData.companyLogoUrl) : null }
+            : {}),
         },
       });
+    }
+
+    // Replace screening questions wholesale when the client sends an array.
+    // `undefined` => leave existing questions alone; `[]` => clear them.
+    if (Array.isArray(rawJobData.screeningQuestions)) {
+      await prisma.jobScreeningQuestion.deleteMany({
+        where: { jobId: employerJob.jobId },
+      });
+      const questions = rawJobData.screeningQuestions.slice(0, 5);
+      const validTypes = ['boolean', 'text', 'select', 'number'];
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q?.text || typeof q.text !== 'string') continue;
+        await prisma.jobScreeningQuestion.create({
+          data: {
+            jobId: employerJob.jobId,
+            questionText: sanitizeText(q.text, 200),
+            questionType: validTypes.includes(q.type) ? q.type : 'boolean',
+            options: Array.isArray(q.options)
+              ? q.options.map((o: string) => sanitizeText(String(o), 100)).slice(0, 10)
+              : [],
+            isRequired: !!q.required,
+            isKnockout: !!q.knockout,
+            knockoutAnswer: q.knockoutAnswer ? sanitizeText(String(q.knockoutAnswer), 100) : null,
+            sortOrder: i,
+          },
+        });
+      }
     }
 
     return NextResponse.json({

@@ -423,8 +423,32 @@ export async function sendJobAlerts(): Promise<{
       // matches what users see at /jobs?sort=best.
       merged.sort(compareJobsBest)
 
-      // Cap display at 10 (was previously the per-alert cap; now applies post-merge).
-      const displayJobs = merged.slice(0, 10)
+      // ── Employer diversity pass ──
+      // Without this, a single employer with many listings (e.g. MindPath Health
+      // with 50 jobs across 50 cities) can fill every slot and make the email
+      // feel like spam from one company. Cap each employer at 2 of the 10 cards.
+      // If we can't fill 10 slots within the cap (narrow criteria, few employers),
+      // fall back to overflow from the same employers so the user still sees
+      // their full match count.
+      const PER_EMPLOYER_CAP = 2
+      const employerCounts = new Map<string, number>()
+      const diversified: AlertJob[] = []
+      const overflow: AlertJob[] = []
+      for (const job of merged) {
+        const empKey = (job.employer || '').toLowerCase().trim()
+        const count = employerCounts.get(empKey) ?? 0
+        if (count < PER_EMPLOYER_CAP) {
+          diversified.push(job)
+          employerCounts.set(empKey, count + 1)
+        } else {
+          overflow.push(job)
+        }
+      }
+      if (diversified.length < 10 && overflow.length > 0) {
+        diversified.push(...overflow.slice(0, 10 - diversified.length))
+      }
+
+      const displayJobs = diversified.slice(0, 10)
       const dedupedTotal = merged.length
 
       // Combine criteria summaries for the "Your Alert(s)" box.

@@ -74,8 +74,8 @@ const cardBase: React.CSSProperties = {
 const recessedPill: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: '4px',
     fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '10px',
-    border: '1px solid #E8F0EB',
-    boxShadow: 'inset 1px 1px 3px rgba(0,60,50,0.04), inset -1px -1px 2px rgba(255,255,255,0.3)',
+    border: '1px solid rgba(0,0,0,0.05)',
+    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.03), inset -1px -1px 2px rgba(255,255,255,0.4)',
 };
 
 export default function CandidateCard({
@@ -125,7 +125,7 @@ export default function CandidateCard({
                         position: 'absolute', top: '14px', right: '14px',
                         width: '30px', height: '30px', borderRadius: '10px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: isSaved ? '#FEF3C7' : '#F4F8F5',
+                        background: isSaved ? '#FEF3C7' : '#F5F6F8',
                         border: `1px solid ${isSaved ? '#FDE68A' : 'rgba(255,255,255,0.5)'}`,
                         boxShadow: '2px 2px 6px rgba(0,0,0,0.04), -1px -1px 4px rgba(255,255,255,0.7)',
                         cursor: 'pointer', transition: 'all 0.15s',
@@ -225,7 +225,7 @@ export default function CandidateCard({
                     {visibleStates.map(st => (
                         <span key={st} style={{
                             fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '6px',
-                            background: '#F4F8F5', color: '#6B7F8A', border: '1px solid #E8F0EB',
+                            background: '#F5F6F8', color: '#6B7F8A', border: '1px solid rgba(0,0,0,0.06)',
                         }}>
                             {st}
                         </span>
@@ -247,7 +247,7 @@ export default function CandidateCard({
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     {preferredWorkMode && (
                         <span style={{
-                            ...recessedPill, background: '#F4F8F5', color: '#6B7F8A', fontSize: '11px',
+                            ...recessedPill, background: '#F5F6F8', color: '#6B7F8A', fontSize: '11px',
                         }}>
                             <Briefcase size={10} />
                             {modeIcon} {preferredWorkMode}
@@ -255,7 +255,7 @@ export default function CandidateCard({
                     )}
                     {availLabel && (
                         <span style={{
-                            ...recessedPill, background: '#F4F8F5', color: '#6B7F8A', fontSize: '11px',
+                            ...recessedPill, background: '#F5F6F8', color: '#6B7F8A', fontSize: '11px',
                         }}>
                             <Calendar size={10} />
                             {availLabel}
@@ -268,8 +268,8 @@ export default function CandidateCard({
                             <span style={{
                                 display: 'flex', alignItems: 'center', gap: '5px',
                                 fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '12px',
-                                background: '#F4F8F5', color: '#B0C4BC', cursor: 'not-allowed',
-                                border: '1px solid #E8F0EB',
+                                background: '#F5F6F8', color: '#B0C4BC', cursor: 'not-allowed',
+                                border: '1px solid rgba(0,0,0,0.06)',
                                 boxShadow: 'inset 2px 2px 5px rgba(0,60,50,0.04)',
                             }}>
                                 <Lock size={12} /> No Unlocks Left

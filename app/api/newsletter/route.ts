@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-import { syncToBeehiiv } from '@/lib/beehiiv'
+import { syncToBeehiiv, unsubscribeFromBeehiiv } from '@/lib/beehiiv'
 
 /**
  * POST /api/newsletter — Capture email for newsletter
@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
             }).catch(() => {
                 // Ignore if not found
             })
+
+            // Also push to Beehiiv so they actually stop receiving emails.
+            // Fire-and-forget — DB write is the source of truth for the UI.
+            unsubscribeFromBeehiiv(normalizedEmail)
         }
 
         return NextResponse.json({ success: true })

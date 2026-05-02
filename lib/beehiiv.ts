@@ -76,3 +76,65 @@ async function _doSync(
         throw new Error(`Beehiiv API ${response.status}: ${text}`);
     }
 }
+
+/**
+ * Unsubscribe an email from the Beehiiv publication.
+ *
+ * Beehiiv's API requires looking up the subscription by email, then PATCHing
+ * its status to 'inactive'. Without this, our local DB toggle says "off" but
+ * Beehiiv keeps sending. Fire-and-forget — never blocks the user's flow.
+ *
+ * The 404 case (email not found in Beehiiv at all) is treated as success
+ * because the desired end state — "this email no longer receives our
+ * newsletter" — is already true.
+ */
+export function unsubscribeFromBeehiiv(email: string): void {
+    if (!BEEHIIV_API_KEY || !BEEHIIV_PUBLICATION_ID) {
+        return;
+    }
+    _doUnsubscribe(email).catch((err) => {
+        console.error('[beehiiv] Unsubscribe failed for', email, ':', err?.message || err);
+    });
+}
+
+async function _doUnsubscribe(email: string): Promise<void> {
+    const normalized = email.toLowerCase().trim();
+    const lookupUrl = `${BEEHIIV_BASE_URL}/publications/${BEEHIIV_PUBLICATION_ID}/subscriptions/by_email/${encodeURIComponent(normalized)}`;
+
+    const lookup = await fetch(lookupUrl, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${BEEHIIV_API_KEY}`,
+        },
+    });
+
+    if (lookup.status === 404) {
+        // Email not in Beehiiv at all — desired end state already holds.
+        return;
+    }
+    if (!lookup.ok) {
+        const text = await lookup.text().catch(() => '');
+        throw new Error(`Beehiiv lookup ${lookup.status}: ${text}`);
+    }
+
+    const data = (await lookup.json().catch(() => null)) as { data?: { id?: string } } | null;
+    const subscriptionId = data?.data?.id;
+    if (!subscriptionId) {
+        throw new Error('Beehiiv lookup returned no subscription id');
+    }
+
+    const patchUrl = `${BEEHIIV_BASE_URL}/publications/${BEEHIIV_PUBLICATION_ID}/subscriptions/${subscriptionId}`;
+    const patch = await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: {
+            Authorization: `Bearer ${BEEHIIV_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'inactive' }),
+    });
+
+    if (!patch.ok && patch.status !== 404) {
+        const text = await patch.text().catch(() => '');
+        throw new Error(`Beehiiv unsubscribe ${patch.status}: ${text}`);
+    }
+}

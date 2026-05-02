@@ -177,7 +177,8 @@ export default async function RootLayout({
                   "@type": "Organization",
                   "@id": `${brand.baseUrl}/#organization`,
                   "name": brand.name,
-                  "alternateName": `${brand.niche.short} Jobs`,
+                  "alternateName": [`${brand.niche.short} Jobs`, brand.legal.entityName],
+                  "legalName": brand.legal.entityName,
                   "url": brand.baseUrl,
                   "logo": `${brand.baseUrl}/logo.png`,
                   "image": `${brand.baseUrl}/pmhnp_logo.png`,
@@ -186,6 +187,14 @@ export default async function RootLayout({
                   "founder": {
                     "@type": "Person",
                     "name": brand.legal.founderName
+                  },
+                  "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": brand.legal.addressLine,
+                    "addressLocality": brand.legal.addressCity,
+                    "addressRegion": brand.legal.addressRegion,
+                    "postalCode": brand.legal.addressPostalCode,
+                    "addressCountry": brand.legal.addressCountry,
                   },
                   "sameAs": [
                     brand.social.linkedin,
