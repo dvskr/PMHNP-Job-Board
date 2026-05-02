@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Briefcase, Monitor, ExternalLink, DollarSign, ChevronLeft, ChevronRight, Loader2, Check } from 'lucide-react';
+import { MapPin, Briefcase, Monitor, ExternalLink, ChevronLeft, ChevronRight, Loader2, Check, CheckCircle } from 'lucide-react';
 import { formatSalary } from '@/lib/utils';
 import { sanitizeHtmlContent } from '@/lib/sanitize';
 import { config } from '@/lib/config';
 import { trackFreePostLimitHit } from '@/lib/analytics';
+import JobCard from '@/components/JobCard';
+import type { Job } from '@/lib/types';
 
 interface JobFormData {
   title: string;
@@ -180,6 +182,58 @@ export default function PreviewPage() {
   const salary = formatSalary(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
   const isFeatured = true; // All posts are featured in single-tier model
 
+  // Build a Job-shaped object from form data so we can render the REAL <JobCard>
+  // for the listing-card preview. This guarantees pixel parity with what the
+  // candidate will see — no hand-rolled re-implementation that drifts.
+  // ID is a placeholder (`preview`) since the job doesn't exist yet; the card's
+  // save/applied/viewed hooks read from localStorage by ID and will simply
+  // return false. The wrapping <div pointerEvents:none> below blocks navigation
+  // on the inner <Link>.
+  const previewJob: Job = {
+    id: 'preview',
+    title: formData.title || 'Untitled Job',
+    slug: 'preview',
+    employer: formData.companyName || 'Your Company',
+    location: formData.location || 'Remote',
+    jobType: formData.jobType || null,
+    mode: formData.mode || null,
+    experienceLevel: null,
+    description: formData.description || '',
+    descriptionSummary: null,
+    salaryRange: null,
+    minSalary: formData.salaryMin ?? null,
+    maxSalary: formData.salaryMax ?? null,
+    salaryPeriod: formData.salaryPeriod || null,
+    city: null,
+    state: null,
+    stateCode: null,
+    country: 'US',
+    isRemote: formData.mode === 'Remote',
+    isHybrid: formData.mode === 'Hybrid',
+    normalizedMinSalary: formData.salaryMin ?? null,
+    normalizedMaxSalary: formData.salaryMax ?? null,
+    salaryIsEstimated: false,
+    salaryConfidence: null,
+    displaySalary: salary,
+    applyLink: formData.applyOnPlatform ? null : (formData.applyUrl || null),
+    applyOnPlatform: !!formData.applyOnPlatform,
+    isFeatured,
+    isPublished: true,
+    isVerifiedEmployer: true,
+    sourceType: 'employer',
+    sourceProvider: null,
+    sourceSite: null,
+    externalId: null,
+    originalPostedAt: new Date(),
+    viewCount: 0,
+    applyClickCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    expiresAt: null,
+    companyId: null,
+    companyLogoUrl: formData.companyLogoUrl || null,
+  };
+
   const willBeFree = quotaStatus?.eligible === true && quotaStatus.willBeFree === true;
   const packageHeadline = willBeFree
     ? `Free trial post — live for ${quotaStatus?.freeDurationDays ?? config.freeDurationDays} days`
@@ -189,18 +243,20 @@ export default function PreviewPage() {
   const packageDetails = `Featured badge · Top placement · ${config.limits.candidateUnlocksPerPosting} candidate unlocks · ${config.limits.inmailsPerPosting} InMails · Applicant analytics`;
 
   return (
-    <div style={{ background: '#F5F6F8', minHeight: '100vh', padding: '24px 16px 80px' }}>
+    <div style={{ background: '#F5F0EB', minHeight: '100vh', padding: '0 16px 80px' }}>
       <div style={{ maxWidth: '780px', margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', margin: '0 0 4px' }}>
             Preview Your Job Post
           </h1>
           <p style={{ fontSize: '14px', color: '#8A9BA6', margin: 0 }}>Review how your job will appear to candidates</p>
         </div>
 
-        {/* Section 1: Card Preview */}
+        {/* Section 1: Card Preview — uses the REAL <JobCard> component so this
+            is pixel-identical to what candidates see in jobs listings.
+            pointerEvents:none disables the card's <Link>/buttons in preview. */}
         <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>How it appears in listings</h2>
@@ -209,96 +265,161 @@ export default function PreviewPage() {
 
           <div style={{
             padding: '20px', borderRadius: '16px',
-            background: '#FAFBFC', border: '2px dashed rgba(0,0,0,0.08)',
+            background: '#F5F0EB',
+            border: '2px dashed rgba(0,0,0,0.08)',
             overflow: 'hidden',
           }}>
-            <div style={{ ...cardBase, padding: '20px' }}>
-              {/* Title Row */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: 0, flex: 1 }}>{formData.title}</h3>
-                {isFeatured && (
-                  <span style={{
-                    fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '8px',
-                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                    boxShadow: '2px 2px 6px rgba(13,148,136,0.2)',
-                    whiteSpace: 'nowrap',
-                  }}>Featured</span>
-                )}
-              </div>
-
-              {/* Company */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                {formData.companyLogoUrl && (
-                  <img src={formData.companyLogoUrl} alt={`${formData.companyName} logo`}
-                    style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover', border: '1px solid rgba(0,0,0,0.06)' }}
-                  />
-                )}
-                <span style={{ fontSize: '14px', color: '#6B7F8A' }}>{formData.companyName}</span>
-              </div>
-
-              {/* Location */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: '#8A9BA6', marginBottom: '10px' }}>
-                <MapPin size={14} /> {formData.location}
-              </div>
-
-              {/* Badges */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                {formData.jobType && <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>{formData.jobType}</span>}
-                {formData.mode && <span style={{ ...clayPill, background: '#CCFBF1', color: '#0D9488' }}>{formData.mode}</span>}
-                {formData.setting && <span style={{ ...clayPill, background: '#EDE9FE', color: '#7C3AED' }}>{formData.setting}</span>}
-                {formData.population && <span style={{ ...clayPill, background: '#DBEAFE', color: '#2563EB' }}>{formData.population}</span>}
-              </div>
-
-              {salary && <p style={{ fontSize: '15px', fontWeight: 700, color: '#059669', margin: '0 0 6px' }}>{salary}</p>}
-              <p style={{ fontSize: '12px', color: '#B0BEC5' }}>Just posted</p>
+            <div style={{ pointerEvents: 'none' }}>
+              <JobCard job={previewJob} viewMode="grid" />
             </div>
           </div>
         </div>
 
-        {/* Section 2: Detail Page */}
+        {/* Section 2: Job detail page — mirrors `app/jobs/[slug]/page.tsx` main column.
+            Keep this in visual sync when the detail page changes. The chrome is
+            identical (typography, logo size, badge styles, salary color, "About
+            this role" card) so what employers see here is what candidates will see. */}
         <div style={{ ...cardBase, padding: '24px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1A2E35', margin: 0 }}>Job detail page</h2>
             <span style={{ ...clayPill, background: '#F5F6F8', color: '#B0BEC5', fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px' }}>PREVIEW</span>
           </div>
 
+          {/* Faux-window framed exactly like the live page background */}
           <div style={{
-            padding: '20px', borderRadius: '16px',
-            background: '#FAFBFC', border: '2px dashed rgba(0,0,0,0.08)',
+            borderRadius: '16px',
+            backgroundColor: '#F5F0EB', // matches live page (and navbar)
+            border: '2px dashed rgba(0,0,0,0.08)',
+            padding: '20px',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '8px' }}>
-              <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1A2E35', margin: '0 0 8px' }}>{formData.title}</h1>
+            {/* ─── Header card ─── */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid rgba(0,0,0,0.06)',
+              borderRadius: '20px',
+              boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
+              padding: '24px 24px 28px',
+              marginBottom: '20px',
+              position: 'relative',
+            }}>
+              {/* Title */}
+              <h1 style={{
+                fontSize: 'clamp(24px, 4vw, 36px)',
+                fontWeight: 800,
+                fontFamily: 'var(--font-lora), Georgia, serif',
+                color: '#1A2E35',
+                marginBottom: '16px',
+                marginTop: 0,
+                lineHeight: 1.2,
+                paddingRight: '40px',
+              }}>{formData.title}</h1>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              {/* Company Info Row: Logo + Name + Location */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
                 {formData.companyLogoUrl && (
-                  <img src={formData.companyLogoUrl} alt={`${formData.companyName} logo`}
-                    style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'contain', border: '1px solid rgba(0,0,0,0.06)' }}
+                  <img
+                    src={formData.companyLogoUrl}
+                    alt={`${formData.companyName} logo`}
+                    style={{
+                      width: '52px', height: '52px',
+                      borderRadius: '14px',
+                      objectFit: 'contain',
+                      border: '1px solid rgba(0,0,0,0.06)',
+                      flexShrink: 0,
+                      boxShadow: '2px 2px 6px rgba(0,0,0,0.05)',
+                    }}
                   />
                 )}
-                <span style={{ fontSize: '16px', color: '#6B7F8A' }}>{formData.companyName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 600, color: '#5A6B73' }}>{formData.companyName}</span>
+                  <span style={{ color: '#B0BEC5', fontSize: '18px', lineHeight: 1 }}>·</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '14px', color: '#5A6B73' }}>
+                    <MapPin size={14} style={{ color: '#0D9488', flexShrink: 0 }} />
+                    {formData.location}
+                  </span>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '13px', color: '#6B7F8A', marginBottom: '12px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><MapPin size={16} /> {formData.location}</span>
-                {formData.jobType && <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Briefcase size={16} /> {formData.jobType}</span>}
-                {formData.mode && <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Monitor size={16} /> {formData.mode}</span>}
+              {/* Badges Row */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                  background: '#FEF3C7', color: '#92400E',
+                }}>
+                  ⚡ Featured
+                </span>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                  background: '#CCFBF1', color: '#0F766E',
+                }}>
+                  <CheckCircle size={13} /> Verified Employer
+                </span>
+                {formData.jobType && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                    backgroundColor: '#F3F4F6', color: '#374151',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                  }}>
+                    <Briefcase size={12} /> {formData.jobType}
+                  </span>
+                )}
+                {formData.mode && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+                    backgroundColor: '#F3F4F6', color: '#374151',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                  }}>
+                    <Monitor size={12} /> {formData.mode}
+                  </span>
+                )}
               </div>
 
+              {/* Salary */}
               {salary && (
-                <p style={{ fontSize: '18px', fontWeight: 700, color: '#059669', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <DollarSign size={18} /> {salary}
-                </p>
+                <p style={{
+                  fontSize: 'clamp(20px, 4vw, 30px)',
+                  fontWeight: 800,
+                  color: '#1d4ed8',
+                  margin: 0,
+                }}>{salary}</p>
               )}
+            </div>
 
-              <div
-                style={{ fontSize: '14px', color: '#4A5568', lineHeight: 1.7, wordBreak: 'break-word', overflowWrap: 'anywhere', overflow: 'hidden' }}
-                dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
-              />
+            {/* ─── Description card ─── */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid rgba(0,0,0,0.06)',
+              boxShadow: '6px 6px 12px rgba(0,0,0,0.06), -2px -2px 8px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
+              padding: '24px 28px',
+              marginBottom: '20px',
+              overflow: 'hidden',
+            }}>
+              <h2 style={{
+                fontSize: '22px',
+                fontWeight: 700,
+                fontFamily: 'var(--font-lora), Georgia, serif',
+                color: '#1A2E35',
+                marginBottom: '16px',
+                marginTop: 0,
+              }}>About this role</h2>
+
+              <div className="prose prose-gray max-w-none">
+                <div
+                  className="job-description-html"
+                  style={{ color: '#4A5568', wordBreak: 'break-word', overflowWrap: 'anywhere', overflow: 'hidden' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(formData.description) }}
+                />
+              </div>
 
               {formData.benefits && formData.benefits.length > 0 && (
-                <div style={{ marginTop: '24px' }}>
-                  <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Benefits & Perks</h2>
+                <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                  <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#1A2E35', margin: '0 0 10px' }}>Benefits & Perks</h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {formData.benefits.map((b) => (
                       <span key={b} style={{ ...clayPill, background: '#D1FAE5', color: '#059669', fontSize: '12px' }}>✓ {b}</span>
@@ -306,40 +427,49 @@ export default function PreviewPage() {
                   </div>
                 </div>
               )}
+            </div>
 
-              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                {formData.applyOnPlatform ? (
-                  <div>
-                    <div style={{
-                      ...clayBtn,
-                      background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                      boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
-                    }}>Apply Now</div>
-                    <div style={{
-                      marginTop: '10px', padding: '10px 14px', borderRadius: '12px',
-                      background: '#F0FDFA', border: '1px solid #99F6E4',
-                      display: 'flex', alignItems: 'flex-start', gap: '8px',
-                    }}>
-                      <span style={{ color: '#0D9488', fontSize: '14px' }}>✅</span>
-                      <p style={{ fontSize: '12px', color: '#115E59', margin: 0, lineHeight: 1.5 }}>
-                        Candidates apply directly on this platform. Applications appear in your dashboard.
-                      </p>
-                    </div>
+            {/* ─── Apply card (mimics sidebar on detail page) ─── */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '24px',
+              border: '1px solid rgba(255,255,255,0.6)',
+              boxShadow: '8px 8px 20px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6), inset -1px -1px 2px rgba(0,0,0,0.02)',
+              padding: '24px',
+            }}>
+              {formData.applyOnPlatform ? (
+                <div>
+                  <div style={{
+                    ...clayBtn,
+                    width: '100%', justifyContent: 'center',
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                    boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                  }}>Apply Now</div>
+                  <div style={{
+                    marginTop: '12px', padding: '10px 14px', borderRadius: '12px',
+                    background: '#F0FDFA', border: '1px solid #99F6E4',
+                    display: 'flex', alignItems: 'flex-start', gap: '8px',
+                  }}>
+                    <span style={{ color: '#0D9488', fontSize: '14px' }}>✅</span>
+                    <p style={{ fontSize: '12px', color: '#115E59', margin: 0, lineHeight: 1.5 }}>
+                      Candidates apply directly on this platform. Applications appear in your dashboard.
+                    </p>
                   </div>
-                ) : (
-                  <>
-                    <a href={formData.applyUrl} target="_blank" rel="noopener noreferrer" style={{
-                      ...clayBtn,
-                      background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
-                      boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
-                      textDecoration: 'none',
-                    }}>
-                      Apply Now <ExternalLink size={16} />
-                    </a>
-                    <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5' }}>Opens in a new tab — verify your link works.</p>
-                  </>
-                )}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <a href={formData.applyUrl} target="_blank" rel="noopener noreferrer" style={{
+                    ...clayBtn,
+                    width: '100%', justifyContent: 'center',
+                    background: 'linear-gradient(145deg, #0D9488, #10B981)', color: '#fff',
+                    boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 1px 1px 2px rgba(255,255,255,0.15)',
+                    textDecoration: 'none',
+                  }}>
+                    Apply Now <ExternalLink size={16} />
+                  </a>
+                  <p style={{ marginTop: '8px', fontSize: '11px', color: '#B0BEC5', textAlign: 'center' }}>Opens in a new tab — verify your link works.</p>
+                </>
+              )}
             </div>
           </div>
         </div>

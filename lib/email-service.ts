@@ -349,7 +349,6 @@ export async function sendConfirmationEmail(
   employerEmail: string,
   jobTitle: string,
   jobId: string,
-  editToken: string,
   dashboardToken?: string,
   unsubscribeToken?: string,
   // Audit #30: confirmation email duration must match the actual expiry
@@ -508,7 +507,6 @@ export async function sendExpiryWarningEmail(
   viewCount: number,
   applyClickCount: number,
   dashboardToken: string,
-  editToken: string,
   unsubscribeToken: string | null
 ): Promise<EmailResult> {
   try {
@@ -549,9 +547,7 @@ export async function sendExpiryWarningEmail(
       `Your listing expires in ${daysUntilExpiry} days — renew for $${config.renewalPrice} (save ${discountPct}%).`
     );
 
-    // Always pass a real unsubscribe token (was previously optional, falling
-    // back to the editToken which is semantically wrong — that's a job edit
-    // link, not an email-list unsubscribe).
+    // Always pass a real unsubscribe token; mint one if the caller didn't.
     const unsubToken = unsubscribeToken ?? await getOrCreateUnsubToken(email);
     await sendAndLog({
       from: EMAIL_FROM,

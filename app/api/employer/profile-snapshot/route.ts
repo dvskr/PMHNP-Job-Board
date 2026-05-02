@@ -31,7 +31,7 @@ export async function GET() {
 
     const profile = await prisma.userProfile.findUnique({
       where: { supabaseId: user.id },
-      select: { role: true },
+      select: { role: true, company: true },
     });
 
     if (!profile || profile.role !== 'employer') {
@@ -57,13 +57,11 @@ export async function GET() {
       take: 5, // small fanout so we can find the most-populated record
     });
 
-    if (employerJobs.length === 0) {
-      return NextResponse.json({ found: false });
-    }
-
     // Walk back until we find a row with at least a company name and website.
     // Logo/description might be empty even on the latest post (employer may
     // not have uploaded), so we cherry-pick the best value seen across rows.
+    // First-time posters (no employerJobs yet) fall through to the
+    // UserProfile.company fallback below so the company name still autofills.
     const best = {
       companyName: '' as string,
       companyWebsite: '' as string,
@@ -85,6 +83,21 @@ export async function GET() {
       if (!best.companyDescription && ej.companyDescription) {
         best.companyDescription = ej.companyDescription;
       }
+    }
+
+    // Fallback for first-time posters: use the company name they entered at
+    // signup (UserProfile.company). Logo/website/description aren't on the
+    // profile schema yet, so those still need to be entered on the first
+    // post — subsequent posts will auto-fill from that one.
+    if (!best.companyName && profile.company) {
+      best.companyName = profile.company;
+    }
+
+    // If we have ANY usable data, return it. Empty result still returns
+    // found:false so the client knows to leave fields untouched.
+    const hasAnyData = !!(best.companyName || best.companyWebsite || best.companyLogoUrl || best.companyDescription);
+    if (!hasAnyData) {
+      return NextResponse.json({ found: false });
     }
 
     return NextResponse.json({

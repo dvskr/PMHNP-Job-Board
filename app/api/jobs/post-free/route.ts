@@ -405,7 +405,6 @@ export async function POST(request: NextRequest) {
         sanitized.contactEmail,
         sanitized.title,
         job.id,
-        editToken,
         dashboardToken,
         undefined,
         config.freeDurationDays,

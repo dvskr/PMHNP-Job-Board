@@ -72,7 +72,7 @@ export default function FAQPage() {
     },
     {
       question: "Can I edit my job posting?",
-      answer: "Yes! You'll receive an edit link in your confirmation email. You can update your posting anytime—change salary, requirements, description, or any other details. Changes go live immediately."
+      answer: "Yes! Open your employer dashboard (link is in your confirmation email) and click Edit on any posting. You can update salary, requirements, description, or any other details — changes go live immediately."
     },
     {
       question: "How do I access my employer dashboard?",

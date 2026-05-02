@@ -47,8 +47,8 @@ const jobPostingSchema = z.object({
       { message: 'Job description must be at least 200 characters' }
     )
     .refine(
-      (html) => html.replace(/<[^>]*>/g, '').length <= 5000,
-      { message: 'Job description cannot exceed 5,000 characters' }
+      (html) => html.replace(/<[^>]*>/g, '').length <= 7000,
+      { message: 'Job description cannot exceed 7,000 characters' }
     ),
   applyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   applyOnPlatform: z.boolean().optional(),
@@ -869,8 +869,8 @@ function PostJobContent() {
                 <ErrorMsg message={errors.description?.message} />
                 <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>Minimum 200 characters. Use the toolbar to format.</p>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 5000 ? '#EF4444' : '#94A3B8' }}>
-                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 5,000
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: (watch('description') || '').replace(/<[^>]*>/g, '').length > 7000 ? '#EF4444' : '#94A3B8' }}>
+                    {(watch('description') || '').replace(/<[^>]*>/g, '').length.toLocaleString()} / 7,000
                   </span>
                 </div>
                 <InfoBox emoji="💡" color="blue">

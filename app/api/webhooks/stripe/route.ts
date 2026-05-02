@@ -296,7 +296,6 @@ export async function POST(request: NextRequest) {
                 employerJob.contactEmail,
                 job.title,
                 job.id,
-                employerJob.editToken,
                 employerJob.dashboardToken,
                 undefined, // unsubscribeToken — sendConfirmationEmail looks it up by email
                 undefined, // durationDays — paid posts use config.durationDays default
