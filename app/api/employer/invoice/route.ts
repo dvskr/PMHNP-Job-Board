@@ -110,9 +110,25 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
         });
 
-    // Backfill case: rows paid before 2026-04-30 don't have JobCharge entries.
-    // Fall back to the legacy "always $199" behavior so old paid posts still
-    // generate a (less accurate) invoice instead of 404'ing.
+    // Prefer the official Stripe-hosted invoice when available — this is the
+    // exact same PDF the customer received in their confirmation email, so the
+    // dashboard "Download" button and the email link produce identical files.
+    // Falls through to the locally-generated PDF only for legacy pre-#28 rows
+    // that don't have invoicePdfUrl persisted.
+    if (charge?.invoicePdfUrl) {
+      return NextResponse.redirect(charge.invoicePdfUrl, { status: 302 });
+    }
+    if (charge?.hostedInvoiceUrl) {
+      // hosted_invoice_url is the Stripe-hosted invoice page (HTML), which has
+      // its own "Download invoice" button. Better than nothing for charges
+      // where invoice_pdf wasn't returned by the API at webhook time.
+      return NextResponse.redirect(charge.hostedInvoiceUrl, { status: 302 });
+    }
+
+    // Backfill case: rows paid before 2026-04-30 don't have JobCharge entries
+    // (or have a JobCharge but no invoice URLs because the webhook didn't
+    // persist them at the time). Fall back to the local PDF generator so old
+    // paid posts still get an invoice instead of 404'ing.
     const tier = (employerJob.pricingTier || 'pro') as PricingTier;
     const amount = charge?.amountCents ?? config.getStripePriceInCents(tier);
     const chargeDate = charge?.createdAt ?? new Date(employerJob.createdAt);
@@ -121,7 +137,8 @@ export async function GET(request: NextRequest) {
     // Invoice number — include charge type + a short charge ID slice so renewals
     // get distinct invoice numbers from the original charge on the same job.
     const idSegment = charge?.id?.substring(0, 8).toUpperCase() ?? employerJob.job.id.substring(0, 8).toUpperCase();
-    const invoiceNumber = `INV-${chargeDate.getFullYear()}-${chargeType.toUpperCase()}-${idSegment}`;
+    const invoiceNumber = charge?.invoiceNumber
+      ?? `INV-${chargeDate.getFullYear()}-${chargeType.toUpperCase()}-${idSegment}`;
 
     const pdfBuffer = await generateInvoice({
       invoiceNumber,
