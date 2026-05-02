@@ -88,6 +88,11 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
     const [archivingJobId, setArchivingJobId] = useState<string | null>(null);
     const [jobFilter, setJobFilter] = useState<'active' | 'archived'>('active');
     const [archiveTarget, setArchiveTarget] = useState<Job | null>(null);
+    // Unpublish-reason capture: when employer pauses a live job, prompt them
+    // for the reason. Republishing skips the modal entirely (handled below).
+    const [unpublishTarget, setUnpublishTarget] = useState<Job | null>(null);
+    const [unpublishReason, setUnpublishReason] = useState<string>('');
+    const [unpublishNote, setUnpublishNote] = useState<string>('');
     const [localJobs, setLocalJobs] = useState(jobs);
     const [showSignupBanner, setShowSignupBanner] = useState(isTokenAccess);
     const [activeTab, setActiveTab] = useState<'jobs' | 'applicants' | 'analytics' | 'saved' | 'messages'>('jobs');
@@ -128,11 +133,26 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
         setShowRenewModal(true);
     };
 
-    const handleTogglePublish = async (job: Job) => {
+    // Click handler on the Pause/Unpause button. For "pause" (published -> not),
+    // open the reason modal first; for "unpause" (not -> published), call the
+    // API immediately — no reason needed for republish.
+    const handleTogglePublish = (job: Job) => {
+        if (job.isPublished) {
+            setUnpublishTarget(job);
+            setUnpublishReason('');
+            setUnpublishNote('');
+            return;
+        }
+        void performTogglePublish(job, null, null);
+    };
+
+    const performTogglePublish = async (job: Job, reason: string | null, note: string | null) => {
         setTogglingJobId(job.id);
         try {
             const res = await fetch(`/api/employer/jobs/${job.id}/toggle-publish`, {
                 method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: reason ? JSON.stringify({ reason, note: note ?? undefined }) : undefined,
             });
             const result = await res.json();
             if (res.ok && result.success) {
@@ -142,7 +162,17 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
             }
         } catch { /* silent */ } finally {
             setTogglingJobId(null);
+            setUnpublishTarget(null);
         }
+    };
+
+    const submitUnpublish = () => {
+        if (!unpublishTarget) return;
+        // Allow paused-without-reason — don't force the user to pick. The modal
+        // suggests options but skipping is a single click on "Pause anyway".
+        const reason = unpublishReason || null;
+        const note = unpublishReason === 'other' ? unpublishNote : null;
+        void performTogglePublish(unpublishTarget, reason, note);
     };
 
     const handleToggleArchive = (job: Job) => {
@@ -823,6 +853,140 @@ export default function EmployerDashboardClient({ employerEmail, employerName, j
                                         }}
                                     >
                                         <Archive size={14} /> Archive
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* ═══ Unpublish-Reason Modal — captures why an employer paused a live job ═══ */}
+                {unpublishTarget && (() => {
+                    const REASONS: { value: string; label: string; sub: string }[] = [
+                        { value: 'filled', label: 'Filled the role', sub: 'You hired someone for this position' },
+                        { value: 'enough_applicants', label: 'Got enough applicants', sub: 'You have enough candidates to review' },
+                        { value: 'too_many_applicants', label: 'Too many applicants', sub: 'Inbox is overwhelmed — pausing to catch up' },
+                        { value: 'low_quality', label: 'Applicants weren’t a fit', sub: 'Quality of candidates didn’t match what you need' },
+                        { value: 'reposting_later', label: 'Reposting later', sub: 'Pausing temporarily — will republish soon' },
+                        { value: 'other', label: 'Other', sub: 'Tell us in the box below' },
+                    ];
+                    const submitting = togglingJobId === unpublishTarget.id;
+                    return (
+                        <div style={{
+                            position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '16px', zIndex: 50, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+                        }}>
+                            <div style={{
+                                ...cardBase, maxWidth: '480px', width: '100%', padding: '24px',
+                                maxHeight: '90vh', overflowY: 'auto',
+                                boxShadow: '12px 12px 30px rgba(0,0,0,0.12), -6px -6px 16px rgba(255,255,255,0.9), inset 2px 2px 4px rgba(255,255,255,0.6)',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                                    <div style={{
+                                        width: '40px', height: '40px', borderRadius: '12px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(145deg, #FEF3C7, #FDE68A)',
+                                        boxShadow: '3px 3px 8px rgba(245,158,11,0.18), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                    }}>
+                                        <Pause size={18} color="#92400E" />
+                                    </div>
+                                    <h3 style={{
+                                        fontSize: '18px', fontWeight: 700,
+                                        fontFamily: 'var(--font-lora), Georgia, serif',
+                                        color: '#1A2E35', margin: 0,
+                                    }}>Quick question before pausing</h3>
+                                </div>
+                                <p style={{ fontSize: '13px', color: '#6B7F8A', margin: '0 0 18px', lineHeight: 1.5 }}>
+                                    Why are you pausing <strong style={{ color: '#1A2E35' }}>{unpublishTarget.title}</strong>?
+                                    Helps us understand what&apos;s working and what isn&apos;t. Optional — you can skip.
+                                </p>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                                    {REASONS.map((opt) => {
+                                        const selected = unpublishReason === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() => setUnpublishReason(opt.value)}
+                                                style={{
+                                                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                                                    padding: '12px 14px', borderRadius: '12px',
+                                                    background: selected ? '#F0FDFA' : '#FFFFFF',
+                                                    border: `1px solid ${selected ? '#0D9488' : 'rgba(0,0,0,0.08)'}`,
+                                                    boxShadow: selected
+                                                        ? 'inset 2px 2px 4px rgba(13,148,136,0.06), 0 0 0 3px rgba(13,148,136,0.1)'
+                                                        : '2px 2px 6px rgba(0,0,0,0.04), inset 1px 1px 2px rgba(255,255,255,0.6)',
+                                                    cursor: 'pointer', textAlign: 'left',
+                                                    transition: 'all 0.15s',
+                                                }}
+                                            >
+                                                <span style={{
+                                                    flexShrink: 0, marginTop: '2px',
+                                                    width: '16px', height: '16px', borderRadius: '50%',
+                                                    border: `2px solid ${selected ? '#0D9488' : '#CBD5E0'}`,
+                                                    background: selected ? '#0D9488' : 'transparent',
+                                                    boxShadow: selected ? 'inset 0 0 0 3px #fff' : 'none',
+                                                }} />
+                                                <div>
+                                                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#1A2E35', margin: 0 }}>{opt.label}</p>
+                                                    <p style={{ fontSize: '12px', color: '#6B7F8A', margin: '2px 0 0', lineHeight: 1.4 }}>{opt.sub}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {unpublishReason === 'other' && (
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <textarea
+                                            value={unpublishNote}
+                                            onChange={(e) => setUnpublishNote(e.target.value.slice(0, 1000))}
+                                            placeholder="What's the reason? (optional, ~1000 chars max)"
+                                            rows={3}
+                                            style={{
+                                                width: '100%', padding: '10px 12px',
+                                                borderRadius: '12px', border: '1px solid rgba(0,0,0,0.08)',
+                                                background: '#F5F6F8', color: '#1A2E35', fontSize: '14px',
+                                                fontFamily: 'inherit', resize: 'vertical',
+                                                boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -1px -1px 2px rgba(255,255,255,0.5)',
+                                                outline: 'none',
+                                            }}
+                                        />
+                                        <p style={{ fontSize: '11px', color: '#94A3B8', margin: '4px 0 0', textAlign: 'right' }}>
+                                            {unpublishNote.length}/1000
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUnpublishTarget(null)}
+                                        disabled={submitting}
+                                        style={{
+                                            ...clayBtn, flex: 1, justifyContent: 'center',
+                                            background: '#F5F0EB', color: '#6B7F8A',
+                                            padding: '12px 16px', fontWeight: 600, fontSize: '14px',
+                                            opacity: submitting ? 0.6 : 1,
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={submitUnpublish}
+                                        disabled={submitting}
+                                        style={{
+                                            ...clayBtn, flex: 1, justifyContent: 'center',
+                                            background: 'linear-gradient(145deg, #F59E0B, #D97706)', color: '#fff',
+                                            border: 'none', padding: '12px 16px', fontWeight: 700, fontSize: '14px',
+                                            boxShadow: '4px 4px 12px rgba(245,158,11,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                            opacity: submitting ? 0.7 : 1,
+                                        }}
+                                    >
+                                        {submitting ? <Loader2 size={14} className="animate-spin" /> : <Pause size={14} />}
+                                        {submitting ? 'Pausing...' : (unpublishReason ? 'Pause Job' : 'Pause Anyway')}
                                     </button>
                                 </div>
                             </div>

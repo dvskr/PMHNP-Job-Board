@@ -39,6 +39,14 @@ model Job {
   isFeatured          Boolean      @default(false) @map("is_featured")
   isPublished         Boolean      @default(true) @map("is_published")
   isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
+  // ── Unpublish reason capture ──
+  // Set when an employer manually unpublishes ("Pause") via the dashboard
+  // modal. Powers outreach + feedback signal. See migration
+  // 20260502_add_unpublish_reason. Most-recent value wins if the employer
+  // republishes and unpublishes again.
+  unpublishReason     String?      @db.VarChar(60) @map("unpublish_reason")
+  unpublishReasonNote String?      @db.Text @map("unpublish_reason_note")
+  unpublishedAt       DateTime?    @map("unpublished_at")
   archivedAt          DateTime?    @map("archived_at")
   isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
   benefits            String[]     @default([])

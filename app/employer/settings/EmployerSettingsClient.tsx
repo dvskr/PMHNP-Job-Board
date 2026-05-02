@@ -343,7 +343,7 @@ export default function EmployerSettingsClient() {
 
     if (loading) {
         return (
-            <div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 16px' }}>
+            <div style={{ maxWidth: '720px', margin: '0 auto', padding: '16px 16px 32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
                     <div style={{
                         width: '36px', height: '36px', borderRadius: '50%',
@@ -373,7 +373,7 @@ export default function EmployerSettingsClient() {
     );
 
     return (
-        <div style={{ maxWidth: '1040px', margin: '0 auto', padding: '40px 20px', display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ maxWidth: '1040px', margin: '0 auto', padding: '16px 20px 40px', display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Toast */}
             {message && (
                 <div style={{
