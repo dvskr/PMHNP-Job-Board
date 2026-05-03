@@ -185,6 +185,48 @@ If any gate fails → PR is blocked from merge. No exceptions.
 
 **Sprint 0.1 done when:** Existing scoring uses gateway, dashboard shows real cost data, killing OpenAI in dev fails over to Anthropic without user-visible error.
 
+#### 0.1.A — Task → Model Routing Table (config to seed in Sprint 0.1.2)
+
+The gateway routes by `task` string, NOT by hard-coded model. Engineers building Sprint 0.1.2 should seed `lib/ai/gateway/task-config.ts` (or equivalent) with this exact mapping. Single source of truth for "which model handles which workload" — change the table, not the call sites. Mirrors [ai-architecture.md Section 7.1](./ai-architecture.md#71-model-selection-per-feature).
+
+| Task ID | Primary model | Fallback model | Output mode | Why |
+|---|---|---|---|---|
+| `candidate_scoring` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Drives employer-visible decisions; needs reasoning quality |
+| `resume_parsing` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Structured extraction |
+| `spam_fraud_detection` | `gpt-5-nano` | `gpt-5-mini` | JSON | High volume, binary classification, cost-sensitive |
+| `bias_audit` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Pattern detection across phrases |
+| `talent_search_rerank` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Cost matters per search; rank quality matters more than scoring |
+| `application_coach` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Pre-submit feedback, structured suggestions |
+| `support_bot` | `gpt-5-mini` | `claude-sonnet-4-6` | text | Conversational, must follow instructions reliably |
+| `cover_letter` | `gpt-5.4` | `claude-opus-4-7` | text | Creative writing, paid-tier, quality directly perceived |
+| `jd_generator` | `gpt-5.4` | `claude-opus-4-7` | text | Creative writing, employer-visible quality |
+| `outreach_composer` | `gpt-5.4` | `claude-opus-4-7` | text | Personalization is the value prop |
+| `seo_content` | `gpt-5.4` | `claude-opus-4-7` | text | Long-form, infrequent. `gpt-5.5` reserved for hero pages — opt-in via `priority: 'premium'` |
+| `career_path_analysis` | `gpt-5.4` | `claude-opus-4-7` | JSON | Multi-hop reasoning over candidate trajectory |
+| `embeddings_generic` | `text-embedding-3-small` | (no fallback — rare) | vector | All embedding workloads (jobs, candidates, queries) |
+
+**Routing API contract** — call sites pass the task, not the model:
+
+```typescript
+// Correct — call site picks the task, gateway picks the model
+await complete({ task: 'candidate_scoring', messages: [...], cacheKey: [...] });
+
+// Wrong — never hardcode model at call site (ESLint rule will catch this in Sprint 0.4.7)
+await complete({ task: 'candidate_scoring', model: 'gpt-5-mini', messages: [...] });
+```
+
+**Override paths (rare, but explicit):**
+- `priority: 'premium'` → routes to higher-tier model (e.g., `seo_content` → `gpt-5.5`). Used for hero content only.
+- `provider: 'anthropic'` → forces fallback provider. Used in chaos tests.
+- `model: '<exact>'` → escape hatch for one-off A/B experiments. Requires explicit `// eslint-disable-next-line ai/no-direct-model` comment.
+
+**Migration path when models update (e.g., gpt-5.5 → gpt-5.6):**
+1. Update one row in `task-config.ts`
+2. Eval suite runs in CI on the affected task(s) — must hold baseline
+3. Bias eval runs — variance still ≤2pt
+4. Cost dashboard alert if unit cost drifts >20% post-deploy
+5. Single-line change ships, no call sites touched
+
 ### Sprint 0.2 (Week 3-4) — Prompt Registry + Eval Harness
 
 | Ticket | Description | Acceptance criteria | Est |
@@ -723,10 +765,20 @@ End of week 1: gateway live, scoring on it, eval suite running. From here, every
 
 | Phase | Status | Started | Done | Owner |
 |---|---|---|---|---|
-| Phase 0 — Foundation | 🔵 Not started | — | — | — |
+| Phase 0 — Foundation | 🟡 In progress (Sprint 0.1 done) | 2026-05-02 | — | — |
 | Phase 1 — Core Matching | 🔵 Not started | — | — | — |
 | Phase 2 — Candidate Copilot | 🔵 Not started | — | — | — |
 | Phase 3 — Employer Power Tools | 🔵 Not started | — | — | — |
 | Phase 4 — Platform Intelligence | 🔵 Not started | — | — | — |
 
 Update this table as phases progress. Every phase-end retro updates the table.
+
+### Sprint-level status
+
+| Sprint | Status | Notes |
+|---|---|---|
+| 0.1 — LLM Gateway | ✅ Done (2026-05-02) | Gateway live at `lib/ai/gateway.ts`. OpenAI primary + Anthropic fallback (via fetch, no SDK dependency). Cost tracking writes to `ai_call_log`. Redis cache + per-tenant rate limit + circuit breaker. `candidate-scorer.ts` and `resume-parser.ts` migrated. 28 unit tests, all passing. Docs at `docs/ai-gateway.md`. |
+| 0.2 — Prompt registry + eval harness | 🔵 Not started | Prompts still inline in caller modules. Move to `lib/ai/prompts/<id>/v1.json` next. |
+| 0.3 — Vector DB + embedding pipeline | 🔵 Not started | `gateway.embed()` exists but no consumer yet. Needs pgvector migration. |
+| 0.4 — Observability + feature flags + runbooks | 🔵 Not started | `ai_call_log` populates from Sprint 0.1 — dashboards on top come later. |
+| 0.5 — Test infrastructure | 🔵 Not started | First helpers will land here (`mockLLMResponse`, etc.). |
