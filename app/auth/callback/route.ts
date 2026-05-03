@@ -11,7 +11,21 @@ export async function GET(request: Request) {
   const origin = requestUrl.origin
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+    // No PKCE code → this isn't an OAuth handshake. It's almost certainly
+    // a hash-fragment redirect (recovery / magic link) that was pointed at
+    // /auth/callback by mistake — either an old email in someone's inbox
+    // (sent before the redirect was switched to /auth/confirm) or some
+    // other code path we missed.
+    //
+    // Hand off to /auth/confirm. The browser preserves the original URL
+    // fragment across this redirect (since the new Location has none),
+    // so #access_token=…&type=recovery will arrive at /auth/confirm
+    // intact and the client there will parse it and route to
+    // /reset-password. Genuine OAuth failures usually carry ?error=…
+    // in the query string, which /auth/confirm also handles.
+    const fallback = new URL('/auth/confirm', origin)
+    requestUrl.searchParams.forEach((v, k) => fallback.searchParams.set(k, v))
+    return NextResponse.redirect(fallback)
   }
 
   try {

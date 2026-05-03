@@ -13,14 +13,15 @@
 
 1. **Every AI feature ships behind a feature flag.** Killable in <1 minute without a deploy.
 2. **Every AI feature has an eval suite** before it ships. Minimum 30 hand-rated golden cases per feature.
-3. **Every AI feature is observable** — cost, latency, error rate, quality drift dashboards exist before launch.
-4. **Every prompt change goes through eval-gate CI** — break the eval baseline and you can't merge.
-5. **Every user-facing AI output is sanitized + validated** — never trust LLM output as final, especially for HTML, links, JSON, or anything persisted.
-6. **Every AI decision affecting customer outcomes is logged** to AuditLog (already in schema). Includes prompt version, model, tokens, latency, cost.
-7. **No AI feature replaces compliance-critical logic.** Knockout rules, payment validation, refund processing — all deterministic. AI is supplementary, never load-bearing for compliance.
-8. **Two-key for prompt changes that affect production scoring.** Self-review + one other engineer. Same as DB migrations.
-9. **All PII is masked or excluded from prompts.** DEA, NPI, race/gender/age never enter LLM context.
-10. **No AI feature ships without runbook.** "What to do when this breaks" — written before launch, not after the first incident.
+3. **Every AI feature ships with the test pyramid complete** (see Section 1.4): unit + integration + E2E tests for the user flow, in the SAME PR as the feature code. No "tests in a follow-up PR" — that follow-up never lands.
+4. **Every AI feature is observable** — cost, latency, error rate, quality drift dashboards exist before launch.
+5. **Every prompt change goes through eval-gate CI** — break the eval baseline and you can't merge.
+6. **Every user-facing AI output is sanitized + validated** — never trust LLM output as final, especially for HTML, links, JSON, or anything persisted.
+7. **Every AI decision affecting customer outcomes is logged** to AuditLog (already in schema). Includes prompt version, model, tokens, latency, cost.
+8. **No AI feature replaces compliance-critical logic.** Knockout rules, payment validation, refund processing — all deterministic. AI is supplementary, never load-bearing for compliance.
+9. **Two-key for prompt changes that affect production scoring.** Self-review + one other engineer. Same as DB migrations.
+10. **All PII is masked or excluded from prompts.** DEA, NPI, race/gender/age never enter LLM context.
+11. **No AI feature ships without runbook.** "What to do when this breaks" — written before launch, not after the first incident.
 
 ### 0.2 Build sequencing principles
 
@@ -72,6 +73,94 @@
 | AI outputs surfaced in UI must be loading-state-aware | Manual UX review |
 | AI features degrade gracefully if LLM down | Chaos test: kill LLM provider, verify UI doesn't break |
 | User can opt out of AI features per their account settings | Required field in user settings UI |
+
+### 1.4 Test Pyramid (required for every AI feature)
+
+Every feature ships with all 4 layers in the SAME PR. No skipping the bottom of the pyramid because "the integration test covers it."
+
+```
+              ┌─────────────────┐
+              │  Eval Tests     │   Quality of LLM output
+              │  (30+ cases)    │   "Does the AI do the right thing?"
+              ├─────────────────┤
+              │   E2E Tests     │   User flow through browser
+              │   (1-3 critical │   "Can the user complete the journey?"
+              │    paths)       │
+              ├─────────────────┤
+              │  Integration    │   Server flow with mocked LLM
+              │  Tests (5-10)   │   "Does the API + DB + cache work?"
+              ├─────────────────┤
+              │  Unit Tests     │   Pure functions in isolation
+              │  (15+ cases)    │   "Is each piece correct?"
+              └─────────────────┘
+                  Test Pyramid
+```
+
+#### Layer-by-layer requirements
+
+| Layer | Tool | Required scope per AI feature | Coverage threshold |
+|---|---|---|---|
+| **Unit** | Vitest | Prompt construction, schema validation, sanitizers, score-clamping, parsers, helpers | ≥80% line coverage on `lib/ai/<feature>/**` |
+| **Integration** | Vitest + mocked LLM | Full server-side flow: API receives input → calls gateway (mocked) → persists to DB → returns expected response | All happy paths + 3 error paths (LLM timeout, schema-invalid response, rate-limit) |
+| **E2E** | Playwright | User clicks button → AI feature runs → result appears in UI → side effects visible (e.g. dashboard updates) | At least 1 happy-path scenario per user-facing feature |
+| **Eval** | Custom harness | LLM output quality on golden set | ≥30 cases, baseline score must improve or hold per release |
+
+#### What MUST be tested in each layer
+
+**Unit tests (every feature):**
+- Prompt template renders correctly with various inputs
+- Output schema validation rejects malformed responses
+- Score/output clamping (e.g., score capped 0-100)
+- Sanitizers strip PII, HTML, prompt-injection patterns
+- Cache key derivation is deterministic
+- Pure helper functions (no LLM calls)
+
+**Integration tests (every feature):**
+- API endpoint returns 200 with valid input (mocked LLM response)
+- API rejects invalid input (400)
+- LLM timeout → falls back to secondary provider
+- LLM returns malformed JSON → graceful error
+- Rate limit hit → 429 with helpful message
+- DB persistence verified (row created/updated as expected)
+- Feature flag OFF → AI code path skipped, fallback used
+- Cost tracking entry written to `ai_call_log`
+
+**E2E tests (every user-facing feature):**
+- Critical happy path: user triggers feature → loading state → result rendered
+- Auth gate enforced (logged-out user redirected)
+- Feature flag respected (off = UI hidden or non-AI fallback shown)
+- Error path: LLM unavailable → user sees friendly error, not 500
+
+**Eval tests (every feature with LLM output):**
+- Golden set in `tests/ai/golden/<feature>.json` with ≥30 cases
+- Bias eval pair set if feature affects ranking/scoring
+- Baseline tracked; regressions blocked in CI
+
+#### Test infrastructure requirements (build once, reuse)
+
+| Helper | Location | Purpose |
+|---|---|---|
+| `mockLLMResponse()` | `tests/helpers/ai.ts` | Stub gateway calls in integration tests with deterministic responses |
+| `seedTestJob()`, `seedTestCandidate()` | `tests/helpers/db.ts` | Create realistic fixtures for integration + E2E |
+| `runEvalCase()` | `lib/ai/eval/runner.ts` | Execute single golden case, return score |
+| `evalSuite()` | `lib/ai/eval/suite.ts` | Run all golden cases for a feature, return aggregate |
+| `playwrightAuth()` | `tests/e2e/helpers/auth.ts` | Sign in as test user with predictable role + state |
+| `assertNoPIIInPrompt()` | `tests/helpers/pii.ts` | Scan rendered prompt for forbidden patterns |
+
+#### CI gates (runs on every PR touching AI code)
+
+```
+PR opened/updated
+   │
+   ├─► Unit tests        (must pass — fast, ~30 sec)
+   ├─► Integration tests (must pass — medium, ~2 min)
+   ├─► PII scanner        (must pass — instant)
+   ├─► Eval suite        (must not regress >5% — slow, ~5 min)
+   ├─► E2E smoke         (must pass on Chrome — slow, ~3 min)
+   └─► Bias eval         (must hold variance ≤2pt — fast, ~1 min)
+```
+
+If any gate fails → PR is blocked from merge. No exceptions.
 
 ---
 
@@ -142,6 +231,26 @@
 
 **Sprint 0.4 done when:** Dashboard exists, cost alerts trigger correctly, first runbook is reviewed by another engineer, chaos test passes.
 
+### Sprint 0.5 (Week 9) — Test Infrastructure (the foundation for every later test)
+
+This sprint builds reusable test helpers + CI gates so every Phase 1+ feature can ship with the full test pyramid in days, not weeks.
+
+| Ticket | Description | Acceptance criteria | Est |
+|---|---|---|---|
+| 0.5.1 | `tests/helpers/ai.ts` — `mockLLMResponse()` helper | Mocks gateway calls in integration tests with deterministic responses; supports streaming + non-streaming | 1d |
+| 0.5.2 | `tests/helpers/db.ts` — `seedTestJob()`, `seedTestCandidate()`, `seedTestApplication()` | Realistic fixtures spanning the full schema; idempotent | 1d |
+| 0.5.3 | `tests/helpers/pii.ts` — `assertNoPIIInPrompt()` | Scans rendered prompts for SSN, DEA, NPI, race/gender field names; throws on detection | 0.5d |
+| 0.5.4 | `tests/e2e/helpers/auth.ts` — `playwrightAuth()` | Programmatic sign-in for Playwright tests, supports candidate/employer/admin roles | 1d |
+| 0.5.5 | Vitest CI step in GitHub Actions | Runs unit + integration on every PR; blocks merge on failure | 0.5d |
+| 0.5.6 | Playwright E2E CI step | Runs E2E smoke on Chrome on every PR; blocks merge on failure; uploads traces on failure | 1d |
+| 0.5.7 | Eval CI step (uses harness from 0.2.5) | Runs full eval suite; comments delta on PR; blocks merge if regression >5% | 0.5d |
+| 0.5.8 | PII scanner CI step | Greps prompt files for forbidden patterns; blocks merge | 0.5d |
+| 0.5.9 | Bias eval CI step (uses pair set from 0.2.6) | Runs bias eval; blocks if variance >2pt across demographic pairs | 0.5d |
+| 0.5.10 | Test coverage report (Vitest + Codecov or similar) | Posts coverage delta on PR; visible in dashboard | 0.5d |
+| 0.5.11 | Document the test patterns in `docs/ai-testing-guide.md` | Cookbook for engineers: "to add a new AI feature, copy this template" | 1d |
+
+**Sprint 0.5 done when:** A new engineer can clone the repo, copy a feature template, and have unit + integration + E2E + eval tests scaffolded in <1 hour. CI gates are all green.
+
 ### Phase 0 exit criteria (gate to Phase 1)
 
 - [ ] LLM Gateway in use by all AI code paths (zero direct `openai` imports outside the gateway)
@@ -151,6 +260,8 @@
 - [ ] Feature flag system live, kill-switch tested
 - [ ] All Phase 0 runbooks written and reviewed
 - [ ] Cost dashboard shows actual usage <$5/mo (matches projection)
+- [ ] **Test infrastructure complete**: unit (Vitest), integration (Vitest + mocks), E2E (Playwright), eval (custom harness), PII scanner, bias eval — all wired into CI gates
+- [ ] **Test helpers documented** in `docs/ai-testing-guide.md` so adding tests for new features is templated work
 - [ ] Phase 0 retro shipped, Phase 1 scoped
 
 ---
@@ -159,17 +270,21 @@
 
 **Goal:** Make matching qualitatively better. Replace keyword-based job search with vector search. Generate personalized recommendations. Hybrid rerank for relevance.
 
+> **Testing note for all Phase 1+ sprints:** Every ticket's estimate INCLUDES the time to write its required unit + integration + E2E + eval tests (per Section 1.4). Sprint 1.1 below shows test requirements per ticket as the canonical example; the same expectations apply to every subsequent sprint even when not spelled out per-line. The Definition of Done (Section 9) is enforced on every PR.
+
 ### Sprint 1.1 — Smart Job Matching (vector + filter hybrid)
 
-| Ticket | Description | Acceptance | Est |
+Each ticket includes its required tests. Test estimates are NOT optional — they're shipped in the same PR as the feature code.
+
+| Ticket | Description | Acceptance (incl. tests) | Est |
 |---|---|---|---|
-| 1.1.1 | API: `/api/jobs/search/semantic` accepts query string + filters | Returns top-N jobs ranked by hybrid score | 1d |
-| 1.1.2 | Frontend: search box on `/jobs` triggers semantic search behind flag | Flag off = current keyword search; flag on = hybrid | 1d |
-| 1.1.3 | Display "X% match" badge on each job card | Computed from cosine similarity, presented as percentile | 1d |
-| 1.1.4 | Eval set: 30 query→relevant-jobs golden tuples | Manual curation from prod data | 1d |
-| 1.1.5 | Eval gate: NDCG@10 must beat keyword search by 15%+ | Eval CI step | 0.5d |
-| 1.1.6 | A/B test infrastructure (10% rollout) | Track CTR + apply rate per arm | 1d |
-| 1.1.7 | Runbook: AI search fails → automatic fallback to keyword | `docs/runbooks/ai-job-search.md` | 0.5d |
+| 1.1.1 | API: `/api/jobs/search/semantic` accepts query string + filters | Returns top-N jobs ranked by hybrid score. **Unit:** query embedding + filter merging logic. **Integration:** API → mocked vector search → DB → response, plus error paths (LLM timeout, malformed query). | 1.5d |
+| 1.1.2 | Frontend: search box on `/jobs` triggers semantic search behind flag | Flag off = current keyword search; flag on = hybrid. **E2E:** Playwright test for both flag states; user types query, sees results, clicks job. | 1.5d |
+| 1.1.3 | Display "X% match" badge on each job card | Computed from cosine similarity, presented as percentile. **Unit:** percentile calculation against fixture set. | 1d |
+| 1.1.4 | Eval set: 30 query→relevant-jobs golden tuples | Manual curation from prod data. Stored in `tests/ai/golden/job-search.json`. | 1d |
+| 1.1.5 | Eval gate: NDCG@10 must beat keyword search by 15%+ | CI step runs on every PR; blocks merge on regression. | 0.5d |
+| 1.1.6 | A/B test infrastructure (10% rollout) | Track CTR + apply rate per arm. **Integration:** assignment is sticky per user across sessions. | 1d |
+| 1.1.7 | Runbook: AI search fails → automatic fallback to keyword | `docs/runbooks/ai-job-search.md`. **E2E:** chaos test — kill LLM mid-request, verify keyword fallback engages. | 1d |
 
 ### Sprint 1.2 — Personalized Job Recommendations
 
@@ -472,14 +587,30 @@ A feature is NOT done until ALL of these are true:
 - [ ] Prompts live in `lib/ai/prompts/<id>/v<n>.json`, not inline
 - [ ] User inputs sanitized before reaching prompt
 - [ ] Output validated against schema (JSON mode + Zod)
-- [ ] Unit tests cover happy path + 3 edge cases
-- [ ] Integration test exercises full flow
 
-### Eval
-- [ ] Golden set of ≥30 cases exists in `tests/ai/golden/<feature>.json`
-- [ ] Bias eval cases exist if feature affects ranking/scoring
-- [ ] CI runs eval on every PR touching the feature
-- [ ] Baseline metrics established (paste into PR description)
+### Tests (full pyramid — required in same PR as feature code)
+- [ ] **Unit tests** — ≥80% line coverage on `lib/ai/<feature>/**`
+   - [ ] Prompt construction with multiple input shapes
+   - [ ] Output schema validation (valid + malformed)
+   - [ ] Score/output clamping
+   - [ ] PII sanitizer
+   - [ ] Cache key derivation
+- [ ] **Integration tests** — happy paths + 3 error paths
+   - [ ] API → mocked LLM → DB persistence
+   - [ ] LLM timeout falls back to secondary provider
+   - [ ] LLM returns malformed JSON → graceful error
+   - [ ] Rate limit returns 429
+   - [ ] Feature flag OFF → AI path skipped
+   - [ ] Cost tracking row written
+- [ ] **E2E tests** — at least 1 happy-path Playwright scenario
+   - [ ] User triggers feature → loading state → result renders
+   - [ ] Error path: LLM unavailable → friendly UI, no 500
+- [ ] **Eval tests** — quality of LLM output
+   - [ ] Golden set of ≥30 cases in `tests/ai/golden/<feature>.json`
+   - [ ] Bias eval cases if feature affects ranking/scoring
+   - [ ] CI runs eval on every PR touching the feature
+   - [ ] Baseline metrics established (paste into PR description)
+- [ ] **Test helpers used** — reuse `mockLLMResponse()`, `seedTestJob()`, etc. from `tests/helpers/`
 
 ### Observability
 - [ ] Per-call cost tracked in `ai_call_log`
