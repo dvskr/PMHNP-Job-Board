@@ -331,17 +331,20 @@ genuinely demands them.
 | **Bias auditor** (employer JDs) | `gpt-5-mini` | $0.001 | Pattern detection, not deep reasoning. |
 | **Talent search re-ranker** | `gpt-5-mini` | $0.005 | Per-search cost matters; rank quality more than scoring quality. |
 | **Application coach** (candidate-facing feedback) | `gpt-5-mini` | $0.001 | Conversational, structured suggestions. |
-| **Cover letter generator** | `gpt-5` or `gpt-5.1` | $0.005 | Creative writing, paid-tier feature, quality directly perceived. |
-| **JD generator** | `gpt-5` | $0.01 | Output quality drives employer perception; runs ~200×/mo. |
-| **Outreach message composer** | `gpt-5` | $0.005 | Personalization quality is the entire value prop. |
-| **SEO content generator** | `gpt-5.1` | $0.02 | Long-form, must read well, infrequent. |
-| **Career path analysis** (candidate-facing) | `gpt-5.1` or `gpt-5.2` | $0.01 | Genuine reasoning over multiple data points. |
+| **Cover letter generator** | `gpt-5.4` | $0.015 | Creative writing, paid-tier feature, quality directly perceived. Newer generation = better output for the same use case. |
+| **JD generator** | `gpt-5.4` | $0.02 | Output quality drives employer perception; runs ~200×/mo. |
+| **Outreach message composer** | `gpt-5.4` | $0.015 | Personalization quality is the entire value prop. |
+| **SEO content generator** | `gpt-5.4` (or `gpt-5.5` for hero pages) | $0.04 | Long-form, must read well, infrequent. `gpt-5.5` reserved for top-tier landing pages where quality compounds. |
+| **Career path analysis** (candidate-facing) | `gpt-5.4` | $0.025 | Genuine reasoning over multiple data points; newer architecture handles multi-hop reasoning better. |
 | **Customer support bot** | `gpt-5-mini` | $0.001 | Conversational, must follow instructions reliably. |
 | **Embeddings** (job + candidate vectors) | `text-embedding-3-small` | $0.00002/1k tok | Already established. |
 
 **Models we deliberately skip:**
-- `gpt-5-pro` ($15/$120) and `gpt-5.2-pro` ($21/$168) — 12-17× cost of their non-pro siblings. Reserve only if a specific task proves it needs deeper reasoning. None of our current features qualify.
+- `gpt-5-pro` / `gpt-5.4-pro` / `gpt-5.5-pro` ($15-30/$120-180) — 12-17× cost of their non-pro siblings. Reserve only if a specific task proves it needs deeper reasoning. None of our current features qualify.
 - `gpt-4o`, `gpt-4.1*` — older generation, strictly worse than gpt-5 family at the same or higher cost.
+
+**Family-mixing rationale (why scoring stays on gpt-5, creative tasks move to gpt-5.4):**
+Mini/nano tier reasoning is similar enough across versions that the older + cheaper variant wins for high-volume structured tasks (scoring, search rerank, classification). For creative/long-form output where the newer model's writing quality is materially better, the 50% cost premium for gpt-5.4 is worth it — these are typically paid-tier, lower-volume features where output quality is the value prop.
 
 ### 7.2 Cached Input Optimization
 
@@ -381,19 +384,20 @@ LLM Gateway lands (Phase 0).
 |---|---|---|---|---|
 | Candidate scoring | 5,000 | `gpt-5-mini` | $0.001 | **$5.00** |
 | Resume parsing | 200 (new signups) | `gpt-5-mini` | $0.001 | **$0.20** |
-| Cover letter generation | 1,500 (30% of apps) | `gpt-5` | $0.005 | **$7.50** |
+| Cover letter generation | 1,500 (30% of apps) | `gpt-5.4` | $0.015 | **$22.50** |
 | Application coach | 3,000 (pre-submit) | `gpt-5-mini` | $0.001 | **$3.00** |
 | Talent search (rerank) | 500 | `gpt-5-mini` | $0.005 | **$2.50** |
-| JD generation | 200 | `gpt-5` | $0.01 | **$2.00** |
-| Outreach composer | 1,000 | `gpt-5` | $0.005 | **$5.00** |
+| JD generation | 200 | `gpt-5.4` | $0.02 | **$4.00** |
+| Outreach composer | 1,000 | `gpt-5.4` | $0.015 | **$15.00** |
 | Bias auditor | 200 (every JD) | `gpt-5-mini` | $0.001 | **$0.20** |
 | Embeddings refresh | 10k embeds | `text-embedding-3-small` | $0.00002 | **$0.20** |
 | Spam / fraud audit | 5,100 (jobs + apps) | `gpt-5-nano` | $0.0001 | **$0.51** |
-| SEO content generation | 50 pages | `gpt-5.1` | $0.02 | **$1.00** |
+| SEO content generation | 50 pages | `gpt-5.4` | $0.04 | **$2.00** |
+| Career path analysis | 500 (later) | `gpt-5.4` | $0.025 | **$12.50** |
 | Customer support bot | 500 turns | `gpt-5-mini` | $0.001 | **$0.50** |
 | **Total LLM cost** | | | **~$22/month** |
 
-**Total AI cost at this scale: ~$23/month.** Even at 100× scale (real enterprise), AI costs are <$2,500/month. Negligible vs Vercel/Supabase/Resend bills. **Build aggressively — cost is not the bottleneck. Quality is.**
+**Total AI cost at this scale: ~$68/month** (up from ~$23 in the prior gpt-5-only model, because gpt-5.4 generation costs ~50% more for the creative/long-form workloads where output quality compounds). Even at 100× scale (real enterprise), AI costs are <$7,000/month. Still small relative to revenue at that scale. **Build aggressively — cost is not the bottleneck. Quality is.**
 
 ---
 
