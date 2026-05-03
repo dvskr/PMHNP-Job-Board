@@ -3,6 +3,12 @@
 > Enterprise-grade design for AI-powered job matching, candidate intelligence,
 > employer tooling, and platform automation. Living document — designed to be
 > built in phases, not all at once.
+>
+> **Companion docs:**
+> - [ai-implementation-plan.md](./ai-implementation-plan.md) — execution
+>   blueprint (sprints, tickets, quality gates, test pyramid, runbooks)
+> - [ai-testing-guide.md](./ai-testing-guide.md) — *(TODO Sprint 0.5)*
+>   cookbook for engineers adding new AI features
 
 ## 1. Vision
 
@@ -181,6 +187,23 @@ How do we know if our AI is getting better or worse?
 - **Human review queue** — Random 1% sample sent to admin for thumbs-up/down. Feeds re-prompting.
 - **A/B testing** — Two prompts, route 50/50, measure downstream metric (employer interview rate).
 
+Eval is one of four test layers. See Section 4.4.1 for the full test pyramid.
+
+### 4.4.1 Test Pyramid (foundational — built in Phase 0 Sprint 0.5)
+
+Every AI feature ships with all four layers in the same PR. This is a
+non-negotiable enforced by CI gates. Full per-layer requirements live in
+[ai-implementation-plan.md Section 1.4](./ai-implementation-plan.md#14-test-pyramid-required-for-every-ai-feature).
+
+| Layer | Tool | What it tests |
+|---|---|---|
+| **Unit** | Vitest | Pure functions: prompt construction, schema validation, sanitizers, score-clamping, cache key derivation |
+| **Integration** | Vitest + mocked LLM | Server flow: API → mocked gateway → DB persistence; happy + error paths (LLM timeout, malformed response, rate-limit, flag-off fallback) |
+| **E2E** | Playwright | User journey: click → loading state → result rendered → side effects visible |
+| **Eval** | Custom harness | LLM output quality on golden set + bias eval pair set |
+
+Test infrastructure (helpers like `mockLLMResponse`, `seedTestJob`, `playwrightAuth`, PII scanner, bias eval runner) is built ONCE in Sprint 0.5 so every Phase 1+ feature ships its full test pyramid in days, not weeks.
+
 ### 4.5 Feature Flags (use existing `lib/config.ts` or LaunchDarkly/Statsig)
 
 Every AI feature ships behind a flag. Per-tenant rollout:
@@ -311,7 +334,10 @@ Every AI feature ships behind a flag. Per-tenant rollout:
 | Vector DB | pgvector on Supabase | Already on Postgres. No new infra. Scales fine to ~1M vectors. |
 | Background jobs | Inngest | Already in stack. Native Next.js, retries built in. |
 | Cache | Upstash Redis | Already configured (rate limit). Reuse for AI cache. |
-| Eval | Custom + Anthropic Eval Tools | Build minimum viable harness in-house. |
+| Eval | Custom in-repo harness (`lib/ai/eval/`) | One-time investment in Phase 0 Sprint 0.2; full flexibility, no vendor lock-in. |
+| Unit + integration tests | Vitest (already in stack) | Mock the LLM gateway in integration; test pure helpers in unit. |
+| E2E tests | Playwright (already in stack) | At least one happy-path scenario per user-facing AI feature. |
+| Bias / PII tests | Custom CI gates | Bias eval pair set (≥50 demographic-pair candidates); PII scanner greps prompt construction. |
 | Observability | Sentry + custom metrics in Postgres | Already on Sentry. Custom metrics for AI-specific KPIs. |
 | Feature flags | Start with config.ts, move to LaunchDarkly/Statsig if >10 flags | YAGNI. |
 
@@ -365,7 +391,7 @@ This is one of the first wins the LLM Gateway unlocks (Phase 0).
 
 | Phase | Months | Goal | Ship list |
 |---|---|---|---|
-| **0 — Foundation** | 0-2 | Build the plumbing | LLM Gateway, prompt registry, eval harness, observability dashboards, pgvector setup |
+| **0 — Foundation** | 0-2 | Build the plumbing | LLM Gateway, prompt registry, eval harness, observability dashboards, pgvector setup, **test infrastructure (helpers + CI gates for unit/integration/E2E/eval/bias/PII)** |
 | **1 — Core matching** | 2-4 | Make matching qualitatively better | Vector search, recommendations, hybrid search rerank |
 | **2 — Candidate copilot** | 4-6 | Help candidates apply better | Cover letter assistant, application coach, resume parser → profile |
 | **3 — Employer power tools** | 6-9 | Help employers screen + reach faster | Talent search UI, JD generator, outreach composer, candidate comparison, bias auditor |
@@ -462,6 +488,7 @@ Model assignments per Section 7.1, with cached-input pricing assumed once LLM Ga
 - ❌ **Don't trust LLMs for compliance-critical decisions** (auto-rejection MUST be a knockout-rule trigger, not an AI hunch)
 - ❌ **Don't store LLM responses as ground truth without human review** (especially for SEO content)
 - ❌ **Don't skip eval** ("we'll tune the prompt later" → never happens → silent quality drift)
+- ❌ **Don't ship features without the full test pyramid** (unit + integration + E2E + eval). "Tests in a follow-up PR" is the line we never get back to. CI gates make this impossible to merge anyway — see Section 4.4.1.
 - ❌ **Don't ignore latency** (anything user-facing >2s feels broken)
 
 ---
@@ -488,5 +515,6 @@ We've succeeded when:
 5. Set up LLM Gateway scaffold (also unlocks 90%-off cached-input pricing per Section 7.2)
 6. Add pgvector extension migration
 7. Define eval golden set (100 candidate-job pairs, hand-scored)
+8. Build reusable test infrastructure (Sprint 0.5): `mockLLMResponse`, `seedTestJob`, `playwrightAuth`, PII scanner, bias eval runner, CI gates for all 4 test layers
 
-Once Phase 0 lands we have the runway to ship Phases 1-4 in parallel.
+Once Phase 0 lands (including test infrastructure) we have the runway to ship Phases 1-4 in parallel — every new feature scaffolds its full test pyramid in <1 hour using the helpers from Sprint 0.5.
