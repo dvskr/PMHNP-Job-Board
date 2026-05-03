@@ -135,6 +135,30 @@ const nextConfig: NextConfig = {
         destination: '/signup',
         permanent: true,
       },
+      // Common URL-guessing → canonical paths.
+      // Footer links are correct, but users (and crawlers) often guess
+      // shorter/simpler URLs. Without these, /states, /employers, /alerts
+      // fall through to a 404 — better to 301 to the real page.
+      {
+        source: '/states',
+        destination: '/jobs/locations',
+        permanent: true,
+      },
+      {
+        source: '/locations',
+        destination: '/jobs/locations',
+        permanent: true,
+      },
+      {
+        source: '/employers',
+        destination: '/for-employers',
+        permanent: true,
+      },
+      {
+        source: '/alerts',
+        destination: '/job-alerts',
+        permanent: true,
+      },
     ];
   },
 };

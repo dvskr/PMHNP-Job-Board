@@ -73,25 +73,25 @@ export function calculateCompleteness(profile: ProfileDataV2 | null | undefined)
     const sections: SectionScore[] = []
     const missingItems: { label: string; weight: number; fieldId: string }[] = []
 
-    // ── Personal Info (20%) ──
+    // ── Personal Info (20%) — 5 items × 4% ──
     {
         let earned = 0
         const missing: string[] = []
         if (hasText(profile.firstName)) earned += 4; else { missing.push('First name'); missingItems.push({ label: 'Add first name', weight: 4, fieldId: 'tab-personal' }) }
         if (hasText(profile.lastName)) earned += 4; else { missing.push('Last name'); missingItems.push({ label: 'Add last name', weight: 4, fieldId: 'tab-personal' }) }
-        if (hasText(profile.phone)) earned += 3; else { missing.push('Phone'); missingItems.push({ label: 'Add phone', weight: 3, fieldId: 'tab-personal' }) }
-        if (hasText(profile.addressLine1) && hasText(profile.city) && hasText(profile.state) && hasText(profile.zipCode)) earned += 5; else { missing.push('Complete address'); missingItems.push({ label: 'Complete address', weight: 5, fieldId: 'tab-personal' }) }
+        if (hasText(profile.phone)) earned += 4; else { missing.push('Phone'); missingItems.push({ label: 'Add phone', weight: 4, fieldId: 'tab-personal' }) }
+        if (hasText(profile.addressLine1) && hasText(profile.city) && hasText(profile.state) && hasText(profile.zipCode)) earned += 4; else { missing.push('Complete address'); missingItems.push({ label: 'Complete address', weight: 4, fieldId: 'tab-personal' }) }
         if (hasText(profile.headline)) earned += 4; else { missing.push('Headline'); missingItems.push({ label: 'Add headline', weight: 4, fieldId: 'tab-personal' }) }
         sections.push({ label: 'Personal Info', earned, total: 20, missing })
     }
 
-    // ── Professional Credentials (25%) ──
+    // ── Professional Credentials (25%) — license 7, cert 7, npi 6, dea 5 (license/cert weighted highest) ──
     {
         let earned = 0
         const missing: string[] = []
-        if ((c.licenses || 0) >= 1) earned += 8; else { missing.push('License'); missingItems.push({ label: 'Add a license', weight: 8, fieldId: 'tab-credentials' }) }
+        if ((c.licenses || 0) >= 1) earned += 7; else { missing.push('License'); missingItems.push({ label: 'Add a license', weight: 7, fieldId: 'tab-credentials' }) }
         if ((c.certificationRecords || 0) >= 1) earned += 7; else { missing.push('Certification'); missingItems.push({ label: 'Add a certification', weight: 7, fieldId: 'tab-credentials' }) }
-        if (hasText(profile.npiNumber)) earned += 5; else { missing.push('NPI number'); missingItems.push({ label: 'Add NPI number', weight: 5, fieldId: 'tab-credentials' }) }
+        if (hasText(profile.npiNumber)) earned += 6; else { missing.push('NPI number'); missingItems.push({ label: 'Add NPI number', weight: 6, fieldId: 'tab-credentials' }) }
         if (hasText(profile.deaNumber)) earned += 5; else { missing.push('DEA number'); missingItems.push({ label: 'Add DEA number', weight: 5, fieldId: 'tab-credentials' }) }
         sections.push({ label: 'Credentials', earned, total: 25, missing })
     }

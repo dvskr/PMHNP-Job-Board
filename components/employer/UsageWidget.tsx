@@ -238,19 +238,27 @@ function CompactMeter({
     gradient: string;
     glow: string;
 }) {
+    // No active posting → no entitlement at all. Render a dashed, gentle empty
+    // state instead of "0/25", which previously implied a free 25-credit pool.
+    const noEntitlement = !unlimited && (limit === 0 || limit === null);
+
     const pct = unlimited || !limit ? 0 : Math.min((used / limit) * 100, 100);
-    const isNearLimit = !unlimited && limit && used >= limit * 0.8;
-    const isAtLimit = !unlimited && limit && used >= limit;
-    const valueColor = isAtLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
+    const isNearLimit = !unlimited && !!limit && used >= limit * 0.8;
+    const isAtLimit = !unlimited && !!limit && used >= limit;
+    const valueColor = noEntitlement
+        ? '#B0C4BC'
+        : isAtLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
 
     return (
         <div style={{
             ...clayCard, padding: '12px 14px',
-            border: isAtLimit
-                ? '1px solid rgba(239,68,68,0.22)'
-                : isNearLimit
-                    ? '1px solid rgba(251,191,36,0.22)'
-                    : '1px solid rgba(0,0,0,0.05)',
+            border: noEntitlement
+                ? '1px dashed rgba(0,0,0,0.12)'
+                : isAtLimit
+                    ? '1px solid rgba(239,68,68,0.22)'
+                    : isNearLimit
+                        ? '1px solid rgba(251,191,36,0.22)'
+                        : '1px solid rgba(0,0,0,0.05)',
             display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -259,6 +267,7 @@ function CompactMeter({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: glow, color: accent,
                     flexShrink: 0,
+                    opacity: noEntitlement ? 0.55 : 1,
                 }}>
                     {icon}
                 </div>
@@ -268,16 +277,17 @@ function CompactMeter({
                         textTransform: 'uppercase', letterSpacing: '0.06em',
                     }}>{label}</span>
                     <span style={{
-                        fontSize: '14px', fontWeight: 800,
+                        fontSize: noEntitlement ? '11px' : '14px',
+                        fontWeight: 800,
                         color: valueColor,
                         fontFamily: 'var(--font-inter, system-ui)',
                         whiteSpace: 'nowrap',
                     }}>
-                        {unlimited ? '∞' : `${used}/${limit}`}
+                        {unlimited ? '∞' : noEntitlement ? 'Post a job' : `${used}/${limit}`}
                     </span>
                 </div>
             </div>
-            {!unlimited && limit && (
+            {!unlimited && !noEntitlement && limit && (
                 <div style={{
                     width: '100%', height: '4px', borderRadius: '2px',
                     background: '#F0F2F5',

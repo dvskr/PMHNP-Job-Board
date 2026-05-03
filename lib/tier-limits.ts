@@ -271,10 +271,17 @@ export async function getUsageSummary(
     const postings = await getEmployerActivePostings(employerId);
 
     if (postings.length === 0) {
-        const limits = config.getTierLimits(tier);
+        // No active posting → no entitlement. Returning the per-posting tier
+        // allowance here was misleading: the dashboard rendered "0/25 unlocks"
+        // and the talent-pool cards showed "Unlock Profile" CTAs that always
+        // failed at the API with `reason: 'no_posting'`. Reporting a 0-cap
+        // makes the empty state explicit so the UI can prompt "Post a job".
+        // `tier` is still useful upstream as the plan label, so we keep the
+        // arg even though we no longer read its allowances here.
+        void tier;
         return {
-            candidateUnlocks: { used: 0, limit: limits.candidateUnlocksPerPosting },
-            inmails: { used: 0, limit: limits.inmailsPerPosting },
+            candidateUnlocks: { used: 0, limit: 0 },
+            inmails: { used: 0, limit: 0 },
         };
     }
 
