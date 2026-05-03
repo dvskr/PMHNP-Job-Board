@@ -325,7 +325,7 @@ genuinely demands them.
 
 | Use case | Recommended model | Approx unit cost | Why |
 |---|---|---|---|
-| **Candidate scoring** (today's gpt-4o-mini) | `gpt-5-nano` | $0.0001 | Cheaper than current 4o-mini. A/B against `gpt-5-mini` if quality regresses. |
+| **Candidate scoring** (today's gpt-4o-mini) | `gpt-5-mini` | $0.001 | Scoring drives employer-visible decisions (interview / reject). Reasoning quality matters more than the marginal cost vs nano (~$5/mo vs $0.50/mo at 5k scorings). |
 | **Resume parsing** (auto-fill profile) | `gpt-5-mini` | $0.001 | Structured extraction; tier-2 reasoning is plenty. |
 | **Spam / fraud detection** | `gpt-5-nano` | $0.0001 | High-volume binary classification. Effectively free. |
 | **Bias auditor** (employer JDs) | `gpt-5-mini` | $0.001 | Pattern detection, not deep reasoning. |
@@ -379,7 +379,7 @@ LLM Gateway lands (Phase 0).
 
 | Workload | Volume/mo | Model | Unit cost (cached) | Monthly cost |
 |---|---|---|---|---|
-| Candidate scoring | 5,000 | `gpt-5-nano` | $0.0001 | **$0.50** |
+| Candidate scoring | 5,000 | `gpt-5-mini` | $0.001 | **$5.00** |
 | Resume parsing | 200 (new signups) | `gpt-5-mini` | $0.001 | **$0.20** |
 | Cover letter generation | 1,500 (30% of apps) | `gpt-5` | $0.005 | **$7.50** |
 | Application coach | 3,000 (pre-submit) | `gpt-5-mini` | $0.001 | **$3.00** |
@@ -453,7 +453,7 @@ We've succeeded when:
 ## 14. Next Steps
 
 1. Review this doc, mark sections as approved / needs-rework
-2. **Quick win, ship today:** swap `lib/candidate-scorer.ts` model from `gpt-4o-mini` → `gpt-5-nano` (one-line change, expected unit cost drops from $0.0005 → $0.0001 with possibly better reasoning). A/B against `gpt-5-mini` if quality regresses.
+2. **Shipped:** swapped `lib/candidate-scorer.ts` from `gpt-4o-mini` → `gpt-5-mini`. Cost goes from $0.0005 → $0.001 per scoring (~$5/mo at projected 5k volume), buys noticeably better reasoning since scoring outputs drive employer interview/reject decisions.
 3. Pick Phase 0 ship list, scope into sprint-sized tickets
 4. Decide on feature flag system (config.ts vs Statsig)
 5. Set up LLM Gateway scaffold (also unlocks 90%-off cached-input pricing per Section 7.2)

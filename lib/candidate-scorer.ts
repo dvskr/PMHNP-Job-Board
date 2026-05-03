@@ -112,7 +112,11 @@ export async function scoreCandidate(
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      // gpt-5-mini chosen over gpt-5-nano for candidate scoring: scoring drives
+      // employer-visible decisions (interview/reject), so reasoning quality
+      // matters more than the marginal cost difference (~$5/mo vs $0.50/mo at
+      // 5k scorings). See docs/ai-architecture.md Section 7.1.
+      model: 'gpt-5-mini',
       messages: [
         { role: 'system', content: SCORING_PROMPT },
         {
