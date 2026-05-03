@@ -14,9 +14,48 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
  *  - { resumeUrl: string } — path in Supabase Storage (e.g. "resumes/userId/file.pdf")
  *  - multipart/form-data with a "file" field
  */
+// Cap upload size to prevent OOM in the Vercel function (resumes are typically <2MB).
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+const SUPPORTED_RESUME_CONTENT_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+]);
+
+function inferContentTypeFromPath(resumePath: string): string {
+  const lower = resumePath.toLowerCase();
+  if (lower.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  if (lower.endsWith('.doc')) {
+    return 'application/msword';
+  }
+  return 'application/pdf';
+}
+
 export async function POST(request: NextRequest) {
   const rateLimitResult = await rateLimit(request, 'resume:parse', { limit: 5, windowSeconds: 60 });
   if (rateLimitResult) return rateLimitResult;
+
+  // Fail fast with a precise status if server config is missing — avoids
+  // the opaque 500s we were seeing when the Node module booted without
+  // the keys it needs and crashed mid-request.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey || !process.env.OPENAI_API_KEY) {
+    logger.error('Resume parse misconfigured: missing required env vars', {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasServiceKey: Boolean(supabaseServiceKey),
+      hasOpenAi: Boolean(process.env.OPENAI_API_KEY),
+    });
+    return NextResponse.json(
+      { error: 'Resume parsing is temporarily unavailable. Please try again later.' },
+      { status: 503 }
+    );
+  }
+
+  let userId: string | null = null;
 
   try {
     const supabase = await createClient();
@@ -25,9 +64,13 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    userId = user.id;
 
-    // Mark profile as parsing-in-progress
-    await prisma.userProfile.update({
+    // Mark profile as parsing-in-progress.
+    // updateMany doesn't throw P2025 ("record not found") if the profile row
+    // doesn't exist yet — previously the missing-profile case crashed the
+    // route with a hard 500 before the file was even read.
+    await prisma.userProfile.updateMany({
       where: { supabaseId: user.id },
       data: { resumeParseStatus: 'pending' },
     });
@@ -40,18 +83,14 @@ export async function POST(request: NextRequest) {
 
     if (ct.includes('application/json')) {
       // Download from Supabase Storage
-      const body = await request.json();
-      const resumePath = body.resumeUrl;
+      const body = await request.json().catch(() => null);
+      const resumePath = body?.resumeUrl;
 
       if (!resumePath || typeof resumePath !== 'string') {
         return NextResponse.json({ error: 'resumeUrl is required' }, { status: 400 });
       }
 
-      // Use admin client to download the file
-      const adminSupabase = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      const adminSupabase = createSupabaseClient(supabaseUrl, supabaseServiceKey);
 
       const { data: fileData, error: downloadError } = await adminSupabase.storage
         .from('resumes')
@@ -59,42 +98,67 @@ export async function POST(request: NextRequest) {
 
       if (downloadError || !fileData) {
         logger.error('Failed to download resume from storage', { resumePath, error: downloadError });
-        await prisma.userProfile.update({
-          where: { supabaseId: user.id },
-          data: { resumeParseStatus: 'failed' },
-        });
+        await markProfileFailed(user.id);
         return NextResponse.json({ error: 'Failed to download resume' }, { status: 400 });
+      }
+
+      if (fileData.size > MAX_FILE_BYTES) {
+        await markProfileFailed(user.id);
+        return NextResponse.json({ error: 'Resume file is too large (max 5MB)' }, { status: 413 });
       }
 
       const arrayBuffer = await fileData.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
-      contentType = resumePath.endsWith('.docx')
-        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        : resumePath.endsWith('.doc')
-          ? 'application/msword'
-          : 'application/pdf';
+      contentType = inferContentTypeFromPath(resumePath);
     } else {
       // Direct file upload via form-data
       const formData = await request.formData();
-      const file = formData.get('file') as File;
+      const file = formData.get('file') as File | null;
 
       if (!file) {
         return NextResponse.json({ error: 'No file provided' }, { status: 400 });
       }
 
+      if (file.size > MAX_FILE_BYTES) {
+        await markProfileFailed(user.id);
+        return NextResponse.json({ error: 'Resume file is too large (max 5MB)' }, { status: 413 });
+      }
+
+      contentType = file.type || inferContentTypeFromPath(file.name || '');
+
+      if (!SUPPORTED_RESUME_CONTENT_TYPES.has(contentType)) {
+        await markProfileFailed(user.id);
+        return NextResponse.json(
+          { error: 'Unsupported file type. Upload a PDF or Word document.' },
+          { status: 415 }
+        );
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
-      contentType = file.type;
     }
 
     // Parse the resume with AI
-    const parsed = await parseResume(buffer, contentType);
+    let parsed: ParsedResume;
+    try {
+      parsed = await parseResume(buffer, contentType);
+    } catch (parseErr) {
+      logger.error('Resume content extraction or AI parse failed', parseErr, { userId: user.id });
+      await markProfileFailed(user.id);
+      // The user uploaded a file we couldn't read — return 422 (unprocessable),
+      // not 500. Keeps the error budget honest and tells the client it's a
+      // content problem, not a server outage.
+      return NextResponse.json(
+        { error: 'We could not read this resume. Try a text-based PDF or DOCX.' },
+        { status: 422 }
+      );
+    }
 
     // Auto-fill profile (only update empty fields)
     await autoFillProfile(user.id, parsed);
 
     // Mark as completed
-    await prisma.userProfile.update({
+    await prisma.userProfile.updateMany({
       where: { supabaseId: user.id },
       data: {
         resumeParsedAt: new Date(),
@@ -116,26 +180,27 @@ export async function POST(request: NextRequest) {
       message: 'Resume parsed and profile updated successfully',
     });
   } catch (err) {
-    logger.error('Resume parse failed', err);
+    logger.error('Resume parse failed', err, { userId: userId ?? undefined });
 
-    // Try to mark as failed
-    try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await prisma.userProfile.update({
-          where: { supabaseId: user.id },
-          data: { resumeParseStatus: 'failed' },
-        });
-      }
-    } catch {
-      // ignore
+    if (userId) {
+      await markProfileFailed(userId);
     }
 
     return NextResponse.json(
       { error: 'Failed to parse resume' },
       { status: 500 }
     );
+  }
+}
+
+async function markProfileFailed(supabaseId: string): Promise<void> {
+  try {
+    await prisma.userProfile.updateMany({
+      where: { supabaseId },
+      data: { resumeParseStatus: 'failed' },
+    });
+  } catch (err) {
+    logger.warn('Failed to mark profile as failed', { supabaseId }, err);
   }
 }
 

@@ -133,6 +133,81 @@ export async function middleware(request: NextRequest) {
         }
     }
 
+    // ── 410 Gone for Empty Company Pages ──────────────────────────────
+    // Companies that exist in the DB but currently have 0 active published
+    // jobs were returning 404 via notFound(). Crawlers (AhrefsBot, Bingbot)
+    // keep retrying these. Return 410 instead so they de-index permanently.
+    // DB stores normalizedName with spaces; the slug arrives as %20-encoded
+    // and Next.js path matching is case-sensitive on byte values, so we
+    // decode before querying.
+    if (pathname.startsWith('/companies/') && pathname.split('/').length === 3) {
+        const rawSlug = pathname.split('/')[2];
+        if (rawSlug && rawSlug.length > 0) {
+            let decodedSlug: string;
+            try {
+                decodedSlug = decodeURIComponent(rawSlug);
+            } catch {
+                decodedSlug = rawSlug;
+            }
+            try {
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.PROD_SUPABASE_URL;
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
+                if (supabaseUrl && supabaseKey) {
+                    // Look up by normalized_name; PostgREST needs URL-encoded value.
+                    const lookup = encodeURIComponent(decodedSlug);
+                    const res = await fetch(
+                        `${supabaseUrl}/rest/v1/companies?normalized_name=eq.${lookup}&select=id`,
+                        {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                            },
+                        }
+                    );
+                    if (res.ok) {
+                        const rows = await res.json();
+                        if (rows.length > 0) {
+                            const companyId = rows[0].id;
+                            // Count active published jobs for this company.
+                            const nowIso = new Date().toISOString();
+                            const countRes = await fetch(
+                                `${supabaseUrl}/rest/v1/jobs?company_id=eq.${companyId}&is_published=eq.true&expires_at=gt.${encodeURIComponent(nowIso)}&select=id&limit=1`,
+                                {
+                                    headers: {
+                                        'apikey': supabaseKey,
+                                        'Authorization': `Bearer ${supabaseKey}`,
+                                        'Prefer': 'count=exact',
+                                    },
+                                }
+                            );
+                            if (countRes.ok) {
+                                const contentRange = countRes.headers.get('content-range') || '';
+                                const totalMatch = contentRange.match(/\/(\d+)$/);
+                                const total = totalMatch ? parseInt(totalMatch[1], 10) : NaN;
+                                if (!Number.isNaN(total) && total === 0) {
+                                    return new NextResponse(
+                                        `<!DOCTYPE html><html><head><meta name="robots" content="noindex"><title>No Open Positions</title></head><body><h1>410 Gone</h1><p>This employer currently has no active PMHNP openings.</p><p><a href="/jobs">Browse current PMHNP jobs</a></p></body></html>`,
+                                        {
+                                            status: 410,
+                                            headers: {
+                                                'Content-Type': 'text/html',
+                                                'X-Robots-Tag': 'noindex, nofollow',
+                                                'Cache-Control': 'public, max-age=86400',
+                                            },
+                                        }
+                                    );
+                                }
+                            }
+                        }
+                        // company not found → fall through; page will 404
+                    }
+                }
+            } catch {
+                // If DB check fails, fall through to page rendering
+            }
+        }
+    }
+
     // ── CSP Nonce Generation ──────────────────────────────────────────
     // Generate a unique nonce per request for Content-Security-Policy
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
@@ -224,13 +299,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Company URL Normalization ─────────────────────────────────────
-    // GSC shows ~100 company pages crawled with spaces instead of hyphens
-    // (e.g., "/companies/elite dna behavioral" → "/companies/elite-dna-behavioral")
-    if (pathname.startsWith('/companies/') && pathname.includes(' ')) {
-        const normalized = pathname.replace(/ +/g, '-').toLowerCase();
-        url.pathname = normalized;
-        return NextResponse.redirect(url, 301);
-    }
+    // DB stores Company.normalizedName with spaces. Both spaced and %20-encoded
+    // URLs already resolve correctly via Next.js param decoding, so we leave
+    // those alone. We only normalize uppercase here (handled by case-fold below).
 
     // ── Junk URL Cleanup ──────────────────────────────────────────────
     // Redirect only specific garbage paths that got crawled to homepage
