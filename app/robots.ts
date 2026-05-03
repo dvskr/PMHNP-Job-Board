@@ -94,6 +94,30 @@ const SOCIAL_BOTS = [
   'redditbot',
 ] as const
 
+// SEO link-graph crawlers. Allowed to crawl the public site, but throttled
+// because they generate volume (Ahrefs alone hit ~1,700 pages in a 2.5h
+// window — most of them 410'd job pages) without driving traffic in return.
+// Crawl-delay is honored by AhrefsBot, MJ12bot, SemrushBot, DotBot, and
+// PetalBot. (Googlebot and Bingbot do NOT honor crawl-delay — use their
+// respective Search Console crawl rate settings instead.)
+const SEO_CRAWLERS = [
+  'AhrefsBot',
+  'SemrushBot',
+  'MJ12bot',
+  'DotBot',
+  'PetalBot',
+  'YandexBot',
+] as const
+
+// Throttle high-volume LLM crawlers without blocking them entirely. Most of
+// these honor Crawl-delay; for those that don't (PerplexityBot historically),
+// the directive is at least documented intent and a hint to behave.
+const AI_CRAWL_DELAY_SECONDS = 5
+
+// SEO-tool crawlers — heavier throttle since their access doesn't directly
+// drive user value.
+const SEO_CRAWL_DELAY_SECONDS = 10
+
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
 
@@ -105,11 +129,21 @@ export default function robots(): MetadataRoute.Robots {
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
       },
-      // AI search & LLM crawlers — same protections as catch-all
+      // AI search & LLM crawlers — same access, but with a crawl delay so
+      // they don't dominate traffic share (PerplexityBot was 22% of all hits).
       ...AI_CRAWLERS.map((ua) => ({
         userAgent: ua,
         allow: PUBLIC_ALLOW,
         disallow: FULL_DISALLOW,
+        crawlDelay: AI_CRAWL_DELAY_SECONDS,
+      })),
+      // SEO link-graph crawlers — throttled. They retain access to the
+      // public site so backlink data still updates.
+      ...SEO_CRAWLERS.map((ua) => ({
+        userAgent: ua,
+        allow: PUBLIC_ALLOW,
+        disallow: FULL_DISALLOW,
+        crawlDelay: SEO_CRAWL_DELAY_SECONDS,
       })),
       // Social / link-preview bots — they fetch single URLs on demand
       ...SOCIAL_BOTS.map((ua) => ({

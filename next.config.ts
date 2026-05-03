@@ -117,6 +117,24 @@ const nextConfig: NextConfig = {
         destination: '/jobs/new-grad',
         permanent: true,
       },
+      // Crawler-discovered URL pattern that never existed; canonical route is /jobs/city/[slug]
+      {
+        source: '/jobs/locations/city/:slug',
+        destination: '/jobs/city/:slug',
+        permanent: true,
+      },
+      // Bots invent /salary-guide/city/<slug>; canonical content lives at /salary-guide
+      {
+        source: '/salary-guide/city/:slug*',
+        destination: '/salary-guide',
+        permanent: true,
+      },
+      // Legacy/expected /register path → canonical /signup
+      {
+        source: '/register',
+        destination: '/signup',
+        permanent: true,
+      },
     ];
   },
 };
