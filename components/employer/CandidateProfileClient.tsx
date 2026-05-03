@@ -142,7 +142,7 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
         return (
             <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <Loader2 size={32} className="animate-spin" style={{ color: '#0D9488', marginBottom: '12px' }} />
+                    <Loader2 size={32} className="animate-spin" style={{ color: '#0D9488', margin: '0 auto 12px', display: 'block' }} />
                     <p style={{ color: '#8A9BA6', fontSize: '14px' }}>Loading candidate profile…</p>
                 </div>
             </div>
@@ -161,9 +161,9 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
             <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '460px' }}>
                     {isNoPosting ? (
-                        <Briefcase size={36} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                        <Briefcase size={36} style={{ color: '#0D9488', margin: '0 auto 12px', display: 'block' }} />
                     ) : (
-                        <Shield size={36} style={{ color: '#B0C4BC', marginBottom: '12px' }} />
+                        <Shield size={36} style={{ color: '#B0C4BC', margin: '0 auto 12px', display: 'block' }} />
                     )}
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '8px' }}>
                         {heading}

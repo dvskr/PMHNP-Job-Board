@@ -313,7 +313,9 @@ export default function EmployerSettingsClient() {
         try {
             const supabase = createClient();
             const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-                redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+                // /auth/confirm — handles hash-fragment recovery tokens that
+                // the server-side /auth/callback can't read.
+                redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
             });
             if (error) throw error;
             showMsg('success', 'Password reset email sent!');

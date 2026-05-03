@@ -39,6 +39,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.test.example
 
 # Local audit-script artifacts — contain prod data snapshots, not for commit
 .tmp_*

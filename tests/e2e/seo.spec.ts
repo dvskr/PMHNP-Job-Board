@@ -19,14 +19,17 @@ test('robots.txt is reachable and well-formed', async ({ request }) => {
   expect(body).not.toMatch(/User-Agent:\s*\*\s*\nDisallow:\s*\/\s*$/im);
 });
 
-test('sitemap.xml is reachable and contains job URLs', async ({ request }) => {
+test('sitemap.xml is reachable and contains URLs', async ({ request }) => {
   const res = await request.get('/sitemap.xml');
   expect(res.status()).toBe(200);
   const body = await res.text();
   expect(body).toContain('<urlset');
-  // At minimum, homepage and /jobs should be present
-  expect(body).toContain('https://pmhnphiring.com');
-  expect(body).toMatch(/<loc>https:\/\/pmhnphiring\.com\/?<\/loc>/);
+  // At minimum, the homepage URL should be present (use NEXT_PUBLIC_BASE_URL fallback host)
+  const expectedHost = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com').replace(
+    /\/$/,
+    ''
+  );
+  expect(body).toContain(expectedHost);
 });
 
 test('sitemap index is reachable', async ({ request }) => {
@@ -37,7 +40,7 @@ test('sitemap index is reachable', async ({ request }) => {
 test('homepage has canonical link tag', async ({ page }) => {
   await page.goto('/');
   const canonical = page.locator('link[rel="canonical"]');
-  await expect(canonical).toHaveAttribute('href', /https:\/\/pmhnphiring\.com\/?$/);
+  await expect(canonical).toHaveAttribute('href', /^https?:\/\/[^/]+\/?$/);
 });
 
 test('jobs page has canonical link tag', async ({ page }) => {
@@ -66,7 +69,7 @@ test('a job detail page has JobPosting structured data', async ({ page, request 
   // Find a real job from the listings page to test against
   const res = await request.get('/sitemap.xml');
   const body = await res.text();
-  const jobUrlMatch = body.match(/<loc>(https:\/\/pmhnphiring\.com\/jobs\/[^<]+)<\/loc>/);
+  const jobUrlMatch = body.match(/<loc>(https?:\/\/[^<]+\/jobs\/[^<]+)<\/loc>/);
   if (!jobUrlMatch) {
     test.skip(true, 'No job URLs in sitemap to test');
     return;
@@ -76,7 +79,6 @@ test('a job detail page has JobPosting structured data', async ({ page, request 
   const ldScripts = page.locator('script[type="application/ld+json"]');
   const count = await ldScripts.count();
   expect(count).toBeGreaterThan(0);
-  // At least one should be JobPosting
   const allText = await ldScripts.allInnerTexts();
   const hasJobPosting = allText.some((t) => t.includes('"@type"') && t.includes('JobPosting'));
   expect(hasJobPosting, 'Expected JobPosting structured data on job detail').toBe(true);
