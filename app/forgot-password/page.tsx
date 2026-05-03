@@ -23,7 +23,11 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+          // /auth/confirm handles BOTH PKCE (?code=) and implicit flow
+          // (#access_token=) — the latter is what Supabase recovery emails
+          // use, and the server-side /auth/callback can't read URL hashes,
+          // so pointing recovery there bounces users to the login page.
+          redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
         }),
       })
       if (!res.ok) {
