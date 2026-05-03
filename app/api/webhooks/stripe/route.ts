@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendConfirmationEmail, sendRenewalConfirmationEmail, sendRefundConfirmationEmail, getOrCreateUnsubToken } from '@/lib/email-service';
 import { config, PricingTier } from '@/lib/config';
+import { renewalExpiresAt } from '@/lib/expires-at';
 import { logger } from '@/lib/logger';
 import { pingAllSearchEngines } from '@/lib/search-indexing';
 import { anonymizeEmail } from '@/lib/server-utils';
@@ -112,21 +113,22 @@ export async function POST(request: NextRequest) {
       // Handle renewal payment
       if (type === 'renewal') {
         try {
-          // Calculate new expiry: extend from existing expiresAt if it's still in
-          // the future (don't penalize early renewers who would otherwise lose the
-          // remaining days they paid for); otherwise extend from now (late renewers
-          // don't get to bank dead time).
+          // Calculate new expiry via renewalExpiresAt (UTC math, capped at 365
+          // days from createdAt to prevent indefinite stacking from repeated
+          // back-to-back renewals).
+          //   - Extends from existing expiresAt if still in the future (audit #22)
+          //   - Otherwise extends from now (late renewers don't bank dead time)
+          //   - Hard cap so 6 paid renewals can't push a posting 2 years out
           const renewalTier = (tier || 'pro') as PricingTier;
-          const now = new Date();
           const existingJob = await prisma.job.findUnique({
             where: { id: jobId },
-            select: { expiresAt: true },
+            select: { expiresAt: true, createdAt: true },
           });
-          const baseDate = existingJob?.expiresAt && existingJob.expiresAt > now
-            ? existingJob.expiresAt
-            : now;
-          const newExpiresAt = new Date(baseDate);
-          newExpiresAt.setDate(newExpiresAt.getDate() + config.getDurationDays(renewalTier));
+          const newExpiresAt = renewalExpiresAt({
+            currentExpiry: existingJob?.expiresAt ?? null,
+            originalCreatedAt: existingJob?.createdAt ?? new Date(),
+            durationDays: config.getDurationDays(renewalTier),
+          });
 
           // Update job
           const job = await prisma.job.update({
