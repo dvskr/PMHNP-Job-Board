@@ -302,6 +302,17 @@ export default function CheckoutPage() {
         )}
       </button>
 
+      {/* Terms acknowledgement — visible at point-of-purchase per consumer
+          protection norms. Reduces post-charge "I didn't know it was
+          non-refundable" support tickets and chargeback risk. */}
+      <p className="text-center text-xs text-gray-500 mt-3">
+        By clicking Pay, you agree to our{' '}
+        <Link href="/terms" className="text-teal-600 hover:text-teal-700 underline">
+          Terms of Service
+        </Link>
+        .
+      </p>
+
       {/* Back Link */}
       <div className="text-center mt-4">
         <Link
