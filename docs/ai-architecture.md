@@ -373,12 +373,25 @@ This is one of the first wins the LLM Gateway unlocks (Phase 0).
 
 ---
 
-## 9. Cost Model (rough estimates)
+## 9. Cost Model
 
-Assume 1,000 active candidates + 100 active employers + 100 jobs/month + 5,000 applications/month.
+### 9.1 Where we are TODAY (actual prod state, May 2026)
 
-Model assignments per Section 7.1, with cached-input pricing assumed once
-LLM Gateway lands (Phase 0).
+| Metric | Today | Notes |
+|---|---|---|
+| Total employer postings (lifetime) | **18** | Per `inspect-prod-postings.mjs` |
+| Avg jobs posted per month | **~5** | Over 4-month window |
+| Paid jobs ever | **0** | Pricing audit just shipped |
+| Active candidates | unknown — small | No production candidate-count metric yet |
+| Applications per month | likely <50 | Inferred from `JobApplication` row count |
+
+Estimated current AI cost: **~$0.10/month** — a few hundred candidate scorings on `gpt-5-mini` plus negligible embedding cost. AI cost is currently a rounding error, not a budget line item.
+
+### 9.2 Projection at product-market fit (~year 1 target)
+
+Assumptions: 1,000 active candidates + 100 active employers + 100 jobs/month + 5,000 applications/month.
+
+Model assignments per Section 7.1, with cached-input pricing assumed once LLM Gateway lands (Phase 0).
 
 | Workload | Volume/mo | Model | Unit cost (cached) | Monthly cost |
 |---|---|---|---|---|
@@ -395,9 +408,21 @@ LLM Gateway lands (Phase 0).
 | SEO content generation | 50 pages | `gpt-5.4` | $0.04 | **$2.00** |
 | Career path analysis | 500 (later) | `gpt-5.4` | $0.025 | **$12.50** |
 | Customer support bot | 500 turns | `gpt-5-mini` | $0.001 | **$0.50** |
-| **Total LLM cost** | | | **~$22/month** |
+| **Total LLM cost** | | | | **~$68/month** |
 
-**Total AI cost at this scale: ~$68/month** (up from ~$23 in the prior gpt-5-only model, because gpt-5.4 generation costs ~50% more for the creative/long-form workloads where output quality compounds). Even at 100× scale (real enterprise), AI costs are <$7,000/month. Still small relative to revenue at that scale. **Build aggressively — cost is not the bottleneck. Quality is.**
+### 9.3 Cost across growth stages
+
+| Stage | Volume vs projection | AI cost/mo |
+|---|---|---|
+| **Today** (5 jobs, ~50 apps) | 1% | **~$0.10** |
+| **Pre-PMF traction** (20 jobs, 500 apps) | 10% | **~$7** |
+| **Product-market fit** (100 jobs, 5k apps) | 100% — projection above | **~$68** |
+| **Scaled** (1k jobs, 50k apps) | 1000% | **~$680** |
+| **Enterprise** (10k jobs, 500k apps) | 10000% | **~$6,800** |
+
+**Bottom line:** AI cost scales linearly with usage and stays under 5% of revenue at every stage. Budget against actual usage, not the projection — at today's 5 jobs/mo cadence, AI is genuinely free. The number to track is *time-to-100-jobs-per-month*, not *AI bill*.
+
+**Build aggressively — cost is not the bottleneck. Quality is.** Even at 100× projected scale (real enterprise), AI is <$7,000/month — still small relative to revenue at that scale.
 
 ---
 

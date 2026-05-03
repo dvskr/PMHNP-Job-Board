@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, MapPin, Briefcase, Award, Calendar, DollarSign,
-    FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock,
+    FileText, Mail, ExternalLink, Loader2, Shield, Clock, Linkedin, Lock, Plus,
 } from 'lucide-react';
 import ComposeMessageModal from './ComposeMessageModal';
 
@@ -80,10 +80,13 @@ const sectionLabel: React.CSSProperties = {
     marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px',
 };
 
+type ErrorReason = 'no_posting' | 'posting_cap' | 'daily_cap' | 'not_found' | 'generic';
+
 export default function CandidateProfileClient({ candidateId }: { candidateId: string }) {
     const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [errorReason, setErrorReason] = useState<ErrorReason | null>(null);
     const [showContact, setShowContact] = useState(false);
     const [showCompose, setShowCompose] = useState(false);
     const [postingJobId, setPostingJobId] = useState<string | undefined>(undefined);
@@ -94,12 +97,26 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
             try {
                 const res = await fetch(`/api/employer/candidates/${candidateId}`);
                 if (!res.ok) {
-                    setError(res.status === 404 ? 'Candidate not found or profile is no longer visible.' : 'Failed to load profile.');
+                    if (res.status === 404) {
+                        setError('Candidate not found or profile is no longer visible.');
+                        setErrorReason('not_found');
+                        return;
+                    }
+                    // 403s from the unlock endpoint carry a `reason` we can use
+                    // to render an actionable message instead of "Failed to load".
+                    let body: { error?: string; reason?: ErrorReason } = {};
+                    try { body = await res.json(); } catch { /* non-JSON */ }
+                    const reason = body.reason && ['no_posting', 'posting_cap', 'daily_cap'].includes(body.reason)
+                        ? body.reason
+                        : 'generic';
+                    setErrorReason(reason);
+                    setError(body.error || 'Failed to load profile.');
                     return;
                 }
                 setCandidate(await res.json());
             } catch {
                 setError('Failed to load profile.');
+                setErrorReason('generic');
             } finally {
                 setLoading(false);
             }
@@ -133,16 +150,49 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
     }
 
     if (error || !candidate) {
+        const isNoPosting = errorReason === 'no_posting';
+        const heading = isNoPosting
+            ? 'Post a job to unlock candidates'
+            : (error || 'Profile not available');
+        const sub = isNoPosting
+            ? 'Candidate contact info, resume, and LinkedIn unlock once you have at least one active job posting.'
+            : null;
         return (
             <div style={{ background: '#F5F0EB', padding: '80px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '420px' }}>
-                    <Shield size={36} style={{ color: '#B0C4BC', marginBottom: '12px' }} />
+                <div style={{ ...cardBase, padding: '48px 32px', textAlign: 'center', maxWidth: '460px' }}>
+                    {isNoPosting ? (
+                        <Briefcase size={36} style={{ color: '#0D9488', marginBottom: '12px' }} />
+                    ) : (
+                        <Shield size={36} style={{ color: '#B0C4BC', marginBottom: '12px' }} />
+                    )}
                     <h2 style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', color: '#1A2E35', marginBottom: '8px' }}>
-                        {error || 'Profile not available'}
+                        {heading}
                     </h2>
-                    <Link href="/employer/candidates" style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>
-                        ← Back to Talent Pool
-                    </Link>
+                    {sub && (
+                        <p style={{ fontSize: '13px', color: '#6B7F8A', lineHeight: 1.55, margin: '0 0 18px' }}>
+                            {sub}
+                        </p>
+                    )}
+                    {isNoPosting && (
+                        <Link
+                            href="/post-job"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                padding: '10px 18px', borderRadius: '12px',
+                                fontSize: '13px', fontWeight: 600, color: '#fff',
+                                background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                boxShadow: '3px 3px 8px rgba(13,148,136,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+                                textDecoration: 'none', marginBottom: '14px',
+                            }}
+                        >
+                            <Plus size={14} /> Post a Job
+                        </Link>
+                    )}
+                    <div>
+                        <Link href="/employer/candidates" style={{ color: '#0D9488', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>
+                            ← Back to Talent Pool
+                        </Link>
+                    </div>
                 </div>
             </div>
         );

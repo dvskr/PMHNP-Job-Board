@@ -99,10 +99,19 @@ export default function CandidateCard({
     const extraStates = safeStates.length - maxStates;
 
     // Unlock credit calculations
-    const remaining = unlockUsage && !unlockUsage.unlimited && unlockUsage.limit
+    // Distinguish three states (when not yet viewed):
+    //   1. unlimited / no usage payload → show normal Unlock CTA
+    //   2. limit === 0 → no active posting at all; gate behind "Post a Job"
+    //   3. limit > 0, remaining > 0 → show "Unlock Profile (X left)"
+    //   4. limit > 0, remaining <= 0 → show "No Unlocks Left" + upgrade hint
+    const hasNoEntitlement = !!unlockUsage
+        && !unlockUsage.unlimited
+        && (unlockUsage.limit === 0 || unlockUsage.limit === null);
+    const remaining = unlockUsage && !unlockUsage.unlimited && unlockUsage.limit && unlockUsage.limit > 0
         ? unlockUsage.limit - unlockUsage.used
         : null;
-    const isExhausted = !isViewed && remaining !== null && remaining <= 0;
+    const isExhausted = !isViewed && !hasNoEntitlement && remaining !== null && remaining <= 0;
+    const requiresPosting = !isViewed && hasNoEntitlement;
 
     return (
         <div
@@ -263,7 +272,27 @@ export default function CandidateCard({
                     )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
-                    {isExhausted ? (
+                    {requiresPosting ? (
+                        <>
+                            <Link
+                                href="/post-job"
+                                className="clay-profile-btn"
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    fontSize: '12px', fontWeight: 600, color: '#fff',
+                                    textDecoration: 'none', padding: '7px 14px', borderRadius: '12px',
+                                    background: 'linear-gradient(145deg, #10B981, #0D9488)',
+                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                    transition: 'all 0.2s', whiteSpace: 'nowrap',
+                                }}
+                            >
+                                <Briefcase size={12} /> Post a Job
+                            </Link>
+                            <span style={{ fontSize: '10px', color: '#8A9BA6', whiteSpace: 'nowrap' }}>
+                                to unlock candidates
+                            </span>
+                        </>
+                    ) : isExhausted ? (
                         <>
                             <span style={{
                                 display: 'flex', alignItems: 'center', gap: '5px',

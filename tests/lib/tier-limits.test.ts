@@ -218,14 +218,19 @@ describe('canSendInMail', () => {
 describe('getUsageSummary', () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it('returns 0/limit-of-tier when no active postings', async () => {
+    it('reports zero entitlement when no active postings', async () => {
+        // No active posting → no allowance yet. Reporting the per-posting tier
+        // cap here (the previous behavior) misled the dashboard into rendering
+        // "0/25 unlocks" and the talent-pool cards into showing "Unlock Profile"
+        // CTAs that always failed at the API. We now report 0/0 so the empty
+        // state is explicit and the UI can prompt "Post a job".
         vi.mocked(prisma.employerJob.findMany).mockResolvedValue([] as never);
 
         const result = await getUsageSummary(PROFILE_ID, EMPLOYER_ID, 'pro');
         expect(result.candidateUnlocks.used).toBe(0);
-        expect(result.candidateUnlocks.limit).toBe(25);
+        expect(result.candidateUnlocks.limit).toBe(0);
         expect(result.inmails.used).toBe(0);
-        expect(result.inmails.limit).toBe(25);
+        expect(result.inmails.limit).toBe(0);
     });
 
     it('limit scales with number of active postings (50 for two postings)', async () => {
