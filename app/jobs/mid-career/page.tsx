@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Mid-Career PMHNP Jobs ($140K-190K)`, description: `Find ${stats.totalJobs} mid-career PMHNP positions. Leadership, specialty, and supervisory roles paying $140K-190K+.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/mid-career' } };
+  return { title: `${stats.totalJobs} Mid-Career PMHNP Jobs ($140K-190K)`, description: `Find ${stats.totalJobs} mid-career PMHNP positions. Leadership, specialty, and supervisory roles paying $140K-190K+.`, alternates: { canonical: `${brand.baseUrl}/jobs/mid-career` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

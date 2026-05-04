@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${stats.totalJobs} Full-Time PMHNP Jobs ($130K-180K)`,
     description: `Find ${stats.totalJobs} full-time PMHNP jobs with benefits, PTO, and retirement. Permanent psychiatric NP positions paying $130K-180K+.`,
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/full-time' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/full-time` },
   };
 }
 

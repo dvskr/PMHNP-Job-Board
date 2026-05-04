@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp', width: 1280, height: 900, alt: 'PMHNP career resources and guides' }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-career-resources-guides.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/resources' },
+  alternates: { canonical: `${brand.baseUrl}/resources` },
 };
 
 /* ─── Clay styles ─── */

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     url: 'https://pmhnphiring.com/companies',
   },
   alternates: {
-    canonical: 'https://pmhnphiring.com/companies',
+    canonical: `${brand.baseUrl}/companies`,
   },
 };
 

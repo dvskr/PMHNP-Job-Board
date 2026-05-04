@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP employer hiring solutions' }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/for-employers' },
+  alternates: { canonical: `${brand.baseUrl}/for-employers` },
 };
 
 /* ═══ Design Tokens — matched to homepage ═══ */

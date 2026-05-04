@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 /*
  * Exact Wellfound "From the blog" CSS — source: DevTools inspection
@@ -86,14 +86,15 @@ export default function HomepageBlogSection() {
             </div>
 
             {/* ═══ Blog rows ═══ */}
-            <motion.div
+            <LazyMotion features={domAnimation}>
+            <m.div
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-50px' }}
                 variants={stagger}
             >
                 {FEATURED_POSTS.map((post, i) => (
-                    <motion.div key={i} variants={rowAnim}>
+                    <m.div key={i} variants={rowAnim}>
                         <Link href={post.href} className="wf-link">
                             <div className="wf-row">
                                 {/* Col1: Category — 150px, ml 24px, mr 64px */}
@@ -116,9 +117,10 @@ export default function HomepageBlogSection() {
                                 </div>
                             </div>
                         </Link>
-                    </motion.div>
+                    </m.div>
                 ))}
-            </motion.div>
+            </m.div>
+            </LazyMotion>
 
             {/* ═══ Branded CSS ═══ */}
             <style jsx global>{`

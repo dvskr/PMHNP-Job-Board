@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
         images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp', width: 1280, height: 900, alt: 'PMHNP job board pricing' }],
     },
     twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-employer-hiring-solutions.webp'] },
-    alternates: { canonical: 'https://pmhnphiring.com/pricing' },
+    alternates: { canonical: `${brand.baseUrl}/pricing` },
 };
 
 /* ═══ Clay Tokens — matched to employer page ═══ */

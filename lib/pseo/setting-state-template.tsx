@@ -207,19 +207,66 @@ export default async function SettingStatePage({ settingKey, stateSlug, page }: 
   const jobs = await getJobs(config, stateName!, skip, limit);
 
   const totalPages = Math.ceil(stats.totalJobs / limit);
-  const neighbors = NEIGHBORING_STATES[stateName!] || [];
+  const rawNeighbors = NEIGHBORING_STATES[stateName!] || [];
   const basePath = `/jobs/${config.slug}/${stateSlug}`;
 
-  // Other settings for cross-linking
-  const otherSettings = Object.values(SETTING_CONFIGS).filter((s) => s.slug !== config.slug);
+  // GSC Fix (P1.5): gate cross-links by pseoStats.totalJobs ≥ 1 so we never
+  // link Googlebot to empty pages. Empty cross-links generated thousands of
+  // "Discovered — currently not indexed" entries before. One pseoStats fan-out
+  // query per concern; all rows pre-aggregated, so this is fast.
+  //
+  // Other-settings for THIS state with ≥1 job
+  const otherSettingRows = await prisma.pseoStats.findMany({
+    where: {
+      type: 'setting-state',
+      locationSlug: stateSlug,
+      totalJobs: { gte: 1 },
+      categorySlug: { not: config.slug },
+    },
+    select: { categorySlug: true },
+  });
+  const otherSettingSlugs = new Set(otherSettingRows.map(r => r.categorySlug));
+  const otherSettings = Object.values(SETTING_CONFIGS).filter(
+    (s) => s.slug !== config.slug && otherSettingSlugs.has(s.slug),
+  );
 
-  // 7.3: Top cities in this state for internal linking
+  // Neighbor states where THIS setting has ≥1 job
+  const neighborSlugs = rawNeighbors.map(n => stateToSlug(n));
+  const validNeighborRows = neighborSlugs.length > 0
+    ? await prisma.pseoStats.findMany({
+        where: {
+          type: 'setting-state',
+          categorySlug: config.slug,
+          locationSlug: { in: neighborSlugs },
+          totalJobs: { gte: 1 },
+        },
+        select: { locationSlug: true },
+      })
+    : [];
+  const validNeighborSlugs = new Set(validNeighborRows.map(r => r.locationSlug));
+  const neighbors = rawNeighbors.filter(n => validNeighborSlugs.has(stateToSlug(n)));
+
+  // Top cities in this state where THIS setting has ≥1 city-level job
   const stateCode = STATE_CODES[stateName!];
-  const topCities = stateCode
+  const candidateCities = stateCode
     ? getCitiesByState(stateCode)
         .sort((a, b) => b.population - a.population)
-        .slice(0, 10)
+        .slice(0, 30) // overshoot — we'll filter then trim to 10
     : [];
+  const candidateSlugs = candidateCities.map(c => c.slug);
+  const validCityRows = candidateSlugs.length > 0
+    ? await prisma.pseoStats.findMany({
+        where: {
+          type: 'category-city',
+          categorySlug: config.slug,
+          locationSlug: { in: candidateSlugs },
+          totalJobs: { gte: 1 },
+        },
+        select: { locationSlug: true },
+      })
+    : [];
+  const validCitySlugs = new Set(validCityRows.map(r => r.locationSlug));
+  const topCities = candidateCities.filter(c => validCitySlugs.has(c.slug)).slice(0, 10);
   const assets = CATEGORY_ASSET_REGISTRY[config.slug];
   const practiceAuthority = getStatePracticeAuthority(stateName!);
 

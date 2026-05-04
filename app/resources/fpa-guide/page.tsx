@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Shield, MapPin, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     description: 'State-by-state FPA classifications. See where psychiatric nurse practitioners can practice independently.',
     type: 'article',
   },
-  alternates: { canonical: 'https://pmhnphiring.com/resources/fpa-guide' },
+  alternates: { canonical: `${brand.baseUrl}/resources/fpa-guide` },
 };
 
 export default function FPAGuidePage() {

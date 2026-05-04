@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `LGBTQ+ Affirming PMHNP Jobs | Gender-Affirming Care`, description: `Find LGBTQ+ affirming PMHNP positions. Gender-affirming care, inclusive mental health, and culturally competent psychiatric roles.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/lgbtq' } };
+  return { title: `LGBTQ+ Affirming PMHNP Jobs | Gender-Affirming Care`, description: `Find LGBTQ+ affirming PMHNP positions. Gender-affirming care, inclusive mental health, and culturally competent psychiatric roles.`, alternates: { canonical: `${brand.baseUrl}/jobs/lgbtq` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

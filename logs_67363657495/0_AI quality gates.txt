@@ -1,0 +1,167 @@
+﻿2026-05-04T14:03:36.9631173Z Current runner version: '2.334.0'
+2026-05-04T14:03:36.9658156Z ##[group]Runner Image Provisioner
+2026-05-04T14:03:36.9659085Z Hosted Compute Agent
+2026-05-04T14:03:36.9659661Z Version: 20260213.493
+2026-05-04T14:03:36.9660223Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-05-04T14:03:36.9661002Z Build Date: 2026-02-13T00:28:41Z
+2026-05-04T14:03:36.9661947Z Worker ID: {4dd03582-985b-4c62-94b3-93cd83cc7a52}
+2026-05-04T14:03:36.9662604Z Azure Region: northcentralus
+2026-05-04T14:03:36.9663266Z ##[endgroup]
+2026-05-04T14:03:36.9664727Z ##[group]Operating System
+2026-05-04T14:03:36.9665387Z Ubuntu
+2026-05-04T14:03:36.9665854Z 24.04.4
+2026-05-04T14:03:36.9666354Z LTS
+2026-05-04T14:03:36.9666842Z ##[endgroup]
+2026-05-04T14:03:36.9667332Z ##[group]Runner Image
+2026-05-04T14:03:36.9667934Z Image: ubuntu-24.04
+2026-05-04T14:03:36.9668550Z Version: 20260413.86.1
+2026-05-04T14:03:36.9669806Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260413.86/images/ubuntu/Ubuntu2404-Readme.md
+2026-05-04T14:03:36.9671658Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260413.86
+2026-05-04T14:03:36.9672615Z ##[endgroup]
+2026-05-04T14:03:36.9673677Z ##[group]GITHUB_TOKEN Permissions
+2026-05-04T14:03:36.9676175Z Contents: read
+2026-05-04T14:03:36.9676820Z Metadata: read
+2026-05-04T14:03:36.9677401Z Packages: read
+2026-05-04T14:03:36.9677939Z ##[endgroup]
+2026-05-04T14:03:36.9680042Z Secret source: Actions
+2026-05-04T14:03:36.9681060Z Prepare workflow directory
+2026-05-04T14:03:37.0033468Z Prepare all required actions
+2026-05-04T14:03:37.0072291Z Getting action download info
+2026-05-04T14:03:37.4366228Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-05-04T14:03:37.5562914Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-05-04T14:03:37.7583543Z Complete job name: AI quality gates
+2026-05-04T14:03:37.8387994Z ##[group]Run actions/checkout@v4
+2026-05-04T14:03:37.8389119Z with:
+2026-05-04T14:03:37.8389617Z   repository: dvskr/PMHNP-Job-Board
+2026-05-04T14:03:37.8390460Z   token: ***
+2026-05-04T14:03:37.8390891Z   ssh-strict: true
+2026-05-04T14:03:37.8391637Z   ssh-user: git
+2026-05-04T14:03:37.8392143Z   persist-credentials: true
+2026-05-04T14:03:37.8392663Z   clean: true
+2026-05-04T14:03:37.8393109Z   sparse-checkout-cone-mode: true
+2026-05-04T14:03:37.8393639Z   fetch-depth: 1
+2026-05-04T14:03:37.8394079Z   fetch-tags: false
+2026-05-04T14:03:37.8394532Z   show-progress: true
+2026-05-04T14:03:37.8394998Z   lfs: false
+2026-05-04T14:03:37.8395407Z   submodules: false
+2026-05-04T14:03:37.8395864Z   set-safe-directory: true
+2026-05-04T14:03:37.8396660Z ##[endgroup]
+2026-05-04T14:03:37.9574512Z Syncing repository: dvskr/PMHNP-Job-Board
+2026-05-04T14:03:37.9576561Z ##[group]Getting Git version info
+2026-05-04T14:03:37.9577514Z Working directory is '/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board'
+2026-05-04T14:03:37.9578649Z [command]/usr/bin/git version
+2026-05-04T14:03:37.9628201Z git version 2.53.0
+2026-05-04T14:03:37.9655161Z ##[endgroup]
+2026-05-04T14:03:37.9674441Z Temporarily overriding HOME='/home/runner/work/_temp/431f7600-5f6d-4062-a2c2-3d40c1839dd5' before making global git config changes
+2026-05-04T14:03:37.9677556Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-04T14:03:37.9682909Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board
+2026-05-04T14:03:37.9723675Z Deleting the contents of '/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board'
+2026-05-04T14:03:37.9728985Z ##[group]Initializing the repository
+2026-05-04T14:03:37.9735248Z [command]/usr/bin/git init /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board
+2026-05-04T14:03:37.9840219Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-05-04T14:03:37.9842636Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-05-04T14:03:37.9844041Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-05-04T14:03:37.9845383Z hint: call:
+2026-05-04T14:03:37.9845929Z hint:
+2026-05-04T14:03:37.9846624Z hint: 	git config --global init.defaultBranch <name>
+2026-05-04T14:03:37.9847402Z hint:
+2026-05-04T14:03:37.9848119Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-05-04T14:03:37.9849296Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-05-04T14:03:37.9850232Z hint:
+2026-05-04T14:03:37.9850765Z hint: 	git branch -m <name>
+2026-05-04T14:03:37.9851667Z hint:
+2026-05-04T14:03:37.9853000Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-05-04T14:03:37.9854649Z Initialized empty Git repository in /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board/.git/
+2026-05-04T14:03:37.9860371Z [command]/usr/bin/git remote add origin https://github.com/dvskr/PMHNP-Job-Board
+2026-05-04T14:03:37.9900248Z ##[endgroup]
+2026-05-04T14:03:37.9901075Z ##[group]Disabling automatic garbage collection
+2026-05-04T14:03:37.9907175Z [command]/usr/bin/git config --local gc.auto 0
+2026-05-04T14:03:37.9944025Z ##[endgroup]
+2026-05-04T14:03:37.9944792Z ##[group]Setting up auth
+2026-05-04T14:03:37.9955930Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-04T14:03:37.9994181Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-04T14:03:38.0335341Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-05-04T14:03:38.0371939Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-05-04T14:03:38.0600109Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-05-04T14:03:38.0640909Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-05-04T14:03:38.0876876Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-05-04T14:03:38.0914504Z ##[endgroup]
+2026-05-04T14:03:38.0915407Z ##[group]Fetching the repository
+2026-05-04T14:03:38.0923853Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e563fb07a76b549a0c7b48a5ee3244a2fa408daa:refs/remotes/pull/147/merge
+2026-05-04T14:03:39.7798226Z From https://github.com/dvskr/PMHNP-Job-Board
+2026-05-04T14:03:39.7800900Z  * [new ref]         e563fb07a76b549a0c7b48a5ee3244a2fa408daa -> pull/147/merge
+2026-05-04T14:03:39.7828386Z ##[endgroup]
+2026-05-04T14:03:39.7829919Z ##[group]Determining the checkout info
+2026-05-04T14:03:39.7831166Z ##[endgroup]
+2026-05-04T14:03:39.7835383Z [command]/usr/bin/git sparse-checkout disable
+2026-05-04T14:03:39.7873046Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-05-04T14:03:39.7899068Z ##[group]Checking out the ref
+2026-05-04T14:03:39.7903361Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/147/merge
+2026-05-04T14:03:40.0920603Z Note: switching to 'refs/remotes/pull/147/merge'.
+2026-05-04T14:03:40.0922559Z 
+2026-05-04T14:03:40.0924115Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-05-04T14:03:40.0926755Z changes and commit them, and you can discard any commits you make in this
+2026-05-04T14:03:40.0929304Z state without impacting any branches by switching back to a branch.
+2026-05-04T14:03:40.0930762Z 
+2026-05-04T14:03:40.0932117Z If you want to create a new branch to retain commits you create, you may
+2026-05-04T14:03:40.0934319Z do so (now or later) by using -c with the switch command. Example:
+2026-05-04T14:03:40.0935577Z 
+2026-05-04T14:03:40.0936188Z   git switch -c <new-branch-name>
+2026-05-04T14:03:40.0937071Z 
+2026-05-04T14:03:40.0938107Z Or undo this operation with:
+2026-05-04T14:03:40.0938967Z 
+2026-05-04T14:03:40.0939474Z   git switch -
+2026-05-04T14:03:40.0940189Z 
+2026-05-04T14:03:40.0941733Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-05-04T14:03:40.0943532Z 
+2026-05-04T14:03:40.0945535Z HEAD is now at e563fb0 Merge 16a4a13196fa7ff913a3d58f813130e47939a346 into 4ac9906bac50e9029d20f345f2d10be5c76d4877
+2026-05-04T14:03:40.0952292Z ##[endgroup]
+2026-05-04T14:03:40.0996511Z [command]/usr/bin/git log -1 --format=%H
+2026-05-04T14:03:40.1021886Z e563fb07a76b549a0c7b48a5ee3244a2fa408daa
+2026-05-04T14:03:40.1328687Z ##[group]Run actions/setup-node@v4
+2026-05-04T14:03:40.1329574Z with:
+2026-05-04T14:03:40.1330297Z   node-version: 20
+2026-05-04T14:03:40.1331002Z   cache: npm
+2026-05-04T14:03:40.1332021Z   always-auth: false
+2026-05-04T14:03:40.1332759Z   check-latest: false
+2026-05-04T14:03:40.1333693Z   token: ***
+2026-05-04T14:03:40.1334423Z ##[endgroup]
+2026-05-04T14:03:40.3255394Z Found in cache @ /opt/hostedtoolcache/node/20.20.2/x64
+2026-05-04T14:03:40.3264816Z ##[group]Environment details
+2026-05-04T14:03:43.1117300Z node: v20.20.2
+2026-05-04T14:03:43.1117630Z npm: 10.8.2
+2026-05-04T14:03:43.1118011Z yarn: 1.22.22
+2026-05-04T14:03:43.1118956Z ##[endgroup]
+2026-05-04T14:03:43.1143667Z [command]/opt/hostedtoolcache/node/20.20.2/x64/bin/npm config get cache
+2026-05-04T14:03:43.2956802Z /home/runner/.npm
+2026-05-04T14:03:43.4430742Z npm cache is not found
+2026-05-04T14:03:43.4545306Z ##[group]Run npm ci
+2026-05-04T14:03:43.4545636Z [36;1mnpm ci[0m
+2026-05-04T14:03:43.4583868Z shell: /usr/bin/bash -e {0}
+2026-05-04T14:03:43.4584166Z ##[endgroup]
+2026-05-04T14:03:48.6878845Z npm warn deprecated serialize-error-cjs@0.1.4: Rolling release, please update to 0.2.0
+2026-05-04T14:03:50.3087300Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-05-04T14:03:51.1631601Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-05-04T14:04:19.6721586Z 
+2026-05-04T14:04:19.6722294Z > pmhnp-job-board@0.1.0 postinstall
+2026-05-04T14:04:19.6722840Z > prisma generate
+2026-05-04T14:04:19.6723088Z 
+2026-05-04T14:04:20.6578120Z Failed to load config file "/home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board" as a TypeScript/JavaScript module. Error: PrismaConfigEnvError: Cannot resolve environment variable: DIRECT_URL.
+2026-05-04T14:04:20.6745812Z npm error code 1
+2026-05-04T14:04:20.6746794Z npm error path /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board
+2026-05-04T14:04:20.6749790Z npm error command failed
+2026-05-04T14:04:20.6750403Z npm error command sh -c prisma generate
+2026-05-04T14:04:20.6758912Z npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-05-04T14_03_43_528Z-debug-0.log
+2026-05-04T14:04:20.7365376Z ##[error]Process completed with exit code 1.
+2026-05-04T14:04:20.7517521Z Post job cleanup.
+2026-05-04T14:04:20.8569802Z [command]/usr/bin/git version
+2026-05-04T14:04:20.8609081Z git version 2.53.0
+2026-05-04T14:04:20.8657712Z Temporarily overriding HOME='/home/runner/work/_temp/74250a98-62f1-4fab-b446-03ab8754b9a4' before making global git config changes
+2026-05-04T14:04:20.8659307Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-04T14:04:20.8674336Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/PMHNP-Job-Board/PMHNP-Job-Board
+2026-05-04T14:04:20.8718346Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-04T14:04:20.8759437Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-04T14:04:20.8991807Z fatal: No url found for submodule path '.agents/skills/awesome-design-md' in .gitmodules
+2026-05-04T14:04:20.9037032Z ##[warning]The process '/usr/bin/git' failed with exit code 128
+2026-05-04T14:04:20.9138655Z Cleaning up orphan processes
+2026-05-04T14:04:20.9463261Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -81,7 +82,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse pediatric psychiatric nurse practitioner positions in schools, hospitals, and clinics.',
       type: 'website',
     },
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/child-adolescent' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/child-adolescent` },
     ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }

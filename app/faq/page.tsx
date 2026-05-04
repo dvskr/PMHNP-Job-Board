@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-frequently-asked-questions.webp'] },
   alternates: {
-    canonical: 'https://pmhnphiring.com/faq',
+    canonical: `${brand.baseUrl}/faq`,
   },
 };
 

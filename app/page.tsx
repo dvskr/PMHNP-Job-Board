@@ -1,15 +1,19 @@
 import { Metadata } from 'next';
 
 import { prisma } from '@/lib/prisma';
+import { brand } from '@/config/brand';
 import EmployerTrustSection from '@/components/EmployerTrustSection';
 import FeaturedJobsSection from '@/components/FeaturedJobsSection';
 import TopStatesSection from '@/components/TopStatesSection';
 import HomepageHero from '@/components/HomepageHero';
 import VideoJsonLd from '@/components/VideoJsonLd';
-import ExitIntentPopup from '@/components/ExitIntentPopup';
-import StickyEmailBar from '@/components/StickyEmailBar';
 import HomepageBlogSection from '@/components/HomepageBlogSection';
 import EmployerHowItWorks from '@/components/EmployerHowItWorks';
+import dynamic from 'next/dynamic';
+
+// Below-fold interactive components — defer from critical bundle
+const ExitIntentPopup = dynamic(() => import('@/components/ExitIntentPopup'));
+const StickyEmailBar = dynamic(() => import('@/components/StickyEmailBar'));
 
 
 
@@ -63,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: `${jobCountDisplay} PMHNP Jobs Near Me | Psych NP & Psychiatric Nurse Practitioner Job Board`,
-    description: `Browse ${jobCountDisplay} PMHNP & Psych NP jobs near me, updated daily. Find remote, telehealth, and in-person psychiatric nurse practitioner positions with salary transparency across all 50 states. Free for job seekers.`,
+    description: `Browse ${jobCountDisplay} PMHNP jobs updated daily. Remote, telehealth & in-person psychiatric NP positions with salary transparency. Free for job seekers.`,
     openGraph: {
       title: `${jobCountDisplay} PMHNP Jobs - Find Your Next Position`,
       description: `Browse ${jobCountDisplay} psychiatric nurse practitioner jobs. Remote, hybrid, and in-person positions with salary transparency.`,
@@ -81,7 +85,7 @@ export async function generateMetadata(): Promise<Metadata> {
       images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-job-board-homepage.webp'],
     },
     alternates: {
-      canonical: 'https://pmhnphiring.com',
+      canonical: brand.baseUrl,
     },
   };
 }
@@ -95,27 +99,9 @@ export default async function Home() {
   return (
     <>
       {/* Structured data — outside content div to prevent hydration mismatch */}
+      {/* Note: Organization schema is rendered site-wide in layout.tsx @graph.
+          Removed standalone duplicate here to prevent conflicting signals in GSC. */}
       <VideoJsonLd pathname="/" />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: 'PMHNP Hiring',
-            url: 'https://pmhnphiring.com',
-            logo: 'https://pmhnphiring.com/pmhnp_logo.png',
-            description: 'The #1 job board for Psychiatric Mental Health Nurse Practitioners. Browse thousands of PMHNP jobs updated daily across all 50 states.',
-            sameAs: [
-              'https://x.com/pmhnphiring',
-              'https://www.facebook.com/pmhnphiring',
-              'https://www.instagram.com/pmhnphiring',
-              'https://www.linkedin.com/company/pmhnpjobs',
-              'https://www.youtube.com/@pmhnphiring',
-            ],
-          }),
-        }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -224,6 +210,26 @@ export default async function Home() {
         }}
       />
 
+      {/* WebSite + SearchAction — enables Google Sitelinks Search Box */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: brand.name,
+            url: brand.baseUrl,
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: {
+                '@type': 'EntryPoint',
+                urlTemplate: `${brand.baseUrl}/jobs?q={search_term_string}`,
+              },
+              'query-input': 'required name=search_term_string',
+            },
+          }),
+        }}
+      />
       {/* Main content */}
       <div style={{ background: 'linear-gradient(180deg, #FDFBF7 0%, #F5D5C4 15%, #F0C4AF 50%, #FDFBF7 100%)' }}>
         {/* 1. Hero — above the fold */}

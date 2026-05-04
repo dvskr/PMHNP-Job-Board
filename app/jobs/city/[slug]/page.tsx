@@ -11,6 +11,8 @@ import { Job } from '@/lib/types';
 import { getMetroCity } from '@/lib/metro-data';
 import CategoryHero from '@/components/CategoryHero';
 import CategoryFAQ from '@/components/CategoryFAQ';
+import { getCityBySlug } from '@/lib/pseo/city-data/cities';
+import { buildCityFacts, buildCityNarrative } from '@/lib/pseo/city-narrative';
 
 // Force dynamic rendering - don't try to statically generate during build
 // force-dynamic removed: it overrides revalidate and defeats ISR caching
@@ -344,7 +346,7 @@ export default async function CityJobsPage({ params }: CityPageProps) {
     const metroMatch = getMetroCity(slug);
     if (metroMatch) redirect(`/jobs/metro/${slug}`);
 
-    let parsed = parseCitySlug(slug);
+    const parsed = parseCitySlug(slug);
 
     if (!parsed) {
         // Try resolving slug without state code → redirect to canonical URL
@@ -379,6 +381,24 @@ export default async function CityJobsPage({ params }: CityPageProps) {
         { label: stateName, href: `/jobs/state/${stateSlug}` },
         { label: cityName },
     ];
+
+    // P3.4 — Layer 2 → Layer 1: prefer LLM-generated DB override; fall back
+    // to deterministic narrative built from structured city facts. Each
+    // (city, totalJobs) tuple produces measurably different output, defeating
+    // Google's "Crawled — currently not indexed" thin-content flag.
+    const cityData = getCityBySlug(slug);
+    let narrative: string | null = null;
+    if (cityData) {
+        const dbOverride = await prisma.citySnippet.findUnique({
+            where: { citySlug: slug },
+            select: { body: true, approvedAt: true },
+        });
+        if (dbOverride && dbOverride.approvedAt) {
+            narrative = dbOverride.body;
+        } else {
+            narrative = buildCityNarrative(buildCityFacts(cityData), stats.totalJobs);
+        }
+    }
 
     const salaryRange = stats.minSalary > 0 && stats.maxSalary > 0
         ? `$${stats.minSalary}k–$${stats.maxSalary}k`
@@ -739,6 +759,35 @@ export default async function CityJobsPage({ params }: CityPageProps) {
                     </div>
                 </section>
             </div>
+
+            {/* ═══ MARKET CONTEXT — unique-per-city narrative (P3.4) ═══ */}
+            {/* Placed below jobs so candidates see listings first; Google still
+                indexes the HTML regardless of viewport position. */}
+            {narrative && (
+                <section style={{ maxWidth: '1000px', margin: '0 auto', padding: '8px 24px 40px' }}>
+                    <div
+                        id="market-context"
+                        data-speakable="true"
+                        style={{
+                            background: '#FFFFFF',
+                            borderRadius: '20px',
+                            border: '1px solid rgba(0,0,0,0.06)',
+                            padding: '24px 28px',
+                            boxShadow: '6px 6px 16px rgba(0,0,0,0.05), -3px -3px 10px rgba(255,255,255,0.8)',
+                        }}
+                    >
+                        <h2
+                            className="font-lora"
+                            style={{ fontSize: '18px', fontWeight: 700, color: '#1A2E35', marginBottom: '10px' }}
+                        >
+                            {cityName}, {stateCode} — PMHNP Market Context
+                        </h2>
+                        <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#5A4A42', margin: 0 }}>
+                            {narrative}
+                        </p>
+                    </div>
+                </section>
+            )}
 
             {/* ═══ FAQ ═══ */}
             <CategoryFAQ category="remote" totalJobs={stats.totalJobs} avgSalary={stats.avgSalary} customFaqs={[

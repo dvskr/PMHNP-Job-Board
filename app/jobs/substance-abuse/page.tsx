@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -82,7 +83,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
                 width: 1200, height: 630, alt: 'Substance Abuse PMHNP Jobs',
             }],
         },
-        alternates: { canonical: 'https://pmhnphiring.com/jobs/substance-abuse' },
+        alternates: { canonical: `${brand.baseUrl}/jobs/substance-abuse` },
         ...(page > 1 && { robots: { index: false, follow: true } }),
     };
 }

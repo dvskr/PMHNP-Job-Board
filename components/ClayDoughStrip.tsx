@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 
 const CLAY_COLORS = [
     '#6ee7b7', '#5eead4', '#67e8f9', '#a5b4fc', '#c4b5fd',
@@ -39,6 +39,7 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
 
 
     return (
+        <LazyMotion features={domAnimation}>
         <section
             className="w-full flex flex-col items-center justify-center overflow-hidden relative py-16 lg:py-24"
             style={{
@@ -62,7 +63,7 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                     pointerEvents: 'none',
                 }} />
 
-                <motion.div
+                <m.div
                     className="absolute flex items-center gap-5 whitespace-nowrap h-full"
                     animate={isPaused ? { x: 0 } : { x: ['0%', '-50%'] }}
                     transition={isPaused ? { duration: 0 } : {
@@ -120,8 +121,9 @@ export default function ClayDoughStrip({ employers }: ClayDoughStripProps) {
                             </Link>
                         );
                     })}
-                </motion.div>
+                </m.div>
             </div>
         </section>
+        </LazyMotion>
     );
 }

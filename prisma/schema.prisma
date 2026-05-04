@@ -1094,6 +1094,134 @@ model EmailSend {
   @@map("email_sends")
 }
 
+// ─── GSC De-Indexing Queue (P2.1) ────────────────────────────────────
+// Tracks URLs that should be proactively removed from Google's index via
+// the Indexing API URL_DELETED endpoint. Seeded from GSC bulk exports
+// (Not found / Crawled-not-indexed / Soft 404 categories) and from edge
+// log scraping of 4xx responses to Googlebot.
+//
+// Drained by /api/cron/historical-deindex (every 6h):
+//   1. HEAD-check the URL — if it's actually live, delete the row
+//   2. Otherwise submit URL_DELETED to Google Indexing API + IndexNow
+//   3. Mark submittedAt; row is kept for audit but not re-submitted
+//
+// Status values:
+//   'pending'    — not yet processed
+//   'submitted'  — successfully submitted to search engines
+//   'live'       — HEAD-check returned 200; URL is alive, removed from queue
+//   'failed'     — repeated submission failures (exhausted attempts)
+model DeindexQueue {
+  id          String    @id @default(cuid())
+  url         String    @unique
+  source      String    // 'gsc-not-found' | 'gsc-crawled-not-indexed' | 'gsc-soft-404' | 'edge-log' | 'sitemap-diff' | 'manual'
+  status      String    @default("pending") // 'pending' | 'submitted' | 'live' | 'failed'
+  attempt     Int       @default(0)
+  lastError   String?   @db.Text
+  addedAt     DateTime  @default(now())
+  submittedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, addedAt])
+  @@index([source])
+  @@map("deindex_queue")
+}
+
+// ─── Cron Run Log (P4.3) ─────────────────────────────────────────────
+// Lightweight per-invocation log so we can: (a) detect crons that haven't
+// run in their expected window (silent failures, schedule removed by
+// mistake), (b) audit historical run frequency, (c) attach output metrics
+// for trend analysis. Crons opt in via lib/cron/track.ts → recordCronRun.
+//
+// Indexed by (name, startedAt) so the watchdog query "most recent run for
+// each cron name" is fast.
+model CronRun {
+  id         String   @id @default(cuid())
+  name       String
+  startedAt  DateTime @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  success    Boolean  @default(false)
+  durationMs Int?     @map("duration_ms")
+  error      String?  @db.Text
+  metrics    Json?    // freeform metrics: { submitted: 50, dead: 32, alive: 18 } etc.
+
+  @@index([name, startedAt(sort: Desc)])
+  @@map("cron_runs")
+}
+
+// ─── GSC Health Snapshots (P4.2) ─────────────────────────────────────
+// Daily snapshot of GSC Coverage report metrics. Lets us compare
+// week-over-week and alert on regressions (rising not-indexed count,
+// falling indexed count) via the gsc-health-check cron.
+//
+// Each row = one day's totals. Named columns mirror GSC's error category
+// labels so queries are self-documenting. `raw` keeps the full Search
+// Console API payload for ad-hoc forensic queries.
+model GscSnapshot {
+  id                   String   @id @default(cuid())
+  capturedOn           DateTime @unique @map("captured_on") @db.Date
+  indexedTotal         Int      @default(0) @map("indexed_total")
+  notIndexedTotal      Int      @default(0) @map("not_indexed_total")
+  notFound404          Int      @default(0) @map("not_found_404")
+  serverError5xx       Int      @default(0) @map("server_error_5xx")
+  softFour04           Int      @default(0) @map("soft_404")
+  crawledNotIndexed    Int      @default(0) @map("crawled_not_indexed")
+  discoveredNotIndexed Int      @default(0) @map("discovered_not_indexed")
+  duplicateNoCanonical Int      @default(0) @map("duplicate_no_canonical")
+  excludedNoindex      Int      @default(0) @map("excluded_noindex")
+  pageWithRedirect     Int      @default(0) @map("page_with_redirect")
+  blockedByRobots      Int      @default(0) @map("blocked_by_robots")
+  indexedButBlocked    Int      @default(0) @map("indexed_but_blocked")
+  raw                  Json?
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@map("gsc_snapshots")
+}
+
+// ─── pSEO Narrative Snippets (P3.4) ──────────────────────────────────
+// Optional LLM-generated overrides for the deterministic narratives in
+// lib/pseo/city-narrative.ts. The renderer prefers DB rows; falls back
+// to the deterministic narrative when no override exists. This lets us
+// upgrade the top ~50 cities (highest job count / impressions) with
+// editorial-grade prose without paying LLM cost on every page.
+//
+// Generation flow:
+//   1. scripts/generate-city-snippets.ts picks targets (top N by job count)
+//   2. Calls Claude API with city facts + taxonomy lead + style prompt
+//   3. Stores result here
+//   4. Page renders from this row if found
+//
+// Schema notes:
+//   - body is plain text (no HTML) — renderer escapes + wraps in <p>
+//   - sourceModel records which model generated it (for re-runs after upgrades)
+//   - approvedAt nullable — un-approved drafts won't render until human review
+model CitySnippet {
+  id           String    @id @default(cuid())
+  citySlug     String    @unique @map("city_slug")
+  body         String    @db.Text
+  sourceModel  String?   @map("source_model") // e.g. "claude-opus-4-7", "manual"
+  generatedAt  DateTime  @default(now()) @map("generated_at")
+  approvedAt   DateTime? @map("approved_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([approvedAt])
+  @@map("city_snippets")
+}
+
+model CategoryCitySnippet {
+  id           String    @id @default(cuid())
+  categorySlug String    @map("category_slug")
+  citySlug     String    @map("city_slug")
+  body         String    @db.Text
+  sourceModel  String?   @map("source_model")
+  generatedAt  DateTime  @default(now()) @map("generated_at")
+  approvedAt   DateTime? @map("approved_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@unique([categorySlug, citySlug])
+  @@index([approvedAt])
+  @@map("category_city_snippets")
+}
+
 // ─── Programmatic SEO Stats ──────────────────────────────────────────
 model PseoStats {
   id                String   @id @default(cuid())

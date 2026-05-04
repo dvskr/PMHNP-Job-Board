@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -66,7 +67,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       type: 'website',
       images: [{ url: `/api/og?type=page&title=${encodeURIComponent(`${stats.totalJobs} Inpatient PMHNP Jobs`)}&subtitle=${encodeURIComponent('Hospital & acute care psychiatric NP positions')}`, width: 1200, height: 630, alt: 'Inpatient PMHNP Jobs' }],
     },
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/inpatient' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/inpatient` },
     ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }

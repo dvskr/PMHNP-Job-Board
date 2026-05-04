@@ -86,7 +86,7 @@
     },
     {
       "path": "/api/cron/aggregate-pseo",
-      "schedule": "15 12,18 * * *"
+      "schedule": "15 0,6,12,18 * * *"
     },
     {
       "path": "/api/cron/freshness-decay",
@@ -115,6 +115,14 @@
     {
       "path": "/api/cron/deindex-expired",
       "schedule": "45 12,18 * * *"
+    },
+    {
+      "path": "/api/cron/historical-deindex",
+      "schedule": "0 1,7,19 * * *"
+    },
+    {
+      "path": "/api/cron/gsc-health-check",
+      "schedule": "30 9 * * *"
     },
     {
       "path": "/api/cron/send-alerts",

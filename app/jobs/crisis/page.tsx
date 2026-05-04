@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${stats.totalJobs} Crisis PMHNP Jobs ($140K-200K)`,
     description: `Find ${stats.totalJobs} crisis PMHNP jobs paying $140K-200K+. Emergency psychiatric care, crisis stabilization, and urgent behavioral health positions.`,
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/crisis' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/crisis` },
   };
 }
 

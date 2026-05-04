@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import BreadcrumbSchema from '@/components/BreadcrumbSchema';
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
     images: [{ url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp', width: 1280, height: 900, alt: 'PMHNP Hiring terms of service page with user rights, employer responsibilities, and platform policies' }],
   },
   twitter: { card: 'summary_large_image', images: ['https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pages/pmhnp-hiring-terms-of-service.webp'] },
-  alternates: { canonical: 'https://pmhnphiring.com/terms' },
+  alternates: { canonical: `${brand.baseUrl}/terms` },
 };
 
 /* ═══ Clay Tokens ═══ */

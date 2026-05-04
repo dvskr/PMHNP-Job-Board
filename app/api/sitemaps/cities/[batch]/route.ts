@@ -17,7 +17,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { CITIES } from '@/lib/pseo/city-data/cities';
-import { getAllSettingSlugs, getAllStateSlugs, stateToSlug } from '@/lib/pseo/setting-state-config';
+import { getAllSettingSlugs, getAllStateSlugs } from '@/lib/pseo/setting-state-config';
 
 // Must match SITEMAP_CATEGORIES in index/route.ts
 const SITEMAP_CATEGORIES = [
@@ -95,13 +95,28 @@ async function getActiveCategoryCityUrls(): Promise<string[]> {
     }
   }
 
-  // Setting × State URLs (all 13 settings × 51 states)
-  const settingSlugs = getAllSettingSlugs();
-  const stateSlugs = getAllStateSlugs();
-  for (const setting of settingSlugs) {
-    for (const stateSlug of stateSlugs) {
-      urls.push(`${BASE_URL}/jobs/${setting}/${stateSlug}`);
+  // Setting × State URLs — quality-gated via pseoStats.
+  // GSC Fix (P1.1): previously emitted all 13 settings × 51 states = 663 URLs
+  // unconditionally. Most had 0 matching jobs and 404'd, polluting GSC with
+  // "Not found" entries. Now only emit URLs where ≥1 active job exists.
+  // pseoStats is pre-aggregated by /api/cron/aggregate-pseo (every 12h).
+  const settingSlugs = new Set(getAllSettingSlugs());
+  const validStateSlugs = new Set(getAllStateSlugs());
+  try {
+    const settingStateRows = await prisma.pseoStats.findMany({
+      where: { type: 'setting-state', totalJobs: { gte: 1 } },
+      select: { categorySlug: true, locationSlug: true },
+    });
+    for (const row of settingStateRows) {
+      // Defense in depth: ignore stale rows whose slugs are no longer registered.
+      if (!settingSlugs.has(row.categorySlug)) continue;
+      if (!validStateSlugs.has(row.locationSlug)) continue;
+      urls.push(`${BASE_URL}/jobs/${row.categorySlug}/${row.locationSlug}`);
     }
+  } catch (err) {
+    // If pseoStats is empty/unreachable, skip setting×state URLs entirely.
+    // Better to omit than to flood the sitemap with dead URLs again.
+    console.error('[sitemaps/cities] pseoStats lookup failed; omitting setting×state URLs:', err);
   }
 
   return urls;

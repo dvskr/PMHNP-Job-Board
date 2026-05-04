@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { prisma } from '@/lib/prisma';
 import {
     getPostBySlug,
     getRelatedPosts,
@@ -79,6 +80,29 @@ export default async function BlogPostPage({ params }: Props) {
 
     const relatedPosts = await getRelatedPosts(post.category, post.slug);
     const currentUrl = `https://pmhnphiring.com/blog/${slug}`;
+
+    // GSC Fix (P1.5): for state-license blog posts (slug like "pmhnp-license-{state}"),
+    // we render CTA links to /jobs/{cat}/{state} pages. If a setting-state combo has
+    // 0 jobs, that page now 410s — so don't render the link at all.
+    const licenseSlugMatch = slug.match(/^pmhnp-license-(.+)$/);
+    const validBlogStateSettings = new Set<string>();
+    if (licenseSlugMatch) {
+        const stateSlugFromBlog = licenseSlugMatch[1];
+        try {
+            const rows = await prisma.pseoStats.findMany({
+                where: {
+                    type: 'setting-state',
+                    locationSlug: stateSlugFromBlog,
+                    totalJobs: { gte: 1 },
+                    categorySlug: { in: ['remote', 'telehealth', 'outpatient'] },
+                },
+                select: { categorySlug: true },
+            });
+            for (const r of rows) validBlogStateSettings.add(r.categorySlug);
+        } catch {
+            // On DB failure, render no setting CTAs (safer than linking to 410s)
+        }
+    }
 
     // Convert markdown to HTML and auto-link states
     let contentHtml = markdownToHtml(post.content);
@@ -473,15 +497,21 @@ export default async function BlogPostPage({ params }: Props) {
                                     <Link href={`/jobs/state/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
                                         All Jobs in {stateSlug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')} →
                                     </Link>
-                                    <Link href={`/jobs/remote/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
-                                        Remote →
-                                    </Link>
-                                    <Link href={`/jobs/telehealth/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
-                                        Telehealth →
-                                    </Link>
-                                    <Link href={`/jobs/outpatient/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
-                                        Outpatient →
-                                    </Link>
+                                    {validBlogStateSettings.has('remote') && (
+                                        <Link href={`/jobs/remote/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                            Remote →
+                                        </Link>
+                                    )}
+                                    {validBlogStateSettings.has('telehealth') && (
+                                        <Link href={`/jobs/telehealth/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                            Telehealth →
+                                        </Link>
+                                    )}
+                                    {validBlogStateSettings.has('outpatient') && (
+                                        <Link href={`/jobs/outpatient/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
+                                            Outpatient →
+                                        </Link>
+                                    )}
                                     <Link href={`/salary-guide/${stateSlug}`} className="ed-jobs-cta-link" style={{ padding: '6px 14px', borderRadius: '10px', background: '#F0FDFA', border: '1px solid rgba(13,148,136,0.15)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#0D9488' }}>
                                         Salary Guide →
                                     </Link>

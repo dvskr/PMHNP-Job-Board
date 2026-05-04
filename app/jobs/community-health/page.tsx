@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -81,7 +82,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Browse community health and FQHC psychiatric mental health nurse practitioner positions.',
       type: 'website',
     },
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/community-health' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/community-health` },
     ...(page > 1 && { robots: { index: false, follow: true } }),
   };
 }

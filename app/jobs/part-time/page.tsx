@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Part-Time PMHNP Jobs ($60-85/hr)`, description: `Find ${stats.totalJobs} part-time PMHNP jobs paying $60-85+/hr. Flexible schedules, PRN positions, and work-life balance.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/part-time' } };
+  return { title: `${stats.totalJobs} Part-Time PMHNP Jobs ($60-85/hr)`, description: `Find ${stats.totalJobs} part-time PMHNP jobs paying $60-85+/hr. Flexible schedules, PRN positions, and work-life balance.`, alternates: { canonical: `${brand.baseUrl}/jobs/part-time` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }
