@@ -497,137 +497,141 @@ export default function CandidateSearchClient() {
                     </div>
                 )}
 
-                {/* ═══ AI tracker + search bar + Filters — single row, same height ═══
-                    Tracker is compact (icon + label + count + inline progress
-                    bar), height-matched to the search input so the row reads
-                    as one cohesive unit. */}
+                {/* ═══ Search bar (with inline AI submit) + Filters ═══
+                    AI usage tracker lives inline ABOVE the search bar as a
+                    plain badge (not a button, not a card). Live count
+                    updates from aiState as searches complete. */}
                 {(() => {
                     const cap = 10;
                     const usesRemaining = aiState.usesRemaining;
                     const used = usesRemaining === null ? 0 : Math.max(0, cap - usesRemaining);
                     const atLimit = aiState.status === 'limit_reached' || used >= cap;
                     const isNearLimit = used >= cap * 0.8;
-                    const pct = Math.min((used / cap) * 100, 100);
-
                     const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
-                    const accent = '#7C3AED';
-                    const gradient = atLimit
-                        ? 'linear-gradient(90deg, #EF4444, #F87171)'
-                        : isNearLimit
-                            ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-                            : 'linear-gradient(90deg, #7C3AED, #A78BFA)';
-
-                    // Match the search input's height: clayInput is padding
-                    // 10px top/bottom + ~17px line + 1px border ≈ 38-40px.
-                    const ROW_HEIGHT = 40;
 
                     return (
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                            {/* AI usage tracker — same height as inputs */}
-                            <div
-                                style={{
-                                    background: '#FFFFFF',
-                                    borderRadius: '12px',
-                                    border: atLimit
-                                        ? '1px solid rgba(239,68,68,0.22)'
-                                        : isNearLimit
-                                            ? '1px solid rgba(251,191,36,0.22)'
-                                            : '1px solid rgba(0,0,0,0.05)',
-                                    boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
-                                    padding: '0 14px',
-                                    height: `${ROW_HEIGHT}px`,
-                                    display: 'flex', alignItems: 'center', gap: '10px',
-                                    flexShrink: 0,
-                                    position: 'relative',
-                                    overflow: 'hidden',
-                                }}
-                                title={atLimit
-                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
-                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
-                            >
-                                <Sparkles size={14} style={{ color: accent, flexShrink: 0 }} />
+                        <>
+                            {/* AI Searches badge — inline label, no border, not interactive */}
+                            <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Sparkles size={12} style={{ color: '#7C3AED' }} />
                                 <span style={{
                                     fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
                                     textTransform: 'uppercase', letterSpacing: '0.06em',
-                                    whiteSpace: 'nowrap',
                                 }}>AI Searches</span>
                                 <span style={{
-                                    fontSize: '13px', fontWeight: 800,
+                                    fontSize: '12px', fontWeight: 800,
                                     color: valueColor,
                                     fontVariantNumeric: 'tabular-nums',
-                                    whiteSpace: 'nowrap',
                                 }}>
                                     {used}/{cap}
                                 </span>
-                                {/* Progress bar pinned to the bottom edge of the card */}
-                                <div style={{
-                                    position: 'absolute', left: 0, right: 0, bottom: 0,
-                                    height: '3px', background: '#F0F2F5',
-                                }}>
-                                    <div style={{
-                                        width: `${pct}%`, height: '100%',
-                                        background: gradient,
-                                        transition: 'width 0.6s ease',
-                                    }} />
-                                </div>
-                            </div>
-
-                            {/* Search bar — clay style, height-matched to tracker */}
-                            <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                                <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
-                                <input
-                                    type="text"
-                                    value={query}
-                                    onChange={e => {
-                                        setQuery(e.target.value);
-                                        if (jdSearchPostingId) {
-                                            setJdSearchPostingId(null);
-                                            setJdSearchTitle(null);
-                                        }
-                                    }}
-                                    placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
-                                    style={{
-                                        ...clayInput,
-                                        paddingLeft: '38px',
-                                        height: `${ROW_HEIGHT}px`,
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="tp-filter-btn"
-                                style={{
-                                    ...clayBtn,
-                                    height: `${ROW_HEIGHT}px`,
-                                    background: showFilters ? '#CCFBF1' : '#F7FBF8',
-                                    color: showFilters ? '#0D9488' : '#2A4A5A',
-                                    border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
-                                }}
-                            >
-                                <Filter size={14} />
-                                Filters
-                                {activeFilterCount > 0 && (
-                                    <span style={{
-                                        background: '#0D9488', color: '#fff',
-                                        fontSize: '10px', fontWeight: 700,
-                                        padding: '1px 7px', borderRadius: '10px',
-                                    }}>
-                                        {activeFilterCount}
+                                {atLimit && (
+                                    <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: 600 }}>
+                                        — resets at midnight CT
                                     </span>
                                 )}
-                            </button>
-                            {activeFilterCount > 0 && (
-                                <button onClick={clearFilters} className="tp-filter-btn" style={{
-                                    ...clayBtn, height: `${ROW_HEIGHT}px`,
-                                    background: '#FEE2E2', color: '#DC2626',
-                                    border: '1px solid #FECACA',
-                                }}>
-                                    <X size={13} /> Clear
+                            </div>
+
+                            {/* Search bar (clay) + inline AI submit + Filters */}
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+                                    <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        onChange={e => {
+                                            setQuery(e.target.value);
+                                            if (jdSearchPostingId) {
+                                                setJdSearchPostingId(null);
+                                                setJdSearchTitle(null);
+                                            }
+                                        }}
+                                        placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                                        style={{
+                                            ...clayInput,
+                                            paddingLeft: '38px',
+                                            paddingRight: '90px',
+                                            fontSize: '14px',
+                                        }}
+                                    />
+                                    {/* Inline AI Search button — sits inside the search bar */}
+                                    <button
+                                        type="button"
+                                        disabled={atLimit || query.trim().length < 3}
+                                        onClick={() => {
+                                            if (atLimit || query.trim().length < 3) return;
+                                            // Force a fetch by re-triggering the debounced effect.
+                                            // The query change already triggers fetchCandidates;
+                                            // this button is the explicit submit affordance.
+                                            setAiMode(true);
+                                        }}
+                                        title={atLimit
+                                            ? 'AI search limit reached. Resets at midnight CT.'
+                                            : query.trim().length < 3
+                                                ? 'Type at least 3 characters'
+                                                : 'Run AI search'}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '6px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '6px 12px',
+                                            borderRadius: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: 700,
+                                            cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
+                                            background: atLimit
+                                                ? '#E5E7EB'
+                                                : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                            color: atLimit ? '#9CA3AF' : '#fff',
+                                            border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
+                                            boxShadow: atLimit
+                                                ? 'inset 1px 1px 2px rgba(0,0,0,0.04)'
+                                                : '2px 2px 6px rgba(124,58,237,0.25)',
+                                            opacity: query.trim().length < 3 ? 0.55 : 1,
+                                            transition: 'all 0.15s',
+                                        }}
+                                    >
+                                        <Sparkles size={11} />
+                                        AI Search
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="tp-filter-btn"
+                                    style={{
+                                        ...clayBtn,
+                                        background: showFilters ? '#CCFBF1' : '#F7FBF8',
+                                        color: showFilters ? '#0D9488' : '#2A4A5A',
+                                        border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
+                                    }}
+                                >
+                                    <Filter size={14} />
+                                    Filters
+                                    {activeFilterCount > 0 && (
+                                        <span style={{
+                                            background: '#0D9488', color: '#fff',
+                                            fontSize: '10px', fontWeight: 700,
+                                            padding: '1px 7px', borderRadius: '10px',
+                                        }}>
+                                            {activeFilterCount}
+                                        </span>
+                                    )}
                                 </button>
-                            )}
-                        </div>
+                                {activeFilterCount > 0 && (
+                                    <button onClick={clearFilters} className="tp-filter-btn" style={{
+                                        ...clayBtn, background: '#FEE2E2', color: '#DC2626',
+                                        border: '1px solid #FECACA',
+                                    }}>
+                                        <X size={13} /> Clear
+                                    </button>
+                                )}
+                            </div>
+                        </>
                     );
                 })()}
 
@@ -661,14 +665,9 @@ export default function CandidateSearchClient() {
                         Smart Match is temporarily unavailable. Showing standard browse results — try again in a moment.
                     </div>
                 )}
-                {aiMode && query.trim().length < 3 && aiState.status !== 'limit_reached' && (
-                    <div style={{
-                        ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
-                        fontSize: '12px', color: '#6B7F8A',
-                    }}>
-                        Type at least 3 characters describing what you need (e.g., &ldquo;CA-licensed telehealth PMHNP with addiction experience&rdquo;) and Smart Match will rerank candidates with a one-line rationale per pick.
-                    </div>
-                )}
+                {/* Removed: helper text below the search bar — the placeholder
+                    inside the input + the AI Search button's disabled state
+                    already convey the same guidance without taking visual space. */}
 
                 {/* ═══ Filter Panel ═══ */}
                 {showFilters && (
