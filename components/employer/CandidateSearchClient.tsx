@@ -398,34 +398,9 @@ export default function CandidateSearchClient() {
 
     return (
         <div style={{ background: '#F5F0EB' }}>
-            {/* ═══ Hero Header ═══ */}
-            <div style={{
-                padding: '20px 16px 16px',
-                background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
-                borderBottom: '1px solid #E5DDD3',
-            }}>
-                <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px' }}>
-                    <div style={{
-                        width: '48px', height: '48px', borderRadius: '16px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff', flexShrink: 0,
-                        boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-                    }}>
-                        <Users size={22} />
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                        <h1 style={{
-                            fontSize: '24px', fontWeight: 800,
-                            fontFamily: 'var(--font-lora), Georgia, serif',
-                            color: '#1A2E35', margin: '0 0 2px',
-                        }}>PMHNP Talent Pool</h1>
-                        <p style={{ fontSize: '13px', color: '#6B7F8A', margin: 0 }}>
-                            {loading ? 'Loading...' : `${totalCount} qualified candidate${totalCount !== 1 ? 's' : ''} available`}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
+            {/* Hero header removed — the top nav already labels this page
+                'Browse Talent Pool', and the count of available candidates
+                shows in the result-count line below the search bar. */}
             <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 48px' }}>
 
                 {/* ═══ Posting Selector ═══ */}
