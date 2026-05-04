@@ -102,6 +102,19 @@ export default async function Home() {
       {/* Note: Organization schema is rendered site-wide in layout.tsx @graph.
           Removed standalone duplicate here to prevent conflicting signals in GSC. */}
       <VideoJsonLd pathname="/" />
+      {/* BreadcrumbList schema — homepage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://pmhnphiring.com' },
+            ],
+          }),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

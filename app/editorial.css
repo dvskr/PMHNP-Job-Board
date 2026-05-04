@@ -1375,6 +1375,90 @@ html:has(.ed-page) body {
   color: var(--ink);
 }
 
+/* Author credential badges — E-E-A-T signals */
+.ed-author-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.ed-author-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 20%, transparent);
+  border-radius: 4px;
+}
+
+/* ════════════════════════════════════
+   KEY TAKEAWAYS — GEO Optimization Box
+   ════════════════════════════════════ */
+.ed-key-takeaways {
+  margin-bottom: 2.5em;
+  padding: 24px 28px;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+}
+.ed-kt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ed-kt-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.ed-kt-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+}
+.ed-kt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ed-kt-list li {
+  position: relative;
+  padding-left: 20px;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.ed-kt-list li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+.ed-kt-list li a {
+  color: var(--ink-2);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--rule);
+  transition: all 0.15s;
+}
+.ed-kt-list li a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* ════════════════════════════════════
    SHARE ROW — Full width
    ════════════════════════════════════ */

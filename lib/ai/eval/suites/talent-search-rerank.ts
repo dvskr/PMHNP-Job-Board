@@ -288,6 +288,7 @@ export async function runTalentSearchRerankSuite(): Promise<TalentRerankSuiteRes
                 messages: prompt.render({
                     jobSummary: c.input.jobSummary,
                     candidateList: c.input.candidateList,
+                    topK: String(k),
                 }),
                 promptId: prompt.id,
                 promptVersion: prompt.version,
@@ -401,6 +402,10 @@ async function rerankArm(
         messages: prompt.render({
             jobSummary: arm.jobSummary,
             candidateList: arm.candidateList,
+            // Bias pairs use 5 picks — enough room for the pivot to
+            // shift visibly without forcing the rerank to fill 25 slots
+            // out of an 8-candidate list.
+            topK: '5',
         }),
         promptId: prompt.id,
         promptVersion: prompt.version,

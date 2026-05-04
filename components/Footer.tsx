@@ -48,6 +48,7 @@ const linkColumns = [
     title: 'Resources',
     links: [
       { label: 'Blog', href: '/blog' },
+      { label: 'Salary Calculator', href: '/tools/salary-calculator' },
       { label: 'New Grad Hub', href: '/new-grad' },
       { label: 'For Employers', href: '/for-employers' },
       { label: 'FAQ', href: '/faq' },
