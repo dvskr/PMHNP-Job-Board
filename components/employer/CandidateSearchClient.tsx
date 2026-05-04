@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock } from 'lucide-react';
+import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import CandidateCard from './CandidateCard';
 
 /* ═══════════════════════════════════════════
@@ -74,7 +76,23 @@ const clayBtn: React.CSSProperties = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Candidate = any;
 
+interface SmartMatchState {
+    /** null when no Smart Match has run yet (or after toggling off). */
+    status: 'idle' | 'loading' | 'ready' | 'limit_reached' | 'unavailable';
+    /** Daily reranks remaining after the latest call. */
+    usesRemaining: number | null;
+    /** 429-message rendered as the limit banner. */
+    limitMessage: string | null;
+}
+
 export default function CandidateSearchClient() {
+    const searchParams = useSearchParams();
+    /** Smart Match is on if `?ai=1` is in the URL, OR after the user clicks the toggle. */
+    const [aiMode, setAiMode] = useState(() => searchParams.get('ai') === '1');
+    const [aiState, setAiState] = useState<SmartMatchState>({
+        status: 'idle', usesRemaining: null, limitMessage: null,
+    });
+
     const [query, setQuery] = useState('');
     const [experience, setExperience] = useState('');
     const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
@@ -117,6 +135,60 @@ export default function CandidateSearchClient() {
 
     const fetchCandidates = useCallback(async () => {
         setLoading(true);
+
+        // ── Smart Match path — POST to /api/employer/talent/search ──────
+        // Requires a non-empty query (the embedder needs something to embed).
+        // When the query is too short we silently fall back to the standard
+        // browse so the page never feels empty after toggling Smart Match on.
+        if (aiMode && query.trim().length >= 3) {
+            setAiState((s) => ({ ...s, status: 'loading' }));
+            try {
+                const res = await fetch('/api/employer/talent/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query.trim(),
+                        states: selectedStates.length > 0 ? selectedStates : undefined,
+                        k: 20,
+                    }),
+                });
+                if (res.status === 404) {
+                    // Feature flag is off — surface as "unavailable" and fall
+                    // back to the standard browse so the user isn't blocked.
+                    setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+                } else if (res.status === 429) {
+                    const data = await res.json().catch(() => ({}));
+                    setAiState({
+                        status: 'limit_reached',
+                        usesRemaining: 0,
+                        limitMessage: data.message || 'Daily Smart Match limit reached.',
+                    });
+                    setCandidates([]);
+                    setTotalCount(0);
+                    setTotalPages(1);
+                    setLoading(false);
+                    return;
+                } else if (res.ok) {
+                    const data = await res.json();
+                    setCandidates(data.candidates || []);
+                    setTotalCount((data.candidates || []).length);
+                    setTotalPages(1); // Smart Match returns a single ranked slate; no pagination.
+                    setAiState({
+                        status: 'ready',
+                        usesRemaining: typeof data.rerankUsesRemaining === 'number' ? data.rerankUsesRemaining : null,
+                        limitMessage: null,
+                    });
+                    setLoading(false);
+                    return;
+                } else {
+                    setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+                }
+            } catch {
+                setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+            }
+            // Fall through to standard browse on unavailable — keep results visible.
+        }
+
         const params = new URLSearchParams();
         if (query) params.set('q', query);
         if (experience) params.set('experience', experience);
@@ -140,7 +212,7 @@ export default function CandidateSearchClient() {
             }
         } catch { /* silent */ }
         setLoading(false);
-    }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page]);
+    }, [aiMode, query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page]);
 
     // Debounced search
     useEffect(() => {
@@ -213,6 +285,17 @@ export default function CandidateSearchClient() {
     useEffect(() => {
         setPage(1);
     }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume]);
+
+    // Wrapped toggle: clear any leftover banner state from an earlier rerank
+    // call when leaving Smart Match so the standard browse view is unambiguous.
+    const toggleAiMode = useCallback(() => {
+        setAiMode(prev => {
+            if (prev) {
+                setAiState({ status: 'idle', usesRemaining: null, limitMessage: null });
+            }
+            return !prev;
+        });
+    }, []);
 
     const toggleSpecialty = (s: string) => {
         setSelectedSpecialties(prev =>
@@ -327,15 +410,52 @@ export default function CandidateSearchClient() {
                 {/* ═══ Search + Filter Toggle ═══ */}
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                        <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
+                        {aiMode
+                            ? <Sparkles size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#7C3AED' }} />
+                            : <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />}
                         <input
                             type="text"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
-                            placeholder="Search by name, specialty, keyword..."
-                            style={{ ...clayInput, paddingLeft: '38px', fontSize: '14px' }}
+                            placeholder={aiMode
+                                ? 'Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                                : 'Search by name, specialty, keyword...'}
+                            style={{
+                                ...clayInput,
+                                paddingLeft: '38px',
+                                fontSize: '14px',
+                                ...(aiMode ? { border: '1px solid #C4B5FD', background: '#F5F3FF' } : {}),
+                            }}
                         />
                     </div>
+                    <button
+                        onClick={toggleAiMode}
+                        className="tp-filter-btn"
+                        title="Smart Match uses AI to rerank candidates with a one-line explanation per pick. 10 searches/day."
+                        style={{
+                            ...clayBtn,
+                            background: aiMode
+                                ? 'linear-gradient(145deg, #8B5CF6, #7C3AED)'
+                                : '#F7FBF8',
+                            color: aiMode ? '#fff' : '#2A4A5A',
+                            border: aiMode ? '1px solid #A78BFA' : '1px solid rgba(255,255,255,0.5)',
+                            boxShadow: aiMode
+                                ? '3px 3px 8px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.15)'
+                                : clayBtn.boxShadow,
+                        }}
+                    >
+                        <Sparkles size={14} />
+                        Smart Match
+                        {aiMode && aiState.usesRemaining !== null && (
+                            <span style={{
+                                background: 'rgba(255,255,255,0.25)', color: '#fff',
+                                fontSize: '10px', fontWeight: 700,
+                                padding: '1px 7px', borderRadius: '10px',
+                            }}>
+                                {aiState.usesRemaining} left
+                            </span>
+                        )}
+                    </button>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className="tp-filter-btn"
@@ -367,6 +487,51 @@ export default function CandidateSearchClient() {
                         </button>
                     )}
                 </div>
+
+                {/* ═══ Smart Match status banners ═══ */}
+                {aiMode && aiState.status === 'limit_reached' && (
+                    <div style={{
+                        ...cardBase, padding: '14px 18px', marginBottom: '16px',
+                        background: 'linear-gradient(145deg, #FEF3C7, #FDE68A)',
+                        border: '1px solid #FCD34D',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Lock size={16} style={{ color: '#D97706' }} />
+                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: 600 }}>
+                                {aiState.limitMessage}
+                            </span>
+                        </div>
+                        <Link
+                            href="/pricing"
+                            style={{
+                                ...clayBtn,
+                                background: 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                color: '#fff',
+                                textDecoration: 'none',
+                                border: '1px solid #A78BFA',
+                            }}
+                        >
+                            <Sparkles size={13} /> Upgrade for more
+                        </Link>
+                    </div>
+                )}
+                {aiMode && aiState.status === 'unavailable' && (
+                    <div style={{
+                        ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
+                        fontSize: '12px', color: '#92400E',
+                    }}>
+                        Smart Match is temporarily unavailable. Showing standard browse results.
+                    </div>
+                )}
+                {aiMode && query.trim().length < 3 && aiState.status !== 'limit_reached' && (
+                    <div style={{
+                        ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
+                        fontSize: '12px', color: '#6B7F8A',
+                    }}>
+                        Type at least 3 characters describing what you need (e.g., &ldquo;CA-licensed telehealth PMHNP with addiction experience&rdquo;) and Smart Match will rerank candidates with a one-line rationale per pick.
+                    </div>
+                )}
 
                 {/* ═══ Filter Panel ═══ */}
                 {showFilters && (
@@ -488,7 +653,9 @@ export default function CandidateSearchClient() {
                     <>
                         {/* Results count */}
                         <p style={{ fontSize: '12px', color: '#8A9BA6', marginBottom: '14px', fontWeight: 500 }}>
-                            Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, totalCount)} of {totalCount} candidate{totalCount !== 1 ? 's' : ''}
+                            {aiMode && aiState.status === 'ready'
+                                ? `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for your query`
+                                : `Showing ${(page - 1) * 20 + 1}–${Math.min(page * 20, totalCount)} of ${totalCount} candidate${totalCount !== 1 ? 's' : ''}`}
                         </p>
 
                         {/* Card Grid */}
@@ -513,13 +680,15 @@ export default function CandidateSearchClient() {
                                         isViewed={viewedIds.has(c.id)}
                                         unlockUsage={perPostingUsage}
                                         onToggleSave={toggleSave}
+                                        aiReason={c.reason}
+                                        aiMatchPercent={typeof c.matchPercent === 'number' ? c.matchPercent : undefined}
                                     />
                                 );
                             })}
                         </div>
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
+                        {/* Pagination — hidden in Smart Match (single ranked slate) */}
+                        {!aiMode && totalPages > 1 && (
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}

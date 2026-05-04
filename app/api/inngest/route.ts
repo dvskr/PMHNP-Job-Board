@@ -12,10 +12,18 @@
 import { serve } from 'inngest/next';
 import { inngest } from '@/lib/inngest/client';
 import { fpRecoveryFunctions } from '@/lib/inngest/functions/fp-recovery';
+import { evalDriftFunctions } from '@/lib/inngest/functions/eval-drift';
+import { embeddingFunctions } from '@/lib/inngest/functions/embeddings';
+import { recommendationFunctions } from '@/lib/inngest/functions/recommendations';
+import { recommendationDigestFunctions } from '@/lib/inngest/functions/recommendation-digest';
 
 export const { GET, POST, PUT } = serve({
     client: inngest,
     functions: [
         ...fpRecoveryFunctions,
+        ...evalDriftFunctions,
+        ...embeddingFunctions,
+        ...recommendationFunctions,
+        ...recommendationDigestFunctions,
     ],
 });

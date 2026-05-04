@@ -99,6 +99,33 @@ vi.mock('@/lib/prisma', () => {
                 update: vi.fn(),
                 delete: vi.fn(),
             },
+            aiCallLog: {
+                create: vi.fn(),
+                findMany: vi.fn(),
+                count: vi.fn(),
+                aggregate: vi.fn(),
+            },
+            aiEvalSnapshot: {
+                create: vi.fn(),
+                findMany: vi.fn(),
+                count: vi.fn(),
+            },
+            aiFeatureFlagOverride: {
+                findMany: vi.fn(),
+                create: vi.fn(),
+                update: vi.fn(),
+                delete: vi.fn(),
+                upsert: vi.fn(),
+                deleteMany: vi.fn(),
+            },
+            candidateRecommendation: {
+                findFirst: vi.fn(),
+                findMany: vi.fn(),
+                create: vi.fn(),
+                update: vi.fn(),
+                updateMany: vi.fn(),
+                deleteMany: vi.fn(),
+            },
             $queryRaw: vi.fn(),
         },
     };

@@ -12,6 +12,9 @@ import {
     Search, FileText, Settings, BellRing, CheckCircle, ExternalLink, BookOpen,
     HelpCircle, Star, MessageSquare
 } from 'lucide-react'
+import HowItWorksSidebar from './HowItWorksSidebar'
+import JobCard from '@/components/JobCard'
+import type { Job as JobCardJob } from '@/lib/types'
 
 /* ── Types ── */
 interface DashboardJob {
@@ -30,6 +33,11 @@ interface DashboardJob {
     isVerifiedEmployer?: boolean
     companyLogoUrl?: string | null
     applyLink?: string | null
+    // Conversion-tier label, present only on AI-generated recommendations.
+    // 'easy_apply' = on-platform application. 'direct_apply' = straight to
+    // employer site. 'external' = aggregator (multi-page redirect). See
+    // lib/ai/job-classifier.ts for source-of-truth resolution.
+    recommendationTier?: 'easy_apply' | 'direct_apply' | 'external'
 }
 
 interface Application {
@@ -465,80 +473,9 @@ function TestimonialCard({ firstName }: { firstName: string | null }) {
     )
 }
 
-function NewsletterCard({ initialOptIn, email }: { initialOptIn: boolean; email?: string }) {
-    const [optIn, setOptIn] = useState(initialOptIn)
-    const [loading, setLoading] = useState(false)
-
-    const handleToggle = async () => {
-        setLoading(true)
-        const newState = !optIn
-        setOptIn(newState) // optimistic update
-
-        try {
-            await fetch('/api/newsletter', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: email,
-                    optIn: newState,
-                    source: 'dashboard_toggle',
-                }),
-            })
-        } catch {
-            setOptIn(!newState) // revert on error
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    return (
-        <div style={{ ...cardBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{
-                    width: '42px', height: '42px', borderRadius: '12px',
-                    background: 'rgba(13,148,136,0.10)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: 'inset 1px 1px 3px rgba(0, 40, 30, 0.06)',
-                }}>
-                    <Send size={20} style={{ color: '#0D9488' }} />
-                </div>
-                <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'var(--font-lora), Georgia, serif', margin: 0, color: '#1A2E35' }}>
-                        Email Newsletter
-                    </h3>
-                    <p style={{ fontSize: '13px', color: '#6B7F8A', margin: '2px 0 0' }}>
-                        Get the latest jobs & career tips
-                    </p>
-                </div>
-            </div>
-
-            <button
-                onClick={handleToggle}
-                disabled={loading}
-                style={{
-                    position: 'relative',
-                    width: '48px', height: '26px',
-                    borderRadius: '13px',
-                    background: optIn ? '#0D9488' : '#E0EDE6',
-                    border: '1px solid',
-                    borderColor: optIn ? '#0D9488' : '#C5DDD5',
-                    cursor: 'pointer', transition: 'all 0.25s ease',
-                    boxShadow: optIn
-                        ? '0 2px 6px rgba(13,148,136,0.3)'
-                        : 'inset 2px 2px 4px rgba(0, 40, 30, 0.06), inset -1px -1px 3px rgba(255, 255, 255, 0.7)',
-                }}
-            >
-                <div style={{
-                    position: 'absolute', top: '3px', left: optIn ? '24px' : '3px',
-                    width: '18px', height: '18px', borderRadius: '50%',
-                    background: '#fff',
-                    transition: 'all 0.25s ease',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)',
-                }} />
-            </button>
-        </div>
-    )
-}
+// NewsletterCard removed — newsletter opt-in toggle now lives in
+// components/settings/NewsletterPreference.tsx and is mounted on the
+// settings page Account tab.
 
 /* ══════════════════════════════════════════════════
    DASHBOARD CONTENT — Client Component
@@ -550,14 +487,12 @@ export default function DashboardContent() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [hasFetched, setHasFetched] = useState(false)
-    const [userEmail, setUserEmail] = useState<string>('')
 
     const fetchDashboard = useCallback(async (ids: string[]) => {
         try {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) { router.push('/login'); return }
-            setUserEmail(user.email || '')
 
             const qs = ids.length > 0 ? `?savedJobIds=${ids.join(',')}` : ''
             const res = await fetch(`/api/dashboard${qs}`)
@@ -633,13 +568,17 @@ export default function DashboardContent() {
         <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '0 16px 80px' }}>
         <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 320px',
+            // `minmax(0, 1fr)` (not just `1fr`) lets the column shrink below
+            // its content's intrinsic min-width — without this, a wide
+            // JobCard (long title or fixed-width action buttons) forces the
+            // grid past the 1440px container and clips the right sidebar.
+            gridTemplateColumns: 'minmax(0, 1fr) 320px',
             gap: '24px',
             alignItems: 'start',
         }} className="dashboard-grid">
 
         {/* ═══ LEFT: Main Content ═══ */}
-        <div>
+        <div style={{ minWidth: 0 }}>
 
             {/* ═══ Styled Greeting ═══ */}
             <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
@@ -928,219 +867,51 @@ export default function DashboardContent() {
                         </p>
                     </div>
                 ) : (
+                    /* Recommendation cards reuse the same <JobCard> the /jobs
+                       browse page renders, for visual consistency. The
+                       AI-generated tier (Easy Apply / Direct Apply) shows as a
+                       small overlay badge top-right; the card itself is the
+                       canonical clay-card from components/JobCard.tsx. */
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {recommendedJobs.map((job) => {
-                            const jobIsSaved = isSaved(job.id)
-                            const postedLabel = job.createdAt
-                                ? (() => {
-                                    const days = Math.floor((Date.now() - new Date(job.createdAt).getTime()) / 86400000)
-                                    if (days === 0) return 'Today'
-                                    if (days === 1) return '1 day ago'
-                                    if (days < 7) return `${days} days ago`
-                                    if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`
-                                    return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`
-                                })()
-                                : null
-                            const shortLocation = (() => {
-                                if (!job.location) return 'Remote'
-                                const first = job.location.split(';')[0].split(',').slice(0, 2).join(',').trim()
-                                return first.length > 35 ? first.slice(0, 33) + '…' : first
-                            })()
-
-                            return (
-                                <div key={job.id} className="clay-rec-card" style={{
-                                    ...cardBase,
-                                    padding: '20px 24px',
-                                    display: 'flex', alignItems: 'flex-start', gap: '16px',
-                                    border: job.isFeatured ? '2px solid #0D9488' : cardBase.border,
-                                }}>
-                                    {/* Company logo / initials */}
-                                    <div style={{ flexShrink: 0 }}>
-                                        {job.companyLogoUrl ? (
-                                            <img
-                                                src={job.companyLogoUrl}
-                                                alt={`${job.employer} logo`}
-                                                style={{
-                                                    width: '48px', height: '48px', borderRadius: '12px',
-                                                    objectFit: 'contain', border: '1px solid #D5E8E0',
-                                                    background: '#fff',
-                                                }}
-                                            />
-                                        ) : (
-                                            <div style={{
-                                                width: '48px', height: '48px', borderRadius: '12px',
-                                                background: `hsl(${(job.employer || '').charCodeAt(0) * 7 % 360}, 40%, 50%)`,
-                                                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: '18px', fontWeight: 700,
-                                            }}>
-                                                {(job.employer || '?')[0].toUpperCase()}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Middle: all job info */}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        {/* Title */}
-                                        <Link href={`/jobs/${job.slug || job.id}`} style={{
-                                            fontSize: '17px', fontWeight: 700,
-                                            fontFamily: 'var(--font-lora), Georgia, serif',
-                                            color: '#1A2E35', textDecoration: 'none',
-                                            display: 'block', marginBottom: '3px',
-                                            lineHeight: 1.3,
-                                        }}>
-                                            {job.title}
-                                        </Link>
-
-                                        {/* Employer */}
-                                        <p style={{ fontSize: '14px', fontWeight: 500, color: '#6B7F8A', margin: '0 0 8px' }}>
-                                            {job.employer}
-                                        </p>
-
-                                        {/* Salary + Location + Type + Mode pills */}
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                                            {job.displaySalary && (
-                                                <span style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                    padding: '4px 12px', borderRadius: '20px',
-                                                    fontSize: '12px', fontWeight: 700,
-                                                    background: '#A7F3D0', color: '#065F46',
-                                                    border: '1px solid rgba(255,255,255,0.5)',
-                                                    boxShadow: '3px 3px 8px rgba(16,185,129,0.10), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
-                                                }}>
-                                                    {job.displaySalary.startsWith('$') ? job.displaySalary : `$${job.displaySalary}`}
-                                                </span>
-                                            )}
-                                            <span style={{
-                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                padding: '4px 10px', borderRadius: '20px',
-                                                fontSize: '12px', fontWeight: 500, color: '#4A5E6A',
-                                                background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
-                                            }}>
-                                                <MapPin size={12} style={{ color: '#0D9488' }} /> {shortLocation}
-                                            </span>
-                                            {job.jobType && (
-                                                <span style={{
-                                                    padding: '4px 10px', borderRadius: '20px',
-                                                    fontSize: '12px', fontWeight: 500, color: '#4A5E6A',
-                                                    background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
-                                                }}>{job.jobType}</span>
-                                            )}
-                                            {job.mode && (
-                                                <span style={{
-                                                    padding: '4px 10px', borderRadius: '20px',
-                                                    fontSize: '12px', fontWeight: 500, color: '#4A5E6A',
-                                                    background: '#EDF2EE', border: '1px solid rgba(255,255,255,0.5)',
-                                                }}>{job.mode}</span>
-                                            )}
-                                        </div>
-
-                                        {/* Status badges: Featured, Verified, Remote */}
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            {job.isFeatured && (
-                                                <span style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                    padding: '4px 12px', borderRadius: '20px',
-                                                    fontSize: '12px', fontWeight: 700,
-                                                    background: '#FDE68A', color: '#78350F',
-                                                    border: '1px solid rgba(255,255,255,0.5)',
-                                                    boxShadow: '3px 3px 8px rgba(245,158,11,0.12), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
-                                                }}>⚡ Featured</span>
-                                            )}
-                                            {job.isVerifiedEmployer && (
-                                                <span style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                    padding: '4px 12px', borderRadius: '20px',
-                                                    fontSize: '12px', fontWeight: 600,
-                                                    background: '#B2F5EA', color: '#0F766E',
-                                                    border: '1px solid rgba(255,255,255,0.5)',
-                                                    boxShadow: '3px 3px 8px rgba(13,148,136,0.10), -1px -1px 4px rgba(255,255,255,0.8), inset 1px 1px 2px rgba(255,255,255,0.6)',
-                                                }}><CheckCircle size={12} /> Verified</span>
-                                            )}
-                                            {job.isRemote && (
-                                                <span style={{
-                                                    padding: '4px 10px', borderRadius: '20px',
-                                                    fontSize: '12px', fontWeight: 500, color: '#0D7368',
-                                                    background: '#D5F5F1', border: '1px solid #A7E8E0',
-                                                }}>Remote</span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Right: actions + posted */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {/* Save */}
-                                            <button
-                                                onClick={() => jobIsSaved ? removeJob(job.id) : saveJob(job.id)}
-                                                className="jc-save-btn"
-                                                style={{
-                                                    padding: '8px 14px', borderRadius: '14px',
-                                                    fontSize: '13px', fontWeight: 600,
-                                                    color: jobIsSaved ? '#0F766E' : '#374151',
-                                                    backgroundColor: jobIsSaved ? '#B2F5EA' : '#EDF2EE',
-                                                    border: '1px solid rgba(255,255,255,0.5)',
-                                                    boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7)',
-                                                    cursor: 'pointer', transition: 'all 0.2s',
-                                                    whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                {jobIsSaved ? 'Saved' : 'Save'}
-                                            </button>
-
-                                            {/* View Job */}
-                                            <Link href={`/jobs/${job.slug || job.id}`} className="jc-view-btn" style={{
-                                                padding: '8px 14px', borderRadius: '14px',
-                                                fontSize: '13px', fontWeight: 600,
-                                                color: '#374151',
-                                                backgroundColor: '#EDF2EE',
-                                                border: '1px solid rgba(255,255,255,0.5)',
-                                                boxShadow: '4px 4px 10px rgba(0,0,0,0.06), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7)',
-                                                textDecoration: 'none',
-                                                whiteSpace: 'nowrap',
-                                            }}>
-                                                View Job →
-                                            </Link>
-
-                                            {/* Apply */}
-                                            {job.applyLink && (
-                                                <a
-                                                    href={job.applyLink}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="jc-apply-btn"
-                                                    style={{
-                                                        padding: '8px 16px', borderRadius: '14px',
-                                                        fontSize: '13px', fontWeight: 700,
-                                                        color: '#fff', backgroundColor: '#0D9488',
-                                                        border: '1px solid rgba(255,255,255,0.3)',
-                                                        boxShadow: '4px 4px 10px rgba(13,148,136,0.20), -2px -2px 6px rgba(255,255,255,0.2), inset 2px 2px 4px rgba(255,255,255,0.2)',
-                                                        textDecoration: 'none',
-                                                        whiteSpace: 'nowrap',
-                                                    }}
-                                                >
-                                                    Apply
-                                                </a>
-                                            )}
-                                        </div>
-                                        {postedLabel && (
-                                            <p style={{ fontSize: '12px', color: '#8A9BA6', margin: 0 }}>
-                                                Posted {postedLabel}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        })}
+                        {recommendedJobs.map((job) => (
+                            <div key={job.id} style={{ position: 'relative' }}>
+                                {job.recommendationTier && job.recommendationTier !== 'external' && (
+                                    <span
+                                        aria-label={
+                                            job.recommendationTier === 'easy_apply'
+                                                ? 'Easy Apply — one-click on platform'
+                                                : 'Direct Apply — straight to employer'
+                                        }
+                                        style={{
+                                            position: 'absolute',
+                                            top: 12, right: 12, zIndex: 5,
+                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                            padding: '4px 11px', borderRadius: '999px',
+                                            fontSize: '11px', fontWeight: 700,
+                                            background: job.recommendationTier === 'easy_apply' ? '#0D9488' : '#CCFBF1',
+                                            color:      job.recommendationTier === 'easy_apply' ? '#FFFFFF' : '#0F766E',
+                                            border: '1px solid rgba(255,255,255,0.5)',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                                            pointerEvents: 'none',
+                                        }}
+                                    >
+                                        {job.recommendationTier === 'easy_apply' ? '⚡ Easy Apply' : '↗ Direct Apply'}
+                                    </span>
+                                )}
+                                {/* JobCard expects the full Job shape; the dashboard
+                                    API selects every field it reads. Cast keeps the
+                                    types aligned without re-declaring DashboardJob. */}
+                                <JobCard job={job as unknown as JobCardJob} viewMode="list" />
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
 
-            {/* ═══ Newsletter Toggle ═══ */}
-            <div style={{ marginTop: '20px' }}>
-                <NewsletterCard initialOptIn={!!profile.newsletterOptIn} email={userEmail} />
-            </div>
-
-
+            {/* Newsletter toggle moved to Settings → Account → Email Preferences
+                (components/settings/NewsletterPreference.tsx). Lives next to
+                the rest of the account-level preferences instead of cluttering
+                the dashboard. */}
 
             {/* ═══ Unread Messages Banner ═══ */}
             {unreadMessages > 0 && (
@@ -1180,6 +951,10 @@ export default function DashboardContent() {
             {/* ═══ RIGHT: Feedback & Support Panel ═══ */}
             <aside style={{ position: 'sticky', top: '100px', display: 'flex', flexDirection: 'column', gap: '16px' }} className="dashboard-right-panel">
 
+                {/* ── How this platform works — explainer for the badge system on
+                       the recommendation cards. Pinned to the top of the sidebar
+                       so candidates can decode the Easy Apply / Direct Apply tags. */}
+                <HowItWorksSidebar />
 
                 {/* ── Rate + Share Your Story (combined) ── */}
                 <div style={{

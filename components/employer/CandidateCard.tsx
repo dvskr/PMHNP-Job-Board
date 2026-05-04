@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {
-    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock,
+    MapPin, Briefcase, FileText, Calendar, Bookmark, Lock, Sparkles,
 } from 'lucide-react';
 
 interface CandidateCardProps {
@@ -22,6 +22,10 @@ interface CandidateCardProps {
     isViewed?: boolean;
     unlockUsage?: { used: number; limit: number | null; unlimited: boolean };
     onToggleSave?: (id: string) => void;
+    /** Smart Match — LLM-generated one-line "why this candidate" rationale. */
+    aiReason?: string;
+    /** Smart Match — vector similarity rendered as 0..100 for the badge. */
+    aiMatchPercent?: number;
 }
 
 const EXPERIENCE_LABELS: Record<number, string> = {
@@ -83,6 +87,7 @@ export default function CandidateCard({
     yearsExperience, certifications, licenseStates,
     specialties, preferredWorkMode, availableDate, hasResume,
     isSaved, isViewed, unlockUsage, onToggleSave,
+    aiReason, aiMatchPercent,
 }: CandidateCardProps) {
     const expLabel = getExperienceLabel(yearsExperience);
     const availLabel = formatAvailableDate(availableDate);
@@ -197,7 +202,41 @@ export default function CandidateCard({
                         </p>
                     )}
                 </div>
+                {typeof aiMatchPercent === 'number' && (
+                    <span
+                        title="Vector similarity vs your search"
+                        style={{
+                            ...recessedPill,
+                            background: 'linear-gradient(145deg, #EDE9FE, #DDD6FE)',
+                            color: '#6D28D9',
+                            border: '1px solid #C4B5FD',
+                            fontSize: '11px',
+                            flexShrink: 0,
+                        }}
+                    >
+                        <Sparkles size={11} /> {aiMatchPercent}% match
+                    </span>
+                )}
             </div>
+
+            {/* AI rationale (Smart Match only) */}
+            {aiReason && (
+                <div style={{
+                    background: 'linear-gradient(145deg, #F5F3FF, #EDE9FE)',
+                    border: '1px solid #DDD6FE',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                    fontSize: '12px',
+                    lineHeight: 1.45,
+                    color: '#4C1D95',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'flex-start',
+                }}>
+                    <Sparkles size={12} style={{ color: '#7C3AED', flexShrink: 0, marginTop: '2px' }} />
+                    <span>{aiReason}</span>
+                </div>
+            )}
 
             {/* Specialties */}
             {safeSpecs.length > 0 && (

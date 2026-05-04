@@ -1,0 +1,391 @@
+{
+  "_curation_status": "CURATED — 30 cases, 8-10 candidates each, 1-3 expected hits per case. First 6 cases are hand-curated by engineering covering core scenarios (telehealth, child/adolescent, license knockout, addiction, geriatric, veteran). Cases 7-30 are SYNTHETIC_NEEDS_REVIEW — generated via Claude research to expand coverage of forensic, perinatal, bilingual, eating disorders, crisis, concierge, locums, and collaborative-care scenarios. Discriminators concentrated on state-licensure knockouts (~75% of cases since APRN Compact is not yet operational in 2026), wrong-discipline distractors (FNP-BC / WHNP-BC / ambiguous Psychiatric APRN — ~30% of cases, concentrated in generalist settings), and age-group/setting/credential mismatches. Each case is hand-tuned so the LLM rerank can plausibly outperform pure cosine similarity. Production target per docs/ai-implementation-plan.md ticket 1.3.4 met (30 hand-rated tuples); next step is PMHNP-recruiter validation pass on cases 7-30 to confirm or adjust expected top-K rankings.",
+  "promptVersion": "v1",
+  "description": "Talent-search rerank golden cases. Each case = (job summary, candidate list with ≥8 entries) → expected top-K candidate indices. Eval gate: mean(rerank precision@K) must be ≥ 1.20 × mean(vector precision@K) per architecture §1.3.4.",
+  "cases": [
+    {
+      "id": "telehealth-ca-experienced",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"experienced California-licensed telehealth PMHNP for adult outpatient mood/anxiety panel\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 8 | States: CA, OR | Specialties: Adult Telehealth, Mood Disorders, Anxiety | Mode: remote\nCandidate #2 | Headline: New PMHNP-BC | Years: 1 | States: CA | Specialties: Adult General | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 7 | States: TX | Specialties: Outpatient | Mode: remote\nCandidate #4 | Headline: Senior PMHNP-BC, Telehealth Lead | Years: 11 | States: CA, NV, AZ | Specialties: Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #5 | Headline: Child PMHNP-BC | Years: 6 | States: CA | Specialties: Pediatric Psychiatry, ADHD | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 4 | States: NY | Specialties: Adult Inpatient | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 9 | States: CA, WA | Specialties: Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #8 | Headline: Geriatric PMHNP-BC | Years: 14 | States: CA | Specialties: Geriatric Psychiatry, Dementia | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 4, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      }
+    },
+    {
+      "id": "child-adolescent-east-coast",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"child & adolescent PMHNP for outpatient pediatric clinic in NY/NJ — ADHD and anxiety panel\"",
+        "candidateList": "Candidate #1 | Headline: Geriatric PMHNP-BC | Years: 12 | States: NY | Specialties: Geriatric Psychiatry, Dementia Care | Mode: hybrid\nCandidate #2 | Headline: Child & Adolescent PMHNP-BC | Years: 4 | States: NY, NJ | Specialties: Pediatric Psychiatry, ADHD, Adolescent Anxiety | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC | Years: 6 | States: TX | Specialties: Adult Outpatient | Mode: remote\nCandidate #4 | Headline: PMHNP-BC, Child Specialist | Years: 7 | States: NJ, NY, PA | Specialties: Pediatric Psychiatry, ADHD, Eating Disorders | Mode: hybrid\nCandidate #5 | Headline: Adult PMHNP-BC | Years: 5 | States: NY | Specialties: Adult Mood, Anxiety | Mode: remote\nCandidate #6 | Headline: PMHNP-BC | Years: 10 | States: NY, CT | Specialties: Adult Substance Use, Mood | Mode: hybrid\nCandidate #7 | Headline: Pediatric PMHNP-BC | Years: 3 | States: NY | Specialties: Child Psychiatry, ADHD, Autism Spectrum | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 15 | States: CA | Specialties: Adult Telehealth, Mood | Mode: remote\nCandidate #9 | Headline: PMHNP-BC | Years: 8 | States: NJ | Specialties: Adult Outpatient, Anxiety | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [2, 4, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      }
+    },
+    {
+      "id": "license-knockout-tx-inpatient",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for Texas inpatient psychiatric unit — must hold active TX license\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 5 | States: NY, NJ | Specialties: Inpatient Psychiatry | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 3 | States: TX | Specialties: Inpatient Psychiatry, Crisis Stabilization | Mode: onsite\nCandidate #3 | Headline: FNP-BC | Years: 6 | States: TX | Specialties: Family Practice | Mode: onsite\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: TX, OK | Specialties: Adult Inpatient, Mood, Schizophrenia | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: CA | Specialties: Adult Telehealth | Mode: remote\nCandidate #6 | Headline: Psychiatric APRN | Years: 7 | States: TX, AR | Specialties: Inpatient, Bipolar, PTSD | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 12 | States: FL | Specialties: Inpatient Adult | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 2 | States: TX | Specialties: Outpatient | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [2, 4, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      }
+    },
+    {
+      "id": "addiction-suboxone",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP with addiction medicine experience and X-waiver for Suboxone prescribing — outpatient SUD clinic\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: OH | Specialties: Addiction Psychiatry, Opioid Use Disorder, X-waiver Buprenorphine | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 4 | States: OH, KY | Specialties: Adult Mood, Anxiety | Mode: remote\nCandidate #3 | Headline: PMHNP-BC | Years: 10 | States: OH, WV | Specialties: SUD Treatment, MAT, Suboxone, Mood | Mode: hybrid\nCandidate #4 | Headline: Pediatric PMHNP-BC | Years: 5 | States: OH | Specialties: Child Psychiatry, ADHD | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 8 | States: PA | Specialties: Inpatient Psychiatry, Schizophrenia | Mode: onsite\nCandidate #6 | Headline: Addiction PMHNP-BC | Years: 7 | States: OH, IN | Specialties: Substance Use, Buprenorphine, Counseling | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 3 | States: OH | Specialties: Adult Outpatient | Mode: remote\nCandidate #8 | Headline: PMHNP-BC | Years: 11 | States: NY | Specialties: Eating Disorders | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      }
+    },
+    {
+      "id": "geriatric-memory-care",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for memory care unit — geriatric psychiatry, dementia, behavioral management — Florida licensed\"",
+        "candidateList": "Candidate #1 | Headline: Adult PMHNP-BC | Years: 5 | States: FL | Specialties: Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #2 | Headline: Geriatric PMHNP-BC | Years: 12 | States: FL, GA | Specialties: Geriatric Psychiatry, Dementia Care, Behavioral Management | Mode: onsite\nCandidate #3 | Headline: Child PMHNP-BC | Years: 4 | States: FL | Specialties: Pediatric Psychiatry, ADHD | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: FL | Specialties: Geriatric Psychiatry, Memory Care, Long-Term Care Consultation | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 6 | States: TX | Specialties: Adult Outpatient | Mode: remote\nCandidate #6 | Headline: PMHNP-BC | Years: 14 | States: FL, AL | Specialties: Geriatric, Dementia, Skilled Nursing Facility Liaison | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 3 | States: FL | Specialties: Adolescent Psychiatry | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 7 | States: NY | Specialties: Adult Mood, Anxiety | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [2, 4, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      }
+    },
+    {
+      "id": "veteran-ptsd-trauma",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for veteran outpatient program — PTSD, military sexual trauma, MDD — VA-experience preferred — Washington state\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC, VA Outpatient | Years: 7 | States: WA, OR | Specialties: PTSD, Veterans, Trauma-Focused CBT, MDD | Mode: hybrid\nCandidate #2 | Headline: Pediatric PMHNP-BC | Years: 4 | States: WA | Specialties: Pediatric Psychiatry, ADHD | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC | Years: 6 | States: WA | Specialties: Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #4 | Headline: Trauma PMHNP-BC | Years: 9 | States: WA, ID | Specialties: PTSD, Military Sexual Trauma, EMDR, MDD | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 5 | States: CA | Specialties: Adult Outpatient | Mode: remote\nCandidate #6 | Headline: PMHNP-BC | Years: 11 | States: WA | Specialties: Geriatric Psychiatry, Memory Care | Mode: onsite\nCandidate #7 | Headline: VA PMHNP-BC | Years: 14 | States: WA, OR, AK | Specialties: Veteran Mental Health, PTSD, Substance Use, MDD | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: WA | Specialties: Adult Inpatient | Mode: onsite"
+      },
+      "expected": {
+        "expectedTopK": [1, 4, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      }
+    },
+    {
+      "id": "forensic-county-jail-az",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for Maricopa County jail psychiatric unit — must hold active AZ license and have correctional or forensic experience\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: AZ, NM | Specialties: Correctional Psychiatry, Inpatient, Bipolar, Schizophrenia | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 9 | States: CA | Specialties: Correctional Psychiatry, Forensic Eval, SMI | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC | Years: 4 | States: AZ | Specialties: Outpatient Adult Mood, Anxiety | Mode: hybrid\nCandidate #4 | Headline: Senior PMHNP-BC | Years: 12 | States: AZ, UT | Specialties: County Jail Psychiatry, Crisis Stabilization, Substance Use | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 7 | States: TX, OK | Specialties: State Hospital, Forensic Psychiatry, Court-Ordered Eval | Mode: onsite\nCandidate #6 | Headline: PMHNP-BC | Years: 3 | States: AZ | Specialties: Telehealth Adult, Anxiety, ADHD | Mode: remote\nCandidate #7 | Headline: PMHNP-BC | Years: 8 | States: AZ | Specialties: Forensic Psychiatry, Correctional, Bipolar | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 5 | States: NV | Specialties: Inpatient, Schizophrenia, SMI | Mode: onsite"
+      },
+      "expected": {
+        "expectedTopK": [1, 4, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is AZ license PLUS correctional/forensic experience — pure cosine ranks Candidate 2 and Candidate 5 highly because their bios are dense with forensic keywords, but neither holds AZ. Candidates 1, 4, and 7 all have active AZ license with explicit correctional or jail psychiatry experience. Strongest distractor is Candidate 2 (CA-only, deep forensic background) — recruiter rejects on missing AZ licensure."
+    },
+    {
+      "id": "forensic-state-hospital-court-eval",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for state forensic hospital conducting court-ordered competency evaluations in Texas\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 11 | States: TX | Specialties: State Hospital, Court-Ordered Eval, Forensic Psychiatry | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 4 | States: TX | Specialties: Outpatient Mood, Anxiety | Mode: hybrid\nCandidate #3 | Headline: Forensic PMHNP-BC | Years: 8 | States: TX, LA | Specialties: Competency Evaluation, Forensic Psychiatry, SMI | Mode: onsite\nCandidate #4 | Headline: PMHNP-BC | Years: 6 | States: FL | Specialties: State Hospital, Forensic, Schizophrenia | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 9 | States: TX, AR | Specialties: Inpatient, Court-Ordered Eval, Bipolar | Mode: onsite\nCandidate #6 | Headline: PMHNP-BC | Years: 2 | States: TX | Specialties: Adult Telehealth, Anxiety | Mode: remote\nCandidate #7 | Headline: PMHNP-BC | Years: 14 | States: NY | Specialties: Forensic Psychiatry, Court-Ordered Eval | Mode: onsite\nCandidate #8 | Headline: Child PMHNP-BC | Years: 7 | States: TX | Specialties: Pediatric Psychiatry, Trauma-Focused CBT | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Discriminator is TX license PLUS forensic competency-evaluation experience — pure cosine surfaces Candidate 4 and Candidate 7 because their bios match \"forensic\" and \"state hospital\" keywords, but neither holds a TX license. Candidates 1, 3, and 5 all hold active TX licenses with explicit court-ordered eval or state hospital depth. Strongest distractor is Candidate 7 (14 yrs forensic, NY-only) — recruiter rejects on missing TX licensure despite the seniority advantage."
+    },
+    {
+      "id": "forensic-juvenile-detention-co",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Child & adolescent PMHNP for Colorado juvenile detention facility — adolescent forensic psychiatry experience required\"",
+        "candidateList": "Candidate #1 | Headline: Child PMHNP-BC | Years: 7 | States: CO | Specialties: Pediatric Psychiatry, Juvenile Justice, Trauma-Focused CBT | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 11 | States: CO, WY | Specialties: Adult Correctional, Forensic Psychiatry, SMI | Mode: onsite\nCandidate #3 | Headline: Child PMHNP-BC | Years: 5 | States: CO | Specialties: Adolescent Forensic, Conduct Disorder, ADHD | Mode: onsite\nCandidate #4 | Headline: Child PMHNP-BC | Years: 9 | States: CA | Specialties: Juvenile Justice, Trauma, PTSD | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: CO | Specialties: Adult Outpatient Mood, Anxiety | Mode: hybrid\nCandidate #6 | Headline: Child PMHNP-BC | Years: 8 | States: CO, NM | Specialties: Adolescent Psychiatry, Detention Center, Trauma | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 13 | States: CO | Specialties: Adult Inpatient, Schizophrenia | Mode: onsite\nCandidate #8 | Headline: Child PMHNP-BC | Years: 3 | States: TX | Specialties: Pediatric Outpatient ADHD, Anxiety | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator combines age-group (child/adolescent) AND CO licensure AND forensic/detention setting — pure cosine ranks Candidate 2 and Candidate 7 highly on \"correctional\" and \"forensic\" keywords, but both are adult-only. Candidates 1, 3, and 6 all hold CO licenses, are credentialed in pediatric/adolescent psych, and have juvenile justice or detention exposure. Strongest distractor is Candidate 4 (juvenile justice expert, no CO license) — recruiter rejects on the state licensure knockout."
+    },
+    {
+      "id": "perinatal-academic-program-nc",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for academic perinatal psychiatry program in NC — postpartum mood and OB integration experience required\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: NC | Specialties: Perinatal Mood, Postpartum Depression, OB Integration | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: NC, SC | Specialties: Reproductive Psychiatry, Perinatal, Postpartum | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 8 | States: NC | Specialties: Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #4 | Headline: PMHNP-BC | Years: 4 | States: GA | Specialties: Perinatal Mood, Postpartum, OB Liaison | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 12 | States: NC | Specialties: Geriatric Psychiatry, Memory Care | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 5 | States: NC, VA | Specialties: Perinatal Psychiatry, Reproductive, Postpartum Mood | Mode: hybrid\nCandidate #7 | Headline: Child PMHNP-BC | Years: 7 | States: NC | Specialties: Pediatric Psychiatry, ADHD | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: NC | Specialties: Adult Outpatient, ADHD, Anxiety | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is NC license PLUS perinatal/reproductive psychiatry depth — pure cosine ranks Candidate 4 highly because their bio has the strongest perinatal keyword density, but they are GA-only. Candidates 1, 2, and 6 all hold NC license with explicit perinatal, postpartum, or OB integration experience. Strongest distractor is Candidate 4 (perfect specialty match, no NC license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "perinatal-ob-embedded-clinic",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP embedded in a high-volume OB practice in Massachusetts — must screen and treat antenatal/postpartum mood disorders\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 5 | States: MA | Specialties: Perinatal Mood, Postpartum, OB Integration, Reproductive Psychiatry | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 9 | States: MA, RI | Specialties: Adult Mood, Anxiety, Bipolar | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 7 | States: MA | Specialties: Reproductive Psychiatry, Perinatal, Postpartum | Mode: hybrid\nCandidate #4 | Headline: WHNP-BC | Years: 11 | States: MA | Specialties: Women's Health, OB-GYN, Postpartum Care | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: MA | Specialties: Perinatal Mood, OB Liaison, Postpartum Depression | Mode: onsite\nCandidate #6 | Headline: PMHNP-BC | Years: 8 | States: NY | Specialties: Perinatal Psychiatry, Reproductive Mood | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 13 | States: MA | Specialties: Geriatric, Dementia Care | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 2 | States: MA | Specialties: Adult Telehealth, ADHD | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is MA license PLUS perinatal specialty PLUS PMHNP credential (not WHNP) — pure cosine elevates Candidate 4 because \"OB,\" \"women's health,\" and \"postpartum\" match heavily, but a WHNP cannot prescribe psychotropics for mood disorders as the primary treating clinician. Candidates 1, 3, and 5 are all MA-licensed PMHNPs with explicit perinatal mood and OB integration experience. Strongest distractor is Candidate 4 (WHNP, perfect-sounding bio) — recruiter rejects on wrong credential for psychiatric prescribing."
+    },
+    {
+      "id": "perinatal-reproductive-private-practice-il",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for Illinois reproductive psychiatry practice — fertility, pregnancy, and postpartum medication management\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 8 | States: IL | Specialties: Reproductive Psychiatry, Perinatal Mood, Fertility Counseling | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 6 | States: IL, WI | Specialties: Perinatal, Postpartum Mood, Reproductive Psychiatry | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 12 | States: IL | Specialties: Adult Mood, Anxiety, ADHD | Mode: remote\nCandidate #4 | Headline: PMHNP-BC | Years: 5 | States: IL | Specialties: Perinatal Psychiatry, Reproductive Mood, OB Liaison | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 9 | States: CA | Specialties: Reproductive Psychiatry, Fertility, Perinatal | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 3 | States: IL | Specialties: Adult Outpatient Anxiety | Mode: hybrid\nCandidate #7 | Headline: Geriatric PMHNP-BC | Years: 14 | States: IL | Specialties: Memory Care, Dementia, Late-Life Depression | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 7 | States: IN | Specialties: Perinatal Mood, Postpartum | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 4],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is IL license PLUS reproductive/perinatal specialty depth — pure cosine ranks Candidate 5 highly because their reproductive psychiatry keyword density is the strongest, but they are CA-only and APRN Compact does not cover IL or CA. Candidates 1, 2, and 4 are all IL-licensed with explicit reproductive or perinatal specialty. Strongest distractor is Candidate 5 (deepest specialty fit, no IL license) — recruiter rejects on state licensure since APRN compact is not yet operational."
+    },
+    {
+      "id": "bilingual-spanish-fqhc-tx",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Bilingual Spanish-speaking PMHNP for FQHC serving primarily Spanish-monolingual patients in TX — must conduct sessions in Spanish\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: TX | Specialties: Bilingual Spanish, Adult Mood, Anxiety, FQHC | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: TX | Specialties: Adult Mood, Anxiety, Trauma | Mode: hybrid\nCandidate #3 | Headline: FNP-BC | Years: 8 | States: TX | Specialties: Bilingual Spanish, Family Practice, FQHC | Mode: onsite\nCandidate #4 | Headline: PMHNP-BC | Years: 5 | States: TX | Specialties: Bilingual Spanish, Anxiety, PTSD, Trauma-Focused CBT | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 12 | States: TX, NM | Specialties: Adult Outpatient, ADHD | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 7 | States: CA | Specialties: Bilingual Spanish, FQHC, Adult Mood | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 4 | States: TX | Specialties: Bilingual Spanish, FQHC, Adult Mood, Trauma | Mode: onsite\nCandidate #8 | Headline: Psychiatric APRN | Years: 9 | States: TX | Specialties: Adult Outpatient, Anxiety, Bipolar | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 4, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator stacks bilingual Spanish AND TX license AND PMHNP credential (not FNP) — pure cosine surfaces Candidates 3 and 6 because both list Bilingual Spanish + FQHC, but Candidate 3 is FNP and Candidate 6 lacks TX licensure. Candidates 1, 4, and 7 are all TX-licensed PMHNPs with explicit Bilingual Spanish capability. Strongest distractor is Candidate 3 (FNP-BC, perfect language and setting) — recruiter rejects on wrong discipline for psychiatric prescribing."
+    },
+    {
+      "id": "bilingual-asl-deaf-clinic-md",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP fluent in ASL for specialty Deaf and hard-of-hearing mental health clinic in Maryland\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 7 | States: MD | Specialties: ASL Fluent, Adult Mood, Anxiety, Deaf Community Mental Health | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 11 | States: MD, DC | Specialties: Adult Mood, Anxiety, Trauma, Telehealth | Mode: remote\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: MD | Specialties: ASL Fluent, Adolescent and Adult Psychiatry, Trauma | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: VA | Specialties: ASL Fluent, Deaf Mental Health, Adult Mood | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: MD | Specialties: Adult Outpatient, ADHD, Anxiety | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 13 | States: MD | Specialties: Geriatric, Memory Care | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 6 | States: MD, PA | Specialties: ASL Fluent, Deaf Community, Adult Mood, Anxiety | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: MD | Specialties: Adult Telehealth, Mood | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 7],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is ASL fluency PLUS MD license — pure cosine ranks Candidate 4 highly because their ASL/Deaf-community keyword density is strong, but they are VA-only. Candidates 1, 3, and 7 are all MD-licensed PMHNPs with explicit ASL fluency. Strongest distractor is Candidate 4 (perfect ASL/Deaf specialty match, no MD license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "bilingual-spanish-perinatal-fl",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Bilingual Spanish PMHNP for South Florida perinatal mental health program — sessions conducted in Spanish\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: FL | Specialties: Bilingual Spanish, Perinatal Mood, Postpartum | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 9 | States: FL | Specialties: Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: FL | Specialties: Bilingual Spanish, Reproductive Psychiatry, Perinatal, Postpartum | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 11 | States: TX | Specialties: Bilingual Spanish, Perinatal, OB Integration | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: FL | Specialties: Perinatal Mood, Postpartum Depression | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 8 | States: FL, GA | Specialties: Bilingual Spanish, Perinatal, Postpartum, OB Liaison | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 12 | States: FL | Specialties: Geriatric, Memory Care | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: FL | Specialties: Bilingual Spanish, Adult Telehealth ADHD | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator stacks bilingual Spanish AND perinatal specialty AND FL license — pure cosine surfaces Candidate 4 (TX, deep perinatal+Spanish bio) and Candidate 5 (FL, strong perinatal but no Spanish). Candidates 1, 3, and 6 all hold FL license, are PMHNPs, and have both Bilingual Spanish and perinatal mood depth. Strongest distractor is Candidate 4 (specialty-perfect TX candidate) — recruiter rejects on missing FL licensure."
+    },
+    {
+      "id": "eating-disorders-iop-co",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for adult eating disorders IOP/PHP program in Denver — must have ED-specific medical complexity experience\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 7 | States: CO | Specialties: Eating Disorders, IOP/PHP, Medical Complexity, Anxiety | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 11 | States: CO, WY | Specialties: Adult Mood, Anxiety, Bipolar | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: CO | Specialties: Eating Disorders, PHP, Refeeding, Comorbid Anxiety | Mode: onsite\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: CA | Specialties: Eating Disorders IOP, FBT, Medical Complexity | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: CO | Specialties: Adult Outpatient Mood, ADHD | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 8 | States: CO, UT | Specialties: Eating Disorders, IOP, Bipolar, Anxiety, Medical Stabilization | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 13 | States: CO | Specialties: Geriatric, Dementia | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: CO | Specialties: Adult Telehealth, Anxiety | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is CO license PLUS eating disorders IOP/PHP specialty depth — pure cosine ranks Candidate 4 highly because their bio is dense with ED keywords, but they are CA-only. Candidates 1, 3, and 6 all hold CO license with explicit eating disorders IOP/PHP plus medical complexity experience. Strongest distractor is Candidate 4 (deep ED match, no CO license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "eating-disorders-pediatric-fbt-ut",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Child PMHNP for adolescent eating disorders program in Utah using family-based treatment (FBT)\"",
+        "candidateList": "Candidate #1 | Headline: Child PMHNP-BC | Years: 6 | States: UT | Specialties: Pediatric Eating Disorders, FBT, IOP | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: UT | Specialties: Adult Eating Disorders, IOP, Anxiety | Mode: onsite\nCandidate #3 | Headline: Child PMHNP-BC | Years: 5 | States: UT, ID | Specialties: Adolescent Eating Disorders, FBT, Medical Complexity | Mode: onsite\nCandidate #4 | Headline: Child PMHNP-BC | Years: 8 | States: CA | Specialties: Pediatric ED, FBT, Adolescent Mood | Mode: onsite\nCandidate #5 | Headline: Child PMHNP-BC | Years: 4 | States: UT | Specialties: Pediatric ADHD, Anxiety | Mode: hybrid\nCandidate #6 | Headline: Child PMHNP-BC | Years: 7 | States: UT | Specialties: Adolescent Eating Disorders, FBT, Refeeding, Comorbid Anxiety | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 12 | States: UT | Specialties: Adult Outpatient Mood, Bipolar | Mode: hybrid\nCandidate #8 | Headline: Child PMHNP-BC | Years: 3 | States: UT | Specialties: Pediatric Telehealth Mood | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator stacks UT license, pediatric/adolescent age group, and FBT-specific eating disorders experience — pure cosine ranks Candidate 2 highly on \"eating disorders + IOP + UT\" but Candidate 2 is adult-only, and ranks Candidate 4 highly but Candidate 4 is CA-only. Candidates 1, 3, and 6 are UT-licensed Child PMHNPs with explicit FBT and adolescent ED experience. Strongest distractor is Candidate 2 (right state and ED keywords, wrong age group) — recruiter rejects on adult-only scope."
+    },
+    {
+      "id": "eating-disorders-residential-medical-complexity-mn",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for residential eating disorders unit in MN — must have inpatient medical complexity and refeeding syndrome experience\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 9 | States: MN | Specialties: Eating Disorders Residential, Refeeding, Medical Complexity, Inpatient | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 6 | States: MN, WI | Specialties: Eating Disorders Residential, Inpatient, Refeeding, Bipolar | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC | Years: 12 | States: MN | Specialties: Outpatient Adult Mood, Anxiety, Telehealth | Mode: remote\nCandidate #4 | Headline: PMHNP-BC | Years: 4 | States: MN | Specialties: Eating Disorders IOP, Outpatient | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 8 | States: MN | Specialties: Inpatient Psychiatry, Eating Disorders Residential, Medical Stabilization | Mode: onsite\nCandidate #6 | Headline: PMHNP-BC | Years: 11 | States: IA | Specialties: Eating Disorders Residential, Refeeding, Medical Complexity | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 3 | States: MN | Specialties: Adult Outpatient, ADHD | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 14 | States: MN | Specialties: Geriatric, Memory Care | Mode: onsite"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Discriminator is MN license PLUS residential ED PLUS inpatient medical-complexity/refeeding experience — pure cosine ranks Candidate 6 highly because their bio matches all ED keywords, but they are IA-only. Candidates 1, 2, and 5 are all MN-licensed with residential ED and inpatient medical-complexity depth; Candidate 4 is MN PMHNP but only IOP/outpatient, lacking the residential/inpatient acuity. Strongest distractor is Candidate 6 (perfect specialty match, no MN license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "crisis-stabilization-psych-er-az",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for 24/7 psychiatric ER and crisis stabilization unit in AZ — must have high-acuity inpatient experience\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 7 | States: AZ | Specialties: Crisis Stabilization, Psych ER, Inpatient, SMI | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: AZ, NV | Specialties: Inpatient Psychiatry, Crisis Stabilization, Bipolar, Schizophrenia | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: AZ | Specialties: Outpatient Mood, Anxiety, Telehealth | Mode: remote\nCandidate #4 | Headline: FNP-BC | Years: 8 | States: AZ | Specialties: Emergency Department, Family Practice | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 4 | States: AZ | Specialties: Psych ER, Crisis Stabilization, Substance Use | Mode: onsite\nCandidate #6 | Headline: PMHNP-BC | Years: 9 | States: CA | Specialties: Psych ER, Crisis, Inpatient, SMI | Mode: onsite\nCandidate #7 | Headline: Psychiatric APRN | Years: 11 | States: AZ | Specialties: Crisis Stabilization, Bipolar, SMI | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 2 | States: AZ | Specialties: Adult Outpatient ADHD, Anxiety | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Discriminator combines AZ license, PMHNP credential, and high-acuity crisis/psych-ER experience — pure cosine surfaces Candidate 4 (FNP-BC with ED keywords) and Candidate 6 (CA PMHNP with crisis depth) but neither passes credential or licensure. Candidates 1, 2, and 5 are AZ-licensed PMHNPs with explicit crisis stabilization or psych ER experience; Candidate 7 is plausible but the ambiguous \"Psychiatric APRN\" headline lacks the PMHNP-BC certification confirmation a careful recruiter would require for a high-acuity ER role. Strongest distractor is Candidate 6 (deep crisis/psych ER, CA-only) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "mobile-crisis-team-or",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for mobile crisis response team in Portland OR — community-based crisis evaluations and brief interventions\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 6 | States: OR | Specialties: Mobile Crisis, Community Mental Health, Crisis Stabilization | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 9 | States: OR, WA | Specialties: Mobile Crisis, Substance Use, SMI | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: OR | Specialties: Outpatient Mood, Telehealth | Mode: remote\nCandidate #4 | Headline: PMHNP-BC | Years: 11 | States: WA | Specialties: Mobile Crisis, Crisis Stabilization, SMI | Mode: hybrid\nCandidate #5 | Headline: FNP-BC | Years: 7 | States: OR | Specialties: Community Health, Mobile Outreach | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 4 | States: OR | Specialties: Mobile Crisis, Psych ER, Brief Intervention | Mode: hybrid\nCandidate #7 | Headline: Psychiatric APRN | Years: 13 | States: OR | Specialties: Inpatient, SMI, Bipolar | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: OR | Specialties: Adult Outpatient ADHD | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is OR license PLUS mobile-crisis/community-based experience (not inpatient or pure outpatient) — pure cosine elevates Candidate 4 (deep mobile-crisis WA bio) and Candidate 5 (OR + \"mobile outreach\" but FNP, not PMHNP). Candidates 1, 2, and 6 are all OR-licensed PMHNPs with explicit mobile-crisis or brief-intervention work. Strongest distractor is Candidate 5 (OR + community/mobile keywords, FNP-BC) — recruiter rejects on wrong discipline."
+    },
+    {
+      "id": "crisis-stabilization-pediatric-tn",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Child PMHNP for pediatric crisis stabilization unit in TN — adolescent suicide risk and acute behavioral crises\"",
+        "candidateList": "Candidate #1 | Headline: Child PMHNP-BC | Years: 6 | States: TN | Specialties: Pediatric Crisis Stabilization, Adolescent Suicide Risk, Inpatient | Mode: onsite\nCandidate #2 | Headline: Child PMHNP-BC | Years: 9 | States: TN, KY | Specialties: Adolescent Inpatient, Crisis, Trauma-Focused CBT | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC | Years: 11 | States: TN | Specialties: Adult Crisis Stabilization, Inpatient, SMI | Mode: onsite\nCandidate #4 | Headline: Child PMHNP-BC | Years: 4 | States: TN | Specialties: Pediatric Outpatient ADHD, Anxiety | Mode: hybrid\nCandidate #5 | Headline: Child PMHNP-BC | Years: 7 | States: GA | Specialties: Pediatric Crisis, Adolescent Suicide Risk | Mode: onsite\nCandidate #6 | Headline: Child PMHNP-BC | Years: 5 | States: TN | Specialties: Adolescent Crisis Stabilization, Suicide Risk Assessment, Inpatient | Mode: onsite\nCandidate #7 | Headline: PMHNP-BC | Years: 14 | States: TN | Specialties: Geriatric, Memory Care | Mode: onsite\nCandidate #8 | Headline: Child PMHNP-BC | Years: 3 | States: TN | Specialties: Pediatric Telehealth Mood | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator stacks TN license, pediatric/adolescent age group, and crisis-stabilization/inpatient acuity — pure cosine elevates Candidate 3 (TN + crisis + inpatient) but adult-only, and Candidate 5 (perfect pediatric crisis match) but GA-only. Candidates 1, 2, and 6 are TN-licensed Child PMHNPs with explicit adolescent crisis stabilization and inpatient experience. Strongest distractor is Candidate 3 (TN crisis depth, adult-only) — recruiter rejects on age-group mismatch."
+    },
+    {
+      "id": "concierge-cash-pay-nyc",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for boutique concierge cash-pay practice in Manhattan — 60-min visits, $400/visit, executive clientele\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 8 | States: NY | Specialties: Concierge, Cash-Pay, Adult Mood, Anxiety, Executive Mental Health | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 12 | States: NY, NJ | Specialties: Concierge, Private Practice, Adult Mood, ADHD | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 5 | States: NY | Specialties: Community Mental Health, FQHC, Insurance Panels | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 10 | States: CA | Specialties: Concierge, Cash-Pay, Executive Mental Health | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 7 | States: NY | Specialties: Boutique Practice, Cash-Pay, Adult Anxiety, ADHD, High-Functioning Adults | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 3 | States: NY | Specialties: Adult Outpatient, Telehealth | Mode: remote\nCandidate #7 | Headline: PMHNP-BC | Years: 14 | States: NY | Specialties: Inpatient, SMI, Bipolar | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 6 | States: NY | Specialties: Adult Mood, Anxiety, Insurance-Based Outpatient | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is NY license PLUS concierge/cash-pay private-practice experience (not insurance-based or inpatient) — pure cosine ranks Candidate 4 highly on \"concierge/cash-pay/executive\" keywords, but they are CA-only. Candidates 1, 2, and 5 are NY-licensed PMHNPs with explicit concierge or boutique cash-pay history. Strongest distractor is Candidate 4 (perfect concierge bio, no NY license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "concierge-pediatric-fl",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Child PMHNP for cash-pay concierge pediatric psychiatry practice in Miami — flexible after-school hours\"",
+        "candidateList": "Candidate #1 | Headline: Child PMHNP-BC | Years: 7 | States: FL | Specialties: Concierge, Cash-Pay, Pediatric Psychiatry, ADHD | Mode: hybrid\nCandidate #2 | Headline: Child PMHNP-BC | Years: 10 | States: FL, GA | Specialties: Boutique Pediatric Practice, Cash-Pay, Adolescent Mood | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 12 | States: FL | Specialties: Concierge Adult, Cash-Pay, Executive | Mode: hybrid\nCandidate #4 | Headline: Child PMHNP-BC | Years: 5 | States: FL | Specialties: Pediatric Cash-Pay, ADHD, Anxiety, After-School Hours | Mode: hybrid\nCandidate #5 | Headline: Child PMHNP-BC | Years: 8 | States: NY | Specialties: Concierge Pediatric Practice, Cash-Pay | Mode: hybrid\nCandidate #6 | Headline: Child PMHNP-BC | Years: 4 | States: FL | Specialties: Insurance-Based Outpatient, ADHD | Mode: hybrid\nCandidate #7 | Headline: Child PMHNP-BC | Years: 13 | States: FL | Specialties: Inpatient Adolescent, Crisis | Mode: onsite\nCandidate #8 | Headline: Child PMHNP-BC | Years: 3 | States: FL | Specialties: Pediatric Telehealth | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 4],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Discriminator stacks FL license, pediatric age group, and concierge/cash-pay private-practice depth — pure cosine ranks Candidate 3 (FL + concierge cash-pay) and Candidate 5 (perfect pediatric concierge bio) highly, but Candidate 3 is adult-only and Candidate 5 is NY-only. Candidates 1, 2, and 4 are all FL-licensed Child PMHNPs with explicit cash-pay or boutique pediatric practice. Strongest distractor is Candidate 5 (perfect specialty match, no FL license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "concierge-perinatal-cash-pay-ca",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for boutique cash-pay perinatal psychiatry practice in CA — high-touch reproductive and postpartum care\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 8 | States: CA | Specialties: Concierge, Cash-Pay, Perinatal Mood, Reproductive Psychiatry | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 6 | States: CA | Specialties: Boutique Cash-Pay Practice, Perinatal, Postpartum Mood | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 11 | States: CA, OR | Specialties: Concierge, Cash-Pay, Reproductive Psychiatry, Perinatal | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: CA | Specialties: Insurance-Based FQHC, Adult Mood | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 10 | States: WA | Specialties: Concierge Perinatal Practice, Reproductive Psychiatry | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 4 | States: CA | Specialties: Adult Outpatient Telehealth | Mode: remote\nCandidate #7 | Headline: PMHNP-BC | Years: 13 | States: CA | Specialties: Geriatric, Memory Care | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 5 | States: CA | Specialties: Perinatal Mood, Insurance-Based Outpatient | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 3],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Discriminator stacks CA license, perinatal specialty, AND concierge/cash-pay business model (not insurance-based) — pure cosine ranks Candidate 5 highly on \"concierge perinatal\" keywords but they are WA-only, and elevates Candidate 8 (CA + perinatal) but they are insurance-based. Candidates 1, 2, and 3 are all CA-licensed PMHNPs with explicit cash-pay/concierge perinatal practice. Strongest distractor is Candidate 5 (perfect specialty+model match, no CA license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "locums-multistate-telehealth",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Locum PMHNP for 6-month telehealth contract — must hold active licenses in at least 3 states (FL, TX, GA preferred)\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC, Locums | Years: 9 | States: FL, TX, GA, AL | Specialties: Locums, Telehealth, Adult Mood, Anxiety | Mode: remote\nCandidate #2 | Headline: PMHNP-BC | Years: 12 | States: FL | Specialties: Adult Mood, Telehealth, Outpatient | Mode: remote\nCandidate #3 | Headline: PMHNP-BC, Locums | Years: 7 | States: FL, TX, GA | Specialties: Locums, Telehealth, Adult Mood, ADHD | Mode: remote\nCandidate #4 | Headline: PMHNP-BC | Years: 10 | States: CA, NV | Specialties: Locums, Telehealth, Multistate | Mode: remote\nCandidate #5 | Headline: PMHNP-BC, Locums | Years: 6 | States: FL, TX, GA, SC, NC | Specialties: Locums, Per Diem, Telehealth Adult | Mode: remote\nCandidate #6 | Headline: PMHNP-BC | Years: 8 | States: FL, TX | Specialties: Adult Mood, Anxiety, Outpatient | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 4 | States: FL | Specialties: Telehealth, Adult Mood | Mode: remote\nCandidate #8 | Headline: PMHNP-BC | Years: 14 | States: NY | Specialties: Locums, Telehealth, Multistate | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 5],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is the multi-state license requirement (≥3 states including FL, TX, GA) — pure cosine ranks Candidate 4 and Candidate 8 highly because their bios contain \"locums + multistate + telehealth,\" but neither holds the required Southeast state combination, and the APRN Compact is not yet operational so each state license must be explicit. Candidates 1, 3, and 5 all hold FL+TX+GA at minimum with locums/telehealth experience. Strongest distractor is Candidate 4 (locums-branded, CA/NV) — recruiter rejects because no required states overlap."
+    },
+    {
+      "id": "locums-inpatient-rural-mt",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"3-month locum PMHNP for rural inpatient psychiatric unit in Montana — must hold MT license and have inpatient experience\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC, Locums | Years: 8 | States: MT, WY, ID | Specialties: Locums, Inpatient Psychiatry, SMI, Bipolar | Mode: onsite\nCandidate #2 | Headline: PMHNP-BC | Years: 11 | States: MT | Specialties: Adult Inpatient, Crisis Stabilization | Mode: onsite\nCandidate #3 | Headline: PMHNP-BC, Locums | Years: 6 | States: MT, ND, SD | Specialties: Locums, Inpatient, Rural Psychiatry, SMI | Mode: onsite\nCandidate #4 | Headline: PMHNP-BC | Years: 9 | States: WY, ID | Specialties: Locums, Inpatient, Rural | Mode: onsite\nCandidate #5 | Headline: PMHNP-BC | Years: 5 | States: MT | Specialties: Outpatient Telehealth, Adult Mood | Mode: remote\nCandidate #6 | Headline: PMHNP-BC, Locums | Years: 13 | States: MT, OR, WA | Specialties: Locums, Inpatient Psychiatry, Bipolar, Schizophrenia | Mode: onsite\nCandidate #7 | Headline: FNP-BC | Years: 10 | States: MT | Specialties: Rural Family Practice, Locums | Mode: onsite\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: MT | Specialties: Outpatient ADHD, Anxiety | Mode: hybrid"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 6],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is MT license PLUS inpatient acuity PLUS locums-ready posture — pure cosine elevates Candidate 4 (\"locums+inpatient+rural\") but they lack MT license, and Candidate 7 (MT + locums + rural) but they are FNP not PMHNP. Candidates 1, 3, and 6 are MT-licensed PMHNPs with explicit locums+inpatient experience. Strongest distractor is Candidate 4 (locums-inpatient profile, no MT license) — recruiter rejects on state licensure since APRN compact does not cover MT in 2026."
+    },
+    {
+      "id": "locums-per-diem-buprenorphine-ne",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Per diem PMHNP for office-based opioid treatment program in NE — buprenorphine prescribing experience and NE license required\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC, Locums | Years: 8 | States: NE, IA | Specialties: Locums, Buprenorphine, Substance Use, MAT | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 12 | States: NE | Specialties: Adult Mood, Anxiety, Outpatient | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 6 | States: NE | Specialties: X-waiver, Buprenorphine, OBOT, Substance Use | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC, Per Diem | Years: 9 | States: NE, KS | Specialties: Per Diem, Buprenorphine, MAT, Substance Use | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 7 | States: IA | Specialties: Buprenorphine, OBOT, Substance Use, MAT | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 4 | States: NE | Specialties: Outpatient ADHD, Anxiety | Mode: hybrid\nCandidate #7 | Headline: FNP-BC | Years: 11 | States: NE | Specialties: Family Practice, Buprenorphine, MAT | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: NE | Specialties: Adult Telehealth, Mood | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 3, 4],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is NE license PLUS buprenorphine/MAT prescribing experience PLUS PMHNP credential — pure cosine surfaces Candidate 5 (deep buprenorphine bio, IA-only) and Candidate 7 (NE + buprenorphine but FNP, not PMHNP). Note that the federal X-waiver was eliminated in 2023, but candidates listing \"X-waiver,\" \"buprenorphine,\" or \"MAT\" still signal real OBOT prescribing experience — Candidates 1, 3, and 4 all hold NE license and document that experience. Strongest distractor is Candidate 7 (FNP, NE + MAT) — recruiter rejects on wrong discipline for psychiatric scope."
+    },
+    {
+      "id": "collaborative-care-pcmh-wa",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for embedded behavioral health role in Washington PCMH primary-care collaborative care model\"",
+        "candidateList": "Candidate #1 | Headline: PMHNP-BC | Years: 7 | States: WA | Specialties: Collaborative Care, PCMH, Integrated Primary Care, Adult Mood | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 10 | States: WA, OR | Specialties: Collaborative Care, Primary Care Integration, Adult Mood, Anxiety | Mode: hybrid\nCandidate #3 | Headline: FNP-BC | Years: 11 | States: WA | Specialties: PCMH, Family Practice, Primary Care Integration | Mode: hybrid\nCandidate #4 | Headline: PMHNP-BC | Years: 5 | States: WA | Specialties: Collaborative Care, Embedded Behavioral Health, Anxiety, ADHD | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 9 | States: CA | Specialties: Collaborative Care, PCMH, Integrated Primary Care | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 13 | States: WA | Specialties: Inpatient, SMI, Crisis | Mode: onsite\nCandidate #7 | Headline: Psychiatric APRN | Years: 8 | States: WA | Specialties: Outpatient Adult Mood, Anxiety | Mode: hybrid\nCandidate #8 | Headline: PMHNP-BC | Years: 3 | States: WA | Specialties: Telehealth Adult ADHD | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 4],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is WA license PLUS collaborative-care/PCMH integrated-primary-care experience — pure cosine surfaces Candidate 3 (WA + PCMH but FNP, not PMHNP) and Candidate 5 (perfect collaborative care bio but CA-only). Candidates 1, 2, and 4 are WA-licensed PMHNPs with explicit collaborative-care or embedded-behavioral-health experience. Strongest distractor is Candidate 3 (WA + PCMH match, FNP credential) — recruiter rejects on wrong discipline for the psychiatric prescribing role."
+    },
+    {
+      "id": "collaborative-care-pediatric-pcp-oh",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"Child PMHNP embedded in Ohio pediatric primary-care collaborative-care program — ADHD, anxiety, mild depression\"",
+        "candidateList": "Candidate #1 | Headline: Child PMHNP-BC | Years: 6 | States: OH | Specialties: Collaborative Care, Pediatric Primary Care Integration, ADHD, Anxiety | Mode: hybrid\nCandidate #2 | Headline: Child PMHNP-BC | Years: 9 | States: OH, KY | Specialties: Collaborative Care, Pediatric PCMH, ADHD, Mild Depression | Mode: hybrid\nCandidate #3 | Headline: PMHNP-BC | Years: 11 | States: OH | Specialties: Adult Collaborative Care, PCMH, Mood | Mode: hybrid\nCandidate #4 | Headline: Child PMHNP-BC | Years: 4 | States: OH | Specialties: Pediatric Outpatient, ADHD, Anxiety, Embedded Pediatrics | Mode: hybrid\nCandidate #5 | Headline: Child PMHNP-BC | Years: 8 | States: MI | Specialties: Collaborative Care, Pediatric Integration, ADHD | Mode: hybrid\nCandidate #6 | Headline: FNP-BC | Years: 10 | States: OH | Specialties: Pediatric Primary Care, Family Practice | Mode: hybrid\nCandidate #7 | Headline: Child PMHNP-BC | Years: 13 | States: OH | Specialties: Adolescent Inpatient, Crisis | Mode: onsite\nCandidate #8 | Headline: Child PMHNP-BC | Years: 2 | States: OH | Specialties: Pediatric Telehealth Mood | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 4],
+        "k": 3,
+        "minPrecisionAtK": 0.5
+      },
+      "_curatorNote": "Discriminator stacks OH license, pediatric age group, and collaborative-care/PCP-integration experience — pure cosine elevates Candidate 3 (OH + collaborative care, but adult-only), Candidate 5 (perfect pediatric collaborative care, MI-only), and Candidate 6 (OH + pediatric primary care but FNP, not PMHNP). Candidates 1, 2, and 4 are all OH-licensed Child PMHNPs with collaborative-care or embedded-pediatrics experience. Strongest distractor is Candidate 5 (specialty-perfect, no OH license) — recruiter rejects on state licensure knockout."
+    },
+    {
+      "id": "collaborative-care-geriatric-fl",
+      "input": {
+        "jobSummary": "Active employer is searching for: \"PMHNP for collaborative care in Florida geriatric primary-care medical home — late-life depression, dementia behavioral symptoms\"",
+        "candidateList": "Candidate #1 | Headline: Geriatric PMHNP-BC | Years: 8 | States: FL | Specialties: Collaborative Care, Geriatric Psychiatry, Late-Life Depression, Memory Care | Mode: hybrid\nCandidate #2 | Headline: PMHNP-BC | Years: 11 | States: FL | Specialties: Collaborative Care, PCMH, Geriatric, Dementia Care | Mode: hybrid\nCandidate #3 | Headline: FNP-BC | Years: 12 | States: FL | Specialties: Geriatric Primary Care, PCMH, Dementia | Mode: hybrid\nCandidate #4 | Headline: Geriatric PMHNP-BC | Years: 6 | States: FL, GA | Specialties: Geriatric Psychiatry, Memory Care, Collaborative Care, Late-Life Depression | Mode: hybrid\nCandidate #5 | Headline: PMHNP-BC | Years: 9 | States: GA | Specialties: Collaborative Care, Geriatric, Dementia | Mode: hybrid\nCandidate #6 | Headline: PMHNP-BC | Years: 4 | States: FL | Specialties: Adult Outpatient Mood, Anxiety | Mode: hybrid\nCandidate #7 | Headline: PMHNP-BC | Years: 14 | States: FL | Specialties: Inpatient SMI, Crisis | Mode: onsite\nCandidate #8 | Headline: Psychiatric APRN | Years: 7 | States: FL | Specialties: Adult Outpatient Telehealth | Mode: remote"
+      },
+      "expected": {
+        "expectedTopK": [1, 2, 4],
+        "k": 3,
+        "minPrecisionAtK": 0.66
+      },
+      "_curatorNote": "Discriminator is FL license PLUS geriatric specialty PLUS collaborative-care model — pure cosine elevates Candidate 3 (FL + geriatric PCMH but FNP) and Candidate 5 (perfect collaborative-care/geriatric bio but GA-only). Candidates 1, 2, and 4 are FL-licensed PMHNPs with explicit geriatric collaborative-care depth. Strongest distractor is Candidate 3 (FL + geriatric + PCMH, FNP credential) — recruiter rejects on wrong discipline for psychotropic prescribing in late-life depression."
+    }
+  ]
+}

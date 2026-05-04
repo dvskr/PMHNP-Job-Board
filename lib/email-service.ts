@@ -77,13 +77,15 @@ export type EmailType =
   | 'contact_internal'
   | 'employer_outreach'
   | 'email_job'
-  | 'auth_confirm';
+  | 'auth_confirm'
+  | 'recommendation_digest';
 
 // Marketing email types — these use the marketing sender address
 const MARKETING_EMAIL_TYPES = new Set<EmailType>([
   'welcome_alert', 'job_alert', 'salary_guide', 'broadcast',
   'performance_report', 'saved_job_reminder',
   'candidate_alert',
+  'recommendation_digest',
 ]);
 
 // ── HTML sanitization — prevents XSS in user-supplied content ──

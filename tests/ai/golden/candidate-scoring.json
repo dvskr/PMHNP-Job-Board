@@ -1,0 +1,82 @@
+{
+  "_curation_status": "SEED_ONLY — 5 representative cases. Production target: 100 hand-rated cases curated by a PMHNP recruiter or clinical director per docs/ai-implementation-plan.md ticket 0.2.4. Until that curation lands, the eval CI gate runs but the small N means the threshold floor is advisory, not statistically significant.",
+  "promptVersion": "v1",
+  "description": "Candidate scoring golden cases. Each case is a (job, candidate) pair with a human-rated expected score band ±10pt by default and optional must/mustNotMention assertions on matchReasons.",
+  "cases": [
+    {
+      "id": "perfect-match-state-and-cert",
+      "description": "Board-certified PMHNP with 8 years experience, licensed in the job's state, telehealth-experienced — should score 90+",
+      "input": {
+        "jobSummary": "Title: Telehealth PMHNP — California\nLocation: Remote (CA-licensed only)\nWork Mode: Remote\nExperience Level: Mid-senior\nClinical Setting: Telehealth\nPatient Population: Adults\nState: CA\nJob Description:\nWe are seeking a PMHNP-BC with active California license to provide telehealth psychiatric services to adult patients. 5+ years of experience required.",
+        "candidateSummary": "Headline: Board-Certified PMHNP-BC | 8 Years Telehealth Experience\nYears of Experience: 8\nCertifications: PMHNP-BC, ANCC\nLicensed States: CA, OR, WA\nSpecialties: Adult Psychiatry, Telehealth\nSkills: Telepsychiatry, Psychopharmacology, Anxiety, Depression\nHas NPI Number: Yes\nHas DEA Number: Yes\nWork Experience:\n  - Telehealth PMHNP at SteadyMD (2022 - Present)\n  - PMHNP at Kaiser Permanente (2018 - 2022)"
+      },
+      "expected": {
+        "expectedScore": 92,
+        "toleranceBand": 8,
+        "mustMention": ["california", "telehealth"],
+        "mustNotMention": ["gender", "race", "age"]
+      },
+      "tags": { "scenario": "perfect-match" }
+    },
+    {
+      "id": "license-mismatch-knockout",
+      "description": "Strong PMHNP but licensed in wrong state for the role — should score 30-50",
+      "input": {
+        "jobSummary": "Title: PMHNP — Texas Outpatient Clinic\nLocation: Houston, TX\nExperience Level: Mid-senior\nClinical Setting: Outpatient\nState: TX\nJob Description:\nMust hold active Texas APRN license. 3+ years post-cert experience.",
+        "candidateSummary": "Headline: PMHNP-BC | 5 Years Outpatient\nYears of Experience: 5\nCertifications: PMHNP-BC\nLicensed States: NY, NJ\nSpecialties: Outpatient Psychiatry\nWork Experience:\n  - PMHNP at NYU Langone (2020 - Present)"
+      },
+      "expected": {
+        "expectedScore": 38,
+        "toleranceBand": 12,
+        "mustMention": ["texas"],
+        "mustNotMention": []
+      },
+      "tags": { "scenario": "license-mismatch" }
+    },
+    {
+      "id": "junior-meets-most",
+      "description": "Junior PMHNP (1 year) for a role asking 3+ years; meets cert + state — should score 55-70",
+      "input": {
+        "jobSummary": "Title: PMHNP — Community Mental Health\nLocation: Atlanta, GA\nExperience Level: Mid-level\nClinical Setting: Community Mental Health\nState: GA\nJob Description:\nPMHNP-BC required, GA license, 3+ years preferred. Population: adults + adolescents.",
+        "candidateSummary": "Headline: New PMHNP-BC | 1 Year Experience\nYears of Experience: 1\nCertifications: PMHNP-BC\nLicensed States: GA\nSpecialties: Adult Psychiatry\nWork Experience:\n  - PMHNP at Grady Health (2024 - Present)"
+      },
+      "expected": {
+        "expectedScore": 62,
+        "toleranceBand": 12,
+        "mustMention": ["georgia", "experience"],
+        "mustNotMention": []
+      },
+      "tags": { "scenario": "experience-gap" }
+    },
+    {
+      "id": "pediatric-specialty-mismatch",
+      "description": "PMHNP with strong adult/geriatric experience for a child & adolescent role — should score 40-60",
+      "input": {
+        "jobSummary": "Title: Child & Adolescent PMHNP\nLocation: Boston, MA\nClinical Setting: Outpatient\nPatient Population: Children & Adolescents\nState: MA\nJob Description:\nMust have child/adolescent specialty training and at least 2 years of pediatric psychiatric experience. PMHNP-BC + MA license required.",
+        "candidateSummary": "Headline: PMHNP-BC | Geriatric Psychiatry Specialist\nYears of Experience: 12\nCertifications: PMHNP-BC\nLicensed States: MA\nSpecialties: Geriatric Psychiatry, Dementia Care\nWork Experience:\n  - PMHNP at McLean Hospital (2014 - Present, geriatric psychiatry unit)"
+      },
+      "expected": {
+        "expectedScore": 50,
+        "toleranceBand": 12,
+        "mustMention": ["adolescent"],
+        "mustNotMention": []
+      },
+      "tags": { "scenario": "specialty-mismatch" }
+    },
+    {
+      "id": "non-pmhnp-applicant",
+      "description": "Family NP applying to PMHNP role — should score under 25",
+      "input": {
+        "jobSummary": "Title: PMHNP — Inpatient Psychiatry\nLocation: Phoenix, AZ\nClinical Setting: Inpatient\nState: AZ\nJob Description:\nPMHNP-BC required. Active AZ APRN license. 2+ years inpatient psychiatric experience.",
+        "candidateSummary": "Headline: Family Nurse Practitioner | 6 Years\nYears of Experience: 6\nCertifications: FNP-BC\nLicensed States: AZ\nSpecialties: Family Practice, Primary Care\nWork Experience:\n  - FNP at Banner Health (2019 - Present, primary care clinic)"
+      },
+      "expected": {
+        "expectedScore": 18,
+        "toleranceBand": 12,
+        "mustMention": ["pmhnp"],
+        "mustNotMention": []
+      },
+      "tags": { "scenario": "wrong-credential" }
+    }
+  ]
+}

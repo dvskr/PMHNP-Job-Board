@@ -1,0 +1,86 @@
+name: AI quality gates
+
+# Implements the gates from docs/ai-implementation-plan.md §1.4:
+#   - Unit + integration tests (Vitest)               — every run
+#   - PII scanner (prompts may not reference forbidden fields) — every run
+#   - Eval suite (golden cases must hold baseline)    — see modes below
+#   - Bias eval (variance must stay ≤2pt)             — see modes below
+#
+# Two modes for eval execution:
+#
+#   DRY-RUN (default on PRs) — validates the harness wiring without burning
+#     LLM budget. Confirms suites are registered and inputs parse, but does
+#     NOT score real model output. A prompt regression that destroys quality
+#     would PASS dry-run.
+#
+#   LIVE (push to main + nightly cron) — calls real models against the
+#     curated golden sets and gates merge / alerts on regression. Costs
+#     ~$1 per main-branch run with the current 4 suites.
+#
+# Override: set EVAL_LIVE=1 as a repo secret to force live mode on PRs too
+# (useful when iterating on prompt changes locally — every PR validates).
+
+on:
+  pull_request:
+    paths:
+      - 'lib/ai/**'
+      - 'lib/candidate-scorer.ts'
+      - 'lib/resume-parser.ts'
+      - 'tests/lib/ai/**'
+      - 'tests/ai/**'
+      - 'scripts/run-eval.ts'
+      - 'scripts/scan-prompt-pii.ts'
+      - 'scripts/prompt-diff.ts'
+      - 'package.json'
+      - '.github/workflows/ai-gates.yml'
+  push:
+    branches: [main]
+  schedule:
+    # 08:00 UTC daily (~midnight Pacific). Catches drift from upstream
+    # model changes that happen between PRs.
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  gates:
+    name: AI quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Vitest (unit + integration)
+        # Limit to AI tests + their transitive dependents. Full vitest run
+        # happens in the project's main test workflow.
+        run: npx vitest run tests/lib/ai
+
+      - name: PII scanner
+        run: npm run lint:pii-prompts
+
+      # PRs run dry (validates wiring, free). Pushes to main + nightly cron
+      # run live (catches regressions, costs ~$1/run). Force live on PRs by
+      # setting EVAL_LIVE=1 as a repo secret.
+      - name: Eval — golden suites
+        env:
+          EVAL_DRY_RUN: ${{ (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || secrets.EVAL_LIVE == '1') && '0' || '1' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
+        run: npm run eval all
+
+      - name: Eval — bias pair sets
+        env:
+          EVAL_DRY_RUN: ${{ (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || secrets.EVAL_LIVE == '1') && '0' || '1' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
+        run: npm run eval -- all --bias

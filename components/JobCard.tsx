@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MapPin, CheckCircle, Eye, Bookmark, ExternalLink, BadgeCheck, Zap } from 'lucide-react';
-import { slugify, isNewJob, getJobFreshness } from '@/lib/utils';
+import { slugify, getJobFreshness } from '@/lib/utils';
 import { Job } from '@/lib/types';
 import useAppliedJobs from '@/lib/hooks/useAppliedJobs';
 import useSavedJobs from '@/lib/hooks/useSavedJobs';
@@ -84,7 +84,6 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
   const jobSlug = slugify(job.title, job.id);
   const jobUrl = `/jobs/${jobSlug}`;
   const fullJobUrl = `${BASE_URL}/jobs/${jobSlug}`;
-  const isNew = isNewJob(job);
   const freshness = getJobFreshness(job);
   const shareTitle = `${job.title} at ${job.employer}`;
   const shareDescription = `Check out this PMHNP job: ${job.title} at ${job.employer}`;
@@ -263,15 +262,13 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
               {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
             </div>
 
-            {/* Status Badges */}
-            {(isNew || applied) && (
+            {/* Status Badges — "New" badge intentionally removed (was visual
+                noise at our scale; recency is already implied by the
+                "Posted X ago" label). The Applied badge stays as a clear
+                state signal for the candidate. */}
+            {applied && (
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                {isNew && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>● New</span>
-                )}
-                {applied && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>✓ Applied</span>
-                )}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)', boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)' }}>✓ Applied</span>
               </div>
             )}
 
@@ -518,14 +515,8 @@ function JobCard({ job, viewMode = 'grid' }: JobCardProps) {
           </Badge>
           {job.jobType && <Badge variant="outline" size="sm">{job.jobType}</Badge>}
           {displayMode && <Badge variant="outline" size="sm">{displayMode}</Badge>}
-          {isNew && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '4px',
-              padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-              background: '#A7F3D0', color: '#065F46', border: '1px solid rgba(255,255,255,0.5)',
-              boxShadow: '4px 4px 10px rgba(16,185,129,0.12), -2px -2px 6px rgba(255,255,255,0.8), inset 2px 2px 4px rgba(255,255,255,0.7), inset -1px -1px 2px rgba(0,0,0,0.03)',
-            }}>● New</span>
-          )}
+          {/* "New" badge intentionally removed — recency is already implied
+              by the "Posted X ago" label and was visual noise at our scale. */}
           {applied && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',

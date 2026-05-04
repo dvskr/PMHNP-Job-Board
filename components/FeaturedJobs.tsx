@@ -33,10 +33,6 @@ function relativeTime(s: string): string {
     return `${Math.floor(d / 30)}mo ago`;
 }
 
-function isNew(s: string): boolean {
-    return Date.now() - new Date(s).getTime() < 48 * 3600000;
-}
-
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
@@ -353,7 +349,6 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                     {jobs.slice(0, 8).map((job, i) => {
                         const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
                         const postedDate = job.originalPostedAt || job.createdAt;
-                        const fresh = isNew(postedDate);
 
                         return (
                             <motion.div key={job.id} variants={fadeRight}>
@@ -389,11 +384,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                                     <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
                                                 </>
                                             )}
-                                            {fresh && (
-                                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6ee7b7' }}>
-                                                    New
-                                                </span>
-                                            )}
+                                            {/* "New" recency badge removed — relativeTime below already conveys freshness. */}
                                             <span style={{ fontSize: '12px', color: 'rgba(248,232,236,0.35)' }}>
                                                 {relativeTime(postedDate)}
                                             </span>

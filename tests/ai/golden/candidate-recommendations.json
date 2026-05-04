@@ -1,0 +1,43 @@
+{
+  "_curation_status": "SEED_ONLY — 3 representative cases. Production target per docs/ai-implementation-plan.md ticket 1.2.4: 50 hand-rated (candidate-profile, expected-relevant-jobs) tuples with mean hit-rate ≥ 40%. The expectedJobIds in the seed cases use placeholder IDs that will not match real job rows — domain expert needs to map each profile to actual jobs from the prod catalog.",
+  "promptVersion": "v1",
+  "description": "Candidate-recommendations golden cases. Each case = a profile summary + license states → expected job IDs the candidate would likely apply to. Hit-rate ≥ minHitRate per case to pass.",
+  "cases": [
+    {
+      "id": "telehealth-adult-west-coast",
+      "input": {
+        "profileSummary": "Board-Certified PMHNP-BC with 7 years adult telehealth experience. Specializes in mood disorders, anxiety, substance use. Multi-state license, prefers remote.",
+        "licenseStates": "CA, OR, WA, NV"
+      },
+      "expected": {
+        "expectedJobIds": ["TODO_real_telehealth_employer_job_id_1", "TODO_real_telehealth_employer_job_id_2"],
+        "minHitRate": 0.40,
+        "topN": 10
+      }
+    },
+    {
+      "id": "child-adolescent-east-coast",
+      "input": {
+        "profileSummary": "Senior PMHNP-BC, 12 years child & adolescent psychiatry. Specializes in ADHD, anxiety, eating disorders. East coast multi-state license.",
+        "licenseStates": "NY, NJ, MA, CT"
+      },
+      "expected": {
+        "expectedJobIds": ["TODO_real_child_psych_employer_job_id_1"],
+        "minHitRate": 0.40,
+        "topN": 10
+      }
+    },
+    {
+      "id": "addiction-specialist",
+      "input": {
+        "profileSummary": "PMHNP-BC with X-waiver and addiction psychiatry focus. 5 years inpatient + outpatient SUD treatment. Open to telehealth.",
+        "licenseStates": "TX, OK"
+      },
+      "expected": {
+        "expectedJobIds": ["TODO_real_addiction_psych_job_id_1"],
+        "minHitRate": 0.40,
+        "topN": 10
+      }
+    }
+  ]
+}
