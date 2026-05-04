@@ -55,6 +55,14 @@ jobs:
           cache: npm
 
       - name: Install
+        # `npm ci` runs `prisma generate` as a postinstall, which loads
+        # prisma.config.ts. That file reads DIRECT_URL via `env()` and
+        # throws if it's unset — even though `prisma generate` itself
+        # doesn't connect to the DB. Provide a dummy URL so the codegen
+        # step can read the config.
+        env:
+          DIRECT_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://prisma-codegen-only@localhost:5432/postgres' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://prisma-codegen-only@localhost:5432/postgres' }}
         run: npm ci
 
       - name: Type-check
@@ -76,6 +84,7 @@ jobs:
           EVAL_DRY_RUN: ${{ (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || secrets.EVAL_LIVE == '1') && '0' || '1' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
+          DIRECT_URL:   ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
         run: npm run eval all
 
       - name: Eval — bias pair sets
@@ -83,4 +92,5 @@ jobs:
           EVAL_DRY_RUN: ${{ (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || secrets.EVAL_LIVE == '1') && '0' || '1' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
+          DIRECT_URL:   ${{ secrets.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/test' }}
         run: npm run eval -- all --bias
