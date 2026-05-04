@@ -74,7 +74,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const page = parseInt(params.page || '1');
 
   return {
-    title: `${stats.totalJobs} Correctional PMHNP Jobs — Forensic Psych NP Positions`,
+    title: `${stats.totalJobs} Correctional PMHNP Jobs — Forensic Psych NP ($160K-200K+)`,
     description: `Find ${stats.totalJobs} correctional and forensic PMHNP jobs. Psychiatric nurse practitioner positions in prisons, jails, and detention facilities with 15-25% salary premiums, loan forgiveness eligibility, and high clinical autonomy.`,
     keywords: ['correctional pmhnp jobs', 'forensic psychiatric nurse practitioner', 'prison pmhnp', 'corrections psych NP', 'forensic mental health NP jobs'],
     openGraph: {
