@@ -292,10 +292,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const result = await complete({
             task: 'talent_search_rerank',
             tenant,
-            messages: prompt.render({ jobSummary, candidateList }),
+            messages: prompt.render({ jobSummary, candidateList, topK: String(k) }),
             promptId: prompt.id,
             promptVersion: prompt.version,
-            cacheKey: ['rerank', prompt.version, query, ordered.map((c) => c.profile.supabaseId).join(',')],
+            cacheKey: ['rerank', prompt.version, query, k, ordered.map((c) => c.profile.supabaseId).join(',')],
             outputSchema: rerankResultSchema,
         });
         // Normalize: trim long reasons (LLM sometimes ignores the
