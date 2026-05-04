@@ -364,8 +364,9 @@ function JobsContent({ initialJobs, initialTotal, initialPage, initialTotalPages
                   (components/HomepageHero.tsx). Same wrapper class, same
                   borderRadius/shadow/backdrop, same `#0D9488` CTA. Single
                   input variant (no location field) and CTA changed to
-                  "AI Search" with a Sparkles icon. Submit routes to
-                  /jobs/search?q=... so the existing semantic page handles it.
+                  "AI Search" with a Sparkles icon. Submit calls
+                  /api/jobs/search/semantic inline and replaces the rendered
+                  job list — no separate page navigation.
                 */}
                 <form
                   onSubmit={handleAiSearch}
