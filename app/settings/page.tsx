@@ -23,6 +23,7 @@ import WorkExperienceSection from '@/components/settings/WorkExperienceSection'
 import ScreeningAnswersSection from '@/components/settings/ScreeningAnswersSection'
 import OpenEndedResponsesSection from '@/components/settings/OpenEndedResponsesSection'
 import NewsletterPreference from '@/components/settings/NewsletterPreference'
+import AIRecommendationsToggle from '@/components/settings/AIRecommendationsToggle'
 
 import ReferencesSection from '@/components/settings/ReferencesSection'
 
@@ -1528,6 +1529,7 @@ function SettingsPageInner() {
               Email Preferences
             </h3>
             <NewsletterPreference email={profile.email} />
+            {profile.role !== 'employer' && <AIRecommendationsToggle />}
           </div>
 
           {/* ── Danger Zone ── */}
