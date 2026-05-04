@@ -134,8 +134,16 @@ export const recommendationDigestWeekly = inngest.createFunction(
     async ({ step }) => {
         // Find candidates who:
         //   - have at least one rec in the past 7 days
-        //   - have a known email + opted in to newsletter
-        //   - have email_leads row (the unsubscribe token lives there)
+        //   - have a known email and aren't hard-suppressed (bounce/complaint)
+        //   - have an email_leads row for the unsubscribe token
+        //
+        // NOTE: We deliberately do NOT require `newsletter_opt_in = true` here.
+        // The AI digest is a separate opt-in (ai.candidate.recommendations_email
+        // flag, toggleable from /settings) from the general newsletter. A user
+        // can subscribe to the AI digest without subscribing to the newsletter,
+        // and vice versa. The per-candidate flag check in the loop below is
+        // the actual opt-in gate; this query just narrows to "has an email,
+        // has recs, isn't suppressed."
         const candidates = await step.run('list-eligible-candidates', async () => {
             return prisma.$queryRawUnsafe<CandidateForDigest[]>(`
                 SELECT DISTINCT up.supabase_id,
@@ -147,7 +155,7 @@ export const recommendationDigestWeekly = inngest.createFunction(
                 JOIN email_leads el ON el.email = up.email
                 WHERE cr.created_at >= NOW() - INTERVAL '${FRESH_BATCH_WINDOW_DAYS} days'
                   AND cr.dismissed_at IS NULL
-                  AND el.newsletter_opt_in = true
+                  AND el.is_suppressed = false
                   AND up.deleted_at IS NULL
                   AND up.role = 'job_seeker'
                   AND up.email IS NOT NULL;

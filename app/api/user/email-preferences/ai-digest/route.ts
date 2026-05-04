@@ -102,6 +102,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
     }
 
+    // When opting IN, ensure an email_leads row exists for this user's
+    // email so the digest cron has an unsubscribe token. The digest is
+    // independent of the general newsletter — we DO NOT flip
+    // newsletter_opt_in here. Existing rows are left untouched (the user
+    // may already have set their newsletter preference; respect it).
+    if (enabled) {
+        const profile = await prisma.userProfile.findUnique({
+            where: { supabaseId: user.id },
+            select: { email: true },
+        });
+        if (profile?.email) {
+            const existingLead = await prisma.emailLead.findUnique({
+                where: { email: profile.email },
+                select: { id: true },
+            });
+            if (!existingLead) {
+                await prisma.emailLead.create({
+                    data: {
+                        email: profile.email,
+                        source: 'ai-digest-optin',
+                        // Default newsletterOptIn=false — the AI digest is
+                        // independent and the user hasn't opted into the
+                        // general newsletter through this endpoint.
+                    },
+                });
+            }
+        }
+    }
+
     // Bust the local flag cache so the next isAiFeatureEnabled() call
     // sees the fresh value without waiting for the 60-sec TTL.
     invalidateFlagCache(FLAG);
