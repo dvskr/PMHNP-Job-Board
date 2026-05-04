@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     // Parse the resume with AI
     let parsed: ParsedResume;
     try {
-      parsed = await parseResume(buffer, contentType);
+      parsed = await parseResume(buffer, contentType, user.id);
     } catch (parseErr) {
       logger.error('Resume content extraction or AI parse failed', parseErr, { userId: user.id });
       await markProfileFailed(user.id);

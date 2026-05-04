@@ -1,5 +1,13 @@
 import { MetadataRoute } from 'next'
 
+// ── P2.3: Auth-pages temporary unblock window ────────────────────────
+// We unblocked /signup, /login, /messages, /saved, /job-alerts/manage,
+// /employer/login from FULL_DISALLOW so Googlebot can crawl them, see the
+// X-Robots-Tag: noindex header, and drop them from the index. After the
+// window below expires we MUST re-add them to FULL_DISALLOW. The CI test
+// at tests/sitemap-budget.test.ts (P4) should fail if today > this date.
+const AUTH_REBLOCK_DATE = '2026-05-19'; // 14 days from 2026-05-04
+
 // ── Allow lists ──────────────────────────────────────────────────────
 // Public surfaces every legitimate crawler should be able to index.
 const PUBLIC_ALLOW = [
@@ -21,6 +29,23 @@ const PUBLIC_ALLOW = [
 // Full disallow list — applied to `*` AND every named AI/search crawler.
 // Token-based URLs (edit, checkout, manage, unsubscribe, password reset)
 // must never be crawled or trained on. Internal Next.js data routes too.
+//
+// GSC Fix (P2.3): /signup, /login, /messages, /saved, /job-alerts/manage,
+// /employer/login were previously hard-blocked here, which prevented Googlebot
+// from ever fetching them. Result: 5 URLs stuck in GSC's "Indexed, though
+// blocked by robots.txt" category — Google indexed them from sitemaps/links
+// before the block, then couldn't crawl to see our X-Robots-Tag: noindex.
+//
+// Fix sequence (must run together):
+//   1. (this PR) Move auth pages OUT of FULL_DISALLOW so Googlebot can crawl.
+//   2. Middleware sets X-Robots-Tag: noindex, nofollow on these paths
+//      (already in middleware.ts:461-477 — verified before deploy).
+//   3. Run scripts/deindex-auth-pages.ts once to submit URL_DELETED via
+//      Indexing API (instant signal vs waiting for crawl).
+//   4. Wait 14 days for Google to confirm de-indexed.
+//   5. RE-ADD these paths to FULL_DISALLOW. Tracked by AUTH_REBLOCK_DATE
+//      below — CI lint should fail if today >= AUTH_REBLOCK_DATE and these
+//      paths aren't back in FULL_DISALLOW.
 const FULL_DISALLOW = [
   // Block all other API routes (longest-match rule keeps /api/sitemaps/ allowed)
   '/api/',
@@ -29,26 +54,26 @@ const FULL_DISALLOW = [
   '/api/admin/',
   // Internal Next.js client-side navigation data (allow /_next/static/ for JS/CSS)
   '/_next/data/',
-  // Token-bearing URLs — must not be indexed
+  // Token-bearing URLs — must not be indexed (these are SAFE to keep blocked
+  // because they require tokens that Google has never seen)
   '/jobs/edit/',
   '/post-job/checkout',
   '/post-job/preview',
-  '/job-alerts/manage',
   '/job-alerts/unsubscribe',
   '/email-preferences',
   '/unsubscribe',
   '/reset-password',
   '/forgot-password',
-  // Auth & user-private surfaces
-  '/employer/',
+  // Auth & user-private surfaces (not the leaked-into-index ones — those
+  // are temporarily unblocked above per P2.3)
+  '/employer/dashboard/',
+  '/employer/candidates/',
+  '/employer/settings',
+  '/employer/signup',
   '/admin/',
   '/dashboard/',
   '/auth/',
-  '/login',
-  '/signup',
   '/settings',
-  '/saved',
-  '/messages',
   '/my-applications',
   '/unauthorized',
   '/success',
@@ -120,6 +145,15 @@ const SEO_CRAWL_DELAY_SECONDS = 10
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pmhnphiring.com'
+
+  // P2.3: nag the logs if we're past the auth-pages re-block deadline.
+  // The intent is for a human to verify de-indexing in GSC and then
+  // re-add /signup, /login, /messages, /saved, /job-alerts/manage,
+  // /employer/login to FULL_DISALLOW. This warning makes "we forgot"
+  // visible in Vercel logs once a day (sitemap revalidates).
+  if (new Date().toISOString().slice(0, 10) > AUTH_REBLOCK_DATE) {
+    console.warn(`[robots.ts] AUTH_REBLOCK_DATE (${AUTH_REBLOCK_DATE}) has passed. Verify GSC "Indexed, though blocked by robots.txt" is at 0, then re-add auth paths to FULL_DISALLOW.`);
+  }
 
   return {
     rules: [

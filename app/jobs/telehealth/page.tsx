@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -85,7 +86,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             }],
         },
         alternates: {
-            canonical: 'https://pmhnphiring.com/jobs/telehealth',
+            canonical: `${brand.baseUrl}/jobs/telehealth`,
         },
         // Prevent Google from indexing paginated variants as separate pages
         ...(page > 1 && {

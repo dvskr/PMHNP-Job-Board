@@ -219,7 +219,7 @@ export const v2Templates: Record<string, V2TemplateEntry> = {
     label: 'Job Post Confirmation',
     desc: 'Sent to employers after a job is published',
     fn: () => simple('hero-job-post.png', 'Your Listing Is Live',
-      'Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for 30 days.',
+      'Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for 30 days.',
       'View Your Listing', `${BASE_URL}/jobs`, 'Your job posting is now live.',
       `${spacerV2(16)}${secondary(`Need to edit? <a href="${BASE_URL}/employer/dashboard" style="color:${V2.teal};text-decoration:underline;">Open your dashboard</a>.`)}`),
   },

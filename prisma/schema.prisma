@@ -8,78 +8,80 @@ datasource db {
 }
 
 model Job {
-  id                  String       @id @default(uuid())
-  title               String
-  slug                String?      @unique
-  employer            String
-  location            String
-  jobType             String?      @map("job_type")
-  mode                String?
-  experienceLevel     String?      @map("experience_level")
-  description         String
-  descriptionSummary  String?      @map("description_summary")
-  salaryRange         String?      @map("salary_range")
-  minSalary           Int?         @map("min_salary")
-  maxSalary           Int?         @map("max_salary")
-  salaryPeriod        String?      @map("salary_period")
-  city                String?
-  state               String?
-  stateCode           String?      @map("state_code")
-  country             String?      @default("US")
-  isRemote            Boolean      @default(false) @map("is_remote")
-  isHybrid            Boolean      @default(false) @map("is_hybrid")
-  normalizedMinSalary Int?         @map("normalized_min_salary")
-  normalizedMaxSalary Int?         @map("normalized_max_salary")
-  salaryIsEstimated   Boolean      @default(false) @map("salary_is_estimated")
-  salaryConfidence    Float?       @map("salary_confidence")
-  displaySalary       String?      @map("display_salary")
-  applyLink           String?      @map("apply_link")
-  applyOnPlatform     Boolean      @default(false) @map("apply_on_platform")
-  screeningQuestions   JobScreeningQuestion[]
-  isFeatured          Boolean      @default(false) @map("is_featured")
-  isPublished         Boolean      @default(true) @map("is_published")
-  isManuallyUnpublished Boolean     @default(false) @map("is_manually_unpublished")
+  id                       String                 @id @default(uuid())
+  title                    String
+  slug                     String?                @unique
+  employer                 String
+  location                 String
+  jobType                  String?                @map("job_type")
+  mode                     String?
+  experienceLevel          String?                @map("experience_level")
+  description              String
+  descriptionSummary       String?                @map("description_summary")
+  salaryRange              String?                @map("salary_range")
+  minSalary                Int?                   @map("min_salary")
+  maxSalary                Int?                   @map("max_salary")
+  salaryPeriod             String?                @map("salary_period")
+  city                     String?
+  state                    String?
+  stateCode                String?                @map("state_code")
+  country                  String?                @default("US")
+  isRemote                 Boolean                @default(false) @map("is_remote")
+  isHybrid                 Boolean                @default(false) @map("is_hybrid")
+  normalizedMinSalary      Int?                   @map("normalized_min_salary")
+  normalizedMaxSalary      Int?                   @map("normalized_max_salary")
+  salaryIsEstimated        Boolean                @default(false) @map("salary_is_estimated")
+  salaryConfidence         Float?                 @map("salary_confidence")
+  displaySalary            String?                @map("display_salary")
+  applyLink                String?                @map("apply_link")
+  applyOnPlatform          Boolean                @default(false) @map("apply_on_platform")
+  screeningQuestions       JobScreeningQuestion[]
+  isFeatured               Boolean                @default(false) @map("is_featured")
+  isPublished              Boolean                @default(true) @map("is_published")
+  isManuallyUnpublished    Boolean                @default(false) @map("is_manually_unpublished")
   // ── Unpublish reason capture ──
   // Set when an employer manually unpublishes ("Pause") via the dashboard
   // modal. Powers outreach + feedback signal. See migration
   // 20260502_add_unpublish_reason. Most-recent value wins if the employer
   // republishes and unpublishes again.
-  unpublishReason     String?      @db.VarChar(60) @map("unpublish_reason")
-  unpublishReasonNote String?      @db.Text @map("unpublish_reason_note")
-  unpublishedAt       DateTime?    @map("unpublished_at")
-  archivedAt          DateTime?    @map("archived_at")
-  isVerifiedEmployer  Boolean      @default(false) @map("is_verified_employer")
-  benefits            String[]     @default([])
-  setting             String?      @map("clinical_setting")
-  population          String?      @map("patient_population")
-  sourceType          String?      @map("source_type")
-  sourceProvider      String?      @map("source_provider")
-  sourceSite          String?      @map("source_site")
-  externalId          String?      @map("external_id")
-  viewCount           Int          @default(0) @map("view_count")
-  applyClickCount     Int          @default(0) @map("apply_click_count")
-  qualityScore        Int          @default(0) @map("quality_score")
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
-  expiresAt           DateTime?    @map("expires_at")
-  companyId           String?      @map("company_id")
-  originalPostedAt    DateTime?    @map("original_posted_at")
-  lastLinkCheckedAt   DateTime?    @map("last_link_checked_at")
-  lastEnrichedAt      DateTime?    @map("last_enriched_at")
+  unpublishReason          String?                @map("unpublish_reason") @db.VarChar(60)
+  unpublishReasonNote      String?                @map("unpublish_reason_note") @db.Text
+  unpublishedAt            DateTime?              @map("unpublished_at")
+  archivedAt               DateTime?              @map("archived_at")
+  isVerifiedEmployer       Boolean                @default(false) @map("is_verified_employer")
+  benefits                 String[]               @default([])
+  setting                  String?                @map("clinical_setting")
+  population               String?                @map("patient_population")
+  sourceType               String?                @map("source_type")
+  sourceProvider           String?                @map("source_provider")
+  sourceSite               String?                @map("source_site")
+  externalId               String?                @map("external_id")
+  viewCount                Int                    @default(0) @map("view_count")
+  applyClickCount          Int                    @default(0) @map("apply_click_count")
+  qualityScore             Int                    @default(0) @map("quality_score")
+  createdAt                DateTime               @default(now()) @map("created_at")
+  updatedAt                DateTime               @updatedAt @map("updated_at")
+  expiresAt                DateTime?              @map("expires_at")
+  companyId                String?                @map("company_id")
+  originalPostedAt         DateTime?              @map("original_posted_at")
+  lastLinkCheckedAt        DateTime?              @map("last_link_checked_at")
+  lastEnrichedAt           DateTime?              @map("last_enriched_at")
   // Source-presence tracking — incremented when a job's external_id is missing
   // from a successful source ingest. Resets to 0 on each re-appearance.
   // Currently shadow-mode: written but not used to auto-unpublish until tuned.
-  healthConsecutiveMissing Int       @default(0) @map("health_consecutive_missing")
-  healthLastSeenAt    DateTime?    @map("health_last_seen_at")
-  applyClicks         ApplyClick[]
-  jobApplications     JobApplication[]
-  jobReports          JobReport[]
-  jobViewEvents       JobViewEvent[]
-  employerJobs        EmployerJob?
-  employerMessages    EmployerMessage[]
-  conversations       Conversation[]
-  company             Company?     @relation(fields: [companyId], references: [id])
-  healthChecks        JobHealthCheck[]
+  healthConsecutiveMissing Int                    @default(0) @map("health_consecutive_missing")
+  healthLastSeenAt         DateTime?              @map("health_last_seen_at")
+  applyClicks              ApplyClick[]
+  jobApplications          JobApplication[]
+  jobReports               JobReport[]
+  jobViewEvents            JobViewEvent[]
+  employerJobs             EmployerJob?
+  employerMessages         EmployerMessage[]
+  conversations            Conversation[]
+  company                  Company?               @relation(fields: [companyId], references: [id])
+  healthChecks             JobHealthCheck[]
+  embedding                JobEmbedding?
+  recommendations          CandidateRecommendation[]
 
   @@index([isPublished])
   @@index([isFeatured])
@@ -106,44 +108,44 @@ model Job {
 /// Never delete rows. Retention is enforced by a partitioned monthly
 /// vacuum job (Sprint 5) — until then the table grows ~100k rows/week.
 model JobHealthCheck {
-  id              String    @id @default(uuid())
-  jobId           String    @map("job_id")
-  checkedAt       DateTime  @default(now()) @map("checked_at")
+  id        String   @id @default(uuid())
+  jobId     String   @map("job_id")
+  checkedAt DateTime @default(now()) @map("checked_at")
 
   /// What kind of check produced this row.
   /// 'http_probe' | 'greenhouse_api' | 'source_presence'
-  checkType       String    @map("check_type")
+  checkType String @map("check_type")
 
   /// Specific outcome — mirrors HealthReason / PresenceCheckOutcome literals.
-  outcome         String
+  outcome String
 
   /// Convenience boolean — true means "alive or inconclusive".
-  alive           Boolean
+  alive Boolean
 
   // ── HTTP-probe / greenhouse-api evidence (nullable when N/A) ──
-  httpStatus      Int?      @map("http_status")
-  redirectHops    Int?      @map("redirect_hops")
-  finalUrl        String?   @map("final_url")
-  apiUrl          String?   @map("api_url")
-  softPatternId   String?   @map("soft_pattern_id")
-  softMatchText   String?   @map("soft_match_text")
-  errorKind       String?   @map("error_kind")
-  errorMessage    String?   @map("error_message")
-  elapsedMs       Int?      @map("elapsed_ms")
+  httpStatus    Int?    @map("http_status")
+  redirectHops  Int?    @map("redirect_hops")
+  finalUrl      String? @map("final_url")
+  apiUrl        String? @map("api_url")
+  softPatternId String? @map("soft_pattern_id")
+  softMatchText String? @map("soft_match_text")
+  errorKind     String? @map("error_kind")
+  errorMessage  String? @map("error_message")
+  elapsedMs     Int?    @map("elapsed_ms")
 
   // ── Source-presence evidence (nullable when N/A) ──
-  presenceSource           String? @map("presence_source")
-  presenceFetched          Int?    @map("presence_fetched")
-  presenceHistoricalAvg    Float?  @map("presence_historical_avg")
-  presenceSeenAgain        Int?    @map("presence_seen_again")
-  presenceMissing          Int?    @map("presence_missing")
-  presenceSkippedReason    String? @map("presence_skipped_reason")
+  presenceSource        String? @map("presence_source")
+  presenceFetched       Int?    @map("presence_fetched")
+  presenceHistoricalAvg Float?  @map("presence_historical_avg")
+  presenceSeenAgain     Int?    @map("presence_seen_again")
+  presenceMissing       Int?    @map("presence_missing")
+  presenceSkippedReason String? @map("presence_skipped_reason")
 
   /// Stable identifier for the rule set that produced this row. Bump
   /// when patterns / decision logic changes so old rows stay comparable.
-  checkerVersion  String    @map("checker_version")
+  checkerVersion String @map("checker_version")
 
-  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId, checkedAt(sort: Desc)])
   @@index([outcome, checkedAt(sort: Desc)])
@@ -152,19 +154,19 @@ model JobHealthCheck {
 }
 
 model EmailLead {
-  id               String     @id @default(cuid())
-  email            String     @unique
-  preferences      Json       @default("{}")
-  source           String?
-  isSubscribed     Boolean    @default(true) @map("is_subscribed")
-  isSuppressed     Boolean    @default(false) @map("is_suppressed")
-  suppressedAt     DateTime?  @map("suppressed_at")
-  suppressionReason String?   @map("suppression_reason")
-  newsletterOptIn  Boolean    @default(false) @map("newsletter_opt_in")
-  unsubscribeToken String     @unique @default(cuid()) @map("unsubscribe_token")
-  createdAt        DateTime   @default(now()) @map("created_at")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
-  jobAlerts        JobAlert[]
+  id                String     @id @default(cuid())
+  email             String     @unique
+  preferences       Json       @default("{}")
+  source            String?
+  isSubscribed      Boolean    @default(true) @map("is_subscribed")
+  isSuppressed      Boolean    @default(false) @map("is_suppressed")
+  suppressedAt      DateTime?  @map("suppressed_at")
+  suppressionReason String?    @map("suppression_reason")
+  newsletterOptIn   Boolean    @default(false) @map("newsletter_opt_in")
+  unsubscribeToken  String     @unique @default(cuid()) @map("unsubscribe_token")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  jobAlerts         JobAlert[]
 
   @@index([email])
   @@index([unsubscribeToken])
@@ -172,27 +174,27 @@ model EmailLead {
 }
 
 model JobAlert {
-  id         String    @id @default(cuid())
-  email      String
-  name       String?
-  keyword    String?
-  location   String?
-  mode       String?
-  jobType    String?   @map("job_type")
-  minSalary  Int?      @map("min_salary")
-  maxSalary  Int?      @map("max_salary")
-  frequency  String    @default("weekly")
+  id                String    @id @default(cuid())
+  email             String
+  name              String?
+  keyword           String?
+  location          String?
+  mode              String?
+  jobType           String?   @map("job_type")
+  minSalary         Int?      @map("min_salary")
+  maxSalary         Int?      @map("max_salary")
+  frequency         String    @default("weekly")
   // Double opt-in (CASL / GDPR best practice). New rows start with
   // is_active = false and confirmed_at = null. The send-alerts cron
   // only fires for confirmed alerts. Flipped by /api/job-alerts/confirm.
-  isActive   Boolean   @default(false) @map("is_active")
-  confirmedAt DateTime? @map("confirmed_at")
-  confirmationToken String? @unique @default(cuid()) @map("confirmation_token")
-  lastSentAt DateTime? @map("last_sent_at")
-  token      String    @unique @default(cuid())
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  emailLead  EmailLead @relation(fields: [email], references: [email])
+  isActive          Boolean   @default(false) @map("is_active")
+  confirmedAt       DateTime? @map("confirmed_at")
+  confirmationToken String?   @unique @default(cuid()) @map("confirmation_token")
+  lastSentAt        DateTime? @map("last_sent_at")
+  token             String    @unique @default(cuid())
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  emailLead         EmailLead @relation(fields: [email], references: [email])
 
   @@index([email])
   @@index([token])
@@ -202,17 +204,17 @@ model JobAlert {
 }
 
 model EmployerJob {
-  id                  String       @id @default(uuid())
-  employerName        String       @map("employer_name")
-  contactEmail        String       @map("contact_email")
-  companyLogoUrl      String?      @map("company_logo_url")
-  companyDescription  String?      @map("company_description")
-  companyWebsite      String?      @map("company_website")
-  jobId               String       @unique @map("job_id")
-  editToken           String       @unique @map("edit_token")
-  dashboardToken      String       @unique @default(cuid()) @map("dashboard_token")
-  paymentStatus       String       @map("payment_status")
-  pricingTier         String       @default("pro") @map("pricing_tier")
+  id                  String           @id @default(uuid())
+  employerName        String           @map("employer_name")
+  contactEmail        String           @map("contact_email")
+  companyLogoUrl      String?          @map("company_logo_url")
+  companyDescription  String?          @map("company_description")
+  companyWebsite      String?          @map("company_website")
+  jobId               String           @unique @map("job_id")
+  editToken           String           @unique @map("edit_token")
+  dashboardToken      String           @unique @default(cuid()) @map("dashboard_token")
+  paymentStatus       String           @map("payment_status")
+  pricingTier         String           @default("pro") @map("pricing_tier")
   // Immutable snapshot of the signup email's domain at posting time.
   // Used as the canonical anchor for the free-post quota count so that:
   //   - Editing contactEmail can't shift the count
@@ -222,15 +224,15 @@ model EmployerJob {
   // Set ONLY at row creation by /api/jobs/post-free; never written by any
   // update path. Null on legacy paid rows / pre-2026-05-01 rows that the
   // backfill couldn't infer; those rows don't drive the quota anyway.
-  quotaDomain         String?      @map("quota_domain")
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
-  expiryWarningSentAt DateTime?    @map("expiry_warning_sent_at")
-  notifyOnApplication Boolean      @default(true) @map("notify_on_application")
-  notifyDigest        String       @default("instant") @map("notify_digest") // instant, daily, off
-  userId              String?      @map("user_id")
-  job                 Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user                UserProfile? @relation(fields: [userId], references: [supabaseId])
+  quotaDomain         String?          @map("quota_domain")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  expiryWarningSentAt DateTime?        @map("expiry_warning_sent_at")
+  notifyOnApplication Boolean          @default(true) @map("notify_on_application")
+  notifyDigest        String           @default("instant") @map("notify_digest") // instant, daily, off
+  userId              String?          @map("user_id")
+  job                 Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user                UserProfile?     @relation(fields: [userId], references: [supabaseId])
   profileViews        ProfileView[]
   savedCandidates     SavedCandidate[]
 
@@ -265,21 +267,21 @@ model ProcessedStripeEvent {
 /// handler when a refund is issued from Stripe Dashboard. `refundedAmountCents`
 /// supports partial refunds; full-refund flag is `refundedAmountCents = amountCents`.
 model JobCharge {
-  id                   String    @id @default(uuid())
-  employerJobId        String    @map("employer_job_id")
-  stripeSessionId      String    @unique @map("stripe_session_id")
-  stripePaymentIntentId String?  @unique @map("stripe_payment_intent_id")
-  stripeInvoiceId      String?   @map("stripe_invoice_id")
-  invoicePdfUrl        String?   @map("invoice_pdf_url")
-  hostedInvoiceUrl     String?   @map("hosted_invoice_url")
-  invoiceNumber        String?   @map("invoice_number")
-  amountCents          Int       @map("amount_cents")
-  currency             String    @default("usd")
-  type                 String    // 'new' | 'renewal'
-  createdAt            DateTime  @default(now()) @map("created_at")
-  refundedAt           DateTime? @map("refunded_at")
-  refundedAmountCents  Int?      @map("refunded_amount_cents")
-  refundReason         String?   @map("refund_reason")
+  id                    String    @id @default(uuid())
+  employerJobId         String    @map("employer_job_id")
+  stripeSessionId       String    @unique @map("stripe_session_id")
+  stripePaymentIntentId String?   @unique @map("stripe_payment_intent_id")
+  stripeInvoiceId       String?   @map("stripe_invoice_id")
+  invoicePdfUrl         String?   @map("invoice_pdf_url")
+  hostedInvoiceUrl      String?   @map("hosted_invoice_url")
+  invoiceNumber         String?   @map("invoice_number")
+  amountCents           Int       @map("amount_cents")
+  currency              String    @default("usd")
+  type                  String // 'new' | 'renewal'
+  createdAt             DateTime  @default(now()) @map("created_at")
+  refundedAt            DateTime? @map("refunded_at")
+  refundedAmountCents   Int?      @map("refunded_amount_cents")
+  refundReason          String?   @map("refund_reason")
 
   @@index([employerJobId])
   @@index([type])
@@ -390,77 +392,77 @@ model EmployerLead {
 }
 
 model UserProfile {
-  id                String        @id @default(cuid())
-  supabaseId        String        @unique @map("supabase_id")
-  email             String        @unique
-  role              String        @default("job_seeker")
-  firstName         String?       @map("first_name")
-  lastName          String?       @map("last_name")
-  phone             String?
-  company           String?
-  resumeUrl         String?       @map("resume_url")
-  avatarUrl         String?       @map("avatar_url")
-  emailSuppressed   Boolean       @default(false) @map("email_suppressed")
+  id              String  @id @default(cuid())
+  supabaseId      String  @unique @map("supabase_id")
+  email           String  @unique
+  role            String  @default("job_seeker")
+  firstName       String? @map("first_name")
+  lastName        String? @map("last_name")
+  phone           String?
+  company         String?
+  resumeUrl       String? @map("resume_url")
+  avatarUrl       String? @map("avatar_url")
+  emailSuppressed Boolean @default(false) @map("email_suppressed")
 
   // PMHNP-specific professional fields
-  headline          String?       @map("headline")
-  yearsExperience   Int?          @map("years_experience")
-  certifications    String?       @map("certifications")
-  licenseStates     String?       @map("license_states")
-  specialties       String?       @map("specialties")
-  bio               String?       @map("bio")
-  linkedinUrl       String?       @map("linkedin_url")
-  skills            String[]      @default([])
+  headline        String?  @map("headline")
+  yearsExperience Int?     @map("years_experience")
+  certifications  String?  @map("certifications")
+  licenseStates   String?  @map("license_states")
+  specialties     String?  @map("specialties")
+  bio             String?  @map("bio")
+  linkedinUrl     String?  @map("linkedin_url")
+  skills          String[] @default([])
 
   // AI Resume Parsing
-  resumeParsedAt    DateTime?     @map("resume_parsed_at")
-  resumeParseStatus String?       @map("resume_parse_status") // pending, completed, failed
+  resumeParsedAt    DateTime? @map("resume_parsed_at")
+  resumeParseStatus String?   @map("resume_parse_status") // pending, completed, failed
 
   // Job preferences
-  preferredWorkMode String?       @map("preferred_work_mode")
-  preferredJobType  String?       @map("preferred_job_type")
-  desiredSalaryMin  Int?          @map("desired_salary_min")
-  desiredSalaryMax  Int?          @map("desired_salary_max")
-  desiredSalaryType String?       @map("desired_salary_type")
-  availableDate     DateTime?     @map("available_date")
+  preferredWorkMode String?   @map("preferred_work_mode")
+  preferredJobType  String?   @map("preferred_job_type")
+  desiredSalaryMin  Int?      @map("desired_salary_min")
+  desiredSalaryMax  Int?      @map("desired_salary_max")
+  desiredSalaryType String?   @map("desired_salary_type")
+  availableDate     DateTime? @map("available_date")
 
   // Visibility
-  openToOffers      Boolean       @default(true) @map("open_to_offers")
-  profileVisible    Boolean       @default(true) @map("profile_visible")
+  openToOffers   Boolean @default(true) @map("open_to_offers")
+  profileVisible Boolean @default(true) @map("profile_visible")
 
   // ── Address ──
-  addressLine1      String?       @map("address_line_1")
-  addressLine2      String?       @map("address_line_2")
-  city              String?
-  state             String?
-  zipCode           String?       @map("zip_code")
-  country           String?       @default("US")
+  addressLine1 String? @map("address_line_1")
+  addressLine2 String? @map("address_line_2")
+  city         String?
+  state        String?
+  zipCode      String? @map("zip_code")
+  country      String? @default("US")
 
   // ── EEO & Work Authorization (voluntary/sensitive) ──
-  workAuthorized        Boolean?  @map("work_authorized")
-  requiresSponsorship   Boolean?  @map("requires_sponsorship")
-  veteranStatus         String?   @map("veteran_status")
-  disabilityStatus      String?   @map("disability_status")
-  raceEthnicity         String?   @map("race_ethnicity")
-  gender                String?
+  workAuthorized         Boolean?  @map("work_authorized")
+  requiresSponsorship    Boolean?  @map("requires_sponsorship")
+  veteranStatus          String?   @map("veteran_status")
+  disabilityStatus       String?   @map("disability_status")
+  raceEthnicity          String?   @map("race_ethnicity")
+  gender                 String?
   // Separate consent for the use of sensitive personal info under
   // GDPR Art. 9 / CPRA SPI rules. Set to true only when the user
   // explicitly checks the consent box that appears in the profile
   // form when any EEO / DEA / NPI field is touched. Read by the
   // employer-facing serializer to redact those fields when false.
-  sensitiveDataConsent       Boolean   @default(false) @map("sensitive_data_consent")
-  sensitiveDataConsentAt     DateTime? @map("sensitive_data_consent_at")
+  sensitiveDataConsent   Boolean   @default(false) @map("sensitive_data_consent")
+  sensitiveDataConsentAt DateTime? @map("sensitive_data_consent_at")
 
   // ── Federal Registrations ──
-  npiNumber                    String?    @map("npi_number")
-  deaNumber                    String?    @map("dea_number")
-  deaExpirationDate            DateTime?  @map("dea_expiration_date")
+  npiNumber         String?   @map("npi_number")
+  deaNumber         String?   @map("dea_number")
+  deaExpirationDate DateTime? @map("dea_expiration_date")
 
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-  lastNudgedAt      DateTime?     @map("last_nudged_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  lastNudgedAt           DateTime? @map("last_nudged_at")
   lastSavedJobReminderAt DateTime? @map("last_saved_job_reminder_at")
-  emailSuppressedAt DateTime?     @map("email_suppressed_at")
+  emailSuppressedAt      DateTime? @map("email_suppressed_at")
 
   // ── Activity tracking + soft-delete lifecycle (GDPR storage limitation) ──
   // lastSeenAt is bumped by middleware on each authenticated request (throttled
@@ -484,16 +486,16 @@ model UserProfile {
   screeningAnswers     CandidateScreeningAnswer[]
   openEndedResponses   CandidateOpenEndedResponse[]
 
-  candidateReferences  CandidateReference[]
-  autofillUsage        AutofillUsage[]
-  autofillTelemetry    AutofillTelemetry[]
-  sentMessages         EmployerMessage[]    @relation("SenderMessages")
-  receivedMessages     EmployerMessage[]    @relation("RecipientMessages")
-  conversationsA       Conversation[]       @relation("ConversationParticipantA")
-  conversationsB       Conversation[]       @relation("ConversationParticipantB")
-  savedByEmployers     SavedCandidate[]     @relation("SavedAsCandidate")
-  savedCandidates      SavedCandidate[]     @relation("SavedByEmployer")
-  candidateAlerts      EmployerCandidateAlert[]
+  candidateReferences CandidateReference[]
+  autofillUsage       AutofillUsage[]
+  autofillTelemetry   AutofillTelemetry[]
+  sentMessages        EmployerMessage[]        @relation("SenderMessages")
+  receivedMessages    EmployerMessage[]        @relation("RecipientMessages")
+  conversationsA      Conversation[]           @relation("ConversationParticipantA")
+  conversationsB      Conversation[]           @relation("ConversationParticipantB")
+  savedByEmployers    SavedCandidate[]         @relation("SavedAsCandidate")
+  savedCandidates     SavedCandidate[]         @relation("SavedByEmployer")
+  candidateAlerts     EmployerCandidateAlert[]
 
   @@index([supabaseId])
   @@index([email])
@@ -505,31 +507,31 @@ model UserProfile {
 }
 
 model JobApplication {
-  id              String      @id @default(cuid())
-  userId          String      @map("user_id")
-  jobId           String      @map("job_id")
-  sourceUrl       String?     @map("source_url")
-  coverLetter     String?     @map("cover_letter")
-  coverLetterUrl  String?     @map("cover_letter_url")
-  resumeUrl       String?     @map("resume_url")
-  appliedAt       DateTime    @default(now()) @map("applied_at")
-  status          String      @default("applied") // applied, screening, interview, offered, hired, rejected
-  notes           String?     // Private employer notes
-  statusUpdatedAt DateTime?   @map("status_updated_at")
-  consentGiven    Boolean     @default(false) @map("consent_given")
-  consentGivenAt  DateTime?   @map("consent_given_at")
-  withdrawnAt     DateTime?   @map("withdrawn_at")
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  jobId           String    @map("job_id")
+  sourceUrl       String?   @map("source_url")
+  coverLetter     String?   @map("cover_letter")
+  coverLetterUrl  String?   @map("cover_letter_url")
+  resumeUrl       String?   @map("resume_url")
+  appliedAt       DateTime  @default(now()) @map("applied_at")
+  status          String    @default("applied") // applied, screening, interview, offered, hired, rejected
+  notes           String? // Private employer notes
+  statusUpdatedAt DateTime? @map("status_updated_at")
+  consentGiven    Boolean   @default(false) @map("consent_given")
+  consentGivenAt  DateTime? @map("consent_given_at")
+  withdrawnAt     DateTime? @map("withdrawn_at")
 
   // AI Candidate Scoring
-  aiMatchScore    Int?         @map("ai_match_score")       // 0-100
-  aiMatchReasons  String[]     @default([]) @map("ai_match_reasons")
-  aiMissingItems  String[]     @default([]) @map("ai_missing_items")
+  aiMatchScore   Int?     @map("ai_match_score") // 0-100
+  aiMatchReasons String[] @default([]) @map("ai_match_reasons")
+  aiMissingItems String[] @default([]) @map("ai_missing_items")
 
   // Screening Question Answers
-  screeningAnswers Json?       @map("screening_answers")    // [{ questionId, questionText, answer }]
+  screeningAnswers Json? @map("screening_answers") // [{ questionId, questionText, answer }]
 
-  user            UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
-  job             Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user UserProfile @relation(fields: [userId], references: [supabaseId], onDelete: Cascade)
+  job  Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@unique([userId, jobId])
   @@index([userId])
@@ -554,20 +556,20 @@ model JobViewEvent {
 }
 
 model Conversation {
-  id             String            @id @default(cuid())
-  participantA   String            @map("participant_a")
-  participantB   String            @map("participant_b")
-  jobId          String?           @map("job_id")
-  subject        String
-  lastMessageAt  DateTime          @default(now()) @map("last_message_at")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  deletedByA     Boolean           @default(false) @map("deleted_by_a")
-  deletedByB     Boolean           @default(false) @map("deleted_by_b")
+  id            String   @id @default(cuid())
+  participantA  String   @map("participant_a")
+  participantB  String   @map("participant_b")
+  jobId         String?  @map("job_id")
+  subject       String
+  lastMessageAt DateTime @default(now()) @map("last_message_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  deletedByA    Boolean  @default(false) @map("deleted_by_a")
+  deletedByB    Boolean  @default(false) @map("deleted_by_b")
 
-  userA          UserProfile       @relation("ConversationParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
-  userB          UserProfile       @relation("ConversationParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
-  job            Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
-  messages       EmployerMessage[]
+  userA    UserProfile       @relation("ConversationParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
+  userB    UserProfile       @relation("ConversationParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
+  job      Job?              @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  messages EmployerMessage[]
 
   @@unique([participantA, participantB, jobId])
   @@index([participantA, lastMessageAt(sort: Desc)])
@@ -576,24 +578,24 @@ model Conversation {
 }
 
 model EmployerMessage {
-  id              String        @id @default(cuid())
-  senderId        String        @map("sender_id")
-  recipientId     String        @map("recipient_id")
-  conversationId  String?       @map("conversation_id")
-  jobId           String?       @map("job_id")
-  subject         String
-  body            String
-  attachmentUrl   String?       @map("attachment_url")
-  attachmentName  String?       @map("attachment_name")
-  deletedBySender    Boolean    @default(false) @map("deleted_by_sender")
-  deletedByRecipient Boolean    @default(false) @map("deleted_by_recipient")
-  sentAt          DateTime      @default(now()) @map("sent_at")
-  readAt          DateTime?     @map("read_at")
-  editedAt        DateTime?     @map("edited_at")
-  sender          UserProfile   @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  recipient       UserProfile   @relation("RecipientMessages", fields: [recipientId], references: [id], onDelete: Cascade)
-  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  job             Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  id                 String        @id @default(cuid())
+  senderId           String        @map("sender_id")
+  recipientId        String        @map("recipient_id")
+  conversationId     String?       @map("conversation_id")
+  jobId              String?       @map("job_id")
+  subject            String
+  body               String
+  attachmentUrl      String?       @map("attachment_url")
+  attachmentName     String?       @map("attachment_name")
+  deletedBySender    Boolean       @default(false) @map("deleted_by_sender")
+  deletedByRecipient Boolean       @default(false) @map("deleted_by_recipient")
+  sentAt             DateTime      @default(now()) @map("sent_at")
+  readAt             DateTime?     @map("read_at")
+  editedAt           DateTime?     @map("edited_at")
+  sender             UserProfile   @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient          UserProfile   @relation("RecipientMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+  conversation       Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  job                Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
 
   @@index([senderId])
   @@index([recipientId])
@@ -603,13 +605,13 @@ model EmployerMessage {
 }
 
 model ProfileView {
-  id              String       @id @default(cuid())
-  viewerId        String       @map("viewer_id")
-  candidateId     String       @map("candidate_id")
-  employerJobId   String?      @map("employer_job_id")
-  viewedAt        DateTime     @default(now()) @map("viewed_at")
+  id            String   @id @default(cuid())
+  viewerId      String   @map("viewer_id")
+  candidateId   String   @map("candidate_id")
+  employerJobId String?  @map("employer_job_id")
+  viewedAt      DateTime @default(now()) @map("viewed_at")
 
-  employerJob     EmployerJob? @relation(fields: [employerJobId], references: [id], onDelete: SetNull)
+  employerJob EmployerJob? @relation(fields: [employerJobId], references: [id], onDelete: SetNull)
 
   @@unique([viewerId, candidateId])
   @@index([viewerId])
@@ -619,20 +621,20 @@ model ProfileView {
 }
 
 model BlogPost {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   title           String
-  slug            String   @unique
+  slug            String    @unique
   content         String
-  metaDescription String?  @map("meta_description")
-  targetKeyword   String?  @map("target_keyword")
+  metaDescription String?   @map("meta_description")
+  targetKeyword   String?   @map("target_keyword")
   category        String
-  status          String   @default("draft")
+  status          String    @default("draft")
   publishDate     DateTime? @map("publish_date")
-  imageUrl        String?  @map("image_url")
-  youtubeVideoId  String?  @map("youtube_video_id")
-  videoUrl        String?  @map("video_url")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  imageUrl        String?   @map("image_url")
+  youtubeVideoId  String?   @map("youtube_video_id")
+  videoUrl        String?   @map("video_url")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@index([status, publishDate(sort: Desc)])
   @@index([slug])
@@ -641,31 +643,31 @@ model BlogPost {
 }
 
 model YouTubeVideo {
-  id                String    @id @default(uuid())
-  stateKey          String    @unique @map("state_key")
-  stateName         String    @map("state_name")
-  blogSlug          String    @unique @map("blog_slug")
+  id        String @id @default(uuid())
+  stateKey  String @unique @map("state_key")
+  stateName String @map("state_name")
+  blogSlug  String @unique @map("blog_slug")
 
   // YouTube metadata
-  ytTitle           String    @map("yt_title")
-  ytDescription     String    @map("yt_description")
-  ytTags            String[]  @default([]) @map("yt_tags")
-  seoKeywords       String[]  @default([]) @map("seo_keywords")
-  hashtags          String[]  @default([]) @map("hashtags")
+  ytTitle       String   @map("yt_title")
+  ytDescription String   @map("yt_description")
+  ytTags        String[] @default([]) @map("yt_tags")
+  seoKeywords   String[] @default([]) @map("seo_keywords")
+  hashtags      String[] @default([]) @map("hashtags")
 
   // Storage URLs (Supabase Storage public URLs)
-  thumbnailUrl      String?   @map("thumbnail_url")
-  videoUrl          String?   @map("video_url")
+  thumbnailUrl String? @map("thumbnail_url")
+  videoUrl     String? @map("video_url")
 
   // Upload & publish tracking
-  youtubeVideoId    String?   @map("youtube_video_id")
-  postizPostId      String?   @map("postiz_post_id")
-  status            String    @default("pending")
-  scheduledDate     DateTime? @map("scheduled_date")
-  publishedDate     DateTime? @map("published_date")
+  youtubeVideoId String?   @map("youtube_video_id")
+  postizPostId   String?   @map("postiz_post_id")
+  status         String    @default("pending")
+  scheduledDate  DateTime? @map("scheduled_date")
+  publishedDate  DateTime? @map("published_date")
 
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([stateKey])
@@ -677,30 +679,30 @@ model YouTubeVideo {
 // ═══════════════════════════════════════════════════════════════
 
 model CandidateLicense {
-  id              String    @id @default(cuid())
-  userId          String    @map("user_id")
-  licenseType     String    @map("license_type")
-  licenseNumber   String    @map("license_number")
-  licenseState    String    @map("license_state")
-  expirationDate  DateTime? @map("expiration_date")
-  status          String    @default("active")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String      @id @default(cuid())
+  userId         String      @map("user_id")
+  licenseType    String      @map("license_type")
+  licenseNumber  String      @map("license_number")
+  licenseState   String      @map("license_state")
+  expirationDate DateTime?   @map("expiration_date")
+  status         String      @default("active")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  user           UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("candidate_licenses")
 }
 
 model CandidateCertification {
-  id                  String    @id @default(cuid())
-  userId              String    @map("user_id")
-  certificationName   String    @map("certification_name")
-  certifyingBody      String?   @map("certifying_body")
-  certificationNumber String?   @map("certification_number")
-  expirationDate      DateTime? @map("expiration_date")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  id                  String      @id @default(cuid())
+  userId              String      @map("user_id")
+  certificationName   String      @map("certification_name")
+  certifyingBody      String?     @map("certifying_body")
+  certificationNumber String?     @map("certification_number")
+  expirationDate      DateTime?   @map("expiration_date")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
   user                UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -708,17 +710,17 @@ model CandidateCertification {
 }
 
 model CandidateEducation {
-  id              String    @id @default(cuid())
-  userId          String    @map("user_id")
-  degreeType      String    @map("degree_type")
-  fieldOfStudy    String?   @map("field_of_study")
-  schoolName      String    @map("school_name")
-  startDate       DateTime? @map("start_date")
-  graduationDate  DateTime? @map("graduation_date")
+  id              String      @id @default(cuid())
+  userId          String      @map("user_id")
+  degreeType      String      @map("degree_type")
+  fieldOfStudy    String?     @map("field_of_study")
+  schoolName      String      @map("school_name")
+  startDate       DateTime?   @map("start_date")
+  graduationDate  DateTime?   @map("graduation_date")
   gpa             String?
-  isHighestDegree Boolean   @default(false) @map("is_highest_degree")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  isHighestDegree Boolean     @default(false) @map("is_highest_degree")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
   user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -726,43 +728,43 @@ model CandidateEducation {
 }
 
 model CandidateWorkExperience {
-  id                  String    @id @default(cuid())
-  userId              String    @map("user_id")
-  jobTitle            String    @map("job_title")
-  employerName        String    @map("employer_name")
-  employerCity        String?   @map("employer_city")
-  employerState       String?   @map("employer_state")
-  startDate           DateTime  @map("start_date")
-  endDate             DateTime? @map("end_date")
-  isCurrent           Boolean   @default(false) @map("is_current")
-  supervisorName      String?   @map("supervisor_name")
-  supervisorPhone     String?   @map("supervisor_phone")
-  supervisorEmail     String?   @map("supervisor_email")
-  mayContact          Boolean?  @map("may_contact")
-  reasonForLeaving    String?   @map("reason_for_leaving")
-  description         String?
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  jobTitle         String    @map("job_title")
+  employerName     String    @map("employer_name")
+  employerCity     String?   @map("employer_city")
+  employerState    String?   @map("employer_state")
+  startDate        DateTime  @map("start_date")
+  endDate          DateTime? @map("end_date")
+  isCurrent        Boolean   @default(false) @map("is_current")
+  supervisorName   String?   @map("supervisor_name")
+  supervisorPhone  String?   @map("supervisor_phone")
+  supervisorEmail  String?   @map("supervisor_email")
+  mayContact       Boolean?  @map("may_contact")
+  reasonForLeaving String?   @map("reason_for_leaving")
+  description      String?
 
-  practiceSetting      String?   @map("practice_setting")
+  practiceSetting String? @map("practice_setting")
 
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  user                 UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("candidate_work_experience")
 }
 
 model CandidateScreeningAnswer {
-  id           String    @id @default(cuid())
-  userId       String    @map("user_id")
-  questionKey  String    @map("question_key")
-  questionText String    @map("question_text")
-  answerType   String    @map("answer_type")
-  answerBool   Boolean?  @map("answer_bool")
-  answerText   String?   @map("answer_text")
+  id           String      @id @default(cuid())
+  userId       String      @map("user_id")
+  questionKey  String      @map("question_key")
+  questionText String      @map("question_text")
+  answerType   String      @map("answer_type")
+  answerBool   Boolean?    @map("answer_bool")
+  answerText   String?     @map("answer_text")
   category     String
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
   user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionKey])
@@ -771,14 +773,14 @@ model CandidateScreeningAnswer {
 }
 
 model CandidateOpenEndedResponse {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
-  questionKey   String    @map("question_key")
-  questionText  String    @map("question_text")
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  questionKey   String      @map("question_key")
+  questionText  String      @map("question_text")
   response      String
-  isAIGenerated Boolean   @default(false) @map("is_ai_generated")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  isAIGenerated Boolean     @default(false) @map("is_ai_generated")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
   user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionKey])
@@ -786,21 +788,19 @@ model CandidateOpenEndedResponse {
   @@map("candidate_open_ended_responses")
 }
 
-
-
 model CandidateReference {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
-  fullName      String    @map("full_name")
-  title         String?
-  organization  String?
-  phone         String?
-  email         String?
-  relationship  String?
-  yearsKnown    Int?      @map("years_known")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String      @id @default(cuid())
+  userId       String      @map("user_id")
+  fullName     String      @map("full_name")
+  title        String?
+  organization String?
+  phone        String?
+  email        String?
+  relationship String?
+  yearsKnown   Int?        @map("years_known")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("candidate_references")
@@ -811,31 +811,31 @@ model CandidateReference {
 // ═══════════════════════════════════════════════════════════════
 
 model JobScreeningQuestion {
-  id              String   @id @default(cuid())
-  jobId           String   @map("job_id")
-  questionText    String   @map("question_text")
-  questionType    String   @map("question_type")  // boolean, text, select, number
-  options         String[] @default([])            // for 'select' type
-  isRequired      Boolean  @default(false) @map("is_required")
-  isKnockout      Boolean  @default(false) @map("is_knockout")
-  knockoutAnswer  String?  @map("knockout_answer")
-  sortOrder       Int      @default(0) @map("sort_order")
-  createdAt       DateTime @default(now()) @map("created_at")
-  job             Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  jobId          String   @map("job_id")
+  questionText   String   @map("question_text")
+  questionType   String   @map("question_type") // boolean, text, select, number
+  options        String[] @default([]) // for 'select' type
+  isRequired     Boolean  @default(false) @map("is_required")
+  isKnockout     Boolean  @default(false) @map("is_knockout")
+  knockoutAnswer String?  @map("knockout_answer")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@map("job_screening_questions")
 }
 
 model AutofillUsage {
-  id              String    @id @default(cuid())
-  userId          String    @map("user_id")
-  pageUrl         String    @map("page_url")
-  atsName         String?   @map("ats_name")
-  fieldsFilled    Int       @default(0) @map("fields_filled")
-  aiGenerations   Int       @default(0) @map("ai_generations")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  pageUrl       String      @map("page_url")
+  atsName       String?     @map("ats_name")
+  fieldsFilled  Int         @default(0) @map("fields_filled")
+  aiGenerations Int         @default(0) @map("ai_generations")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
@@ -906,20 +906,20 @@ model EmployerTestimonial {
 }
 
 model AutofillTelemetry {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
-  timestamp    DateTime
-  atsDomain    String?  @map("ats_domain")
-  fieldName    String   @map("field_name")
-  fieldLabel   String   @map("field_label")
-  fieldType    String   @map("field_type")
-  matchMethod  String   @map("match_method")
-  profileKey   String?  @map("profile_key")
-  valueSample  String?  @map("value_sample")
-  confidence   Float    @default(0)
-  filled       Boolean  @default(false)
-  createdAt    DateTime @default(now()) @map("created_at")
-  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  timestamp   DateTime
+  atsDomain   String?     @map("ats_domain")
+  fieldName   String      @map("field_name")
+  fieldLabel  String      @map("field_label")
+  fieldType   String      @map("field_type")
+  matchMethod String      @map("match_method")
+  profileKey  String?     @map("profile_key")
+  valueSample String?     @map("value_sample")
+  confidence  Float       @default(0)
+  filled      Boolean     @default(false)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  user        UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([matchMethod])
@@ -965,11 +965,11 @@ model SavedCandidate {
 }
 
 model CandidateTag {
-  id         String      @id @default(cuid())
-  employerId String      @map("employer_id")
+  id         String   @id @default(cuid())
+  employerId String   @map("employer_id")
   name       String
-  color      String      @default("#0D9488")
-  createdAt  DateTime    @default(now()) @map("created_at")
+  color      String   @default("#0D9488")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@unique([employerId, name])
   @@index([employerId])
@@ -977,15 +977,15 @@ model CandidateTag {
 }
 
 model EmployerCandidateAlert {
-  id            String    @id @default(cuid())
-  employerId    String    @map("employer_id")
+  id            String      @id @default(cuid())
+  employerId    String      @map("employer_id")
   specialties   String?
   states        String?
-  minExperience Int?      @map("min_experience")
-  workMode      String?   @map("work_mode")
-  isActive      Boolean   @default(true) @map("is_active")
-  lastSentAt    DateTime? @map("last_sent_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  minExperience Int?        @map("min_experience")
+  workMode      String?     @map("work_mode")
+  isActive      Boolean     @default(true) @map("is_active")
+  lastSentAt    DateTime?   @map("last_sent_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
   employer      UserProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
   @@index([employerId])
@@ -1001,7 +1001,7 @@ model EmailBroadcast {
   id            String    @id @default(cuid())
   subject       String
   body          String
-  audience      String    // all | job_seekers | employers | subscribers | newsletter | custom
+  audience      String // all | job_seekers | employers | subscribers | newsletter | custom
   audienceCount Int       @default(0) @map("audience_count")
   status        String    @default("draft") // draft | scheduled | sending | sent | failed
   scheduledFor  DateTime? @map("scheduled_for")
@@ -1050,10 +1050,10 @@ model EmailTemplate {
 }
 
 model SavedJob {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  jobId     String   @map("job_id")
-  savedAt   DateTime @default(now()) @map("saved_at")
+  id      String   @id @default(cuid())
+  userId  String   @map("user_id")
+  jobId   String   @map("job_id")
+  savedAt DateTime @default(now()) @map("saved_at")
 
   @@unique([userId, jobId])
   @@index([userId])
@@ -1078,20 +1078,148 @@ model PushSubscription {
 // ═══════════════════════════════════════════════════════════════
 
 model EmailSend {
-  id           String   @id @default(cuid())
-  resendId     String?  @map("resend_id")
-  to           String
-  subject      String
-  emailType    String   @map("email_type")
-  status       String   @default("sent")
-  metadata     Json?
-  createdAt    DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  resendId  String?  @map("resend_id")
+  to        String
+  subject   String
+  emailType String   @map("email_type")
+  status    String   @default("sent")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([to])
   @@index([emailType])
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("email_sends")
+}
+
+// ─── GSC De-Indexing Queue (P2.1) ────────────────────────────────────
+// Tracks URLs that should be proactively removed from Google's index via
+// the Indexing API URL_DELETED endpoint. Seeded from GSC bulk exports
+// (Not found / Crawled-not-indexed / Soft 404 categories) and from edge
+// log scraping of 4xx responses to Googlebot.
+//
+// Drained by /api/cron/historical-deindex (every 6h):
+//   1. HEAD-check the URL — if it's actually live, delete the row
+//   2. Otherwise submit URL_DELETED to Google Indexing API + IndexNow
+//   3. Mark submittedAt; row is kept for audit but not re-submitted
+//
+// Status values:
+//   'pending'    — not yet processed
+//   'submitted'  — successfully submitted to search engines
+//   'live'       — HEAD-check returned 200; URL is alive, removed from queue
+//   'failed'     — repeated submission failures (exhausted attempts)
+model DeindexQueue {
+  id          String    @id @default(cuid())
+  url         String    @unique
+  source      String    // 'gsc-not-found' | 'gsc-crawled-not-indexed' | 'gsc-soft-404' | 'edge-log' | 'sitemap-diff' | 'manual'
+  status      String    @default("pending") // 'pending' | 'submitted' | 'live' | 'failed'
+  attempt     Int       @default(0)
+  lastError   String?   @db.Text
+  addedAt     DateTime  @default(now())
+  submittedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, addedAt])
+  @@index([source])
+  @@map("deindex_queue")
+}
+
+// ─── Cron Run Log (P4.3) ─────────────────────────────────────────────
+// Lightweight per-invocation log so we can: (a) detect crons that haven't
+// run in their expected window (silent failures, schedule removed by
+// mistake), (b) audit historical run frequency, (c) attach output metrics
+// for trend analysis. Crons opt in via lib/cron/track.ts → recordCronRun.
+//
+// Indexed by (name, startedAt) so the watchdog query "most recent run for
+// each cron name" is fast.
+model CronRun {
+  id         String   @id @default(cuid())
+  name       String
+  startedAt  DateTime @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  success    Boolean  @default(false)
+  durationMs Int?     @map("duration_ms")
+  error      String?  @db.Text
+  metrics    Json?    // freeform metrics: { submitted: 50, dead: 32, alive: 18 } etc.
+
+  @@index([name, startedAt(sort: Desc)])
+  @@map("cron_runs")
+}
+
+// ─── GSC Health Snapshots (P4.2) ─────────────────────────────────────
+// Daily snapshot of GSC Coverage report metrics. Lets us compare
+// week-over-week and alert on regressions (rising not-indexed count,
+// falling indexed count) via the gsc-health-check cron.
+//
+// Each row = one day's totals. Named columns mirror GSC's error category
+// labels so queries are self-documenting. `raw` keeps the full Search
+// Console API payload for ad-hoc forensic queries.
+model GscSnapshot {
+  id                   String   @id @default(cuid())
+  capturedOn           DateTime @unique @map("captured_on") @db.Date
+  indexedTotal         Int      @default(0) @map("indexed_total")
+  notIndexedTotal      Int      @default(0) @map("not_indexed_total")
+  notFound404          Int      @default(0) @map("not_found_404")
+  serverError5xx       Int      @default(0) @map("server_error_5xx")
+  softFour04           Int      @default(0) @map("soft_404")
+  crawledNotIndexed    Int      @default(0) @map("crawled_not_indexed")
+  discoveredNotIndexed Int      @default(0) @map("discovered_not_indexed")
+  duplicateNoCanonical Int      @default(0) @map("duplicate_no_canonical")
+  excludedNoindex      Int      @default(0) @map("excluded_noindex")
+  pageWithRedirect     Int      @default(0) @map("page_with_redirect")
+  blockedByRobots      Int      @default(0) @map("blocked_by_robots")
+  indexedButBlocked    Int      @default(0) @map("indexed_but_blocked")
+  raw                  Json?
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@map("gsc_snapshots")
+}
+
+// ─── pSEO Narrative Snippets (P3.4) ──────────────────────────────────
+// Optional LLM-generated overrides for the deterministic narratives in
+// lib/pseo/city-narrative.ts. The renderer prefers DB rows; falls back
+// to the deterministic narrative when no override exists. This lets us
+// upgrade the top ~50 cities (highest job count / impressions) with
+// editorial-grade prose without paying LLM cost on every page.
+//
+// Generation flow:
+//   1. scripts/generate-city-snippets.ts picks targets (top N by job count)
+//   2. Calls Claude API with city facts + taxonomy lead + style prompt
+//   3. Stores result here
+//   4. Page renders from this row if found
+//
+// Schema notes:
+//   - body is plain text (no HTML) — renderer escapes + wraps in <p>
+//   - sourceModel records which model generated it (for re-runs after upgrades)
+//   - approvedAt nullable — un-approved drafts won't render until human review
+model CitySnippet {
+  id           String    @id @default(cuid())
+  citySlug     String    @unique @map("city_slug")
+  body         String    @db.Text
+  sourceModel  String?   @map("source_model") // e.g. "claude-opus-4-7", "manual"
+  generatedAt  DateTime  @default(now()) @map("generated_at")
+  approvedAt   DateTime? @map("approved_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([approvedAt])
+  @@map("city_snippets")
+}
+
+model CategoryCitySnippet {
+  id           String    @id @default(cuid())
+  categorySlug String    @map("category_slug")
+  citySlug     String    @map("city_slug")
+  body         String    @db.Text
+  sourceModel  String?   @map("source_model")
+  generatedAt  DateTime  @default(now()) @map("generated_at")
+  approvedAt   DateTime? @map("approved_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@unique([categorySlug, citySlug])
+  @@index([approvedAt])
+  @@map("category_city_snippets")
 }
 
 // ─── Programmatic SEO Stats ──────────────────────────────────────────
@@ -1104,11 +1232,11 @@ model PseoStats {
   rawAvgSalary      Int      @default(0)
   colAdjustedSalary Int      @default(0)
   updatedAt         DateTime @updatedAt
+
   @@unique([type, categorySlug, locationSlug])
   @@index([type, locationSlug])
   @@index([categorySlug])
 }
-
 
 // ─── Data Subject Access Requests (DSAR) ─────────────────────────────
 // Tracks GDPR Art. 15-22 / CCPA-CPRA requests. SLA: 30 days (GDPR)
@@ -1117,27 +1245,27 @@ model PseoStats {
 // IMPORTANT: this model was added in commit "feat(privacy): DSAR intake".
 // Run `npx prisma migrate dev --name add_data_request` to apply.
 model DataRequest {
-  id              String   @id @default(cuid())
-  email           String
-  fullName        String?  @map("full_name")
-  type            String   // 'access' | 'deletion' | 'correction' | 'portability' | 'object' | 'restrict' | 'opt_out_sale'
-  description     String?  @db.Text
-  jurisdiction    String?  // 'gdpr' | 'ccpa' | 'lgpd' | 'pipeda' | 'other'
+  id           String  @id @default(cuid())
+  email        String
+  fullName     String? @map("full_name")
+  type         String // 'access' | 'deletion' | 'correction' | 'portability' | 'object' | 'restrict' | 'opt_out_sale'
+  description  String? @db.Text
+  jurisdiction String? // 'gdpr' | 'ccpa' | 'lgpd' | 'pipeda' | 'other'
 
   // Tracking
-  status          String   @default("received")  // 'received' | 'in_progress' | 'awaiting_id' | 'completed' | 'rejected'
+  status           String  @default("received") // 'received' | 'in_progress' | 'awaiting_id' | 'completed' | 'rejected'
   identityVerified Boolean @default(false) @map("identity_verified")
-  resolutionNote  String?  @db.Text @map("resolution_note")
+  resolutionNote   String? @map("resolution_note") @db.Text
 
   // Audit timestamps
-  createdAt       DateTime @default(now()) @map("created_at")
-  acknowledgedAt  DateTime? @map("acknowledged_at")
-  completedAt     DateTime? @map("completed_at")
-  dueBy           DateTime  @map("due_by")  // computed at insert time from jurisdiction
+  createdAt      DateTime  @default(now()) @map("created_at")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  completedAt    DateTime? @map("completed_at")
+  dueBy          DateTime  @map("due_by") // computed at insert time from jurisdiction
 
   // Anti-abuse — IP for rate limiting; cleared after completion
-  requesterIp     String?  @map("requester_ip")
-  userAgent       String?  @db.Text @map("user_agent")
+  requesterIp String? @map("requester_ip")
+  userAgent   String? @map("user_agent") @db.Text
 
   @@index([email])
   @@index([status])
@@ -1155,20 +1283,183 @@ model DataRequest {
 // A periodic archival job (>365 days) can move old rows to cold storage
 // but deletion is never automatic.
 model AuditLog {
-  id          String   @id @default(cuid())
-  action      String   // 'account.delete' | 'account.restore' | 'account.purge' | 'data.export' | 'data.request.received' | 'data.request.completed' | 'role.change' | 'cron.purge_soft_deleted' | 'cron.purge_inactive' | etc.
-  actorType   String   @map("actor_type")    // 'user' | 'admin' | 'system'
-  actorId     String?  @map("actor_id")      // null when actorType = 'system'
-  targetType  String?  @map("target_type")   // 'user' | 'job' | 'application' | 'data_request'
-  targetId    String?  @map("target_id")
-  ip          String?
-  userAgent   String?  @db.Text @map("user_agent")
-  metadata    Json?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  action     String // 'account.delete' | 'account.restore' | 'account.purge' | 'data.export' | 'data.request.received' | 'data.request.completed' | 'role.change' | 'cron.purge_soft_deleted' | 'cron.purge_inactive' | etc.
+  actorType  String   @map("actor_type") // 'user' | 'admin' | 'system'
+  actorId    String?  @map("actor_id") // null when actorType = 'system'
+  targetType String?  @map("target_type") // 'user' | 'job' | 'application' | 'data_request'
+  targetId   String?  @map("target_id")
+  ip         String?
+  userAgent  String?  @map("user_agent") @db.Text
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([action])
   @@index([actorId])
   @@index([targetType, targetId])
   @@index([createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// Phase 1 Sprint 1.2 — daily personalized job recommendations. The
+// recommendations.daily Inngest cron generates one batch per active candidate
+// and writes ranked rows here. The "For you" UI on /candidate/dashboard reads
+// the latest batch via batchId. Click-through is captured via /api/recommendations/click.
+model CandidateRecommendation {
+  id           String    @id @default(cuid())
+  supabaseId   String    @map("supabase_id")
+  jobId        String    @map("job_id")
+  batchId      String    @map("batch_id")
+  rank         Int
+  similarity   Float
+  /// Conversion-tier classification — 'easy_apply' | 'direct_apply' | 'external'.
+  /// Source of truth lives in lib/ai/job-classifier.ts; recs cron persists it
+  /// so the dashboard can render tier badges without a join back to Job.
+  tier         String    @default("external")
+  reason       String?
+  clickedAt    DateTime? @map("clicked_at")
+  dismissedAt  DateTime? @map("dismissed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  job          Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([supabaseId, batchId, rank])
+  @@index([supabaseId, jobId, createdAt(sort: Desc)])
+  @@index([clickedAt(sort: Desc)])
+  @@index([tier])
+  @@map("candidate_recommendations")
+}
+
+// Phase 0 Sprint 0.4 — per-tenant feature flag overrides. The decision order
+// in lib/ai/feature-flags.ts is: env kill (KILL_AI_<FLAG>=1) > DB override
+// (this table) > compiled default. An admin can disable any AI feature for
+// any (or every) tenant in <1 minute by inserting a row here.
+model AiFeatureFlagOverride {
+  id          String    @id @default(cuid())
+  flag        String                                          // e.g. 'ai.candidate.cover_letter'
+  tenantType  String    @map("tenant_type")                   // 'employer' | 'candidate' | 'admin' | 'global'
+  tenantId    String?   @map("tenant_id")                     // null when tenantType = 'global'
+  enabled     Boolean
+  reason      String?
+  setBy       String?   @map("set_by")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([flag])
+  @@index([expiresAt])
+  @@map("ai_feature_flag_override")
+}
+
+// Phase 0 Sprint 0.3 — per-job embedding for semantic search and
+// recommendations. Refreshed by the embedding worker (lib/inngest/functions/
+// embeddings.ts) on job.created / job.updated events. The vector column is
+// modeled as Unsupported because Prisma 7 has no first-class pgvector type;
+// reads/writes go through $queryRaw helpers in lib/ai/vector-search.ts.
+model JobEmbedding {
+  jobId      String                       @id @map("job_id")
+  embedding  Unsupported("vector(1536)")
+  model      String                       @default("text-embedding-3-small")
+  inputHash  String                       @map("input_hash")
+  updatedAt  DateTime                     @default(now()) @map("updated_at")
+
+  job        Job                          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt(sort: Desc)])
+  @@map("job_embeddings")
+}
+
+// Phase 0 Sprint 0.3 — per-candidate embedding. No FK because embedding refresh
+// races with profile delete; orphan rows are cleaned by the lifecycle cron.
+model CandidateEmbedding {
+  supabaseId  String                       @id @map("supabase_id")
+  embedding   Unsupported("vector(1536)")
+  model       String                       @default("text-embedding-3-small")
+  inputHash   String                       @map("input_hash")
+  updatedAt   DateTime                     @default(now()) @map("updated_at")
+
+  @@index([updatedAt(sort: Desc)])
+  @@map("candidate_embeddings")
+}
+
+// Phase 0 Sprint 0.2 — daily eval drift snapshots. One row per task per
+// scheduled run. The drift cron compares the latest mean_score to the 7-day
+// moving average and alerts on >10% drops. Append-only.
+model AiEvalSnapshot {
+  id             String   @id @default(cuid())
+  task           String
+  promptVersion  String   @map("prompt_version")
+  meanScore      Float    @map("mean_score")
+  passed         Int
+  totalCases     Int      @map("total_cases")
+  costUsd        Decimal  @default(0) @db.Decimal(12, 6) @map("cost_usd")
+  p95LatencyMs   Int      @default(0) @map("p95_latency_ms")
+  holdsBaseline  Boolean  @default(false) @map("holds_baseline")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([task, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("ai_eval_snapshot")
+}
+
+// Phase 0 Sprint 0.1 — every LLM Gateway call writes one row here. Powers the
+// cost / latency / error dashboards (Sprint 0.4) and eval drift cron (Sprint
+// 0.2). Best-effort writes from lib/ai/cost-tracker.ts. Append-only.
+model AiCallLog {
+  id            String   @id @default(cuid())
+  task          String // 'candidate_scoring' | 'resume_parsing' | 'embedding' | etc.
+  provider      String // 'openai' | 'anthropic'
+  model         String // e.g. 'gpt-5-mini'
+  promptId      String?  @map("prompt_id") // populated once Sprint 0.2 prompt registry lands
+  promptVersion String?  @map("prompt_version")
+  tenantId      String   @map("tenant_id") // employer id, candidate user id, or 'system'
+  tenantType    String   @map("tenant_type") // 'employer' | 'candidate' | 'admin' | 'system'
+  inputTokens   Int      @default(0) @map("input_tokens")
+  cachedTokens  Int      @default(0) @map("cached_tokens")
+  outputTokens  Int      @default(0) @map("output_tokens")
+  costUsd       Decimal  @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  latencyMs     Int      @map("latency_ms")
+  cacheHit      Boolean  @default(false) @map("cache_hit")
+  fallbackUsed  Boolean  @default(false) @map("fallback_used")
+  error         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([task, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("ai_call_log")
+}
+
+// Phase 1 Sprint 1.1.6 — sticky A/B arm assignment per tenant per experiment.
+// First request inserts; subsequent reads return the same arm. Anonymous
+// (signed-out) callers get a hashed-cookie tenantId so the arm survives
+// across sessions for the same browser. See lib/ai/experiments.ts.
+model ExperimentAssignment {
+  id          String   @id @default(cuid())
+  experiment  String                                          // e.g. 'semantic_search.v1'
+  tenantType  String   @map("tenant_type")                    // 'employer' | 'candidate' | 'admin' | 'system'
+  tenantId    String   @map("tenant_id")
+  arm         String                                          // e.g. 'control' | 'treatment'
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+
+  @@unique([experiment, tenantType, tenantId], name: "experiment_assignment_unique_target")
+  @@index([experiment, assignedAt(sort: Desc)])
+  @@map("experiment_assignment")
+}
+
+// Per-event log used to compute arm-level CTR / apply-rate. Append-only.
+model ExperimentEvent {
+  id          String   @id @default(cuid())
+  experiment  String
+  arm         String
+  tenantType  String   @map("tenant_type")
+  tenantId    String   @map("tenant_id")
+  eventType   String   @map("event_type")                     // 'impression' | 'click' | 'apply'
+  subjectId   String?  @map("subject_id")                     // e.g. job id for an apply event
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([experiment, arm, eventType, createdAt(sort: Desc)])
+  @@index([tenantType, tenantId, createdAt(sort: Desc)])
+  @@map("experiment_event")
 }

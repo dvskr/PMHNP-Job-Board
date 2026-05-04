@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -36,26 +36,27 @@ export default function TopStatesList({ states }: TopStatesProps) {
     const dioramaStates = states.filter((s) => DIORAMA_STATES.has(s.slug)).slice(0, 10);
 
     return (
+        <LazyMotion features={domAnimation}>
         <section className="py-8 lg:py-12">
             <div className="max-w-7xl mx-auto px-6">
                 {/* Header */}
-                <motion.div
+                <m.div
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, margin: '-60px' }}
                     variants={stagger}
                     className="mb-8"
                 >
-                    <motion.p variants={fadeUp} className="text-sm font-medium text-teal-600 uppercase tracking-[0.15em] mb-2">
+                    <m.p variants={fadeUp} className="text-sm font-medium text-teal-600 uppercase tracking-[0.15em] mb-2">
                         Browse by state
-                    </motion.p>
-                    <motion.h2 variants={fadeUp} className="font-lora text-3xl lg:text-4xl font-bold text-gray-900">
+                    </m.p>
+                    <m.h2 variants={fadeUp} className="font-lora text-3xl lg:text-4xl font-bold text-gray-900">
                         Top states hiring PMHNPs
-                    </motion.h2>
-                </motion.div>
+                    </m.h2>
+                </m.div>
 
                 {/* Diorama grid: 5 columns */}
-                <motion.div
+                <m.div
                     className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 mb-8"
                     initial="hidden"
                     whileInView="visible"
@@ -63,7 +64,7 @@ export default function TopStatesList({ states }: TopStatesProps) {
                     variants={stagger}
                 >
                     {dioramaStates.map((state) => (
-                        <motion.div key={state.slug} variants={fadeUp}>
+                        <m.div key={state.slug} variants={fadeUp}>
                             <Link
                                 href={`/jobs/state/${state.slug}`}
                                 className="group block no-underline"
@@ -104,12 +105,12 @@ export default function TopStatesList({ states }: TopStatesProps) {
                                 </p>
                                 <p className="text-xs text-gray-400 text-center">{state.count} openings</p>
                             </Link>
-                        </motion.div>
+                        </m.div>
                     ))}
-                </motion.div>
+                </m.div>
 
                 {/* Browse all jobs pebble button */}
-                <motion.div
+                <m.div
                     className="flex justify-center"
                     initial={{ opacity: 0, y: 12 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -140,8 +141,10 @@ export default function TopStatesList({ states }: TopStatesProps) {
                     >
                         Browse all jobs →
                     </Link>
-                </motion.div>
+                </m.div>
             </div>
         </section>
+
+        </LazyMotion>
     );
 }

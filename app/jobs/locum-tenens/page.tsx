@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -98,7 +99,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       }],
     },
     alternates: {
-      canonical: 'https://pmhnphiring.com/jobs/locum-tenens',
+      canonical: `${brand.baseUrl}/jobs/locum-tenens`,
     },
     ...(page > 1 && {
       robots: { index: false, follow: true },

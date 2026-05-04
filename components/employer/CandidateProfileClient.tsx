@@ -279,8 +279,8 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                 }}>
                                     <Mail size={15} /> Contact Candidate
                                 </button>
-                                {candidate.hasResume && candidate.resumeUrl && (
-                                    <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                                {candidate.hasResume && (
+                                    <a href={`/api/employer/candidates/${candidate.id}/resume`} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
                                         ...clayBtn, background: '#FFFFFF', color: '#2A4A5A',
                                     }}>
                                         <FileText size={15} /> Download Resume
@@ -422,8 +422,8 @@ export default function CandidateProfileClient({ candidateId }: { candidateId: s
                                 </a>
                             </div>
                         )}
-                        {candidate.hasResume && candidate.resumeUrl && (
-                            <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
+                        {candidate.hasResume && (
+                            <a href={`/api/employer/candidates/${candidate.id}/resume`} target="_blank" rel="noopener noreferrer" className="cp-action-btn" style={{
                                 ...clayBtn, background: '#FFFFFF', color: '#2A4A5A',
                             }}>
                                 <FileText size={15} /> Download Resume

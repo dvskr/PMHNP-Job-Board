@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ const faqs = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const stats = await getStats();
-  return { title: `${stats.totalJobs} Hospital PMHNP Jobs ($140K-200K)`, description: `Find ${stats.totalJobs} hospital PMHNP jobs. Acute care, ER psych, and inpatient positions paying $140K-200K+ with PSLF eligibility.`, alternates: { canonical: 'https://pmhnphiring.com/jobs/hospital' } };
+  return { title: `${stats.totalJobs} Hospital PMHNP Jobs ($140K-200K)`, description: `Find ${stats.totalJobs} hospital PMHNP jobs. Acute care, ER psych, and inpatient positions paying $140K-200K+ with PSLF eligibility.`, alternates: { canonical: `${brand.baseUrl}/jobs/hospital` } };
 }
 
 interface PageProps { searchParams: Promise<{ page?: string }>; }

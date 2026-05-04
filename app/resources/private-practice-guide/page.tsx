@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Building2, DollarSign, FileText, CheckCircle, Shield, Users, BookOpen, Landmark } from 'lucide-react';
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
     description: 'Step-by-step guide to launching your own psychiatric nurse practitioner private practice.',
     type: 'article',
   },
-  alternates: { canonical: 'https://pmhnphiring.com/resources/private-practice-guide' },
+  alternates: { canonical: `${brand.baseUrl}/resources/private-practice-guide` },
 };
 
 export default function PrivatePracticeGuidePage() {

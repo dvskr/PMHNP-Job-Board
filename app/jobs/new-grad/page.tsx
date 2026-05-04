@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -138,7 +139,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
             }],
         },
         alternates: {
-            canonical: 'https://pmhnphiring.com/jobs/new-grad',
+            canonical: `${brand.baseUrl}/jobs/new-grad`,
         },
         // Prevent Google from indexing paginated variants as separate pages
         ...(page > 1 && {

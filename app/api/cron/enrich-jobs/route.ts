@@ -11,9 +11,9 @@ const MAX_JOBS_PER_RUN = 200; // Process up to 200 jobs per run
 const TIME_BUDGET_MS = 250_000; // 250s (Vercel 300s max)
 const BATCH_DELAY_MS = 200;
 
-// GPT-4o-mini pricing (per 1M tokens)
-const INPUT_COST_PER_1M = 0.15;  // $0.15 per 1M input tokens
-const OUTPUT_COST_PER_1M = 0.60; // $0.60 per 1M output tokens
+// GPT-5-mini pricing (per 1M tokens)
+const INPUT_COST_PER_1M = 0.30;  // $0.30 per 1M input tokens
+const OUTPUT_COST_PER_1M = 1.25; // $1.25 per 1M output tokens
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -77,7 +77,7 @@ async function extractWithLLM(description: string, title: string, employer: stri
     const truncated = description.substring(0, 2500);
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-mini',
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -86,8 +86,10 @@ async function extractWithLLM(description: string, title: string, employer: stri
           content: `Title: ${title}\nEmployer: ${employer}\nLocation: ${location}\n\n${truncated}`
         }
       ],
-      temperature: 0,
-      max_tokens: 300,
+      // Note: gpt-5-mini does not support temperature (only default 1).
+      // max_completion_tokens includes internal reasoning tokens — 4096 gives
+      // ~3K for thinking + ~1K for the JSON output.
+      max_completion_tokens: 4096,
     });
 
     const inputTokens = response.usage?.prompt_tokens || 0;
@@ -396,7 +398,7 @@ export async function GET(req: Request) {
         benefits: stats.benefitsUpdated,
       },
       gptUsage: {
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         inputTokens: stats.totalInputTokens,
         outputTokens: stats.totalOutputTokens,
         totalTokens: stats.totalInputTokens + stats.totalOutputTokens,

@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, Wifi, TrendingUp, Globe, Video, Plane, GraduationCap, Calendar } from 'lucide-react';
@@ -151,7 +152,7 @@ export const metadata: Metadata = {
     }],
   },
   alternates: {
-    canonical: 'https://pmhnphiring.com/jobs/locations',
+    canonical: `${brand.baseUrl}/jobs/locations`,
   },
 };
 

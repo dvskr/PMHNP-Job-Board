@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock } from 'lucide-react';
+import { Search, Filter, Users, Loader2, X, ChevronLeft, ChevronRight, Briefcase, Lock, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import CandidateCard from './CandidateCard';
 
 /* ═══════════════════════════════════════════
@@ -74,7 +76,50 @@ const clayBtn: React.CSSProperties = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Candidate = any;
 
+interface SmartMatchState {
+    /**
+     * 'idle' = Smart Match hasn't run yet (or just toggled off).
+     * 'loading' = request in flight.
+     * 'ready' = response with candidates.
+     * 'limit_reached' = 429 daily cap; banner + upgrade CTA.
+     * 'disabled' = 404 from the API (feature flag is off for this employer).
+     * 'unavailable' = transient error (network, 5xx); user should retry.
+     */
+    status: 'idle' | 'loading' | 'ready' | 'limit_reached' | 'disabled' | 'unavailable';
+    /** Daily reranks remaining after the latest call. */
+    usesRemaining: number | null;
+    /** 429-message rendered as the limit banner. */
+    limitMessage: string | null;
+}
+
 export default function CandidateSearchClient() {
+    const searchParams = useSearchParams();
+    /** Smart Match is on if `?ai=1` is in the URL, OR after the user clicks the toggle. */
+    // ?postingId=X deep-link → auto-fire JD-driven Smart Match against
+    // that posting on mount. ?ai=1 (legacy) just opens Smart Match in
+    // free-text mode.
+    const initialPostingId = searchParams.get('postingId');
+    // AI search is always on for the talent pool — typing fires the
+    // semantic + rerank pipeline by default. The legacy ?ai=1 flag and
+    // toggle button are gone; the only fallback to plain keyword search
+    // is when the rerank API returns 429 (daily cap hit) or 5xx.
+    const [aiMode, setAiMode] = useState(true);
+    /**
+     * When set, the next Smart Match call uses postingId instead of a
+     * typed query — embeds the JD's title + description against the
+     * candidate vectors. Clicking the action button next to the posting
+     * selector sets this; typing in the search bar clears it.
+     */
+    const [jdSearchPostingId, setJdSearchPostingId] = useState<string | null>(initialPostingId);
+    /** Title of the posting being JD-matched, for the result banner. */
+    const [jdSearchTitle, setJdSearchTitle] = useState<string | null>(null);
+    /** Underlying rerank failure message from the last call (dev only).
+     *  Non-null iff the LLM rerank failed and we fell back to vector order. */
+    const [rerankError, setRerankError] = useState<string | null>(null);
+    const [aiState, setAiState] = useState<SmartMatchState>({
+        status: 'idle', usesRemaining: null, limitMessage: null,
+    });
+
     const [query, setQuery] = useState('');
     const [experience, setExperience] = useState('');
     const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
@@ -117,8 +162,96 @@ export default function CandidateSearchClient() {
 
     const fetchCandidates = useCallback(async () => {
         setLoading(true);
+
+        // ── Smart Match path — POST to /api/employer/talent/search ──────
+        // Two sub-modes:
+        //   - jdSearchPostingId set → JD-driven match. Server loads the
+        //     posting and embeds its title + description.
+        //   - free-text → user-typed query (≥3 chars).
+        // When neither applies in AI mode we silently fall back to the
+        // standard browse so the page never feels empty after toggling on.
+        const hasJd = aiMode && !!jdSearchPostingId;
+        const hasText = aiMode && query.trim().length >= 3;
+        if (hasJd || hasText) {
+            setAiState((s) => ({ ...s, status: 'loading' }));
+            try {
+                const requestBody = hasJd
+                    ? {
+                        postingId: jdSearchPostingId,
+                        states: selectedStates.length > 0 ? selectedStates : undefined,
+                        k: 25,
+                    }
+                    : {
+                        query: query.trim(),
+                        states: selectedStates.length > 0 ? selectedStates : undefined,
+                        k: 25,
+                    };
+                const res = await fetch('/api/employer/talent/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                });
+                if (res.status === 404) {
+                    // Feature flag is off for this employer — surface
+                    // distinct "disabled" state so the banner can be honest
+                    // about why (vs a transient outage).
+                    setAiState({ status: 'disabled', usesRemaining: null, limitMessage: null });
+                } else if (res.status === 429) {
+                    const data = await res.json().catch(() => ({}));
+                    setAiState({
+                        status: 'limit_reached',
+                        usesRemaining: 0,
+                        limitMessage: data.message || 'Daily AI search limit reached.',
+                    });
+                    // Fall through to keyword browse so the page still works
+                    // — limit only blocks AI rerank, not regular search.
+                    // The user can type a name/specialty and get keyword
+                    // results until midnight CT.
+                } else if (res.ok) {
+                    const data = await res.json();
+                    setCandidates(data.candidates || []);
+                    setTotalCount((data.candidates || []).length);
+                    setTotalPages(1); // Smart Match returns a single ranked slate; no pagination.
+                    // For JD-driven matches the server returns the posting
+                    // title; surface it on the result banner.
+                    setJdSearchTitle(typeof data.postingTitle === 'string' ? data.postingTitle : null);
+                    // If the rerank failed and we fell back to vector
+                    // order, the API returns `rerankError` with the
+                    // underlying message (dev only). Surface it so the
+                    // page tells the truth instead of silently degrading.
+                    setRerankError(typeof data.rerankError === 'string' ? data.rerankError : null);
+                    setAiState({
+                        status: 'ready',
+                        usesRemaining: typeof data.rerankUsesRemaining === 'number' ? data.rerankUsesRemaining : null,
+                        limitMessage: null,
+                    });
+                    setLoading(false);
+                    return;
+                } else {
+                    setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+                }
+            } catch {
+                setAiState({ status: 'unavailable', usesRemaining: null, limitMessage: null });
+            }
+            // Fall through to standard browse on unavailable — keep results visible.
+        }
+
+        // Build params for the regular browse.
+        //
+        // When falling through from an AI flag-off or transient outage
+        // (status='disabled' or 'unavailable'), we DROP the query text —
+        // AI-style queries are sentences, not substrings, and passing
+        // them to the keyword endpoint reliably matches zero candidates.
+        //
+        // When falling through because the daily AI cap is hit
+        // (status='limit_reached'), we KEEP the query — the user is
+        // still actively trying to search; they should be able to keep
+        // working with keyword search the rest of the day.
+        const fallingBackFromAiSilently = aiMode
+            && query.trim().length >= 3
+            && (aiState.status === 'disabled' || aiState.status === 'unavailable');
         const params = new URLSearchParams();
-        if (query) params.set('q', query);
+        if (query && !fallingBackFromAiSilently) params.set('q', query);
         if (experience) params.set('experience', experience);
         if (selectedSpecialties.length) params.set('specialties', selectedSpecialties.join(','));
         if (selectedStates.length) params.set('states', selectedStates.join(','));
@@ -140,7 +273,7 @@ export default function CandidateSearchClient() {
             }
         } catch { /* silent */ }
         setLoading(false);
-    }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page]);
+    }, [aiMode, jdSearchPostingId, query, experience, selectedSpecialties, selectedStates, workMode, hasResume, page]);
 
     // Debounced search
     useEffect(() => {
@@ -166,6 +299,22 @@ export default function CandidateSearchClient() {
                 if (usageRes.ok) {
                     const usageData = await usageRes.json();
                     setUnlockUsage(usageData.usage?.candidateUnlocks || null);
+                    // Seed AI usage so the tracker badge shows the right
+                    // count on page load (used to start at 0/10 and only
+                    // update after the first search completed).
+                    const ai = usageData.usage?.aiSearches as
+                        | { used: number; limit: number; remaining: number }
+                        | undefined;
+                    if (ai) {
+                        const atLimit = ai.remaining <= 0;
+                        setAiState({
+                            status: atLimit ? 'limit_reached' : 'idle',
+                            usesRemaining: ai.remaining,
+                            limitMessage: atLimit
+                                ? `You've used your ${ai.limit} AI searches for today. Resets at midnight Central Time.`
+                                : null,
+                        });
+                    }
                     if (usageData.postings) {
                         setPostings(usageData.postings);
                         // Restore from sessionStorage or default to first
@@ -214,6 +363,10 @@ export default function CandidateSearchClient() {
         setPage(1);
     }, [query, experience, selectedSpecialties, selectedStates, workMode, hasResume]);
 
+    // (Smart Match toggle removed — AI is always the engine for typed
+    // queries on this page. The aiMode state stays as a flag in case
+    // future flows need to disable AI temporarily.)
+
     const toggleSpecialty = (s: string) => {
         setSelectedSpecialties(prev =>
             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
@@ -245,34 +398,9 @@ export default function CandidateSearchClient() {
 
     return (
         <div style={{ background: '#F5F0EB' }}>
-            {/* ═══ Hero Header ═══ */}
-            <div style={{
-                padding: '20px 16px 16px',
-                background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
-                borderBottom: '1px solid #E5DDD3',
-            }}>
-                <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{
-                        width: '48px', height: '48px', borderRadius: '16px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'linear-gradient(145deg, #10B981, #0D9488)', color: '#fff', flexShrink: 0,
-                        boxShadow: '4px 4px 10px rgba(13,148,136,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-                    }}>
-                        <Users size={22} />
-                    </div>
-                    <div>
-                        <h1 style={{
-                            fontSize: '24px', fontWeight: 800,
-                            fontFamily: 'var(--font-lora), Georgia, serif',
-                            color: '#1A2E35', margin: '0 0 2px',
-                        }}>PMHNP Talent Pool</h1>
-                        <p style={{ fontSize: '13px', color: '#6B7F8A', margin: 0 }}>
-                            {loading ? 'Loading...' : `${totalCount} qualified candidate${totalCount !== 1 ? 's' : ''} available`}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
+            {/* Hero header removed — the top nav already labels this page
+                'Browse Talent Pool', and the count of available candidates
+                shows in the result-count line below the search bar. */}
             <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '20px 16px 48px' }}>
 
                 {/* ═══ Posting Selector ═══ */}
@@ -321,52 +449,241 @@ export default function CandidateSearchClient() {
                                 </div>
                             );
                         })()}
+                        {/* JD-driven Smart Match — Sprint 1.3.6.
+                            Skip the typing step; embed the posting's JD
+                            against candidate vectors. Forces aiMode on and
+                            sets jdSearchPostingId so the next fetch fires
+                            against /api/employer/talent/search with
+                            { postingId } instead of { query }. */}
+                        {selectedPostingId && (() => {
+                            const atLimit = aiState.status === 'limit_reached';
+                            return (
+                                <button
+                                    onClick={() => {
+                                        if (atLimit) return;
+                                        setAiMode(true);
+                                        setQuery('');
+                                        setJdSearchPostingId(selectedPostingId);
+                                        setJdSearchTitle(null);
+                                    }}
+                                    disabled={atLimit}
+                                    className="tp-filter-btn"
+                                    title={atLimit
+                                        ? 'Daily AI search limit reached. Resets at midnight Central Time.'
+                                        : 'Use this posting\'s job description as the AI search query'}
+                                    style={{
+                                        ...clayBtn,
+                                        background: atLimit
+                                            ? '#E5E7EB'
+                                            : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                        color: atLimit ? '#9CA3AF' : '#fff',
+                                        border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
+                                        boxShadow: atLimit
+                                            ? 'inset 1px 1px 2px rgba(0,0,0,0.04)'
+                                            : '3px 3px 8px rgba(124,58,237,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+                                        cursor: atLimit ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    <Sparkles size={13} /> Find AI Matches for this Posting
+                                </button>
+                            );
+                        })()}
                     </div>
                 )}
 
-                {/* ═══ Search + Filter Toggle ═══ */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                        <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={e => setQuery(e.target.value)}
-                            placeholder="Search by name, specialty, keyword..."
-                            style={{ ...clayInput, paddingLeft: '38px', fontSize: '14px' }}
-                        />
+                {/* ═══ AI tracker chip + Search bar + Filters — single row ═══
+                    Tracker chip on the left mirrors the UNLOCKS / INMAILS
+                    chip pattern from the dashboard (icon-square + label +
+                    count + thin progress bar pinned to bottom). Search
+                    bar fills remaining space; same visual height. */}
+                {(() => {
+                    const cap = 10;
+                    const usesRemaining = aiState.usesRemaining;
+                    const used = usesRemaining === null ? 0 : Math.max(0, cap - usesRemaining);
+                    const atLimit = aiState.status === 'limit_reached' || used >= cap;
+                    const isNearLimit = used >= cap * 0.8;
+                    const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
+
+                    return (
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                            {/* AI Searches chip — proper clay styling matching cardBase
+                                tokens used elsewhere on this page. Multi-layer shadows
+                                (outer drop + outer light + inset highlights) so it
+                                feels carved, not flat. Border color escalates with
+                                usage; the icon square is a gradient pill, not a
+                                flat tint. */}
+                            <div
+                                style={{
+                                    ...cardBase,
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    padding: '12px 16px',
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                    flexShrink: 0, minWidth: '200px',
+                                    position: 'relative', overflow: 'hidden',
+                                }}
+                                title={atLimit
+                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
+                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
+                            >
+                                {/* Icon square — always the soft purple gradient.
+                                    The count value carries the at-limit signal in red
+                                    text; the icon stays calm so the chip doesn't
+                                    feel like an alert. */}
+                                <div style={{
+                                    width: '34px', height: '34px', borderRadius: '11px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'linear-gradient(145deg, #C4B5FD, #A78BFA)',
+                                    color: '#fff',
+                                    flexShrink: 0,
+                                    boxShadow: '3px 3px 8px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 1px rgba(0,0,0,0.05)',
+                                }}>
+                                    <Sparkles size={15} />
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+                                    <span style={{
+                                        fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
+                                        textTransform: 'uppercase', letterSpacing: '0.08em',
+                                        whiteSpace: 'nowrap',
+                                    }}>AI Searches</span>
+                                    <span style={{
+                                        fontSize: '15px', fontWeight: 800,
+                                        color: valueColor,
+                                        fontVariantNumeric: 'tabular-nums',
+                                        whiteSpace: 'nowrap',
+                                        letterSpacing: '0.01em',
+                                    }}>
+                                        {used}<span style={{ opacity: 0.4, fontWeight: 700 }}>/{cap}</span>
+                                    </span>
+                                </div>
+                                {/* Progress bar removed — the count text alone is
+                                    a clean enough signal; the bar at the bottom
+                                    was visually noisy at the limit state. */}
+                            </div>
+
+                            {/* Search bar (clay) + inline AI submit */}
+                            <div style={{ flex: 1, minWidth: '240px', position: 'relative', display: 'flex' }}>
+                                <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        onChange={e => {
+                                            setQuery(e.target.value);
+                                            if (jdSearchPostingId) {
+                                                setJdSearchPostingId(null);
+                                                setJdSearchTitle(null);
+                                            }
+                                        }}
+                                        placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                                        style={{
+                                            ...clayInput,
+                                            paddingLeft: '38px',
+                                            paddingRight: '90px',
+                                            fontSize: '14px',
+                                        }}
+                                    />
+                                    {/* Inline AI Search button — sits inside the search bar */}
+                                    <button
+                                        type="button"
+                                        disabled={atLimit || query.trim().length < 3}
+                                        onClick={() => {
+                                            if (atLimit || query.trim().length < 3) return;
+                                            // Force a fetch by re-triggering the debounced effect.
+                                            // The query change already triggers fetchCandidates;
+                                            // this button is the explicit submit affordance.
+                                            setAiMode(true);
+                                        }}
+                                        title={atLimit
+                                            ? 'AI search limit reached. Resets at midnight CT.'
+                                            : query.trim().length < 3
+                                                ? 'Type at least 3 characters'
+                                                : 'Run AI search'}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '6px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '6px 12px',
+                                            borderRadius: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: 700,
+                                            cursor: (atLimit || query.trim().length < 3) ? 'not-allowed' : 'pointer',
+                                            background: atLimit
+                                                ? '#E5E7EB'
+                                                : 'linear-gradient(145deg, #8B5CF6, #7C3AED)',
+                                            color: atLimit ? '#9CA3AF' : '#fff',
+                                            border: atLimit ? '1px solid #D1D5DB' : '1px solid #A78BFA',
+                                            boxShadow: atLimit
+                                                ? 'inset 1px 1px 2px rgba(0,0,0,0.04)'
+                                                : '2px 2px 6px rgba(124,58,237,0.25)',
+                                            opacity: query.trim().length < 3 ? 0.55 : 1,
+                                            transition: 'all 0.15s',
+                                        }}
+                                    >
+                                        <Sparkles size={11} />
+                                        AI Search
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className="tp-filter-btn"
+                                    style={{
+                                        ...clayBtn,
+                                        background: showFilters ? '#CCFBF1' : '#F7FBF8',
+                                        color: showFilters ? '#0D9488' : '#2A4A5A',
+                                        border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
+                                    }}
+                                >
+                                    <Filter size={14} />
+                                    Filters
+                                    {activeFilterCount > 0 && (
+                                        <span style={{
+                                            background: '#0D9488', color: '#fff',
+                                            fontSize: '10px', fontWeight: 700,
+                                            padding: '1px 7px', borderRadius: '10px',
+                                        }}>
+                                            {activeFilterCount}
+                                        </span>
+                                    )}
+                                </button>
+                                {activeFilterCount > 0 && (
+                                    <button onClick={clearFilters} className="tp-filter-btn" style={{
+                                        ...clayBtn, background: '#FEE2E2', color: '#DC2626',
+                                        border: '1px solid #FECACA',
+                                    }}>
+                                        <X size={13} /> Clear
+                                    </button>
+                                )}
+                        </div>
+                    );
+                })()}
+
+                {/* Limit-reached banner removed — the tracker badge above
+                    already shows '10/10 — resets at midnight CT' in red,
+                    so this was redundant noise. */}
+                {aiMode && aiState.status === 'disabled' && (
+                    <div style={{
+                        ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
+                        fontSize: '12px', color: '#92400E',
+                    }}>
+                        AI search isn&rsquo;t enabled on your account yet — contact support if you&rsquo;d like early access.
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="tp-filter-btn"
-                        style={{
-                            ...clayBtn,
-                            background: showFilters ? '#CCFBF1' : '#F7FBF8',
-                            color: showFilters ? '#0D9488' : '#2A4A5A',
-                            border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
-                        }}
-                    >
-                        <Filter size={14} />
-                        Filters
-                        {activeFilterCount > 0 && (
-                            <span style={{
-                                background: '#0D9488', color: '#fff',
-                                fontSize: '10px', fontWeight: 700,
-                                padding: '1px 7px', borderRadius: '10px',
-                            }}>
-                                {activeFilterCount}
-                            </span>
-                        )}
-                    </button>
-                    {activeFilterCount > 0 && (
-                        <button onClick={clearFilters} className="tp-filter-btn" style={{
-                            ...clayBtn, background: '#FEE2E2', color: '#DC2626',
-                            border: '1px solid #FECACA',
-                        }}>
-                            <X size={13} /> Clear
-                        </button>
-                    )}
-                </div>
+                )}
+                {aiMode && aiState.status === 'unavailable' && (
+                    <div style={{
+                        ...cardRecessed, padding: '12px 16px', marginBottom: '16px',
+                        fontSize: '12px', color: '#92400E',
+                    }}>
+                        AI search is temporarily unavailable — try again in a moment.
+                    </div>
+                )}
+                {/* Removed: helper text below the search bar — the placeholder
+                    inside the input + the AI Search button's disabled state
+                    already convey the same guidance without taking visual space. */}
 
                 {/* ═══ Filter Panel ═══ */}
                 {showFilters && (
@@ -486,9 +803,62 @@ export default function CandidateSearchClient() {
                     </div>
                 ) : (
                     <>
+                        {/* Rerank-failure diagnostic — surfaces the actual
+                            error so we can stop chasing dev-server logs. */}
+                        {rerankError && aiState.status === 'ready' && (
+                            <div style={{
+                                background: '#FEF3C7',
+                                border: '1px solid #FCD34D',
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                marginBottom: '14px',
+                                fontSize: '12px',
+                                color: '#92400E',
+                                fontFamily: 'monospace',
+                            }}>
+                                <strong>Rerank fell back to vector order.</strong> Reason: {rerankError}
+                            </div>
+                        )}
+
+                        {/* JD-match result banner — only when actively
+                            showing candidates ranked against a posting. */}
+                        {jdSearchPostingId && jdSearchTitle && aiState.status === 'ready' && (
+                            <div style={{
+                                background: 'linear-gradient(145deg, #F5F3FF, #EDE9FE)',
+                                border: '1px solid #DDD6FE',
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                marginBottom: '14px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: '10px', flexWrap: 'wrap',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#4C1D95' }}>
+                                    <Sparkles size={14} style={{ color: '#7C3AED' }} />
+                                    <span>Showing top candidates for <strong>{jdSearchTitle}</strong></span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setJdSearchPostingId(null);
+                                        setJdSearchTitle(null);
+                                    }}
+                                    style={{
+                                        fontSize: '12px', padding: '4px 10px', borderRadius: '8px',
+                                        background: '#FFFFFF', color: '#6B21A8',
+                                        border: '1px solid #DDD6FE', cursor: 'pointer', fontWeight: 600,
+                                    }}
+                                >
+                                    Clear posting filter
+                                </button>
+                            </div>
+                        )}
+
                         {/* Results count */}
                         <p style={{ fontSize: '12px', color: '#8A9BA6', marginBottom: '14px', fontWeight: 500 }}>
-                            Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, totalCount)} of {totalCount} candidate{totalCount !== 1 ? 's' : ''}
+                            {aiMode && aiState.status === 'ready'
+                                ? jdSearchPostingId
+                                    ? `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for this posting`
+                                    : `Top ${candidates.length} AI-ranked candidate${candidates.length !== 1 ? 's' : ''} for your query`
+                                : `Showing ${(page - 1) * 20 + 1}–${Math.min(page * 20, totalCount)} of ${totalCount} candidate${totalCount !== 1 ? 's' : ''}`}
                         </p>
 
                         {/* Card Grid */}
@@ -513,13 +883,15 @@ export default function CandidateSearchClient() {
                                         isViewed={viewedIds.has(c.id)}
                                         unlockUsage={perPostingUsage}
                                         onToggleSave={toggleSave}
+                                        aiReason={c.reason}
+                                        aiMatchPercent={typeof c.matchPercent === 'number' ? c.matchPercent : undefined}
                                     />
                                 );
                             })}
                         </div>
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
+                        {/* Pagination — hidden in Smart Match (single ranked slate) */}
+                        {!aiMode && totalPages > 1 && (
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
                                 <button
                                     onClick={() => setPage(p => Math.max(1, p - 1))}

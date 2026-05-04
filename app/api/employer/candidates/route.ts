@@ -54,7 +54,10 @@ export async function GET(req: NextRequest) {
         role: 'job_seeker',
     }
 
-    // Text search: match against firstName, lastName, headline, specialties, certifications
+    // Text search: match against the fields a recruiter actually searches
+    // by — name, headline, specialties, certifications, work mode (so
+    // "remote"/"hybrid"/"onsite" works), and bio (catches phrases that
+    // don't fit the other columns).
     if (q) {
         where.OR = [
             { firstName: { contains: q, mode: 'insensitive' } },
@@ -62,6 +65,10 @@ export async function GET(req: NextRequest) {
             { headline: { contains: q, mode: 'insensitive' } },
             { specialties: { contains: q, mode: 'insensitive' } },
             { certifications: { contains: q, mode: 'insensitive' } },
+            { preferredWorkMode: { contains: q, mode: 'insensitive' } },
+            { bio: { contains: q, mode: 'insensitive' } },
+            { state: { contains: q, mode: 'insensitive' } },
+            { city: { contains: q, mode: 'insensitive' } },
         ]
     }
 

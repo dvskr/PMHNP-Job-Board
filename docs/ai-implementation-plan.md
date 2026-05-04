@@ -185,6 +185,48 @@ If any gate fails → PR is blocked from merge. No exceptions.
 
 **Sprint 0.1 done when:** Existing scoring uses gateway, dashboard shows real cost data, killing OpenAI in dev fails over to Anthropic without user-visible error.
 
+#### 0.1.A — Task → Model Routing Table (config to seed in Sprint 0.1.2)
+
+The gateway routes by `task` string, NOT by hard-coded model. Engineers building Sprint 0.1.2 should seed `lib/ai/gateway/task-config.ts` (or equivalent) with this exact mapping. Single source of truth for "which model handles which workload" — change the table, not the call sites. Mirrors [ai-architecture.md Section 7.1](./ai-architecture.md#71-model-selection-per-feature).
+
+| Task ID | Primary model | Fallback model | Output mode | Why |
+|---|---|---|---|---|
+| `candidate_scoring` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Drives employer-visible decisions; needs reasoning quality |
+| `resume_parsing` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Structured extraction |
+| `spam_fraud_detection` | `gpt-5-nano` | `gpt-5-mini` | JSON | High volume, binary classification, cost-sensitive |
+| `bias_audit` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Pattern detection across phrases |
+| `talent_search_rerank` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Cost matters per search; rank quality matters more than scoring |
+| `application_coach` | `gpt-5-mini` | `claude-sonnet-4-6` | JSON | Pre-submit feedback, structured suggestions |
+| `support_bot` | `gpt-5-mini` | `claude-sonnet-4-6` | text | Conversational, must follow instructions reliably |
+| `cover_letter` | `gpt-5.4` | `claude-opus-4-7` | text | Creative writing, paid-tier, quality directly perceived |
+| `jd_generator` | `gpt-5.4` | `claude-opus-4-7` | text | Creative writing, employer-visible quality |
+| `outreach_composer` | `gpt-5.4` | `claude-opus-4-7` | text | Personalization is the value prop |
+| `seo_content` | `gpt-5.4` | `claude-opus-4-7` | text | Long-form, infrequent. `gpt-5.5` reserved for hero pages — opt-in via `priority: 'premium'` |
+| `career_path_analysis` | `gpt-5.4` | `claude-opus-4-7` | JSON | Multi-hop reasoning over candidate trajectory |
+| `embeddings_generic` | `text-embedding-3-small` | (no fallback — rare) | vector | All embedding workloads (jobs, candidates, queries) |
+
+**Routing API contract** — call sites pass the task, not the model:
+
+```typescript
+// Correct — call site picks the task, gateway picks the model
+await complete({ task: 'candidate_scoring', messages: [...], cacheKey: [...] });
+
+// Wrong — never hardcode model at call site (ESLint rule will catch this in Sprint 0.4.7)
+await complete({ task: 'candidate_scoring', model: 'gpt-5-mini', messages: [...] });
+```
+
+**Override paths (rare, but explicit):**
+- `priority: 'premium'` → routes to higher-tier model (e.g., `seo_content` → `gpt-5.5`). Used for hero content only.
+- `provider: 'anthropic'` → forces fallback provider. Used in chaos tests.
+- `model: '<exact>'` → escape hatch for one-off A/B experiments. Requires explicit `// eslint-disable-next-line ai/no-direct-model` comment.
+
+**Migration path when models update (e.g., gpt-5.5 → gpt-5.6):**
+1. Update one row in `task-config.ts`
+2. Eval suite runs in CI on the affected task(s) — must hold baseline
+3. Bias eval runs — variance still ≤2pt
+4. Cost dashboard alert if unit cost drifts >20% post-deploy
+5. Single-line change ships, no call sites touched
+
 ### Sprint 0.2 (Week 3-4) — Prompt Registry + Eval Harness
 
 | Ticket | Description | Acceptance criteria | Est |
@@ -723,10 +765,33 @@ End of week 1: gateway live, scoring on it, eval suite running. From here, every
 
 | Phase | Status | Started | Done | Owner |
 |---|---|---|---|---|
-| Phase 0 — Foundation | 🔵 Not started | — | — | — |
-| Phase 1 — Core Matching | 🔵 Not started | — | — | — |
+| Phase 0 — Foundation | ✅ Done (all 5 sprints) | 2026-05-02 | 2026-05-02 | — |
+| Phase 1 — Core Matching | ✅ Done (all 3 sprints) | 2026-05-02 | 2026-05-02 | — |
 | Phase 2 — Candidate Copilot | 🔵 Not started | — | — | — |
 | Phase 3 — Employer Power Tools | 🔵 Not started | — | — | — |
 | Phase 4 — Platform Intelligence | 🔵 Not started | — | — | — |
 
 Update this table as phases progress. Every phase-end retro updates the table.
+
+### Sprint-level status
+
+| Sprint | Status | Notes |
+|---|---|---|
+| 0.1 — LLM Gateway | ✅ Done (2026-05-02) | Gateway live at `lib/ai/gateway.ts` with all 13 task IDs from §0.1.A wired. OpenAI primary + Anthropic fallback (via fetch, no SDK dep). `ai_call_log` migration shipped. Redis cache + per-tenant rate limit + circuit breaker + `priority: 'premium'` override. `candidate-scorer.ts` and `resume-parser.ts` migrated. Docs: `docs/ai-gateway.md`. |
+| 0.2 — Prompt registry + eval harness | ✅ Done (2026-05-02) | `lib/ai/prompts/` with versioned JSON. SCORING_PROMPT + PARSE_PROMPT moved into registry. Eval harness with `npm run eval <task>` CLI. Golden + bias seed files (curation TODO flagged for domain expert). Drift cron + `ai_eval_snapshot` table + Discord alerting. `npm run prompt:diff` tooling. |
+| 0.3 — Vector DB + embedding pipeline | ✅ Done (2026-05-02) | pgvector extension migration. `job_embeddings` + `candidate_embeddings` tables (1536-dim, IVFFlat cosine index). Inngest workers `embedding.refresh.{job,candidate}` (idempotent, throttled). `npm run backfill:embeddings` script. `lib/ai/vector-search.ts` with semantic search + reciprocal rank fusion. |
+| 0.4 — Observability + feature flags + runbooks | ✅ Done (2026-05-02) | `lib/ai/feature-flags.ts` 3-layer system (env kill > DB override > compiled default) with 16 flag IDs. `ai_feature_flag_override` table. Admin endpoints `/api/admin/ai/{stats,flags}`. PII scanner CLI (`npm run lint:pii-prompts`). First runbook (`docs/runbooks/ai-candidate-scoring.md`). |
+| 0.5 — Test infrastructure | ✅ Done (2026-05-02) | Reusable helpers: `tests/helpers/{ai,db,pii}.ts` + `tests/e2e/helpers/auth.ts`. `mockLLMResponse`, `seedTestJob/Candidate`, `assertNoPIIInPrompt`, `playwrightAuth`. CI workflow `.github/workflows/ai-gates.yml`. Cookbook in `docs/ai-testing-guide.md`. |
+| Phase 0 totals | ✅ Done | 5 migrations, 4 new tables (`ai_call_log`, `ai_eval_snapshot`, `job_embeddings`, `candidate_embeddings`, `ai_feature_flag_override`), 384 tests passing, 4 npm scripts (`eval`, `prompt:diff`, `backfill:embeddings`, `lint:pii-prompts`), 3 Inngest functions registered. |
+| 1.1 — Smart job matching | ✅ Done (2026-05-02, refined 2026-05-03; standalone page + `<SemanticJobSearch>` removed 2026-05-04 — single canonical surface) | `/api/jobs/search/semantic` route (vector + keyword RRF, degraded fallback). Semantic search happens **inline on `/jobs`** via the AI Search bar in `JobsPageClient.tsx` — the dedicated `/jobs/search` page and `<SemanticJobSearch>` client component were deleted to remove the redundant entry point. Behind `ai.search.semantic` flag. Seed `job-search.json` golden set + runbook `ai-job-search.md`. |
+| 1.2 — Personalized recommendations | ✅ Done (2026-05-02, refined 2026-05-03) | `recommendations.daily` Inngest cron with **source-type boost**: `sourceType='employer'` → 1.30×, `sourceType='direct'` or `applyOnPlatform=true` → 1.15×, scraped external → 1.00×. Boosted similarity drives diversity selection so the feed prioritizes high-conversion employer-direct + apply-on-platform jobs over scraped aggregator listings. `candidate_recommendations` table. `/api/recommendations` + `/api/recommendations/click` (idempotent). `<ForYouRecommendations>` dashboard component. Behind `ai.candidate.recommendations` flag. |
+| 1.3 — Talent pool search | ✅ Done (2026-05-02, refined 2026-05-03) | `/api/employer/talent/search` route is now a **complement** to the existing `/api/employer/candidates` browse, not a parallel system. Honors the **same** tier gates (`getEmployerTier` + `getEmployerActivePostings`), the **same** field-selection by access level (`baseSelect`/`activeSelect`/`adminSelect`), and the **same** privacy transform (last-name first-initial unless admin). Pipeline: vector → tier-gated hydrate → LLM rerank → tier-aware response. `talent_search_rerank` prompt (gpt-5-mini), 10/day per-employer cap. The standalone `/employer/talent-search` page now redirects to `/employer/candidates?ai=1` (canonical surface). Parallel `<TalentSearch>` component removed. Seed `talent-search-rerank.json` + runbook `ai-talent-search.md`. |
+| Phase 1 totals | ✅ Done | 1 migration (`candidate_recommendations`), 1 new table, 5 new API routes, 2 client components (`<SemanticJobSearch>`, `<ForYouRecommendations>`; one redirect-only page for `/employer/talent-search`), 2 Inngest functions, 1 prompt registered, 387 tests passing. |
+
+### Acknowledged gaps (deferred work, not blockers)
+
+- **Real golden-set + bias-pair curation.** Every eval suite ships with seed cases (3-5 each) clearly labeled `_curation_status: SEED_ONLY`. Production thresholds (100 golden, 50 bias pairs) require a PMHNP recruiter or clinical director — that's domain-expert work, not engineering work. The harness, CI gates, and drift cron are all wired and will work the day curated data lands.
+- **Email digest variant** (Sprint 1.2.3) is not built. The schema + API + UI + cron all exist; turning the digest on is a single Inngest function that reads the same `candidate_recommendations` table and sends via the existing Resend transport. Keep deferred until the underlying recommendation quality is validated by click-through data.
+- **A/B test infrastructure** (Sprint 1.1.6) is not built. Per-user sticky assignment + arm-level CTR tracking are both possible on top of the existing `ai_call_log` + a small `experiment_assignment` table; that's a focused half-day ticket once we have a real A/B candidate.
+- **Live eval execution in CI.** The `ai-gates.yml` workflow runs eval suites in DRY-RUN mode on PRs by default. Flip `EVAL_LIVE=1` (and provide `OPENAI_API_KEY` as a repo secret) when you want real eval execution on merges to main + nightly cron.
+- **DB migrations have NOT been applied to production.** All five Phase 0 + 1 migrations live in `prisma/migrations/`. They need a deliberate `npx prisma migrate deploy` step against the prod DB — explicitly NOT done from this session because that's a blast-radius decision the user owns.

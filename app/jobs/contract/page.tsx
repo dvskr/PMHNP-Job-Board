@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${stats.totalJobs} Contract PMHNP Jobs ($130K-180K)`,
     description: `Find ${stats.totalJobs} contract PMHNP jobs paying $130K-180K+. Browse psychiatric nurse practitioner contract positions with premium rates.`,
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/contract' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/contract` },
   };
 }
 

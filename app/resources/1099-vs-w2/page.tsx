@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { Scale, DollarSign, Calculator, CheckCircle, AlertTriangle, TrendingUp, Building2 } from 'lucide-react';
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
     description: 'Which pays more? Complete comparison of independent contractor vs employee compensation for psychiatric nurse practitioners.',
     type: 'article',
   },
-  alternates: { canonical: 'https://pmhnphiring.com/resources/1099-vs-w2' },
+  alternates: { canonical: `${brand.baseUrl}/resources/1099-vs-w2` },
 };
 
 export default function CompensationGuidePage() {

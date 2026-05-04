@@ -35,7 +35,14 @@
     "fix:salaries": "ts-node --project scripts/tsconfig.json scripts/fix-all-salaries.ts",
     "populate:display-salaries": "ts-node --project scripts/tsconfig.json scripts/populate-display-salaries.ts",
     "clean:descriptions": "ts-node --project scripts/tsconfig.json scripts/clean-job-descriptions.ts",
-    "ingest": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-ingestion.ts"
+    "ingest": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-ingestion.ts",
+    "eval": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-eval.ts",
+    "prompt:diff": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/prompt-diff.ts",
+    "backfill:embeddings": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/backfill-embeddings.ts",
+    "lint:pii-prompts": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/scan-prompt-pii.ts",
+    "db:sync-from-prod": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/sync-prod-jobs-to-local.ts",
+    "recs:run": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/run-recommendations.ts",
+    "seed:test-candidates": "ts-node -r tsconfig-paths/register --project scripts/tsconfig.json scripts/seed-test-candidates.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

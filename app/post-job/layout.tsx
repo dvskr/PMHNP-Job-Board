@@ -1,10 +1,11 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
     title: 'Post a Job | PMHNP Hiring',
     description: 'Post your PMHNP job opening and reach thousands of qualified psychiatric nurse practitioners. Starter, Growth, and Premium listings with email alerts to subscribers.',
     alternates: {
-        canonical: 'https://pmhnphiring.com/post-job',
+        canonical: `${brand.baseUrl}/post-job`,
     },
 };
 

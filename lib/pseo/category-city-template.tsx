@@ -36,6 +36,7 @@ import {
   PracticeAuthority,
 } from '@/lib/state-practice-authority';
 import { PseoPageViewTracker } from '@/components/analytics/ViewTrackers';
+import { buildCityFacts, buildTaxonomyCityNarrative } from './city-narrative';
 
 // ─── Category Configuration (extends SettingConfig for specialties) ────────────
 
@@ -1176,17 +1177,77 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
     // State not found, skip
   }
 
-  // Other categories for cross-linking — use ALL categories from asset registry
-  const otherCategories = Object.values(ALL_CATEGORY_CONFIGS).filter((c) => c.slug !== config.slug);
+  // GSC Fix (P1.5): gate cross-links by pseoStats.totalJobs ≥ 1.
+  // Empty cross-links generated thousands of "Discovered — currently not
+  // indexed" entries. Pseo stats are pre-aggregated, so these queries are fast.
+  const allOtherCategoryConfigs = Object.values(ALL_CATEGORY_CONFIGS).filter((c) => c.slug !== config.slug);
+  const otherCategoryRows = await prisma.pseoStats.findMany({
+    where: {
+      type: 'category-city',
+      locationSlug: citySlug,
+      totalJobs: { gte: 1 },
+      categorySlug: { in: allOtherCategoryConfigs.map(c => c.slug) },
+    },
+    select: { categorySlug: true },
+  });
+  const validOtherCategorySlugs = new Set(otherCategoryRows.map(r => r.categorySlug));
+  const otherCategories = allOtherCategoryConfigs.filter(c => validOtherCategorySlugs.has(c.slug));
 
   // Get visual assets from the registry for this category
   const assets = CATEGORY_ASSET_REGISTRY[config.slug];
 
-  // Nearby cities
-  const nearbyCities = city!.nearbyCities
+  // Nearby cities — gate by THIS category having ≥1 job in each candidate
+  const candidateNearby = city!.nearbyCities
     .map((slug) => getCityBySlug(slug))
     .filter((c): c is CityData => c !== undefined)
-    .slice(0, 6);
+    .slice(0, 12); // overshoot, then filter to 6
+  const nearbyRows = candidateNearby.length > 0
+    ? await prisma.pseoStats.findMany({
+        where: {
+          type: 'category-city',
+          categorySlug: config.slug,
+          locationSlug: { in: candidateNearby.map(c => c.slug) },
+          totalJobs: { gte: 1 },
+        },
+        select: { locationSlug: true },
+      })
+    : [];
+  const validNearbySlugs = new Set(nearbyRows.map(r => r.locationSlug));
+  const nearbyCities = candidateNearby.filter(c => validNearbySlugs.has(c.slug)).slice(0, 6);
+
+  // P1.5: only render the "{config.label} Jobs in {state}" resource link if a
+  // setting-state page actually exists for this taxonomy + state (some
+  // taxonomies are city-only and never have a state page; others may have a
+  // state page but with 0 jobs right now).
+  const cityStateSlug = stateToSlug(city!.state);
+  const stateLinkRow = await prisma.pseoStats.findUnique({
+    where: {
+      type_categorySlug_locationSlug: {
+        type: 'setting-state',
+        categorySlug: config.slug,
+        locationSlug: cityStateSlug,
+      },
+    },
+    select: { totalJobs: true },
+  });
+  const showStateLink = (stateLinkRow?.totalJobs ?? 0) >= 1;
+
+  // P3.4: per-(taxonomy, city) narrative. DB override wins; otherwise the
+  // deterministic builder produces unique-per-(city,taxonomy,jobcount) text.
+  // This is the primary defense against GSC "Crawled — currently not indexed"
+  // because every cell now has substantively different copy from its peers.
+  const dbCatCityOverride = await prisma.categoryCitySnippet.findUnique({
+    where: {
+      categorySlug_citySlug: {
+        categorySlug: config.slug,
+        citySlug,
+      },
+    },
+    select: { body: true, approvedAt: true },
+  });
+  const taxonomyCityNarrative = dbCatCityOverride && dbCatCityOverride.approvedAt
+    ? dbCatCityOverride.body
+    : buildTaxonomyCityNarrative(buildCityFacts(city!), config.slug, stats.totalJobs);
 
   /* ═══ Design Tokens — matched to category pages ═══ */
   const clayCard: React.CSSProperties = {
@@ -1699,12 +1760,14 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
               </h3>
               <p style={{ fontSize: '12px', color: '#5A4A42', margin: 0 }}>Salary data by setting and experience.</p>
             </Link>
-            <Link href={`/jobs/${config.slug}/${stateToSlug(city!.state)}`} className="pseo-bento-card" style={{ ...clayCard, padding: '20px', textDecoration: 'none' }}>
-              <h3 className="font-lora" style={{ fontSize: '15px', fontWeight: 700, color: '#0D9488', marginBottom: '4px' }}>
-                <MapPin size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> {config.label} Jobs in {city!.state}
-              </h3>
-              <p style={{ fontSize: '12px', color: '#5A4A42', margin: 0 }}>Browse all {config.label.toLowerCase()} positions statewide.</p>
-            </Link>
+            {showStateLink && (
+              <Link href={`/jobs/${config.slug}/${stateToSlug(city!.state)}`} className="pseo-bento-card" style={{ ...clayCard, padding: '20px', textDecoration: 'none' }}>
+                <h3 className="font-lora" style={{ fontSize: '15px', fontWeight: 700, color: '#0D9488', marginBottom: '4px' }}>
+                  <MapPin size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> {config.label} Jobs in {city!.state}
+                </h3>
+                <p style={{ fontSize: '12px', color: '#5A4A42', margin: 0 }}>Browse all {config.label.toLowerCase()} positions statewide.</p>
+              </Link>
+            )}
             <Link href={`/jobs/${config.slug}`} className="pseo-bento-card" style={{ ...clayCard, padding: '20px', textDecoration: 'none' }}>
               <h3 className="font-lora" style={{ fontSize: '15px', fontWeight: 700, color: '#0D9488', marginBottom: '4px' }}>
                 <Building2 size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> All {config.label} Jobs
@@ -1718,23 +1781,25 @@ export default async function CategoryCityPage({ categoryKey, citySlug, page }: 
       {/* GEO + FAQ — in its own container wrapper */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          {/* ── GEO: AI-Quotable Answer Paragraph ─────────────────────────────── */}
-          <section className="pseo-bento-card" style={{ ...clayCard, padding: '24px', marginTop: '0' }} id="answer-summary" data-speakable="true">
+          {/* ── P3.4: per-(taxonomy, city) market context ─────────────────────── */}
+          {/* Replaces the prior templated "Quick Facts" block. The narrative is
+              substantively unique per (city, taxonomy, totalJobs) tuple — the
+              fix Google's quality model actually rewards (E-E-A-T-like depth,
+              not template substitution). data-speakable preserved for AEO. */}
+          <section
+            className="pseo-bento-card"
+            style={{ ...clayCard, padding: '24px', marginTop: '0' }}
+            id="answer-summary"
+            data-speakable="true"
+          >
             <h2 className="font-lora" style={{ fontSize: '20px', fontWeight: 700, color: '#1A2E35', marginBottom: '12px' }}>
-              {config.label} PMHNP Jobs in {city!.name}: Quick Facts
+              {config.label} PMHNP Market in {city!.name}, {city!.stateCode}
             </h2>
-            <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#5A4A42' }}>
-              As of {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}, there {stats.totalJobs === 1 ? 'is' : 'are'}{' '}
-              <strong>{stats.totalJobs} {config.label.toLowerCase()} PMHNP {stats.totalJobs === 1 ? 'position' : 'positions'}</strong> available
-              in {city!.name}, {city!.stateCode}.
-              {stats.rawAvgSalary > 0 && <> The average salary for these positions is <strong>${stats.rawAvgSalary}K per year</strong>{city!.costOfLivingIndex !== 100 ? `, which is approximately $${stats.colAdjustedSalary}K when adjusted for ${city!.name}'s cost of living index (${city!.costOfLivingIndex})` : ''}.</>}
-              {' '}{city!.name} has a population of {city!.population.toLocaleString('en-US')} and
-              {city!.mentalHealthShortage ? ' is designated as a Mental Health Professional Shortage Area (HPSA), indicating high demand for psychiatric providers.' : ' has growing demand for mental health services.'}
-              {practiceAuthority && <>{' '}{city!.state} is a <strong>{practiceAuthority.authority}</strong> practice authority state for nurse practitioners.</>}
-              {config.salaryRange && <> The typical salary range for {config.label.toLowerCase()} roles is <strong>{config.salaryRange}</strong>.</>}
+            <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#5A4A42', margin: 0 }}>
+              {taxonomyCityNarrative}
             </p>
             <p style={{ fontSize: '11px', marginTop: '8px', color: '#A09080' }}>
-              Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA HPSA data. Updated {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
+              Sources: U.S. Census Bureau, Bureau of Labor Statistics, HRSA HPSA data, AANP State Practice Environment. Updated {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.
             </p>
           </section>
 

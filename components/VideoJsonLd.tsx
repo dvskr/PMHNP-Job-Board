@@ -1,4 +1,5 @@
 import { getPageVideoSEO } from '@/lib/video-seo';
+import { brand } from '@/config/brand';
 
 interface VideoJsonLdProps {
     pathname: string;
@@ -12,30 +13,28 @@ export default function VideoJsonLd({ pathname }: VideoJsonLdProps) {
     const video = getPageVideoSEO(pathname);
     if (!video) return null;
 
-    const BASE_URL = 'https://pmhnphiring.com';
-
     const jsonLd = {
         '@context': 'https://schema.org',
         '@type': 'VideoObject',
         name: video.title,
         description: video.description,
-        thumbnailUrl: `${BASE_URL}${video.thumbnail}`,
-        contentUrl: `${BASE_URL}${video.video}`,
+        thumbnailUrl: `${brand.baseUrl}${video.thumbnail}`,
+        contentUrl: `${brand.baseUrl}${video.video}`,
         uploadDate: video.uploadDate,
         duration: `PT${video.duration}S`,
-        embedUrl: `${BASE_URL}${video.video}`,
+        embedUrl: `${brand.baseUrl}${video.video}`,
         inLanguage: 'en',
         isFamilyFriendly: true,
         potentialAction: {
             '@type': 'WatchAction',
-            target: `${BASE_URL}${pathname}`,
+            target: `${brand.baseUrl}${pathname}`,
         },
         publisher: {
             '@type': 'Organization',
-            name: 'PMHNP Hiring',
+            name: brand.name,
             logo: {
                 '@type': 'ImageObject',
-                url: `${BASE_URL}https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pmhnp-hiring-logo.webp`,
+                url: 'https://sggccmqjzuimwlahocmy.supabase.co/storage/v1/object/public/site-assets/images/pmhnp-hiring-logo.webp',
             },
         },
     };
@@ -47,3 +46,4 @@ export default function VideoJsonLd({ pathname }: VideoJsonLdProps) {
         />
     );
 }
+

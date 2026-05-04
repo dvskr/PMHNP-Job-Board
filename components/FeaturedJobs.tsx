@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Clock, ArrowUpRight, Briefcase, DollarSign } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { trackJobListView, buildJobItem } from '@/lib/analytics';
 
 interface FeaturedJob {
@@ -31,10 +31,6 @@ function relativeTime(s: string): string {
     if (h < 24) return `${h}h ago`;
     if (d < 30) return `${d}d ago`;
     return `${Math.floor(d / 30)}mo ago`;
-}
-
-function isNew(s: string): boolean {
-    return Date.now() - new Date(s).getTime() < 48 * 3600000;
 }
 
 const fadeUp = {
@@ -221,11 +217,12 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
     if (jobs.length === 0) return null;
 
     return (
+        <LazyMotion features={domAnimation}>
         <section className="fjs-wrap">
             <style>{css}</style>
 
             {/* ── Header ── */}
-            <motion.div
+            <m.div
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-60px' }}
@@ -233,26 +230,26 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                 style={{ maxWidth: '1360px', margin: '0 auto', padding: '80px 56px 56px', position: 'relative', zIndex: 1 }}
                 className="fjs-header"
             >
-                <motion.p
+                <m.p
                     variants={fadeUp}
                     style={{ fontSize: '13px', fontWeight: 600, color: '#e8788c', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '12px' }}
                 >
                     A seamless path to your next role
-                </motion.p>
-                <motion.h2
+                </m.p>
+                <m.h2
                     variants={fadeUp}
                     className="font-lora"
                     style={{ fontSize: '44px', fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.15 }}
                 >
                     How it works
-                </motion.h2>
-            </motion.div>
+                </m.h2>
+            </m.div>
 
             {/* ── SPLIT: Process Left / Jobs Right ── */}
             <div className="fjs-split" style={{ position: 'relative', zIndex: 1 }}>
 
                 {/* ═══ LEFT: Vertical process spine ═══ */}
-                <motion.div
+                <m.div
                     className="fjs-col-left"
                     initial="hidden"
                     whileInView="visible"
@@ -261,7 +258,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                 >
                     <div className="fjs-spine">
                         {STEPS.map((step, i) => (
-                            <motion.div
+                            <m.div
                                 key={i}
                                 className="fjs-spine-node"
                                 variants={fadeLeft}
@@ -292,12 +289,12 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                 <p style={{ fontSize: '13px', color: 'rgba(248,232,236,0.4)', margin: 0, lineHeight: 1.55 }}>
                                     {step.desc}
                                 </p>
-                            </motion.div>
+                            </m.div>
                         ))}
                     </div>
 
                     {/* CTA */}
-                    <motion.div variants={fadeLeft} style={{ marginTop: '32px', paddingLeft: '32px' }}>
+                    <m.div variants={fadeLeft} style={{ marginTop: '32px', paddingLeft: '32px' }}>
                         <Link
                             href="/register"
                             style={{
@@ -327,18 +324,18 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         >
                             Join Now <ArrowUpRight size={15} />
                         </Link>
-                    </motion.div>
-                </motion.div>
+                    </m.div>
+                </m.div>
 
                 {/* ═══ RIGHT: Featured jobs ═══ */}
-                <motion.div
+                <m.div
                     className="fjs-col-right"
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true }}
                     variants={stagger}
                 >
-                    <motion.div variants={fadeRight} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <m.div variants={fadeRight} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <p style={{ fontSize: '13px', fontWeight: 600, color: '#e8788c', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0 }}>
                             Latest openings
                         </p>
@@ -348,15 +345,14 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                         >
                             View all <ArrowUpRight size={13} />
                         </Link>
-                    </motion.div>
+                    </m.div>
 
                     {jobs.slice(0, 8).map((job, i) => {
                         const href = job.slug ? `/jobs/${job.slug}` : `/jobs/${job.id}`;
                         const postedDate = job.originalPostedAt || job.createdAt;
-                        const fresh = isNew(postedDate);
 
                         return (
-                            <motion.div key={job.id} variants={fadeRight}>
+                            <m.div key={job.id} variants={fadeRight}>
                                 <Link href={href} className="fjs-job">
                                     {/* Styled number */}
                                     <span
@@ -389,11 +385,7 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                                     <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
                                                 </>
                                             )}
-                                            {fresh && (
-                                                <span style={{ fontSize: '12px', fontWeight: 600, color: '#6ee7b7' }}>
-                                                    New
-                                                </span>
-                                            )}
+                                            {/* "New" recency badge removed — relativeTime below already conveys freshness. */}
                                             <span style={{ fontSize: '12px', color: 'rgba(248,232,236,0.35)' }}>
                                                 {relativeTime(postedDate)}
                                             </span>
@@ -448,11 +440,13 @@ export default function FeaturedJobs({ jobs }: FeaturedJobsProps) {
                                         <ArrowUpRight size={18} style={{ color: '#fff' }} />
                                     </div>
                                 </Link>
-                            </motion.div>
+                            </m.div>
                         );
                     })}
-                </motion.div>
+                </m.div>
             </div>
         </section>
+
+        </LazyMotion>
     );
 }

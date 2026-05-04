@@ -1,3 +1,4 @@
+import { brand } from '@/config/brand';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -47,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${stats.totalJobs} Senior PMHNP Jobs � Director & Leadership ($160K-250K+)`,
     description: `Browse ${stats.totalJobs} senior PMHNP leadership positions. Clinical Director, Program Director, Medical Director, and Lead PMHNP roles paying $160K-$250K+.`,
-    alternates: { canonical: 'https://pmhnphiring.com/jobs/senior' },
+    alternates: { canonical: `${brand.baseUrl}/jobs/senior` },
     keywords: ['senior PMHNP jobs', 'PMHNP director', 'PMHNP leadership', 'clinical director psychiatric', 'PMHNP supervisor'],
     openGraph: { title: `Senior PMHNP Jobs � ${stats.totalJobs} Leadership Positions`, description: `Find ${stats.totalJobs} senior psychiatric NP roles.`, url: 'https://pmhnphiring.com/jobs/senior', type: 'website' },
   };
