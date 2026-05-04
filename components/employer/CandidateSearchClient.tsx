@@ -516,10 +516,11 @@ export default function CandidateSearchClient() {
                     </div>
                 )}
 
-                {/* ═══ Search bar (with inline AI submit) + Filters ═══
-                    AI usage tracker lives inline ABOVE the search bar as a
-                    plain badge (not a button, not a card). Live count
-                    updates from aiState as searches complete. */}
+                {/* ═══ AI tracker chip + Search bar + Filters — single row ═══
+                    Tracker chip on the left mirrors the UNLOCKS / INMAILS
+                    chip pattern from the dashboard (icon-square + label +
+                    count + thin progress bar pinned to bottom). Search
+                    bar fills remaining space; same visual height. */}
                 {(() => {
                     const cap = 10;
                     const usesRemaining = aiState.usesRemaining;
@@ -527,34 +528,76 @@ export default function CandidateSearchClient() {
                     const atLimit = aiState.status === 'limit_reached' || used >= cap;
                     const isNearLimit = used >= cap * 0.8;
                     const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
+                    const accent = '#7C3AED';
+                    const pct = Math.min((used / cap) * 100, 100);
+                    const barGradient = atLimit
+                        ? 'linear-gradient(90deg, #EF4444, #F87171)'
+                        : isNearLimit
+                            ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                            : 'linear-gradient(90deg, #7C3AED, #A78BFA)';
 
                     return (
-                        <>
-                            {/* AI Searches badge — inline label, no border, not interactive */}
-                            <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Sparkles size={12} style={{ color: '#7C3AED' }} />
-                                <span style={{
-                                    fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
-                                    textTransform: 'uppercase', letterSpacing: '0.06em',
-                                }}>AI Searches</span>
-                                <span style={{
-                                    fontSize: '12px', fontWeight: 800,
-                                    color: valueColor,
-                                    fontVariantNumeric: 'tabular-nums',
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                            {/* AI Searches chip — same anatomy as UNLOCKS / INMAILS */}
+                            <div
+                                style={{
+                                    background: '#FFFFFF',
+                                    borderRadius: '14px',
+                                    border: atLimit
+                                        ? '1px solid rgba(239,68,68,0.22)'
+                                        : isNearLimit
+                                            ? '1px solid rgba(251,191,36,0.22)'
+                                            : '1px solid rgba(0,0,0,0.05)',
+                                    boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                    padding: '10px 14px',
+                                    display: 'flex', alignItems: 'center', gap: '10px',
+                                    flexShrink: 0, minWidth: '180px',
+                                    position: 'relative', overflow: 'hidden',
+                                }}
+                                title={atLimit
+                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
+                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
+                            >
+                                {/* Icon square — purple-tinted bg */}
+                                <div style={{
+                                    width: '32px', height: '32px', borderRadius: '10px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(124,58,237,0.12)', color: accent,
+                                    flexShrink: 0,
                                 }}>
-                                    {used}/{cap}
-                                </span>
-                                {atLimit && (
-                                    <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: 600 }}>
-                                        — resets at midnight CT
+                                    <Sparkles size={14} />
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '6px' }}>
+                                    <span style={{
+                                        fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
+                                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                                        whiteSpace: 'nowrap',
+                                    }}>AI Searches</span>
+                                    <span style={{
+                                        fontSize: '14px', fontWeight: 800,
+                                        color: valueColor,
+                                        fontVariantNumeric: 'tabular-nums',
+                                        whiteSpace: 'nowrap',
+                                    }}>
+                                        {used}/{cap}
                                     </span>
-                                )}
+                                </div>
+                                {/* Progress bar pinned to the bottom edge */}
+                                <div style={{
+                                    position: 'absolute', left: 0, right: 0, bottom: 0,
+                                    height: '3px', background: '#F0F2F5',
+                                }}>
+                                    <div style={{
+                                        width: `${pct}%`, height: '100%',
+                                        background: barGradient,
+                                        transition: 'width 0.6s ease',
+                                    }} />
+                                </div>
                             </div>
 
-                            {/* Search bar (clay) + inline AI submit + Filters */}
-                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                                    <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
+                            {/* Search bar (clay) + inline AI submit */}
+                            <div style={{ flex: 1, minWidth: '240px', position: 'relative', display: 'flex' }}>
+                                <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
                                     <input
                                         type="text"
                                         value={query}
@@ -649,8 +692,7 @@ export default function CandidateSearchClient() {
                                         <X size={13} /> Clear
                                     </button>
                                 )}
-                            </div>
-                        </>
+                        </div>
                     );
                 })()}
 
