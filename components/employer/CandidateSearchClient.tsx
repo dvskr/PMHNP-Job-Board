@@ -404,7 +404,7 @@ export default function CandidateSearchClient() {
                 background: 'linear-gradient(180deg, #EDE7E0 0%, #F5F0EB 100%)',
                 borderBottom: '1px solid #E5DDD3',
             }}>
-                <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px' }}>
                     <div style={{
                         width: '48px', height: '48px', borderRadius: '16px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -413,7 +413,7 @@ export default function CandidateSearchClient() {
                     }}>
                         <Users size={22} />
                     </div>
-                    <div>
+                    <div style={{ textAlign: 'center' }}>
                         <h1 style={{
                             fontSize: '24px', fontWeight: 800,
                             fontFamily: 'var(--font-lora), Georgia, serif',
