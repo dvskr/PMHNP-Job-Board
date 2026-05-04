@@ -45,18 +45,22 @@ const RERANK_DAILY_CAP = 10;
 // the JD they already wrote. Both paths share the same downstream pipeline,
 // cost cap, tier gates, and privacy transform. The postingId path lets the
 // employer's existing JD effort do the work — no retyping requirements.
+//
+// k cap = 25 to match the 25 unlock credits each pro posting includes.
+// Bumping the cap also requires the LLM input slice (currently 30 below)
+// to be at least k + a buffer so the rerank has options to pick from.
 const bodySchema = z.union([
     z.object({
         query: z.string().min(3).max(500),
         postingId: z.undefined().optional(),
         states: z.array(z.string().length(2)).max(10).optional(),
-        k: z.number().int().min(1).max(20).optional(),
+        k: z.number().int().min(1).max(25).optional(),
     }),
     z.object({
         query: z.undefined().optional(),
         postingId: z.string().min(1).max(64),
         states: z.array(z.string().length(2)).max(10).optional(),
-        k: z.number().int().min(1).max(20).optional(),
+        k: z.number().int().min(1).max(25).optional(),
     }),
 ]);
 
@@ -261,7 +265,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // even for admin reruns — the rerank prompt does not need them and they
     // could leak via the reason text. PII scanner enforces this on the
     // prompt template itself; we belt-and-suspenders here.
-    const candidateList = ordered.slice(0, 30).map((c, i) => {
+    // Send up to 50 candidates to the LLM so it has real headroom to
+    // rank — must be at least k (25) plus a buffer so weaker candidates
+    // can be ranked at the bottom rather than silently dropped at the
+    // input slice.
+    const candidateList = ordered.slice(0, 50).map((c, i) => {
         const p = c.profile as Partial<{
             headline: string | null;
             yearsExperience: number | null;

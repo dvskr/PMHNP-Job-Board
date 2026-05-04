@@ -175,12 +175,12 @@ export default function CandidateSearchClient() {
                     ? {
                         postingId: jdSearchPostingId,
                         states: selectedStates.length > 0 ? selectedStates : undefined,
-                        k: 20,
+                        k: 25,
                     }
                     : {
                         query: query.trim(),
                         states: selectedStates.length > 0 ? selectedStates : undefined,
-                        k: 20,
+                        k: 25,
                     };
                 const res = await fetch('/api/employer/talent/search', {
                     method: 'POST',
