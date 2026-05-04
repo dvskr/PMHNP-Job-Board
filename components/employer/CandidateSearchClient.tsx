@@ -497,8 +497,10 @@ export default function CandidateSearchClient() {
                     </div>
                 )}
 
-                {/* ═══ AI usage tracker — separate card row, matches the
-                    InMails / Unlocks meter pattern from UsageWidget ═══ */}
+                {/* ═══ AI tracker + search bar + Filters — single row, same height ═══
+                    Tracker is compact (icon + label + count + inline progress
+                    bar), height-matched to the search input so the row reads
+                    as one cohesive unit. */}
                 {(() => {
                     const cap = 10;
                     const usesRemaining = aiState.usesRemaining;
@@ -515,122 +517,119 @@ export default function CandidateSearchClient() {
                             ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
                             : 'linear-gradient(90deg, #7C3AED, #A78BFA)';
 
+                    // Match the search input's height: clayInput is padding
+                    // 10px top/bottom + ~17px line + 1px border ≈ 38-40px.
+                    const ROW_HEIGHT = 40;
+
                     return (
-                        <div
-                            style={{
-                                background: '#FFFFFF',
-                                borderRadius: '14px',
-                                border: atLimit
-                                    ? '1px solid rgba(239,68,68,0.22)'
-                                    : isNearLimit
-                                        ? '1px solid rgba(251,191,36,0.22)'
-                                        : '1px solid rgba(0,0,0,0.05)',
-                                boxShadow: '4px 4px 12px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
-                                padding: '12px 16px',
-                                marginBottom: '16px',
-                                display: 'flex', flexDirection: 'column', gap: '8px',
-                                maxWidth: '320px',
-                            }}
-                            title={atLimit
-                                ? 'AI search limit reached for today. Resets at midnight Central Time.'
-                                : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{
-                                    width: '32px', height: '32px', borderRadius: '10px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: 'rgba(124,58,237,0.12)', color: accent,
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+                            {/* AI usage tracker — same height as inputs */}
+                            <div
+                                style={{
+                                    background: '#FFFFFF',
+                                    borderRadius: '12px',
+                                    border: atLimit
+                                        ? '1px solid rgba(239,68,68,0.22)'
+                                        : isNearLimit
+                                            ? '1px solid rgba(251,191,36,0.22)'
+                                            : '1px solid rgba(0,0,0,0.05)',
+                                    boxShadow: '3px 3px 8px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                    padding: '0 14px',
+                                    height: `${ROW_HEIGHT}px`,
+                                    display: 'flex', alignItems: 'center', gap: '10px',
                                     flexShrink: 0,
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                }}
+                                title={atLimit
+                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
+                                    : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
+                            >
+                                <Sparkles size={14} style={{ color: accent, flexShrink: 0 }} />
+                                <span style={{
+                                    fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
+                                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                                    whiteSpace: 'nowrap',
+                                }}>AI Searches</span>
+                                <span style={{
+                                    fontSize: '13px', fontWeight: 800,
+                                    color: valueColor,
+                                    fontVariantNumeric: 'tabular-nums',
+                                    whiteSpace: 'nowrap',
                                 }}>
-                                    <Sparkles size={14} />
-                                </div>
-                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '6px' }}>
-                                    <span style={{
-                                        fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
-                                        textTransform: 'uppercase', letterSpacing: '0.06em',
-                                    }}>AI Searches</span>
-                                    <span style={{
-                                        fontSize: '14px', fontWeight: 800,
-                                        color: valueColor,
-                                        fontVariantNumeric: 'tabular-nums',
-                                        whiteSpace: 'nowrap',
-                                    }}>
-                                        {used}/{cap}
-                                    </span>
-                                </div>
-                            </div>
-                            <div style={{
-                                width: '100%', height: '4px', borderRadius: '2px',
-                                background: '#F0F2F5',
-                                boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.05)',
-                                overflow: 'hidden',
-                            }}>
+                                    {used}/{cap}
+                                </span>
+                                {/* Progress bar pinned to the bottom edge of the card */}
                                 <div style={{
-                                    width: `${pct}%`, height: '100%', borderRadius: '2px',
-                                    background: gradient,
-                                    transition: 'width 0.6s ease',
-                                }} />
+                                    position: 'absolute', left: 0, right: 0, bottom: 0,
+                                    height: '3px', background: '#F0F2F5',
+                                }}>
+                                    <div style={{
+                                        width: `${pct}%`, height: '100%',
+                                        background: gradient,
+                                        transition: 'width 0.6s ease',
+                                    }} />
+                                </div>
                             </div>
+
+                            {/* Search bar — clay style, height-matched to tracker */}
+                            <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+                                <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#B0C4BC' }} />
+                                <input
+                                    type="text"
+                                    value={query}
+                                    onChange={e => {
+                                        setQuery(e.target.value);
+                                        if (jdSearchPostingId) {
+                                            setJdSearchPostingId(null);
+                                            setJdSearchTitle(null);
+                                        }
+                                    }}
+                                    placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                                    style={{
+                                        ...clayInput,
+                                        paddingLeft: '38px',
+                                        height: `${ROW_HEIGHT}px`,
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="tp-filter-btn"
+                                style={{
+                                    ...clayBtn,
+                                    height: `${ROW_HEIGHT}px`,
+                                    background: showFilters ? '#CCFBF1' : '#F7FBF8',
+                                    color: showFilters ? '#0D9488' : '#2A4A5A',
+                                    border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
+                                }}
+                            >
+                                <Filter size={14} />
+                                Filters
+                                {activeFilterCount > 0 && (
+                                    <span style={{
+                                        background: '#0D9488', color: '#fff',
+                                        fontSize: '10px', fontWeight: 700,
+                                        padding: '1px 7px', borderRadius: '10px',
+                                    }}>
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                            </button>
+                            {activeFilterCount > 0 && (
+                                <button onClick={clearFilters} className="tp-filter-btn" style={{
+                                    ...clayBtn, height: `${ROW_HEIGHT}px`,
+                                    background: '#FEE2E2', color: '#DC2626',
+                                    border: '1px solid #FECACA',
+                                }}>
+                                    <X size={13} /> Clear
+                                </button>
+                            )}
                         </div>
                     );
                 })()}
-
-                {/* ═══ Search + Filter row ═══ */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                        <Sparkles size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#7C3AED' }} />
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={e => {
-                                setQuery(e.target.value);
-                                if (jdSearchPostingId) {
-                                    setJdSearchPostingId(null);
-                                    setJdSearchTitle(null);
-                                }
-                            }}
-                            placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
-                            style={{
-                                ...clayInput,
-                                paddingLeft: '38px',
-                                fontSize: '14px',
-                                border: '1px solid #C4B5FD',
-                                background: '#F5F3FF',
-                            }}
-                        />
-                    </div>
-
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="tp-filter-btn"
-                        style={{
-                            ...clayBtn,
-                            background: showFilters ? '#CCFBF1' : '#F7FBF8',
-                            color: showFilters ? '#0D9488' : '#2A4A5A',
-                            border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
-                        }}
-                    >
-                        <Filter size={14} />
-                        Filters
-                        {activeFilterCount > 0 && (
-                            <span style={{
-                                background: '#0D9488', color: '#fff',
-                                fontSize: '10px', fontWeight: 700,
-                                padding: '1px 7px', borderRadius: '10px',
-                            }}>
-                                {activeFilterCount}
-                            </span>
-                        )}
-                    </button>
-                    {activeFilterCount > 0 && (
-                        <button onClick={clearFilters} className="tp-filter-btn" style={{
-                            ...clayBtn, background: '#FEE2E2', color: '#DC2626',
-                            border: '1px solid #FECACA',
-                        }}>
-                            <X size={13} /> Clear
-                        </button>
-                    )}
-                </div>
 
                 {/* ═══ Smart Match status banners ═══ */}
                 {aiMode && aiState.status === 'limit_reached' && (
