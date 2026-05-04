@@ -497,127 +497,140 @@ export default function CandidateSearchClient() {
                     </div>
                 )}
 
-                {/* ═══ Search + AI usage tracker + Filter ═══
-                    AI is always the engine — typing fires the rerank
-                    pipeline. The pill on the right of the search bar
-                    shows how many AI searches the employer has used
-                    today (resets at midnight Central). The pill is
-                    purely informational; not interactive. */}
+                {/* ═══ AI usage tracker — separate card row, matches the
+                    InMails / Unlocks meter pattern from UsageWidget ═══ */}
                 {(() => {
                     const cap = 10;
                     const usesRemaining = aiState.usesRemaining;
-                    const used = usesRemaining === null ? null : Math.max(0, cap - usesRemaining);
-                    const atLimit = aiState.status === 'limit_reached';
-                    const ratio = used === null ? 0 : used / cap;
+                    const used = usesRemaining === null ? 0 : Math.max(0, cap - usesRemaining);
+                    const atLimit = aiState.status === 'limit_reached' || used >= cap;
+                    const isNearLimit = used >= cap * 0.8;
+                    const pct = Math.min((used / cap) * 100, 100);
 
-                    let pillBg = 'linear-gradient(145deg, #F5F3FF, #EDE9FE)';
-                    let pillColor = '#6D28D9';
-                    let pillBorder = '#DDD6FE';
-                    if (atLimit) {
-                        pillBg = '#FEE2E2'; pillColor = '#991B1B'; pillBorder = '#FCA5A5';
-                    } else if (ratio >= 0.9) {
-                        pillBg = '#FEF3C7'; pillColor = '#92400E'; pillBorder = '#FCD34D';
-                    } else if (ratio >= 0.7) {
-                        pillBg = '#FFEDD5'; pillColor = '#9A3412'; pillBorder = '#FDBA74';
-                    }
+                    const valueColor = atLimit ? '#EF4444' : isNearLimit ? '#F59E0B' : '#1A2E35';
+                    const accent = '#7C3AED';
+                    const gradient = atLimit
+                        ? 'linear-gradient(90deg, #EF4444, #F87171)'
+                        : isNearLimit
+                            ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                            : 'linear-gradient(90deg, #7C3AED, #A78BFA)';
 
                     return (
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                                <Sparkles size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#7C3AED' }} />
-                                <input
-                                    type="text"
-                                    value={query}
-                                    onChange={e => {
-                                        setQuery(e.target.value);
-                                        if (jdSearchPostingId) {
-                                            setJdSearchPostingId(null);
-                                            setJdSearchTitle(null);
-                                        }
-                                    }}
-                                    placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
-                                    style={{
-                                        ...clayInput,
-                                        paddingLeft: '38px',
-                                        fontSize: '14px',
-                                        border: '1px solid #C4B5FD',
-                                        background: '#F5F3FF',
-                                    }}
-                                />
-                            </div>
-
-                            {/* AI usage tracker — visual progress + count */}
-                            <div
-                                title={atLimit
-                                    ? 'AI search limit reached for today. Resets at midnight Central Time.'
-                                    : `${used ?? 0} of ${cap} AI searches used today. Resets at midnight Central Time.`}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '8px 14px',
-                                    borderRadius: '12px',
-                                    background: pillBg,
-                                    color: pillColor,
-                                    border: `1px solid ${pillBorder}`,
-                                    fontSize: '12px',
-                                    fontWeight: 700,
+                        <div
+                            style={{
+                                background: '#FFFFFF',
+                                borderRadius: '14px',
+                                border: atLimit
+                                    ? '1px solid rgba(239,68,68,0.22)'
+                                    : isNearLimit
+                                        ? '1px solid rgba(251,191,36,0.22)'
+                                        : '1px solid rgba(0,0,0,0.05)',
+                                boxShadow: '4px 4px 12px rgba(0,0,0,0.04), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
+                                padding: '12px 16px',
+                                marginBottom: '16px',
+                                display: 'flex', flexDirection: 'column', gap: '8px',
+                                maxWidth: '320px',
+                            }}
+                            title={atLimit
+                                ? 'AI search limit reached for today. Resets at midnight Central Time.'
+                                : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                    width: '32px', height: '32px', borderRadius: '10px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'rgba(124,58,237,0.12)', color: accent,
                                     flexShrink: 0,
-                                }}
-                            >
-                                <Sparkles size={13} />
-                                <span>AI searches</span>
-                                <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                    {used ?? 0}<span style={{ opacity: 0.5 }}>/{cap}</span>
-                                </span>
-                                {/* Progress dots — visual signal at a glance */}
-                                <span style={{ display: 'inline-flex', gap: '3px', marginLeft: '2px' }}>
-                                    {Array.from({ length: cap }).map((_, i) => (
-                                        <span
-                                            key={i}
-                                            style={{
-                                                width: '6px', height: '6px', borderRadius: '50%',
-                                                background: i < (used ?? 0) ? pillColor : 'rgba(0,0,0,0.08)',
-                                                opacity: i < (used ?? 0) ? 0.8 : 1,
-                                            }}
-                                        />
-                                    ))}
-                                </span>
-                            </div>
-
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="tp-filter-btn"
-                                style={{
-                                    ...clayBtn,
-                                    background: showFilters ? '#CCFBF1' : '#F7FBF8',
-                                    color: showFilters ? '#0D9488' : '#2A4A5A',
-                                    border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
-                                }}
-                            >
-                                <Filter size={14} />
-                                Filters
-                                {activeFilterCount > 0 && (
-                                    <span style={{
-                                        background: '#0D9488', color: '#fff',
-                                        fontSize: '10px', fontWeight: 700,
-                                        padding: '1px 7px', borderRadius: '10px',
-                                    }}>
-                                        {activeFilterCount}
-                                    </span>
-                                )}
-                            </button>
-                            {activeFilterCount > 0 && (
-                                <button onClick={clearFilters} className="tp-filter-btn" style={{
-                                    ...clayBtn, background: '#FEE2E2', color: '#DC2626',
-                                    border: '1px solid #FECACA',
                                 }}>
-                                    <X size={13} /> Clear
-                                </button>
-                            )}
+                                    <Sparkles size={14} />
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '6px' }}>
+                                    <span style={{
+                                        fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
+                                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                                    }}>AI Searches</span>
+                                    <span style={{
+                                        fontSize: '14px', fontWeight: 800,
+                                        color: valueColor,
+                                        fontVariantNumeric: 'tabular-nums',
+                                        whiteSpace: 'nowrap',
+                                    }}>
+                                        {used}/{cap}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style={{
+                                width: '100%', height: '4px', borderRadius: '2px',
+                                background: '#F0F2F5',
+                                boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.05)',
+                                overflow: 'hidden',
+                            }}>
+                                <div style={{
+                                    width: `${pct}%`, height: '100%', borderRadius: '2px',
+                                    background: gradient,
+                                    transition: 'width 0.6s ease',
+                                }} />
+                            </div>
                         </div>
                     );
                 })()}
+
+                {/* ═══ Search + Filter row ═══ */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+                        <Sparkles size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#7C3AED' }} />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={e => {
+                                setQuery(e.target.value);
+                                if (jdSearchPostingId) {
+                                    setJdSearchPostingId(null);
+                                    setJdSearchTitle(null);
+                                }
+                            }}
+                            placeholder='Describe the candidate you need (e.g., "experienced CA-licensed telehealth PMHNP")'
+                            style={{
+                                ...clayInput,
+                                paddingLeft: '38px',
+                                fontSize: '14px',
+                                border: '1px solid #C4B5FD',
+                                background: '#F5F3FF',
+                            }}
+                        />
+                    </div>
+
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="tp-filter-btn"
+                        style={{
+                            ...clayBtn,
+                            background: showFilters ? '#CCFBF1' : '#F7FBF8',
+                            color: showFilters ? '#0D9488' : '#2A4A5A',
+                            border: showFilters ? '1px solid #99F6E4' : '1px solid rgba(255,255,255,0.5)',
+                        }}
+                    >
+                        <Filter size={14} />
+                        Filters
+                        {activeFilterCount > 0 && (
+                            <span style={{
+                                background: '#0D9488', color: '#fff',
+                                fontSize: '10px', fontWeight: 700,
+                                padding: '1px 7px', borderRadius: '10px',
+                            }}>
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </button>
+                    {activeFilterCount > 0 && (
+                        <button onClick={clearFilters} className="tp-filter-btn" style={{
+                            ...clayBtn, background: '#FEE2E2', color: '#DC2626',
+                            border: '1px solid #FECACA',
+                        }}>
+                            <X size={13} /> Clear
+                        </button>
+                    )}
+                </div>
 
                 {/* ═══ Smart Match status banners ═══ */}
                 {aiMode && aiState.status === 'limit_reached' && (
