@@ -385,7 +385,7 @@ export async function sendConfirmationEmail(
     const html = emailShellV2(`
       ${headerBlockV2('Your Listing Is Live', '')}
       ${spacerV2(12)}
-      ${simpleBlock('hero-job-post.png', `Your posting is now visible to over 10,000 PMHNPs actively searching for their next role. The listing will remain active for ${durationDays} days.`)}
+      ${simpleBlock('hero-job-post.png', `Your posting is now visible to thousands of PMHNPs actively searching for their next role. The listing will remain active for ${durationDays} days.`)}
       ${spacerV2(20)}
       <tr><td class="content-pad" style="padding:0 40px;">
         <div style="background:#F0FDFA;border:1px solid rgba(13,148,136,0.15);border-radius:12px;padding:16px 20px;">
