@@ -538,59 +538,74 @@ export default function CandidateSearchClient() {
 
                     return (
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'stretch' }}>
-                            {/* AI Searches chip — same anatomy as UNLOCKS / INMAILS */}
+                            {/* AI Searches chip — proper clay styling matching cardBase
+                                tokens used elsewhere on this page. Multi-layer shadows
+                                (outer drop + outer light + inset highlights) so it
+                                feels carved, not flat. Border color escalates with
+                                usage; the icon square is a gradient pill, not a
+                                flat tint. */}
                             <div
                                 style={{
-                                    background: '#FFFFFF',
-                                    borderRadius: '14px',
+                                    ...cardBase,
+                                    borderRadius: '16px',
                                     border: atLimit
-                                        ? '1px solid rgba(239,68,68,0.22)'
+                                        ? '1px solid rgba(239,68,68,0.30)'
                                         : isNearLimit
-                                            ? '1px solid rgba(251,191,36,0.22)'
-                                            : '1px solid rgba(0,0,0,0.05)',
-                                    boxShadow: '4px 4px 12px rgba(0,0,0,0.05), -2px -2px 6px rgba(255,255,255,0.7), inset 1px 1px 2px rgba(255,255,255,0.5)',
-                                    padding: '10px 14px',
-                                    display: 'flex', alignItems: 'center', gap: '10px',
-                                    flexShrink: 0, minWidth: '180px',
+                                            ? '1px solid rgba(251,191,36,0.35)'
+                                            : '1px solid rgba(124,58,237,0.18)',
+                                    padding: '12px 16px',
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                    flexShrink: 0, minWidth: '200px',
                                     position: 'relative', overflow: 'hidden',
                                 }}
                                 title={atLimit
                                     ? 'AI search limit reached for today. Resets at midnight Central Time.'
                                     : `${used} of ${cap} AI searches used today. Resets at midnight Central Time.`}
                             >
-                                {/* Icon square — purple-tinted bg */}
+                                {/* Icon square — soft purple gradient with inner highlight */}
                                 <div style={{
-                                    width: '32px', height: '32px', borderRadius: '10px',
+                                    width: '34px', height: '34px', borderRadius: '11px',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: 'rgba(124,58,237,0.12)', color: accent,
+                                    background: atLimit
+                                        ? 'linear-gradient(145deg, #FCA5A5, #F87171)'
+                                        : isNearLimit
+                                            ? 'linear-gradient(145deg, #FCD34D, #F59E0B)'
+                                            : 'linear-gradient(145deg, #C4B5FD, #A78BFA)',
+                                    color: '#fff',
                                     flexShrink: 0,
+                                    boxShadow: '3px 3px 8px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 1px rgba(0,0,0,0.05)',
                                 }}>
-                                    <Sparkles size={14} />
+                                    <Sparkles size={15} />
                                 </div>
-                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '6px' }}>
+                                <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
                                     <span style={{
                                         fontSize: '10px', fontWeight: 700, color: '#8A9BA6',
-                                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                                        textTransform: 'uppercase', letterSpacing: '0.08em',
                                         whiteSpace: 'nowrap',
                                     }}>AI Searches</span>
                                     <span style={{
-                                        fontSize: '14px', fontWeight: 800,
+                                        fontSize: '15px', fontWeight: 800,
                                         color: valueColor,
                                         fontVariantNumeric: 'tabular-nums',
                                         whiteSpace: 'nowrap',
+                                        letterSpacing: '0.01em',
                                     }}>
-                                        {used}/{cap}
+                                        {used}<span style={{ opacity: 0.4, fontWeight: 700 }}>/{cap}</span>
                                     </span>
                                 </div>
-                                {/* Progress bar pinned to the bottom edge */}
+                                {/* Inset progress trough pinned to the bottom edge */}
                                 <div style={{
-                                    position: 'absolute', left: 0, right: 0, bottom: 0,
-                                    height: '3px', background: '#F0F2F5',
+                                    position: 'absolute', left: '12px', right: '12px', bottom: '6px',
+                                    height: '3px', borderRadius: '2px',
+                                    background: 'rgba(0,0,0,0.05)',
+                                    boxShadow: 'inset 1px 1px 2px rgba(0,0,0,0.04)',
+                                    overflow: 'hidden',
                                 }}>
                                     <div style={{
-                                        width: `${pct}%`, height: '100%',
+                                        width: `${pct}%`, height: '100%', borderRadius: '2px',
                                         background: barGradient,
                                         transition: 'width 0.6s ease',
+                                        boxShadow: '0 0 4px rgba(124,58,237,0.25)',
                                     }} />
                                 </div>
                             </div>
